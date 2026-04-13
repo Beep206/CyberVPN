@@ -775,9 +775,8 @@ impl NodeRegistryRepository {
                     desktop.cross_route_success_total / desktop.continuity_total
                 },
                 benchmark_observed_events: desktop.benchmark_total.round() as i32,
-                throughput_evidence_observed_events: desktop
-                    .throughput_evidence_total
-                    .round() as i32,
+                throughput_evidence_observed_events: desktop.throughput_evidence_total.round()
+                    as i32,
                 average_benchmark_throughput_kbps: desktop.average_benchmark_throughput_kbps,
                 average_relative_throughput_ratio: desktop.average_relative_throughput_ratio,
                 average_relative_open_to_first_byte_gap_ratio: desktop

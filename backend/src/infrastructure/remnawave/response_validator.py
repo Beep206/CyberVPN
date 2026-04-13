@@ -140,6 +140,38 @@ class RemnawaveResponseValidator:
             return None
         return RemnawaveResponseValidator.validate_single(data, schema, endpoint)
 
+    @staticmethod
+    def validate_collection(
+        data: Any,
+        collection_key: str,
+        schema: type[T],
+        endpoint: str,
+    ) -> list[T]:
+        """Validate a collection that may be returned as a list or keyed envelope."""
+        if isinstance(data, list):
+            return RemnawaveResponseValidator.validate_list(data, schema, endpoint)
+
+        if isinstance(data, dict):
+            collection = data.get(collection_key)
+            if collection is None and "response" in data:
+                collection = data["response"]
+
+            if isinstance(collection, list):
+                return RemnawaveResponseValidator.validate_list(collection, schema, endpoint)
+
+        logger.error(
+            "Remnawave response validation failed - expected collection",
+            extra={
+                "endpoint": endpoint,
+                "collection_key": collection_key,
+                "actual_type": type(data).__name__,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Upstream service returned invalid response format",
+        )
+
 
 # Singleton instance
 response_validator = RemnawaveResponseValidator()

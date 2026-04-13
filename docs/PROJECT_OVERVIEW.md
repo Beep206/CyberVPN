@@ -456,6 +456,8 @@ GET    /api/v1/servers/{id}/stats      # Статистика сервера
 GET    /api/v1/monitoring/health       # Healthcheck
 GET    /api/v1/monitoring/bandwidth    # Аналитика bandwidth
 GET    /api/v1/monitoring/stats        # Системные статистики
+GET    /api/v1/monitoring/metadata     # Версия, build и git-метаданные Remnawave
+GET    /api/v1/monitoring/recap        # Агрегированный system recap по users/nodes/traffic
 WS     /api/v1/ws/monitoring           # Real-time мониторинг
 WS     /api/v1/ws/notifications        # Real-time уведомления
 ```
@@ -468,29 +470,24 @@ GET    /api/v1/telegram/user/{tg_id}   # Получить пользовател
 
 ### Интеграция с Remnawave
 
-Backend общается с Remnawave через httpx (SDK `remnawave` v2.4.4+):
+Backend общается с Remnawave через собственный validated adapter layer поверх `httpx`.
 
-```python
-# Управление пользователями
-await remnawave.users.create_user(username, traffic_limit_bytes, expire_at)
-await remnawave.users.get_all_users_v2()
-await remnawave.users.disable_user(user_uuid)
-await remnawave.users.get_subscription_link(user_uuid)
-
-# Управление серверами
-await remnawave.nodes.get_all()
-await remnawave.nodes.health_check(node_id)
-
-# Системная статистика
-await remnawave.system.get_stats()
-await remnawave.system.get_bandwidth()
-```
+- текущий baseline: panel/backend `2.7.4`, edge node `2.7.4`
+- канонический внутренний контракт: `backend/src/infrastructure/remnawave/contracts.py`
+- единая runtime surface: `backend/src/infrastructure/remnawave/client.py`
+- vendored SDK в `SDK/python-sdk-production` зафиксирован на `2.7.4` и используется только как reference material и источник contract-regression tests
+- webhook contract: `X-Remnawave-Signature` + `X-Remnawave-Timestamp` с отдельным `REMNAWAVE_WEBHOOK_SECRET`
+- selective observability coverage: `/api/v1/monitoring/health`, `/api/v1/monitoring/stats`, `/api/v1/monitoring/bandwidth`, `/api/v1/monitoring/metadata`, `/api/v1/monitoring/recap`
 
 **Remnawave Webhooks (25+ типов событий):**
 - `user.created`, `user.expired`, `user.expires_in_24_hours`
 - `user.first_connected`, `user.bandwidth_usage_threshold_reached`
 - `node.created`, `node.offline`, `node.online`
 - `service.started`, `service.stopped`
+
+В backend вебхуки Remnawave валидируются по HMAC-SHA256 через `X-Remnawave-Signature`
+и `X-Remnawave-Timestamp`. Legacy `X-Webhook-Signature` поддерживается только как
+переходный fallback.
 
 ### Платёжная система — поток обработки
 

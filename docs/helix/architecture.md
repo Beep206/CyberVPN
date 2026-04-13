@@ -119,6 +119,7 @@ sequenceDiagram
 ## Data Ownership Rules
 
 - No transport-specific rollout or manifest state is stored in `Remnawave` tables.
+- Remnawave `Node Plugins` can be used only for narrow node-local helpers; Helix ownership does not move into plugin code.
 - Adapter-owned state lives under the `helix` schema.
 - Desktop stores only what is required for runtime operation, health, and recovery.
 - Node daemon stores only local operational state needed for bundle application and rollback.

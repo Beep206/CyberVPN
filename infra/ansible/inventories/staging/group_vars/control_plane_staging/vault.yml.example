@@ -11,6 +11,7 @@ vault_control_plane_helix_internal_auth_token: "replace-with-shared-helix-intern
 vault_control_plane_helix_remnawave_token: "replace-with-remnawave-token-for-helix"
 
 vault_control_plane_backend_remnawave_token: "replace-with-backend-remnawave-token"
+vault_control_plane_backend_remnawave_webhook_secret: "replace-with-backend-remnawave-webhook-secret"
 vault_control_plane_backend_jwt_secret: "replace-with-backend-jwt-secret"
 vault_control_plane_backend_cryptobot_token: ""
 vault_control_plane_backend_totp_encryption_key: "replace-with-backend-totp-encryption-key"

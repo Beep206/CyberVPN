@@ -482,7 +482,9 @@ impl DesktopRuntimeEventBenchmarkEvidence {
             || self.median_first_byte_latency_ms.is_some()
             || self.median_open_to_first_byte_gap_ms.is_some()
             || self.p95_open_to_first_byte_gap_ms.is_some()
-            || self.relative_open_to_first_byte_gap_ratio_vs_baseline.is_some()
+            || self
+                .relative_open_to_first_byte_gap_ratio_vs_baseline
+                .is_some()
             || self.frame_queue_peak.is_some()
             || self.recent_rtt_p95_ms.is_some()
             || self.active_streams.is_some()
@@ -584,10 +586,7 @@ impl DesktopRuntimeEventPayload {
                     object,
                     "median_open_to_first_byte_gap_ms",
                 ),
-                p95_open_to_first_byte_gap_ms: int_field(
-                    object,
-                    "p95_open_to_first_byte_gap_ms",
-                ),
+                p95_open_to_first_byte_gap_ms: int_field(object, "p95_open_to_first_byte_gap_ms"),
                 relative_open_to_first_byte_gap_ratio_vs_baseline: float_field(
                     object,
                     "relative_open_to_first_byte_gap_ratio_vs_baseline",

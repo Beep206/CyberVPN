@@ -1,7 +1,12 @@
 # Remnawave Python SDK
 
+> **CyberVPN Vendor Note**
+>
+> This vendored snapshot is pinned to SDK `2.7.4` and is used in this repository only as reference material and contract-test input.
+> Runtime integrations in CyberVPN use `backend/src/infrastructure/remnawave/contracts.py` as the canonical internal contract.
+
 > **📢 Repository Migration Notice**
-> 
+>
 > This repository has been moved from [`sm1ky/remnawave-api`](https://github.com/sm1ky/remnawave-api) to [`remnawave/python-sdk`](https://github.com/remnawave/python-sdk).
 > 
 > **PyPI Package Migration:**
@@ -48,29 +53,11 @@ pip install git+https://github.com/remnawave/python-sdk.git@development
 
 ## 🫥 Compatible versions
 
-| Contract Version | Remnawave Panel Version |
-| ---------------- | ----------------------- |
-| 2.4.4            | >=2.4.0                 |
-| 2.3.2            | >=2.3.0, <2.4.0         |
-| 2.3.0            | >=2.3.0, <2.3.2         |
-| 2.2.6            | ==2.2.6                 |
-| 2.2.3            | >=2.2.13                |
-| 2.1.19           | >=2.1.19, <2.2.0        |
-| 2.1.18           | >=2.1.18                |
-| 2.1.17           | >=2.1.16, <=2.1.17      |
-| 2.1.16           | >=2.1.16                |
-| 2.1.13           | >=2.1.13, <=2.1.15      |
-| 2.1.9            | >=2.1.9, <=2.1.12       |
-| 2.1.8            | ==2.1.8                 |
-| 2.1.7.post1      | ==2.1.7                 |
-| 2.1.4            | >=2.1.4, <2.1.7         |
-| 2.1.1            | >=2.1.1, <2.1.4         |
-| 2.0.0            | >=2.0.0,<2.1.0          |
-| 1.1.3            | >=1.6.12,<2.0.0         |
-| 1.1.2            | >=1.6.3,<=1.6.11        |
-| 1.1.1            | 1.6.1, 1.6.2            |
-| 1.1.0            | 1.6.0                   |
-| 1.0.8            | 1.5.7                   |
+For this repository we only track the pinned vendored baseline used by CyberVPN contract tests.
+
+| Vendored SDK Version | Validated Remnawave Panel Version |
+| -------------------- | --------------------------------- |
+| 2.7.4                | 2.7.4                             |
 
 ### Dependencies
 - `orjson` (>=3.10.15, <4.0.0)

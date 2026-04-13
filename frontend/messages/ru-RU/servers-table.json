@@ -6,19 +6,36 @@
         "location": "ЛОКАЦИЯ",
         "ipAddress": "IP АДРЕС",
         "protocol": "ПРОТОКОЛ",
+        "versions": "ВЕРСИИ",
         "status": "СТАТУС",
+        "governance": "УПРАВЛЕНИЕ",
         "load": "НАГРУЗКА",
         "controls": "УПРАВЛЕНИЕ"
+    },
+    "labels": {
+        "nodeVersion": "Node",
+        "xrayVersion": "Xray",
+        "plugin": "Плагин",
+        "governance": "Управление",
+        "clients": "Клиенты",
+        "uptime": "Аптайм",
+        "noData": "н/д"
     },
     "actions": {
         "restart": "Перезапуск",
         "stop": "Остановить",
         "config": "Конфиг"
     },
+    "governance": {
+        "pluginActive": "ПЛАГИН АКТИВЕН",
+        "noPlugin": "БЕЗ ПЛАГИНА",
+        "nodeDisabled": "УЗЕЛ ОТКЛЮЧЕН"
+    },
     "status": {
         "online": "ОНЛАЙН",
         "offline": "ОФФЛАЙН",
         "warning": "ВНИМАНИЕ",
         "maintenance": "ОБСЛУЖИВАНИЕ"
-    }
+    },
+    "error": "Не удалось загрузить данные серверов. Повторите попытку."
 }

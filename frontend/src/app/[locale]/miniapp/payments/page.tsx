@@ -15,7 +15,7 @@ import {
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 
 type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-type PaymentProvider = 'cryptobot' | 'yookassa' | 'stripe';
+type PaymentProvider = 'cryptobot' | 'yookassa' | 'stripe' | 'wallet';
 
 /**
  * Mini App Payment History page

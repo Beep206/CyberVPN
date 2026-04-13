@@ -1,5 +1,7 @@
 """Monthly traffic counter reset."""
 
+from contextlib import suppress
+
 import structlog
 
 from src.broker import broker
@@ -30,13 +32,11 @@ async def reset_monthly_traffic() -> dict:
                     await rw.reset_user_traffic(user_uuid)
                     reset_count += 1
 
-                    telegram_id = user.get("telegramId")
+                    telegram_id = user.get("telegram_id")
                     if telegram_id:
-                        msg = traffic_reset(username, user.get("planName", ""))
-                        try:
+                        msg = traffic_reset(username, user.get("plan_name", ""))
+                        with suppress(Exception):
                             await tg.send_message(chat_id=int(telegram_id), text=msg)
-                        except Exception:
-                            pass
                 except Exception as e:
                     logger.error("traffic_reset_failed", user=username, error=str(e))
 

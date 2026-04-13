@@ -198,6 +198,7 @@ async def mock_db_session():
     session.rollback = AsyncMock()
     session.close = AsyncMock()
     session.flush = AsyncMock()
+    session.add = MagicMock()
 
     # Context manager
     session.__aenter__ = AsyncMock(return_value=session)

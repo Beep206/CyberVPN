@@ -1,6 +1,12 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { serversApi } from '@/lib/api';
-import type { Server, VpnProtocol, ServerStatus } from '@/entities/server/model/types';
+import type { operations } from '@/lib/api/generated/types';
+import type {
+  Server,
+  VpnProtocol,
+  ServerStatus,
+  ServerGovernanceState,
+} from '@/entities/server/model/types';
 
 function pollingInterval(intervalMs: number) {
   return (query: { state: { error: unknown } }) => {
@@ -11,27 +17,25 @@ function pollingInterval(intervalMs: number) {
   };
 }
 
-interface ServerApiResponse {
-  uuid: string;
-  name: string;
-  address: string;
-  port: number;
-  status: ServerStatus;
-  is_connected: boolean;
-  is_disabled: boolean;
-  country_code?: string;
-  city?: string;
-  traffic_used_bytes?: number;
-  users_online?: number;
-  created_at?: string;
-  vpn_protocol?: string | null;
-}
+type ServerApiResponse =
+  operations['list_servers_api_v1_servers__get']['responses'][200]['content']['application/json'][number];
 
 function normalizeProtocol(protocol?: string | null): VpnProtocol {
   const value = protocol?.trim().toLowerCase();
   if (!value) return 'unknown';
   if (value === 'hy2') return 'hysteria2';
   return value as VpnProtocol;
+}
+
+function normalizeOptionalValue(value?: string | null): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
+function deriveGovernanceState(raw: ServerApiResponse): ServerGovernanceState {
+  if (raw.is_disabled) return 'node-disabled';
+  if (raw.active_plugin_uuid) return 'plugin-active';
+  return 'no-plugin';
 }
 
 function mapServerResponse(raw: ServerApiResponse): Server {
@@ -45,13 +49,17 @@ function mapServerResponse(raw: ServerApiResponse): Server {
   return {
     id: raw.uuid,
     name: raw.name,
-    location: [raw.city, raw.country_code].filter(Boolean).join(', ') || raw.address,
+    location: raw.country_code || raw.address,
     ip: `${raw.address}:${raw.port}`,
     protocol: normalizeProtocol(raw.vpn_protocol),
     status: statusMap[raw.status] ?? 'offline',
     load: raw.users_online ? Math.min(Math.round((raw.users_online / 100) * 100), 100) : 0,
     uptime: raw.created_at ? formatUptime(raw.created_at) : '—',
     clients: raw.users_online ?? 0,
+    nodeVersion: normalizeOptionalValue(raw.node_version),
+    xrayVersion: normalizeOptionalValue(raw.xray_version),
+    activePluginUuid: normalizeOptionalValue(raw.active_plugin_uuid),
+    governanceState: deriveGovernanceState(raw),
   };
 }
 

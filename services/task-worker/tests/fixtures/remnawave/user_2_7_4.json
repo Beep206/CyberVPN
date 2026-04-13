@@ -1,0 +1,13 @@
+{
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "username": "demo-user",
+  "status": "ACTIVE",
+  "expireAt": "2027-12-31T23:59:59+00:00",
+  "trafficLimitBytes": 1024,
+  "telegramId": 123456,
+  "userTraffic": {
+    "usedTrafficBytes": 64,
+    "lifetimeUsedTrafficBytes": 128,
+    "onlineAt": "2026-04-12T13:00:00+00:00"
+  }
+}

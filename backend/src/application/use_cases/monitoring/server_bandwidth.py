@@ -1,8 +1,10 @@
 """Server bandwidth use case."""
 
-from typing import Any
-
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.contracts import (
+    RemnawaveRawSystemStatsResponse,
+    RemnawaveRecapResponse,
+)
 
 
 class ServerBandwidthUseCase:
@@ -16,7 +18,7 @@ class ServerBandwidthUseCase:
         """
         self.client = client
 
-    async def execute(self) -> dict:
+    async def execute(self) -> dict[str, int]:
         """Execute the server bandwidth use case.
 
         Returns:
@@ -25,30 +27,14 @@ class ServerBandwidthUseCase:
         Raises:
             Exception: If API request fails
         """
-        stats = await self.client.get("/api/system/stats")
-        recap = await self.client.get("/api/system/stats/recap")
-
-        users = self._as_dict(stats.get("users"))
-        online_stats = self._as_dict(stats.get("onlineStats"))
-        nodes = self._as_dict(stats.get("nodes"))
-        recap_total = self._as_dict(self._as_dict(recap).get("total"))
+        stats = await self.client.get_validated("/api/system/stats", RemnawaveRawSystemStatsResponse)
+        recap = await self.client.get_validated("/api/system/stats/recap", RemnawaveRecapResponse)
+        recap_total = recap.total
 
         return {
-            "total_users": int(users.get("totalUsers", 0) or 0),
-            "active_users": int(online_stats.get("onlineNow", 0) or 0),
-            "total_servers": int(recap_total.get("nodes", 0) or 0),
-            "online_servers": int(nodes.get("totalOnline", 0) or 0),
-            "total_traffic_bytes": self._parse_int(recap_total.get("traffic"))
-            or self._parse_int(nodes.get("totalBytesLifetime")),
+            "total_users": max(0, stats.users.total_users),
+            "active_users": max(0, stats.online_stats.online_now),
+            "total_servers": max(0, recap_total.nodes),
+            "online_servers": max(0, stats.nodes.total_online),
+            "total_traffic_bytes": max(0, recap_total.traffic) or max(0, stats.nodes.total_bytes_lifetime),
         }
-
-    @staticmethod
-    def _as_dict(value: Any) -> dict[str, Any]:
-        return value if isinstance(value, dict) else {}
-
-    @staticmethod
-    def _parse_int(value: Any) -> int:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return 0

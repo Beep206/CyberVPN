@@ -13,19 +13,19 @@ from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
+from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
-from src.presentation.schemas.remnawave_responses import RemnawaveSubscriptionDetailsResponse
-from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies.roles import require_permission
 
 from .mobile_users_schemas import (
-    AdminMobileUserSubscriptionSnapshotResponse,
     AdminMobileUserDetailResponse,
     AdminMobileUserListItemResponse,
     AdminMobileUsersListResponse,
+    AdminMobileUserSubscriptionSnapshotResponse,
     AdminUpdateMobileUserRequest,
 )
 
@@ -263,9 +263,17 @@ async def build_mobile_user_subscription_snapshot(
         short_uuid=vpn_user.short_uuid if vpn_user is not None else (
             details.user.short_uuid if details is not None and details.user is not None else None
         ),
-        subscription_uuid=str(vpn_user.subscription_uuid) if vpn_user is not None and vpn_user.subscription_uuid else None,
+        subscription_uuid=(
+            str(vpn_user.subscription_uuid)
+            if vpn_user is not None and vpn_user.subscription_uuid
+            else None
+        ),
         expires_at=expires_at,
-        days_left=details.user.days_left if details is not None and details.user is not None else _compute_days_left(expires_at),
+        days_left=(
+            details.user.days_left
+            if details is not None and details.user is not None
+            else _compute_days_left(expires_at)
+        ),
         traffic_limit_bytes=vpn_user.traffic_limit_bytes if vpn_user is not None else None,
         used_traffic_bytes=vpn_user.used_traffic_bytes if vpn_user is not None else None,
         download_bytes=vpn_user.download_bytes if vpn_user is not None else None,

@@ -1,0 +1,10 @@
+{
+  "response": [
+    {
+      "uuid": "550e8400-e29b-41d4-a716-446655440011",
+      "name": "ams-01",
+      "address": "ams-01.example.com",
+      "isDisabled": false
+    }
+  ]
+}

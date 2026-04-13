@@ -304,15 +304,24 @@
     "activeSessions": "АКТИВНЫЕ СЕССИИ",
     "aggregateThroughput": "Суммарная пропускная способность",
     "connectionStatus": "ЗАЩИЩЕННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО",
+    "countries": "Страны",
     "currentConnections": "Текущие подключения",
     "encryptionStatus": "ШИФРОВАНИЕ: КВАНТОВО-УСТОЙЧИВОЕ",
+    "lifetimeTraffic": "Трафик за всё время",
+    "monthlyRecapUnavailable": "Сводка за месяц недоступна",
     "networkLoad": "НАГРУЗКА СЕТИ",
+    "networkRecap": "СВОДКА REMNAWAVE",
     "nodesOnline": "УЗЛОВ В СЕТИ",
+    "opsBaseline": "Пользователи, узлы, трафик и географическое покрытие",
     "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
     "serverStatus": "СТАТУС СЕРВЕРОВ",
     "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
     "statusValue": "ОПТИМАЛЬНО",
-    "title": "ЦЕНТР УПРАВЛЕНИЯ VPN"
+    "thisMonth": "Этот месяц",
+    "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
+    "totalNodes": "Всего узлов",
+    "totalUsers": "Всего пользователей",
+    "trafficToday": "Переданный трафик за сегодня"
   },
   "DeleteAccount": {
     "contact": {
@@ -1349,9 +1358,20 @@
     "title": "ЯДРО ШИФРОВАНИЯ"
   },
   "ServerCard": {
+    "governance": {
+      "nodeDisabled": "УЗЕЛ ОТКЛЮЧЕН",
+      "noPlugin": "БЕЗ ПЛАГИНА",
+      "pluginActive": "ПЛАГИН АКТИВЕН"
+    },
+    "governanceLabel": "УПРАВЛЕНИЕ",
     "ip": "IP",
     "load": "НАГРУЗКА",
-    "protocol": "ПРОТОКОЛ"
+    "nodeVersion": "ВЕРСИЯ NODE",
+    "notAvailable": "н/д",
+    "plugin": "ПЛАГИН",
+    "pluginNone": "НЕТ ПЛАГИНА",
+    "protocol": "ПРОТОКОЛ",
+    "xrayVersion": "ВЕРСИЯ XRAY"
   },
   "Servers": {
     "globalStatus": "ОБЩИЙ СТАТУС: {status}",
@@ -1368,14 +1388,31 @@
     },
     "columns": {
       "controls": "УПРАВЛЕНИЕ",
+      "governance": "УПРАВЛЕНИЕ",
       "ipAddress": "IP АДРЕС",
       "load": "НАГРУЗКА",
       "location": "ЛОКАЦИЯ",
       "protocol": "ПРОТОКОЛ",
       "serverName": "ИМЯ СЕРВЕРА",
-      "status": "СТАТУС"
+      "status": "СТАТУС",
+      "versions": "ВЕРСИИ"
     },
     "deployNode": "+ РАЗВЕРНУТЬ УЗЕЛ",
+    "error": "Не удалось загрузить данные серверов. Повторите попытку.",
+    "governance": {
+      "nodeDisabled": "УЗЕЛ ОТКЛЮЧЕН",
+      "noPlugin": "БЕЗ ПЛАГИНА",
+      "pluginActive": "ПЛАГИН АКТИВЕН"
+    },
+    "labels": {
+      "clients": "Клиенты",
+      "governance": "Управление",
+      "noData": "н/д",
+      "nodeVersion": "Node",
+      "plugin": "Плагин",
+      "uptime": "Аптайм",
+      "xrayVersion": "Xray"
+    },
     "status": {
       "maintenance": "ОБСЛУЖИВАНИЕ",
       "offline": "ОФФЛАЙН",

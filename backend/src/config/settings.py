@@ -26,9 +26,14 @@ class Settings(BaseSettings):
     # Remnawave API
     remnawave_url: str = "http://localhost:3000"
     remnawave_token: SecretStr
+    remnawave_webhook_secret: SecretStr = SecretStr("")
+    remnawave_webhook_max_age_seconds: int = 300
+    remnawave_webhook_future_skew_seconds: int = 60
     remnawave_default_user_expire_days: int = 7
     remnawave_default_internal_squad_uuid: str = ""
     remnawave_default_internal_squad_name: str = "Default-Squad"
+    remnawave_request_retries: int = 1
+    remnawave_retry_backoff_seconds: float = 0.25
 
     # Helix adapter
     helix_enabled: bool = False

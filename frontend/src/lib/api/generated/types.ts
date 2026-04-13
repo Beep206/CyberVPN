@@ -1406,34 +1406,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/subscriptions/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Subscription Template
-         * @description Get subscription template details
-         */
-        get: operations["get_subscription_template_api_v1_subscriptions__uuid__get"];
-        /**
-         * Update Subscription Template
-         * @description Update subscription template (admin only)
-         */
-        put: operations["update_subscription_template_api_v1_subscriptions__uuid__put"];
-        post?: never;
-        /**
-         * Delete Subscription Template
-         * @description Delete subscription template (admin only)
-         */
-        delete: operations["delete_subscription_template_api_v1_subscriptions__uuid__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/subscriptions/config/{user_uuid}": {
         parameters: {
             query?: never;
@@ -1489,6 +1461,34 @@ export interface paths {
          */
         post: operations["cancel_subscription_api_v1_subscriptions_cancel_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subscription Template
+         * @description Get subscription template details
+         */
+        get: operations["get_subscription_template_api_v1_subscriptions__uuid__get"];
+        /**
+         * Update Subscription Template
+         * @description Update subscription template (admin only)
+         */
+        put: operations["update_subscription_template_api_v1_subscriptions__uuid__put"];
+        post?: never;
+        /**
+         * Delete Subscription Template
+         * @description Delete subscription template (admin only)
+         */
+        delete: operations["delete_subscription_template_api_v1_subscriptions__uuid__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1738,7 +1738,7 @@ export interface paths {
         };
         /**
          * Get current user usage statistics
-         * @description Returns VPN usage statistics for the currently authenticated user from Remnawave.
+         * @description Returns VPN usage statistics for the currently authenticated user. If the VPN backend is unavailable or the user has no upstream record yet, the endpoint falls back to an empty usage snapshot.
          */
         get: operations["get_usage_api_v1_users_me_usage_get"];
         put?: never;
@@ -2567,6 +2567,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Metadata
+         * @description Get Remnawave panel metadata for operational visibility.
+         */
+        get: operations["get_metadata_api_v1_monitoring_metadata_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/recap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Recap
+         * @description Get aggregated Remnawave recap data for operations.
+         */
+        get: operations["get_recap_api_v1_monitoring_recap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/audit-log": {
         parameters: {
             query?: never;
@@ -2656,6 +2696,280 @@ export interface paths {
          *     - Token will be immediately invalidated
          */
         delete: operations["revoke_invite_api_v1_admin_invites__token__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/referrals/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Referral Overview */
+        get: operations["get_referral_overview_api_v1_admin_referrals_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/referrals/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Referral User Detail */
+        get: operations["get_referral_user_detail_api_v1_admin_referrals_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Partners */
+        get: operations["list_partners_api_v1_admin_partners_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Detail */
+        get: operations["get_partner_detail_api_v1_admin_partners__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Mobile Users */
+        get: operations["list_mobile_users_api_v1_admin_mobile_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mobile User */
+        get: operations["get_mobile_user_api_v1_admin_mobile_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Mobile User */
+        patch: operations["update_mobile_user_api_v1_admin_mobile_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mobile User Subscription Snapshot */
+        get: operations["get_mobile_user_subscription_snapshot_api_v1_admin_mobile_users__user_id__subscription_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Customer Staff Notes */
+        get: operations["list_customer_staff_notes_api_v1_admin_mobile_users__user_id__notes_get"];
+        put?: never;
+        /** Create Customer Staff Note */
+        post: operations["create_customer_staff_note_api_v1_admin_mobile_users__user_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Vpn User */
+        get: operations["get_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable Customer Vpn User */
+        post: operations["enable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable Customer Vpn User */
+        post: operations["disable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Customer Device */
+        delete: operations["revoke_customer_device_api_v1_admin_mobile_users__user_id__devices__device_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/devices/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke All Customer Devices */
+        post: operations["revoke_all_customer_devices_api_v1_admin_mobile_users__user_id__devices_revoke_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/credentials/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Customer Password */
+        post: operations["reset_customer_password_api_v1_admin_mobile_users__user_id__credentials_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/subscription/resync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resync Customer Subscription */
+        post: operations["resync_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_resync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Timeline */
+        get: operations["get_customer_timeline_api_v1_admin_mobile_users__user_id__timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4404,6 +4718,32 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AdminBulkDeviceRevokeResponse */
+        AdminBulkDeviceRevokeResponse: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Revoked Count
+             * @default 0
+             */
+            revoked_count: number;
+            /** Revoked Devices */
+            revoked_devices?: components["schemas"]["AdminMobileDeviceResponse"][];
+        };
+        /** AdminCreateCustomerStaffNoteRequest */
+        AdminCreateCustomerStaffNoteRequest: {
+            /**
+             * Category
+             * @default general
+             * @enum {string}
+             */
+            category: "general" | "billing" | "security" | "support";
+            /** Note */
+            note: string;
+        };
         /**
          * AdminCreateInviteRequest
          * @description Request body for admin-created invite codes.
@@ -4432,22 +4772,613 @@ export interface components {
              */
             plan_id?: string | null;
         };
+        /** AdminCustomerPasswordResetRequest */
+        AdminCustomerPasswordResetRequest: {
+            /** New Password */
+            new_password?: string | null;
+            /**
+             * Generate Temporary Password
+             * @default false
+             */
+            generate_temporary_password: boolean;
+            /**
+             * Revoke All Devices
+             * @default true
+             */
+            revoke_all_devices: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** AdminCustomerPasswordResetResponse */
+        AdminCustomerPasswordResetResponse: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Password Mode
+             * @enum {string}
+             */
+            password_mode: "provided" | "generated";
+            /**
+             * Device Sessions Cleared
+             * @default false
+             */
+            device_sessions_cleared: boolean;
+            /**
+             * Devices Revoked
+             * @default 0
+             */
+            devices_revoked: number;
+            /** Generated Password */
+            generated_password?: string | null;
+        };
+        /** AdminCustomerStaffNoteResponse */
+        AdminCustomerStaffNoteResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Admin Id */
+            admin_id: string | null;
+            /** Category */
+            category: string;
+            /** Note */
+            note: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            author?: components["schemas"]["AdminSupportActorSummary"] | null;
+        };
+        /** AdminCustomerSubscriptionResyncResponse */
+        AdminCustomerSubscriptionResyncResponse: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Previous Subscription Url */
+            previous_subscription_url?: string | null;
+            /** Stored Subscription Url */
+            stored_subscription_url?: string | null;
+            /** Upstream Subscription Url */
+            upstream_subscription_url: string;
+            /**
+             * Changed
+             * @default false
+             */
+            changed: boolean;
+            /**
+             * Config Available
+             * @default false
+             */
+            config_available: boolean;
+            /** Config Client Type */
+            config_client_type?: string | null;
+            /**
+             * Links Count
+             * @default 0
+             */
+            links_count: number;
+        };
+        /** AdminCustomerSupportActionRequest */
+        AdminCustomerSupportActionRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /** AdminCustomerTimelineItemResponse */
+        AdminCustomerTimelineItemResponse: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "payment" | "wallet_transaction" | "withdrawal" | "device" | "note" | "audit";
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Amount */
+            amount?: number | null;
+            /** Currency */
+            currency?: string | null;
+            /** Actor Label */
+            actor_label?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** AdminCustomerTimelineResponse */
+        AdminCustomerTimelineResponse: {
+            /** Items */
+            items: components["schemas"]["AdminCustomerTimelineItemResponse"][];
+        };
+        /** AdminCustomerVpnUserResponse */
+        AdminCustomerVpnUserResponse: {
+            /** Exists */
+            exists: boolean;
+            /** Remnawave Uuid */
+            remnawave_uuid?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Short Uuid */
+            short_uuid?: string | null;
+            /** Subscription Uuid */
+            subscription_uuid?: string | null;
+            /** Expire At */
+            expire_at?: string | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Used Traffic Bytes */
+            used_traffic_bytes?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Telegram Id */
+            telegram_id?: number | null;
+        };
+        /** AdminGrowthUserSummary */
+        AdminGrowthUserSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Username */
+            username: string | null;
+            /** Telegram Username */
+            telegram_username: string | null;
+            /** Referral Code */
+            referral_code: string | null;
+            /** Is Partner */
+            is_partner: boolean;
+        };
+        /** AdminMobileDeviceResponse */
+        AdminMobileDeviceResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Device Id */
+            device_id: string;
+            /** Platform */
+            platform: string;
+            /** Platform Id */
+            platform_id: string;
+            /** Os Version */
+            os_version: string;
+            /** App Version */
+            app_version: string;
+            /** Device Model */
+            device_model: string;
+            /** Push Token */
+            push_token: string | null;
+            /**
+             * Registered At
+             * Format: date-time
+             */
+            registered_at: string;
+            /** Last Active At */
+            last_active_at: string | null;
+        };
+        /** AdminMobileUserDetailResponse */
+        AdminMobileUserDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Username */
+            username: string | null;
+            /** Status */
+            status: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Partner */
+            is_partner: boolean;
+            /** Telegram Id */
+            telegram_id: number | null;
+            /** Telegram Username */
+            telegram_username: string | null;
+            /** Remnawave Uuid */
+            remnawave_uuid: string | null;
+            /** Referral Code */
+            referral_code: string | null;
+            /** Referred By User Id */
+            referred_by_user_id: string | null;
+            /** Partner User Id */
+            partner_user_id: string | null;
+            /** Partner Promoted At */
+            partner_promoted_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Login At */
+            last_login_at: string | null;
+            /** Device Count */
+            device_count: number;
+            /** Subscription Url */
+            subscription_url: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Devices */
+            devices: components["schemas"]["AdminMobileDeviceResponse"][];
+        };
+        /** AdminMobileUserListItemResponse */
+        AdminMobileUserListItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Username */
+            username: string | null;
+            /** Status */
+            status: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Partner */
+            is_partner: boolean;
+            /** Telegram Id */
+            telegram_id: number | null;
+            /** Telegram Username */
+            telegram_username: string | null;
+            /** Remnawave Uuid */
+            remnawave_uuid: string | null;
+            /** Referral Code */
+            referral_code: string | null;
+            /** Referred By User Id */
+            referred_by_user_id: string | null;
+            /** Partner User Id */
+            partner_user_id: string | null;
+            /** Partner Promoted At */
+            partner_promoted_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Login At */
+            last_login_at: string | null;
+            /** Device Count */
+            device_count: number;
+        };
+        /** AdminMobileUserSubscriptionSnapshotResponse */
+        AdminMobileUserSubscriptionSnapshotResponse: {
+            /** Exists */
+            exists: boolean;
+            /** Remnawave Uuid */
+            remnawave_uuid?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Short Uuid */
+            short_uuid?: string | null;
+            /** Subscription Uuid */
+            subscription_uuid?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Days Left */
+            days_left?: number | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Used Traffic Bytes */
+            used_traffic_bytes?: number | null;
+            /** Download Bytes */
+            download_bytes?: number | null;
+            /** Upload Bytes */
+            upload_bytes?: number | null;
+            /** Lifetime Used Traffic Bytes */
+            lifetime_used_traffic_bytes?: number | null;
+            /** Online At */
+            online_at?: string | null;
+            /** Sub Last User Agent */
+            sub_last_user_agent?: string | null;
+            /** Sub Revoked At */
+            sub_revoked_at?: string | null;
+            /** Last Traffic Reset At */
+            last_traffic_reset_at?: string | null;
+            /** Hwid Device Limit */
+            hwid_device_limit?: number | null;
+            /** Subscription Url */
+            subscription_url?: string | null;
+            /**
+             * Config Available
+             * @default false
+             */
+            config_available: boolean;
+            /** Config */
+            config?: string | null;
+            /** Config Client Type */
+            config_client_type?: string | null;
+            /** Config Error */
+            config_error?: string | null;
+            /** Links */
+            links?: string[];
+            /** Ss Conf Links */
+            ss_conf_links?: {
+                [key: string]: string;
+            };
+        };
+        /** AdminMobileUsersListResponse */
+        AdminMobileUsersListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminMobileUserListItemResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** AdminPartnerCodeResponse */
+        AdminPartnerCodeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Markup Pct */
+            markup_pct: number;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AdminPartnerDetailResponse */
+        AdminPartnerDetailResponse: {
+            user: components["schemas"]["AdminGrowthUserSummary"];
+            /** Promoted At */
+            promoted_at: string | null;
+            /** Code Count */
+            code_count: number;
+            /** Active Code Count */
+            active_code_count: number;
+            /** Total Clients */
+            total_clients: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Last Activity At */
+            last_activity_at: string | null;
+            /** Codes */
+            codes: components["schemas"]["AdminPartnerCodeResponse"][];
+            /** Recent Earnings */
+            recent_earnings: components["schemas"]["AdminPartnerEarningResponse"][];
+        };
+        /** AdminPartnerEarningResponse */
+        AdminPartnerEarningResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Client User Id
+             * Format: uuid
+             */
+            client_user_id: string;
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** Base Price */
+            base_price: number;
+            /** Markup Amount */
+            markup_amount: number;
+            /** Commission Pct */
+            commission_pct: number;
+            /** Commission Amount */
+            commission_amount: number;
+            /** Total Earning */
+            total_earning: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminPartnerListItemResponse */
+        AdminPartnerListItemResponse: {
+            user: components["schemas"]["AdminGrowthUserSummary"];
+            /** Promoted At */
+            promoted_at: string | null;
+            /** Code Count */
+            code_count: number;
+            /** Active Code Count */
+            active_code_count: number;
+            /** Total Clients */
+            total_clients: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Last Activity At */
+            last_activity_at: string | null;
+        };
+        /** AdminPartnersListResponse */
+        AdminPartnersListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminPartnerListItemResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
         /** AdminProcessWithdrawalRequest */
         AdminProcessWithdrawalRequest: {
             /** Admin Note */
             admin_note?: string | null;
+        };
+        /** AdminReferralCommissionRecord */
+        AdminReferralCommissionRecord: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Referrer User Id
+             * Format: uuid
+             */
+            referrer_user_id: string;
+            /**
+             * Referred User Id
+             * Format: uuid
+             */
+            referred_user_id: string;
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** Commission Rate */
+            commission_rate: number;
+            /** Base Amount */
+            base_amount: number;
+            /** Commission Amount */
+            commission_amount: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            referrer?: components["schemas"]["AdminGrowthUserSummary"] | null;
+            referred_user?: components["schemas"]["AdminGrowthUserSummary"] | null;
+        };
+        /** AdminReferralOverviewResponse */
+        AdminReferralOverviewResponse: {
+            /** Total Commissions */
+            total_commissions: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Unique Referrers */
+            unique_referrers: number;
+            /** Unique Referred Users */
+            unique_referred_users: number;
+            /** Recent Commissions */
+            recent_commissions: components["schemas"]["AdminReferralCommissionRecord"][];
+            /** Top Referrers */
+            top_referrers: components["schemas"]["AdminReferralReferrerRow"][];
+        };
+        /** AdminReferralReferrerRow */
+        AdminReferralReferrerRow: {
+            user: components["schemas"]["AdminGrowthUserSummary"];
+            /** Commission Count */
+            commission_count: number;
+            /** Referred Users */
+            referred_users: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Last Commission At */
+            last_commission_at: string | null;
+        };
+        /** AdminReferralUserDetailResponse */
+        AdminReferralUserDetailResponse: {
+            user: components["schemas"]["AdminGrowthUserSummary"];
+            /** Referred By User Id */
+            referred_by_user_id: string | null;
+            /** Commission Count */
+            commission_count: number;
+            /** Referred Users */
+            referred_users: number;
+            /** Total Earned */
+            total_earned: number;
+            /** Recent Commissions */
+            recent_commissions: components["schemas"]["AdminReferralCommissionRecord"][];
         };
         /**
          * AdminRole
          * @enum {string}
          */
         AdminRole: "super_admin" | "admin" | "operator" | "support" | "viewer";
+        /** AdminSupportActorSummary */
+        AdminSupportActorSummary: {
+            /** Id */
+            id?: string | null;
+            /** Login */
+            login?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+        };
         /** AdminTopupRequest */
         AdminTopupRequest: {
             /** Amount */
             amount: number;
             /** Description */
             description?: string | null;
+        };
+        /** AdminUpdateMobileUserRequest */
+        AdminUpdateMobileUserRequest: {
+            /** Email */
+            email?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Telegram Id */
+            telegram_id?: number | null;
+            /** Telegram Username */
+            telegram_username?: string | null;
+            /** Referral Code */
+            referral_code?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
         };
         /** AdminUserResponse */
         AdminUserResponse: {
@@ -5157,8 +6088,9 @@ export interface components {
          * CreateSquadRequest
          * @description Request schema for creating a squad.
          * @example {
-         *       "is_active": true,
-         *       "max_members": 100,
+         *       "inbounds": [
+         *         "985d2bf6-b0c5-4299-8c75-bd78422bb47d"
+         *       ],
          *       "name": "Premium Users",
          *       "squad_type": "internal"
          *     }
@@ -5171,9 +6103,15 @@ export interface components {
             name: string;
             /**
              * Squad Type
-             * @description Squad type (internal/external)
+             * @description Squad type
+             * @enum {string}
              */
-            squad_type: string;
+            squad_type: "internal" | "external";
+            /**
+             * Inbounds
+             * @description Internal squad inbound UUIDs
+             */
+            inbounds?: string[];
             /**
              * Max Members
              * @description Maximum squad members
@@ -5210,6 +6148,28 @@ export interface components {
              * @description Subscription duration in days
              */
             duration_days: number;
+        };
+        /**
+         * CreateSubscriptionResponse
+         * @description Response schema for a created Telegram user subscription.
+         */
+        CreateSubscriptionResponse: {
+            /**
+             * Status
+             * @description Operation status
+             * @default success
+             */
+            status: string;
+            /**
+             * Subscription Id
+             * @description Created subscription identifier
+             */
+            subscription_id?: string | number | null;
+            /**
+             * Expires At
+             * @description Subscription expiration date
+             */
+            expires_at?: string | null;
         };
         /**
          * CreateSubscriptionTemplateRequest
@@ -5906,12 +6866,29 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** LoginRequest */
-        LoginRequest: {
-            /** Login Or Email */
-            login_or_email: string;
-            /** Password */
-            password: string;
+        /** LoginResponse */
+        LoginResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires In
+             * @default 0
+             */
+            expires_in: number;
+            /**
+             * Requires 2Fa
+             * @default false
+             */
+            requires_2fa: boolean;
+            /** Tfa Token */
+            tfa_token?: string | null;
         };
         /**
          * LogoutAllResponse
@@ -5928,24 +6905,6 @@ export interface components {
              * @default 0
              */
             sessions_revoked: number;
-        };
-        /**
-         * LogoutRequest
-         * @description Request schema for logout.
-         *
-         *     Used by POST /api/v1/mobile/auth/logout endpoint.
-         */
-        LogoutRequest: {
-            /**
-             * Refresh Token
-             * @description Refresh token to revoke
-             */
-            refresh_token: string;
-            /**
-             * Device Id
-             * @description Device ID for session revocation
-             */
-            device_id: string;
         };
         /**
          * MagicLinkRequest
@@ -6015,6 +6974,85 @@ export interface components {
              */
             expires_in: number;
             user: components["schemas"]["AdminUserResponse"];
+        };
+        /**
+         * MetadataBuildResponse
+         * @description Remnawave build metadata.
+         */
+        MetadataBuildResponse: {
+            /**
+             * Time
+             * @description Build timestamp
+             */
+            time: string;
+            /**
+             * Number
+             * @description Build number
+             */
+            number: string;
+        };
+        /**
+         * MetadataGitBackendResponse
+         * @description Backend git metadata.
+         */
+        MetadataGitBackendResponse: {
+            /**
+             * Commit Sha
+             * @description Backend commit SHA
+             */
+            commit_sha: string;
+            /**
+             * Branch
+             * @description Backend branch
+             */
+            branch: string;
+            /**
+             * Commit Url
+             * @description Backend commit URL
+             */
+            commit_url: string;
+        };
+        /**
+         * MetadataGitFrontendResponse
+         * @description Frontend git metadata.
+         */
+        MetadataGitFrontendResponse: {
+            /**
+             * Commit Sha
+             * @description Frontend commit SHA
+             */
+            commit_sha: string;
+            /**
+             * Commit Url
+             * @description Frontend commit URL
+             */
+            commit_url: string;
+        };
+        /**
+         * MetadataGitResponse
+         * @description Git metadata for backend and frontend.
+         */
+        MetadataGitResponse: {
+            backend: components["schemas"]["MetadataGitBackendResponse"];
+            frontend: components["schemas"]["MetadataGitFrontendResponse"];
+        };
+        /**
+         * MetadataResponse
+         * @description Remnawave panel metadata response.
+         */
+        MetadataResponse: {
+            /**
+             * Version
+             * @description Remnawave panel version
+             */
+            version: string;
+            build: components["schemas"]["MetadataBuildResponse"];
+            git: components["schemas"]["MetadataGitResponse"];
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp?: string;
         };
         /**
          * MobileAuthError
@@ -6408,7 +7446,7 @@ export interface components {
          * PaymentProvider
          * @enum {string}
          */
-        PaymentProvider: "cryptobot" | "yookassa" | "stripe";
+        PaymentProvider: "cryptobot" | "yookassa" | "stripe" | "wallet";
         /**
          * PaymentStatus
          * @enum {string}
@@ -6586,6 +7624,82 @@ export interface components {
             valid_for_minutes: number;
         };
         /**
+         * RecapPeriodResponse
+         * @description Traffic/users summary for a recap period.
+         */
+        RecapPeriodResponse: {
+            /**
+             * Users
+             * @description Users in the period
+             */
+            users: number;
+            /**
+             * Traffic Bytes
+             * @description Traffic in bytes for the period
+             */
+            traffic_bytes: number;
+        };
+        /**
+         * RecapResponse
+         * @description Remnawave recap response.
+         */
+        RecapResponse: {
+            /**
+             * Version
+             * @description Remnawave panel version
+             */
+            version?: string | null;
+            /**
+             * Init Date
+             * @description Panel initialization date
+             */
+            init_date?: string | null;
+            total: components["schemas"]["RecapTotalsResponse"];
+            /** @description Current month recap */
+            this_month?: components["schemas"]["RecapPeriodResponse"] | null;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp?: string;
+        };
+        /**
+         * RecapTotalsResponse
+         * @description Lifetime Remnawave recap totals.
+         */
+        RecapTotalsResponse: {
+            /**
+             * Users
+             * @description Total users
+             */
+            users: number;
+            /**
+             * Nodes
+             * @description Total nodes
+             */
+            nodes: number;
+            /**
+             * Traffic Bytes
+             * @description Lifetime traffic in bytes
+             */
+            traffic_bytes: number;
+            /**
+             * Nodes Ram
+             * @description Aggregate node RAM
+             */
+            nodes_ram?: string | null;
+            /**
+             * Nodes Cpu Cores
+             * @description Aggregate node CPU cores
+             */
+            nodes_cpu_cores?: number | null;
+            /**
+             * Distinct Countries
+             * @description Distinct node countries
+             */
+            distinct_countries?: number | null;
+        };
+        /**
          * RedeemInviteRequest
          * @description Request body for redeeming an invite code.
          */
@@ -6640,54 +7754,6 @@ export interface components {
             enabled: boolean;
             /** Commission Rate */
             commission_rate: number;
-        };
-        /**
-         * RefreshTokenRequest
-         * @description Request schema for token refresh.
-         *
-         *     Used by POST /api/v1/mobile/auth/refresh endpoint.
-         */
-        RefreshTokenRequest: {
-            /**
-             * Refresh Token
-             * @description Current refresh token to exchange for new tokens
-             */
-            refresh_token: string;
-            /**
-             * Device Id
-             * @description Device ID for session validation
-             */
-            device_id: string;
-        };
-        /**
-         * RegisterRequest
-         * @description Registration request with strong password policy (MED-001).
-         *
-         *     Uses shared password validator for consistency with mobile auth.
-         *     Supports email+password or login+password (username-only) registration.
-         */
-        RegisterRequest: {
-            /** Login */
-            login: string;
-            /** Email */
-            email?: string | null;
-            /** Password */
-            password: string;
-            /**
-             * Locale
-             * @default en-EN
-             */
-            locale: string;
-            /**
-             * Tos Accepted
-             * @description Must accept Terms of Service
-             */
-            tos_accepted: boolean;
-            /**
-             * Marketing Consent
-             * @default false
-             */
-            marketing_consent: boolean;
         };
         /**
          * RegisterResponse
@@ -7313,8 +8379,12 @@ export interface components {
             users_online: number;
             /** Xray Version */
             xray_version?: string | null;
+            /** Node Version */
+            node_version?: string | null;
             /** Vpn Protocol */
             vpn_protocol?: string | null;
+            /** Active Plugin Uuid */
+            active_plugin_uuid?: string | null;
         };
         /**
          * ServerStatsResponse
@@ -7519,6 +8589,22 @@ export interface components {
          * @enum {string}
          */
         SubscriptionStatus: "active" | "expired" | "trial" | "cancelled" | "none";
+        /**
+         * SubscriptionTemplateListResponse
+         * @description Current Remnawave template list envelope.
+         */
+        SubscriptionTemplateListResponse: {
+            /**
+             * Total
+             * @description Total number of templates
+             */
+            total: number;
+            /**
+             * Templates
+             * @description Subscription templates returned by Remnawave
+             */
+            templates?: components["schemas"]["RemnawaveSubscriptionResponse"][];
+        };
         /**
          * TelegramAuthRequest
          * @description Request schema for Telegram OAuth callback.
@@ -8028,23 +9114,6 @@ export interface components {
             requires_2fa: boolean;
             /** Tfa Token */
             tfa_token?: string | null;
-        };
-        /** TokenResponse */
-        TokenResponse: {
-            /** Access Token */
-            access_token: string;
-            /** Refresh Token */
-            refresh_token: string;
-            /**
-             * Token Type
-             * @default bearer
-             */
-            token_type: string;
-            /**
-             * Expires In
-             * @default 0
-             */
-            expires_in: number;
         };
         /** TorrentBlockerActionReportResponse */
         TorrentBlockerActionReportResponse: {
@@ -8611,51 +9680,13 @@ export interface components {
          */
         UserListResponse: {
             /** Users */
-            users: components["schemas"]["UserResponse"][];
+            users: components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"][];
             /** Total */
             total: number;
             /** Page */
             page: number;
             /** Page Size */
             page_size: number;
-        };
-        /**
-         * UserResponse
-         * @description Response schema for a single VPN user.
-         */
-        UserResponse: {
-            /**
-             * Uuid
-             * Format: uuid
-             */
-            uuid: string;
-            /** Username */
-            username: string;
-            status: components["schemas"]["UserStatus"];
-            /** Short Uuid */
-            short_uuid: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Subscription Uuid */
-            subscription_uuid?: string | null;
-            /** Expire At */
-            expire_at?: string | null;
-            /** Traffic Limit Bytes */
-            traffic_limit_bytes?: number | null;
-            /** Used Traffic Bytes */
-            used_traffic_bytes?: number | null;
-            /** Email */
-            email?: string | null;
-            /** Telegram Id */
-            telegram_id?: number | null;
         };
         /**
          * UserStatus
@@ -8878,6 +9909,13 @@ export interface components {
              */
             created_at: string;
         };
+        /** LoginRequest */
+        src__presentation__api__v1__auth__schemas__LoginRequest: {
+            /** Login Or Email */
+            login_or_email: string;
+            /** Password */
+            password: string;
+        };
         /** LogoutRequest */
         src__presentation__api__v1__auth__schemas__LogoutRequest: {
             /** Refresh Token */
@@ -8887,6 +9925,53 @@ export interface components {
         src__presentation__api__v1__auth__schemas__RefreshTokenRequest: {
             /** Refresh Token */
             refresh_token?: string | null;
+        };
+        /**
+         * RegisterRequest
+         * @description Registration request with strong password policy (MED-001).
+         *
+         *     Uses shared password validator for consistency with mobile auth.
+         *     Supports email+password or login+password (username-only) registration.
+         */
+        src__presentation__api__v1__auth__schemas__RegisterRequest: {
+            /** Login */
+            login: string;
+            /** Email */
+            email?: string | null;
+            /** Password */
+            password: string;
+            /**
+             * Locale
+             * @default en-EN
+             */
+            locale: string;
+            /**
+             * Tos Accepted
+             * @description Must accept Terms of Service
+             */
+            tos_accepted: boolean;
+            /**
+             * Marketing Consent
+             * @default false
+             */
+            marketing_consent: boolean;
+        };
+        /** TokenResponse */
+        src__presentation__api__v1__auth__schemas__TokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires In
+             * @default 0
+             */
+            expires_in: number;
         };
         /**
          * LoginRequest
@@ -8914,6 +9999,42 @@ export interface components {
              * @default false
              */
             remember_me: boolean;
+        };
+        /**
+         * LogoutRequest
+         * @description Request schema for logout.
+         *
+         *     Used by POST /api/v1/mobile/auth/logout endpoint.
+         */
+        src__presentation__api__v1__mobile_auth__schemas__LogoutRequest: {
+            /**
+             * Refresh Token
+             * @description Refresh token to revoke
+             */
+            refresh_token: string;
+            /**
+             * Device Id
+             * @description Device ID for session revocation
+             */
+            device_id: string;
+        };
+        /**
+         * RefreshTokenRequest
+         * @description Request schema for token refresh.
+         *
+         *     Used by POST /api/v1/mobile/auth/refresh endpoint.
+         */
+        src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest: {
+            /**
+             * Refresh Token
+             * @description Current refresh token to exchange for new tokens
+             */
+            refresh_token: string;
+            /**
+             * Device Id
+             * @description Device ID for session validation
+             */
+            device_id: string;
         };
         /**
          * RegisterRequest
@@ -9014,6 +10135,44 @@ export interface components {
             /** @description Subscription information (included in mobile responses) */
             subscription?: components["schemas"]["SubscriptionInfo"] | null;
         };
+        /**
+         * UserResponse
+         * @description Response schema for a single VPN user.
+         */
+        src__presentation__api__v1__users__schemas__UserResponse: {
+            /**
+             * Uuid
+             * Format: uuid
+             */
+            uuid: string;
+            /** Username */
+            username: string;
+            status: components["schemas"]["UserStatus"];
+            /** Short Uuid */
+            short_uuid: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Subscription Uuid */
+            subscription_uuid?: string | null;
+            /** Expire At */
+            expire_at?: string | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Used Traffic Bytes */
+            used_traffic_bytes?: number | null;
+            /** Email */
+            email?: string | null;
+            /** Telegram Id */
+            telegram_id?: number | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -9032,7 +10191,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LoginRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__LoginRequest"];
             };
         };
         responses: {
@@ -9042,7 +10201,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             /** @description Invalid credentials */
@@ -9087,7 +10246,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
                 };
             };
             /** @description Invalid or expired refresh token */
@@ -9899,7 +11058,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__RegisterRequest"];
             };
         };
         responses: {
@@ -10034,7 +11193,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RefreshTokenRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest"];
             };
         };
         responses: {
@@ -10076,7 +11235,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LogoutRequest"];
+                "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__LogoutRequest"];
             };
         };
         responses: {
@@ -10919,7 +12078,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__auth__schemas__TokenResponse"];
                 };
             };
             /** @description Invalid 2FA code */
@@ -11236,7 +12395,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
                 };
             };
             /** @description User already exists */
@@ -11272,7 +12431,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
                 };
             };
             /** @description User not found */
@@ -11314,7 +12473,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
                 };
             };
             /** @description User not found */
@@ -11658,7 +12817,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"][];
+                    "application/json": components["schemas"]["SubscriptionTemplateListResponse"];
                 };
             };
         };
@@ -11683,103 +12842,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_subscription_template_api_v1_subscriptions__uuid__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_subscription_template_api_v1_subscriptions__uuid__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateSubscriptionTemplateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_subscription_template_api_v1_subscriptions__uuid__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StatusMessageResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11889,6 +12951,103 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_subscription_template_api_v1_subscriptions__uuid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subscription_template_api_v1_subscriptions__uuid__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSubscriptionTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subscription_template_api_v1_subscriptions__uuid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -12342,20 +13501,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UsageResponse"];
                 };
-            };
-            /** @description User not found in VPN backend */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description VPN backend unavailable */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -13691,6 +14836,46 @@ export interface operations {
             };
         };
     };
+    get_metadata_api_v1_monitoring_metadata_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Remnawave panel metadata */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataResponse"];
+                };
+            };
+        };
+    };
+    get_recap_api_v1_monitoring_recap_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Remnawave system recap */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecapResponse"];
+                };
+            };
+        };
+    };
     get_audit_logs_api_v1_admin_audit_log_get: {
         parameters: {
             query?: {
@@ -13841,6 +15026,599 @@ export interface operations {
             };
         };
     };
+    get_referral_overview_api_v1_admin_referrals_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReferralOverviewResponse"];
+                };
+            };
+        };
+    };
+    get_referral_user_detail_api_v1_admin_referrals_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReferralUserDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_partners_api_v1_admin_partners_get: {
+        parameters: {
+            query?: {
+                /** @description Search by email, username, telegram, UUID, referral code */
+                search?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPartnersListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_detail_api_v1_admin_partners__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPartnerDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_mobile_users_api_v1_admin_mobile_users_get: {
+        parameters: {
+            query?: {
+                /** @description Search by email, username, telegram, UUID, referral code */
+                search?: string | null;
+                /** @description Filter by current status */
+                status?: string | null;
+                /** @description Filter by activation state */
+                is_active?: boolean | null;
+                /** @description Filter by partner state */
+                is_partner?: boolean | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMobileUsersListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mobile_user_api_v1_admin_mobile_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMobileUserDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_mobile_user_api_v1_admin_mobile_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateMobileUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMobileUserDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mobile_user_subscription_snapshot_api_v1_admin_mobile_users__user_id__subscription_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMobileUserSubscriptionSnapshotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_customer_staff_notes_api_v1_admin_mobile_users__user_id__notes_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerStaffNoteResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_customer_staff_note_api_v1_admin_mobile_users__user_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateCustomerStaffNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerStaffNoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerVpnUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerSupportActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerVpnUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerSupportActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerVpnUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_customer_device_api_v1_admin_mobile_users__user_id__devices__device_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMobileDeviceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_all_customer_devices_api_v1_admin_mobile_users__user_id__devices_revoke_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerSupportActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBulkDeviceRevokeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_customer_password_api_v1_admin_mobile_users__user_id__credentials_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerPasswordResetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerPasswordResetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resync_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_resync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerSupportActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerSubscriptionResyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_timeline_api_v1_admin_mobile_users__user_id__timeline_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerTimelineResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     remnawave_webhook_api_v1_webhooks_remnawave_post: {
         parameters: {
             query?: never;
@@ -13937,9 +15715,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CreateSubscriptionResponse"];
                 };
             };
             /** @description Validation Error */

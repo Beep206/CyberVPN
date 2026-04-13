@@ -14,6 +14,7 @@ import httpx
 import structlog
 
 from src.config import get_settings
+from src.services.remnawave_normalizers import normalize_nodes, normalize_user, normalize_users
 from src.utils.rate_limiter import AsyncTokenBucket
 
 logger = structlog.get_logger(__name__)
@@ -295,7 +296,8 @@ class RemnawaveClient:
             RemnawaveAPIError: If request fails
         """
         response = await self.get("/api/nodes")
-        return response if isinstance(response, list) else response.get("nodes", [])
+        nodes = response if isinstance(response, list) else response.get("nodes", [])
+        return normalize_nodes(nodes)
 
     async def get_users(self) -> list[dict]:
         """Get list of all users.
@@ -307,7 +309,8 @@ class RemnawaveClient:
             RemnawaveAPIError: If request fails
         """
         response = await self.get("/api/users")
-        return response if isinstance(response, list) else response.get("users", [])
+        users = response if isinstance(response, list) else response.get("users", [])
+        return normalize_users(users)
 
     async def get_user(self, uuid: str) -> dict:
         """Get detailed information for a specific user.
@@ -321,7 +324,8 @@ class RemnawaveClient:
         Raises:
             RemnawaveAPIError: If request fails or user not found
         """
-        return await self.get(f"/api/users/{uuid}")
+        response = await self.get(f"/api/users/{uuid}")
+        return normalize_user(response)
 
     async def disable_user(self, uuid: str) -> dict:
         """Disable a user account.

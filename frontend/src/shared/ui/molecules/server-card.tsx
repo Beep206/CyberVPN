@@ -7,11 +7,48 @@ import { useTranslations } from "next-intl";
 import type { Server } from "@/entities/server/model/types";
 
 interface ServerCardProps {
-    server: Pick<Server, 'id' | 'name' | 'location' | 'status' | 'ip' | 'load' | 'protocol'>;
+    server: Pick<
+      Server,
+      | 'id'
+      | 'name'
+      | 'location'
+      | 'status'
+      | 'ip'
+      | 'load'
+      | 'protocol'
+      | 'nodeVersion'
+      | 'xrayVersion'
+      | 'activePluginUuid'
+      | 'governanceState'
+    >;
+}
+
+function getGovernanceTone(governanceState: Server['governanceState']) {
+    switch (governanceState) {
+        case 'plugin-active':
+            return 'border-matrix-green/40 bg-matrix-green/10 text-matrix-green';
+        case 'node-disabled':
+            return 'border-red-500/40 bg-red-500/10 text-red-400';
+        case 'no-plugin':
+            return 'border-neon-purple/40 bg-neon-purple/10 text-neon-purple';
+    }
+}
+
+function shortPluginUuid(pluginUuid: string | null) {
+    if (!pluginUuid) return null;
+    return pluginUuid.slice(0, 8);
 }
 
 export function ServerCard({ server }: ServerCardProps) {
     const t = useTranslations('ServerCard');
+    const governanceLabelKey = {
+        'plugin-active': 'pluginActive',
+        'no-plugin': 'noPlugin',
+        'node-disabled': 'nodeDisabled',
+    }[server.governanceState];
+    const governanceLabel = t(`governance.${governanceLabelKey}`);
+    const pluginUuid = shortPluginUuid(server.activePluginUuid);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20, rotateX: -10 }}
@@ -43,6 +80,27 @@ export function ServerCard({ server }: ServerCardProps) {
                 <div className="flex justify-between text-xs font-cyber text-muted-foreground">
                     <span>{t('protocol')}</span>
                     <span className="uppercase text-neon-purple">{server.protocol}</span>
+                </div>
+                <div className="flex justify-between text-xs font-cyber text-muted-foreground">
+                    <span>{t('nodeVersion')}</span>
+                    <span className="text-foreground">{server.nodeVersion ?? t('notAvailable')}</span>
+                </div>
+                <div className="flex justify-between text-xs font-cyber text-muted-foreground">
+                    <span>{t('xrayVersion')}</span>
+                    <span className="text-foreground">{server.xrayVersion ?? t('notAvailable')}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-xs font-cyber text-muted-foreground">
+                    <span>{t('governanceLabel')}</span>
+                    <span className={cn(
+                        "rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em]",
+                        getGovernanceTone(server.governanceState)
+                    )}>
+                        {governanceLabel}
+                    </span>
+                </div>
+                <div className="flex justify-between text-xs font-cyber text-muted-foreground">
+                    <span>{t('plugin')}</span>
+                    <span className="text-neon-cyan">{pluginUuid ?? t('pluginNone')}</span>
                 </div>
 
                 <div className="mt-4">

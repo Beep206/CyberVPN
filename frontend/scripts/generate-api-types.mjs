@@ -23,6 +23,12 @@ const ROOT = resolve(__dirname, "..");
 
 const OPENAPI_SPEC = resolve(ROOT, "..", "backend", "docs", "api", "openapi.json");
 const OUTPUT_FILE = resolve(ROOT, "src", "lib", "api", "generated", "types.ts");
+const REQUIRED_MARKERS = [
+  "get_metadata_api_v1_monitoring_metadata_get",
+  "get_recap_api_v1_monitoring_recap_get",
+  "node_version?: string | null;",
+  "active_plugin_uuid?: string | null;",
+];
 
 // Validate the OpenAPI spec exists
 if (!existsSync(OPENAPI_SPEC)) {
@@ -61,4 +67,13 @@ const HEADER = `/* eslint-disable */
 `;
 
 const content = readFileSync(OUTPUT_FILE, "utf-8");
-writeFileSync(OUTPUT_FILE, HEADER + content, "utf-8");
+const generatedOutput = HEADER + content;
+
+for (const marker of REQUIRED_MARKERS) {
+  if (!generatedOutput.includes(marker)) {
+    console.error(`Generated API types are missing required Remnawave marker: ${marker}`);
+    process.exit(1);
+  }
+}
+
+writeFileSync(OUTPUT_FILE, generatedOutput, "utf-8");

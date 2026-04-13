@@ -10,37 +10,14 @@ import logging
 from dataclasses import asdict
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from src.application.dto.mobile_auth import SubscriptionInfoDTO, SubscriptionStatus
 from src.application.services.cache_service import CacheService
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.contracts import RemnawaveUserResponse
 
 logger = logging.getLogger(__name__)
 
 SUBSCRIPTION_CACHE_TTL = 300  # 5 minutes
-
-
-class RemnawaveUserResponse(BaseModel):
-    """Validated Remnawave user API response schema.
-
-    Maps the camelCase JSON response from Remnawave ``GET /api/users/{uuid}``.
-    Only fields relevant to subscription status are included;
-    unknown fields are silently stripped by Pydantic.
-    """
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    uuid: str
-    username: str
-    status: str
-    short_uuid: str | None = Field(default=None, alias="shortUuid")
-    subscription_uuid: str | None = Field(default=None, alias="subscriptionUuid")
-    expire_at: datetime | None = Field(default=None, alias="expireAt")
-    traffic_limit_bytes: int | None = Field(default=None, alias="trafficLimitBytes")
-    used_traffic_bytes: int | None = Field(default=None, alias="usedTrafficBytes")
-    online_at: datetime | None = Field(default=None, alias="onlineAt")
-    sub_revoked_at: datetime | None = Field(default=None, alias="subRevokedAt")
 
 
 # Map Remnawave user status string to SubscriptionStatus enum.

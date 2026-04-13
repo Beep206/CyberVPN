@@ -1,6 +1,6 @@
 """Check for expiring subscriptions and send reminders."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -36,13 +36,13 @@ async def check_expiring_subscriptions() -> dict:
         async with RemnawaveClient() as rw:
             users = await rw.get_users()
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         for user in users:
             if user.get("status") != "active":
                 continue
 
-            expire_at = user.get("expiresAt")
+            expire_at = user.get("expire_at")
             if not expire_at:
                 continue
 
@@ -57,7 +57,7 @@ async def check_expiring_subscriptions() -> dict:
 
             user_uuid = user.get("uuid", "")
             username = user.get("username", "unknown")
-            telegram_id = user.get("telegramId")
+            telegram_id = user.get("telegram_id")
 
             if not telegram_id or not user_uuid:
                 continue

@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from tests.remnawave_fixtures import load_remnawave_fixture
+
 
 @pytest.mark.asyncio
 async def test_remnawave_client_get_users():
@@ -25,6 +27,89 @@ async def test_remnawave_client_get_users():
 
             assert len(users) == 1
             assert users[0]["name"] == "User 1"
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_get_users_normalizes_aliases():
+    """Test RemnawaveClient get_users normalizes 2.7.x payloads."""
+    user_payload = load_remnawave_fixture("user_2_7_4.json")
+
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "users": [user_payload]
+        }
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            users = await client.get_users()
+
+            assert users[0]["status"] == "active"
+            assert users[0]["expiresAt"] == "2027-12-31T23:59:59+00:00"
+            assert users[0]["isOnline"] is True
+            assert users[0]["dataLimit"] == 1024
+            assert users[0]["dataUsed"] == 64
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_get_nodes_normalizes_aliases():
+    """Test RemnawaveClient get_nodes normalizes node metadata and traffic aliases."""
+    node_payload = load_remnawave_fixture("node_2_7_4.json")
+
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "nodes": [node_payload]
+        }
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            nodes = await client.get_nodes()
+
+            assert nodes[0]["is_connected"] is True
+            assert nodes[0]["isConnected"] is True
+            assert nodes[0]["node_version"] == "2.7.4"
+            assert nodes[0]["xrayVersion"] == "1.8.24"
+            assert nodes[0]["active_plugin_uuid"] == node_payload["activePluginUuid"]
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_get_user_normalizes_single_payload():
+    """Test RemnawaveClient get_user normalizes a single user payload."""
+    user_payload = load_remnawave_fixture("user_2_7_4.json")
+
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        user_payload["uuid"] = "550e8400-e29b-41d4-a716-446655440003"
+        user_payload["trafficLimitBytes"] = 2048
+        user_payload["userTraffic"]["usedTrafficBytes"] = 512
+        mock_response.json.return_value = user_payload
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            user = await client.get_user("550e8400-e29b-41d4-a716-446655440003")
+
+            assert user["status"] == "active"
+            assert user["dataLimit"] == 2048
+            assert user["dataUsed"] == 512
 
 
 @pytest.mark.asyncio
@@ -66,7 +151,7 @@ async def test_remnawave_client_api_error():
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
-        from src.services.remnawave_client import RemnawaveClient, RemnawaveAPIError
+        from src.services.remnawave_client import RemnawaveAPIError, RemnawaveClient
 
         with pytest.raises(RemnawaveAPIError) as exc_info:
             async with RemnawaveClient() as client:
@@ -190,8 +275,9 @@ async def test_cryptobot_client_get_invoices():
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
-        from src.services.cryptobot_client import CryptoBotClient
         from pydantic import SecretStr
+
+        from src.services.cryptobot_client import CryptoBotClient
 
         async with CryptoBotClient(token=SecretStr("test-token")) as client:
             invoices = await client.get_invoices(status="active")
@@ -210,8 +296,9 @@ async def test_cryptobot_client_create_invoice():
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
-        from src.services.cryptobot_client import CryptoBotClient
         from pydantic import SecretStr
+
+        from src.services.cryptobot_client import CryptoBotClient
 
         async with CryptoBotClient(token=SecretStr("test-token")) as client:
             invoice = await client.create_invoice(amount=50.0, currency="USDT", description="Test payment")
@@ -229,8 +316,9 @@ async def test_cryptobot_client_health_check():
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
-        from src.services.cryptobot_client import CryptoBotClient
         from pydantic import SecretStr
+
+        from src.services.cryptobot_client import CryptoBotClient
 
         async with CryptoBotClient(token=SecretStr("test-token")) as client:
             result = await client.health_check()

@@ -52,6 +52,76 @@ class BandwidthResponse(BaseModel):
     period: Literal["today", "week", "month"] = Field(..., description="Time period for analytics")
 
 
+class MetadataBuildResponse(BaseModel):
+    """Remnawave build metadata."""
+
+    time: str = Field(..., description="Build timestamp")
+    number: str = Field(..., description="Build number")
+
+
+class MetadataGitBackendResponse(BaseModel):
+    """Backend git metadata."""
+
+    commit_sha: str = Field(..., description="Backend commit SHA")
+    branch: str = Field(..., description="Backend branch")
+    commit_url: str = Field(..., description="Backend commit URL")
+
+
+class MetadataGitFrontendResponse(BaseModel):
+    """Frontend git metadata."""
+
+    commit_sha: str = Field(..., description="Frontend commit SHA")
+    commit_url: str = Field(..., description="Frontend commit URL")
+
+
+class MetadataGitResponse(BaseModel):
+    """Git metadata for backend and frontend."""
+
+    backend: MetadataGitBackendResponse
+    frontend: MetadataGitFrontendResponse
+
+
+class MetadataResponse(BaseModel):
+    """Remnawave panel metadata response."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    version: str = Field(..., description="Remnawave panel version")
+    build: MetadataBuildResponse
+    git: MetadataGitResponse
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class RecapPeriodResponse(BaseModel):
+    """Traffic/users summary for a recap period."""
+
+    users: int = Field(..., description="Users in the period")
+    traffic_bytes: int = Field(..., description="Traffic in bytes for the period")
+
+
+class RecapTotalsResponse(BaseModel):
+    """Lifetime Remnawave recap totals."""
+
+    users: int = Field(..., description="Total users")
+    nodes: int = Field(..., description="Total nodes")
+    traffic_bytes: int = Field(..., description="Lifetime traffic in bytes")
+    nodes_ram: str | None = Field(None, description="Aggregate node RAM")
+    nodes_cpu_cores: int | None = Field(None, description="Aggregate node CPU cores")
+    distinct_countries: int | None = Field(None, description="Distinct node countries")
+
+
+class RecapResponse(BaseModel):
+    """Remnawave recap response."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    version: str | None = Field(None, description="Remnawave panel version")
+    init_date: datetime | None = Field(None, description="Panel initialization date")
+    total: RecapTotalsResponse
+    this_month: RecapPeriodResponse | None = Field(None, description="Current month recap")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
 class TopUserResponse(BaseModel):
     """Top user by traffic response."""
 

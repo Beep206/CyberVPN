@@ -12,10 +12,11 @@ def map_remnawave_user(data: dict) -> User:
         "limited": UserStatus.LIMITED,
         "expired": UserStatus.EXPIRED,
     }
+    raw_status = str(data.get("status", "")).lower()
     return User(
         uuid=UUID(data["uuid"]),
         username=data["username"],
-        status=status_map.get(data.get("status", ""), UserStatus.DISABLED),
+        status=status_map.get(raw_status, UserStatus.DISABLED),
         short_uuid=data.get("shortUuid", ""),
         created_at=datetime.fromisoformat(data["createdAt"]),
         updated_at=datetime.fromisoformat(data["updatedAt"]),

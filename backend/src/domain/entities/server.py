@@ -22,7 +22,9 @@ class Server:
     inbound_count: int | None = None
     users_online: int | None = None
     xray_version: str | None = None
+    node_version: str | None = None
     vpn_protocol: str | None = None
+    active_plugin_uuid: UUID | None = None
 
     @property
     def status(self) -> ServerStatus:

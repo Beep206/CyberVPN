@@ -1,5 +1,5 @@
 ---
-remnawave_edge_image: remnawave/node:2.6.1
+remnawave_edge_image: remnawave/node:2.7.4
 remnawave_edge_node_port: 2222
 remnawave_edge_secret_key: "{{ vault_remnawave_edge_secret_key }}"
 remnawave_edge_log_dir: /var/log/remnanode

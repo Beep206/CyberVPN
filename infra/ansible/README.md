@@ -101,6 +101,9 @@ ansible-vault encrypt inventories/staging/group_vars/remnawave_edge_staging/vaul
 It must match the node port configured in the Remnawave panel.
 Restrict this port in cloud firewall rules to the panel IP or CIDR only.
 
+Also keep the Remnawave edge image aligned with the control-plane version.
+Current baseline: panel/backend `2.7.4` and edge node `2.7.4`.
+
 3. Run the rollout:
 
 ```bash
@@ -132,6 +135,18 @@ Optional targeted rollback:
 cd infra/ansible
 ansible-playbook -i inventories/staging playbooks/rollback-remnawave.yml \
   -e remnawave_edge_rollback_release_name=remnanode-<release-id>
+```
+
+5. Run the Remnawave staging smoke checklist immediately after rollout:
+
+- `/home/beep/projects/VPNBussiness/docs/runbooks/STAGING_REMNAWAVE_SMOKE_CHECKLIST.md`
+- `/home/beep/projects/VPNBussiness/docs/runbooks/REMNAWAVE_2_7_4_STAGING_HANDOFF.md`
+
+Operator shortcut:
+
+```bash
+cd /home/beep/projects/VPNBussiness/infra
+make remnawave-staging-smoke
 ```
 
 ## Phase 4 usage

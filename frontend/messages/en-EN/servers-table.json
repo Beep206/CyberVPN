@@ -6,14 +6,30 @@
         "location": "LOCATION",
         "ipAddress": "IP ADDRESS",
         "protocol": "PROTOCOL",
+        "versions": "VERSIONS",
         "status": "STATUS",
+        "governance": "GOVERNANCE",
         "load": "LOAD",
         "controls": "CONTROLS"
+    },
+    "labels": {
+        "nodeVersion": "Node",
+        "xrayVersion": "Xray",
+        "plugin": "Plugin",
+        "governance": "Governance",
+        "clients": "Clients",
+        "uptime": "Uptime",
+        "noData": "n/a"
     },
     "actions": {
         "restart": "Restart",
         "stop": "Stop",
         "config": "Config"
+    },
+    "governance": {
+        "pluginActive": "PLUGIN ACTIVE",
+        "noPlugin": "NO PLUGIN",
+        "nodeDisabled": "NODE DISABLED"
     },
     "status": {
         "online": "ONLINE",

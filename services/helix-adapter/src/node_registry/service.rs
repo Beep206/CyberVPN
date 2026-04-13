@@ -8,9 +8,9 @@ use crate::{
         model::{
             DesktopRuntimeCore, DesktopRuntimeEventAck, DesktopRuntimeEventKind,
             DesktopRuntimeEventRequest, NodeHeartbeatRequest, NodeRegistryRecord, NodeUpsertInput,
-            PublishRolloutBatchRequest, RolloutBatchRecord, RolloutDesiredState,
-            RolloutCanaryEvidenceResponse, RolloutCanarySnapshotSummary,
-            RolloutCanaryThresholdSummary, RolloutStateResponse,
+            PublishRolloutBatchRequest, RolloutBatchRecord, RolloutCanaryEvidenceResponse,
+            RolloutCanarySnapshotSummary, RolloutCanaryThresholdSummary, RolloutDesiredState,
+            RolloutStateResponse,
         },
         repository::NodeRegistryRepository,
     },
@@ -389,7 +389,10 @@ fn evaluate_canary_gate(
     }
 
     if rollout.current_batch.failed_nodes > 0 {
-        reasons.push(format!("failed nodes={}", rollout.current_batch.failed_nodes));
+        reasons.push(format!(
+            "failed nodes={}",
+            rollout.current_batch.failed_nodes
+        ));
     }
 
     if rollout.nodes.rolled_back > 0 {
@@ -404,7 +407,10 @@ fn evaluate_canary_gate(
     }
 
     if desktop.fallback_rate > config.helix_canary_max_fallback_rate {
-        reasons.push(format!("fallback rate={:.2}%", desktop.fallback_rate * 100.0));
+        reasons.push(format!(
+            "fallback rate={:.2}%",
+            desktop.fallback_rate * 100.0
+        ));
     }
 
     if desktop.continuity_observed_events > 0
@@ -474,7 +480,9 @@ fn evaluate_canary_gate(
     }
 
     if desktop.benchmark_observed_events > 0
-        && desktop.average_relative_open_to_first_byte_gap_ratio.is_none()
+        && desktop
+            .average_relative_open_to_first_byte_gap_ratio
+            .is_none()
     {
         evidence_gaps.push("gap ratio evidence unavailable in rollout status".to_string());
     }
@@ -538,9 +546,7 @@ fn derive_canary_follow_up(
                 "warning"
             }),
             vec![
-                format!(
-                    "Confirm desktop and node assignments converge on {target_profile}."
-                ),
+                format!("Confirm desktop and node assignments converge on {target_profile}."),
                 "Watch continuity, fallback, and throughput evidence during the next window."
                     .to_string(),
                 "Revoke or demote the degraded profile after recovery stabilizes.".to_string(),
@@ -597,4 +603,42 @@ fn derive_canary_follow_up(
     }
 
     (None, None, Vec::new())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::NodeRegistryService;
+    use crate::remnawave::client::NodeInventoryItem;
+
+    #[test]
+    fn inventory_to_upsert_maps_current_remnawave_inventory_shape() {
+        let inventory_item: NodeInventoryItem = serde_json::from_value(json!({
+            "uuid": "550e8400-e29b-41d4-a716-446655440123",
+            "name": "PT Edge FRA 01",
+            "address": "fra-01.example.com",
+            "isDisabled": false,
+            "activePluginUuid": "550e8400-e29b-41d4-a716-446655440124",
+            "versions": {
+                "node": "2.7.4",
+                "xray": "1.8.10"
+            }
+        }))
+        .expect("current Remnawave inventory payload");
+
+        let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
+
+        assert_eq!(upsert.remnawave_node_id, inventory_item.id);
+        assert_eq!(upsert.node_name, inventory_item.name);
+        assert_eq!(upsert.hostname.as_deref(), Some("fra-01.example.com"));
+        assert_eq!(upsert.adapter_node_label, "fra-01-example-com");
+        assert_eq!(inventory_item.effective_enabled(), Some(true));
+        assert_eq!(inventory_item.effective_node_version(), Some("2.7.4"));
+        assert_eq!(inventory_item.effective_xray_version(), Some("1.8.10"));
+        assert_eq!(
+            inventory_item.active_plugin_uuid.as_deref(),
+            Some("550e8400-e29b-41d4-a716-446655440124")
+        );
+    }
 }

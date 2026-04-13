@@ -29,6 +29,36 @@ use helix_adapter::{
     },
 };
 
+fn inventory_item(id: String, name: &str, hostname: &str) -> NodeInventoryItem {
+    NodeInventoryItem {
+        id,
+        name: name.to_string(),
+        hostname: Some(hostname.to_string()),
+        enabled: Some(true),
+        is_disabled: None,
+        is_connected: None,
+        is_connecting: None,
+        country_code: None,
+        active_plugin_uuid: None,
+        node_version: None,
+        xray_version: None,
+        versions: None,
+    }
+}
+
+#[test]
+fn node_registry_inventory_helper_accepts_current_remnawave_fixture() {
+    let payload = include_str!("fixtures/remnawave/node_inventory_item_2_7_4.json");
+    let item: NodeInventoryItem = serde_json::from_str(payload).expect("current remnawave fixture");
+
+    let upsert = NodeRegistryService::inventory_to_upsert(&item);
+
+    assert_eq!(upsert.remnawave_node_id, item.id);
+    assert_eq!(upsert.node_name, item.name);
+    assert_eq!(upsert.hostname.as_deref(), item.hostname.as_deref());
+    assert_eq!(upsert.adapter_node_label, "fra-01-example-com");
+}
+
 #[tokio::test]
 async fn node_registry_persists_rollout_assignments() {
     let Some(pool) = maybe_test_pool().await else {
@@ -38,12 +68,11 @@ async fn node_registry_persists_rollout_assignments() {
     run_migrations(&pool).await.expect("migrations");
 
     let repository = NodeRegistryRepository::new(pool.clone());
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge EU West".to_string(),
-        hostname: Some("pt-edge-eu-west-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge EU West",
+        "pt-edge-eu-west-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -87,12 +116,11 @@ async fn node_registry_records_heartbeat_snapshots() {
     run_migrations(&pool).await.expect("migrations");
 
     let repository = NodeRegistryRepository::new(pool.clone());
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Canary".to_string(),
-        hostname: Some("pt-edge-canary-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Canary",
+        "pt-edge-canary-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -177,12 +205,11 @@ async fn node_registry_list_nodes_returns_cached_registry_when_remnawave_sync_fa
     run_migrations(&pool).await.expect("migrations");
 
     let repository = NodeRegistryRepository::new(pool.clone());
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Cached".to_string(),
-        hostname: Some("pt-edge-cached-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Cached",
+        "pt-edge-cached-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -215,12 +242,11 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
     run_migrations(&pool).await.expect("migrations");
 
     let repository = NodeRegistryRepository::new(pool.clone());
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Stable".to_string(),
-        hostname: Some("pt-edge-stable-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Stable",
+        "pt-edge-stable-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -418,11 +444,21 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
     assert_eq!(rollout_state.desktop.benchmark_observed_events, 1);
     assert_eq!(rollout_state.desktop.throughput_evidence_observed_events, 1);
     assert!(
-        (rollout_state.desktop.average_benchmark_throughput_kbps.unwrap() - 7_512.5).abs()
+        (rollout_state
+            .desktop
+            .average_benchmark_throughput_kbps
+            .unwrap()
+            - 7_512.5)
+            .abs()
             < f64::EPSILON
     );
     assert!(
-        (rollout_state.desktop.average_relative_throughput_ratio.unwrap() - 1.18).abs()
+        (rollout_state
+            .desktop
+            .average_relative_throughput_ratio
+            .unwrap()
+            - 1.18)
+            .abs()
             < f64::EPSILON
     );
     assert!(
@@ -447,12 +483,11 @@ async fn node_registry_counts_cross_route_ready_recovery_as_continuity_success()
     run_migrations(&pool).await.expect("migrations");
 
     let repository = NodeRegistryRepository::new(pool.clone());
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Lab".to_string(),
-        hostname: Some("pt-edge-lab-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Lab",
+        "pt-edge-lab-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -522,8 +557,7 @@ async fn node_registry_counts_cross_route_ready_recovery_as_continuity_success()
 }
 
 #[tokio::test]
-async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evidence_is_missing()
-{
+async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evidence_is_missing() {
     let Some(pool) = maybe_test_pool().await else {
         return;
     };
@@ -535,12 +569,11 @@ async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evi
         repository.clone(),
         RemnawaveClient::new(&AdapterConfig::test_default()).expect("remnawave client"),
     );
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Canary".to_string(),
-        hostname: Some("pt-edge-canary-watch-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Canary",
+        "pt-edge-canary-watch-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -625,12 +658,11 @@ async fn node_registry_rollout_canary_evidence_reports_no_go_for_poor_relative_t
         repository.clone(),
         RemnawaveClient::new(&AdapterConfig::test_default()).expect("remnawave client"),
     );
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Canary".to_string(),
-        hostname: Some("pt-edge-canary-nogo-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Canary",
+        "pt-edge-canary-nogo-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))
@@ -722,12 +754,11 @@ async fn node_registry_rollout_state_recommends_pause_for_avoid_new_sessions_pro
 
     let repository = NodeRegistryRepository::new(pool.clone());
     let transport_profiles = TransportProfileRepository::new(pool.clone());
-    let inventory_item = NodeInventoryItem {
-        id: format!("node-{}", Uuid::new_v4().simple()),
-        name: "PT Edge Advisory".to_string(),
-        hostname: Some("pt-edge-advisory-01".to_string()),
-        enabled: Some(true),
-    };
+    let inventory_item = inventory_item(
+        format!("node-{}", Uuid::new_v4().simple()),
+        "PT Edge Advisory",
+        "pt-edge-advisory-01",
+    );
     let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
     repository
         .upsert_nodes(std::slice::from_ref(&upsert))

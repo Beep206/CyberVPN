@@ -15,6 +15,7 @@ TERRAFORM ?= terraform
 	ansible-install ansible-syntax monitoring-validate \
 	ansible-bootstrap-staging ansible-verify-staging ansible-remnawave-rollout-staging \
 	ansible-remnawave-verify-staging ansible-remnawave-rollback-staging \
+	remnawave-staging-smoke \
 	ansible-helix-rollout-staging ansible-helix-verify-staging ansible-helix-rollback-staging \
 	ansible-alloy-rollout-staging ansible-alloy-verify-staging ansible-alloy-rollback-staging \
 	ansible-control-plane-rollout-staging ansible-control-plane-verify-staging \
@@ -238,6 +239,9 @@ ansible-remnawave-verify-staging:
 
 ansible-remnawave-rollback-staging:
 	cd ansible && ansible-playbook -i inventories/staging playbooks/rollback-remnawave.yml -e remnawave_edge_target_group=remnawave_edge_staging
+
+remnawave-staging-smoke:
+	./scripts/remnawave-staging-smoke.sh
 
 ansible-phase3-staging: inventory-staging ansible-remnawave-rollout-staging ansible-remnawave-verify-staging
 

@@ -11,9 +11,9 @@ import pytest
 async def test_aggregate_daily_stats_success():
     """Test daily stats aggregation with valid data."""
     mock_users = [
-        {"status": "active", "usedTrafficBytes": 1000},
-        {"status": "active", "usedTrafficBytes": 2000},
-        {"status": "disabled", "usedTrafficBytes": 500},
+        {"status": "active", "used_traffic_bytes": 1000, "is_online": True},
+        {"status": "active", "used_traffic_bytes": 2000, "is_online": False},
+        {"status": "disabled", "used_traffic_bytes": 500, "is_online": False},
     ]
     mock_system_stats = {"cpu_usage": 50.0}
 
@@ -152,12 +152,12 @@ async def test_aggregate_hourly_bandwidth_invalid_values():
 async def test_update_realtime_metrics_caching():
     """Test realtime metrics update and caching."""
     mock_users = [
-        {"status": "active", "isOnline": True},
-        {"status": "active", "isOnline": False},
+        {"status": "active", "is_online": True},
+        {"status": "active", "is_online": False},
     ]
     mock_nodes = [
-        {"isConnected": True, "currentBandwidth": 1000},
-        {"isConnected": False, "currentBandwidth": 0},
+        {"is_connected": True, "current_bandwidth": 1000, "traffic_up": 0, "traffic_down": 0},
+        {"is_connected": False, "current_bandwidth": 0, "traffic_up": 0, "traffic_down": 0},
     ]
 
     with (

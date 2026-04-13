@@ -2,7 +2,7 @@
 
 import json
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from sqlalchemy import func, select
@@ -31,21 +31,21 @@ async def aggregate_daily_stats() -> dict:
             users = await rw.get_users()
             await rw.get_system_stats()
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         today = now.date()
-        start = datetime.combine(today - timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
-        end = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
+        start = datetime.combine(today - timedelta(days=1), datetime.min.time(), tzinfo=UTC)
+        end = datetime.combine(today, datetime.min.time(), tzinfo=UTC)
 
         total_users = len(users)
         active_users = sum(1 for u in users if u.get("status") == "active")
         disabled_users = sum(1 for u in users if u.get("status") == "disabled")
         expired_users = 0
         limited_users = 0
-        online_users = sum(1 for u in users if u.get("isOnline", False))
-        total_bandwidth = sum(u.get("usedTrafficBytes", 0) or 0 for u in users)
+        online_users = sum(1 for u in users if u.get("is_online", False))
+        total_bandwidth = sum(u.get("used_traffic_bytes", 0) or 0 for u in users)
 
         for user in users:
-            expire_at = user.get("expiresAt")
+            expire_at = user.get("expire_at")
             if expire_at:
                 try:
                     exp_dt = datetime.fromisoformat(expire_at.replace("Z", "+00:00"))
@@ -54,8 +54,8 @@ async def aggregate_daily_stats() -> dict:
                 except (ValueError, TypeError):
                     pass
 
-            data_limit = user.get("dataLimit", 0)
-            data_used = user.get("dataUsed", 0)
+            data_limit = user.get("traffic_limit_bytes", 0)
+            data_used = user.get("used_traffic_bytes", 0)
             if data_limit and data_used >= data_limit:
                 limited_users += 1
 

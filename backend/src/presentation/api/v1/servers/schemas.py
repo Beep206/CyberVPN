@@ -28,7 +28,9 @@ class ServerResponse(BaseModel):
     inbound_count: int
     users_online: int
     xray_version: str | None = None
+    node_version: str | None = None
     vpn_protocol: str | None = None
+    active_plugin_uuid: UUID | None = None
 
 
 class CreateServerRequest(BaseModel):

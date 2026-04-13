@@ -1,5 +1,16 @@
 {
     "ip": "IP",
     "protocol": "ПРОТОКОЛ",
-    "load": "НАГРУЗКА"
+    "load": "НАГРУЗКА",
+    "nodeVersion": "ВЕРСИЯ NODE",
+    "xrayVersion": "ВЕРСИЯ XRAY",
+    "governanceLabel": "УПРАВЛЕНИЕ",
+    "plugin": "ПЛАГИН",
+    "pluginNone": "НЕТ ПЛАГИНА",
+    "notAvailable": "н/д",
+    "governance": {
+        "pluginActive": "ПЛАГИН АКТИВЕН",
+        "noPlugin": "БЕЗ ПЛАГИНА",
+        "nodeDisabled": "УЗЕЛ ОТКЛЮЧЕН"
+    }
 }

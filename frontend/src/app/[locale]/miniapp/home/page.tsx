@@ -52,7 +52,7 @@ export default function MiniAppHomePage() {
     queryKey: ['subscriptions'],
     queryFn: async () => {
       const { data } = await subscriptionsApi.list();
-      return data;
+      return data.templates ?? [];
     },
   });
 

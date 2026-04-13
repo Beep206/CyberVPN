@@ -1,6 +1,6 @@
 """Auto-renew subscriptions for users with auto_renew enabled."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 
@@ -33,19 +33,19 @@ async def auto_renew_subscriptions() -> dict:
         async with RemnawaveClient() as rw:
             users = await rw.get_users()
 
-        renewal_threshold = datetime.now(timezone.utc) + timedelta(hours=1)
+        renewal_threshold = datetime.now(UTC) + timedelta(hours=1)
 
         async with CryptoBotClient(settings.cryptobot_token) as cb, TelegramClient() as tg:
             for user in users:
                 users_checked += 1
 
                 # Check auto_renew flag
-                auto_renew = user.get("autoRenew", False)
+                auto_renew = user.get("auto_renew", False)
                 if not auto_renew:
                     continue
 
                 # Parse expiration date
-                expire_at = user.get("expiresAt")
+                expire_at = user.get("expire_at")
                 if not expire_at:
                     continue
 
@@ -60,7 +60,7 @@ async def auto_renew_subscriptions() -> dict:
                     continue
 
                 username = user.get("username", "unknown")
-                telegram_id = user.get("telegramId")
+                telegram_id = user.get("telegram_id")
                 user_uuid = user.get("uuid")
 
                 if not telegram_id or not user_uuid:
@@ -68,9 +68,9 @@ async def auto_renew_subscriptions() -> dict:
                     continue
 
                 # Get subscription plan details
-                plan_name = user.get("subscriptionPlan", "Standard")
-                amount = user.get("planPrice", 10.0)
-                currency = user.get("planCurrency", "USD")
+                plan_name = user.get("plan_name", "Standard")
+                amount = user.get("plan_price", 10.0)
+                currency = user.get("plan_currency", "USD")
 
                 try:
                     # Create invoice via CryptoBot

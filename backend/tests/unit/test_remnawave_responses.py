@@ -15,7 +15,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from src.presentation.schemas.remnawave_responses import (
+from src.infrastructure.remnawave.contracts import (
     RemnavwaveBandwidthStatsResponse,
     RemnavwaveBillingRecordResponse,
     RemnavwavePlanResponse,
@@ -264,6 +264,27 @@ class TestRemnawaveUserResponse:
         assert user.active_user_inbounds == [{"tag": "vless-tcp", "nodeUuid": "node-1"}]
 
     @pytest.mark.unit
+    def test_user_accepts_nested_user_traffic_payload(self, user_data_camel):
+        """Test compatibility with Remnawave 2.7.4 nested userTraffic payload."""
+        nested_payload = {
+            **user_data_camel,
+            "status": "ACTIVE",
+            "userTraffic": {
+                "usedTrafficBytes": 512,
+                "lifetimeUsedTrafficBytes": 1024,
+                "onlineAt": NOW_ISO,
+            },
+        }
+
+        user = RemnawaveUserResponse(**nested_payload)
+        dumped = user.model_dump(by_alias=True)
+
+        assert user.used_traffic_bytes == 512
+        assert user.lifetime_used_traffic_bytes == 1024
+        assert "usedTrafficBytes" in dumped
+        assert dumped["usedTrafficBytes"] == 512
+
+    @pytest.mark.unit
     def test_camel_case_serialization(self, user_data_snake):
         """Test that model_dump(by_alias=True) produces camelCase keys."""
         user = RemnawaveUserResponse(**user_data_snake)
@@ -450,6 +471,25 @@ class TestRemnawaveNodeResponse:
         assert node.country_code == "DE"
         assert node.consumption_multiplier == 1.5
         assert node.users_online == 42
+
+    @pytest.mark.unit
+    def test_node_accepts_nested_versions_and_active_plugin_uuid(self, node_data_camel):
+        """Test compatibility with Remnawave 2.7.x nested node version payload."""
+        node = RemnawaveNodeResponse(
+            **node_data_camel,
+            versions={"xray": "1.8.10", "node": "2.7.4"},
+            activePluginUuid="550e8400-e29b-41d4-a716-446655440099",
+            trafficUsedBytes=2048,
+        )
+
+        dumped = node.model_dump(by_alias=True)
+
+        assert node.xray_version == "1.8.10"
+        assert node.node_version == "2.7.4"
+        assert node.active_plugin_uuid == "550e8400-e29b-41d4-a716-446655440099"
+        assert node.used_traffic_bytes == 2048
+        assert dumped["xrayVersion"] == "1.8.10"
+        assert dumped["nodeVersion"] == "2.7.4"
 
     @pytest.mark.unit
     def test_camel_case_serialization(self, node_data_snake):

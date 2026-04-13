@@ -15,7 +15,7 @@ remnawave_edge_container_name: remnanode
 remnawave_edge_compose_filename: docker-compose.yml
 remnawave_edge_env_filename: remnanode.env
 
-remnawave_edge_image: remnawave/node:2.6.1
+remnawave_edge_image: remnawave/node:2.7.4
 remnawave_edge_restart_policy: unless-stopped
 remnawave_edge_network_mode: host
 remnawave_edge_compose_service_pull_policy: missing

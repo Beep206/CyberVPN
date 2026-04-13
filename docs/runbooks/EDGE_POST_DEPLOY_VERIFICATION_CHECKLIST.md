@@ -31,6 +31,17 @@ cd /home/beep/projects/VPNBussiness/infra
 make ansible-phase3-staging
 ```
 
+Immediately after the rollout, run the focused Remnawave smoke checklist:
+
+- `/home/beep/projects/VPNBussiness/docs/runbooks/STAGING_REMNAWAVE_SMOKE_CHECKLIST.md`
+
+Operator shortcut:
+
+```bash
+cd /home/beep/projects/VPNBussiness/infra
+make remnawave-staging-smoke
+```
+
 3. Roll out Helix if that node carries the Helix workload:
 
 ```bash

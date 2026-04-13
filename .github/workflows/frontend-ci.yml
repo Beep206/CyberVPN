@@ -21,6 +21,29 @@ defaults:
     working-directory: frontend
 
 jobs:
+  generated-artifacts:
+    name: Generated Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check generated API types and i18n bundles
+        run: |
+          npm run generate:api-types
+          npm run prepare:i18n
+          git diff --exit-code -- src/lib/api/generated/types.ts src/i18n/messages/generated
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -115,7 +138,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
+    needs: [generated-artifacts, lint, typecheck, test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -136,17 +159,19 @@ jobs:
   all-checks:
     name: All Frontend Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test, build]
+    needs: [generated-artifacts, lint, typecheck, test, build]
     if: always()
     steps:
       - name: Check all jobs
         env:
+          GENERATED_RESULT: ${{ needs.generated-artifacts.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         run: |
-          if [[ "$LINT_RESULT" != "success" ]] || \
+          if [[ "$GENERATED_RESULT" != "success" ]] || \
+             [[ "$LINT_RESULT" != "success" ]] || \
              [[ "$TYPECHECK_RESULT" != "success" ]] || \
              [[ "$TEST_RESULT" != "success" ]] || \
              [[ "$BUILD_RESULT" != "success" ]]; then

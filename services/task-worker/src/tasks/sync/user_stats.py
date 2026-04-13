@@ -1,6 +1,6 @@
 """Sync user statistics summary to Redis cache."""
 
-import json
+from datetime import UTC, datetime
 
 import structlog
 
@@ -47,16 +47,14 @@ async def sync_user_stats() -> dict:
 
         stats["total"] = len(users)
 
-        from datetime import datetime, timezone
-
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         for user in users:
             status = user.get("status", "")
-            is_online = user.get("isOnline", False)
-            expire_at = user.get("expiresAt")
-            data_limit = user.get("dataLimit", 0)
-            data_used = user.get("dataUsed", 0)
+            is_online = user.get("is_online", False)
+            expire_at = user.get("expire_at")
+            data_limit = user.get("traffic_limit_bytes", 0)
+            data_used = user.get("used_traffic_bytes", 0)
 
             # Count by status
             if status == "active":

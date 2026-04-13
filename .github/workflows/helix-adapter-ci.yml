@@ -1,0 +1,63 @@
+name: Helix Adapter CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'services/helix-adapter/**'
+      - '.github/workflows/helix-adapter-ci.yml'
+  pull_request:
+    paths:
+      - 'services/helix-adapter/**'
+      - '.github/workflows/helix-adapter-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: services/helix-adapter
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt clippy
+
+      - name: Set default Rust toolchain
+        run: rustup default stable
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/helix-adapter/target
+          key: ${{ runner.os }}-helix-adapter-${{ hashFiles('services/helix-adapter/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-helix-adapter-
+
+      - name: Run rustfmt
+        run: cargo fmt --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run Remnawave inventory contract regressions
+        run: |
+          cargo test remnawave::client::tests::node_inventory_item_accepts_current_remnawave_shape -- --nocapture
+          cargo test remnawave::client::tests::list_nodes_response_accepts_wrapped_payloads -- --nocapture
+          cargo test node_registry_inventory_helper_accepts_current_remnawave_fixture -- --nocapture
+
+      - name: Run test suite
+        run: cargo test --locked
