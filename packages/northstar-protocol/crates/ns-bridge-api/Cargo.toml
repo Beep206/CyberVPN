@@ -1,0 +1,30 @@
+[package]
+name = "ns-bridge-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+axum.workspace = true
+http.workspace = true
+ns-bridge-domain = { path = "../ns-bridge-domain" }
+ns-core = { path = "../ns-core" }
+ns-manifest = { path = "../ns-manifest" }
+ns-observability = { path = "../ns-observability" }
+ns-remnawave-adapter = { path = "../ns-remnawave-adapter" }
+ns-storage = { path = "../ns-storage" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+ed25519-dalek.workspace = true
+ns-auth = { path = "../ns-auth" }
+ns-testkit = { path = "../ns-testkit" }
+tokio.workspace = true
+tower = "0.5.2"

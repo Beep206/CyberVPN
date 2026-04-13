@@ -1,0 +1,15 @@
+{
+  "case_id": "NS-FX-HELLO-001",
+  "expected": {
+    "carrier_profile_id": "carrier-primary",
+    "device_binding_id": "device-1",
+    "manifest_id": "man-2026-04-01-001",
+    "requested_capabilities": [
+      "TcpRelay",
+      "UdpRelay"
+    ]
+  },
+  "frame_type": "ClientHello",
+  "hex": "01406f01010101010101010101010101010101010101010101010101010101010101010101020102010f636172726965722d7072696d617279126d616e2d323032362d30342d30312d303031086465766963652d318000753044b015666978747572652d73657373696f6e2d746f6b656e00",
+  "suite": "WC"
+}

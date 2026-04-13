@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-FLOW-CLOSE-BADUTF8-052",
+  "expected_error": "InvalidUtf8",
+  "hex": "0a04070001ff",
+  "suite": "WC"
+}

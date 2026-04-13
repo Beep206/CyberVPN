@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-OPEN-NONCANONFLOW-025",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "404303400700",
+  "suite": "WC"
+}

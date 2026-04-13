@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-ACCEPT-BADMETALEN-068",
+  "expected_error": "Truncated",
+  "hex": "4044050701010478",
+  "suite": "WC"
+}

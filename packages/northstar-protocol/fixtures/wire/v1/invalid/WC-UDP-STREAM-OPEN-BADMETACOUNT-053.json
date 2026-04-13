@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-OPEN-BADMETACOUNT-053",
+  "expected_error": "Validation",
+  "hex": "4043020711",
+  "suite": "WC"
+}

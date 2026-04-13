@@ -1,0 +1,10 @@
+{
+  "client_version": "0.1.0",
+  "device_id": "device-1",
+  "manifest_id": "man-2026-04-01-001",
+  "platform": "windows",
+  "requested_capabilities": [
+    1
+  ],
+  "unexpected_field": true
+}

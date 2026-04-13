@@ -1,0 +1,45 @@
+[CmdletBinding()]
+param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$WorkflowArgs
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+function Fail([string]$Message) {
+    Write-Error $Message
+    exit 1
+}
+
+$repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
+$workspaceManifest = Join-Path $repoRoot "Cargo.toml"
+$summaryPath = if ($env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH) { $env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH } else { Join-Path $repoRoot "target\\northstar\\udp-release-candidate-readiness-summary.json" }
+$releaseCandidateStabilizationPath = if ($env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH) { $env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH } else { Join-Path $repoRoot "target\\northstar\\udp-release-candidate-stabilization-summary.json" }
+$linuxReadinessPath = if ($env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH) { $env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH } else { Join-Path $repoRoot "target\\northstar\\udp-rollout-comparison-summary-linux.json" }
+$macosReadinessPath = if ($env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH) { $env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH } else { Join-Path $repoRoot "target\\northstar\\udp-rollout-comparison-summary-macos.json" }
+$windowsReadinessPath = if ($env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH) { $env:NORTHSTAR_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH } else { Join-Path $repoRoot "target\\northstar\\udp-rollout-comparison-summary-windows.json" }
+
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    Fail "cargo was not found. Install the Rust stable toolchain before running the UDP release candidate readiness wrapper."
+}
+
+if (-not (Test-Path $workspaceManifest)) {
+    Fail "No root Cargo.toml was found at $workspaceManifest. Northstar is still in setup-only state; bootstrap the Rust workspace before using scripts/udp-release-candidate-readiness.ps1."
+}
+
+if (-not $WorkflowArgs -or $WorkflowArgs.Count -eq 0) {
+    $WorkflowArgs = @(
+        "--summary-path", $summaryPath,
+        "--release-candidate-stabilization", $releaseCandidateStabilizationPath,
+        "--linux-readiness", $linuxReadinessPath,
+        "--macos-readiness", $macosReadinessPath,
+        "--windows-readiness", $windowsReadinessPath
+    )
+}
+
+Write-Host "==> Running machine-readable UDP release candidate readiness"
+& cargo run -p ns-testkit --example udp_release_candidate_readiness -- @WorkflowArgs
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}

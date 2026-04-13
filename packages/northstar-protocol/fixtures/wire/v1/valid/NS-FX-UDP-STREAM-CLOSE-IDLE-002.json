@@ -1,0 +1,11 @@
+{
+  "case_id": "NS-FX-UDP-STREAM-CLOSE-IDLE-002",
+  "expected": {
+    "code": "IdleTimeout",
+    "flow_id": 7,
+    "message": "idle timeout"
+  },
+  "frame_type": "UdpStreamClose",
+  "hex": "40460f070d0c69646c652074696d656f7574",
+  "suite": "WC"
+}

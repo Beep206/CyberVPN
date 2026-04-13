@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-CLOSE-BADUTF8-050",
+  "expected_error": "InvalidUtf8",
+  "hex": "404604070001ff",
+  "suite": "WC"
+}

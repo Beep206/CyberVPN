@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-CLOSE-TRUNCATED-017",
+  "expected_error": "LengthMismatch",
+  "hex": "404607070004646f6e",
+  "suite": "WC"
+}

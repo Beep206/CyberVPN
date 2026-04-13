@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-DGRAM-TRUNCATED-015",
+  "expected_error": "Truncated",
+  "hex": "07",
+  "suite": "WC"
+}

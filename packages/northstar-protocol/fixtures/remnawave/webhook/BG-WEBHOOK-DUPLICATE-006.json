@@ -1,0 +1,15 @@
+{
+  "body": "{\"event\":\"account.updated\",\"event_id\":\"evt-dup-1\"}",
+  "case_id": "BG-WEBHOOK-DUPLICATE-006",
+  "payload": {
+    "account_id": "acct-1",
+    "event_id": "evt-dup-1",
+    "event_type": "account.updated",
+    "occurred_at_unix": 1775002200,
+    "payload": {
+      "lifecycle": "active"
+    }
+  },
+  "signature_header": "sig-ok",
+  "timestamp_header": "1775002200"
+}

@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-ACCEPT-BADMETACOUNT-054",
+  "expected_error": "Validation",
+  "hex": "4044020711",
+  "suite": "WC"
+}

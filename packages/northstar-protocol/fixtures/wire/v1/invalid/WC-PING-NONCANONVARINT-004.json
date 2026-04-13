@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-PING-NONCANONVARINT-004",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "0303400102",
+  "suite": "WC"
+}

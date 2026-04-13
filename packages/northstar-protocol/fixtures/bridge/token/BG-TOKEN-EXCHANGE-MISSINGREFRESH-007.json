@@ -1,0 +1,11 @@
+{
+  "carrier_profile_id": "carrier-primary",
+  "client_version": "0.1.0",
+  "core_version": 1,
+  "device_id": "device-1",
+  "manifest_id": "man-2026-04-01-001",
+  "requested_capabilities": [
+    1,
+    2
+  ]
+}

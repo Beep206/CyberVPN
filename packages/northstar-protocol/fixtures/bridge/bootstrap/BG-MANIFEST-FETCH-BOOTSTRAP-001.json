@@ -1,0 +1,6 @@
+{
+  "authorization_header": null,
+  "case_id": "BG-MANIFEST-FETCH-BOOTSTRAP-001",
+  "expected_mode": "bootstrap",
+  "subscription_token": "sub-1"
+}

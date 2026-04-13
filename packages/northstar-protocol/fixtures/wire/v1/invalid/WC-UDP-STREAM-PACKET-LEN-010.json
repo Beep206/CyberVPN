@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-PACKET-LEN-010",
+  "expected_error": "Truncated",
+  "hex": "4045050561626364",
+  "suite": "WC"
+}

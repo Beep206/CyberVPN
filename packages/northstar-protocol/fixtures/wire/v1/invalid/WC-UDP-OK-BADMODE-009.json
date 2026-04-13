@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-BADMODE-009",
+  "expected_error": "Validation",
+  "hex": "090707097a9844b000",
+  "suite": "WC"
+}

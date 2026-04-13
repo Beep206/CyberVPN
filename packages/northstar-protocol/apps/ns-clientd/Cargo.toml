@@ -1,0 +1,25 @@
+[package]
+name = "ns-clientd"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+ns-carrier-h3 = { path = "../../crates/ns-carrier-h3" }
+ns-client-runtime = { path = "../../crates/ns-client-runtime" }
+ns-core = { path = "../../crates/ns-core" }
+ns-manifest = { path = "../../crates/ns-manifest" }
+ns-observability = { path = "../../crates/ns-observability" }
+serde_json.workspace = true
+time.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+ns-session = { path = "../../crates/ns-session" }
+ns-testkit = { path = "../../crates/ns-testkit" }
