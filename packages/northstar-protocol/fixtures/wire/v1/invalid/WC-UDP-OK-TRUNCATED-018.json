@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-TRUNCATED-018",
+  "expected_error": "LengthMismatch",
+  "hex": "090707017a9844b0",
+  "suite": "WC"
+}

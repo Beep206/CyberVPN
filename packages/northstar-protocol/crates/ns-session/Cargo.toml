@@ -1,0 +1,24 @@
+[package]
+name = "ns-session"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+bytes.workspace = true
+ns-core = { path = "../ns-core" }
+ns-policy = { path = "../ns-policy" }
+ns-wire = { path = "../ns-wire" }
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+hex.workspace = true
+ns-testkit = { path = "../ns-testkit" }
+serde_json.workspace = true
+
+[lints]
+workspace = true

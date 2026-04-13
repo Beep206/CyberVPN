@@ -1,0 +1,9 @@
+{
+  "case_id": "NS-FX-UDP-STREAM-PACKET-001",
+  "expected": {
+    "payload_utf8": "dns-fallback"
+  },
+  "frame_type": "UdpStreamPacket",
+  "hex": "40450d0c646e732d66616c6c6261636b",
+  "suite": "WC"
+}

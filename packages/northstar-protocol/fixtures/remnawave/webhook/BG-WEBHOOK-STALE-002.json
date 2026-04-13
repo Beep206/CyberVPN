@@ -1,0 +1,7 @@
+{
+  "body": "{\"event\":\"account.updated\"}",
+  "case_id": "BG-WEBHOOK-STALE-002",
+  "expected_error": "StaleTimestamp",
+  "signature_header": "sig-ok",
+  "timestamp_header": "1775000000"
+}

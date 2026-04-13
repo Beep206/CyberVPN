@@ -1,0 +1,7 @@
+{
+  "body": "{\"event\":\"account.updated\"}",
+  "case_id": "BG-WEBHOOK-VALID-001",
+  "expected": "ok",
+  "signature_header": "sig-ok",
+  "timestamp_header": "1775002200"
+}

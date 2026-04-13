@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OK-BADMETACOUNT-055",
+  "expected_error": "Validation",
+  "hex": "090707017a9844b011",
+  "suite": "WC"
+}

@@ -1,0 +1,9 @@
+{
+  "case_id": "NS-FX-UDP-STREAM-ACCEPT-001",
+  "expected": {
+    "flow_id": 7
+  },
+  "frame_type": "UdpStreamAccept",
+  "hex": "4044020700",
+  "suite": "WC"
+}

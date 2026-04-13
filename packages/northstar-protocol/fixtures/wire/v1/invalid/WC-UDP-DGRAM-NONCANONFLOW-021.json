@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-DGRAM-NONCANONFLOW-021",
+  "expected_error": "NonCanonicalVarint",
+  "hex": "400700646e732d7175657279",
+  "suite": "WC"
+}

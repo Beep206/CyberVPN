@@ -1,0 +1,9 @@
+{
+  "case_id": "NS-FX-UDP-STREAM-OPEN-001",
+  "expected": {
+    "flow_id": 7
+  },
+  "frame_type": "UdpStreamOpen",
+  "hex": "4043020700",
+  "suite": "WC"
+}

@@ -1,0 +1,11 @@
+{
+  "case_id": "NS-FX-UDP-DGRAM-001",
+  "expected": {
+    "flags": 0,
+    "flow_id": 7,
+    "payload_utf8": "dns-query"
+  },
+  "frame_type": "UdpDatagram",
+  "hex": "0700646e732d7175657279",
+  "suite": "WC"
+}

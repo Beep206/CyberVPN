@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-STREAM-CLOSE-BADCODE-022",
+  "expected_error": "Validation",
+  "hex": "40461509407b11756e737570706f727465642d636c6f7365",
+  "suite": "WC"
+}

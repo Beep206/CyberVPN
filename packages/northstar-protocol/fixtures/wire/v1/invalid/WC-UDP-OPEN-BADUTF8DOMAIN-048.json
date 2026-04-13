@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OPEN-BADUTF8DOMAIN-048",
+  "expected_error": "InvalidUtf8",
+  "hex": "0809070101ff357a980300",
+  "suite": "WC"
+}

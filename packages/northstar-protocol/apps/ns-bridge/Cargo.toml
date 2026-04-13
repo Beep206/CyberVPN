@@ -1,0 +1,31 @@
+[package]
+name = "ns-bridge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+clap.workspace = true
+ed25519-dalek.workspace = true
+ns-auth = { path = "../../crates/ns-auth" }
+ns-bridge-api = { path = "../../crates/ns-bridge-api" }
+ns-bridge-domain = { path = "../../crates/ns-bridge-domain" }
+ns-core = { path = "../../crates/ns-core" }
+ns-manifest = { path = "../../crates/ns-manifest" }
+ns-observability = { path = "../../crates/ns-observability" }
+ns-remnawave-adapter = { path = "../../crates/ns-remnawave-adapter" }
+ns-storage = { path = "../../crates/ns-storage" }
+serde_json.workspace = true
+time.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+tower = "0.5.2"

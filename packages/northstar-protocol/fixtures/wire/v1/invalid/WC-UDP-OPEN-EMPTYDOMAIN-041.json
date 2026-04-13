@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OPEN-EMPTYDOMAIN-041",
+  "expected_error": "Validation",
+  "hex": "0808070100357a980300",
+  "suite": "WC"
+}

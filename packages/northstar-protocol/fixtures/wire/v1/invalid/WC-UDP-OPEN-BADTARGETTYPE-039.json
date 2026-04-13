@@ -1,0 +1,6 @@
+{
+  "case_id": "WC-UDP-OPEN-BADTARGETTYPE-039",
+  "expected_error": "Validation",
+  "hex": "080c0709047f000001357a980300",
+  "suite": "WC"
+}

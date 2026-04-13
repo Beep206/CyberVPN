@@ -1,0 +1,22 @@
+{
+  "capabilities": [
+    1,
+    2
+  ],
+  "carrier_profiles": [
+    "carrier-primary"
+  ],
+  "core_versions": [
+    1
+  ],
+  "device_id": "device-1",
+  "issuer": "bridge.example",
+  "manifest_id": "man-2026-04-01-001",
+  "policy_epoch": 7,
+  "region_scope": "eu-central",
+  "session_modes": [
+    "tcp"
+  ],
+  "subject": "acct-1",
+  "ttl_seconds": 300
+}

@@ -1,0 +1,12 @@
+{
+  "case_id": "NS-FX-UDP-OK-001",
+  "expected": {
+    "effective_idle_timeout_ms": 15000,
+    "effective_max_payload": 1200,
+    "flow_id": 7,
+    "transport_mode": "datagram"
+  },
+  "frame_type": "UdpFlowOk",
+  "hex": "090707017a9844b000",
+  "suite": "WC"
+}

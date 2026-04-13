@@ -1,0 +1,13 @@
+{
+  "case_id": "NS-FX-UDP-OPEN-001",
+  "expected": {
+    "flags": 3,
+    "flow_id": 7,
+    "idle_timeout_ms": 15000,
+    "target": "dns.example.net",
+    "target_port": 53
+  },
+  "frame_type": "UdpFlowOpen",
+  "hex": "081707010f646e732e6578616d706c652e6e6574357a980300",
+  "suite": "WC"
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "NS-FX-PING-001",
+  "expected": {
+    "ping_id": 1,
+    "timestamp": 2
+  },
+  "frame_type": "Ping",
+  "hex": "03020102",
+  "suite": "WC"
+}
