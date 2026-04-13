@@ -25,7 +25,7 @@ dependencies = [
     "taskiq-redis>=1.0.0",
     "structlog>=24.0.0",
     # SEC: CVE-2026-0994 - protobuf vulnerability fix
-    "protobuf>=6.33.5",
+    "protobuf>=7.34.1",
     # Metrics and monitoring
     "prometheus-client>=0.20.0",
     "sentry-sdk[fastapi]>=2.0.0",
