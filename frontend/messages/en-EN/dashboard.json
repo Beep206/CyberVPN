@@ -14,9 +14,18 @@
     "currentConnections": "Current connections",
     "networkLoad": "NETWORK LOAD",
     "aggregateThroughput": "Aggregate throughput",
+    "trafficToday": "Traffic transferred today",
     "serverMatrix": "SERVER MATRIX",
     "vpnUsage": "VPN USAGE",
     "activeConnections": "Active Connections",
     "errorLoadingServers": "Error loading servers",
-    "noServers": "No servers available"
+    "noServers": "No servers available",
+    "networkRecap": "REMNAWAVE RECAP",
+    "opsBaseline": "Users, nodes, traffic, and geographic coverage",
+    "thisMonth": "This month",
+    "monthlyRecapUnavailable": "Monthly recap unavailable",
+    "totalUsers": "Total Users",
+    "totalNodes": "Total Nodes",
+    "lifetimeTraffic": "Lifetime Traffic",
+    "countries": "Countries"
 }

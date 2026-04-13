@@ -246,7 +246,7 @@ VPNBussiness/
 
 **Ключевой принцип:** Panel не содержит xray-core. Ноды — отдельные серверы с xray-core, подключённые к панели через gRPC (xtls-sdk).
 
-### 5.2 Возможности Remnawave 2.7.0+
+### 5.2 Возможности Remnawave 2.7.x (baseline 2.7.4)
 
 | Категория | Возможности |
 |---|---|
@@ -255,10 +255,10 @@ VPNBussiness/
 | **Subscriptions** | Кастомная страница подписки, multi-lang инструкции, branding |
 | **Auth** | Passkeys, Generic OAuth2 (замена встроенного Telegram login) |
 | **Monitoring** | Torrent blocker reports, session explorer, IP stats в активных сессиях, Prometheus metrics |
-| **API** | Полноценный REST API (NestJS), TypeScript SDK, Python SDK (`remnawave-api`) |
+| **API** | Полноценный REST API (NestJS), TypeScript SDK, Python SDK (`remnawave`) |
 | **Webhooks** | 25+ типов событий (user.created, node.offline, и т.д.) |
 
-### 5.3 Breaking changes в 2.7.0
+### 5.3 Изменения 2.7.x, учтённые в нашем baseline `2.7.4`
 
 | Изменение | Действие |
 |---|---|
@@ -271,21 +271,15 @@ VPNBussiness/
 
 ### 5.4 Наша интеграция с Remnawave
 
-Backend общается с Remnawave через `infrastructure/remnawave/` (httpx SDK):
+Backend общается с Remnawave через собственный validated adapter layer в
+`backend/src/infrastructure/remnawave/`, а не через прямое размазывание SDK-вызовов по приложению.
 
-```python
-# Управление пользователями
-await remnawave.users.create_user(username, traffic_limit, expire_at)
-await remnawave.users.get_all_users_v2()
-await remnawave.users.disable_user(uuid)
-await remnawave.users.get_subscription_link(uuid)
-
-# Ноды
-await remnawave.nodes.get_all()
-# Статистика
-await remnawave.system.get_stats()
-await remnawave.system.get_bandwidth()
-```
+- runtime baseline: panel/backend `2.7.4`, edge node `2.7.4`
+- канонический внутренний контракт: `backend/src/infrastructure/remnawave/contracts.py`
+- vendored SDK `SDK/python-sdk-production` зафиксирован на `2.7.4` и используется только для reference и contract tests
+- webhook contract: `X-Remnawave-Signature` + `X-Remnawave-Timestamp` с отдельным `REMNAWAVE_WEBHOOK_SECRET`
+- observability surfaces, которые реально используются: `stats`, `bandwidth`, `metadata`, `recap`
+- node governance surfaces, которые реально используются: `versions`, `activePluginUuid`, `system`
 
 ---
 

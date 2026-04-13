@@ -15,6 +15,7 @@ All secrets are stored in `.env` files (never committed to git). The `.env.examp
 | Grafana Admin Password | `infra/.env` → `GRAFANA_ADMIN_PASSWORD` | Monitoring |
 | Redis Password | `infra/.env` → `REMNASHOP_REDIS_PASSWORD` | Cache layer |
 | Helix Remnawave Token | `infra/.env` → `HELIX_REMNAWAVE_TOKEN` | Helix adapter |
+| Backend Remnawave Webhook Secret | control-plane backend env / `REMNAWAVE_WEBHOOK_SECRET` | Backend webhook signature validation |
 | Helix Internal Auth Token | `infra/.env` → `HELIX_INTERNAL_AUTH_TOKEN` | Backend, worker, Helix node, adapter internal auth |
 | Helix Manifest Signing Key | `infra/.env` → `HELIX_MANIFEST_SIGNING_KEY` | Helix adapter manifest signer |
 | Helix Manifest Signing Key ID | `infra/.env` → `HELIX_MANIFEST_SIGNING_KEY_ID` | Desktop and node signature verification context |
@@ -71,6 +72,19 @@ All secrets are stored in `.env` files (never committed to git). The `.env.examp
 2. Update `HELIX_REMNAWAVE_TOKEN` in `infra/.env`
 3. Restart `helix-adapter`
 4. Verify node inventory sync and rollout reads still work
+
+### Backend Remnawave Webhook Secret
+1. Generate a new secret with at least 32 characters, for example:
+   `openssl rand -hex 32`
+2. Update the webhook secret in Remnawave (`WEBHOOK_SECRET_HEADER`).
+3. Update `REMNAWAVE_WEBHOOK_SECRET` in the deployed backend environment:
+   - local development: `backend/.env`
+   - control-plane rollout: vaulted backend env in `infra/ansible/inventories/<env>/group_vars/control_plane_<env>/vault.yml`
+4. Restart `backend`.
+5. Verify:
+   - backend accepts `X-Remnawave-Signature`
+   - backend accepts `X-Remnawave-Timestamp`
+   - invalid signatures are rejected in webhook logs
 
 ### Helix Adapter Internal Token
 1. Generate a new strong token:

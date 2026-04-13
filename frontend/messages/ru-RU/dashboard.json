@@ -10,5 +10,14 @@
     "currentConnections": "Текущие подключения",
     "networkLoad": "НАГРУЗКА СЕТИ",
     "aggregateThroughput": "Суммарная пропускная способность",
-    "serverMatrix": "МАТРИЦА СЕРВЕРОВ"
+    "trafficToday": "Переданный трафик за сегодня",
+    "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
+    "networkRecap": "СВОДКА REMNAWAVE",
+    "opsBaseline": "Пользователи, узлы, трафик и географическое покрытие",
+    "thisMonth": "Этот месяц",
+    "monthlyRecapUnavailable": "Сводка за месяц недоступна",
+    "totalUsers": "Всего пользователей",
+    "totalNodes": "Всего узлов",
+    "lifetimeTraffic": "Трафик за всё время",
+    "countries": "Страны"
 }

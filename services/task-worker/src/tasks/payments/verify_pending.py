@@ -1,6 +1,6 @@
 """Verify pending payment statuses via CryptoBot API."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from sqlalchemy import func, select
@@ -33,7 +33,7 @@ async def verify_pending_payments() -> dict:
         result = await session.execute(stmt)
         pending = result.scalars().all()
 
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
     recent_pending = []
     stale_pending = []
 
@@ -127,7 +127,7 @@ async def _notify_payment_failed(
         logger.warning("payment_user_lookup_failed", payment_id=str(payment.id), error=str(e))
         return
 
-    telegram_id = user.get("telegramId") if user else None
+    telegram_id = user.get("telegram_id") if user else None
     if not telegram_id:
         return
 

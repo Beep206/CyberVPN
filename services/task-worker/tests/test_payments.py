@@ -16,6 +16,12 @@ from src.tasks.payments.process_completion import process_payment_completion
 from src.tasks.payments.retry_webhooks import retry_failed_webhooks
 
 
+def _scalar_result(value: int) -> MagicMock:
+    result = MagicMock()
+    result.scalar.return_value = value
+    return result
+
+
 @pytest.mark.asyncio
 async def test_verify_pending_checks_invoices(
     mock_db_session, mock_cryptobot, mock_remnawave, mock_telegram, mock_redis
@@ -35,9 +41,11 @@ async def test_verify_pending_checks_invoices(
     payment2.provider = "cryptobot"
     payment2.created_at = datetime.now(timezone.utc)
 
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [payment1, payment2]
-    mock_db_session.execute = AsyncMock(return_value=mock_result)
+    pending_result = MagicMock()
+    pending_result.scalars.return_value.all.return_value = [payment1, payment2]
+    mock_db_session.execute = AsyncMock(
+        side_effect=[pending_result, _scalar_result(2), _scalar_result(0)]
+    )
 
     mock_cryptobot.get_invoices.return_value = [
         {"invoice_id": 123, "status": "active"},
@@ -86,9 +94,11 @@ async def test_verify_pending_triggers_completion(
     payment.user_uuid = "user-123"
     payment.created_at = datetime.now(timezone.utc)
 
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [payment]
-    mock_db_session.execute = AsyncMock(return_value=mock_result)
+    pending_result = MagicMock()
+    pending_result.scalars.return_value.all.return_value = [payment]
+    mock_db_session.execute = AsyncMock(
+        side_effect=[pending_result, _scalar_result(1), _scalar_result(0)]
+    )
 
     mock_cryptobot.get_invoices.return_value = [
         {"invoice_id": 123, "status": "paid"},
@@ -136,15 +146,17 @@ async def test_verify_pending_updates_cancelled_invoices(
     payment.provider = "cryptobot"
     payment.created_at = datetime.now(timezone.utc)
 
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [payment]
-    mock_db_session.execute = AsyncMock(return_value=mock_result)
+    pending_result = MagicMock()
+    pending_result.scalars.return_value.all.return_value = [payment]
+    mock_db_session.execute = AsyncMock(
+        side_effect=[pending_result, _scalar_result(1), _scalar_result(1)]
+    )
 
     mock_cryptobot.get_invoices.return_value = [
         {"invoice_id": 123, "status": "expired"},
     ]
 
-    mock_remnawave.get_user.return_value = {"uuid": "user-123", "telegramId": 555, "username": "tester"}
+    mock_remnawave.get_user.return_value = {"uuid": "user-123", "telegram_id": 555, "username": "tester"}
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
@@ -181,9 +193,11 @@ async def test_verify_pending_updates_cancelled_invoices(
 @pytest.mark.asyncio
 async def test_verify_pending_empty_queue(mock_db_session, mock_cryptobot, mock_remnawave, mock_telegram, mock_redis):
     """Test verify pending with no pending payments."""
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
-    mock_db_session.execute = AsyncMock(return_value=mock_result)
+    pending_result = MagicMock()
+    pending_result.scalars.return_value.all.return_value = []
+    mock_db_session.execute = AsyncMock(
+        side_effect=[pending_result, _scalar_result(0), _scalar_result(0)]
+    )
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
@@ -234,7 +248,7 @@ async def test_process_completion_activates_user(mock_db_session, mock_remnawave
     mock_remnawave.get_user.return_value = {
         "uuid": user_uuid,
         "username": "testuser",
-        "telegramId": 12345,
+        "telegram_id": 12345,
     }
     mock_remnawave.bulk_extend_expiration_date = AsyncMock()
 
@@ -284,7 +298,7 @@ async def test_process_completion_sends_notification(mock_db_session, mock_remna
     mock_remnawave.get_user.return_value = {
         "uuid": user_uuid,
         "username": "prouser",
-        "telegramId": 99999,
+        "telegram_id": 99999,
     }
     mock_remnawave.bulk_extend_expiration_date = AsyncMock()
 

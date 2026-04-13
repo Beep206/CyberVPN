@@ -1,0 +1,14 @@
+{
+  "uuid": "550e8400-e29b-41d4-a716-446655440010",
+  "name": "fra-01",
+  "address": "fra-01.example.com",
+  "isDisabled": false,
+  "isConnected": true,
+  "isConnecting": false,
+  "countryCode": "DE",
+  "activePluginUuid": "550e8400-e29b-41d4-a716-446655440099",
+  "versions": {
+    "node": "2.7.4",
+    "xray": "1.8.10"
+  }
+}

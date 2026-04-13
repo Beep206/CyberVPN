@@ -59,6 +59,18 @@ jobs:
         run: |
           pip install -e "services/task-worker[test]"
 
+      - name: Run Remnawave contract regression tests
+        run: |
+          pytest \
+            services/task-worker/tests/unit/test_remnawave_normalizers.py \
+            services/task-worker/tests/test_services.py \
+            services/task-worker/tests/test_analytics.py \
+            services/task-worker/tests/test_monitoring.py \
+            services/task-worker/tests/test_subscriptions.py \
+            services/task-worker/tests/test_sync.py \
+            services/task-worker/tests/test_payments.py \
+            -v --tb=short
+
       - name: Run unit tests
         run: |
           pytest services/task-worker/tests/unit/ -v --tb=short --cov=src --cov-report=xml --cov-report=term

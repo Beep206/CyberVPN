@@ -1,7 +1,7 @@
 """VPN node health check task."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -37,15 +37,15 @@ async def check_server_health() -> dict:
         async with RemnawaveClient() as client:
             nodes = await client.get_nodes()
 
-        now_ts = int(datetime.now(timezone.utc).timestamp())
+        now_ts = int(datetime.now(UTC).timestamp())
         async with TelegramClient() as tg:
             for node in nodes:
                 node_uuid = node.get("uuid", "")
                 node_name = node.get("name", "unknown")
-                is_connected = node.get("isConnected", False)
-                is_disabled = node.get("isDisabled", False)
-                is_connecting = node.get("isConnecting", False)
-                country = node.get("countryCode", "??")
+                is_connected = node.get("is_connected", False)
+                is_disabled = node.get("is_disabled", False)
+                is_connecting = node.get("is_connecting", False)
+                country = node.get("country_code", "??")
                 nodes_checked += 1
 
                 if is_disabled:
@@ -69,10 +69,7 @@ async def check_server_health() -> dict:
                     last_seen = now_ts
                     offline_since = None
                 elif status == "offline":
-                    if prev_status != "offline":
-                        offline_since = now_ts
-                    else:
-                        offline_since = prev_data.get("offline_since", now_ts)
+                    offline_since = now_ts if prev_status != "offline" else prev_data.get("offline_since", now_ts)
 
                 # Save current state
                 await cache.set(

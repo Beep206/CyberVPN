@@ -1,6 +1,7 @@
 """Get inbounds use case."""
 
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.contracts import RemnawaveInboundResponse
 
 
 class GetInboundsUseCase:
@@ -23,7 +24,5 @@ class GetInboundsUseCase:
         Raises:
             Exception: If API request fails
         """
-        data = await self.client.get("/api/inbounds")
-        if isinstance(data, list):
-            return data
-        return data.get("inbounds", [])
+        data = await self.client.get_collection_validated("/api/inbounds", "inbounds", RemnawaveInboundResponse)
+        return [item.model_dump(by_alias=True, mode="json") for item in data]

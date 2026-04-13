@@ -10,6 +10,8 @@ from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.monitoring.bandwidth_analytics import BandwidthAnalyticsUseCase
 from src.application.use_cases.monitoring.server_bandwidth import ServerBandwidthUseCase
 from src.application.use_cases.monitoring.system_health import SystemHealthUseCase
+from src.application.use_cases.monitoring.system_metadata import SystemMetadataUseCase
+from src.application.use_cases.monitoring.system_recap import SystemRecapUseCase
 from src.infrastructure.cache.redis_client import check_redis_connection
 from src.infrastructure.cache.response_cache import response_cache
 from src.infrastructure.database.session import check_db_connection
@@ -17,7 +19,7 @@ from src.infrastructure.monitoring.metrics import monitoring_operations_total
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
-from .schemas import BandwidthResponse, HealthResponse, StatsResponse
+from .schemas import BandwidthResponse, HealthResponse, MetadataResponse, RecapResponse, StatsResponse
 
 logger = logging.getLogger(__name__)
 
@@ -145,4 +147,96 @@ async def get_bandwidth_analytics(
 
     result = await response_cache.get_or_fetch(f"monitoring:bandwidth:{period}", 10, _fetch)
     monitoring_operations_total.labels(operation="bandwidth").inc()
+    return result
+
+
+@router.get(
+    "/metadata",
+    response_model=MetadataResponse,
+    responses={200: {"model": MetadataResponse, "description": "Remnawave panel metadata"}},
+)
+@router.get(
+    "/metadata/",
+    response_model=MetadataResponse,
+    include_in_schema=False,
+)
+async def get_metadata(
+    client=Depends(get_remnawave_client),
+    _: None = Depends(require_permission(Permission.MONITORING_READ)),
+) -> dict[str, Any]:
+    """Get Remnawave panel metadata for operational visibility."""
+
+    async def _fetch() -> dict[str, Any]:
+        use_case = SystemMetadataUseCase(client=client)
+
+        try:
+            metadata = await use_case.execute()
+        except Exception:
+            logger.warning("Remnawave unavailable for metadata, returning placeholder payload")
+            metadata = {
+                "version": "unknown",
+                "build": {"time": "unknown", "number": "unknown"},
+                "git": {
+                    "backend": {"commit_sha": "unknown", "branch": "unknown", "commit_url": ""},
+                    "frontend": {"commit_sha": "unknown", "commit_url": ""},
+                },
+            }
+
+        return {
+            "timestamp": datetime.now(UTC).isoformat(),
+            **metadata,
+        }
+
+    result = await response_cache.get_or_fetch("monitoring:metadata", 60, _fetch)
+    monitoring_operations_total.labels(operation="metadata").inc()
+    return result
+
+
+@router.get(
+    "/recap",
+    response_model=RecapResponse,
+    responses={200: {"model": RecapResponse, "description": "Remnawave system recap"}},
+)
+@router.get(
+    "/recap/",
+    response_model=RecapResponse,
+    include_in_schema=False,
+)
+async def get_recap(
+    client=Depends(get_remnawave_client),
+    _: None = Depends(require_permission(Permission.MONITORING_READ)),
+) -> dict[str, Any]:
+    """Get aggregated Remnawave recap data for operations."""
+
+    async def _fetch() -> dict[str, Any]:
+        use_case = SystemRecapUseCase(client=client)
+
+        try:
+            recap = await use_case.execute()
+        except Exception:
+            logger.warning("Remnawave unavailable for recap, returning zeros")
+            recap = {
+                "version": "unknown",
+                "init_date": None,
+                "total": {
+                    "users": 0,
+                    "nodes": 0,
+                    "traffic_bytes": 0,
+                    "nodes_ram": None,
+                    "nodes_cpu_cores": 0,
+                    "distinct_countries": 0,
+                },
+                "this_month": {
+                    "users": 0,
+                    "traffic_bytes": 0,
+                },
+            }
+
+        return {
+            "timestamp": datetime.now(UTC).isoformat(),
+            **recap,
+        }
+
+    result = await response_cache.get_or_fetch("monitoring:recap", 60, _fetch)
+    monitoring_operations_total.labels(operation="recap").inc()
     return result

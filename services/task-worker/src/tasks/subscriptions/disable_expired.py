@@ -1,6 +1,7 @@
 """Disable expired user subscriptions."""
 
-from datetime import datetime, timezone
+from contextlib import suppress
+from datetime import UTC, datetime
 
 import structlog
 
@@ -22,12 +23,12 @@ async def disable_expired_users() -> dict:
 
     expired_users = []
     for user in users:
-        expire_at = user.get("expiresAt")
+        expire_at = user.get("expire_at")
         if not expire_at:
             continue
         try:
             exp_dt = datetime.fromisoformat(expire_at.replace("Z", "+00:00"))
-            if exp_dt < datetime.now(timezone.utc) and user.get("status") != "disabled":
+            if exp_dt < datetime.now(UTC) and user.get("status") != "disabled":
                 expired_users.append(user)
         except (ValueError, TypeError):
             continue
@@ -43,13 +44,11 @@ async def disable_expired_users() -> dict:
                 await rw.disable_user(user_uuid)
                 disabled_count += 1
 
-                telegram_id = user.get("telegramId")
+                telegram_id = user.get("telegram_id")
                 if telegram_id:
-                    msg = subscription_expired(username, user.get("expiresAt", ""))
-                    try:
+                    msg = subscription_expired(username, user.get("expire_at", ""))
+                    with suppress(Exception):
                         await tg.send_message(chat_id=int(telegram_id), text=msg)
-                    except Exception:
-                        pass
             except Exception as e:
                 logger.error("disable_user_failed", user=username, error=str(e))
 

@@ -1,9 +1,10 @@
 """Process completed payment — enable user and extend subscription."""
 
+from contextlib import suppress
+from datetime import UTC, datetime
 from typing import Any, cast
 
 import structlog
-from datetime import datetime, timezone
 from sqlalchemy import select
 
 from src.broker import broker
@@ -27,7 +28,7 @@ def _attach_task_labels(task: Any, **labels: str) -> Any:
     if isinstance(existing, dict):
         existing.update(labels)
     else:
-        setattr(task_obj, "labels", labels)
+        task_obj.labels = labels
     return task_obj
 
 
@@ -50,7 +51,7 @@ async def process_payment_completion(payment_id: str) -> dict:
 
         # Update payment status
         payment.status = "completed"
-        payment.updated_at = datetime.now(timezone.utc)
+        payment.updated_at = datetime.now(UTC)
         session.add(payment)
         await session.commit()
 
@@ -81,7 +82,7 @@ async def process_payment_completion(payment_id: str) -> dict:
 
     # Send notification
     username = user.get("username", "unknown")
-    telegram_id = user.get("telegramId")
+    telegram_id = user.get("telegram_id")
     plan_name = ""
     if payment.metadata_ and isinstance(payment.metadata_, dict):
         plan_name = (
@@ -97,11 +98,9 @@ async def process_payment_completion(payment_id: str) -> dict:
             plan_name,
             payment.subscription_days,
         )
-        try:
+        with suppress(Exception):
             async with TelegramClient() as tg:
                 await tg.send_message(chat_id=int(telegram_id), text=msg)
-        except Exception:
-            pass
 
     try:
         await publish_event(

@@ -5,6 +5,8 @@ import type { operations } from './generated/types';
 type HealthResponse = operations['health_check_api_v1_monitoring_health_get']['responses'][200]['content']['application/json'];
 type SystemStatsResponse = operations['get_system_stats_api_v1_monitoring_stats_get']['responses'][200]['content']['application/json'];
 type BandwidthResponse = operations['get_bandwidth_analytics_api_v1_monitoring_bandwidth_get']['responses'][200]['content']['application/json'];
+type MetadataResponse = operations['get_metadata_api_v1_monitoring_metadata_get']['responses'][200]['content']['application/json'];
+type RecapResponse = operations['get_recap_api_v1_monitoring_recap_get']['responses'][200]['content']['application/json'];
 
 /**
  * Monitoring API client
@@ -50,4 +52,22 @@ export const monitoringApi = {
    */
   getBandwidth: () =>
     apiClient.get<BandwidthResponse>('/monitoring/bandwidth'),
+
+  /**
+   * Get Remnawave panel metadata
+   * GET /api/v1/monitoring/metadata
+   *
+   * Returns panel/build/git metadata useful for ops visibility.
+   */
+  getMetadata: () =>
+    apiClient.get<MetadataResponse>('/monitoring/metadata'),
+
+  /**
+   * Get Remnawave system recap
+   * GET /api/v1/monitoring/recap
+   *
+   * Returns aggregated recap totals for users, nodes, traffic, and countries.
+   */
+  getRecap: () =>
+    apiClient.get<RecapResponse>('/monitoring/recap'),
 };

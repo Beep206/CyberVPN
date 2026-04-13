@@ -20,6 +20,10 @@ export function ServerGrid() {
     ip: server.ip,
     load: server.load,
     protocol: server.protocol,
+    nodeVersion: server.nodeVersion,
+    xrayVersion: server.xrayVersion,
+    activePluginUuid: server.activePluginUuid,
+    governanceState: server.governanceState,
   })) ?? [], [servers]);
 
   if (error) {

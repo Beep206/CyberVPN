@@ -65,3 +65,39 @@ export function useBandwidthAnalytics() {
     refetchOnWindowFocus: false,
   });
 }
+
+/**
+ * Hook to fetch Remnawave build and git metadata
+ * Includes panel version, build info, and backend/frontend commits
+ */
+export function useMonitoringMetadata() {
+  return useQuery({
+    queryKey: ['monitoring', 'metadata'],
+    queryFn: async () => {
+      const response = await monitoringApi.getMetadata();
+      return response.data;
+    },
+    staleTime: 60_000,
+    refetchInterval: pollingInterval(60_000),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * Hook to fetch Remnawave recap metrics
+ * Includes users, nodes, lifetime traffic, and country coverage
+ */
+export function useMonitoringRecap() {
+  return useQuery({
+    queryKey: ['monitoring', 'recap'],
+    queryFn: async () => {
+      const response = await monitoringApi.getRecap();
+      return response.data;
+    },
+    staleTime: 60_000,
+    refetchInterval: pollingInterval(60_000),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+  });
+}

@@ -64,7 +64,7 @@ export function AnalyticsClient() {
     queryKey: ['subscriptions-analytics', timeRange],
     queryFn: async () => {
       const response = await subscriptionsApi.list();
-      return response.data;
+      return response.data.templates ?? [];
     },
     staleTime: 5 * 60 * 1000,
   });

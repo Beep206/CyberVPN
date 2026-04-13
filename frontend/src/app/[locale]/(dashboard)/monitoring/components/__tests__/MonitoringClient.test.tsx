@@ -1,50 +1,128 @@
-/**
- * MonitoringClient Component Tests (TOB-3)
- *
- * Tests the system monitoring dashboard:
- * - System health status (overall and per-service)
- * - Service cards (API, Database, Redis, Workers)
- * - Real-time metrics (requests, response time, error rate)
- * - Network bandwidth visualization
- * - Active connections display
- * - Auto-refresh functionality (30s interval)
- * - Loading and error states
- *
- * Depends on: FG-5 (Monitoring page implementation)
- */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MonitoringClient } from '../MonitoringClient';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+import { MonitoringClient } from '../MonitoringClient';
 
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
-
-// Mock API modules
 vi.mock('@/lib/api', () => ({
   monitoringApi: {
     health: vi.fn(),
     getStats: vi.fn(),
     getBandwidth: vi.fn(),
+    getMetadata: vi.fn(),
+    getRecap: vi.fn(),
   },
 }));
 
-// Helper to wrap component with QueryClient
-function renderWithQueryClient(ui: React.ReactElement) {
+function renderWithQueryClient(ui: ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, refetchInterval: false },
       mutations: { retry: false },
     },
   });
+
   return render(
     <QueryClientProvider client={queryClient}>
       {ui}
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
+}
+
+const DEFAULT_HEALTH = {
+  status: 'healthy',
+  timestamp: '2026-04-12T10:00:00Z',
+  components: {
+    remnawave: {
+      status: 'healthy',
+      message: 'Remnawave API connection successful',
+      response_time_ms: 42,
+    },
+    database: {
+      status: 'healthy',
+      message: 'Database connection successful',
+      response_time_ms: 12,
+    },
+    redis: {
+      status: 'healthy',
+      message: 'Redis connection successful',
+      response_time_ms: 8,
+    },
+  },
+};
+
+const DEFAULT_STATS = {
+  total_users: 2048,
+  active_users: 145,
+  total_servers: 12,
+  online_servers: 10,
+  total_traffic_bytes: 9 * 1024 ** 4,
+};
+
+const DEFAULT_BANDWIDTH = {
+  bytes_in: 0,
+  bytes_out: 512 * 1024 ** 3,
+  period: 'today',
+};
+
+const DEFAULT_METADATA = {
+  version: '2.7.4',
+  build: {
+    time: '2026-03-30T12:00:00Z',
+    number: '4274',
+  },
+  git: {
+    backend: {
+      commit_sha: 'abcdef1234567890',
+      branch: 'main',
+      commit_url: 'https://example.com/backend/commit',
+    },
+    frontend: {
+      commit_sha: 'fedcba0987654321',
+      commit_url: 'https://example.com/frontend/commit',
+    },
+  },
+  timestamp: '2026-04-12T10:00:00Z',
+};
+
+const DEFAULT_RECAP = {
+  version: '2.7.4',
+  init_date: '2026-01-01T00:00:00Z',
+  total: {
+    users: 2048,
+    nodes: 18,
+    traffic_bytes: 9 * 1024 ** 4,
+    nodes_ram: '1024 GB',
+    nodes_cpu_cores: 64,
+    distinct_countries: 42,
+  },
+  this_month: {
+    users: 120,
+    traffic_bytes: 1024 ** 4,
+  },
+  timestamp: '2026-04-12T10:00:00Z',
+};
+
+async function mockMonitoringApi({
+  health = DEFAULT_HEALTH,
+  stats = DEFAULT_STATS,
+  bandwidth = DEFAULT_BANDWIDTH,
+  metadata = DEFAULT_METADATA,
+  recap = DEFAULT_RECAP,
+}: {
+  health?: typeof DEFAULT_HEALTH;
+  stats?: typeof DEFAULT_STATS;
+  bandwidth?: typeof DEFAULT_BANDWIDTH;
+  metadata?: typeof DEFAULT_METADATA;
+  recap?: typeof DEFAULT_RECAP;
+} = {}) {
+  const { monitoringApi } = await import('@/lib/api');
+
+  vi.mocked(monitoringApi.health).mockResolvedValue({ data: health } as never);
+  vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: stats } as never);
+  vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: bandwidth } as never);
+  vi.mocked(monitoringApi.getMetadata).mockResolvedValue({ data: metadata } as never);
+  vi.mocked(monitoringApi.getRecap).mockResolvedValue({ data: recap } as never);
 }
 
 describe('MonitoringClient', () => {
@@ -52,367 +130,91 @@ describe('MonitoringClient', () => {
     vi.clearAllMocks();
   });
 
-  describe('Rendering', () => {
-    it('test_displays_loading_state_initially', async () => {
-      const { monitoringApi } = await import('@/lib/api');
+  it('renders loading state while monitoring queries are pending', async () => {
+    const { monitoringApi } = await import('@/lib/api');
 
-      // Set up pending promises to keep component in loading state
-      vi.mocked(monitoringApi.health).mockReturnValue(new Promise(() => {}) as never);
-      vi.mocked(monitoringApi.getStats).mockReturnValue(new Promise(() => {}) as never);
-      vi.mocked(monitoringApi.getBandwidth).mockReturnValue(new Promise(() => {}) as never);
+    vi.mocked(monitoringApi.health).mockReturnValue(new Promise(() => {}) as never);
+    vi.mocked(monitoringApi.getStats).mockReturnValue(new Promise(() => {}) as never);
+    vi.mocked(monitoringApi.getBandwidth).mockReturnValue(new Promise(() => {}) as never);
+    vi.mocked(monitoringApi.getMetadata).mockReturnValue(new Promise(() => {}) as never);
+    vi.mocked(monitoringApi.getRecap).mockReturnValue(new Promise(() => {}) as never);
 
-      renderWithQueryClient(<MonitoringClient />);
+    renderWithQueryClient(<MonitoringClient />);
 
-      const spinner = document.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
-    });
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+  });
 
-    it('test_renders_overall_status_banner', async () => {
-      const { monitoringApi } = await import('@/lib/api');
+  it('renders health banner, service cards, and metadata baseline', async () => {
+    await mockMonitoringApi();
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
+    renderWithQueryClient(<MonitoringClient />);
 
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/All Systems/)).toBeInTheDocument();
-        expect(screen.getByText(/Operational/)).toBeInTheDocument();
-      });
-    });
-
-    it('test_renders_all_service_cards', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({
-        data: {
-          status: 'healthy',
-          api_status: 'healthy',
-          database_status: 'healthy',
-          redis_status: 'healthy',
-          worker_status: 'healthy',
-        }
-      } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('API Server')).toBeInTheDocument();
-        expect(screen.getByText('PostgreSQL Database')).toBeInTheDocument();
-        expect(screen.getByText('Redis Cache')).toBeInTheDocument();
-        expect(screen.getByText('Background Workers')).toBeInTheDocument();
-      });
-    });
-
-    it('test_renders_metrics_cards', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({
-        data: {
-          total_requests: 15420,
-          avg_response_time: 125,
-          error_rate: 0.05
-        }
-      } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const requests = screen.getAllByText(/Total Requests/);
-        const responseTime = screen.getAllByText(/Response Time/);
-        expect(requests.length).toBeGreaterThan(0);
-        expect(responseTime.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('test_renders_bandwidth_visualization', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 45, outbound_mbps: 62 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Network Bandwidth')).toBeInTheDocument();
-        expect(screen.getByText(/Inbound/)).toBeInTheDocument();
-        expect(screen.getByText(/Outbound/)).toBeInTheDocument();
-      });
-    });
-
-    it('test_renders_active_connections', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000, active_connections: 145 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Active Connections')).toBeInTheDocument();
-        expect(screen.getByText('145')).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByText(/All Systems Operational/)).toBeInTheDocument();
+      expect(screen.getByText('Remnawave API')).toBeInTheDocument();
+      expect(screen.getByText('PostgreSQL Database')).toBeInTheDocument();
+      expect(screen.getByText('Redis Cache')).toBeInTheDocument();
+      expect(screen.getByText('Panel Version')).toBeInTheDocument();
+      expect(screen.getByText('Backend Git')).toBeInTheDocument();
+      expect(screen.getByText('Frontend Git')).toBeInTheDocument();
+      expect(screen.getByText('Remnawave Recap')).toBeInTheDocument();
     });
   });
 
-  describe('Health Status', () => {
-    it('test_displays_healthy_status', async () => {
-      const { monitoringApi } = await import('@/lib/api');
+  it('renders recap totals and live activity metrics', async () => {
+    await mockMonitoringApi();
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
+    renderWithQueryClient(<MonitoringClient />);
 
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Operational/)).toBeInTheDocument();
-      });
-    });
-
-    it('test_displays_degraded_status', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'degraded' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Degraded/)).toBeInTheDocument();
-      });
-    });
-
-    it('test_displays_down_status', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'down' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Down/)).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getAllByText('2.7.4').length).toBeGreaterThan(0);
+      expect(screen.getByText('2,048')).toBeInTheDocument();
+      expect(screen.getByText('18')).toBeInTheDocument();
+      expect(screen.getByText('42')).toBeInTheDocument();
+      expect(screen.getByText('145')).toBeInTheDocument();
+      expect(screen.getByText('10 / 12')).toBeInTheDocument();
+      expect(screen.getByText('512 GB')).toBeInTheDocument();
+      expect(screen.getByText('9.0 TB')).toBeInTheDocument();
     });
   });
 
-  describe('Service Cards', () => {
-    it('test_api_service_healthy_indicator', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({
-        data: { status: 'healthy', api_status: 'healthy' }
-      } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('API Server')).toBeInTheDocument();
-        expect(screen.getAllByText(/Operational/).length).toBeGreaterThan(0);
-      });
+  it('renders degraded overall status when health endpoint is degraded', async () => {
+    await mockMonitoringApi({
+      health: {
+        ...DEFAULT_HEALTH,
+        status: 'degraded',
+      },
     });
 
-    it('test_database_service_healthy_indicator', async () => {
-      const { monitoringApi } = await import('@/lib/api');
+    renderWithQueryClient(<MonitoringClient />);
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({
-        data: { status: 'healthy', database_status: 'healthy' }
-      } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('PostgreSQL Database')).toBeInTheDocument();
-        expect(screen.getAllByText(/Operational/).length).toBeGreaterThan(0);
-      });
-    });
-
-    it('test_redis_service_degraded_indicator', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({
-        data: { status: 'degraded', redis_status: 'degraded' }
-      } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Redis Cache')).toBeInTheDocument();
-        expect(screen.getAllByText(/Degraded/).length).toBeGreaterThan(0);
-      });
-    });
-
-    it('test_worker_service_down_indicator', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({
-        data: { status: 'down', worker_status: 'down' }
-      } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Background Workers')).toBeInTheDocument();
-        expect(screen.getAllByText(/Down/).length).toBeGreaterThan(0);
-      });
+    await waitFor(() => {
+      expect(screen.getByText(/All Systems Degraded/)).toBeInTheDocument();
     });
   });
 
-  describe('Metrics', () => {
-    it('test_displays_request_count_metric', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1234567 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('1,234,567')).toBeInTheDocument();
-      });
+  it('renders unhealthy component details when a service fails', async () => {
+    await mockMonitoringApi({
+      health: {
+        ...DEFAULT_HEALTH,
+        status: 'unhealthy',
+        components: {
+          ...DEFAULT_HEALTH.components,
+          redis: {
+            status: 'unhealthy',
+            message: 'Redis connection failed',
+            response_time_ms: 0,
+          },
+        },
+      },
     });
 
-    it('test_displays_response_time_metric', async () => {
-      const { monitoringApi } = await import('@/lib/api');
+    renderWithQueryClient(<MonitoringClient />);
 
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { avg_response_time: 87, total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const elements = screen.getAllByText(/87/);
-        expect(elements.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('test_displays_error_rate_metric', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { error_rate: 2.5, total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const elements = screen.getAllByText(/2\.5/);
-        expect(elements.length).toBeGreaterThan(0);
-      });
-    });
-  });
-
-  describe('Bandwidth', () => {
-    it('test_displays_inbound_bandwidth', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 256, outbound_mbps: 0 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const elements = screen.getAllByText(/256/);
-        expect(elements.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('test_displays_outbound_bandwidth', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 0, outbound_mbps: 384 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const elements = screen.getAllByText(/384/);
-        expect(elements.length).toBeGreaterThan(0);
-      });
-    });
-
-    it('test_bandwidth_visualization_renders', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 100, outbound_mbps: 150 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const bandwidthSection = screen.getByText('Network Bandwidth').closest('.cyber-card');
-        expect(bandwidthSection).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('test_handles_api_error_gracefully', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockRejectedValue(new Error('API Error'));
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 1000 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      // Component should still show loading state when one API fails
-      const spinner = document.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
-    });
-  });
-
-  describe('Data Formatting', () => {
-    it('test_formats_large_numbers_with_commas', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 9876543 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 10, outbound_mbps: 15 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        expect(screen.getByText('9,876,543')).toBeInTheDocument();
-      });
-    });
-
-    it('test_handles_zero_values_gracefully', async () => {
-      const { monitoringApi } = await import('@/lib/api');
-
-      vi.mocked(monitoringApi.health).mockResolvedValue({ data: { status: 'healthy' } } as never);
-      vi.mocked(monitoringApi.getStats).mockResolvedValue({ data: { total_requests: 0, error_rate: 0, avg_response_time: 0 } } as never);
-      vi.mocked(monitoringApi.getBandwidth).mockResolvedValue({ data: { inbound_mbps: 0, outbound_mbps: 0 } } as never);
-
-      renderWithQueryClient(<MonitoringClient />);
-
-      await waitFor(() => {
-        const zeros = screen.getAllByText('0');
-        expect(zeros.length).toBeGreaterThan(0);
-      });
+    await waitFor(() => {
+      expect(screen.getByText(/All Systems Unavailable/)).toBeInTheDocument();
+      expect(screen.getByText('Redis connection failed')).toBeInTheDocument();
+      expect(screen.getAllByText('Unavailable').length).toBeGreaterThan(0);
     });
   });
 });

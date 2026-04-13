@@ -3,6 +3,7 @@
 from uuid import UUID
 
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.contracts import RemnawaveDeleteResponse
 
 
 class RemoveInboundUseCase:
@@ -25,4 +26,4 @@ class RemoveInboundUseCase:
         Raises:
             Exception: If API request fails or inbound not found
         """
-        await self.client.delete(f"/api/inbounds/{uuid}")
+        await self.client.delete_validated(f"/api/inbounds/{uuid}", RemnawaveDeleteResponse)

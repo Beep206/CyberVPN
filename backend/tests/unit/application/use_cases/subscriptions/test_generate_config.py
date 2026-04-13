@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from httpx import HTTPStatusError, Request, Response
 
 from src.application.use_cases.subscriptions.generate_config import GenerateConfigUseCase
-from src.presentation.schemas.remnawave_responses import RemnawaveSubscriptionDetailsResponse
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
 
 
 @pytest.mark.unit

@@ -4,7 +4,7 @@ from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_remnawave_client, require_role
-from src.presentation.schemas.remnawave_responses import RemnawaveSettingResponse
+from src.infrastructure.remnawave.contracts import RemnawaveSettingResponse
 
 from .schemas import CreateSettingRequest, UpdateSettingRequest
 
@@ -16,7 +16,7 @@ async def get_settings(
     current_user=Depends(require_role(AdminRole.ADMIN)), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """Get system settings (admin only)"""
-    result = await client.get("/settings")
+    result = await client.get_list_validated("/settings", RemnawaveSettingResponse)
     route_operations_total.labels(route="settings", action="list", status="success").inc()
     return result
 
@@ -28,7 +28,7 @@ async def create_setting(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Create a new system setting (admin only)"""
-    result = await client.post("/settings", json=setting_data.model_dump())
+    result = await client.post_validated("/settings", RemnawaveSettingResponse, json=setting_data.model_dump())
     route_operations_total.labels(route="settings", action="create", status="success").inc()
     return result
 
@@ -41,6 +41,10 @@ async def update_setting(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Update system setting (admin only)"""
-    result = await client.put(f"/settings/{id}", json=setting_data.model_dump(exclude_none=True))
+    result = await client.put_validated(
+        f"/settings/{id}",
+        RemnawaveSettingResponse,
+        json=setting_data.model_dump(exclude_none=True),
+    )
     route_operations_total.labels(route="settings", action="update", status="success").inc()
     return result

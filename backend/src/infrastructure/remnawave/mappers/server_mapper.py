@@ -21,5 +21,7 @@ def map_remnawave_server(data: dict) -> Server:
         inbound_count=data.get("inboundCount"),
         users_online=data.get("usersOnline"),
         xray_version=data.get("xrayVersion"),
+        node_version=data.get("nodeVersion"),
         vpn_protocol=data.get("vpnProtocol"),
+        active_plugin_uuid=UUID(data["activePluginUuid"]) if data.get("activePluginUuid") else None,
     )

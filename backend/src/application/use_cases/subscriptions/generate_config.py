@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from httpx import HTTPStatusError
 
 from src.infrastructure.remnawave.client import RemnawaveClient
-from src.presentation.schemas.remnawave_responses import RemnawaveSubscriptionDetailsResponse
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
 
 
 class GenerateConfigUseCase:

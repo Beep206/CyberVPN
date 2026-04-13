@@ -32,18 +32,19 @@ async def update_realtime_metrics() -> dict:
         async with RemnawaveClient() as rw:
             # Get users and count online
             users = await rw.get_users()
-            online_users = sum(1 for u in users if u.get("status") == "active" and u.get("isOnline", False))
+            online_users = sum(1 for u in users if u.get("status") == "active" and u.get("is_online", False))
 
             # Get nodes and count active/connected
             nodes = await rw.get_nodes()
-            active_servers = sum(1 for n in nodes if n.get("isConnected", False))
+            active_servers = sum(1 for n in nodes if n.get("is_connected", False))
 
             # Calculate current bandwidth (sum of all active nodes)
             current_bandwidth = 0
             for node in nodes:
-                if node.get("isConnected"):
-                    # Assume bandwidth in bytes/sec from node stats
-                    current_bandwidth += node.get("currentBandwidth", 0)
+                if node.get("is_connected"):
+                    current_bandwidth += node.get("current_bandwidth", 0) or (
+                        (node.get("traffic_up", 0) or 0) + (node.get("traffic_down", 0) or 0)
+                    )
 
             # Prepare metrics payload
             metrics = {

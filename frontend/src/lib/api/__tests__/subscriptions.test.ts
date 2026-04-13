@@ -82,7 +82,7 @@ describe('subscriptionsApi.list', () => {
 
     server.use(
       http.get(`${API_BASE}/subscriptions/`, () => {
-        return HttpResponse.json(mockPlans);
+        return HttpResponse.json({ total: mockPlans.length, templates: mockPlans });
       }),
     );
 
@@ -91,10 +91,11 @@ describe('subscriptionsApi.list', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data).toHaveLength(2);
-    expect(response.data[0].uuid).toBe('plan_monthly');
-    expect(response.data[0].name).toBe('Monthly Premium');
-    expect(response.data[1].uuid).toBe('plan_annual');
+    expect(response.data.total).toBe(2);
+    expect(response.data.templates).toHaveLength(2);
+    expect(response.data.templates?.[0]?.uuid).toBe('plan_monthly');
+    expect(response.data.templates?.[0]?.name).toBe('Monthly Premium');
+    expect(response.data.templates?.[1]?.uuid).toBe('plan_annual');
   });
 
   it('test_list_subscriptions_returns_all_templates', async () => {
@@ -106,7 +107,7 @@ describe('subscriptionsApi.list', () => {
 
     server.use(
       http.get(`${API_BASE}/subscriptions/`, () => {
-        return HttpResponse.json(mockPlans);
+        return HttpResponse.json({ total: mockPlans.length, templates: mockPlans });
       }),
     );
 
@@ -115,14 +116,15 @@ describe('subscriptionsApi.list', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data).toHaveLength(2);
+    expect(response.data.total).toBe(2);
+    expect(response.data.templates).toHaveLength(2);
   });
 
   it('test_list_subscriptions_empty_list_returns_empty_array', async () => {
     // Arrange
     server.use(
       http.get(`${API_BASE}/subscriptions/`, () => {
-        return HttpResponse.json([]);
+        return HttpResponse.json({ total: 0, templates: [] });
       }),
     );
 
@@ -131,7 +133,8 @@ describe('subscriptionsApi.list', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data).toHaveLength(0);
+    expect(response.data.total).toBe(0);
+    expect(response.data.templates).toHaveLength(0);
   });
 
   it('test_list_subscriptions_unauthenticated_rejects_with_401', async () => {

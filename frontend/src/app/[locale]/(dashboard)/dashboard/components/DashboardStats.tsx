@@ -3,18 +3,29 @@
 import React, { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useServerStats, useSystemStats, useBandwidthAnalytics } from '../hooks/useDashboardData';
+import {
+  useServerStats,
+  useSystemStats,
+  useBandwidthAnalytics,
+  useMonitoringRecap,
+} from '../hooks/useDashboardData';
 import { usageApi } from '@/lib/api/usage';
 
 // --- Pure formatting functions outside component ---
-const formatBandwidth = (bytes: number | undefined) => {
-  if (!bytes) return '--';
-  const pb = bytes / (1024 ** 5);
-  if (pb >= 1) return `${pb.toFixed(1)} Pb/s`;
-  const tb = bytes / (1024 ** 4);
-  if (tb >= 1) return `${tb.toFixed(1)} Tb/s`;
-  const gb = bytes / (1024 ** 3);
-  return `${gb.toFixed(1)} Gb/s`;
+const formatTraffic = (bytes: number | undefined | null) => {
+  if (!bytes) return '0 GB';
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  const precision = value >= 100 || unitIndex === 0 ? 0 : 1;
+  return `${value.toFixed(precision)} ${units[unitIndex]}`;
 };
 
 const formatDataUsage = (bytes: number | undefined) => {
@@ -84,14 +95,77 @@ const NetworkLoadCard = memo(() => {
         <div className="text-2xl font-display text-muted-foreground animate-pulse">Loading...</div>
       ) : (
         <div className="text-4xl font-display text-matrix-green drop-shadow-glow">
-          {formatBandwidth(bandwidth?.bytes_out)}
+          {formatTraffic(bandwidth?.bytes_out)}
         </div>
       )}
-      <p className="text-sm text-muted-foreground mt-2">{t('aggregateThroughput')}</p>
+      <p className="text-sm text-muted-foreground mt-2">{t('trafficToday')}</p>
     </div>
   );
 });
 NetworkLoadCard.displayName = 'NetworkLoadCard';
+
+const OpsRecapCard = memo(() => {
+  const t = useTranslations('Dashboard');
+  const { data: recap, isLoading } = useMonitoringRecap();
+
+  return (
+    <div className="cyber-card rounded-xl border border-neon-cyan/20 p-6">
+      <div className="mb-5 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="mb-2 text-xl font-mono text-neon-pink">{t('networkRecap')}</h2>
+          <p className="text-sm text-muted-foreground">{t('opsBaseline')}</p>
+        </div>
+        <div className="font-mono text-xs text-muted-foreground">
+          {recap?.this_month
+            ? `${t('thisMonth')}: ${recap.this_month.users.toLocaleString()} / ${formatTraffic(recap.this_month.traffic_bytes)}`
+            : t('monthlyRecapUnavailable')}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="rounded-lg border border-grid-line/30 bg-terminal-surface/40 p-4 animate-pulse">
+              <div className="mb-3 h-3 w-20 rounded bg-grid-line/30" />
+              <div className="h-7 w-24 rounded bg-grid-line/20" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="rounded-lg border border-grid-line/30 bg-terminal-surface/40 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{t('totalUsers')}</p>
+            <p className="text-3xl font-display text-neon-cyan drop-shadow-glow">
+              {recap?.total.users?.toLocaleString() ?? '--'}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-grid-line/30 bg-terminal-surface/40 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{t('totalNodes')}</p>
+            <p className="text-3xl font-display text-matrix-green drop-shadow-glow">
+              {recap?.total.nodes?.toLocaleString() ?? '--'}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-grid-line/30 bg-terminal-surface/40 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{t('lifetimeTraffic')}</p>
+            <p className="text-3xl font-display text-neon-purple drop-shadow-glow">
+              {formatTraffic(recap?.total.traffic_bytes)}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-grid-line/30 bg-terminal-surface/40 p-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{t('countries')}</p>
+            <p className="text-3xl font-display text-neon-pink drop-shadow-glow">
+              {(recap?.total.distinct_countries ?? 0).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+OpsRecapCard.displayName = 'OpsRecapCard';
 
 const VpnUsageCard = memo(() => {
   const t = useTranslations('Dashboard');
@@ -153,11 +227,14 @@ export const DashboardStats = memo(() => {
   const t = useTranslations('Dashboard');
 
   return (
-    <section aria-label={t('serverStatus')} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <ServerStatusCard />
-      <ActiveSessionsCard />
-      <NetworkLoadCard />
-      <VpnUsageCard />
+    <section aria-label={t('serverStatus')} className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <ServerStatusCard />
+        <ActiveSessionsCard />
+        <NetworkLoadCard />
+        <VpnUsageCard />
+      </div>
+      <OpsRecapCard />
     </section>
   );
 });

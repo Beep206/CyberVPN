@@ -65,6 +65,7 @@ control_plane_stack_backend_env: >-
       'REDIS_URL': 'redis://remnawave-redis:6379/0',
       'REMNAWAVE_URL': 'http://remnawave:3000',
       'REMNAWAVE_TOKEN': vault_control_plane_backend_remnawave_token,
+      'REMNAWAVE_WEBHOOK_SECRET': vault_control_plane_backend_remnawave_webhook_secret,
       'HELIX_ENABLED': 'true',
       'HELIX_ADAPTER_URL': 'http://helix-adapter:8088',
       'HELIX_ADAPTER_TOKEN': vault_control_plane_helix_internal_auth_token,

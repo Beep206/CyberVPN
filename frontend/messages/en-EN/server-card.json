@@ -1,5 +1,16 @@
 {
     "ip": "IP",
     "protocol": "PROTOCOL",
-    "load": "LOAD"
+    "load": "LOAD",
+    "nodeVersion": "NODE VERSION",
+    "xrayVersion": "XRAY VERSION",
+    "governanceLabel": "GOVERNANCE",
+    "plugin": "PLUGIN",
+    "pluginNone": "NO PLUGIN",
+    "notAvailable": "n/a",
+    "governance": {
+        "pluginActive": "PLUGIN ACTIVE",
+        "noPlugin": "NO PLUGIN",
+        "nodeDisabled": "NODE DISABLED"
+    }
 }

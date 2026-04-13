@@ -20,10 +20,12 @@ from src.infrastructure.database.repositories.admin_user_repo import AdminUserRe
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.infrastructure.remnawave.client import RemnawaveClient
+from src.infrastructure.remnawave.contracts import RemnawaveCreatedSubscriptionResponse
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.telegram.schemas import (
     ConfigResponse,
     CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
     TelegramBotAccessSettingsResponse,
     TelegramBotReferralStatsResponse,
     TelegramBotSubscriptionResponse,
@@ -190,13 +192,17 @@ async def get_telegram_user(
     )
 
 
-@router.post("/user/{telegram_id}/subscription", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/user/{telegram_id}/subscription",
+    response_model=CreateSubscriptionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_subscription(
     telegram_id: int,
     request: CreateSubscriptionRequest,
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.SUBSCRIPTION_CREATE)),
-) -> dict[str, Any]:
+) -> CreateSubscriptionResponse:
     """Create a subscription for a Telegram user."""
     gateway = RemnawaveUserGateway(client=remnawave_client)
     user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
@@ -213,17 +219,18 @@ async def create_subscription(
         "duration_days": request.duration_days,
     }
 
-    result = await remnawave_client.post(
+    result = await remnawave_client.post_validated(
         "/api/subscriptions",
+        RemnawaveCreatedSubscriptionResponse,
         json=subscription_data,
     )
 
     route_operations_total.labels(route="telegram", action="create_subscription", status="success").inc()
-    return {
-        "status": "success",
-        "subscription_id": result.get("id"),
-        "expires_at": result.get("expires_at"),
-    }
+    return CreateSubscriptionResponse(
+        status="success",
+        subscription_id=result.uuid or result.id,
+        expires_at=result.expires_at,
+    )
 
 
 @router.get("/user/{telegram_id}/config", response_model=ConfigResponse)

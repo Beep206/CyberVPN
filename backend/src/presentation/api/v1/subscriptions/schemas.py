@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.presentation.schemas.remnawave_responses import RemnawaveSubscriptionResponse
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionResponse
 
 
 class CreateSubscriptionTemplateRequest(BaseModel):

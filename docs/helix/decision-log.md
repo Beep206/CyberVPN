@@ -76,6 +76,15 @@ This log freezes blocking architecture decisions for the first implementation wa
 - Decision date: `2026-03-31`
 - Required approvers: `admin`, `sre`
 
+## Decision 9: Remnawave Node Plugins Boundary
+
+- Decision: do not embed Helix control-plane or runtime ownership into Remnawave `Node Plugins`
+- Reason: keeps Helix loosely coupled, preserves Remnawave upgradeability, and limits plugins to optional node-local helpers
+- Alternatives considered: packaging Helix as a Remnawave addon or plugin module
+- Status: approved for phase one
+- Decision date: `2026-04-12`
+- Required approvers: `admin`, `sre`
+
 ## Open Operational Mapping
 
 The implementation wave still requires mapping the role-based approvals above to named human owners before formal phase closure.

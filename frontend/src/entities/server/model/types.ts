@@ -3,6 +3,12 @@ import type { components } from '@/lib/api/generated/types';
 /** Re-exported from OpenAPI generated types — matches backend ServerStatus enum exactly */
 export type ServerStatus = components['schemas']['ServerStatus'];
 
+/** Frontend display-level governance state derived from node/plugin fields */
+export type ServerGovernanceState =
+  | 'plugin-active'
+  | 'no-plugin'
+  | 'node-disabled';
+
 /** Frontend-only — backend does not expose a VpnProtocol enum */
 export type VpnProtocol =
   | 'wireguard'
@@ -34,4 +40,8 @@ export interface Server {
     load: number; // 0-100
     uptime: string;
     clients: number;
+    nodeVersion: string | null;
+    xrayVersion: string | null;
+    activePluginUuid: string | null;
+    governanceState: ServerGovernanceState;
 }

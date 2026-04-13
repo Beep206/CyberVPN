@@ -62,6 +62,14 @@ Adds: DEBUG logging, Python debugger port (5678), Grafana anonymous auth.
 - Helix lab node: http://localhost:8091/healthz (helix-lab profile)
 - Helix lab node 02: http://localhost:8092/healthz (helix-lab profile)
 
+## Remnawave baseline
+
+- validated baseline: panel/backend `2.7.4`, edge node `2.7.4`
+- canonical internal contract: `backend/src/infrastructure/remnawave/contracts.py`
+- vendored SDK baseline: `SDK/python-sdk-production` on `2.7.4`, reference and contract-test input only
+- webhook contract: `X-Remnawave-Signature` + `X-Remnawave-Timestamp` with `REMNAWAVE_WEBHOOK_SECRET`
+- upgrade procedure and doc guards: `docs/runbooks/REMNAWAVE_UPGRADE_GUARDRAILS.md`
+
 ## Helix Lab
 
 The Helix lab keeps `Remnawave` authoritative while adding an adapter and two lab node

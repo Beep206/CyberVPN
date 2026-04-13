@@ -1,8 +1,6 @@
 """Tests for sync task modules."""
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -41,8 +39,8 @@ async def test_sync_nodes_caching():
 async def test_sync_geolocations_upsert():
     """Test geolocation sync upserts nodes with coordinates."""
     mock_nodes = [
-        {"uuid": "550e8400-e29b-41d4-a716-446655440000", "countryCode": "US", "city": "New York"},
-        {"uuid": "650e8400-e29b-41d4-a716-446655440001", "countryCode": "GB", "city": "London"},
+        {"uuid": "550e8400-e29b-41d4-a716-446655440000", "country_code": "US", "city": "New York"},
+        {"uuid": "650e8400-e29b-41d4-a716-446655440001", "country_code": "GB", "city": "London"},
     ]
 
     with patch("src.tasks.sync.geolocations.RemnawaveClient") as mock_rw_cls, \
@@ -69,8 +67,8 @@ async def test_sync_geolocations_upsert():
 async def test_sync_geolocations_unknown_country():
     """Test geolocation sync skips nodes with unknown country codes."""
     mock_nodes = [
-        {"uuid": "550e8400-e29b-41d4-a716-446655440000", "countryCode": "XX", "city": "Unknown"},
-        {"uuid": "650e8400-e29b-41d4-a716-446655440001", "countryCode": "US", "city": "New York"},
+        {"uuid": "550e8400-e29b-41d4-a716-446655440000", "country_code": "XX", "city": "Unknown"},
+        {"uuid": "650e8400-e29b-41d4-a716-446655440001", "country_code": "US", "city": "New York"},
     ]
 
     with patch("src.tasks.sync.geolocations.RemnawaveClient") as mock_rw_cls, \
@@ -95,9 +93,21 @@ async def test_sync_geolocations_unknown_country():
 async def test_sync_user_stats_aggregation():
     """Test user stats sync aggregates all categories."""
     mock_users = [
-        {"status": "active", "isOnline": True, "expiresAt": None, "dataLimit": 0, "dataUsed": 0},
-        {"status": "active", "isOnline": False, "expiresAt": "2023-01-01T00:00:00Z", "dataLimit": 1000, "dataUsed": 1500},
-        {"status": "disabled", "isOnline": False, "expiresAt": None, "dataLimit": 0, "dataUsed": 0},
+        {"status": "active", "is_online": True, "expire_at": None, "traffic_limit_bytes": 0, "used_traffic_bytes": 0},
+        {
+            "status": "active",
+            "is_online": False,
+            "expire_at": "2023-01-01T00:00:00Z",
+            "traffic_limit_bytes": 1000,
+            "used_traffic_bytes": 1500,
+        },
+        {
+            "status": "disabled",
+            "is_online": False,
+            "expire_at": None,
+            "traffic_limit_bytes": 0,
+            "used_traffic_bytes": 0,
+        },
     ]
 
     with patch("src.tasks.sync.user_stats.RemnawaveClient") as mock_rw_cls, \

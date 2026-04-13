@@ -993,7 +993,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__RegisterRequest"
               }
             }
           }
@@ -1096,7 +1096,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LoginRequest"
               }
             }
           },
@@ -1158,7 +1158,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest"
               }
             }
           },
@@ -1170,7 +1170,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse"
                 }
               }
             }
@@ -1210,7 +1210,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LogoutRequest"
+                "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__LogoutRequest"
               }
             }
           },
@@ -2845,7 +2845,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
                 }
               }
             }
@@ -2890,7 +2890,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
                 }
               }
             }
@@ -2950,7 +2950,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
                 }
               }
             }
@@ -3414,11 +3414,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/RemnawaveSubscriptionResponse"
-                  },
-                  "type": "array",
-                  "title": "Response List Subscription Templates Api V1 Subscriptions  Get"
+                  "$ref": "#/components/schemas/SubscriptionTemplateListResponse"
                 }
               }
             }
@@ -3467,6 +3463,120 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/subscriptions/config/{user_uuid}": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Generate Config",
+        "description": "Generate VPN configuration for a user",
+        "operationId": "generate_config_api_v1_subscriptions_config__user_uuid__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemnawaveSubscriptionConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/active": {
+      "get": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Get active subscription",
+        "description": "Retrieve the authenticated user's current subscription status.",
+        "operationId": "get_active_subscription_api_v1_subscriptions_active_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/subscriptions/cancel": {
+      "post": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Cancel subscription",
+        "description": "Cancel the authenticated user's active subscription.",
+        "operationId": "cancel_subscription_api_v1_subscriptions_cancel_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User not found in VPN backend"
+          },
+          "429": {
+            "description": "Rate limit exceeded (3 requests per hour)"
           }
         },
         "security": [
@@ -3624,120 +3734,6 @@
             }
           }
         }
-      }
-    },
-    "/api/v1/subscriptions/config/{user_uuid}": {
-      "get": {
-        "tags": [
-          "subscriptions"
-        ],
-        "summary": "Generate Config",
-        "description": "Generate VPN configuration for a user",
-        "operationId": "generate_config_api_v1_subscriptions_config__user_uuid__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "user_uuid",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "User Uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RemnawaveSubscriptionConfigResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/subscriptions/active": {
-      "get": {
-        "tags": [
-          "subscriptions"
-        ],
-        "summary": "Get active subscription",
-        "description": "Retrieve the authenticated user's current subscription status.",
-        "operationId": "get_active_subscription_api_v1_subscriptions_active_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActiveSubscriptionResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/subscriptions/cancel": {
-      "post": {
-        "tags": [
-          "subscriptions"
-        ],
-        "summary": "Cancel subscription",
-        "description": "Cancel the authenticated user's active subscription.",
-        "operationId": "cancel_subscription_api_v1_subscriptions_cancel_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated"
-          },
-          "404": {
-            "description": "User not found in VPN backend"
-          },
-          "429": {
-            "description": "Rate limit exceeded (3 requests per hour)"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
       }
     },
     "/api/v1/plans/": {
@@ -4380,7 +4376,7 @@
           "usage"
         ],
         "summary": "Get current user usage statistics",
-        "description": "Returns VPN usage statistics for the currently authenticated user from Remnawave.",
+        "description": "Returns VPN usage statistics for the currently authenticated user. If the VPN backend is unavailable or the user has no upstream record yet, the endpoint falls back to an empty usage snapshot.",
         "operationId": "get_usage_api_v1_users_me_usage_get",
         "responses": {
           "200": {
@@ -4392,12 +4388,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "User not found in VPN backend"
-          },
-          "502": {
-            "description": "VPN backend unavailable"
           }
         },
         "security": [
@@ -6358,6 +6348,60 @@
         }
       }
     },
+    "/api/v1/monitoring/metadata": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Get Metadata",
+        "description": "Get Remnawave panel metadata for operational visibility.",
+        "operationId": "get_metadata_api_v1_monitoring_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Remnawave panel metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/monitoring/recap": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Get Recap",
+        "description": "Get aggregated Remnawave recap data for operations.",
+        "operationId": "get_recap_api_v1_monitoring_recap_get",
+        "responses": {
+          "200": {
+            "description": "Remnawave system recap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/audit-log": {
       "get": {
         "tags": [
@@ -7845,9 +7889,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Subscription Api V1 Telegram User  Telegram Id  Subscription Post"
+                  "$ref": "#/components/schemas/CreateSubscriptionResponse"
                 }
               }
             }
@@ -14795,7 +14837,7 @@
       "AuthResponse": {
         "properties": {
           "tokens": {
-            "$ref": "#/components/schemas/TokenResponse",
+            "$ref": "#/components/schemas/src__presentation__api__v1__mobile_auth__schemas__TokenResponse",
             "description": "Authentication tokens"
           },
           "user": {
@@ -15956,6 +15998,47 @@
           "duration_days": 30,
           "plan_name": "Premium Monthly"
         }
+      },
+      "CreateSubscriptionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Operation status",
+            "default": "success"
+          },
+          "subscription_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Id",
+            "description": "Created subscription identifier"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Subscription expiration date"
+          }
+        },
+        "type": "object",
+        "title": "CreateSubscriptionResponse",
+        "description": "Response schema for a created Telegram user subscription."
       },
       "CreateSubscriptionTemplateRequest": {
         "properties": {
@@ -17229,41 +17312,6 @@
         "title": "ListInvitesResponse",
         "description": "Response containing list of active invites."
       },
-      "LoginRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "User email address"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 1,
-            "title": "Password",
-            "description": "User password"
-          },
-          "device": {
-            "$ref": "#/components/schemas/DeviceInfo",
-            "description": "Device information for login"
-          },
-          "remember_me": {
-            "type": "boolean",
-            "title": "Remember Me",
-            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "password",
-          "device"
-        ],
-        "title": "LoginRequest",
-        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
-      },
       "LoginResponse": {
         "properties": {
           "access_token": {
@@ -17324,30 +17372,6 @@
         "type": "object",
         "title": "LogoutAllResponse",
         "description": "Response for logout-all-devices operation (HIGH-6)."
-      },
-      "LogoutRequest": {
-        "properties": {
-          "refresh_token": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Refresh Token",
-            "description": "Refresh token to revoke"
-          },
-          "device_id": {
-            "type": "string",
-            "maxLength": 36,
-            "minLength": 36,
-            "title": "Device Id",
-            "description": "Device ID for session revocation"
-          }
-        },
-        "type": "object",
-        "required": [
-          "refresh_token",
-          "device_id"
-        ],
-        "title": "LogoutRequest",
-        "description": "Request schema for logout.\n\nUsed by POST /api/v1/mobile/auth/logout endpoint."
       },
       "MagicLinkRequest": {
         "properties": {
@@ -17453,6 +17477,120 @@
         ],
         "title": "MagicLinkVerifyResponse",
         "description": "Response for successful magic link verification with auto-login."
+      },
+      "MetadataBuildResponse": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "title": "Time",
+            "description": "Build timestamp"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number",
+            "description": "Build number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time",
+          "number"
+        ],
+        "title": "MetadataBuildResponse",
+        "description": "Remnawave build metadata."
+      },
+      "MetadataGitBackendResponse": {
+        "properties": {
+          "commit_sha": {
+            "type": "string",
+            "title": "Commit Sha",
+            "description": "Backend commit SHA"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "description": "Backend branch"
+          },
+          "commit_url": {
+            "type": "string",
+            "title": "Commit Url",
+            "description": "Backend commit URL"
+          }
+        },
+        "type": "object",
+        "required": [
+          "commit_sha",
+          "branch",
+          "commit_url"
+        ],
+        "title": "MetadataGitBackendResponse",
+        "description": "Backend git metadata."
+      },
+      "MetadataGitFrontendResponse": {
+        "properties": {
+          "commit_sha": {
+            "type": "string",
+            "title": "Commit Sha",
+            "description": "Frontend commit SHA"
+          },
+          "commit_url": {
+            "type": "string",
+            "title": "Commit Url",
+            "description": "Frontend commit URL"
+          }
+        },
+        "type": "object",
+        "required": [
+          "commit_sha",
+          "commit_url"
+        ],
+        "title": "MetadataGitFrontendResponse",
+        "description": "Frontend git metadata."
+      },
+      "MetadataGitResponse": {
+        "properties": {
+          "backend": {
+            "$ref": "#/components/schemas/MetadataGitBackendResponse"
+          },
+          "frontend": {
+            "$ref": "#/components/schemas/MetadataGitFrontendResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "backend",
+          "frontend"
+        ],
+        "title": "MetadataGitResponse",
+        "description": "Git metadata for backend and frontend."
+      },
+      "MetadataResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Remnawave panel version"
+          },
+          "build": {
+            "$ref": "#/components/schemas/MetadataBuildResponse"
+          },
+          "git": {
+            "$ref": "#/components/schemas/MetadataGitResponse"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "build",
+          "git"
+        ],
+        "title": "MetadataResponse",
+        "description": "Remnawave panel metadata response."
       },
       "MobileAuthError": {
         "properties": {
@@ -18178,7 +18316,8 @@
         "enum": [
           "cryptobot",
           "yookassa",
-          "stripe"
+          "stripe",
+          "wallet"
         ],
         "title": "PaymentProvider"
       },
@@ -18493,6 +18632,144 @@
         "title": "ReauthResponse",
         "description": "Response from successful re-authentication."
       },
+      "RecapPeriodResponse": {
+        "properties": {
+          "users": {
+            "type": "integer",
+            "title": "Users",
+            "description": "Users in the period"
+          },
+          "traffic_bytes": {
+            "type": "integer",
+            "title": "Traffic Bytes",
+            "description": "Traffic in bytes for the period"
+          }
+        },
+        "type": "object",
+        "required": [
+          "users",
+          "traffic_bytes"
+        ],
+        "title": "RecapPeriodResponse",
+        "description": "Traffic/users summary for a recap period."
+      },
+      "RecapResponse": {
+        "properties": {
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Remnawave panel version"
+          },
+          "init_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Init Date",
+            "description": "Panel initialization date"
+          },
+          "total": {
+            "$ref": "#/components/schemas/RecapTotalsResponse"
+          },
+          "this_month": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapPeriodResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current month recap"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "RecapResponse",
+        "description": "Remnawave recap response."
+      },
+      "RecapTotalsResponse": {
+        "properties": {
+          "users": {
+            "type": "integer",
+            "title": "Users",
+            "description": "Total users"
+          },
+          "nodes": {
+            "type": "integer",
+            "title": "Nodes",
+            "description": "Total nodes"
+          },
+          "traffic_bytes": {
+            "type": "integer",
+            "title": "Traffic Bytes",
+            "description": "Lifetime traffic in bytes"
+          },
+          "nodes_ram": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodes Ram",
+            "description": "Aggregate node RAM"
+          },
+          "nodes_cpu_cores": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodes Cpu Cores",
+            "description": "Aggregate node CPU cores"
+          },
+          "distinct_countries": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distinct Countries",
+            "description": "Distinct node countries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "users",
+          "nodes",
+          "traffic_bytes"
+        ],
+        "title": "RecapTotalsResponse",
+        "description": "Lifetime Remnawave recap totals."
+      },
       "RedeemInviteRequest": {
         "properties": {
           "code": {
@@ -18604,83 +18881,6 @@
           "commission_rate"
         ],
         "title": "ReferralStatusResponse"
-      },
-      "RefreshTokenRequest": {
-        "properties": {
-          "refresh_token": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Refresh Token",
-            "description": "Current refresh token to exchange for new tokens"
-          },
-          "device_id": {
-            "type": "string",
-            "maxLength": 36,
-            "minLength": 36,
-            "title": "Device Id",
-            "description": "Device ID for session validation"
-          }
-        },
-        "type": "object",
-        "required": [
-          "refresh_token",
-          "device_id"
-        ],
-        "title": "RefreshTokenRequest",
-        "description": "Request schema for token refresh.\n\nUsed by POST /api/v1/mobile/auth/refresh endpoint."
-      },
-      "RegisterRequest": {
-        "properties": {
-          "login": {
-            "type": "string",
-            "maxLength": 50,
-            "minLength": 3,
-            "pattern": "^[a-zA-Z0-9_]+$",
-            "title": "Login"
-          },
-          "email": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "email"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 12,
-            "title": "Password"
-          },
-          "locale": {
-            "type": "string",
-            "maxLength": 10,
-            "title": "Locale",
-            "default": "en-EN"
-          },
-          "tos_accepted": {
-            "type": "boolean",
-            "title": "Tos Accepted",
-            "description": "Must accept Terms of Service"
-          },
-          "marketing_consent": {
-            "type": "boolean",
-            "title": "Marketing Consent",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "login",
-          "password",
-          "tos_accepted"
-        ],
-        "title": "RegisterRequest",
-        "description": "Registration request with strong password policy (MED-001).\n\nUses shared password validator for consistency with mobile auth.\nSupports email+password or login+password (username-only) registration."
       },
       "RegisterResponse": {
         "properties": {
@@ -19694,6 +19894,17 @@
             ],
             "title": "Xray Version"
           },
+          "node_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Version"
+          },
           "vpn_protocol": {
             "anyOf": [
               {
@@ -19704,6 +19915,18 @@
               }
             ],
             "title": "Vpn Protocol"
+          },
+          "active_plugin_uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Plugin Uuid"
           }
         },
         "type": "object",
@@ -20047,6 +20270,30 @@
         ],
         "title": "SubscriptionStatus",
         "description": "User subscription status."
+      },
+      "SubscriptionTemplateListResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "Total number of templates"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/RemnawaveSubscriptionResponse"
+            },
+            "type": "array",
+            "title": "Templates",
+            "description": "Subscription templates returned by Remnawave"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "SubscriptionTemplateListResponse",
+        "description": "Current Remnawave template list envelope."
       },
       "TelegramAuthRequest": {
         "properties": {
@@ -21028,40 +21275,6 @@
         ],
         "title": "TelegramWebLoginResponse",
         "description": "Response for Telegram Web Widget/OAuth authentication."
-      },
-      "TokenResponse": {
-        "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token",
-            "description": "JWT access token (TTL: 15 minutes)"
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token",
-            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "description": "Token type for Authorization header",
-            "default": "Bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expires In",
-            "description": "Access token expiration in seconds (default: 15 minutes)",
-            "default": 900
-          }
-        },
-        "type": "object",
-        "required": [
-          "access_token",
-          "refresh_token"
-        ],
-        "title": "TokenResponse",
-        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
       },
       "TorrentBlockerActionReportResponse": {
         "properties": {
@@ -22496,7 +22709,7 @@
         "properties": {
           "users": {
             "items": {
-              "$ref": "#/components/schemas/UserResponse"
+              "$ref": "#/components/schemas/src__presentation__api__v1__users__schemas__UserResponse"
             },
             "type": "array",
             "title": "Users"
@@ -22523,115 +22736,6 @@
         ],
         "title": "UserListResponse",
         "description": "Response schema for a list of VPN users."
-      },
-      "UserResponse": {
-        "properties": {
-          "uuid": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Uuid"
-          },
-          "username": {
-            "type": "string",
-            "title": "Username"
-          },
-          "status": {
-            "$ref": "#/components/schemas/UserStatus"
-          },
-          "short_uuid": {
-            "type": "string",
-            "title": "Short Uuid"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "subscription_uuid": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Subscription Uuid"
-          },
-          "expire_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expire At"
-          },
-          "traffic_limit_bytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Traffic Limit Bytes"
-          },
-          "used_traffic_bytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Used Traffic Bytes"
-          },
-          "email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
-          },
-          "telegram_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Telegram Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "uuid",
-          "username",
-          "status",
-          "short_uuid",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "UserResponse",
-        "description": "Response schema for a single VPN user."
       },
       "UserStatus": {
         "type": "string",
@@ -22744,6 +22848,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -23128,6 +23239,59 @@
         "type": "object",
         "title": "RefreshTokenRequest"
       },
+      "src__presentation__api__v1__auth__schemas__RegisterRequest": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 3,
+            "pattern": "^[a-zA-Z0-9_]+$",
+            "title": "Login"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 12,
+            "title": "Password"
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 10,
+            "title": "Locale",
+            "default": "en-EN"
+          },
+          "tos_accepted": {
+            "type": "boolean",
+            "title": "Tos Accepted",
+            "description": "Must accept Terms of Service"
+          },
+          "marketing_consent": {
+            "type": "boolean",
+            "title": "Marketing Consent",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "login",
+          "password",
+          "tos_accepted"
+        ],
+        "title": "RegisterRequest",
+        "description": "Registration request with strong password policy (MED-001).\n\nUses shared password validator for consistency with mobile auth.\nSupports email+password or login+password (username-only) registration."
+      },
       "src__presentation__api__v1__auth__schemas__TokenResponse": {
         "properties": {
           "access_token": {
@@ -23155,6 +23319,89 @@
           "refresh_token"
         ],
         "title": "TokenResponse"
+      },
+      "src__presentation__api__v1__mobile_auth__schemas__LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "User email address"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "description": "User password"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceInfo",
+            "description": "Device information for login"
+          },
+          "remember_me": {
+            "type": "boolean",
+            "title": "Remember Me",
+            "description": "If True, extends refresh token TTL to 30 days (default: 7 days)",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "device"
+        ],
+        "title": "LoginRequest",
+        "description": "Request schema for mobile user login.\n\nUsed by POST /api/v1/mobile/auth/login endpoint."
+      },
+      "src__presentation__api__v1__mobile_auth__schemas__LogoutRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Refresh Token",
+            "description": "Refresh token to revoke"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Device Id",
+            "description": "Device ID for session revocation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token",
+          "device_id"
+        ],
+        "title": "LogoutRequest",
+        "description": "Request schema for logout.\n\nUsed by POST /api/v1/mobile/auth/logout endpoint."
+      },
+      "src__presentation__api__v1__mobile_auth__schemas__RefreshTokenRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Refresh Token",
+            "description": "Current refresh token to exchange for new tokens"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Device Id",
+            "description": "Device ID for session validation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token",
+          "device_id"
+        ],
+        "title": "RefreshTokenRequest",
+        "description": "Request schema for token refresh.\n\nUsed by POST /api/v1/mobile/auth/refresh endpoint."
       },
       "src__presentation__api__v1__mobile_auth__schemas__RegisterRequest": {
         "properties": {
@@ -23184,6 +23431,40 @@
         ],
         "title": "RegisterRequest",
         "description": "Request schema for mobile user registration.\n\nUsed by POST /api/v1/mobile/auth/register endpoint.\nMED-001: Password requirements aligned with admin auth."
+      },
+      "src__presentation__api__v1__mobile_auth__schemas__TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "JWT access token (TTL: 15 minutes)"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "JWT refresh token (TTL: 7 days or 30 days with remember_me)"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token type for Authorization header",
+            "default": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expires In",
+            "description": "Access token expiration in seconds (default: 15 minutes)",
+            "default": 900
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenResponse",
+        "description": "Response schema for authentication tokens.\n\nReturned by login, register, and refresh endpoints."
       },
       "src__presentation__api__v1__mobile_auth__schemas__UserResponse": {
         "properties": {
@@ -23272,6 +23553,115 @@
         ],
         "title": "UserResponse",
         "description": "Response schema for authenticated user profile.\n\nUsed by GET /api/v1/mobile/auth/me and included in login/register responses."
+      },
+      "src__presentation__api__v1__users__schemas__UserResponse": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Uuid"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "short_uuid": {
+            "type": "string",
+            "title": "Short Uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "subscription_uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Uuid"
+          },
+          "expire_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expire At"
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          },
+          "used_traffic_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Traffic Bytes"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "telegram_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uuid",
+          "username",
+          "status",
+          "short_uuid",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "UserResponse",
+        "description": "Response schema for a single VPN user."
       }
     },
     "securitySchemes": {

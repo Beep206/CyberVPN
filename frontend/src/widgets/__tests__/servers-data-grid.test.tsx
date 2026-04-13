@@ -33,6 +33,10 @@ vi.mock('@/features/servers/hooks/useServers', () => ({
         load: 45,
         uptime: '12d 4h',
         clients: 128,
+        nodeVersion: '2.7.4',
+        xrayVersion: '1.8.13',
+        activePluginUuid: 'plugin-uuid-12345678',
+        governanceState: 'plugin-active',
       },
       {
         id: 'srv-2',
@@ -44,6 +48,10 @@ vi.mock('@/features/servers/hooks/useServers', () => ({
         load: 82,
         uptime: '4d 2h',
         clients: 93,
+        nodeVersion: '2.7.4',
+        xrayVersion: null,
+        activePluginUuid: null,
+        governanceState: 'no-plugin',
       },
     ],
     isPending: false,
@@ -80,5 +88,17 @@ describe('ServersDataGrid', () => {
     expect(screen.getByTestId('servers-grid-toolbar').className).toContain(
       'sm:flex-row',
     );
+  });
+
+  it('renders governance and version signals for operators', () => {
+    render(<ServersDataGrid />);
+
+    expect(screen.getAllByText('governance.pluginActive').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('governance.noPlugin').length).toBeGreaterThan(0);
+    expect(screen.getByText(/governance.pluginActive: 1/)).toBeInTheDocument();
+    expect(screen.getByText(/governance.noPlugin: 1/)).toBeInTheDocument();
+    expect(screen.getByText('2.7.4')).toBeInTheDocument();
+    expect(screen.getByText('1.8.13')).toBeInTheDocument();
+    expect(screen.getByText(/labels.plugin: plugin-u/)).toBeInTheDocument();
   });
 });

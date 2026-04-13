@@ -49,6 +49,16 @@ class CreateSubscriptionRequest(BaseModel):
     duration_days: int = Field(..., gt=0, le=3650, description="Subscription duration in days")
 
 
+class CreateSubscriptionResponse(BaseModel):
+    """Response schema for a created Telegram user subscription."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    status: str = Field(default="success", description="Operation status")
+    subscription_id: str | int | None = Field(None, description="Created subscription identifier")
+    expires_at: datetime | None = Field(None, description="Subscription expiration date")
+
+
 class ConfigResponse(BaseModel):
     """Response schema for VPN configuration."""
 

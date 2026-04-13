@@ -52,10 +52,7 @@ impl AdapterConfig {
                 "HELIX_CANARY_MIN_CONNECT_SUCCESS_RATE",
                 0.98,
             )?,
-            helix_canary_max_fallback_rate: env_or_parse(
-                "HELIX_CANARY_MAX_FALLBACK_RATE",
-                0.03,
-            )?,
+            helix_canary_max_fallback_rate: env_or_parse("HELIX_CANARY_MAX_FALLBACK_RATE", 0.03)?,
             helix_canary_min_continuity_observations: env_or_parse(
                 "HELIX_CANARY_MIN_CONTINUITY_OBSERVATIONS",
                 5,

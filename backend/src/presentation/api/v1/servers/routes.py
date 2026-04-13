@@ -27,6 +27,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/servers", tags=["servers"])
 
 
+def _serialize_server_response(server) -> ServerResponse:
+    return ServerResponse(
+        uuid=server.uuid,
+        name=server.name,
+        address=server.address,
+        port=server.port,
+        status=server.status,
+        is_connected=server.is_connected,
+        is_disabled=server.is_disabled,
+        created_at=server.created_at,
+        updated_at=server.updated_at,
+        country_code=server.country_code,
+        traffic_used_bytes=server.used_traffic_bytes or 0,
+        inbound_count=server.inbound_count or 0,
+        users_online=server.users_online or 0,
+        xray_version=server.xray_version,
+        node_version=server.node_version,
+        vpn_protocol=server.vpn_protocol,
+        active_plugin_uuid=server.active_plugin_uuid,
+    )
+
+
 @router.get("/", response_model=list[ServerResponse])
 @router.get("", response_model=list[ServerResponse], include_in_schema=False)
 async def list_servers(
@@ -48,26 +70,7 @@ async def list_servers(
 
         track_server_query(operation="list")
 
-        return [
-            ServerResponse(
-                uuid=server.uuid,
-                name=server.name,
-                address=server.address,
-                port=server.port,
-                status=server.status,
-                is_connected=server.is_connected,
-                is_disabled=server.is_disabled,
-                created_at=server.created_at,
-                updated_at=server.updated_at,
-                country_code=server.country_code,
-                traffic_used_bytes=server.used_traffic_bytes or 0,
-                inbound_count=server.inbound_count or 0,
-                users_online=server.users_online or 0,
-                xray_version=server.xray_version,
-                vpn_protocol=server.vpn_protocol,
-            ).model_dump(mode="json")
-            for server in servers
-        ]
+        return [_serialize_server_response(server).model_dump(mode="json") for server in servers]
 
     return await response_cache.get_or_fetch("servers:list", 30, _fetch)
 
@@ -91,23 +94,7 @@ async def create_server(
 
     await response_cache.invalidate("servers:list", "servers:stats")
 
-    return ServerResponse(
-        uuid=server.uuid,
-        name=server.name,
-        address=server.address,
-        port=server.port,
-        status=server.status,
-        is_connected=server.is_connected,
-        is_disabled=server.is_disabled,
-        created_at=server.created_at,
-        updated_at=server.updated_at,
-        country_code=server.country_code,
-        traffic_used_bytes=server.used_traffic_bytes or 0,
-        inbound_count=server.inbound_count or 0,
-        users_online=server.users_online or 0,
-        xray_version=server.xray_version,
-        vpn_protocol=server.vpn_protocol,
-    )
+    return _serialize_server_response(server)
 
 
 @router.get("/stats", response_model=ServerStatsResponse)
@@ -153,23 +140,7 @@ async def get_server(
             detail=f"Server with UUID {server_id} not found",
         )
 
-    return ServerResponse(
-        uuid=server.uuid,
-        name=server.name,
-        address=server.address,
-        port=server.port,
-        status=server.status,
-        is_connected=server.is_connected,
-        is_disabled=server.is_disabled,
-        created_at=server.created_at,
-        updated_at=server.updated_at,
-        country_code=server.country_code,
-        traffic_used_bytes=server.used_traffic_bytes or 0,
-        inbound_count=server.inbound_count or 0,
-        users_online=server.users_online or 0,
-        xray_version=server.xray_version,
-        vpn_protocol=server.vpn_protocol,
-    )
+    return _serialize_server_response(server)
 
 
 @router.put("/{server_id}", response_model=ServerResponse)
@@ -196,23 +167,7 @@ async def update_server(
 
     await response_cache.invalidate("servers:list", "servers:stats")
 
-    return ServerResponse(
-        uuid=server.uuid,
-        name=server.name,
-        address=server.address,
-        port=server.port,
-        status=server.status,
-        is_connected=server.is_connected,
-        is_disabled=server.is_disabled,
-        created_at=server.created_at,
-        updated_at=server.updated_at,
-        country_code=server.country_code,
-        traffic_used_bytes=server.used_traffic_bytes or 0,
-        inbound_count=server.inbound_count or 0,
-        users_online=server.users_online or 0,
-        xray_version=server.xray_version,
-        vpn_protocol=server.vpn_protocol,
-    )
+    return _serialize_server_response(server)
 
 
 @router.delete("/{server_id}", status_code=status.HTTP_204_NO_CONTENT)

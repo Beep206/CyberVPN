@@ -74,6 +74,7 @@
             'REDIS_URL',
             'REMNAWAVE_URL',
             'REMNAWAVE_TOKEN',
+            'REMNAWAVE_WEBHOOK_SECRET',
             'JWT_SECRET',
             'CRYPTOBOT_TOKEN',
             'ENVIRONMENT',

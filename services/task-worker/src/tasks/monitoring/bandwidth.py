@@ -37,8 +37,8 @@ async def collect_bandwidth_snapshot() -> dict:
 
         for node in nodes:
             node_uuid = node.get("uuid", "")
-            bytes_up = node.get("trafficUp", 0) or 0
-            bytes_down = node.get("trafficDown", 0) or 0
+            bytes_up = node.get("traffic_up", 0) or 0
+            bytes_down = node.get("traffic_down", 0) or 0
             total_bytes = bytes_up + bytes_down
 
             bw_key = BANDWIDTH_KEY.format(node_uuid=node_uuid, timestamp=timestamp)

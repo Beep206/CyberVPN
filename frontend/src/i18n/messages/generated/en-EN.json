@@ -348,21 +348,30 @@
     "activeSessions": "ACTIVE SESSIONS",
     "aggregateThroughput": "Aggregate throughput",
     "connectionStatus": "SECURE CONNECTION ESTABLISHED",
+    "countries": "Countries",
     "currentConnections": "Current connections",
     "encryptionStatus": "ENCRYPTION: QUANTUM-SAFE",
     "errorLoadingServers": "Error loading servers",
+    "lifetimeTraffic": "Lifetime Traffic",
     "meta": {
       "description": "Secure VPN administration dashboard with real-time monitoring, analytics, and network management",
       "title": "Dashboard - VPN Command Center"
     },
+    "monthlyRecapUnavailable": "Monthly recap unavailable",
     "networkLoad": "NETWORK LOAD",
+    "networkRecap": "REMNAWAVE RECAP",
     "nodesOnline": "NODES ONLINE",
     "noServers": "No servers available",
+    "opsBaseline": "Users, nodes, traffic, and geographic coverage",
     "serverMatrix": "SERVER MATRIX",
     "serverStatus": "SERVER STATUS",
     "statusLabel": "SYSTEM STATUS:",
     "statusValue": "OPTIMAL",
+    "thisMonth": "This month",
     "title": "VPN COMMAND CENTER",
+    "totalNodes": "Total Nodes",
+    "totalUsers": "Total Users",
+    "trafficToday": "Traffic transferred today",
     "vpnUsage": "VPN USAGE"
   },
   "DeleteAccount": {
@@ -1460,9 +1469,20 @@
     "title": "ENCRYPTION CORE"
   },
   "ServerCard": {
+    "governance": {
+      "nodeDisabled": "NODE DISABLED",
+      "noPlugin": "NO PLUGIN",
+      "pluginActive": "PLUGIN ACTIVE"
+    },
+    "governanceLabel": "GOVERNANCE",
     "ip": "IP",
     "load": "LOAD",
-    "protocol": "PROTOCOL"
+    "nodeVersion": "NODE VERSION",
+    "notAvailable": "n/a",
+    "plugin": "PLUGIN",
+    "pluginNone": "NO PLUGIN",
+    "protocol": "PROTOCOL",
+    "xrayVersion": "XRAY VERSION"
   },
   "Servers": {
     "globalStatus": "GLOBAL STATUS: {status}",
@@ -1479,15 +1499,31 @@
     },
     "columns": {
       "controls": "CONTROLS",
+      "governance": "GOVERNANCE",
       "ipAddress": "IP ADDRESS",
       "load": "LOAD",
       "location": "LOCATION",
       "protocol": "PROTOCOL",
       "serverName": "SERVER NAME",
-      "status": "STATUS"
+      "status": "STATUS",
+      "versions": "VERSIONS"
     },
     "deployNode": "+ DEPLOY NODE",
     "error": "Failed to load server data. Please try again.",
+    "governance": {
+      "nodeDisabled": "NODE DISABLED",
+      "noPlugin": "NO PLUGIN",
+      "pluginActive": "PLUGIN ACTIVE"
+    },
+    "labels": {
+      "clients": "Clients",
+      "governance": "Governance",
+      "noData": "n/a",
+      "nodeVersion": "Node",
+      "plugin": "Plugin",
+      "uptime": "Uptime",
+      "xrayVersion": "Xray"
+    },
     "status": {
       "maintenance": "MAINTENANCE",
       "offline": "OFFLINE",

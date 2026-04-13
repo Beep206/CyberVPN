@@ -21,14 +21,14 @@ async def test_health_check_all_nodes_healthy(mock_redis, mock_remnawave, mock_t
         {
             "uuid": "node-1",
             "name": "US-East",
-            "isConnected": True,
-            "countryCode": "US",
+            "is_connected": True,
+            "country_code": "US",
         },
         {
             "uuid": "node-2",
             "name": "EU-West",
-            "isConnected": True,
-            "countryCode": "NL",
+            "is_connected": True,
+            "country_code": "NL",
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -74,8 +74,8 @@ async def test_health_check_node_goes_offline(mock_redis, mock_remnawave, mock_t
         {
             "uuid": "node-1",
             "name": "US-East",
-            "isConnected": False,  # Now offline
-            "countryCode": "US",
+            "is_connected": False,  # Now offline
+            "country_code": "US",
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -116,8 +116,8 @@ async def test_health_check_node_recovers(mock_redis, mock_remnawave, mock_teleg
         {
             "uuid": "node-1",
             "name": "US-East",
-            "isConnected": True,  # Back online
-            "countryCode": "US",
+            "is_connected": True,  # Back online
+            "country_code": "US",
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -157,8 +157,8 @@ async def test_health_check_first_run_no_cache(mock_redis, mock_remnawave, mock_
         {
             "uuid": "node-1",
             "name": "US-East",
-            "isConnected": False,
-            "countryCode": "US",
+            "is_connected": False,
+            "country_code": "US",
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -194,13 +194,13 @@ async def test_bandwidth_collects_snapshots(mock_redis, mock_remnawave):
     nodes = [
         {
             "uuid": "node-1",
-            "trafficUp": 1000000,
-            "trafficDown": 5000000,
+            "traffic_up": 1000000,
+            "traffic_down": 5000000,
         },
         {
             "uuid": "node-2",
-            "trafficUp": 2000000,
-            "trafficDown": 8000000,
+            "traffic_up": 2000000,
+            "traffic_down": 8000000,
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -231,8 +231,8 @@ async def test_bandwidth_updates_dashboard_cache(mock_redis, mock_remnawave):
     nodes = [
         {
             "uuid": "node-1",
-            "trafficUp": 100,
-            "trafficDown": 200,
+            "traffic_up": 100,
+            "traffic_down": 200,
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -269,13 +269,13 @@ async def test_bandwidth_handles_null_traffic(mock_redis, mock_remnawave):
     nodes = [
         {
             "uuid": "node-1",
-            "trafficUp": None,
-            "trafficDown": None,
+            "traffic_up": None,
+            "traffic_down": None,
         },
         {
             "uuid": "node-2",
-            "trafficUp": 1000,
-            "trafficDown": 2000,
+            "traffic_up": 1000,
+            "traffic_down": 2000,
         },
     ]
     mock_remnawave.get_nodes.return_value = nodes
@@ -353,10 +353,8 @@ async def test_services_health_service_down_triggers_alert(mock_redis, mock_remn
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
             return_value={
-                "database": True,  # Was up
-                "redis": True,
-                "remnawave": True,
-                "telegram": True,
+                "is_up": True,
+                "consecutive_failures": 2,
             }
         )
         mock_cache.set = AsyncMock()
@@ -392,12 +390,12 @@ async def test_services_health_service_recovers(mock_redis, mock_remnawave, mock
     ):
         mock_cache = MagicMock()
         mock_cache.get = AsyncMock(
-            return_value={
-                "database": False,  # Was down
-                "redis": True,
-                "remnawave": True,
-                "telegram": True,
-            }
+            side_effect=[
+                {"is_up": False, "consecutive_failures": 0},
+                {"is_up": True, "consecutive_failures": 0},
+                {"is_up": True, "consecutive_failures": 0},
+                {"is_up": True, "consecutive_failures": 0},
+            ]
         )
         mock_cache.set = AsyncMock()
         MockCache.return_value = mock_cache
@@ -415,6 +413,7 @@ async def test_services_health_service_recovers(mock_redis, mock_remnawave, mock
         assert result["database"] is True
         mock_telegram.send_admin_alert.assert_called_once()
         call_args = mock_telegram.send_admin_alert.call_args
+        assert "database" in call_args[0][0]
         assert call_args[1]["severity"] == "resolved"
 
 

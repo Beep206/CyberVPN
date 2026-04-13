@@ -72,6 +72,12 @@ def main() -> None:
     print(f"REMNAWAVE_TOKEN={remnawave_token}")
     print()
 
+    # Remnawave Webhook Secret
+    remnawave_webhook_secret = generate_api_token(48)
+    print("# Remnawave Webhook Signature Validation")
+    print(f"REMNAWAVE_WEBHOOK_SECRET={remnawave_webhook_secret}")
+    print()
+
     # CryptoBot Payment Token
     cryptobot_token = generate_api_token(48)
     print("# CryptoBot Payment Gateway")

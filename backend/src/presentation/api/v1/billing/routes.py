@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client
-from src.presentation.schemas.remnawave_responses import RemnavwaveBillingRecordResponse
+from src.infrastructure.remnawave.contracts import RemnavwaveBillingRecordResponse
 
 from .schemas import CreatePaymentRequest
 
@@ -15,7 +15,7 @@ async def get_billing_info(
     current_user=Depends(get_current_active_user), client: RemnawaveClient = Depends(get_remnawave_client)
 ):
     """Get user billing information and history"""
-    result = await client.get("/billing")
+    result = await client.get_list_validated("/billing", RemnavwaveBillingRecordResponse)
     route_operations_total.labels(route="billing", action="get_billing_info", status="success").inc()
     return result
 
@@ -27,6 +27,6 @@ async def create_payment(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Create a new payment transaction"""
-    result = await client.post("/billing", json=payment_data.model_dump())
+    result = await client.post_validated("/billing", RemnavwaveBillingRecordResponse, json=payment_data.model_dump())
     route_operations_total.labels(route="billing", action="create_payment", status="success").inc()
     return result

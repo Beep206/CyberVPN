@@ -3,7 +3,6 @@
 from uuid import UUID
 
 import structlog
-from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from src.broker import broker
@@ -35,7 +34,7 @@ async def sync_server_geolocations() -> dict:
         async with session_factory() as session:
             for node in nodes:
                 node_uuid = node.get("uuid")
-                country_code = node.get("countryCode", "").upper()
+                country_code = node.get("country_code", "").upper()
                 city = node.get("city")
 
                 if not node_uuid or not country_code:

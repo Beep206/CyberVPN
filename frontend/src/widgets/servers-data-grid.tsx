@@ -21,10 +21,27 @@ import { useServers } from '@/features/servers/hooks/useServers';
 
 const columnHelper = createColumnHelper<Server>();
 
+function getGovernanceTone(governanceState: Server['governanceState']) {
+    switch (governanceState) {
+        case 'plugin-active':
+            return 'border-matrix-green/40 bg-matrix-green/10 text-matrix-green';
+        case 'node-disabled':
+            return 'border-red-500/40 bg-red-500/10 text-red-400';
+        case 'no-plugin':
+            return 'border-neon-purple/40 bg-neon-purple/10 text-neon-purple';
+    }
+}
+
+function shortPluginUuid(pluginUuid: string | null) {
+    if (!pluginUuid) return null;
+    return pluginUuid.slice(0, 8);
+}
+
 export function ServersDataGrid() {
     const t = useTranslations('ServersTable');
     const [sorting, setSorting] = useState<SortingState>([]);
     const { data: servers = [], isPending, error } = useServers();
+    const noDataLabel = t('labels.noData');
 
     const statusLabels = {
         online: t('status.online'),
@@ -32,6 +49,24 @@ export function ServersDataGrid() {
         warning: t('status.warning'),
         maintenance: t('status.maintenance')
     } as const;
+
+    const governanceLabels = {
+        'plugin-active': t('governance.pluginActive'),
+        'no-plugin': t('governance.noPlugin'),
+        'node-disabled': t('governance.nodeDisabled'),
+    } as const;
+
+    const governanceSummary = servers.reduce(
+        (accumulator, server) => {
+            accumulator[server.governanceState] += 1;
+            return accumulator;
+        },
+        {
+            'plugin-active': 0,
+            'no-plugin': 0,
+            'node-disabled': 0,
+        } satisfies Record<Server['governanceState'], number>,
+    );
 
     const renderServerActions = (server: Server) => (
         <>
@@ -72,6 +107,22 @@ export function ServersDataGrid() {
                 cell: info => <span className="uppercase text-xs border border-grid-line px-2 py-0.5 rounded"><CypherText text={info.getValue()} /></span>
             }),
             columnHelper.display({
+                id: 'versions',
+                header: t('columns.versions'),
+                cell: info => (
+                    <div className="space-y-1 text-xs font-mono">
+                        <div className="flex items-center justify-between gap-3 text-muted-foreground">
+                            <span>{t('labels.nodeVersion')}</span>
+                            <span className="text-foreground">{info.row.original.nodeVersion ?? noDataLabel}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-muted-foreground">
+                            <span>{t('labels.xrayVersion')}</span>
+                            <span className="text-foreground">{info.row.original.xrayVersion ?? noDataLabel}</span>
+                        </div>
+                    </div>
+                )
+            }),
+            columnHelper.display({
                 id: 'status',
                 header: t('columns.status'),
                 cell: info => (
@@ -82,6 +133,24 @@ export function ServersDataGrid() {
                         </span>
                     </div>
                 )
+            }),
+            columnHelper.display({
+                id: 'governance',
+                header: t('columns.governance'),
+                cell: info => {
+                    const { governanceState, activePluginUuid } = info.row.original;
+                    const pluginUuid = shortPluginUuid(activePluginUuid);
+                    return (
+                        <div className="space-y-1">
+                            <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getGovernanceTone(governanceState)}`}>
+                                {governanceLabels[governanceState]}
+                            </span>
+                            <div className="text-[11px] font-mono text-muted-foreground">
+                                {t('labels.plugin')}: {pluginUuid ?? noDataLabel}
+                            </div>
+                        </div>
+                    );
+                }
             }),
             columnHelper.accessor('load', {
                 header: t('columns.load'),
@@ -129,9 +198,14 @@ export function ServersDataGrid() {
         id: server.id,
         title: <CypherText text={server.name} revealSpeed={20} />,
         subtitle: (
-            <span className="inline-flex items-center rounded-full border border-grid-line/40 px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                {server.protocol}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-grid-line/40 px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {server.protocol}
+                </span>
+                <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${getGovernanceTone(server.governanceState)}`}>
+                    {governanceLabels[server.governanceState]}
+                </span>
+            </div>
         ),
         status: (
             <>
@@ -146,8 +220,11 @@ export function ServersDataGrid() {
         ],
         secondaryFields: [
             { label: t('columns.load'), value: `${server.load}%` },
-            { label: 'Clients', value: String(server.clients) },
-            { label: 'Uptime', value: server.uptime, fullWidth: true },
+            { label: t('labels.clients'), value: String(server.clients) },
+            { label: t('labels.nodeVersion'), value: server.nodeVersion ?? noDataLabel },
+            { label: t('labels.governance'), value: governanceLabels[server.governanceState] },
+            { label: t('labels.plugin'), value: shortPluginUuid(server.activePluginUuid) ?? noDataLabel },
+            { label: t('labels.uptime'), value: server.uptime, fullWidth: true },
         ],
         actions: renderServerActions(server),
     }));
@@ -167,7 +244,20 @@ export function ServersDataGrid() {
                 data-testid="servers-grid-toolbar"
                 className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
             >
-                <h2 className="text-xl font-display text-neon-cyan">{t('title')}</h2>
+                <div className="space-y-3">
+                    <h2 className="text-xl font-display text-neon-cyan">{t('title')}</h2>
+                    <div className="flex flex-wrap gap-2">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${getGovernanceTone('plugin-active')}`}>
+                            {governanceLabels['plugin-active']}: {governanceSummary['plugin-active']}
+                        </span>
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${getGovernanceTone('no-plugin')}`}>
+                            {governanceLabels['no-plugin']}: {governanceSummary['no-plugin']}
+                        </span>
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${getGovernanceTone('node-disabled')}`}>
+                            {governanceLabels['node-disabled']}: {governanceSummary['node-disabled']}
+                        </span>
+                    </div>
+                </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <button className="w-full bg-neon-cyan/10 border border-neon-cyan/50 text-neon-cyan px-4 py-2 text-sm font-mono hover:bg-neon-cyan/20 transition sm:w-auto">
                         {t('deployNode')}
