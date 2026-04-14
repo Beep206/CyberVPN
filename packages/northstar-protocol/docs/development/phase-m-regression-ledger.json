@@ -1,0 +1,42 @@
+{
+  "summary_version": 1,
+  "phase": "phase_m_regression_burndown",
+  "baseline_refs": [
+    "target/northstar/remnawave-supported-upstream-phase-i-signoff-summary.json",
+    "target/northstar/udp-wan-staging-interop-summary.json",
+    "target/northstar/udp-net-chaos-campaign-summary.json",
+    "target/northstar/phase-l-operator-readiness-signoff-summary.json"
+  ],
+  "severity_rules": [
+    {
+      "severity": "p0",
+      "max_open": 0,
+      "description": "Security, rollback, or protocol-safety failure."
+    },
+    {
+      "severity": "p1",
+      "max_open": 0,
+      "description": "Release-blocking transport, lifecycle, or operator-readiness regression."
+    },
+    {
+      "severity": "p2",
+      "max_open": 0,
+      "description": "Important non-release-blocking defect; must be explicitly accepted to remain open."
+    },
+    {
+      "severity": "p3",
+      "max_open": 999,
+      "description": "Low-severity issue tracked for later polish."
+    }
+  ],
+  "open_regressions": [],
+  "accepted_tail": [],
+  "catastrophic_regression_blockers": [
+    "phase_i_not_ready",
+    "wan_staging_not_ready",
+    "canary_stage_failure",
+    "rollback_not_proven",
+    "open_p0_regression",
+    "open_p1_regression"
+  ]
+}

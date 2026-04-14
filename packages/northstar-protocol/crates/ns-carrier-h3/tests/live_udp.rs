@@ -32,7 +32,7 @@ use quinn::{ClientConfig, Endpoint, ServerConfig};
 use rcgen::generate_simple_self_signed;
 use rustls::RootCertStore;
 use rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
 use std::future::poll_fn;
 use std::io;
@@ -336,6 +336,16 @@ fn finish_or_allow_h3_no_error<E: std::fmt::Display>(result: Result<(), E>, labe
         if !message.contains("H3_NO_ERROR") && !message.contains("0x0") {
             panic!("{label}: {message}");
         }
+    }
+}
+
+async fn settle_h3_driver_or_abort(drive_task: &mut JoinHandle<()>) {
+    if tokio::time::timeout(StdDuration::from_millis(500), &mut *drive_task)
+        .await
+        .is_err()
+    {
+        drive_task.abort();
+        let _ = drive_task.await;
     }
 }
 
@@ -2310,7 +2320,7 @@ async fn loopback_h3_datagrams_tolerate_delayed_delivery_and_short_black_hole_wi
             let control_stream_id = control_stream.id();
             let mut datagram_reader = driver.get_datagram_reader();
             let mut datagram_sender = driver.get_datagram_sender(control_stream_id);
-            let drive_task = tokio::spawn(async move {
+            let mut drive_task = tokio::spawn(async move {
                 let _ = poll_fn(|cx| driver.poll_close(cx)).await;
             });
 
@@ -2512,10 +2522,12 @@ async fn loopback_h3_datagrams_tolerate_delayed_delivery_and_short_black_hole_wi
                     .finish()
                     .await
                     .expect("client control request should finish");
+                let _ = timeout(StdDuration::from_millis(500), control_stream.recv_data()).await;
             };
 
             request_future.await;
-            drive_task.abort();
+            drop(sender);
+            settle_h3_driver_or_abort(&mut drive_task).await;
         };
 
         let (_, _) = tokio::join!(server_future, client_future);
@@ -2526,6 +2538,297 @@ async fn loopback_h3_datagrams_tolerate_delayed_delivery_and_short_black_hole_wi
     assert_datagram_lab_profile_keeps_selected_transport(
         &logs,
         UdpWanLabProfileId::DelayedDeliveryShortBlackHole,
+    );
+    assert!(logs.contains("\"rollout_stage\":\"automatic\""));
+}
+
+#[tokio::test]
+async fn loopback_h3_datagrams_continue_after_mixed_delay_and_loss_without_fallback() {
+    let (result, logs) = capture_logs_async(timeout(StdDuration::from_secs(15), async {
+        let config = transport_config(true, H3DatagramRollout::Automatic);
+        let (server_endpoint, cert_der) = make_server_endpoint(&config);
+        let server_addr = server_endpoint
+            .local_addr()
+            .expect("server endpoint should have a local address");
+        let client_endpoint = make_client_endpoint(&config, cert_der);
+        let server_config = config.clone();
+        let client_config = config.clone();
+        let client_hello =
+            Frame::ClientHello(sample_client_hello(mint_token(OffsetDateTime::now_utc())));
+        let udp_open = localhost_target(53);
+
+        let server_future = async move {
+            let gate = GatewayPreAuthGate::new(GatewayPreAuthBudgets::default())
+                .expect("default gateway pre-auth budgets should be valid");
+            let connecting = server_endpoint
+                .accept()
+                .await
+                .expect("server should accept one connection");
+            let connection = connecting
+                .await
+                .expect("server-side quic connection should establish");
+            let mut builder = server::builder();
+            builder.enable_extended_connect(true);
+            builder.enable_datagram(true);
+            let mut incoming = builder
+                .build(H3QuinnConnection::new(connection))
+                .await
+                .expect("server h3 connection should initialize");
+            let mut datagram_reader = incoming.get_datagram_reader();
+            let resolver = incoming
+                .accept()
+                .await
+                .expect("server should accept a control request")
+                .expect("server should receive one control request");
+            let (_request, mut control_stream) = resolver
+                .resolve_request()
+                .await
+                .expect("control request should resolve");
+            let control_stream_id = control_stream.send_id();
+
+            let permit = gate
+                .try_begin_hello()
+                .expect("control request should fit within pending-hello budgets");
+            let hello = match recv_server_frame(&mut control_stream, "control hello").await {
+                Frame::ClientHello(hello) => hello,
+                other => panic!("expected client hello on control stream, got {other:?}"),
+            };
+            permit
+                .enforce_control_body_size(
+                    ns_carrier_h3::encode_tunnel_frame(&Frame::ClientHello(hello.clone()))
+                        .expect("hello should re-encode")
+                        .len(),
+                )
+                .expect("hello body should stay within pre-auth limits");
+            permit
+                .enforce_handshake_deadline()
+                .expect("hello should arrive before the handshake deadline");
+
+            let mut outcome = admit_client_hello(
+                &fixture_token_verifier(),
+                &hello,
+                SessionMode::Tcp,
+                server_config.advertised_datagram_mode(true),
+            )
+            .expect("gateway admission should succeed");
+
+            control_stream
+                .send_response(
+                    Response::builder()
+                        .status(StatusCode::OK)
+                        .body(())
+                        .expect("control response should build"),
+                )
+                .await
+                .expect("control response should send");
+            send_server_frame(
+                &mut control_stream,
+                &Frame::ServerHello(outcome.response.clone()),
+                "server hello",
+            )
+            .await;
+
+            let open = match recv_server_frame(&mut control_stream, "udp-flow-open").await {
+                Frame::UdpFlowOpen(open) => open,
+                other => panic!("expected udp-flow-open on control stream, got {other:?}"),
+            };
+            let ok =
+                select_h3_udp_flow_for_config(&mut outcome.controller, &open, &server_config, true)
+                    .expect("gateway should select datagram mode");
+            send_server_frame(
+                &mut control_stream,
+                &Frame::UdpFlowOk(ok.clone()),
+                "udp-flow-ok",
+            )
+            .await;
+
+            let mut datagram_sender = incoming.get_datagram_sender(control_stream_id);
+            let mut echoed_probe_payloads = BTreeSet::new();
+            loop {
+                let datagram = match timeout(
+                    StdDuration::from_millis(900),
+                    recv_h3_associated_udp_datagram(
+                        &mut datagram_reader,
+                        control_stream_id,
+                        ok.effective_max_payload as usize,
+                    ),
+                )
+                .await
+                {
+                    Ok(Ok(datagram)) => datagram,
+                    Ok(Err(_)) if !echoed_probe_payloads.is_empty() => break,
+                    Ok(Err(error)) => {
+                        panic!("gateway should decode mixed-loss probe datagrams: {error}")
+                    }
+                    Err(_) if !echoed_probe_payloads.is_empty() => break,
+                    Err(_) => panic!(
+                        "gateway should receive at least one mixed-loss probe datagram before idle timeout"
+                    ),
+                };
+                assert!(
+                    datagram.payload.starts_with(b"probe-"),
+                    "mixed-loss profile should only exchange probe payloads, got {:?}",
+                    datagram.payload
+                );
+                echoed_probe_payloads.insert(datagram.payload.clone());
+                send_h3_associated_udp_datagram(
+                    &mut datagram_sender,
+                    &UdpDatagram {
+                        flow_id: open.flow_id,
+                        flags: DatagramFlags::new(0)
+                            .expect("fixture datagram flags should be valid"),
+                        payload: datagram.payload.clone(),
+                    },
+                    ok.effective_max_payload as usize,
+                )
+                .expect("gateway should echo mixed-loss probe datagrams");
+            }
+
+            let fallback_accept = timeout(StdDuration::from_millis(250), incoming.accept()).await;
+            assert!(
+                !matches!(fallback_accept, Ok(Ok(Some(_)))),
+                "mixed delay/loss must not silently open a fallback stream"
+            );
+
+            let close = match recv_server_frame(&mut control_stream, "udp-flow-close").await {
+                Frame::UdpFlowClose(close) => close,
+                other => panic!("expected udp-flow-close on control stream, got {other:?}"),
+            };
+            assert_eq!(close.flow_id, open.flow_id);
+            assert_eq!(close.code, ProtocolErrorCode::NoError);
+            assert!(outcome.controller.release_udp_flow(open.flow_id));
+            finish_or_allow_h3_no_error(
+                control_stream.finish().await,
+                "control response should finish cleanly",
+            );
+            server_endpoint.wait_idle().await;
+        };
+
+        let client_future = async move {
+            let connection = client_endpoint
+                .connect(server_addr, "localhost")
+                .expect("client connect should start")
+                .await
+                .expect("client quic connection should establish");
+            let mut builder = client::builder();
+            builder.enable_extended_connect(true);
+            builder.enable_datagram(client_config.datagram_runtime_enabled());
+            let (mut driver, mut sender) = builder
+                .build(H3QuinnConnection::new(connection))
+                .await
+                .expect("client h3 connection should initialize");
+            let mut control_stream = sender
+                .send_request(
+                    client_config
+                        .request_template(H3RequestKind::Control)
+                        .expect("control request template should build")
+                        .build_request()
+                        .expect("control request should build"),
+                )
+                .await
+                .expect("client should open the control request stream");
+            let control_stream_id = control_stream.id();
+            let mut datagram_reader = driver.get_datagram_reader();
+            let mut datagram_sender = driver.get_datagram_sender(control_stream_id);
+            let mut drive_task = tokio::spawn(async move {
+                let _ = poll_fn(|cx| driver.poll_close(cx)).await;
+            });
+
+            let request_future = async move {
+                send_client_frame(&mut control_stream, &client_hello, "client hello").await;
+                let response = control_stream
+                    .recv_response()
+                    .await
+                    .expect("control response headers should arrive");
+                assert_eq!(response.status(), StatusCode::OK);
+                match recv_client_frame(&mut control_stream, "server hello").await {
+                    Frame::ServerHello(hello) => {
+                        assert_eq!(hello.datagram_mode, DatagramMode::AvailableAndEnabled)
+                    }
+                    other => panic!("expected server hello on control stream, got {other:?}"),
+                }
+
+                send_client_frame(
+                    &mut control_stream,
+                    &Frame::UdpFlowOpen(udp_open.clone()),
+                    "udp-flow-open",
+                )
+                .await;
+                let ok = match recv_client_frame(&mut control_stream, "udp-flow-ok").await {
+                    Frame::UdpFlowOk(ok) => ok,
+                    other => panic!("expected udp-flow-ok on control stream, got {other:?}"),
+                };
+
+                let mut echoed_probe_payloads = BTreeSet::new();
+                for sequence in 1..=12 {
+                    send_h3_associated_udp_datagram(
+                        &mut datagram_sender,
+                        &UdpDatagram {
+                            flow_id: udp_open.flow_id,
+                            flags: DatagramFlags::new(0)
+                                .expect("fixture datagram flags should be valid"),
+                            payload: format!("probe-{sequence}").into_bytes(),
+                        },
+                        ok.effective_max_payload as usize,
+                    )
+                    .expect("client should send mixed-loss probe datagrams");
+
+                    let echoed = timeout(
+                        StdDuration::from_millis(700),
+                        recv_h3_associated_udp_datagram(
+                            &mut datagram_reader,
+                            control_stream_id,
+                            ok.effective_max_payload as usize,
+                        ),
+                    )
+                    .await;
+                    let Ok(echoed) = echoed else {
+                        continue;
+                    };
+                    let echoed = echoed.expect("mixed-loss probe echo should decode");
+                    assert!(
+                        echoed.payload.starts_with(b"probe-"),
+                        "mixed-loss profile should only echo probe payloads, got {:?}",
+                        echoed.payload
+                    );
+                    echoed_probe_payloads.insert(echoed.payload);
+                    break;
+                }
+                assert!(
+                    !echoed_probe_payloads.is_empty(),
+                    "mixed-loss probe echo should arrive before retries are exhausted"
+                );
+
+                send_client_frame(
+                    &mut control_stream,
+                    &Frame::UdpFlowClose(UdpFlowClose {
+                        flow_id: udp_open.flow_id,
+                        code: ProtocolErrorCode::NoError,
+                        message: "done".to_owned(),
+                    }),
+                    "udp-flow-close",
+                )
+                .await;
+                control_stream
+                    .finish()
+                    .await
+                    .expect("client control request should finish");
+                let _ = timeout(StdDuration::from_millis(500), control_stream.recv_data()).await;
+            };
+
+            request_future.await;
+            drop(sender);
+            settle_h3_driver_or_abort(&mut drive_task).await;
+        };
+
+        let (_, _) = tokio::join!(server_future, client_future);
+    }))
+    .await;
+    result.expect("mixed delay/loss datagram live test should not time out");
+
+    assert_datagram_lab_profile_keeps_selected_transport(
+        &logs,
+        UdpWanLabProfileId::MixedDelayLossRecovery,
     );
     assert!(logs.contains("\"rollout_stage\":\"automatic\""));
 }

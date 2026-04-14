@@ -37,7 +37,7 @@ cargo run -p ns-testkit --example udp_rollout_validation_lab -- --summary-path "
 
 if [[ "${NORTHSTAR_ENABLE_UDP_ACTIVE_FUZZ:-0}" == "1" ]]; then
   echo "==> Running optional compatible-host UDP active fuzz gate"
-  "$script_dir/fuzz-udp-active.sh"
+  bash "$script_dir/fuzz-udp-active.sh"
 fi
 
 echo "==> Running machine-readable UDP rollout comparison surface"

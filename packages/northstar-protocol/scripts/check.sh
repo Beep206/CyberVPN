@@ -30,7 +30,7 @@ fi
 
 if [[ "${NORTHSTAR_ENABLE_UDP_ACTIVE_FUZZ:-0}" == "1" ]]; then
   echo "==> Running optional UDP active fuzz gate"
-  "$repo_root/scripts/fuzz-udp-active.sh"
+  bash "$repo_root/scripts/fuzz-udp-active.sh"
 fi
 
 if [[ "${NORTHSTAR_ENABLE_UDP_PERF_GATE:-0}" == "1" ]]; then
@@ -40,7 +40,7 @@ fi
 
 if [[ "${NORTHSTAR_ENABLE_UDP_WAN_LAB:-0}" == "1" ]]; then
   echo "==> Running optional UDP WAN-lab verification path"
-  "$repo_root/scripts/udp-wan-lab.sh"
+  bash "$repo_root/scripts/udp-wan-lab.sh"
 fi
 
 echo "All configured checks completed successfully."

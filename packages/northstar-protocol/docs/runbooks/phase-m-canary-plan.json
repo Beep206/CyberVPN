@@ -1,0 +1,57 @@
+{
+  "summary_version": 1,
+  "phase": "phase_m_soak_canary",
+  "environment_label": "remnawave-local-docker",
+  "environment_kind": "local_supported_staging",
+  "minimum_duration_seconds": 20,
+  "stage_pause_seconds": 5,
+  "rollback_command_refs": [
+    "scripts/operator-rollout-rollback-drill.sh",
+    "scripts/operator-rollout-rollback-drill.ps1"
+  ],
+  "baseline_refs": [
+    "target/northstar/remnawave-supported-upstream-phase-i-signoff-summary.json",
+    "target/northstar/udp-wan-staging-interop-summary.json",
+    "target/northstar/udp-net-chaos-campaign-summary.json"
+  ],
+  "rollback_trigger_conditions": [
+    "lifecycle_verdict_not_ready",
+    "rollback_verdict_not_ready",
+    "phase_l_state_not_honestly_complete",
+    "open_p0_regression",
+    "open_p1_regression",
+    "baseline_not_ready"
+  ],
+  "stages": [
+    {
+      "stage_id": "canary_5",
+      "rollout_fraction_hint": "5%",
+      "rollback_required": true,
+      "required_artifacts": [
+        "lifecycle-summary.json",
+        "rollback-summary.json",
+        "phase-l-summary.json"
+      ]
+    },
+    {
+      "stage_id": "canary_25",
+      "rollout_fraction_hint": "25%",
+      "rollback_required": true,
+      "required_artifacts": [
+        "lifecycle-summary.json",
+        "rollback-summary.json",
+        "phase-l-summary.json"
+      ]
+    },
+    {
+      "stage_id": "canary_100",
+      "rollout_fraction_hint": "100%",
+      "rollback_required": true,
+      "required_artifacts": [
+        "lifecycle-summary.json",
+        "rollback-summary.json",
+        "phase-l-summary.json"
+      ]
+    }
+  ]
+}

@@ -58,28 +58,66 @@ if (-not (Test-Path $workspaceManifest)) {
     Fail "No root Cargo.toml was found at $workspaceManifest. Northstar is still in setup-only state; bootstrap the Rust workspace before using scripts/remnawave-supported-upstream-phase-i-signoff.ps1."
 }
 
-Invoke-Lane "Remnawave supported-upstream verification" $upstreamSummaryPath @(
+& "$PSScriptRoot\\with-local-remnawave-supported-upstream-env.ps1" powershell -NoProfile -ExecutionPolicy Bypass -Command @'
+param(
+    [string]$RepoRoot,
+    [string]$UpstreamSummaryPath,
+    [string]$LifecycleSummaryPath,
+    [string]$DeploymentRealitySummaryPath,
+    [string]$PhaseISummaryPath,
+    [string[]]$WorkflowArgs
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+function Invoke-Lane([string]$Label, [string]$ExpectedSummaryPath, [string[]]$CargoArgs) {
+    Write-Host "==> Running $Label"
+    if (Test-Path $ExpectedSummaryPath) {
+        Remove-Item -LiteralPath $ExpectedSummaryPath -Force
+    }
+    & cargo @CargoArgs
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0 -and -not (Test-Path $ExpectedSummaryPath)) {
+        exit $exitCode
+    }
+    if ($exitCode -ne 0) {
+        Write-Host "   Lane returned non-ready status; continuing because $ExpectedSummaryPath exists."
+    }
+}
+
+& "$RepoRoot\\scripts\\ensure-local-remnawave-supported-upstream-user-active.ps1"
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+Invoke-Lane "Remnawave supported-upstream verification" $UpstreamSummaryPath @(
     "run", "-p", "ns-testkit", "--example", "remnawave_supported_upstream_verification", "--",
-    "--summary-path", $upstreamSummaryPath
+    "--summary-path", $UpstreamSummaryPath
 )
 
-Invoke-Lane "Remnawave supported-upstream lifecycle verification" $lifecycleSummaryPath @(
-    "run", "-p", "ns-testkit", "--example", "remnawave_supported_upstream_lifecycle_verification", "--",
-    "--summary-path", $lifecycleSummaryPath
-)
+& "$RepoRoot\\scripts\\operator-profile-disable-drill.ps1" --summary-path $LifecycleSummaryPath
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
 
-Invoke-Lane "Remnawave supported-upstream deployment-reality verification" $deploymentRealitySummaryPath @(
+& "$RepoRoot\\scripts\\ensure-local-remnawave-supported-upstream-user-active.ps1"
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+Invoke-Lane "Remnawave supported-upstream deployment-reality verification" $DeploymentRealitySummaryPath @(
     "run", "-p", "ns-testkit", "--example", "remnawave_supported_upstream_deployment_reality_verification", "--",
-    "--summary-path", $deploymentRealitySummaryPath,
-    "--supported-upstream-summary", $upstreamSummaryPath,
-    "--supported-upstream-lifecycle-summary", $lifecycleSummaryPath
+    "--summary-path", $DeploymentRealitySummaryPath,
+    "--supported-upstream-summary", $UpstreamSummaryPath,
+    "--supported-upstream-lifecycle-summary", $LifecycleSummaryPath
 )
 
 $signoffArgs = @(
-    "--summary-path", $phaseISummaryPath,
-    "--upstream-summary-path", $upstreamSummaryPath,
-    "--lifecycle-summary-path", $lifecycleSummaryPath,
-    "--deployment-reality-summary-path", $deploymentRealitySummaryPath
+    "--summary-path", $PhaseISummaryPath,
+    "--upstream-summary-path", $UpstreamSummaryPath,
+    "--lifecycle-summary-path", $LifecycleSummaryPath,
+    "--deployment-reality-summary-path", $DeploymentRealitySummaryPath
 )
 if ($WorkflowArgs -and $WorkflowArgs.Count -gt 0) {
     $signoffArgs += $WorkflowArgs
@@ -88,4 +126,9 @@ if ($WorkflowArgs -and $WorkflowArgs.Count -gt 0) {
 $phaseICargoArgs = @(
     "run", "-p", "ns-testkit", "--example", "remnawave_supported_upstream_phase_i_signoff", "--"
 ) + $signoffArgs
-Invoke-Lane "Remnawave supported-upstream Phase I signoff" $phaseISummaryPath $phaseICargoArgs
+Invoke-Lane "Remnawave supported-upstream Phase I signoff" $PhaseISummaryPath $phaseICargoArgs
+'@ -RepoRoot $repoRoot -UpstreamSummaryPath $upstreamSummaryPath -LifecycleSummaryPath $lifecycleSummaryPath -DeploymentRealitySummaryPath $deploymentRealitySummaryPath -PhaseISummaryPath $phaseISummaryPath -WorkflowArgs $WorkflowArgs
+
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}

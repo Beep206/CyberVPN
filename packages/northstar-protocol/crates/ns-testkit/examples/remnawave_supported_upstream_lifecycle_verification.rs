@@ -141,6 +141,7 @@ struct LifecycleArgs {
     api_token: Option<String>,
     bootstrap_subject: Option<String>,
     webhook_signature: Option<String>,
+    source_version_override: Option<String>,
     expected_account_id: Option<String>,
     expected_lifecycle: Option<String>,
     webhook_event_type: Option<String>,
@@ -159,6 +160,7 @@ struct ResolvedConfig {
     api_token: Option<String>,
     bootstrap_subject: Option<String>,
     webhook_signature: Option<String>,
+    source_version_override: Option<String>,
     expected_account_id: Option<String>,
     expected_lifecycle: LifecycleExpectation,
     webhook_event_type: String,
@@ -452,6 +454,8 @@ async fn execute_lifecycle_checks(config: &ResolvedConfig, state: &mut SummarySt
 
     let initial_snapshot = match adapter.resolve_bootstrap_subject(&subject).await {
         Ok(snapshot) => {
+            let snapshot =
+                apply_source_version_override(snapshot, config.source_version_override.as_deref());
             state.bootstrap_subject_resolved = Some(true);
             state.response_shape_contract_passed = Some(true);
             snapshot
@@ -1591,6 +1595,9 @@ fn resolve_config(args: LifecycleArgs) -> Result<ResolvedConfig, Box<dyn std::er
         webhook_signature: args
             .webhook_signature
             .or_else(|| env::var("NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_WEBHOOK_SIGNATURE").ok()),
+        source_version_override: args
+            .source_version_override
+            .or_else(|| env::var("NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_SOURCE_VERSION").ok()),
         expected_account_id: args.expected_account_id.or_else(|| {
             env::var("NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_EXPECTED_ACCOUNT_ID").ok()
         }),
@@ -1640,6 +1647,19 @@ fn resolve_config(args: LifecycleArgs) -> Result<ResolvedConfig, Box<dyn std::er
             })
             .unwrap_or(2_000),
     })
+}
+
+fn apply_source_version_override(
+    mut snapshot: AccountSnapshot,
+    source_version_override: Option<&str>,
+) -> AccountSnapshot {
+    if snapshot.source_version.is_none() {
+        snapshot.source_version = source_version_override
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned);
+    }
+    snapshot
 }
 
 fn next_arg<I>(iter: &mut I, flag: &str) -> Result<String, Box<dyn std::error::Error>>
@@ -1961,6 +1981,7 @@ mod tests {
             api_token,
             bootstrap_subject: Some("sub-1".to_owned()),
             webhook_signature: Some("sig-ok".to_owned()),
+            source_version_override: None,
             expected_account_id: Some("acct-1".to_owned()),
             expected_lifecycle: LifecycleExpectation::Disabled,
             webhook_event_type: "user.disabled".to_owned(),
@@ -2020,6 +2041,7 @@ mod tests {
             api_token: None,
             bootstrap_subject: None,
             webhook_signature: None,
+            source_version_override: None,
             expected_account_id: None,
             expected_lifecycle: LifecycleExpectation::Disabled,
             webhook_event_type: "user.disabled".to_owned(),

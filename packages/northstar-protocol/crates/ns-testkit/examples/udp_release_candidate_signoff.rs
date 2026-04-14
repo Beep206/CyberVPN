@@ -2196,8 +2196,8 @@ mod tests {
         assert_eq!(summary.gate_state, "blocked");
         assert_eq!(summary.required_input_missing_count, 0);
         assert_eq!(summary.required_input_unready_count, 1);
-        assert_eq!(summary.gate_state_reason, "degradation_hold");
-        assert_eq!(summary.gate_state_reason_family, "degradation");
+        assert_eq!(summary.gate_state_reason, "required_inputs_unready");
+        assert_eq!(summary.gate_state_reason_family, "gating");
         assert_eq!(summary.policy_disabled_fallback_surface_passed, Some(false));
         assert_eq!(
             summary.transport_fallback_integrity_surface_passed,

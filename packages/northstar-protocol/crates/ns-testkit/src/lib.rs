@@ -61,6 +61,8 @@ pub const UDP_ROLLOUT_DECISION_SCOPE_RELEASE_CANDIDATE_CERTIFICATION: &str =
     "release_candidate_certification";
 pub const UDP_INTEROP_PROFILE_CATALOG_SOURCE_LANE_COMPATIBLE_HOST: &str =
     "compatible_host_interop_lab";
+pub const UDP_INTEROP_PROFILE_CATALOG_SOURCE_LANE_WAN_STAGING: &str = "wan_staging_interop";
+pub const UDP_INTEROP_PROFILE_CATALOG_SOURCE_LANE_NET_CHAOS: &str = "net_chaos_campaign";
 pub const UDP_ROLLOUT_GATE_STATE_REASON_READY: &str = "all_required_inputs_passed";
 pub const UDP_ROLLOUT_GATE_STATE_REASON_MISSING_REQUIRED_INPUTS: &str = "missing_required_inputs";
 pub const UDP_ROLLOUT_GATE_STATE_REASON_SUMMARY_CONTRACT_INVALID: &str = "summary_contract_invalid";
@@ -167,6 +169,7 @@ pub enum UdpWanLabProfileId {
     AssociatedStreamGuardRecovery,
     OversizedPayloadGuardRecovery,
     DelayedDeliveryShortBlackHole,
+    MixedDelayLossRecovery,
     MtuPressure,
     QueuePressureSticky,
     PostCloseRejection,
@@ -282,6 +285,24 @@ const UDP_WAN_LAB_PROFILES: &[UdpWanLabProfile] = &[
             "--test",
             "live_udp",
             "loopback_h3_datagrams_tolerate_delayed_delivery_and_short_black_hole_without_fallback",
+            "--",
+            "--nocapture",
+        ],
+        requires_no_silent_fallback: true,
+    },
+    UdpWanLabProfile {
+        id: UdpWanLabProfileId::MixedDelayLossRecovery,
+        slug: "mixed-delay-loss-recovery",
+        spec_suite_ids: &[],
+        description: "Mixed delay and loss still preserve datagram selection and eventual recovery without silent fallback.",
+        command_kind: UdpWanLabCommandKind::LiveUdp,
+        command_selector: "loopback_h3_datagrams_continue_after_mixed_delay_and_loss_without_fallback",
+        cargo_args: &[
+            "-p",
+            "ns-carrier-h3",
+            "--test",
+            "live_udp",
+            "loopback_h3_datagrams_continue_after_mixed_delay_and_loss_without_fallback",
             "--",
             "--nocapture",
         ],
@@ -945,11 +966,13 @@ mod tests {
         assert!(required_profiles.contains(&"reordered-after-close-rejection"));
         assert!(all_profiles.contains(&"fallback-flow-guard-rejection"));
         assert!(required_profiles.contains(&"fallback-flow-guard-rejection"));
+        assert!(all_profiles.contains(&"mixed-delay-loss-recovery"));
+        assert!(required_profiles.contains(&"mixed-delay-loss-recovery"));
         assert!(!required_profiles.contains(&"policy-disabled-fallback"));
         assert!(all_profiles.contains(&"datagram-only-unavailable-rejection"));
         assert!(!required_profiles.contains(&"datagram-only-unavailable-rejection"));
-        assert_eq!(all_profiles.len(), 13);
-        assert_eq!(required_profiles.len(), 10);
+        assert_eq!(all_profiles.len(), 14);
+        assert_eq!(required_profiles.len(), 11);
     }
 
     #[test]

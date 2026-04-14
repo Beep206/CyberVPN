@@ -3,6 +3,11 @@
 This document records the initial negative-test, fixture, fuzzing, and interoperability scaffold for the v0.1 baseline.
 It is intentionally implementation-facing: the protocol documents in `docs/spec/` remain normative.
 
+## Status Note
+
+As of `2026-04-13`, the active sustained CI source of truth is no longer the long-planned `.github/workflows/udp-optional-gates.yml`.
+`Phase K` replaces that planned path with the real root workflows `.github/workflows/northstar-udp-bounded-verification.yml`, `.github/workflows/northstar-udp-scheduled-verification.yml`, and `.github/workflows/northstar-udp-release-evidence.yml`, with the exact branch or release gate map in `docs/development/SUSTAINED_VERIFICATION_GATES.md`.
+
 ## Scope
 
 - Keep wire compatibility checks isolated from transport-specific behavior.

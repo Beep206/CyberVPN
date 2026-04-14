@@ -1,12 +1,13 @@
 use crate::{
-    AccountSnapshot, AdapterError, AdapterWebhookEffect, BootstrapSubject, RemnawaveAdapter,
-    VerifiedWebhookPayload,
+    AccountLifecycle, AccountSnapshot, AdapterError, AdapterWebhookEffect, BootstrapSubject,
+    NorthstarAccess, RemnawaveAdapter, VerifiedWebhookPayload,
 };
 use async_trait::async_trait;
 use reqwest::StatusCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration as StdDuration;
+use time::OffsetDateTime;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HttpRemnawaveAdapterConfig {
@@ -86,12 +87,54 @@ impl HttpRemnawaveAdapter {
             .await
             .map_err(|_| AdapterError::SchemaDrift)
     }
+
+    async fn decode_bytes(&self, response: reqwest::Response) -> Result<Vec<u8>, AdapterError> {
+        response
+            .bytes()
+            .await
+            .map(|bytes| bytes.to_vec())
+            .map_err(|_| AdapterError::SchemaDrift)
+    }
 }
 
 #[derive(Debug, Serialize)]
-struct ResolveBootstrapRequest<'a> {
+struct LegacyResolveBootstrapRequest<'a> {
     bootstrap_subject_kind: &'static str,
     bootstrap_subject: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct CurrentResolveBootstrapRequest<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    uuid: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<&'a str>,
+    #[serde(rename = "shortUuid", skip_serializing_if = "Option::is_none")]
+    short_uuid: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    username: Option<&'a str>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CurrentResolveBootstrapResponse {
+    uuid: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CurrentUserPayload {
+    uuid: String,
+    #[serde(rename = "shortUuid", default)]
+    short_uuid: Option<String>,
+    status: String,
+    #[serde(rename = "subRevokedAt", default)]
+    sub_revoked_at: Option<String>,
+    #[serde(rename = "hwidDeviceLimit", default)]
+    hwid_device_limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ResponseEnvelope<T> {
+    response: T,
 }
 
 #[async_trait]
@@ -101,7 +144,7 @@ impl RemnawaveAdapter for HttpRemnawaveAdapter {
         subject: &BootstrapSubject,
     ) -> Result<AccountSnapshot, AdapterError> {
         subject.validate()?;
-        let request = ResolveBootstrapRequest {
+        let legacy_request = LegacyResolveBootstrapRequest {
             bootstrap_subject_kind: bootstrap_subject_kind(subject),
             bootstrap_subject: subject.as_str(),
         };
@@ -109,15 +152,48 @@ impl RemnawaveAdapter for HttpRemnawaveAdapter {
             .request(
                 self.client
                     .post(self.config.endpoint("/api/users/resolve")?)
-                    .json(&request),
+                    .json(&legacy_request),
             )
             .send()
             .await
             .map_err(map_request_error)?;
-        if !response.status().is_success() {
+        if response.status().is_success() {
+            let body = self.decode_bytes(response).await?;
+            if let Ok(snapshot) = parse_account_snapshot_payload(&body) {
+                return Ok(snapshot);
+            }
+            if let Ok(reference) = parse_current_resolve_response(&body) {
+                return self.fetch_account_snapshot(&reference.uuid).await;
+            }
+            return Err(AdapterError::SchemaDrift);
+        }
+
+        if response.status() != StatusCode::BAD_REQUEST {
             return Err(map_status(response.status()));
         }
-        self.decode_json(response).await
+
+        let current_request = match current_resolve_request(subject) {
+            Some(request) => request,
+            None => return Err(map_status(StatusCode::BAD_REQUEST)),
+        };
+        let current_response = self
+            .request(
+                self.client
+                    .post(self.config.endpoint("/api/users/resolve")?)
+                    .json(&current_request),
+            )
+            .send()
+            .await
+            .map_err(map_request_error)?;
+        if !current_response.status().is_success() {
+            return Err(map_status(current_response.status()));
+        }
+        let body = self.decode_bytes(current_response).await?;
+        if let Ok(snapshot) = parse_account_snapshot_payload(&body) {
+            return Ok(snapshot);
+        }
+        let reference = parse_current_resolve_response(&body)?;
+        self.fetch_account_snapshot(&reference.uuid).await
     }
 
     async fn fetch_account_snapshot(
@@ -138,7 +214,8 @@ impl RemnawaveAdapter for HttpRemnawaveAdapter {
         if !response.status().is_success() {
             return Err(map_status(response.status()));
         }
-        self.decode_json(response).await
+        let body = self.decode_bytes(response).await?;
+        parse_account_snapshot_payload(&body)
     }
 
     async fn fetch_user_metadata(&self, account_id: &str) -> Result<Option<Value>, AdapterError> {
@@ -203,6 +280,106 @@ fn bootstrap_subject_kind(subject: &BootstrapSubject) -> &'static str {
         BootstrapSubject::ShortUuid(_) => "short_uuid",
         BootstrapSubject::BridgeAlias(_) => "bridge_alias",
         BootstrapSubject::SignedEnvelope(_) => "signed_envelope",
+    }
+}
+
+fn current_resolve_request(
+    subject: &BootstrapSubject,
+) -> Option<CurrentResolveBootstrapRequest<'_>> {
+    match subject {
+        BootstrapSubject::ShortUuid(value) => Some(CurrentResolveBootstrapRequest {
+            uuid: None,
+            id: None,
+            short_uuid: Some(value),
+            username: None,
+        }),
+        _ => None,
+    }
+}
+
+fn parse_account_snapshot_payload(payload: &[u8]) -> Result<AccountSnapshot, AdapterError> {
+    if let Ok(snapshot) = serde_json::from_slice::<AccountSnapshot>(payload) {
+        return Ok(snapshot);
+    }
+    if let Ok(envelope) = serde_json::from_slice::<ResponseEnvelope<CurrentUserPayload>>(payload) {
+        return map_current_user_payload(envelope.response);
+    }
+    if let Ok(current) = serde_json::from_slice::<CurrentUserPayload>(payload) {
+        return map_current_user_payload(current);
+    }
+    Err(AdapterError::SchemaDrift)
+}
+
+fn parse_current_resolve_response(
+    payload: &[u8],
+) -> Result<CurrentResolveBootstrapResponse, AdapterError> {
+    if let Ok(envelope) =
+        serde_json::from_slice::<ResponseEnvelope<CurrentResolveBootstrapResponse>>(payload)
+    {
+        return Ok(envelope.response);
+    }
+    serde_json::from_slice::<CurrentResolveBootstrapResponse>(payload)
+        .map_err(|_| AdapterError::SchemaDrift)
+}
+
+fn map_current_user_payload(payload: CurrentUserPayload) -> Result<AccountSnapshot, AdapterError> {
+    let account_id = payload.uuid.trim();
+    if account_id.is_empty() {
+        return Err(AdapterError::SchemaDrift);
+    }
+    let short_uuid = payload
+        .short_uuid
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or(AdapterError::SchemaDrift)?;
+    let lifecycle = parse_current_lifecycle(&payload.status, payload.sub_revoked_at.as_deref())?;
+
+    Ok(AccountSnapshot {
+        account_id: account_id.to_owned(),
+        bootstrap_subjects: vec![BootstrapSubject::ShortUuid(short_uuid.to_owned())],
+        lifecycle,
+        northstar_access: NorthstarAccess {
+            northstar_enabled: true,
+            policy_epoch: default_policy_epoch(lifecycle),
+            device_limit: payload.hwid_device_limit,
+            allowed_core_versions: vec![1],
+            allowed_carrier_profiles: vec!["carrier-primary".to_owned()],
+            allowed_capabilities: vec![1, 2],
+            rollout_cohort: None,
+            preferred_regions: vec!["eu-central".to_owned()],
+        },
+        metadata: None,
+        observed_at_unix: OffsetDateTime::now_utc().unix_timestamp(),
+        source_version: None,
+    })
+}
+
+fn parse_current_lifecycle(
+    status: &str,
+    sub_revoked_at: Option<&str>,
+) -> Result<AccountLifecycle, AdapterError> {
+    if sub_revoked_at.is_some_and(|value| !value.trim().is_empty()) {
+        return Ok(AccountLifecycle::Revoked);
+    }
+
+    match status.trim().to_ascii_uppercase().as_str() {
+        "ACTIVE" => Ok(AccountLifecycle::Active),
+        "DISABLED" => Ok(AccountLifecycle::Disabled),
+        "REVOKED" => Ok(AccountLifecycle::Revoked),
+        "EXPIRED" => Ok(AccountLifecycle::Expired),
+        "LIMITED" => Ok(AccountLifecycle::Limited),
+        _ => Err(AdapterError::SchemaDrift),
+    }
+}
+
+fn default_policy_epoch(lifecycle: AccountLifecycle) -> u64 {
+    match lifecycle {
+        AccountLifecycle::Active => 7,
+        AccountLifecycle::Disabled => 8,
+        AccountLifecycle::Revoked => 9,
+        AccountLifecycle::Expired => 10,
+        AccountLifecycle::Limited => 11,
     }
 }
 
@@ -275,6 +452,7 @@ mod tests {
         account: Mutex<Option<AccountSnapshot>>,
         metadata: Mutex<HashMap<String, Value>>,
         expected_token: String,
+        current_payload: Mutex<Option<Value>>,
     }
 
     fn sample_snapshot() -> AccountSnapshot {
@@ -369,6 +547,47 @@ mod tests {
             return Err(StatusCode::NOT_FOUND);
         }
         Ok(Json(snapshot))
+    }
+
+    async fn resolve_user_current_shape(
+        State(state): State<Arc<TestState>>,
+        headers: HeaderMap,
+    ) -> Result<Json<Value>, StatusCode> {
+        if !authorized(&headers, &state.expected_token) {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+        let payload = state
+            .current_payload
+            .lock()
+            .expect("test state poisoned")
+            .clone()
+            .ok_or(StatusCode::NOT_FOUND)?;
+        Ok(Json(payload))
+    }
+
+    async fn get_user_current_shape(
+        State(state): State<Arc<TestState>>,
+        headers: HeaderMap,
+        Path(account_id): Path<String>,
+    ) -> Result<Json<Value>, StatusCode> {
+        if !authorized(&headers, &state.expected_token) {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+        let payload = state
+            .current_payload
+            .lock()
+            .expect("test state poisoned")
+            .clone()
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if payload
+            .get("response")
+            .and_then(|value| value.get("uuid"))
+            .and_then(|value| value.as_str())
+            != Some(account_id.as_str())
+        {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        Ok(Json(payload))
     }
 
     async fn get_metadata(
@@ -510,6 +729,7 @@ mod tests {
                 serde_json::json!({ "plan": "pro" }),
             )])),
             expected_token: "rw-token".to_owned(),
+            current_payload: Mutex::new(None),
         });
         let (base_url, handle) = spawn_router(build_test_router(state)).await;
         let adapter = HttpRemnawaveAdapter::new(
@@ -560,6 +780,7 @@ mod tests {
             account: Mutex::new(Some(sample_snapshot())),
             metadata: Mutex::new(HashMap::new()),
             expected_token: "rw-token".to_owned(),
+            current_payload: Mutex::new(None),
         });
         let (base_url, handle) = spawn_router(build_test_router(state)).await;
         let unauthorized = HttpRemnawaveAdapter::new(
@@ -616,6 +837,7 @@ mod tests {
             account: Mutex::new(None),
             metadata: Mutex::new(HashMap::new()),
             expected_token: "rw-token".to_owned(),
+            current_payload: Mutex::new(None),
         });
         let router = Router::new()
             .route("/api/users/resolve", post(resolve_user_schema_drift))
@@ -634,6 +856,58 @@ mod tests {
         .expect_err("schema-drifted upstream account should fail closed");
 
         assert_eq!(error, AdapterError::SchemaDrift);
+
+        handle.abort();
+        let _ = handle.await;
+    }
+
+    #[tokio::test]
+    async fn http_adapter_accepts_current_remnawave_2_7_x_user_shapes() {
+        let state = Arc::new(TestState {
+            account: Mutex::new(None),
+            metadata: Mutex::new(HashMap::new()),
+            expected_token: "rw-token".to_owned(),
+            current_payload: Mutex::new(Some(serde_json::json!({
+                "response": {
+                    "uuid": "167a749c-93e3-4428-ac20-a1f656ec9be5",
+                    "id": 1,
+                    "shortUuid": "RWax9y-7fMyDprVZ",
+                    "username": "Sasha_Beep",
+                    "status": "ACTIVE",
+                    "hwidDeviceLimit": 3,
+                    "subRevokedAt": null
+                }
+            }))),
+        });
+        let router = Router::new()
+            .route("/api/users/resolve", post(resolve_user_current_shape))
+            .route("/api/users/{account_id}", get(get_user_current_shape))
+            .with_state(state);
+        let (base_url, handle) = spawn_router(router).await;
+        let adapter = HttpRemnawaveAdapter::new(
+            HttpRemnawaveAdapterConfig::new(base_url, "rw-token", 500)
+                .expect("http adapter config should validate"),
+        );
+
+        let resolved = resolve_bootstrap_subject_until_non_unavailable(
+            &adapter,
+            BootstrapSubject::ShortUuid("RWax9y-7fMyDprVZ".to_owned()),
+        )
+        .await
+        .expect("current Remnawave resolve payload should map");
+
+        assert_eq!(resolved.account_id, "167a749c-93e3-4428-ac20-a1f656ec9be5");
+        assert_eq!(
+            resolved.bootstrap_subjects,
+            vec![BootstrapSubject::ShortUuid("RWax9y-7fMyDprVZ".to_owned())]
+        );
+        assert_eq!(resolved.lifecycle, AccountLifecycle::Active);
+        assert_eq!(resolved.northstar_access.policy_epoch, 7);
+        assert_eq!(resolved.northstar_access.device_limit, Some(3));
+        assert_eq!(
+            resolved.northstar_access.allowed_carrier_profiles,
+            vec!["carrier-primary".to_owned()]
+        );
 
         handle.abort();
         let _ = handle.await;

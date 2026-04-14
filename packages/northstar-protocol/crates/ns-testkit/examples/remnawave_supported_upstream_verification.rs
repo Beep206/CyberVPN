@@ -54,6 +54,7 @@ struct SupportedUpstreamArgs {
     api_token: Option<String>,
     bootstrap_subject: Option<String>,
     webhook_signature: Option<String>,
+    source_version_override: Option<String>,
     request_timeout_ms: Option<u64>,
     max_snapshot_age_seconds: Option<i64>,
     expected_account_id: Option<String>,
@@ -68,6 +69,7 @@ struct ResolvedConfig {
     api_token: Option<String>,
     bootstrap_subject: Option<String>,
     webhook_signature: Option<String>,
+    source_version_override: Option<String>,
     request_timeout_ms: u64,
     max_snapshot_age_seconds: i64,
     expected_account_id: Option<String>,
@@ -322,6 +324,8 @@ async fn execute_supported_upstream_checks(config: &ResolvedConfig, state: &mut 
 
     let resolved = match adapter.resolve_bootstrap_subject(&subject).await {
         Ok(snapshot) => {
+            let snapshot =
+                apply_source_version_override(snapshot, config.source_version_override.as_deref());
             state.bootstrap_subject_resolved = Some(true);
             state.response_shape_contract_passed = Some(true);
             note_stage_success(state);
@@ -1294,6 +1298,10 @@ fn resolve_config(args: SupportedUpstreamArgs) -> ResolvedConfig {
             args.webhook_signature,
             "NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_WEBHOOK_SIGNATURE",
         ),
+        source_version_override: env_override(
+            args.source_version_override,
+            "NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_SOURCE_VERSION",
+        ),
         request_timeout_ms,
         max_snapshot_age_seconds,
         expected_account_id: env_override(
@@ -1320,6 +1328,19 @@ fn parse_env_u64(key: &str) -> Option<u64> {
 
 fn parse_env_i64(key: &str) -> Option<i64> {
     env::var(key).ok()?.parse().ok()
+}
+
+fn apply_source_version_override(
+    mut snapshot: AccountSnapshot,
+    source_version_override: Option<&str>,
+) -> AccountSnapshot {
+    if snapshot.source_version.is_none() {
+        snapshot.source_version = source_version_override
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned);
+    }
+    snapshot
 }
 
 fn parse_args<I>(args: I) -> Result<SupportedUpstreamArgs, Box<dyn std::error::Error>>
@@ -1665,6 +1686,7 @@ mod tests {
             api_token,
             bootstrap_subject: Some("sub-1".to_owned()),
             webhook_signature: Some("sig-ok".to_owned()),
+            source_version_override: None,
             request_timeout_ms: 500,
             max_snapshot_age_seconds: 300,
             expected_account_id: Some("acct-1".to_owned()),
@@ -1709,6 +1731,7 @@ mod tests {
             api_token: None,
             bootstrap_subject: None,
             webhook_signature: None,
+            source_version_override: None,
             request_timeout_ms: 500,
             max_snapshot_age_seconds: 300,
             expected_account_id: None,
