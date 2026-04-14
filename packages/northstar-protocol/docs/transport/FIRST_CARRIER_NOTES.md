@@ -8,6 +8,12 @@ It is constrained by the workspace plan, the freeze candidate, the RFC draft, an
 This note is intentionally transport-scoped.
 It does not redefine session semantics, wire format, Bridge behavior, or policy logic.
 
+## Status Note
+
+Several historical milestone sections in this file refer to the planned `.github/workflows/udp-optional-gates.yml`.
+That file never landed in the root repo.
+`Phase K` supersedes those references with the real sustained verification workflows and gate map in `docs/development/SUSTAINED_VERIFICATION_GATES.md`.
+
 ## Normative anchors
 
 - Workspace split and dependency rules:

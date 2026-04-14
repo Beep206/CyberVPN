@@ -1574,8 +1574,8 @@ fn default_summary_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        ComparisonSummaryInput, LoadedMatrixInput, UDP_ROLLOUT_OPERATOR_VERDICT_SCHEMA_VERSION,
-        build_matrix_summary,
+        ComparisonSummaryInput, LoadedMatrixInput, UDP_ROLLOUT_COMPARISON_SUMMARY_VERSION,
+        UDP_ROLLOUT_OPERATOR_VERDICT_SCHEMA_VERSION, build_matrix_summary,
     };
     use ns_testkit::udp_wan_lab_required_no_silent_fallback_profile_slugs;
 
@@ -1591,7 +1591,7 @@ mod tests {
 
     fn ready_summary(host_label: &str, profile: &str) -> ComparisonSummaryInput {
         ComparisonSummaryInput {
-            summary_version: Some(13),
+            summary_version: Some(UDP_ROLLOUT_COMPARISON_SUMMARY_VERSION),
             comparison_schema: "udp_rollout_operator_verdict".to_owned(),
             comparison_schema_version: UDP_ROLLOUT_OPERATOR_VERDICT_SCHEMA_VERSION,
             verdict_family: "udp_rollout_operator_decision".to_owned(),

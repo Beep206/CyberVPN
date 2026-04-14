@@ -1,0 +1,56 @@
+{
+  "summary_version": 1,
+  "phase": "phase_n_production_ready_closure",
+  "release_scope": "northstar_v0_1",
+  "environments": [
+    {
+      "environment_id": "local_supported_staging",
+      "deployment_label": "remnawave-local-docker",
+      "environment_kind": "local_supported_staging",
+      "support_status": "verified",
+      "upstream_support": [
+        "remnawave_2.7.x"
+      ],
+      "configuration_refs": [
+        "infra/docker-compose.yml",
+        "infra/caddy/Caddyfile"
+      ],
+      "evidence_refs": [
+        "packages/northstar-protocol/target/northstar/remnawave-supported-upstream-phase-i-signoff-summary.json",
+        "packages/northstar-protocol/target/northstar/phase-m-soak-canary-signoff-summary.json"
+      ]
+    },
+    {
+      "environment_id": "operator_managed_staging",
+      "deployment_label": "control-plane-staging",
+      "environment_kind": "operator_managed_staging",
+      "support_status": "documented",
+      "upstream_support": [
+        "remnawave_2.7.x"
+      ],
+      "configuration_refs": [
+        "infra/ansible/inventories/staging/group_vars/control_plane_staging/main.yml"
+      ],
+      "evidence_refs": [
+        "packages/northstar-protocol/docs/development/SUSTAINED_VERIFICATION_GATES.md",
+        "packages/northstar-protocol/docs/runbooks/INDEX.md"
+      ]
+    },
+    {
+      "environment_id": "operator_managed_production",
+      "deployment_label": "control-plane-production",
+      "environment_kind": "operator_managed_production",
+      "support_status": "documented",
+      "upstream_support": [
+        "remnawave_2.7.x"
+      ],
+      "configuration_refs": [
+        "infra/ansible/inventories/production/group_vars/control_plane_production/main.yml"
+      ],
+      "evidence_refs": [
+        "packages/northstar-protocol/docs/development/SUSTAINED_VERIFICATION_GATES.md",
+        "packages/northstar-protocol/docs/runbooks/INDEX.md"
+      ]
+    }
+  ]
+}

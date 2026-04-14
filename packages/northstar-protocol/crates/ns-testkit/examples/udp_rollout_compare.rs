@@ -1788,12 +1788,12 @@ mod tests {
             summary.transport_fallback_integrity_surface_passed,
             Some(true)
         );
-        assert_eq!(summary.interop_profile_slugs.len(), 13);
+        assert_eq!(summary.interop_profile_slugs.len(), 14);
         assert_eq!(
             summary
                 .interop_required_no_silent_fallback_profile_slugs
                 .len(),
-            10
+            11
         );
         assert!(summary.interop_failed_profile_slugs.is_empty());
     }

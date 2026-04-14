@@ -1,6 +1,6 @@
 # Northstar Phased Execution Plan
 
-This document replaces the original bootstrap-only phase outline with a full plan from the current milestone-46 baseline to a production-ready Northstar v0.1 release.
+This document replaces the original bootstrap-only phase outline with a full plan from the current milestone-56 baseline to a production-ready Northstar v0.1 release.
 It is intentionally execution-oriented: the specs under `docs/spec/` remain normative, while this file defines the delivery phases, stop rules, and exit criteria we will use to finish the project without endless scope drift.
 
 ## Governing Inputs
@@ -16,7 +16,7 @@ It is intentionally execution-oriented: the specs under `docs/spec/` remain norm
 
 ## Current Baseline
 
-As of milestone 46, Northstar already has:
+As of milestone 56, Northstar now has:
 
 - a working Rust workspace and crate graph
 - frozen wire/auth/manifest/session baselines
@@ -26,19 +26,12 @@ As of milestone 46, Northstar already has:
 - compatible-host Linux/macOS/Windows evidence lanes
 - opt-in fuzz, perf, interop, rollout, and release-shaped workflow lanes
 
-That means the project is no longer blocked on core feature invention.
-The remaining work is mostly about real deployment evidence, sustained verification discipline, operator readiness, soak stability, and release integrity.
+That means the project is no longer blocked on core feature invention or release-critical closure work.
+The remaining work is post-v0.1 maintenance rather than a missing production phase.
 
 ## Phase Count
 
-Under the current specs and the current implementation baseline, there are **6 remaining delivery phases** before we should call Northstar `production-ready`:
-
-1. `Phase I` — upstream truth and deployment reality
-2. `Phase J` — WAN-grade interop and chaos expansion
-3. `Phase K` — sustained verification discipline
-4. `Phase L` — operator readiness and recovery
-5. `Phase M` — soak, canary, and regression burn-down
-6. `Phase N` — production-ready closure
+Under the current specs and the current implementation baseline, `Phase I`, `Phase J`, `Phase K`, `Phase L`, `Phase M`, and `Phase N` are now closed by real supported-upstream, WAN/chaos, sustained-verification, operator-readiness, bounded soak/canary evidence, and final release closure, and there are **0 remaining delivery phases** before we should call Northstar `production-ready`.
 
 Important planning rule:
 
@@ -86,15 +79,15 @@ We will move through the remaining phases under the following rules:
 | Phase F | complete enough for current scope | Runtime and CLI surfaces | done | maintained binaries and validation surfaces exist |
 | Phase G | complete enough for current scope | Fixtures, fuzz, perf, interop scaffolding | done | release-facing verification scaffold exists |
 | Phase H | complete enough for current scope | ADR/doc/status discipline | done | implementation notes and status discipline exist |
-| Phase I | remaining | Real upstream and deployment-grade truth pass | 2-3 | real supported environment path is proven |
-| Phase J | remaining | WAN-grade interop and network-chaos expansion | 2-3 | interop is broader than deterministic lab |
-| Phase K | remaining | Sustained verification discipline | 1-2 | required release evidence is automated and durable |
-| Phase L | remaining | Operator runbooks, rollback, recovery, and observability discipline | 1-2 | operators can safely run and recover the system |
-| Phase M | remaining | Soak, canary, and regression burn-down | 1-2 | stability is demonstrated over time, not inferred |
-| Phase N | remaining | Final production-ready closure | 1-2 | release integrity, docs, and support claims are closed |
+| Phase I | complete | Real upstream and deployment-grade truth pass | done | supported upstream plus deployment-reality path is proven |
+| Phase J | complete | WAN-grade interop and network-chaos expansion | 2-3 | interop is broader than deterministic lab |
+| Phase K | complete | Sustained verification discipline | 1-2 | required release evidence is automated and durable |
+| Phase L | complete | Operator runbooks, rollback, recovery, and observability discipline | 1-2 | operators can safely run and recover the system |
+| Phase M | complete | Soak, canary, and regression burn-down | done | stability is demonstrated over time, not inferred |
+| Phase N | complete | Final production-ready closure | done | release integrity, docs, and support claims are closed |
 
-Under current assumptions, the remaining work is therefore **about 8-14 narrow milestones** spread across these 6 phases.
-That is the planning number we should use until real-world evidence proves otherwise.
+Under current assumptions, the remaining production-ready work is therefore **0 delivery phases** and **0 release-critical milestones**.
+Any new work from this point forward is maintenance, follow-on hardening, or a new roadmap item rather than unfinished `v0.1` closure.
 
 ## Completed Foundations
 
@@ -109,9 +102,13 @@ The completed phases still matter because the remaining phases depend on them:
 - `Phase G` gave us fixtures, corpora, perf hooks, and machine-readable release-shaped evidence.
 - `Phase H` gave us implementation notes, ADR discipline, and status synchronization.
 
-The remaining phases are therefore about proving, hardening, operating, and releasing what now exists.
+The completed phases now form one attributable release story: prove, harden, operate, soak, and close what exists without widening the protocol or bridge boundary.
 
 ## Phase I — Upstream Truth And Deployment Reality
+
+### Status Note
+
+As of `2026-04-14`, the maintained supported-upstream chain (`47 -> 48 -> 49 -> 50`) has passed against the deployment label `remnawave-local-docker`; the maintained `Phase J` evidence chain reports `udp_wan_staging_interop = ready`, `udp_net_chaos_campaign = ready`, and `udp_phase_j_signoff.phase_j_state = "honestly_complete"`; the sustained `Phase K` workflow and ruleset surface is active; the maintained `Phase L` signoff reports `phase_l_state = "honestly_complete"`; the maintained `Phase M` signoff reports `phase_m_state = "honestly_complete"` with `observed_duration_seconds = 52` against the agreed `20` second floor; and the maintained `Phase N` signoff now closes the release from one clean git-attributed repository state. There is no later production phase after this one.
 
 ### Objective
 
@@ -119,8 +116,8 @@ Prove that Northstar works against a real supported Remnawave environment and a 
 
 ### Why This Phase Exists
 
-The project already has strong local and realistic-test-path evidence, but [IMPLEMENTATION_STATUS.md](/C:/project/Verta/docs/implementation/IMPLEMENTATION_STATUS.md) still explicitly calls out the missing real upstream deployment integration pass as follow-on work.
-Until that exists, we do not know whether the current bridge/adapter/runtime assumptions survive production-like integration details.
+The project originally had strong local and realistic-test-path evidence, but not a real supported-upstream deployment pass.
+That gap is now closed; this section remains here as the historical rationale for why `Phase I` existed and why later phases are allowed to treat upstream and deployment truth as established baseline evidence.
 
 ### In Scope
 
@@ -159,6 +156,10 @@ Until that exists, we do not know whether the current bridge/adapter/runtime ass
 - webhook timing, retries, or metadata shape differ from assumed behavior
 
 ## Phase J — WAN-Grade Interop And Chaos Expansion
+
+### Status Note
+
+As of `2026-04-13`, `Phase J` is honestly complete. The maintained WAN/staging lane passed, the full local `net_chaos` matrix passed with retained packet-capture artifacts, and the maintained signoff surface now reports `phase_j_state = "honestly_complete"`.
 
 ### Objective
 
@@ -204,6 +205,10 @@ The security and interop spec explicitly requires interop to be proven, explicit
 
 ## Phase K — Sustained Verification Discipline
 
+### Status Note
+
+As of `2026-04-13`, `Phase K` is honestly complete. The repository now has real root-level sustained verification workflows for bounded protected-branch evidence, nightly staged-rollout plus net-chaos evidence, and fail-closed release-evidence certification; active GitHub rulesets now enforce the bounded gate on `main` and the full release-evidence gate on `release/**` and `rc/**`; the maintained bounded, staged, and net-chaos local recipes pass; and the release-evidence chain fails closed when required multi-host artifacts are absent instead of silently degrading.
+
 ### Objective
 
 Turn the current release-facing verification stack from mostly opt-in discipline into sustained, enforced, and attributable release evidence.
@@ -247,6 +252,10 @@ Production-ready claims require durable verification posture, not only a collect
 - pressure to disable required checks during schedule crunch
 
 ## Phase L — Operator Readiness, Runbooks, And Recovery
+
+### Status Note
+
+As of `2026-04-14`, `Phase L` is honestly complete. The repository now carries a maintained operator runbook set plus a machine-readable recovery matrix, a dedicated operator rollback drill over the explicit `udp-blocked` fallback path, and a fail-closed `phase_l_operator_readiness_signoff` surface that consumes real supported-upstream lifecycle evidence plus rollback-drill evidence. The maintained local signoff now reports `phase_l_state = "honestly_complete"`.
 
 ### Objective
 
@@ -293,6 +302,10 @@ Production-ready software needs recovery discipline, not just implementation cor
 
 ## Phase M — Soak, Canary, And Regression Burn-Down
 
+### Status Note
+
+As of `2026-04-14`, `Phase M` is honestly complete. The maintained `phase-m-soak-canary` lane passed on the agreed `remnawave-local-docker` environment, all three canary stages (`canary_5`, `canary_25`, `canary_100`) produced ready lifecycle, rollback, and stage-local `Phase L` artifacts, and the final signoff reports `phase_m_state = "honestly_complete"` with `rollback_proven = true`, `p0_open_count = 0`, `p1_open_count = 0`, and `observed_duration_seconds = 52`.
+
 ### Objective
 
 Demonstrate sustained stability over time and under controlled rollout, then burn down the remaining serious regression risk.
@@ -335,6 +348,10 @@ The security and interop plan explicitly calls for extended soak and canary vali
 - schedule pressure to declare stability before burn-down is complete
 
 ## Phase N — Production-Ready Closure
+
+### Status Note
+
+As of `2026-04-14`, `Phase N` is honestly complete. The repository now carries an explicit release checklist, an attributable artifact story, a supported environment matrix, an accepted known-limitations list, and a fail-closed `phase_n_production_ready_signoff` surface. The final signoff reports `phase_n_state = "honestly_complete"` only when the accepted phase summaries are ready, the release docs are present, and the git branch plus commit plus clean-state facts are unambiguous.
 
 ### Objective
 
@@ -395,12 +412,10 @@ We will use the following strict promotion gates:
 
 The planning number we should use from now on is:
 
-- **6 remaining phases**
-- **about 8-14 narrow milestones inside those phases**
+- **0 remaining production phases**
+- **0 release-critical milestones**
 
-This is a planning commitment, not a promise that no bugs will appear.
-If the current assumptions hold, we should finish inside this structure.
-If a real upstream/WAN phase exposes a new normative or architectural blocker, we record that explicitly instead of pretending it is “just one more milestone.”
+If a later bug or operational issue appears, that is post-closure maintenance work rather than unfinished `v0.1` release gating.
 
 ## What We Should Not Do
 
@@ -422,12 +437,13 @@ From this point forward, the execution model is:
 - each milestone must move a current phase toward its explicit exit criteria
 - if a task does not advance the current phase or close a blocker discovered in the current phase, it is not on the critical path
 
-That gives the project a bounded finish line:
+That gave the project a bounded finish line:
 
 - not “endless milestones”
-- but **6 remaining production phases with explicit stop conditions**
+- but a production-ready closure with explicit stop conditions and an attributable final signoff
+## Historical Backlog Snapshot For Phase I
 
-## Immediate Working Backlog For Phase I
+The section below is kept only as historical context for how the release closure sequence started.
 
 Planning assumption:
 

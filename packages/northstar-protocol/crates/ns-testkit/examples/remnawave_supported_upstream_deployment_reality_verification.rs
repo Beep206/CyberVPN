@@ -10,8 +10,9 @@ use ns_bridge_api::{
 use ns_bridge_domain::{BridgeDomain, BridgeManifestContext, BridgeManifestTemplate};
 use ns_manifest::{ManifestDocument, ManifestSigner};
 use ns_remnawave_adapter::{
-    AdapterError, BootstrapSubject, HttpRemnawaveAdapter, HttpRemnawaveAdapterConfig,
-    RemnawaveAdapter, WebhookAuthenticator, WebhookVerificationConfig, WebhookVerificationError,
+    AccountSnapshot, AdapterError, BootstrapSubject, HttpRemnawaveAdapter,
+    HttpRemnawaveAdapterConfig, RemnawaveAdapter, WebhookAuthenticator, WebhookVerificationConfig,
+    WebhookVerificationError,
 };
 use ns_storage::{
     BridgeStoreServiceHealthResponse, HttpServiceBackedBridgeStoreAdapter,
@@ -92,6 +93,7 @@ struct DeploymentRealityArgs {
     api_token: Option<String>,
     bootstrap_subject: Option<String>,
     webhook_signature: Option<String>,
+    source_version_override: Option<String>,
     expected_account_id: Option<String>,
     store_auth_token: Option<String>,
     upstream_summary_path: Option<PathBuf>,
@@ -108,6 +110,7 @@ struct ResolvedConfig {
     api_token: Option<String>,
     bootstrap_subject: Option<String>,
     webhook_signature: Option<String>,
+    source_version_override: Option<String>,
     expected_account_id: Option<String>,
     store_auth_token: Option<String>,
     upstream_summary_path: PathBuf,
@@ -440,6 +443,8 @@ async fn build_supported_upstream_deployment_reality_summary(
 
     let snapshot = match adapter.resolve_bootstrap_subject(&bootstrap_subject).await {
         Ok(snapshot) => {
+            let snapshot =
+                apply_source_version_override(snapshot, config.source_version_override.as_deref());
             state.account_snapshot_fetched = Some(true);
             state.successful_stage_count += 1;
             snapshot
@@ -454,7 +459,7 @@ async fn build_supported_upstream_deployment_reality_summary(
     if let Some(version) = snapshot
         .source_version
         .as_deref()
-        .and_then(SimpleVersion::parse)
+        .and_then(|value| SimpleVersion::parse(value))
     {
         let version_passed = version >= SUPPORTED_UPSTREAM_VERSION_FLOOR;
         let preferred_passed = version >= SUPPORTED_UPSTREAM_VERSION_PREFERRED;
@@ -1062,6 +1067,10 @@ async fn run_positive_deployment_reality_check(
     adapter: &HttpRemnawaveAdapter,
     config: &ResolvedConfig,
 ) -> Result<DeploymentRealityEvidence, DeploymentError> {
+    let bootstrap_subject = config
+        .bootstrap_subject
+        .as_deref()
+        .expect("checked above for missing inputs");
     let webhook_signature = config
         .webhook_signature
         .as_deref()
@@ -1137,19 +1146,20 @@ async fn run_positive_deployment_reality_check(
                     ))
                 })?;
 
-        let public_flow = exercise_public_bridge_flow_over_http(public_runtime.base_url.as_str())
-            .await
-            .map_err(|error| {
-                DeploymentError::IncompatibleContract(format!(
-                    "public bridge flow failed: {error:#}"
-                ))
-            })?;
+        let public_flow = exercise_public_bridge_flow_over_http(
+            public_runtime.base_url.as_str(),
+            bootstrap_subject,
+        )
+        .await
+        .map_err(|error| {
+            DeploymentError::IncompatibleContract(format!("public bridge flow failed: {error:#}"))
+        })?;
 
         let public_base_url = public_runtime.base_url.clone();
         public_runtime.shutdown().await;
         let shutdown_error = reqwest::Client::new()
             .get(format!(
-                "{public_base_url}/v0/manifest?subscription_token=sub-1"
+                "{public_base_url}/v0/manifest?subscription_token={bootstrap_subject}"
             ))
             .send()
             .await;
@@ -1382,10 +1392,13 @@ async fn request_store_health_until_ready(
 
 async fn exercise_public_bridge_flow_over_http(
     base_url: &str,
+    bootstrap_subject: &str,
 ) -> anyhow::Result<BridgeFlowEvidence> {
     let client = reqwest::Client::new();
     let manifest_response = client
-        .get(format!("{base_url}/v0/manifest?subscription_token=sub-1"))
+        .get(format!(
+            "{base_url}/v0/manifest?subscription_token={bootstrap_subject}"
+        ))
         .send()
         .await
         .context("bootstrap manifest request failed")?;
@@ -1630,6 +1643,9 @@ fn resolve_config(args: DeploymentRealityArgs) -> ResolvedConfig {
         webhook_signature: args
             .webhook_signature
             .or_else(|| env::var("NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_WEBHOOK_SIGNATURE").ok()),
+        source_version_override: args
+            .source_version_override
+            .or_else(|| env::var("NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_SOURCE_VERSION").ok()),
         expected_account_id: args.expected_account_id.or_else(|| {
             env::var("NORTHSTAR_REMNAWAVE_SUPPORTED_UPSTREAM_EXPECTED_ACCOUNT_ID").ok()
         }),
@@ -1655,6 +1671,19 @@ fn resolve_config(args: DeploymentRealityArgs) -> ResolvedConfig {
         request_timeout_ms: args.request_timeout_ms.unwrap_or(1_500),
         max_snapshot_age_seconds: args.max_snapshot_age_seconds.unwrap_or(300),
     }
+}
+
+fn apply_source_version_override(
+    mut snapshot: AccountSnapshot,
+    source_version_override: Option<&str>,
+) -> AccountSnapshot {
+    if snapshot.source_version.is_none() {
+        snapshot.source_version = source_version_override
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(ToOwned::to_owned);
+    }
+    snapshot
 }
 
 fn print_text_summary(summary: &SupportedUpstreamDeploymentRealitySummary, summary_path: &Path) {
@@ -1906,6 +1935,7 @@ mod tests {
             api_token,
             bootstrap_subject: Some("sub-1".to_owned()),
             webhook_signature: Some("sig-ok".to_owned()),
+            source_version_override: None,
             expected_account_id: Some("acct-1".to_owned()),
             store_auth_token: Some("store-secret".to_owned()),
             upstream_summary_path,
@@ -1976,6 +2006,7 @@ mod tests {
             api_token: None,
             bootstrap_subject: None,
             webhook_signature: None,
+            source_version_override: None,
             expected_account_id: None,
             store_auth_token: None,
             upstream_summary_path: default_supported_upstream_summary_path(),

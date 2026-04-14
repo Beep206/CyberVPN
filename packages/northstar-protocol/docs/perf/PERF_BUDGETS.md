@@ -6,6 +6,17 @@ This document defines the first implementation baseline for Northstar performanc
 It is intentionally conservative.
 The goal is to make resource limits, queue bounds, and benchmark scope explicit before optimization work starts.
 
+## Status Note
+
+Historical milestone notes below still mention the planned `.github/workflows/udp-optional-gates.yml`.
+The active sustained verification path is now the real `Phase K` workflow set:
+
+- `.github/workflows/northstar-udp-bounded-verification.yml`
+- `.github/workflows/northstar-udp-scheduled-verification.yml`
+- `.github/workflows/northstar-udp-release-evidence.yml`
+
+The active required-check and artifact-retention policy lives in `docs/development/SUSTAINED_VERIFICATION_GATES.md`.
+
 This baseline is grounded in:
 
 - `docs/spec/northstar_implementation_spec_rust_workspace_plan_v0_1.md`
