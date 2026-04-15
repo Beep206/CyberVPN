@@ -19,19 +19,19 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-release-candidate-signoff-closure-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-candidate-signoff-closure-summary.json"
-$summaryPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_SUMMARY_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalReleaseCandidateEvidenceFreezePath = Get-VertaOutputPath $repoRoot "udp-release-candidate-evidence-freeze-summary.json"
 $legacyReleaseCandidateEvidenceFreezePath = Get-VertaLegacyOutputPath $repoRoot "udp-release-candidate-evidence-freeze-summary.json"
-$releaseCandidateEvidenceFreezePath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_RELEASE_CANDIDATE_EVIDENCE_FREEZE_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_RELEASE_CANDIDATE_EVIDENCE_FREEZE_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_RELEASE_CANDIDATE_EVIDENCE_FREEZE_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_RELEASE_CANDIDATE_EVIDENCE_FREEZE_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseCandidateEvidenceFreezePath $legacyReleaseCandidateEvidenceFreezePath }
+$releaseCandidateEvidenceFreezePath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_RELEASE_CANDIDATE_EVIDENCE_FREEZE_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_RELEASE_CANDIDATE_EVIDENCE_FREEZE_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseCandidateEvidenceFreezePath $legacyReleaseCandidateEvidenceFreezePath }
 $canonicalLinuxReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-linux.json"
 $legacyLinuxReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-linux.json"
-$linuxReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_LINUX_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_LINUX_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_LINUX_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_LINUX_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalLinuxReadinessPath $legacyLinuxReadinessPath }
+$linuxReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_LINUX_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_LINUX_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalLinuxReadinessPath $legacyLinuxReadinessPath }
 $canonicalMacosReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-macos.json"
 $legacyMacosReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-macos.json"
-$macosReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_MACOS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_MACOS_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_MACOS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_MACOS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalMacosReadinessPath $legacyMacosReadinessPath }
+$macosReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_MACOS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_MACOS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalMacosReadinessPath $legacyMacosReadinessPath }
 $canonicalWindowsReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-windows.json"
 $legacyWindowsReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-windows.json"
-$windowsReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_WINDOWS_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_WINDOWS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsReadinessPath $legacyWindowsReadinessPath }
+$windowsReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_CLOSURE_WINDOWS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsReadinessPath $legacyWindowsReadinessPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP release candidate signoff closure wrapper."

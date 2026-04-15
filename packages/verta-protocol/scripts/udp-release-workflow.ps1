@@ -19,13 +19,13 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-release-workflow-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-workflow-summary.json"
-$summaryPath = if ($env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH } elseif ($env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalReadinessMatrixPath = Get-VertaOutputPath $repoRoot "udp-rollout-matrix-summary.json"
 $legacyReadinessMatrixPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-matrix-summary.json"
-$readinessMatrixPath = if ($env:VERTA_UDP_RELEASE_WORKFLOW_READINESS_MATRIX_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_READINESS_MATRIX_PATH } elseif ($env:VERTA_UDP_RELEASE_WORKFLOW_READINESS_MATRIX_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_READINESS_MATRIX_PATH } else { Resolve-VertaPreferredPath $canonicalReadinessMatrixPath $legacyReadinessMatrixPath }
+$readinessMatrixPath = if ($env:VERTA_UDP_RELEASE_WORKFLOW_READINESS_MATRIX_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_READINESS_MATRIX_PATH } else { Resolve-VertaPreferredPath $canonicalReadinessMatrixPath $legacyReadinessMatrixPath }
 $canonicalStagedMatrixPath = Get-VertaOutputPath $repoRoot "udp-rollout-matrix-summary-staged.json"
 $legacyStagedMatrixPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-matrix-summary-staged.json"
-$stagedMatrixPath = if ($env:VERTA_UDP_RELEASE_WORKFLOW_STAGED_MATRIX_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_STAGED_MATRIX_PATH } elseif ($env:VERTA_UDP_RELEASE_WORKFLOW_STAGED_MATRIX_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_STAGED_MATRIX_PATH } else { Resolve-VertaPreferredPath $canonicalStagedMatrixPath $legacyStagedMatrixPath }
+$stagedMatrixPath = if ($env:VERTA_UDP_RELEASE_WORKFLOW_STAGED_MATRIX_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_STAGED_MATRIX_PATH } else { Resolve-VertaPreferredPath $canonicalStagedMatrixPath $legacyStagedMatrixPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP release workflow wrapper."

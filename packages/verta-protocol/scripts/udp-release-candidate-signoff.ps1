@@ -19,19 +19,19 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-release-candidate-signoff-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-candidate-signoff-summary.json"
-$summaryPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_SUMMARY_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalReleasePrepPath = Get-VertaOutputPath $repoRoot "udp-release-prep-summary.json"
 $legacyReleasePrepPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-prep-summary.json"
-$releasePrepPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_RELEASE_PREP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_RELEASE_PREP_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_RELEASE_PREP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_RELEASE_PREP_PATH } else { Resolve-VertaPreferredPath $canonicalReleasePrepPath $legacyReleasePrepPath }
+$releasePrepPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_RELEASE_PREP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_RELEASE_PREP_PATH } else { Resolve-VertaPreferredPath $canonicalReleasePrepPath $legacyReleasePrepPath }
 $canonicalWindowsReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-windows.json"
 $legacyWindowsReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-windows.json"
-$windowsReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsReadinessPath $legacyWindowsReadinessPath }
+$windowsReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsReadinessPath $legacyWindowsReadinessPath }
 $canonicalWindowsInteropPath = Get-VertaOutputPath $repoRoot "udp-interop-lab-summary-windows.json"
 $legacyWindowsInteropPath = Get-VertaLegacyOutputPath $repoRoot "udp-interop-lab-summary-windows.json"
-$windowsInteropPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_INTEROP_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsInteropPath $legacyWindowsInteropPath }
+$windowsInteropPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_WINDOWS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsInteropPath $legacyWindowsInteropPath }
 $canonicalMacosInteropPath = Get-VertaOutputPath $repoRoot "udp-interop-lab-summary-macos.json"
 $legacyMacosInteropPath = Get-VertaLegacyOutputPath $repoRoot "udp-interop-lab-summary-macos.json"
-$macosInteropPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_MACOS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_MACOS_INTEROP_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_MACOS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_MACOS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalMacosInteropPath $legacyMacosInteropPath }
+$macosInteropPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_MACOS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_SIGNOFF_MACOS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalMacosInteropPath $legacyMacosInteropPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP release candidate signoff wrapper."

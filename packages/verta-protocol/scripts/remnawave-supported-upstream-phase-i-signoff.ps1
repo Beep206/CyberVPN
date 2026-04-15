@@ -62,16 +62,12 @@ $canonicalUpstreamSummaryPath = Get-VertaOutputPath $repoRoot "remnawave-support
 $legacyUpstreamSummaryPath = Get-VertaLegacyOutputPath $repoRoot "remnawave-supported-upstream-summary.json"
 $upstreamSummaryPath = if ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_SUMMARY_PATH) {
     $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_SUMMARY_PATH
-} elseif ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_SUMMARY_PATH) {
-    $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_SUMMARY_PATH
 } else {
     $canonicalUpstreamSummaryPath
 }
 $canonicalLifecycleSummaryPath = Get-VertaOutputPath $repoRoot "remnawave-supported-upstream-lifecycle-summary.json"
 $legacyLifecycleSummaryPath = Get-VertaLegacyOutputPath $repoRoot "remnawave-supported-upstream-lifecycle-summary.json"
 $lifecycleSummaryPath = if ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_LIFECYCLE_SUMMARY_PATH) {
-    $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_LIFECYCLE_SUMMARY_PATH
-} elseif ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_LIFECYCLE_SUMMARY_PATH) {
     $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_LIFECYCLE_SUMMARY_PATH
 } else {
     $canonicalLifecycleSummaryPath
@@ -80,16 +76,12 @@ $canonicalDeploymentRealitySummaryPath = Get-VertaOutputPath $repoRoot "remnawav
 $legacyDeploymentRealitySummaryPath = Get-VertaLegacyOutputPath $repoRoot "remnawave-supported-upstream-deployment-reality-summary.json"
 $deploymentRealitySummaryPath = if ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_DEPLOYMENT_REALITY_SUMMARY_PATH) {
     $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_DEPLOYMENT_REALITY_SUMMARY_PATH
-} elseif ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_DEPLOYMENT_REALITY_SUMMARY_PATH) {
-    $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_DEPLOYMENT_REALITY_SUMMARY_PATH
 } else {
     $canonicalDeploymentRealitySummaryPath
 }
 $canonicalPhaseISummaryPath = Get-VertaOutputPath $repoRoot "remnawave-supported-upstream-phase-i-signoff-summary.json"
 $legacyPhaseISummaryPath = Get-VertaLegacyOutputPath $repoRoot "remnawave-supported-upstream-phase-i-signoff-summary.json"
 $phaseISummaryPath = if ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_PHASE_I_SIGNOFF_SUMMARY_PATH) {
-    $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_PHASE_I_SIGNOFF_SUMMARY_PATH
-} elseif ($env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_PHASE_I_SIGNOFF_SUMMARY_PATH) {
     $env:VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_PHASE_I_SIGNOFF_SUMMARY_PATH
 } else {
     $canonicalPhaseISummaryPath

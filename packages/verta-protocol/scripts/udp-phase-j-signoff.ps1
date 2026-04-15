@@ -19,13 +19,13 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-phase-j-signoff-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-phase-j-signoff-summary.json"
-$summaryPath = if ($env:VERTA_UDP_PHASE_J_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_SUMMARY_PATH } elseif ($env:VERTA_UDP_PHASE_J_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_PHASE_J_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalWanStagingPath = Get-VertaOutputPath $repoRoot "udp-wan-staging-interop-summary.json"
 $legacyWanStagingPath = Get-VertaLegacyOutputPath $repoRoot "udp-wan-staging-interop-summary.json"
-$wanStagingPath = if ($env:VERTA_UDP_PHASE_J_SIGNOFF_WAN_STAGING_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_WAN_STAGING_PATH } elseif ($env:VERTA_UDP_PHASE_J_SIGNOFF_WAN_STAGING_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_WAN_STAGING_PATH } else { Resolve-VertaPreferredPath $canonicalWanStagingPath $legacyWanStagingPath }
+$wanStagingPath = if ($env:VERTA_UDP_PHASE_J_SIGNOFF_WAN_STAGING_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_WAN_STAGING_PATH } else { Resolve-VertaPreferredPath $canonicalWanStagingPath $legacyWanStagingPath }
 $canonicalNetChaosPath = Get-VertaOutputPath $repoRoot "udp-net-chaos-campaign-summary.json"
 $legacyNetChaosPath = Get-VertaLegacyOutputPath $repoRoot "udp-net-chaos-campaign-summary.json"
-$netChaosPath = if ($env:VERTA_UDP_PHASE_J_SIGNOFF_NET_CHAOS_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_NET_CHAOS_PATH } elseif ($env:VERTA_UDP_PHASE_J_SIGNOFF_NET_CHAOS_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_NET_CHAOS_PATH } else { Resolve-VertaPreferredPath $canonicalNetChaosPath $legacyNetChaosPath }
+$netChaosPath = if ($env:VERTA_UDP_PHASE_J_SIGNOFF_NET_CHAOS_PATH) { $env:VERTA_UDP_PHASE_J_SIGNOFF_NET_CHAOS_PATH } else { Resolve-VertaPreferredPath $canonicalNetChaosPath $legacyNetChaosPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP Phase J signoff wrapper."
