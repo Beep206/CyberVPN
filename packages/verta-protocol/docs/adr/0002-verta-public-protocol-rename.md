@@ -5,38 +5,32 @@
 
 ## Context
 
-The protocol workspace, specs, release surfaces, and operator docs were originally published under the `verta` name.
-That identity is now being renamed to `Verta`.
+The protocol workspace, specs, release surfaces, and operator docs were originally published under the `Northstar` name.
+That public identity has now been renamed to `Verta`.
 
-The repository already has deep technical coupling to the legacy name across:
+The repository still has deep technical coupling to stable internal identifiers across:
 
-- the package path `packages/verta-protocol`
 - Rust crate and binary identifiers such as `ns-*`, `nsctl`, `ns-clientd`, `ns-gatewayd`, and `ns-bridge`
 - environment variables under `VERTA_*`
 - artifact roots under `target/verta`
 - workflow filenames under `.github/workflows/verta-*`
 - canonical spec filenames under `docs/spec/verta_*`
 
-A one-shot rename would create unnecessary risk for release evidence attribution, maintained verification lanes, operator runbooks, and downstream automation.
+A one-shot rename of every internal identifier would create unnecessary risk for release evidence attribution, maintained verification lanes, operator runbooks, and downstream automation.
 
 ## Decision
 
-`Verta` becomes the canonical public protocol name.
+`Verta` is the canonical public and repository-level protocol name.
 
-The rename will proceed in staged waves:
+The public and repository-level rename is complete:
 
-1. Wave 0 freezes the rename policy in ADRs and canonical docs.
-2. Wave 1 renames public docs, specs, release surfaces, and runbooks to `Verta`.
-3. Wave 2 adds compatibility aliases for `VERTA_*` and future `target/verta` usage while preserving `VERTA_*` and `target/verta`.
-4. Wave 3 may rename the package path to `packages/verta-protocol` after compatibility is proven.
-5. Wave 4 will separately decide whether internal `ns-*` identifiers should remain stable or be renamed.
+1. Public docs, specs, release surfaces, and runbooks now use `Verta`.
+2. The package path is now `packages/verta-protocol`.
+3. Environment variables are standardized under `VERTA_*`.
+4. Artifact roots are standardized under `target/verta`.
+5. Workflow filenames are standardized under `.github/workflows/verta-*`.
 
-During Wave 0 and Wave 1:
-
-- `verta` remains the legacy technical identity where filenames, env names, artifact roots, and existing verification lanes still depend on it.
-- `ns-*` crate and binary names remain unchanged.
-- `VERTA_*` env vars remain unchanged.
-- `target/verta` remains unchanged.
+Internal `ns-*` crate and binary identifiers remain unchanged by design until a separate internal-ID migration is explicitly approved.
 
 ## Alternatives Considered
 
@@ -49,14 +43,14 @@ During Wave 0 and Wave 1:
 
 Positive:
 
-- Public branding becomes consistent immediately.
-- Verification and release evidence stay attributable during the rename.
-- Operators and downstream automation keep working during the migration window.
+- Public branding is now consistent at the repository, release, and operator layers.
+- Verification and release evidence remain attributable under one canonical `Verta` identity.
+- Operators and downstream automation continue to work without reintroducing `Northstar`.
 
 Negative:
 
-- The repository will temporarily contain mixed public and technical naming.
-- Some legacy filenames and machine-readable values will continue to contain `verta` until later waves land.
+- The repository still contains stable internal technical identifiers such as `ns-*`.
+- A future internal-ID migration would still require its own review and compatibility plan.
 
 ## Spec Links
 
@@ -72,5 +66,5 @@ Negative:
 ## Follow-Up
 
 - Make `Verta` canonical across README, AGENTS, spec index, phased plan, implementation status, release docs, and runbook indexes.
-- Add `VERTA_*` compatibility aliases without removing `VERTA_*`.
-- Decide separately whether `packages/verta-protocol` and `ns-*` technical identifiers should remain stable or be renamed.
+- Keep `VERTA_*` env vars and `target/verta/` artifact paths as the maintained canonical identifiers.
+- Decide separately whether `ns-*` technical identifiers should remain stable or be renamed.

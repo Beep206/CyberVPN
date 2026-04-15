@@ -19,19 +19,19 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-release-soak-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-soak-summary.json"
-$summaryPath = if ($env:VERTA_UDP_RELEASE_SOAK_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_SOAK_SUMMARY_PATH } elseif ($env:VERTA_UDP_RELEASE_SOAK_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_SOAK_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_RELEASE_SOAK_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_SOAK_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalReleaseBurnInPath = Get-VertaOutputPath $repoRoot "udp-release-burn-in-summary.json"
 $legacyReleaseBurnInPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-burn-in-summary.json"
-$releaseBurnInPath = if ($env:VERTA_UDP_RELEASE_SOAK_RELEASE_BURN_IN_PATH) { $env:VERTA_UDP_RELEASE_SOAK_RELEASE_BURN_IN_PATH } elseif ($env:VERTA_UDP_RELEASE_SOAK_RELEASE_BURN_IN_PATH) { $env:VERTA_UDP_RELEASE_SOAK_RELEASE_BURN_IN_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseBurnInPath $legacyReleaseBurnInPath }
+$releaseBurnInPath = if ($env:VERTA_UDP_RELEASE_SOAK_RELEASE_BURN_IN_PATH) { $env:VERTA_UDP_RELEASE_SOAK_RELEASE_BURN_IN_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseBurnInPath $legacyReleaseBurnInPath }
 $canonicalLinuxInteropPath = Get-VertaOutputPath $repoRoot "udp-interop-lab-summary-linux.json"
 $legacyLinuxInteropPath = Get-VertaLegacyOutputPath $repoRoot "udp-interop-lab-summary-linux.json"
-$linuxInteropPath = if ($env:VERTA_UDP_RELEASE_SOAK_LINUX_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_LINUX_INTEROP_PATH } elseif ($env:VERTA_UDP_RELEASE_SOAK_LINUX_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_LINUX_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalLinuxInteropPath $legacyLinuxInteropPath }
+$linuxInteropPath = if ($env:VERTA_UDP_RELEASE_SOAK_LINUX_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_LINUX_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalLinuxInteropPath $legacyLinuxInteropPath }
 $canonicalMacosInteropPath = Get-VertaOutputPath $repoRoot "udp-interop-lab-summary-macos.json"
 $legacyMacosInteropPath = Get-VertaLegacyOutputPath $repoRoot "udp-interop-lab-summary-macos.json"
-$macosInteropPath = if ($env:VERTA_UDP_RELEASE_SOAK_MACOS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_MACOS_INTEROP_PATH } elseif ($env:VERTA_UDP_RELEASE_SOAK_MACOS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_MACOS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalMacosInteropPath $legacyMacosInteropPath }
+$macosInteropPath = if ($env:VERTA_UDP_RELEASE_SOAK_MACOS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_MACOS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalMacosInteropPath $legacyMacosInteropPath }
 $canonicalWindowsInteropPath = Get-VertaOutputPath $repoRoot "udp-interop-lab-summary-windows.json"
 $legacyWindowsInteropPath = Get-VertaLegacyOutputPath $repoRoot "udp-interop-lab-summary-windows.json"
-$windowsInteropPath = if ($env:VERTA_UDP_RELEASE_SOAK_WINDOWS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_WINDOWS_INTEROP_PATH } elseif ($env:VERTA_UDP_RELEASE_SOAK_WINDOWS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_WINDOWS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsInteropPath $legacyWindowsInteropPath }
+$windowsInteropPath = if ($env:VERTA_UDP_RELEASE_SOAK_WINDOWS_INTEROP_PATH) { $env:VERTA_UDP_RELEASE_SOAK_WINDOWS_INTEROP_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsInteropPath $legacyWindowsInteropPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP release soak wrapper."

@@ -19,7 +19,7 @@ use tracing::info;
 use url::Url;
 
 #[derive(Parser)]
-#[command(name = "ns-clientd")]
+#[command(name = "verta-clientd")]
 struct Cli {
     #[arg(long, default_value_t = false)]
     json_logs: bool,
@@ -168,7 +168,7 @@ impl From<DatagramModeArg> for ns_core::DatagramMode {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    init_tracing("ns_clientd", cli.json_logs);
+    init_tracing("verta_clientd", cli.json_logs);
 
     match cli.command {
         Command::ValidateManifest {
@@ -842,7 +842,7 @@ mod tests {
     #[test]
     fn cli_parses_validate_datagram_startup_subcommand() {
         let cli = Cli::try_parse_from([
-            "ns-clientd",
+            "verta-clientd",
             "validate-datagram-startup",
             "--manifest",
             "fixtures/manifest/v1/valid/MF-MANIFEST-VALID-001.json",

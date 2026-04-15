@@ -38,7 +38,7 @@ use tokio::sync::oneshot;
 use url::Url;
 
 #[derive(Parser)]
-#[command(name = "ns-bridge")]
+#[command(name = "verta-bridge")]
 struct Cli {
     #[arg(long, default_value_t = false)]
     json_logs: bool,
@@ -103,11 +103,11 @@ impl BridgeStoreConfig {
             StoreBackend::File => Ok(self
                 .state_path
                 .clone()
-                .unwrap_or_else(|| PathBuf::from("var/ns-bridge/state.json"))),
+                .unwrap_or_else(|| PathBuf::from("var/verta-bridge/state.json"))),
             StoreBackend::Sqlite => Ok(self
                 .state_path
                 .clone()
-                .unwrap_or_else(|| PathBuf::from("var/ns-bridge/state.sqlite3"))),
+                .unwrap_or_else(|| PathBuf::from("var/verta-bridge/state.sqlite3"))),
             StoreBackend::Service => anyhow::bail!(
                 "service-backed bridge stores do not use --state-path; provide --service-store-endpoint instead"
             ),
@@ -432,7 +432,7 @@ fn deployment_scope_label(scope: ns_storage::BridgeStoreDeploymentScope) -> &'st
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    init_tracing("ns_bridge", cli.json_logs);
+    init_tracing("verta_bridge", cli.json_logs);
     let store_config = cli.store_config();
     let adapter_config = cli.remnawave_adapter_config();
 

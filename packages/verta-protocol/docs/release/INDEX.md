@@ -3,11 +3,10 @@
 This directory is the maintained `Phase N` release-closure surface for Verta.
 It is intentionally narrow: these docs freeze the release checklist, artifact story, supported environment matrix, and accepted limitations behind the final production-ready decision.
 
-Legacy naming note:
+Naming note:
 
 - `Verta` is the canonical public protocol name.
-- Maintained release artifacts now default to `target/verta/` and sustained workflow files now use `verta-*` names.
-- Compatibility mirrors under `target/verta/` remain readable during the migration window for existing consumers.
+- Maintained release artifacts live under `target/verta/` and sustained workflow files use `verta-*` names.
 
 ## Release Set
 

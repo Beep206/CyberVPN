@@ -16,7 +16,7 @@ use time::Duration;
 use tracing::info;
 
 #[derive(Parser)]
-#[command(name = "ns-gatewayd")]
+#[command(name = "verta-gatewayd")]
 struct Cli {
     #[arg(long, default_value_t = false)]
     json_logs: bool,
@@ -128,7 +128,7 @@ impl SessionModeArg {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    init_tracing("ns_gatewayd", cli.json_logs);
+    init_tracing("verta_gatewayd", cli.json_logs);
 
     match cli.command {
         Command::ValidateDatagramStartup {
@@ -648,7 +648,7 @@ mod tests {
     #[test]
     fn cli_parses_validate_hello_with_udp_session_mode() {
         let cli = Cli::try_parse_from([
-            "ns-gatewayd",
+            "verta-gatewayd",
             "validate-hello",
             "--token",
             "target/test-token.jwt",
@@ -684,7 +684,7 @@ mod tests {
     #[test]
     fn gateway_cli_parses_startup_validation_surface() {
         let cli = Cli::try_parse_from([
-            "ns-gatewayd",
+            "verta-gatewayd",
             "validate-datagram-startup",
             "--signed-datagram-enabled=false",
             "--datagram-rollout",
