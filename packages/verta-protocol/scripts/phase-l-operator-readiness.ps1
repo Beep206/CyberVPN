@@ -19,14 +19,14 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "phase-l-operator-readiness-signoff-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "phase-l-operator-readiness-signoff-summary.json"
-$summaryPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_SUMMARY_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_SUMMARY_PATH } elseif ($env:VERTA_PHASE_L_OPERATOR_READINESS_SUMMARY_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_SUMMARY_PATH } else { $canonicalSummaryPath }
-$runbookMatrixPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_RUNBOOK_MATRIX_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_RUNBOOK_MATRIX_PATH } elseif ($env:VERTA_PHASE_L_OPERATOR_READINESS_RUNBOOK_MATRIX_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_RUNBOOK_MATRIX_PATH } else { Join-Path $repoRoot "docs\\runbooks\\operator-recovery-matrix.json" }
+$summaryPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_SUMMARY_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_SUMMARY_PATH } else { $canonicalSummaryPath }
+$runbookMatrixPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_RUNBOOK_MATRIX_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_RUNBOOK_MATRIX_PATH } else { Join-Path $repoRoot "docs\\runbooks\\operator-recovery-matrix.json" }
 $canonicalProfileDisableDrillPath = Get-VertaOutputPath $repoRoot "remnawave-supported-upstream-lifecycle-summary.json"
 $legacyProfileDisableDrillPath = Get-VertaLegacyOutputPath $repoRoot "remnawave-supported-upstream-lifecycle-summary.json"
-$profileDisableDrillPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_PROFILE_DISABLE_DRILL_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_PROFILE_DISABLE_DRILL_PATH } elseif ($env:VERTA_PHASE_L_OPERATOR_READINESS_PROFILE_DISABLE_DRILL_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_PROFILE_DISABLE_DRILL_PATH } else { Resolve-VertaPreferredPath $canonicalProfileDisableDrillPath $legacyProfileDisableDrillPath }
+$profileDisableDrillPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_PROFILE_DISABLE_DRILL_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_PROFILE_DISABLE_DRILL_PATH } else { Resolve-VertaPreferredPath $canonicalProfileDisableDrillPath $legacyProfileDisableDrillPath }
 $canonicalRollbackDrillPath = Get-VertaOutputPath $repoRoot "operator-rollout-rollback-drill-summary.json"
 $legacyRollbackDrillPath = Get-VertaLegacyOutputPath $repoRoot "operator-rollout-rollback-drill-summary.json"
-$rollbackDrillPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_ROLLBACK_DRILL_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_ROLLBACK_DRILL_PATH } elseif ($env:VERTA_PHASE_L_OPERATOR_READINESS_ROLLBACK_DRILL_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_ROLLBACK_DRILL_PATH } else { Resolve-VertaPreferredPath $canonicalRollbackDrillPath $legacyRollbackDrillPath }
+$rollbackDrillPath = if ($env:VERTA_PHASE_L_OPERATOR_READINESS_ROLLBACK_DRILL_PATH) { $env:VERTA_PHASE_L_OPERATOR_READINESS_ROLLBACK_DRILL_PATH } else { Resolve-VertaPreferredPath $canonicalRollbackDrillPath $legacyRollbackDrillPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the Phase L operator-readiness wrapper."

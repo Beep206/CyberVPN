@@ -1,11 +1,11 @@
 # Verta Protocol Workspace
 
 This folder contains the imported Verta Rust workspace inside the CyberVPN monorepo.
-The canonical package path is `packages/verta-protocol`. During the migration window, legacy technical identifiers such as `ns-*`, `VERTA_*`, and `target/verta` remain valid.
+The canonical package path is `packages/verta-protocol`.
 
 It keeps the protocol project together under one package-style directory while preserving the original workspace structure:
 
-- `apps/` for `ns-bridge`, `ns-clientd`, `ns-gatewayd`, and `nsctl`
+- `apps/` for the internal app packages behind the public binaries `verta-bridge`, `verta-clientd`, `verta-gatewayd`, and `verta`
 - `crates/` for the protocol, bridge, manifest, session, storage, carrier, and testkit crates
 - `docs/` for specs, implementation notes, and operator-facing guidance
 - `fixtures/`, `fuzz/`, `integration/`, `scripts/`, and `tests/` for verification and release work
@@ -20,7 +20,8 @@ Important boundaries:
 Canonical naming note:
 
 - `Verta` is the public protocol name.
-- `Verta` remains the legacy technical name in some env vars, artifact paths, and internal identifiers until the compatibility window is closed.
+- `VERTA_*` env vars and `target/verta/` artifact paths are the maintained repository-level identifiers.
+- Internal crate and binary identifiers such as `ns-*` remain stable until an explicit internal-ID migration is approved.
 
 Repository-level metadata from the original workspace such as `.git/`, local `target/`, and editor/agent caches were intentionally not imported.
 

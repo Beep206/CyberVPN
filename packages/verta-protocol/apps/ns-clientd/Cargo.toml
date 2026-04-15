@@ -5,6 +5,12 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
+autobins = false
+default-run = "verta-clientd"
+
+[[bin]]
+name = "verta-clientd"
+path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true

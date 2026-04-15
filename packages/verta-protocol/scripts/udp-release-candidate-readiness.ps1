@@ -19,19 +19,19 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-release-candidate-readiness-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-candidate-readiness-summary.json"
-$summaryPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalReleaseCandidateStabilizationPath = Get-VertaOutputPath $repoRoot "udp-release-candidate-stabilization-summary.json"
 $legacyReleaseCandidateStabilizationPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-candidate-stabilization-summary.json"
-$releaseCandidateStabilizationPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseCandidateStabilizationPath $legacyReleaseCandidateStabilizationPath }
+$releaseCandidateStabilizationPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_RELEASE_CANDIDATE_STABILIZATION_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseCandidateStabilizationPath $legacyReleaseCandidateStabilizationPath }
 $canonicalLinuxReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-linux.json"
 $legacyLinuxReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-linux.json"
-$linuxReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalLinuxReadinessPath $legacyLinuxReadinessPath }
+$linuxReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_LINUX_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalLinuxReadinessPath $legacyLinuxReadinessPath }
 $canonicalMacosReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-macos.json"
 $legacyMacosReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-macos.json"
-$macosReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalMacosReadinessPath $legacyMacosReadinessPath }
+$macosReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_MACOS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalMacosReadinessPath $legacyMacosReadinessPath }
 $canonicalWindowsReadinessPath = Get-VertaOutputPath $repoRoot "udp-rollout-comparison-summary-windows.json"
 $legacyWindowsReadinessPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-comparison-summary-windows.json"
-$windowsReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH } elseif ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsReadinessPath $legacyWindowsReadinessPath }
+$windowsReadinessPath = if ($env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH) { $env:VERTA_UDP_RELEASE_CANDIDATE_READINESS_WINDOWS_READINESS_PATH } else { Resolve-VertaPreferredPath $canonicalWindowsReadinessPath $legacyWindowsReadinessPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP release candidate readiness wrapper."

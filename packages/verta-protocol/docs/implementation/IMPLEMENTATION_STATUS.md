@@ -3,10 +3,11 @@
 This document records the current milestone state of the Verta Rust workspace.
 It is intentionally descriptive: specs remain normative, and this file tracks how far the repository has actually progressed.
 
-Legacy naming note:
+Naming note:
 
 - `Verta` is the canonical public protocol name.
-- Historical milestone notes, spec filenames, package paths, env vars, artifact roots, and technical IDs may still use `Verta` during the migration window.
+- Repository-level package paths, workflow names, env vars, and artifact roots now use `Verta`.
+- Internal crate and binary identifiers such as `ns-*` remain stable technical IDs.
 
 ## Snapshot
 

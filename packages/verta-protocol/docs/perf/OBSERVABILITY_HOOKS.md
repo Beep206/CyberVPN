@@ -267,7 +267,7 @@ The maintained staged-rollout recipe now emits machine-readable JSON artifacts i
 - `target/verta/udp-interop-profile-catalog-macos.json`
 - `target/verta/udp-interop-profile-catalog-windows.json`
 
-Legacy mirrors under `target/verta/` remain readable for existing consumers during the migration window.
+Summary artifacts live under `target/verta/`.
 
 Summary-layer rules:
 

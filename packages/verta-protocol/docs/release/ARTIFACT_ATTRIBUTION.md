@@ -3,11 +3,10 @@
 Verta `Phase N` does not invent a new artifact format.
 It closes the release using already accepted machine-readable summaries and one final git-attributed signoff record.
 
-Legacy naming note:
+Naming note:
 
 - The public release identity is `Verta`.
-- Accepted machine-readable summaries now default to `target/verta/`.
-- Compatibility mirrors under `target/verta/` remain readable during the migration window.
+- Accepted machine-readable summaries live under `target/verta/`.
 
 ## Attributable Inputs
 

@@ -19,8 +19,8 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-net-chaos-campaign-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-net-chaos-campaign-summary.json"
-$summaryPath = if ($env:VERTA_UDP_NET_CHAOS_SUMMARY_PATH) { $env:VERTA_UDP_NET_CHAOS_SUMMARY_PATH } elseif ($env:VERTA_UDP_NET_CHAOS_SUMMARY_PATH) { $env:VERTA_UDP_NET_CHAOS_SUMMARY_PATH } else { $canonicalSummaryPath }
-$artifactRoot = if ($env:VERTA_UDP_NET_CHAOS_ARTIFACT_ROOT) { $env:VERTA_UDP_NET_CHAOS_ARTIFACT_ROOT } elseif ($env:VERTA_UDP_NET_CHAOS_ARTIFACT_ROOT) { $env:VERTA_UDP_NET_CHAOS_ARTIFACT_ROOT } else { Get-VertaOutputPath $repoRoot "net-chaos" }
+$summaryPath = if ($env:VERTA_UDP_NET_CHAOS_SUMMARY_PATH) { $env:VERTA_UDP_NET_CHAOS_SUMMARY_PATH } else { $canonicalSummaryPath }
+$artifactRoot = if ($env:VERTA_UDP_NET_CHAOS_ARTIFACT_ROOT) { $env:VERTA_UDP_NET_CHAOS_ARTIFACT_ROOT } else { Get-VertaOutputPath $repoRoot "net-chaos" }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP net-chaos wrapper."

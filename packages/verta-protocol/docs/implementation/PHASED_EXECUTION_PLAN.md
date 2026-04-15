@@ -3,10 +3,11 @@
 This document replaces the original bootstrap-only phase outline with a full plan from the current milestone-56 baseline to a production-ready Verta v0.1 release.
 It is intentionally execution-oriented: the specs under `docs/spec/` remain normative, while this file defines the delivery phases, stop rules, and exit criteria we will use to finish the project without endless scope drift.
 
-Legacy naming note:
+Naming note:
 
 - `Verta` is the canonical public protocol name.
-- Historical spec filenames, package paths, workflow filenames, env vars, and artifact roots may still use `Verta` during the migration window.
+- Package paths, workflow filenames, env vars, and artifact roots now use `Verta`.
+- Internal crate and binary identifiers such as `ns-*` remain stable technical IDs.
 
 ## Governing Inputs
 

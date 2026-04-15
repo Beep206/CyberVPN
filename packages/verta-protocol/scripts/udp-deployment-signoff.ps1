@@ -19,13 +19,13 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-deployment-signoff-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-deployment-signoff-summary.json"
-$summaryPath = if ($env:VERTA_UDP_DEPLOYMENT_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_DEPLOYMENT_SIGNOFF_SUMMARY_PATH } elseif ($env:VERTA_UDP_DEPLOYMENT_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_DEPLOYMENT_SIGNOFF_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_DEPLOYMENT_SIGNOFF_SUMMARY_PATH) { $env:VERTA_UDP_DEPLOYMENT_SIGNOFF_SUMMARY_PATH } else { $canonicalSummaryPath }
 $canonicalReleaseWorkflowPath = Get-VertaOutputPath $repoRoot "udp-release-workflow-summary.json"
 $legacyReleaseWorkflowPath = Get-VertaLegacyOutputPath $repoRoot "udp-release-workflow-summary.json"
-$releaseWorkflowPath = if ($env:VERTA_UDP_DEPLOYMENT_SIGNOFF_RELEASE_WORKFLOW_PATH) { $env:VERTA_UDP_DEPLOYMENT_SIGNOFF_RELEASE_WORKFLOW_PATH } elseif ($env:VERTA_UDP_DEPLOYMENT_SIGNOFF_RELEASE_WORKFLOW_PATH) { $env:VERTA_UDP_DEPLOYMENT_SIGNOFF_RELEASE_WORKFLOW_PATH } elseif ($env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH } elseif ($env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseWorkflowPath $legacyReleaseWorkflowPath }
+$releaseWorkflowPath = if ($env:VERTA_UDP_DEPLOYMENT_SIGNOFF_RELEASE_WORKFLOW_PATH) { $env:VERTA_UDP_DEPLOYMENT_SIGNOFF_RELEASE_WORKFLOW_PATH } elseif ($env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH) { $env:VERTA_UDP_RELEASE_WORKFLOW_SUMMARY_PATH } else { Resolve-VertaPreferredPath $canonicalReleaseWorkflowPath $legacyReleaseWorkflowPath }
 $canonicalValidationPath = Get-VertaOutputPath $repoRoot "udp-rollout-validation-summary-windows.json"
 $legacyValidationPath = Get-VertaLegacyOutputPath $repoRoot "udp-rollout-validation-summary-windows.json"
-$validationPath = if ($env:VERTA_UDP_DEPLOYMENT_VALIDATION_PATH) { $env:VERTA_UDP_DEPLOYMENT_VALIDATION_PATH } elseif ($env:VERTA_UDP_DEPLOYMENT_VALIDATION_PATH) { $env:VERTA_UDP_DEPLOYMENT_VALIDATION_PATH } else { Resolve-VertaPreferredPath $canonicalValidationPath $legacyValidationPath }
+$validationPath = if ($env:VERTA_UDP_DEPLOYMENT_VALIDATION_PATH) { $env:VERTA_UDP_DEPLOYMENT_VALIDATION_PATH } else { Resolve-VertaPreferredPath $canonicalValidationPath $legacyValidationPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP deployment signoff wrapper."
