@@ -1,0 +1,199 @@
+{
+  "summary_version": 1,
+  "phase": "phase_l_operator_readiness",
+  "shared_documents": [
+    "docs/runbooks/INDEX.md",
+    "docs/runbooks/RECOVERY_BOUNDARIES.md"
+  ],
+  "incidents": [
+    {
+      "incident_id": "upstream_outage",
+      "title": "Remnawave upstream outage",
+      "runbook_path": "docs/runbooks/REMNAWAVE_UPSTREAM_OUTAGE.md",
+      "safe_state_actions": [
+        "deny bootstrap, refresh, and token issuance when upstream truth is stale or unavailable",
+        "preserve shared durable store state and prior evidence artifacts"
+      ],
+      "operator_visible_signals": [
+        "upstream_unavailable_detected",
+        "upstream_timeout_detected",
+        "upstream_stale_detected"
+      ],
+      "escalation_triggers": [
+        "supported-upstream verification remains red after upstream health is restored",
+        "account lifecycle cannot be reconciled from webhook and refresh evidence"
+      ],
+      "recoverable_artifacts": [
+        "shared durable store state",
+        "last verified manifest snapshots",
+        "prior release evidence bundles"
+      ],
+      "nonrecoverable_artifacts": [
+        "upstream mutations that never reached Verta before the outage"
+      ],
+      "requires_rotation": false,
+      "requires_re_registration": false,
+      "primary_commands": [
+        "bash scripts/remnawave-supported-upstream-verify.sh"
+      ]
+    },
+    {
+      "incident_id": "bridge_auth_drift",
+      "title": "Bridge auth drift",
+      "runbook_path": "docs/runbooks/BRIDGE_AUTH_DRIFT_AND_SECRET_ROTATION.md",
+      "safe_state_actions": [
+        "fail closed on bridge auth and store auth mismatches",
+        "do not bypass store-service auth during recovery"
+      ],
+      "operator_visible_signals": [
+        "upstream_auth_failure_detected",
+        "remote store auth mismatch",
+        "unauthorized primary store access"
+      ],
+      "escalation_triggers": [
+        "rotated or corrected credentials still fail on a clean rerun",
+        "operators cannot determine whether the incident is drift or compromise"
+      ],
+      "recoverable_artifacts": [
+        "durable bridge store contents",
+        "deployment labels",
+        "existing release evidence"
+      ],
+      "nonrecoverable_artifacts": [
+        "bridge or store credentials exposed outside the intended trust boundary"
+      ],
+      "requires_rotation": true,
+      "requires_re_registration": false,
+      "primary_commands": [
+        "bash scripts/remnawave-supported-upstream-verify.sh",
+        "bash scripts/operator-profile-disable-drill.sh"
+      ]
+    },
+    {
+      "incident_id": "secret_rotation",
+      "title": "Secret rotation",
+      "runbook_path": "docs/runbooks/BRIDGE_AUTH_DRIFT_AND_SECRET_ROTATION.md",
+      "safe_state_actions": [
+        "rotate credentials atomically for the affected trust boundary",
+        "re-run the maintained verification lane before reopening traffic"
+      ],
+      "operator_visible_signals": [
+        "confirmed token rotation event",
+        "webhook signature mismatch",
+        "store-service auth mismatch"
+      ],
+      "escalation_triggers": [
+        "rotation cannot be completed atomically across the deployment label",
+        "credential rotation restores auth but replay or lifecycle behavior stays inconsistent"
+      ],
+      "recoverable_artifacts": [
+        "durable bridge store contents",
+        "deployment metadata",
+        "verification summaries"
+      ],
+      "nonrecoverable_artifacts": [
+        "compromised secrets that have already leaked"
+      ],
+      "requires_rotation": true,
+      "requires_re_registration": false,
+      "primary_commands": [
+        "bash scripts/remnawave-supported-upstream-verify.sh",
+        "bash scripts/operator-profile-disable-drill.sh"
+      ]
+    },
+    {
+      "incident_id": "replay_cache_webhook",
+      "title": "Replay cache and webhook recovery",
+      "runbook_path": "docs/runbooks/REPLAY_CACHE_AND_WEBHOOK_RECOVERY.md",
+      "safe_state_actions": [
+        "preserve shared durable replay and webhook state",
+        "prefer deterministic denial over ambiguous replay recovery"
+      ],
+      "operator_visible_signals": [
+        "webhook_duplicate_rejection_passed=false",
+        "webhook_reconcile_hint_passed=false",
+        "replay_sensitive_inconsistency_detected"
+      ],
+      "escalation_triggers": [
+        "duplicate webhook rejection still fails after backend health is restored",
+        "replay drift cannot be localized to one deployment label or backend boundary"
+      ],
+      "recoverable_artifacts": [
+        "shared durable replay cache",
+        "webhook delivery records",
+        "deployment-reality evidence"
+      ],
+      "nonrecoverable_artifacts": [
+        "duplicate external side effects already accepted before replay rejection was restored"
+      ],
+      "requires_rotation": false,
+      "requires_re_registration": false,
+      "primary_commands": [
+        "bash scripts/operator-profile-disable-drill.sh",
+        "bash scripts/remnawave-supported-upstream-deployment-reality-verify.sh"
+      ]
+    },
+    {
+      "incident_id": "profile_disable",
+      "title": "Profile disable",
+      "runbook_path": "docs/runbooks/PROFILE_DISABLE_AND_ROLLBACK.md",
+      "safe_state_actions": [
+        "deny bootstrap, refresh, and token exchange after the upstream lifecycle transition",
+        "keep release promotion blocked until the disable drill is green again"
+      ],
+      "operator_visible_signals": [
+        "lifecycle_transition_observed",
+        "lifecycle_bridge_manifest_bootstrap_denied",
+        "lifecycle_bridge_token_exchange_denied"
+      ],
+      "escalation_triggers": [
+        "disable denies are inconsistent across bootstrap, refresh, and token exchange",
+        "webhook or reconcile behavior does not converge after disable"
+      ],
+      "recoverable_artifacts": [
+        "shared durable bridge state",
+        "supported-upstream lifecycle evidence",
+        "release evidence bundles"
+      ],
+      "nonrecoverable_artifacts": [
+        "disabled or revoked device grants that must be bootstraped again"
+      ],
+      "requires_rotation": false,
+      "requires_re_registration": true,
+      "primary_commands": [
+        "bash scripts/operator-profile-disable-drill.sh"
+      ]
+    },
+    {
+      "incident_id": "rollback",
+      "title": "Rollout rollback",
+      "runbook_path": "docs/runbooks/PROFILE_DISABLE_AND_ROLLBACK.md",
+      "safe_state_actions": [
+        "force the explicit maintained stream-fallback safe state",
+        "preserve rollback artifacts and keep release promotion blocked"
+      ],
+      "operator_visible_signals": [
+        "degradation_path_visibility_passed",
+        "transport_fallback_integrity_surface_passed",
+        "udp-blocked"
+      ],
+      "escalation_triggers": [
+        "rollback drill cannot prove explicit fallback with retained artifacts",
+        "fallback integrity or degradation visibility is no longer true"
+      ],
+      "recoverable_artifacts": [
+        "rollback packet captures",
+        "release evidence artifacts",
+        "machine-readable rollback summary"
+      ],
+      "nonrecoverable_artifacts": [
+        "rollout state advanced without preserved evidence"
+      ],
+      "requires_rotation": false,
+      "requires_re_registration": false,
+      "primary_commands": [
+        "bash scripts/operator-rollout-rollback-drill.sh"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "jwks": {
+    "keys": [
+      {
+        "alg": "EdDSA",
+        "crv": "Ed25519",
+        "kid": "fixture-token-key-1",
+        "kty": "OKP",
+        "x": "RQigeqlBcH8-stuUyIl6gLLBGXR2tt4hOsJz332GxP8"
+      }
+    ]
+  },
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUtdG9rZW4ta2V5LTEifQ.eyJpc3MiOiJicmlkZ2UuZXhhbXBsZSIsImF1ZCI6InZlcnRhLWdhdGV3YXkiLCJzdWIiOiJhY2N0LTEiLCJqdGkiOiJucy0xNzc1MDAyMjAwMDAwMDAwMDAwIiwiaWF0IjoxNzc1MDAyMjAwLCJuYmYiOjE3NzUwMDIyMDAsImV4cCI6MTc3NTAwMjUwMCwiZGV2aWNlX2lkIjoiZGV2aWNlLTEiLCJtYW5pZmVzdF9pZCI6Im1hbi0yMDI2LTA0LTAxLTAwMSIsInBvbGljeV9lcG9jaCI6NywiY29yZV92ZXJzaW9ucyI6WzFdLCJjYXJyaWVyX3Byb2ZpbGVzIjpbImNhcnJpZXItcHJpbWFyeSJdLCJjYXBhYmlsaXRpZXMiOlsxLDJdLCJzZXNzaW9uX21vZGVzIjpbInRjcCJdLCJyZWdpb25fc2NvcGUiOiJldS1jZW50cmFsIiwidG9rZW5fbWF4X3JlbGF5X3N0cmVhbXMiOjgsInRva2VuX21heF91ZHBfZmxvd3MiOjQsInRva2VuX21heF91ZHBfcGF5bG9hZCI6MTIwMH0.BBD9yUOAmbEpMlyeq5fAz0a29SX2fouHTTgmqJg0VUpysUdEL9TJ98SUUfApjpIKs4Zz0tlRYyh1yjNfaKQYDw"
+}
