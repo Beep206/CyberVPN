@@ -1,0 +1,132 @@
+name: verta-udp-scheduled-verification
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verta-udp-scheduled-${{ github.ref_name || 'nightly' }}
+  cancel-in-progress: false
+
+jobs:
+  udp-staged-rollout-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: packages/verta-protocol
+    env:
+      VERTA_ENABLE_UDP_ACTIVE_FUZZ: "1"
+      VERTA_UDP_ROLLOUT_COMPARE_PROFILE: staged_rollout
+      VERTA_UDP_FUZZ_SMOKE_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-fuzz-smoke-summary-linux-staged.json
+      VERTA_UDP_PERF_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-perf-gate-summary-linux-staged.json
+      VERTA_UDP_INTEROP_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-interop-lab-summary-linux-staged.json
+      VERTA_UDP_ROLLOUT_VALIDATION_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-rollout-validation-summary-linux-staged.json
+      VERTA_UDP_ACTIVE_FUZZ_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-active-fuzz-summary-linux-staged.json
+      VERTA_UDP_ROLLOUT_COMPARISON_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-rollout-comparison-summary-linux-staged.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust nightly toolchain
+        run: rustup toolchain install nightly --profile minimal
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run staged nightly rollout-readiness gate
+        run: bash scripts/udp-rollout-readiness.sh
+
+      - name: Record staged nightly environment metadata
+        run: |
+          cat > target/verta/udp-scheduled-linux-environment.json <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "job": "${{ github.job }}",
+            "os": "${{ runner.os }}",
+            "runner": "${{ runner.name }}",
+            "arch": "${{ runner.arch }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}"
+          }
+          EOF
+
+      - name: Upload staged nightly evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: verta-udp-scheduled-linux-staged
+          retention-days: 30
+          path: |
+            packages/verta-protocol/target/verta/udp-fuzz-smoke-summary-linux-staged.json
+            packages/verta-protocol/target/verta/udp-perf-gate-summary-linux-staged.json
+            packages/verta-protocol/target/verta/udp-interop-lab-summary-linux-staged.json
+            packages/verta-protocol/target/verta/udp-rollout-validation-summary-linux-staged.json
+            packages/verta-protocol/target/verta/udp-active-fuzz-summary-linux-staged.json
+            packages/verta-protocol/target/verta/udp-rollout-comparison-summary-linux-staged.json
+            packages/verta-protocol/target/verta/udp-scheduled-linux-environment.json
+
+  udp-net-chaos-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: packages/verta-protocol
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install net-chaos host dependencies
+        run: sudo apt-get update && sudo apt-get install -y iproute2 tcpdump
+
+      - name: Run nightly net-chaos campaign
+        run: |
+          bash scripts/udp-net-chaos-campaign.sh \
+            --all \
+            --format json \
+            --deployment-label github-actions-nightly \
+            --host-label linux-nightly \
+            --artifact-root "$GITHUB_WORKSPACE/packages/verta-protocol/target/verta/net-chaos-campaign"
+
+      - name: Record net-chaos environment metadata
+        run: |
+          cat > target/verta/udp-net-chaos-linux-environment.json <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "job": "${{ github.job }}",
+            "os": "${{ runner.os }}",
+            "runner": "${{ runner.name }}",
+            "arch": "${{ runner.arch }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}"
+          }
+          EOF
+
+      - name: Upload nightly net-chaos evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: verta-udp-scheduled-net-chaos
+          retention-days: 30
+          path: |
+            packages/verta-protocol/target/verta/udp-net-chaos-campaign-summary.json
+            packages/verta-protocol/target/verta/net-chaos-campaign
+            packages/verta-protocol/target/verta/udp-net-chaos-linux-environment.json

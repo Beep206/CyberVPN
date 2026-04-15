@@ -6,6 +6,14 @@ https://panel.localhost {
     tls internal
 }
 
+http://localhost, http://127.0.0.1 {
+    reverse_proxy remnawave:3000 {
+        header_up Host "panel.localhost"
+        header_up X-Forwarded-Proto "https"
+        header_up X-Forwarded-For {remote_host}
+    }
+}
+
 https://sub.localhost {
     reverse_proxy remnawave-subscription-page:3010 {
         header_up X-Forwarded-Proto "https"

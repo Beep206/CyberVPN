@@ -1,0 +1,52 @@
+{
+  "summary_version": 1,
+  "phase": "phase_n_production_ready_closure",
+  "release_scope": "verta_v0_1",
+  "limitations": [
+    {
+      "limitation_id": "single_carrier_h3_only",
+      "category": "carrier",
+      "summary": "Verta v0.1 supports only the ns-carrier-h3 first-carrier path.",
+      "blocking": false,
+      "accepted": true,
+      "out_of_scope": true,
+      "refs": [
+        "packages/verta-protocol/docs/transport/FIRST_CARRIER_NOTES.md"
+      ]
+    },
+    {
+      "limitation_id": "zero_rtt_disabled",
+      "category": "security_policy",
+      "summary": "0-RTT remains intentionally disabled unless a normative decision changes that rule.",
+      "blocking": false,
+      "accepted": true,
+      "out_of_scope": true,
+      "refs": [
+        "packages/verta-protocol/docs/spec/verta_blueprint_v0.md"
+      ]
+    },
+    {
+      "limitation_id": "client_inbound_placeholder",
+      "category": "scope",
+      "summary": "The ns-client-inbound crate remains placeholder-only and outside the production-critical path.",
+      "blocking": false,
+      "accepted": true,
+      "out_of_scope": true,
+      "refs": [
+        "packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md"
+      ]
+    },
+    {
+      "limitation_id": "multi_host_release_evidence_ci_driven",
+      "category": "verification",
+      "summary": "The multi-host release-evidence chain is sustained through workflow definitions and required checks, while local closure re-verifies the local supported staging environment.",
+      "blocking": false,
+      "accepted": true,
+      "out_of_scope": false,
+      "refs": [
+        ".github/workflows/verta-udp-release-evidence.yml",
+        "packages/verta-protocol/docs/development/SUSTAINED_VERIFICATION_GATES.md"
+      ]
+    }
+  ]
+}
