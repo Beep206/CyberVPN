@@ -6,20 +6,20 @@
 
 **Architecture:** Reuse existing maintained evidence instead of inventing a new control plane. `Phase L` adds a runbook set plus one machine-readable recovery matrix in docs, a cheap local rollback drill wrapper over the maintained `udp-blocked` net-chaos profile, and a `Phase L` signoff example that consumes the runbook matrix, real supported-upstream lifecycle evidence, and rollback-drill evidence.
 
-**Tech Stack:** Markdown, JSON, Bash, PowerShell, Rust `ns-testkit` examples, existing Northstar summary schemas.
+**Tech Stack:** Markdown, JSON, Bash, PowerShell, Rust `ns-testkit` examples, existing Verta summary schemas.
 
 ---
 
 ### Task 1: Add operator-facing docs and recovery matrix
 
 **Files:**
-- Create: `packages/northstar-protocol/docs/runbooks/INDEX.md`
-- Create: `packages/northstar-protocol/docs/runbooks/REMNAWAVE_UPSTREAM_OUTAGE.md`
-- Create: `packages/northstar-protocol/docs/runbooks/BRIDGE_AUTH_DRIFT_AND_SECRET_ROTATION.md`
-- Create: `packages/northstar-protocol/docs/runbooks/REPLAY_CACHE_AND_WEBHOOK_RECOVERY.md`
-- Create: `packages/northstar-protocol/docs/runbooks/PROFILE_DISABLE_AND_ROLLBACK.md`
-- Create: `packages/northstar-protocol/docs/runbooks/RECOVERY_BOUNDARIES.md`
-- Create: `packages/northstar-protocol/docs/runbooks/operator-recovery-matrix.json`
+- Create: `packages/verta-protocol/docs/runbooks/INDEX.md`
+- Create: `packages/verta-protocol/docs/runbooks/REMNAWAVE_UPSTREAM_OUTAGE.md`
+- Create: `packages/verta-protocol/docs/runbooks/BRIDGE_AUTH_DRIFT_AND_SECRET_ROTATION.md`
+- Create: `packages/verta-protocol/docs/runbooks/REPLAY_CACHE_AND_WEBHOOK_RECOVERY.md`
+- Create: `packages/verta-protocol/docs/runbooks/PROFILE_DISABLE_AND_ROLLBACK.md`
+- Create: `packages/verta-protocol/docs/runbooks/RECOVERY_BOUNDARIES.md`
+- Create: `packages/verta-protocol/docs/runbooks/operator-recovery-matrix.json`
 
 **Step 1:** Write the runbook set around the exact `Phase L` scope from `docs/implementation/PHASED_EXECUTION_PLAN.md`.
 
@@ -30,12 +30,12 @@
 ### Task 2: Add rollback drill wrappers
 
 **Files:**
-- Create: `packages/northstar-protocol/scripts/operator-rollout-rollback-drill.sh`
-- Create: `packages/northstar-protocol/scripts/operator-rollout-rollback-drill.ps1`
-- Create: `packages/northstar-protocol/scripts/operator-profile-disable-drill.sh`
-- Create: `packages/northstar-protocol/scripts/operator-profile-disable-drill.ps1`
+- Create: `packages/verta-protocol/scripts/operator-rollout-rollback-drill.sh`
+- Create: `packages/verta-protocol/scripts/operator-rollout-rollback-drill.ps1`
+- Create: `packages/verta-protocol/scripts/operator-profile-disable-drill.sh`
+- Create: `packages/verta-protocol/scripts/operator-profile-disable-drill.ps1`
 
-**Step 1:** Make the rollback drill run the maintained `udp-blocked` net-chaos profile only, with default artifact and summary paths under `target/northstar/`.
+**Step 1:** Make the rollback drill run the maintained `udp-blocked` net-chaos profile only, with default artifact and summary paths under `target/verta/`.
 
 **Step 2:** Make the profile-disable drill delegate to the maintained supported-upstream lifecycle wrapper so operators use one clear command name.
 
@@ -44,26 +44,26 @@
 ### Task 3: Add Phase L machine-readable signoff
 
 **Files:**
-- Create: `packages/northstar-protocol/crates/ns-testkit/examples/phase_l_operator_readiness_signoff.rs`
-- Create: `packages/northstar-protocol/scripts/phase-l-operator-readiness.sh`
-- Create: `packages/northstar-protocol/scripts/phase-l-operator-readiness.ps1`
+- Create: `packages/verta-protocol/crates/ns-testkit/examples/phase_l_operator_readiness_signoff.rs`
+- Create: `packages/verta-protocol/scripts/phase-l-operator-readiness.sh`
+- Create: `packages/verta-protocol/scripts/phase-l-operator-readiness.ps1`
 
 **Step 1:** Build a fail-closed `ns-testkit` example that consumes:
 - `docs/runbooks/operator-recovery-matrix.json`
-- `target/northstar/remnawave-supported-upstream-lifecycle-summary.json`
-- `target/northstar/operator-rollout-rollback-drill-summary.json`
+- `target/verta/remnawave-supported-upstream-lifecycle-summary.json`
+- `target/verta/operator-rollout-rollback-drill-summary.json`
 
 **Step 2:** Require exact incident coverage, shared runbook docs, observability mapping, recoverable-vs-rotation boundaries, a passed profile-disable drill, and a passed rollback drill.
 
-**Step 3:** Make the Bash wrapper run the rollback drill first, then emit `target/northstar/phase-l-operator-readiness-signoff-summary.json`.
+**Step 3:** Make the Bash wrapper run the rollback drill first, then emit `target/verta/phase-l-operator-readiness-signoff-summary.json`.
 
 ### Task 4: Verification and doc sync
 
 **Files:**
-- Modify: `packages/northstar-protocol/docs/development/VERIFICATION_COMMANDS.md`
-- Modify: `packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
-- Modify: `packages/northstar-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
-- Create: `packages/northstar-protocol/docs/implementation/MILESTONE_54_IMPLEMENTATION_NOTES.md`
+- Modify: `packages/verta-protocol/docs/development/VERIFICATION_COMMANDS.md`
+- Modify: `packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
+- Modify: `packages/verta-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
+- Create: `packages/verta-protocol/docs/implementation/MILESTONE_54_IMPLEMENTATION_NOTES.md`
 
 **Step 1:** Run `cargo test -p ns-testkit --example phase_l_operator_readiness_signoff -- --nocapture`.
 

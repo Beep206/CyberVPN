@@ -1,0 +1,107 @@
+name: verta-udp-bounded-verification
+
+on:
+  pull_request:
+    paths:
+      - "packages/verta-protocol/**"
+      - ".github/workflows/verta-udp-bounded-verification.yml"
+      - ".github/workflows/verta-udp-scheduled-verification.yml"
+      - ".github/workflows/verta-udp-release-evidence.yml"
+  push:
+    branches:
+      - main
+      - "release/**"
+      - "rc/**"
+    paths:
+      - "packages/verta-protocol/**"
+      - ".github/workflows/verta-udp-bounded-verification.yml"
+      - ".github/workflows/verta-udp-scheduled-verification.yml"
+      - ".github/workflows/verta-udp-release-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verta-udp-bounded-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workspace-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: packages/verta-protocol
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run workspace baseline checks
+        run: bash scripts/check.sh
+
+  udp-rollout-readiness-linux:
+    runs-on: ubuntu-latest
+    needs: workspace-baseline
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: packages/verta-protocol
+    env:
+      VERTA_UDP_FUZZ_SMOKE_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-fuzz-smoke-summary-linux.json
+      VERTA_UDP_PERF_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-perf-gate-summary-linux.json
+      VERTA_UDP_INTEROP_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-interop-lab-summary-linux.json
+      VERTA_UDP_ROLLOUT_VALIDATION_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-rollout-validation-summary-linux.json
+      VERTA_UDP_ROLLOUT_COMPARISON_SUMMARY_PATH: ${{ github.workspace }}/packages/verta-protocol/target/verta/udp-rollout-comparison-summary-linux.json
+      VERTA_UDP_INTEROP_CATALOG_HOST_LABEL: linux
+      VERTA_UDP_INTEROP_CATALOG_SOURCE_LANE: compatible_host_interop_lab
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run bounded Linux rollout-readiness gate
+        run: |
+          bash scripts/udp-rollout-readiness.sh
+          cargo run -p ns-testkit --example udp_interop_lab -- --list --format json > target/verta/udp-interop-profile-catalog-linux.json
+
+      - name: Record bounded-gate environment metadata
+        run: |
+          cat > target/verta/udp-bounded-linux-environment.json <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "job": "${{ github.job }}",
+            "os": "${{ runner.os }}",
+            "runner": "${{ runner.name }}",
+            "arch": "${{ runner.arch }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${{ github.sha }}"
+          }
+          EOF
+
+      - name: Upload bounded Linux evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: verta-udp-bounded-linux
+          retention-days: 14
+          path: |
+            packages/verta-protocol/target/verta/udp-fuzz-smoke-summary-linux.json
+            packages/verta-protocol/target/verta/udp-perf-gate-summary-linux.json
+            packages/verta-protocol/target/verta/udp-interop-lab-summary-linux.json
+            packages/verta-protocol/target/verta/udp-rollout-validation-summary-linux.json
+            packages/verta-protocol/target/verta/udp-rollout-comparison-summary-linux.json
+            packages/verta-protocol/target/verta/udp-interop-profile-catalog-linux.json
+            packages/verta-protocol/target/verta/udp-bounded-linux-environment.json

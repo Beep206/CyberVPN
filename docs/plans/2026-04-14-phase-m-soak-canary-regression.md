@@ -13,12 +13,12 @@
 ### Task 1: Restore repeatable local supported-upstream env derivation
 
 **Files:**
-- Create: `packages/northstar-protocol/scripts/with-local-remnawave-supported-upstream-env.sh`
-- Create: `packages/northstar-protocol/scripts/with-local-remnawave-supported-upstream-env.ps1`
-- Modify: `packages/northstar-protocol/scripts/operator-profile-disable-drill.sh`
-- Modify: `packages/northstar-protocol/scripts/operator-profile-disable-drill.ps1`
-- Modify: `packages/northstar-protocol/scripts/remnawave-supported-upstream-phase-i-signoff.sh`
-- Modify: `packages/northstar-protocol/scripts/remnawave-supported-upstream-phase-i-signoff.ps1`
+- Create: `packages/verta-protocol/scripts/with-local-remnawave-supported-upstream-env.sh`
+- Create: `packages/verta-protocol/scripts/with-local-remnawave-supported-upstream-env.ps1`
+- Modify: `packages/verta-protocol/scripts/operator-profile-disable-drill.sh`
+- Modify: `packages/verta-protocol/scripts/operator-profile-disable-drill.ps1`
+- Modify: `packages/verta-protocol/scripts/remnawave-supported-upstream-phase-i-signoff.sh`
+- Modify: `packages/verta-protocol/scripts/remnawave-supported-upstream-phase-i-signoff.ps1`
 
 **Step 1:** Derive local Phase I env from `infra/.env`, `docker inspect remnawave`, and `docker exec remnawave-db`.
 
@@ -29,10 +29,10 @@
 ### Task 2: Document the Phase M contract
 
 **Files:**
-- Create: `packages/northstar-protocol/docs/runbooks/PHASE_M_SOAK_AND_CANARY.md`
-- Create: `packages/northstar-protocol/docs/runbooks/phase-m-canary-plan.json`
-- Create: `packages/northstar-protocol/docs/development/REGRESSION_BUG_BAR.md`
-- Create: `packages/northstar-protocol/docs/development/phase-m-regression-ledger.json`
+- Create: `packages/verta-protocol/docs/runbooks/PHASE_M_SOAK_AND_CANARY.md`
+- Create: `packages/verta-protocol/docs/runbooks/phase-m-canary-plan.json`
+- Create: `packages/verta-protocol/docs/development/REGRESSION_BUG_BAR.md`
+- Create: `packages/verta-protocol/docs/development/phase-m-regression-ledger.json`
 
 **Step 1:** Fix the agreed local soak environment, canary stages, rollback triggers, and minimum duration in a runbook and JSON plan.
 
@@ -43,11 +43,11 @@
 ### Task 3: Implement the bounded soak/canary signoff lane
 
 **Files:**
-- Create: `packages/northstar-protocol/crates/ns-testkit/examples/phase_m_soak_canary_signoff.rs`
-- Create: `packages/northstar-protocol/scripts/phase-m-soak-canary.sh`
-- Create: `packages/northstar-protocol/scripts/phase-m-soak-canary.ps1`
+- Create: `packages/verta-protocol/crates/ns-testkit/examples/phase_m_soak_canary_signoff.rs`
+- Create: `packages/verta-protocol/scripts/phase-m-soak-canary.sh`
+- Create: `packages/verta-protocol/scripts/phase-m-soak-canary.ps1`
 
-**Step 1:** Write the fail-closed signoff example that loads the canary plan, regression ledger, Phase I baseline, WAN baseline, and per-stage lifecycle/rollback/Phase L summaries from `target/northstar/phase-m-soak/`.
+**Step 1:** Write the fail-closed signoff example that loads the canary plan, regression ledger, Phase I baseline, WAN baseline, and per-stage lifecycle/rollback/Phase L summaries from `target/verta/phase-m-soak/`.
 
 **Step 2:** Require exact stage coverage (`canary_5`, `canary_25`, `canary_100`), minimum duration compliance, rollback proof, `Phase I`/WAN baselines ready, and zero open `P0`/`P1`.
 
@@ -58,11 +58,11 @@
 ### Task 4: Sync docs and verify the phase
 
 **Files:**
-- Modify: `packages/northstar-protocol/docs/runbooks/INDEX.md`
-- Modify: `packages/northstar-protocol/docs/development/VERIFICATION_COMMANDS.md`
-- Create: `packages/northstar-protocol/docs/implementation/MILESTONE_55_IMPLEMENTATION_NOTES.md`
-- Modify: `packages/northstar-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
-- Modify: `packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
+- Modify: `packages/verta-protocol/docs/runbooks/INDEX.md`
+- Modify: `packages/verta-protocol/docs/development/VERIFICATION_COMMANDS.md`
+- Create: `packages/verta-protocol/docs/implementation/MILESTONE_55_IMPLEMENTATION_NOTES.md`
+- Modify: `packages/verta-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
+- Modify: `packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
 
 **Step 1:** Add the new commands and docs to the maintained reference surfaces.
 
