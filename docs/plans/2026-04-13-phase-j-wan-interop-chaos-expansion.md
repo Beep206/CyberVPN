@@ -15,17 +15,17 @@ As of `2026-04-13`, this plan is complete:
 
 **Architecture:** Keep the existing deterministic `udp_interop_lab` profile catalog and release-shaped verdict chain as the contract anchor. Add two new evidence surfaces in `ns-testkit`: one staging/WAN-backed datagram lane and one explicit net-chaos campaign lane. Feed their machine-readable summaries into the current release-candidate consumers so operators can distinguish deterministic lab evidence from broader deployment evidence and retain enough artifacts for diagnosis.
 
-**Tech Stack:** Rust workspace (`ns-testkit`, `ns-carrier-h3`), Bash/PowerShell wrappers, existing staging/edge runbooks, Docker or namespace-based impairment tooling, machine-readable JSON summaries under `target/northstar/`.
+**Tech Stack:** Rust workspace (`ns-testkit`, `ns-carrier-h3`), Bash/PowerShell wrappers, existing staging/edge runbooks, Docker or namespace-based impairment tooling, machine-readable JSON summaries under `target/verta/`.
 
 ---
 
 ### Task 1: Freeze The Phase J Summary Contracts
 
 **Files:**
-- Modify: `packages/northstar-protocol/crates/ns-testkit/src/lib.rs`
-- Create: `packages/northstar-protocol/crates/ns-testkit/examples/udp_wan_staging_interop.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_wan_staging_interop.rs`
-- Modify: `packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
+- Modify: `packages/verta-protocol/crates/ns-testkit/src/lib.rs`
+- Create: `packages/verta-protocol/crates/ns-testkit/examples/udp_wan_staging_interop.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_wan_staging_interop.rs`
+- Modify: `packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
 
 **Step 1: Write the failing tests**
 
@@ -40,7 +40,7 @@ As of `2026-04-13`, this plan is complete:
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 cargo test -p ns-testkit --example udp_wan_staging_interop -- --nocapture
 ```
 
@@ -51,7 +51,7 @@ Expected: FAIL because the example and summary contract do not exist yet.
 - Introduce a new example that:
   - validates required env/config for a staging-backed UDP run
   - records deployment label, role permutation, profile set, and artifact paths
-  - emits a fail-closed JSON summary under `target/northstar/udp-wan-staging-interop-summary.json`
+  - emits a fail-closed JSON summary under `target/verta/udp-wan-staging-interop-summary.json`
 - Extend shared `ns-testkit` helpers only where needed for stable schema constants and summary labels.
 
 **Step 4: Run test to verify it passes**
@@ -59,7 +59,7 @@ Expected: FAIL because the example and summary contract do not exist yet.
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 cargo test -p ns-testkit --example udp_wan_staging_interop -- --nocapture
 ```
 
@@ -68,19 +68,19 @@ Expected: PASS with a machine-readable summary contract and explicit fail-closed
 **Step 5: Commit**
 
 ```bash
-git add packages/northstar-protocol/crates/ns-testkit/src/lib.rs \
-  packages/northstar-protocol/crates/ns-testkit/examples/udp_wan_staging_interop.rs \
-  packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md
+git add packages/verta-protocol/crates/ns-testkit/src/lib.rs \
+  packages/verta-protocol/crates/ns-testkit/examples/udp_wan_staging_interop.rs \
+  packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md
 git commit -m "feat: add phase j wan staging interop lane"
 ```
 
 ### Task 2: Add Operator-Facing WAN Wrappers And Checklist
 
 **Files:**
-- Create: `packages/northstar-protocol/scripts/udp-wan-staging-interop.sh`
-- Create: `packages/northstar-protocol/scripts/udp-wan-staging-interop.ps1`
-- Create: `docs/runbooks/NORTHSTAR_PHASE_J_WAN_INTEROP_CHECKLIST.md`
-- Modify: `packages/northstar-protocol/docs/implementation/MILESTONE_51_IMPLEMENTATION_NOTES.md`
+- Create: `packages/verta-protocol/scripts/udp-wan-staging-interop.sh`
+- Create: `packages/verta-protocol/scripts/udp-wan-staging-interop.ps1`
+- Create: `docs/runbooks/VERTA_PHASE_J_WAN_INTEROP_CHECKLIST.md`
+- Modify: `packages/verta-protocol/docs/implementation/MILESTONE_51_IMPLEMENTATION_NOTES.md`
 
 **Step 1: Write the failing test**
 
@@ -91,7 +91,7 @@ git commit -m "feat: add phase j wan staging interop lane"
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 bash scripts/udp-wan-staging-interop.sh --help
 ```
 
@@ -114,7 +114,7 @@ Expected: FAIL because the wrapper does not exist yet.
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 bash scripts/udp-wan-staging-interop.sh --help
 ```
 
@@ -123,21 +123,21 @@ Expected: PASS with usage text and clear required inputs.
 **Step 5: Commit**
 
 ```bash
-git add packages/northstar-protocol/scripts/udp-wan-staging-interop.sh \
-  packages/northstar-protocol/scripts/udp-wan-staging-interop.ps1 \
-  docs/runbooks/NORTHSTAR_PHASE_J_WAN_INTEROP_CHECKLIST.md \
-  packages/northstar-protocol/docs/implementation/MILESTONE_51_IMPLEMENTATION_NOTES.md
+git add packages/verta-protocol/scripts/udp-wan-staging-interop.sh \
+  packages/verta-protocol/scripts/udp-wan-staging-interop.ps1 \
+  docs/runbooks/VERTA_PHASE_J_WAN_INTEROP_CHECKLIST.md \
+  packages/verta-protocol/docs/implementation/MILESTONE_51_IMPLEMENTATION_NOTES.md
 git commit -m "docs: add phase j wan interop wrapper and checklist"
 ```
 
 ### Task 3: Add Explicit Net-Chaos Campaign Coverage
 
 **Files:**
-- Create: `packages/northstar-protocol/crates/ns-testkit/examples/udp_net_chaos_campaign.rs`
-- Create: `packages/northstar-protocol/scripts/udp-net-chaos-campaign.sh`
-- Create: `packages/northstar-protocol/scripts/udp-net-chaos-campaign.ps1`
-- Modify: `packages/northstar-protocol/crates/ns-testkit/src/lib.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_net_chaos_campaign.rs`
+- Create: `packages/verta-protocol/crates/ns-testkit/examples/udp_net_chaos_campaign.rs`
+- Create: `packages/verta-protocol/scripts/udp-net-chaos-campaign.sh`
+- Create: `packages/verta-protocol/scripts/udp-net-chaos-campaign.ps1`
+- Modify: `packages/verta-protocol/crates/ns-testkit/src/lib.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_net_chaos_campaign.rs`
 
 **Step 1: Write the failing tests**
 
@@ -159,7 +159,7 @@ git commit -m "docs: add phase j wan interop wrapper and checklist"
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 cargo test -p ns-testkit --example udp_net_chaos_campaign -- --nocapture
 ```
 
@@ -171,7 +171,7 @@ Expected: FAIL because the campaign and named profile inventory do not exist yet
   - accepts a named impairment profile
   - shells out only to reviewed impairment tooling
   - records qlog/pcap paths, exit codes, and fallback counters
-  - emits `target/northstar/udp-net-chaos-campaign-summary.json`
+  - emits `target/verta/udp-net-chaos-campaign-summary.json`
 - Keep it fail-closed when impairment tooling or artifact directories are missing.
 
 **Step 4: Run test to verify it passes**
@@ -179,7 +179,7 @@ Expected: FAIL because the campaign and named profile inventory do not exist yet
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 cargo test -p ns-testkit --example udp_net_chaos_campaign -- --nocapture
 ```
 
@@ -188,26 +188,26 @@ Expected: PASS with stable named-profile coverage and artifact accounting.
 **Step 5: Commit**
 
 ```bash
-git add packages/northstar-protocol/crates/ns-testkit/examples/udp_net_chaos_campaign.rs \
-  packages/northstar-protocol/scripts/udp-net-chaos-campaign.sh \
-  packages/northstar-protocol/scripts/udp-net-chaos-campaign.ps1 \
-  packages/northstar-protocol/crates/ns-testkit/src/lib.rs
+git add packages/verta-protocol/crates/ns-testkit/examples/udp_net_chaos_campaign.rs \
+  packages/verta-protocol/scripts/udp-net-chaos-campaign.sh \
+  packages/verta-protocol/scripts/udp-net-chaos-campaign.ps1 \
+  packages/verta-protocol/crates/ns-testkit/src/lib.rs
 git commit -m "feat: add phase j net chaos campaign lane"
 ```
 
 ### Task 4: Project WAN And Chaos Evidence Into Release-Candidate Consumers
 
 **Files:**
-- Modify: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_readiness.rs`
-- Modify: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_acceptance.rs`
-- Modify: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_certification.rs`
-- Modify: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_signoff.rs`
-- Modify: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_soak.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_readiness.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_acceptance.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_certification.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_signoff.rs`
-- Test: `packages/northstar-protocol/crates/ns-testkit/examples/udp_release_soak.rs`
+- Modify: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_readiness.rs`
+- Modify: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_acceptance.rs`
+- Modify: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_certification.rs`
+- Modify: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_signoff.rs`
+- Modify: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_soak.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_readiness.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_acceptance.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_certification.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_signoff.rs`
+- Test: `packages/verta-protocol/crates/ns-testkit/examples/udp_release_soak.rs`
 
 **Step 1: Write the failing tests**
 
@@ -221,7 +221,7 @@ git commit -m "feat: add phase j net chaos campaign lane"
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 cargo test -p ns-testkit --example udp_release_candidate_readiness -- --nocapture
 cargo test -p ns-testkit --example udp_release_candidate_acceptance -- --nocapture
 cargo test -p ns-testkit --example udp_release_candidate_certification -- --nocapture
@@ -248,27 +248,27 @@ Expected: PASS with release-facing summaries that can reject lab-only evidence a
 **Step 5: Commit**
 
 ```bash
-git add packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_readiness.rs \
-  packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_acceptance.rs \
-  packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_certification.rs \
-  packages/northstar-protocol/crates/ns-testkit/examples/udp_release_candidate_signoff.rs \
-  packages/northstar-protocol/crates/ns-testkit/examples/udp_release_soak.rs
+git add packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_readiness.rs \
+  packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_acceptance.rs \
+  packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_certification.rs \
+  packages/verta-protocol/crates/ns-testkit/examples/udp_release_candidate_signoff.rs \
+  packages/verta-protocol/crates/ns-testkit/examples/udp_release_soak.rs
 git commit -m "feat: require wan and chaos evidence in release gates"
 ```
 
 ### Task 5: Execute A First Phase J Campaign And Capture Evidence
 
 **Files:**
-- Modify: `packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
-- Create: `packages/northstar-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md`
-- Create: `docs/runbooks/NORTHSTAR_PHASE_J_ARTIFACT_RETENTION.md`
+- Modify: `packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
+- Create: `packages/verta-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md`
+- Create: `docs/runbooks/VERTA_PHASE_J_ARTIFACT_RETENTION.md`
 
 **Step 1: Run the WAN/staging lane**
 
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 bash scripts/udp-wan-staging-interop.sh --json
 ```
 
@@ -279,7 +279,7 @@ Expected: PASS against the selected staging/WAN environment with retained summar
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 bash scripts/udp-net-chaos-campaign.sh --profile loss-5 --json
 bash scripts/udp-net-chaos-campaign.sh --profile udp-blocked --json
 bash scripts/udp-net-chaos-campaign.sh --profile nat-rebind-midflow --json
@@ -292,7 +292,7 @@ Expected: PASS or fail-closed with retained artifacts and operator-readable bloc
 Run:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/packages/northstar-protocol
+cd /home/beep/projects/VPNBussiness/packages/verta-protocol
 bash scripts/udp-release-candidate-readiness.sh
 bash scripts/udp-release-soak.sh
 ```
@@ -311,18 +311,18 @@ Expected: PASS only when broader evidence is present; otherwise fail with explic
 **Step 5: Commit**
 
 ```bash
-git add packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md \
-  packages/northstar-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md \
-  docs/runbooks/NORTHSTAR_PHASE_J_ARTIFACT_RETENTION.md
+git add packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md \
+  packages/verta-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md \
+  docs/runbooks/VERTA_PHASE_J_ARTIFACT_RETENTION.md
 git commit -m "docs: record first phase j wan and chaos campaign"
 ```
 
 ### Task 6: Promote Phase J Exit Criteria Into The Main Track
 
 **Files:**
-- Modify: `packages/northstar-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
-- Modify: `packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
-- Modify: `packages/northstar-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md`
+- Modify: `packages/verta-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
+- Modify: `packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
+- Modify: `packages/verta-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md`
 
 **Step 1: Validate against exit criteria**
 
@@ -340,9 +340,9 @@ git commit -m "docs: record first phase j wan and chaos campaign"
 **Step 3: Commit**
 
 ```bash
-git add packages/northstar-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md \
-  packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md \
-  packages/northstar-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md
+git add packages/verta-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md \
+  packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md \
+  packages/verta-protocol/docs/implementation/MILESTONE_52_IMPLEMENTATION_NOTES.md
 git commit -m "docs: close phase j or record its exact blocker"
 ```
 

@@ -1,0 +1,43 @@
+[package]
+name = "verta-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+ns-manifest = { path = "../../crates/ns-manifest" }
+ns-wire = { path = "../../crates/ns-wire" }
+
+[[bin]]
+name = "udp_fallback_frame_decoder"
+path = "fuzz_targets/udp_fallback_frame_decoder.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "control_frame_decoder"
+path = "fuzz_targets/control_frame_decoder.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "udp_datagram_decoder"
+path = "fuzz_targets/udp_datagram_decoder.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "manifest_json_parser"
+path = "fuzz_targets/manifest_json_parser.rs"
+test = false
+doc = false
+bench = false

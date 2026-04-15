@@ -1,0 +1,2 @@
+doc-valid-idents = ["Verta", "Remnawave", "JWKS", "JWT", "QUIC", "HTTP/3", "EdDSA"]
+too-many-arguments-threshold = 8

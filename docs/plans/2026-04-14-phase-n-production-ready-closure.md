@@ -13,14 +13,14 @@
 ### Task 1: Add the release-closure document set
 
 **Files:**
-- Create: `packages/northstar-protocol/docs/release/INDEX.md`
-- Create: `packages/northstar-protocol/docs/release/PRODUCTION_READY_CHECKLIST.md`
-- Create: `packages/northstar-protocol/docs/release/ARTIFACT_ATTRIBUTION.md`
-- Create: `packages/northstar-protocol/docs/release/SUPPORTED_ENVIRONMENT_MATRIX.md`
-- Create: `packages/northstar-protocol/docs/release/KNOWN_LIMITATIONS.md`
-- Create: `packages/northstar-protocol/docs/release/production-ready-checklist.json`
-- Create: `packages/northstar-protocol/docs/release/supported-environment-matrix.json`
-- Create: `packages/northstar-protocol/docs/release/known-limitations.json`
+- Create: `packages/verta-protocol/docs/release/INDEX.md`
+- Create: `packages/verta-protocol/docs/release/PRODUCTION_READY_CHECKLIST.md`
+- Create: `packages/verta-protocol/docs/release/ARTIFACT_ATTRIBUTION.md`
+- Create: `packages/verta-protocol/docs/release/SUPPORTED_ENVIRONMENT_MATRIX.md`
+- Create: `packages/verta-protocol/docs/release/KNOWN_LIMITATIONS.md`
+- Create: `packages/verta-protocol/docs/release/production-ready-checklist.json`
+- Create: `packages/verta-protocol/docs/release/supported-environment-matrix.json`
+- Create: `packages/verta-protocol/docs/release/known-limitations.json`
 
 **Step 1:** Write the final release checklist and artifact-attribution docs with exact evidence refs.
 
@@ -31,9 +31,9 @@
 ### Task 2: Add the machine-readable Phase N signoff
 
 **Files:**
-- Create: `packages/northstar-protocol/crates/ns-testkit/examples/phase_n_production_ready_signoff.rs`
-- Create: `packages/northstar-protocol/scripts/phase-n-production-ready.sh`
-- Create: `packages/northstar-protocol/scripts/phase-n-production-ready.ps1`
+- Create: `packages/verta-protocol/crates/ns-testkit/examples/phase_n_production_ready_signoff.rs`
+- Create: `packages/verta-protocol/scripts/phase-n-production-ready.sh`
+- Create: `packages/verta-protocol/scripts/phase-n-production-ready.ps1`
 
 **Step 1:** Load the `Phase I`, `Phase J`, `Phase L`, and `Phase M` summaries plus the new release JSON docs.
 
@@ -44,10 +44,10 @@
 ### Task 3: Verify the closure path honestly
 
 **Files:**
-- Modify: `packages/northstar-protocol/docs/development/VERIFICATION_COMMANDS.md`
-- Modify: `packages/northstar-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
-- Modify: `packages/northstar-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
-- Create: `packages/northstar-protocol/docs/implementation/MILESTONE_56_IMPLEMENTATION_NOTES.md`
+- Modify: `packages/verta-protocol/docs/development/VERIFICATION_COMMANDS.md`
+- Modify: `packages/verta-protocol/docs/implementation/PHASED_EXECUTION_PLAN.md`
+- Modify: `packages/verta-protocol/docs/implementation/IMPLEMENTATION_STATUS.md`
+- Create: `packages/verta-protocol/docs/implementation/MILESTONE_56_IMPLEMENTATION_NOTES.md`
 
 **Step 1:** Run the focused example tests and the final wrapper.
 
