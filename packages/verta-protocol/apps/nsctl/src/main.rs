@@ -24,7 +24,7 @@ use tracing::info;
 use url::Url;
 
 #[derive(Parser)]
-#[command(name = "nsctl")]
+#[command(name = "verta")]
 struct Cli {
     #[arg(long, default_value_t = false)]
     json_logs: bool,
@@ -835,7 +835,7 @@ fn datagram_mode_label(mode: DatagramMode) -> &'static str {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    init_tracing("nsctl", cli.json_logs);
+    init_tracing("verta", cli.json_logs);
 
     match cli.command {
         Command::PlanClient {
@@ -1225,7 +1225,7 @@ mod tests {
     #[test]
     fn cli_parses_gateway_startup_validation_subcommand() {
         let cli = Cli::try_parse_from([
-            "nsctl",
+            "verta",
             "validate-gateway-datagram-startup",
             "--signed-datagram-enabled=false",
             "--datagram-rollout",

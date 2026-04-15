@@ -19,7 +19,7 @@ $repoRoot = Resolve-Path (Split-Path -Parent $PSScriptRoot)
 $workspaceManifest = Join-Path $repoRoot "Cargo.toml"
 $canonicalSummaryPath = Get-VertaOutputPath $repoRoot "udp-wan-staging-interop-summary.json"
 $legacySummaryPath = Get-VertaLegacyOutputPath $repoRoot "udp-wan-staging-interop-summary.json"
-$summaryPath = if ($env:VERTA_UDP_WAN_STAGING_SUMMARY_PATH) { $env:VERTA_UDP_WAN_STAGING_SUMMARY_PATH } elseif ($env:VERTA_UDP_WAN_STAGING_SUMMARY_PATH) { $env:VERTA_UDP_WAN_STAGING_SUMMARY_PATH } else { $canonicalSummaryPath }
+$summaryPath = if ($env:VERTA_UDP_WAN_STAGING_SUMMARY_PATH) { $env:VERTA_UDP_WAN_STAGING_SUMMARY_PATH } else { $canonicalSummaryPath }
 
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     Fail "cargo was not found. Install the Rust stable toolchain before running the UDP WAN staging interop wrapper."

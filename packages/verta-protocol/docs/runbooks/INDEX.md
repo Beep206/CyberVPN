@@ -3,11 +3,11 @@
 This directory is the maintained operator surface for Verta.
 It is intentionally narrow: these runbooks cover the `Phase L` incidents and recovery boundaries plus the bounded `Phase M` soak/canary discipline already required by the specs and by `docs/implementation/PHASED_EXECUTION_PLAN.md`.
 
-Legacy naming note:
+Naming note:
 
 - `Verta` is the public protocol name.
-- Maintained operator artifacts now default to `target/verta/`.
-- Compatibility mirrors and some scripts still reference legacy lowercase `verta` technical IDs during the migration window.
+- Maintained operator artifacts live under `target/verta/`.
+- Internal crate and binary identifiers such as `ns-*` remain stable technical IDs.
 
 ## Runbook Set
 

@@ -2,11 +2,10 @@
 
 Verta `v0.1` is only production-ready when the maintained closure inputs below are all true at the same time.
 
-Legacy naming note:
+Naming note:
 
 - The public release name is `Verta v0.1`.
-- Maintained phase summaries and workflow evidence now default to `target/verta/`.
-- Legacy mirrors under `target/verta/` remain readable during the migration window for existing consumers.
+- Maintained phase summaries and workflow evidence live under `target/verta/`.
 
 ## Required Closure Inputs
 
