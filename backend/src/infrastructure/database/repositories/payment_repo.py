@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -54,3 +55,30 @@ class PaymentRepository:
         await self._session.merge(model)
         await self._session.flush()
         return model
+
+    async def get_latest_active_plan_payment(
+        self,
+        user_uuid: UUID,
+        *,
+        at: datetime | None = None,
+    ) -> PaymentModel | None:
+        now = at or datetime.now(UTC)
+        result = await self._session.execute(
+            select(PaymentModel)
+            .where(
+                PaymentModel.user_uuid == user_uuid,
+                PaymentModel.status == "completed",
+                PaymentModel.plan_id.is_not(None),
+            )
+            .order_by(PaymentModel.created_at.desc())
+        )
+
+        for payment in result.scalars().all():
+            if payment.subscription_days <= 0:
+                return payment
+
+            expires_at = payment.created_at + timedelta(days=payment.subscription_days)
+            if expires_at > now:
+                return payment
+
+        return None

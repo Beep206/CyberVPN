@@ -9,7 +9,7 @@ export function useSubscriptionPlans() {
   return useQuery({
     queryKey: ['subscription-plans'],
     queryFn: async () => {
-      const response = await plansApi.list();
+      const response = await plansApi.list({ channel: 'web' });
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes

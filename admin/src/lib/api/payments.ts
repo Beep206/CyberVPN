@@ -1,13 +1,22 @@
 import { apiClient } from './client';
 import type { operations } from './generated/types';
 
-// Extract types from OpenAPI operations
-type CreateInvoiceRequest = operations['create_crypto_invoice_api_v1_payments_crypto_invoice_post']['requestBody']['content']['application/json'];
-type CreateInvoiceResponse = operations['create_crypto_invoice_api_v1_payments_crypto_invoice_post']['responses'][201]['content']['application/json'];
-type InvoiceStatusResponse = operations['get_crypto_invoice_api_v1_payments_crypto_invoice__invoice_id__get']['responses'][200]['content']['application/json'];
-type PaymentHistoryResponse = operations['get_payment_history_api_v1_payments_history_get']['responses'][200]['content']['application/json'];
-type PaymentHistoryParams =
+type CreateInvoiceRequest =
+  operations['create_crypto_invoice_api_v1_payments_crypto_invoice_post']['requestBody']['content']['application/json'];
+type CreateInvoiceResponse =
+  operations['create_crypto_invoice_api_v1_payments_crypto_invoice_post']['responses'][201]['content']['application/json'];
+type InvoiceStatusResponse =
+  operations['get_crypto_invoice_api_v1_payments_crypto_invoice__invoice_id__get']['responses'][200]['content']['application/json'];
+export type PaymentHistoryResponse =
+  operations['get_payment_history_api_v1_payments_history_get']['responses'][200]['content']['application/json'];
+export type PaymentHistoryParams =
   operations['get_payment_history_api_v1_payments_history_get']['parameters']['query'];
+export type CheckoutQuoteRequest =
+  operations['quote_checkout_api_v1_payments_checkout_quote_post']['requestBody']['content']['application/json'];
+export type CheckoutQuoteResponse =
+  operations['quote_checkout_api_v1_payments_checkout_quote_post']['responses'][200]['content']['application/json'];
+export type CheckoutCommitResponse =
+  operations['commit_checkout_api_v1_payments_checkout_commit_post']['responses'][200]['content']['application/json'];
 
 /**
  * Payments API client
@@ -42,6 +51,15 @@ export const paymentsApi = {
    */
   getInvoiceStatus: (invoiceId: string) =>
     apiClient.get<InvoiceStatusResponse>(`/payments/crypto/invoice/${invoiceId}`),
+
+  quoteCheckout: (data: CheckoutQuoteRequest) =>
+    apiClient.post<CheckoutQuoteResponse>('/payments/checkout/quote', data),
+
+  commitCheckout: (data: CheckoutQuoteRequest) =>
+    apiClient.post<CheckoutCommitResponse>('/payments/checkout/commit', data),
+
+  checkout: (data: CheckoutQuoteRequest) =>
+    apiClient.post<CheckoutCommitResponse>('/payments/checkout', data),
 
   /**
    * Get authenticated user's payment history

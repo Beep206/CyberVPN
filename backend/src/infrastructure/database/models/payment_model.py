@@ -51,6 +51,10 @@ class PaymentModel(Base):
 
     final_amount: Mapped[float | None] = mapped_column(Numeric(20, 8), nullable=True)
 
+    addons_snapshot: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
+
+    entitlements_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

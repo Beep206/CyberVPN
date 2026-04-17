@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart' show dioProvider;
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show dioProvider, pingPolicyRuntimeProvider;
 import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/diagnostics/data/services/diagnostic_service.dart';
 import 'package:cybervpn_mobile/features/diagnostics/data/services/speed_test_service.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/diagnostic_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/domain/services/ping_policy_runtime.dart';
 
 // ---------------------------------------------------------------------------
 // Log Entry
@@ -153,6 +156,8 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
   Future<void> runSpeedTest({
     bool vpnActive = false,
     String? serverName,
+    PingMode pingMode = PingMode.tcp,
+    String? pingTestUrl,
   }) async {
     final current = state.value;
     if (current == null || current.isRunningSpeedTest) return;
@@ -161,9 +166,33 @@ class DiagnosticsNotifier extends AsyncNotifier<DiagnosticsState> {
     _addLog('info', 'Speed test started');
 
     try {
+      final plan = ref.read(pingPolicyRuntimeProvider).resolveDiagnosticsPlan(
+        pingMode,
+      );
+      if (plan.isFallback) {
+        _addLog('warning', plan.fallbackReason!);
+      }
+
       final result = await _speedTestService.runSpeedTest(
         vpnActive: vpnActive,
         serverName: serverName,
+        latencyMode: switch (plan.effectiveTransport) {
+          PingTransport.tcp => SpeedTestLatencyMode.tcpConnect,
+          PingTransport.proxyGet => SpeedTestLatencyMode.proxyGet,
+          PingTransport.proxyHead => SpeedTestLatencyMode.proxyHead,
+        },
+        pingTestUrl: pingTestUrl,
+      );
+
+      AppLogger.info(
+        'Diagnostics speed test executed',
+        category: 'diagnostics.ping',
+        data: {
+          'requestedMode': plan.requestedMode.name,
+          'effectiveTransport': plan.effectiveTransport.name,
+          'fallbackReason': plan.fallbackReason,
+          'pingTestUrl': pingTestUrl,
+        },
       );
 
       // Reload history from persistence (service already saved the result).

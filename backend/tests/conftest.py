@@ -85,6 +85,9 @@ def ensure_repo_schema(test_settings) -> None:
     extra auth/admin tables on top, so integration tests need a one-time
     metadata sync to make sure those tables exist before the suite runs.
     """
+    if os.environ.get("SKIP_TEST_DB_BOOTSTRAP") == "1":
+        return
+
     from sqlalchemy.ext.asyncio import create_async_engine
 
     from src.infrastructure.database.session import Base

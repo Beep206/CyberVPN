@@ -1382,6 +1382,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/current/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current effective entitlements
+         * @description Return the canonical pricing entitlement snapshot for the authenticated mobile user.
+         */
+        get: operations["get_current_entitlements_api_v1_subscriptions_current_entitlements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/current/upgrade/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quote Subscription Upgrade */
+        post: operations["quote_subscription_upgrade_api_v1_subscriptions_current_upgrade_quote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/current/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commit Subscription Upgrade */
+        post: operations["commit_subscription_upgrade_api_v1_subscriptions_current_upgrade_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/current/addons/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quote Subscription Addons */
+        post: operations["quote_subscription_addons_api_v1_subscriptions_current_addons_quote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/subscriptions/current/addons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Purchase Subscription Addons */
+        post: operations["purchase_subscription_addons_api_v1_subscriptions_current_addons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subscriptions/": {
         parameters: {
             query?: never;
@@ -1503,15 +1591,35 @@ export interface paths {
         };
         /**
          * List Plans
-         * @description List all available subscription plans (public)
+         * @description List public subscription plans from the backend-owned pricing catalog.
          */
         get: operations["list_plans_api_v1_plans__get"];
         put?: never;
         /**
          * Create Plan
-         * @description Create a new subscription plan (admin only)
+         * @description Create a new subscription plan in the canonical pricing catalog.
          */
         post: operations["create_plan_api_v1_plans__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/plans/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Admin Plans
+         * @description List all typed catalog plans, including hidden plans, for admin tooling.
+         */
+        get: operations["list_admin_plans_api_v1_plans_admin_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1528,7 +1636,7 @@ export interface paths {
         get?: never;
         /**
          * Update Plan
-         * @description Update subscription plan (admin only)
+         * @description Update subscription plan (admin only).
          */
         put: operations["update_plan_api_v1_plans__uuid__put"];
         post?: never;
@@ -1537,6 +1645,58 @@ export interface paths {
          * @description Delete subscription plan (admin only)
          */
         delete: operations["delete_plan_api_v1_plans__uuid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/addons/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Addon Catalog */
+        get: operations["list_addon_catalog_api_v1_addons_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/addons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Addons */
+        get: operations["list_admin_addons_api_v1_addons_get"];
+        put?: never;
+        /** Create Addon */
+        post: operations["create_addon_api_v1_addons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/addons/{addon_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Addon */
+        put: operations["update_addon_api_v1_addons__addon_id__put"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1800,7 +1960,7 @@ export interface paths {
         put?: never;
         /**
          * Create Crypto Invoice
-         * @description Create a new cryptocurrency invoice.
+         * @description Create a direct cryptocurrency invoice.
          */
         post: operations["create_crypto_invoice_api_v1_payments_crypto_invoice_post"];
         delete?: never;
@@ -1849,6 +2009,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/checkout/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Quote Checkout
+         * @description Calculate checkout totals and effective entitlements without persisting payment.
+         */
+        post: operations["quote_checkout_api_v1_payments_checkout_quote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/checkout/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Checkout
+         * @description Create a local payment and optionally a CryptoBot invoice for the checkout basket.
+         */
+        post: operations["commit_checkout_api_v1_payments_checkout_commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/checkout": {
         parameters: {
             query?: never;
@@ -1859,10 +2059,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Checkout
-         * @description Unified checkout: plan + promo + wallet + partner resolution.
+         * Checkout Alias
+         * @deprecated
+         * @description Backward-compatible alias for commit checkout.
          */
-        post: operations["checkout_api_v1_payments_checkout_post"];
+        post: operations["checkout_alias_api_v1_payments_checkout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1882,10 +2083,6 @@ export interface paths {
          * Create Payment Alias
          * @deprecated
          * @description Create a payment (POST /create alias for mobile compatibility).
-         *
-         *     **DEPRECATED**: Use POST /payments/crypto/invoice instead.
-         *
-         *     This is an alias route for backward compatibility with mobile clients.
          */
         post: operations["create_payment_alias_api_v1_payments_create_post"];
         delete?: never;
@@ -1905,10 +2102,6 @@ export interface paths {
          * Get Payment Status Alias
          * @deprecated
          * @description Get payment status (GET /:id/status alias for mobile compatibility).
-         *
-         *     **DEPRECATED**: Use GET /payments/crypto/invoice/:id instead.
-         *
-         *     This is an alias route for backward compatibility with mobile clients.
          */
         get: operations["get_payment_status_alias_api_v1_payments__invoice_id__status_get"];
         put?: never;
@@ -4718,6 +4911,39 @@ export interface components {
              */
             updated_at: string;
         };
+        /** AddonResponse */
+        AddonResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Code */
+            code: string;
+            /** Display Name */
+            display_name: string;
+            /** Duration Mode */
+            duration_mode: string;
+            /** Is Stackable */
+            is_stackable: boolean;
+            /** Quantity Step */
+            quantity_step: number;
+            /** Price Usd */
+            price_usd: number;
+            /** Price Rub */
+            price_rub?: number | null;
+            /** Max Quantity By Plan */
+            max_quantity_by_plan: {
+                [key: string]: number;
+            };
+            /** Delta Entitlements */
+            delta_entitlements: {
+                [key: string]: unknown;
+            };
+            /** Requires Location */
+            requires_location: boolean;
+            /** Sale Channels */
+            sale_channels: string[];
+            /** Is Active */
+            is_active: boolean;
+        };
         /** AdminBulkDeviceRevokeResponse */
         AdminBulkDeviceRevokeResponse: {
             /**
@@ -5547,41 +5773,52 @@ export interface components {
             message: string;
         };
         /**
-         * CheckoutRequest
-         * @description Unified checkout request combining plan + promo + wallet.
+         * CheckoutAddonRequest
+         * @description Requested add-on line.
          */
-        CheckoutRequest: {
+        CheckoutAddonRequest: {
+            /** Code */
+            code: string;
             /**
-             * Plan Id
-             * Format: uuid
-             * @description Subscription plan to purchase
+             * Qty
+             * @default 1
              */
-            plan_id: string;
-            /**
-             * Promo Code
-             * @description Optional promo code
-             */
-            promo_code?: string | null;
-            /**
-             * Use Wallet
-             * @description Amount to pay from wallet balance
-             * @default 0
-             */
-            use_wallet: number;
-            /**
-             * Currency
-             * @description Payment currency
-             * @default USD
-             */
-            currency: string;
+            qty: number;
+            /** Location Code */
+            location_code?: string | null;
         };
         /**
-         * CheckoutResponse
-         * @description Checkout calculation result.
+         * CheckoutAddonResponse
+         * @description Priced add-on line returned by quote/commit.
          */
-        CheckoutResponse: {
+        CheckoutAddonResponse: {
+            /**
+             * Addon Id
+             * Format: uuid
+             */
+            addon_id: string;
+            /** Code */
+            code: string;
+            /** Display Name */
+            display_name: string;
+            /** Qty */
+            qty: number;
+            /** Unit Price */
+            unit_price: number;
+            /** Total Price */
+            total_price: number;
+            /** Location Code */
+            location_code?: string | null;
+        };
+        /**
+         * CheckoutCommitResponse
+         * @description Commit response with persisted payment or invoice reference.
+         */
+        CheckoutCommitResponse: {
             /** Base Price */
             base_price: number;
+            /** Addon Amount */
+            addon_amount: number;
             /** Displayed Price */
             displayed_price: number;
             /** Discount Amount */
@@ -5600,17 +5837,88 @@ export interface components {
             promo_code_id?: string | null;
             /** Partner Code Id */
             partner_code_id?: string | null;
+            /** Addons */
+            addons?: components["schemas"]["CheckoutAddonResponse"][];
+            entitlements_snapshot: components["schemas"]["EntitlementsSnapshotResponse"];
             /**
              * Payment Id
-             * @description Set when zero-gateway payment is completed
+             * @description Local payment identifier
              */
             payment_id?: string | null;
             /**
              * Status
-             * @description 'completed' for zero-gateway, 'pending' for gateway needed
-             * @default pending
+             * @description completed or pending
              */
             status: string;
+            invoice?: components["schemas"]["InvoiceResponse"] | null;
+        };
+        /**
+         * CheckoutQuoteRequest
+         * @description Quote request for a plan + add-ons basket.
+         */
+        CheckoutQuoteRequest: {
+            /**
+             * Plan Id
+             * Format: uuid
+             * @description Subscription plan to purchase
+             */
+            plan_id: string;
+            /** Addons */
+            addons?: components["schemas"]["CheckoutAddonRequest"][];
+            /**
+             * Promo Code
+             * @description Optional promo code
+             */
+            promo_code?: string | null;
+            /**
+             * Use Wallet
+             * @description Requested wallet amount in USD
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @description Gateway asset code
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Channel
+             * @description Checkout sale channel
+             * @default web
+             */
+            channel: string;
+        };
+        /**
+         * CheckoutQuoteResponse
+         * @description Quote response with final entitlement snapshot.
+         */
+        CheckoutQuoteResponse: {
+            /** Base Price */
+            base_price: number;
+            /** Addon Amount */
+            addon_amount: number;
+            /** Displayed Price */
+            displayed_price: number;
+            /** Discount Amount */
+            discount_amount: number;
+            /** Wallet Amount */
+            wallet_amount: number;
+            /** Gateway Amount */
+            gateway_amount: number;
+            /** Partner Markup */
+            partner_markup: number;
+            /** Is Zero Gateway */
+            is_zero_gateway: boolean;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Promo Code Id */
+            promo_code_id?: string | null;
+            /** Partner Code Id */
+            partner_code_id?: string | null;
+            /** Addons */
+            addons?: components["schemas"]["CheckoutAddonResponse"][];
+            entitlements_snapshot: components["schemas"]["EntitlementsSnapshotResponse"];
         };
         /** CloneNodePluginRequest */
         CloneNodePluginRequest: {
@@ -5669,6 +5977,52 @@ export interface components {
             whitelistIps: string[];
         } & {
             [key: string]: unknown;
+        };
+        /** CreateAddonRequest */
+        CreateAddonRequest: {
+            /** Code */
+            code: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Duration Mode
+             * @default inherits_subscription
+             */
+            duration_mode: string;
+            /**
+             * Is Stackable
+             * @default true
+             */
+            is_stackable: boolean;
+            /**
+             * Quantity Step
+             * @default 1
+             */
+            quantity_step: number;
+            /** Price Usd */
+            price_usd: number;
+            /** Price Rub */
+            price_rub?: number | null;
+            /** Max Quantity By Plan */
+            max_quantity_by_plan?: {
+                [key: string]: number;
+            };
+            /** Delta Entitlements */
+            delta_entitlements?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Requires Location
+             * @default false
+             */
+            requires_location: boolean;
+            /** Sale Channels */
+            sale_channels?: string[];
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
         };
         /**
          * CreateConfigProfileRequest
@@ -5827,7 +6181,7 @@ export interface components {
             plan_id: string;
             /**
              * Currency
-             * @description Currency code (ISO 4217)
+             * @description Currency or asset code
              */
             currency: string;
         };
@@ -5892,57 +6246,101 @@ export interface components {
         };
         /**
          * CreatePlanRequest
-         * @description Request schema for creating a subscription plan.
          * @example {
-         *       "currency": "USD",
-         *       "data_limit_gb": 100,
-         *       "duration_days": 30,
-         *       "name": "Premium Monthly",
-         *       "price": 9.99
+         *       "catalog_visibility": "public",
+         *       "connection_modes": [
+         *         "standard",
+         *         "stealth"
+         *       ],
+         *       "dedicated_ip": {
+         *         "eligible": true,
+         *         "included": 0
+         *       },
+         *       "devices_included": 5,
+         *       "display_name": "Plus",
+         *       "duration_days": 365,
+         *       "invite_bundle": {
+         *         "count": 2,
+         *         "expiry_days": 60,
+         *         "friend_days": 14
+         *       },
+         *       "is_active": true,
+         *       "name": "plus_365",
+         *       "plan_code": "plus",
+         *       "price_usd": 79,
+         *       "sale_channels": [
+         *         "web",
+         *         "miniapp",
+         *         "telegram_bot",
+         *         "admin"
+         *       ],
+         *       "server_pool": [
+         *         "shared_plus"
+         *       ],
+         *       "sort_order": 20,
+         *       "support_sla": "standard",
+         *       "traffic_policy": {
+         *         "display_label": "Unlimited",
+         *         "mode": "fair_use"
+         *       },
+         *       "trial_eligible": false
          *     }
          */
         CreatePlanRequest: {
-            /**
-             * Name
-             * @description Plan name
-             */
+            /** Name */
             name: string;
+            /** Plan Code */
+            plan_code: string;
+            /** Display Name */
+            display_name: string;
             /**
-             * Price
-             * @description Plan price
+             * Catalog Visibility
+             * @default public
              */
-            price: number;
-            /**
-             * Currency
-             * @description Currency code (ISO 4217)
-             */
-            currency: string;
-            /**
-             * Duration Days
-             * @description Plan duration in days
-             */
+            catalog_visibility: string;
+            /** Duration Days */
             duration_days: number;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Devices Included */
+            devices_included: number;
+            /** Price Usd */
+            price_usd: number;
+            /** Price Rub */
+            price_rub?: number | null;
+            traffic_policy?: components["schemas"]["TrafficPolicySchema"];
+            /** Connection Modes */
+            connection_modes?: string[];
+            /** Server Pool */
+            server_pool?: string[];
             /**
-             * Data Limit Gb
-             * @description Data limit in GB
+             * Support Sla
+             * @default standard
              */
-            data_limit_gb?: number | null;
+            support_sla: string;
+            dedicated_ip?: components["schemas"]["DedicatedIpSchema"];
+            /** Sale Channels */
+            sale_channels?: string[];
+            invite_bundle?: components["schemas"]["InviteBundleSchema"];
             /**
-             * Max Devices
-             * @description Max simultaneous devices
+             * Trial Eligible
+             * @default false
              */
-            max_devices?: number | null;
-            /**
-             * Features
-             * @description List of plan features
-             */
-            features?: string[] | null;
+            trial_eligible: boolean;
+            /** Features */
+            features?: {
+                [key: string]: unknown;
+            };
             /**
              * Is Active
-             * @description Whether plan is active
              * @default true
              */
             is_active: boolean;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
         };
         /**
          * CreatePromoRequest
@@ -6233,6 +6631,51 @@ export interface components {
             expire_at?: string | null;
         };
         /**
+         * CurrentEntitlementsResponse
+         * @description Canonical effective entitlement snapshot.
+         */
+        CurrentEntitlementsResponse: {
+            /** Status */
+            status: string;
+            /** Plan Uuid */
+            plan_uuid?: string | null;
+            /** Plan Code */
+            plan_code?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Period Days */
+            period_days?: number | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Effective Entitlements */
+            effective_entitlements: {
+                [key: string]: unknown;
+            };
+            /** Invite Bundle */
+            invite_bundle: {
+                [key: string]: number;
+            };
+            /** Is Trial */
+            is_trial: boolean;
+            /** Addons */
+            addons?: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** DedicatedIpSchema */
+        DedicatedIpSchema: {
+            /**
+             * Included
+             * @default 0
+             */
+            included: number;
+            /**
+             * Eligible
+             * @default false
+             */
+            eligible: boolean;
+        };
+        /**
          * DeleteAccountResponse
          * @description Response for successful account deletion (FEAT-03).
          */
@@ -6390,6 +6833,23 @@ export interface components {
              */
             is_current: boolean;
         };
+        /** EffectiveEntitlementsResponse */
+        EffectiveEntitlementsResponse: {
+            /** Device Limit */
+            device_limit: number;
+            /** Traffic Policy */
+            traffic_policy: string;
+            /** Display Traffic Label */
+            display_traffic_label: string;
+            /** Connection Modes */
+            connection_modes: string[];
+            /** Server Pool */
+            server_pool: string[];
+            /** Support Sla */
+            support_sla: string;
+            /** Dedicated Ip Count */
+            dedicated_ip_count: number;
+        };
         /** EgressFilterPluginConfigResponse */
         EgressFilterPluginConfigResponse: {
             /** Enabled */
@@ -6400,6 +6860,32 @@ export interface components {
             blockedPorts?: number[] | null;
         } & {
             [key: string]: unknown;
+        };
+        /** EntitlementsSnapshotResponse */
+        EntitlementsSnapshotResponse: {
+            /** Status */
+            status: string;
+            /** Plan Uuid */
+            plan_uuid?: string | null;
+            /** Plan Code */
+            plan_code?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Period Days */
+            period_days?: number | null;
+            /** Expires At */
+            expires_at?: string | null;
+            effective_entitlements: components["schemas"]["EffectiveEntitlementsResponse"];
+            /** Invite Bundle */
+            invite_bundle: {
+                [key: string]: number;
+            };
+            /** Is Trial */
+            is_trial: boolean;
+            /** Addons */
+            addons?: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * FCMTokenDeleteRequest
@@ -6769,6 +7255,24 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** InviteBundleSchema */
+        InviteBundleSchema: {
+            /**
+             * Count
+             * @default 0
+             */
+            count: number;
+            /**
+             * Friend Days
+             * @default 0
+             */
+            friend_days: number;
+            /**
+             * Expiry Days
+             * @default 0
+             */
+            expiry_days: number;
+        };
         /**
          * InviteCodeResponse
          * @description Response schema for a single invite code.
@@ -6841,12 +7345,12 @@ export interface components {
             amount: number;
             /**
              * Currency
-             * @description Currency code (ISO 4217)
+             * @description Currency or asset code
              */
             currency: string;
             /**
              * Status
-             * @description Invoice status (pending, paid, expired)
+             * @description Invoice status
              */
             status: string;
             /**
@@ -7382,14 +7886,6 @@ export interface components {
         /**
          * PaymentHistoryItem
          * @description Payment history item.
-         * @example {
-         *       "amount": 9.99,
-         *       "created_at": "2024-01-15T10:30:00",
-         *       "currency": "USD",
-         *       "id": "550e8400-e29b-41d4-a716-446655440000",
-         *       "provider": "stripe",
-         *       "status": "completed"
-         *     }
          */
         PaymentHistoryItem: {
             /**
@@ -7400,12 +7896,12 @@ export interface components {
             id: string;
             /**
              * Amount
-             * @description Payment amount
+             * @description Subtotal before promo/wallet application
              */
             amount: number;
             /**
              * Currency
-             * @description Currency code (ISO 4217)
+             * @description Currency code
              */
             currency: string;
             /** @description Payment status */
@@ -7422,18 +7918,6 @@ export interface components {
         /**
          * PaymentHistoryResponse
          * @description Response schema for payment history.
-         * @example {
-         *       "payments": [
-         *         {
-         *           "amount": 9.99,
-         *           "created_at": "2024-01-15T10:30:00",
-         *           "currency": "USD",
-         *           "id": "550e8400-e29b-41d4-a716-446655440000",
-         *           "provider": "stripe",
-         *           "status": "completed"
-         *         }
-         *       ]
-         *     }
          */
         PaymentHistoryResponse: {
             /**
@@ -7452,6 +7936,50 @@ export interface components {
          * @enum {string}
          */
         PaymentStatus: "pending" | "completed" | "failed" | "refunded";
+        /** PlanResponse */
+        PlanResponse: {
+            /** Uuid */
+            uuid: string;
+            /** Name */
+            name: string;
+            /** Plan Code */
+            plan_code: string;
+            /** Display Name */
+            display_name: string;
+            /** Catalog Visibility */
+            catalog_visibility: string;
+            /** Duration Days */
+            duration_days: number;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Devices Included */
+            devices_included: number;
+            /** Price Usd */
+            price_usd: number;
+            /** Price Rub */
+            price_rub?: number | null;
+            traffic_policy: components["schemas"]["TrafficPolicySchema"];
+            /** Connection Modes */
+            connection_modes: string[];
+            /** Server Pool */
+            server_pool: string[];
+            /** Support Sla */
+            support_sla: string;
+            dedicated_ip: components["schemas"]["DedicatedIpSchema"];
+            /** Sale Channels */
+            sale_channels: string[];
+            invite_bundle: components["schemas"]["InviteBundleSchema"];
+            /** Trial Eligible */
+            trial_eligible: boolean;
+            /** Features */
+            features?: {
+                [key: string]: unknown;
+            };
+            /** Is Active */
+            is_active: boolean;
+            /** Sort Order */
+            sort_order: number;
+        };
         /**
          * Platform
          * @description Mobile platform identifiers.
@@ -7592,6 +8120,28 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** PurchaseSubscriptionAddonsRequest */
+        PurchaseSubscriptionAddonsRequest: {
+            /** Addons */
+            addons: components["schemas"]["SubscriptionAddonItemRequest"][];
+            /** Promo Code */
+            promo_code?: string | null;
+            /**
+             * Use Wallet
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Channel
+             * @default web
+             */
+            channel: string;
         };
         /**
          * ReauthRequest
@@ -7825,58 +8375,6 @@ export interface components {
              * @description Creation timestamp
              */
             createdAt?: string | null;
-        };
-        /**
-         * RemnavwavePlanResponse
-         * @description Subscription plan from Remnawave.
-         */
-        RemnavwavePlanResponse: {
-            /**
-             * Uuid
-             * @description Plan UUID
-             */
-            uuid: string;
-            /**
-             * Name
-             * @description Plan display name
-             */
-            name: string;
-            /**
-             * Price
-             * @description Plan price
-             */
-            price: number;
-            /**
-             * Currency
-             * @description Currency code (ISO 4217)
-             */
-            currency: string;
-            /**
-             * Durationdays
-             * @description Plan duration in days
-             */
-            durationDays: number;
-            /**
-             * Datalimitgb
-             * @description Data limit in gigabytes
-             */
-            dataLimitGb?: number | null;
-            /**
-             * Maxdevices
-             * @description Max simultaneous devices
-             */
-            maxDevices?: number | null;
-            /**
-             * Features
-             * @description Plan feature list
-             */
-            features?: string[] | null;
-            /**
-             * Isactive
-             * @description Plan active flag
-             * @default true
-             */
-            isActive: boolean;
         };
         /**
          * RemnawaveConfigProfileResponse
@@ -8546,6 +9044,18 @@ export interface components {
             timestamp?: string;
             /** @description Individual service dependency statuses */
             services?: components["schemas"]["ServiceStatuses"];
+        };
+        /** SubscriptionAddonItemRequest */
+        SubscriptionAddonItemRequest: {
+            /** Code */
+            code: string;
+            /**
+             * Qty
+             * @default 1
+             */
+            qty: number;
+            /** Location Code */
+            location_code?: string | null;
         };
         /**
          * SubscriptionInfo
@@ -9285,6 +9795,21 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** TrafficPolicySchema */
+        TrafficPolicySchema: {
+            /**
+             * Mode
+             * @default fair_use
+             */
+            mode: string;
+            /**
+             * Display Label
+             * @default Unlimited
+             */
+            display_label: string;
+            /** Enforcement Profile */
+            enforcement_profile?: string | null;
+        };
         /**
          * TrialActivateResponse
          * @description Response schema for trial activation.
@@ -9417,6 +9942,35 @@ export interface components {
              */
             code: string;
         };
+        /** UpdateAddonRequest */
+        UpdateAddonRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Duration Mode */
+            duration_mode?: string | null;
+            /** Is Stackable */
+            is_stackable?: boolean | null;
+            /** Quantity Step */
+            quantity_step?: number | null;
+            /** Price Usd */
+            price_usd?: number | null;
+            /** Price Rub */
+            price_rub?: number | null;
+            /** Max Quantity By Plan */
+            max_quantity_by_plan?: {
+                [key: string]: number;
+            } | null;
+            /** Delta Entitlements */
+            delta_entitlements?: {
+                [key: string]: unknown;
+            } | null;
+            /** Requires Location */
+            requires_location?: boolean | null;
+            /** Sale Channels */
+            sale_channels?: string[] | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
         /**
          * UpdateHostRequest
          * @description Request schema for updating a VPN host.
@@ -9457,27 +10011,47 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /**
-         * UpdatePlanRequest
-         * @description Request schema for updating a subscription plan.
-         */
+        /** UpdatePlanRequest */
         UpdatePlanRequest: {
             /** Name */
             name?: string | null;
-            /** Price */
-            price?: number | null;
-            /** Currency */
-            currency?: string | null;
+            /** Plan Code */
+            plan_code?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Catalog Visibility */
+            catalog_visibility?: string | null;
             /** Duration Days */
             duration_days?: number | null;
-            /** Data Limit Gb */
-            data_limit_gb?: number | null;
-            /** Max Devices */
-            max_devices?: number | null;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+            /** Devices Included */
+            devices_included?: number | null;
+            /** Price Usd */
+            price_usd?: number | null;
+            /** Price Rub */
+            price_rub?: number | null;
+            traffic_policy?: components["schemas"]["TrafficPolicySchema"] | null;
+            /** Connection Modes */
+            connection_modes?: string[] | null;
+            /** Server Pool */
+            server_pool?: string[] | null;
+            /** Support Sla */
+            support_sla?: string | null;
+            dedicated_ip?: components["schemas"]["DedicatedIpSchema"] | null;
+            /** Sale Channels */
+            sale_channels?: string[] | null;
+            invite_bundle?: components["schemas"]["InviteBundleSchema"] | null;
+            /** Trial Eligible */
+            trial_eligible?: boolean | null;
             /** Features */
-            features?: string[] | null;
+            features?: {
+                [key: string]: unknown;
+            } | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Sort Order */
+            sort_order?: number | null;
         };
         /**
          * UpdatePromoRequest
@@ -9630,6 +10204,32 @@ export interface components {
             policy?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** UpgradeSubscriptionRequest */
+        UpgradeSubscriptionRequest: {
+            /**
+             * Target Plan Id
+             * Format: uuid
+             * @description Target subscription plan UUID
+             */
+            target_plan_id: string;
+            /** Promo Code */
+            promo_code?: string | null;
+            /**
+             * Use Wallet
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Channel
+             * @default web
+             */
+            channel: string;
         };
         /**
          * UsageResponse
@@ -12802,6 +13402,158 @@ export interface operations {
             };
         };
     };
+    get_current_entitlements_api_v1_subscriptions_current_entitlements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentEntitlementsResponse"];
+                };
+            };
+        };
+    };
+    quote_subscription_upgrade_api_v1_subscriptions_current_upgrade_quote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradeSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutQuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_subscription_upgrade_api_v1_subscriptions_current_upgrade_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradeSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quote_subscription_addons_api_v1_subscriptions_current_addons_quote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseSubscriptionAddonsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutQuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purchase_subscription_addons_api_v1_subscriptions_current_addons_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseSubscriptionAddonsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_subscription_templates_api_v1_subscriptions__get: {
         parameters: {
             query?: never;
@@ -13053,7 +13805,10 @@ export interface operations {
     };
     list_plans_api_v1_plans__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Public sale channel filter */
+                channel?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -13066,7 +13821,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnavwavePlanResponse"][];
+                    "application/json": components["schemas"]["PlanResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -13085,12 +13849,43 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_plans_api_v1_plans_admin_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnavwavePlanResponse"];
+                    "application/json": components["schemas"]["PlanResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -13125,7 +13920,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnavwavePlanResponse"];
+                    "application/json": components["schemas"]["PlanResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13157,6 +13952,137 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatusMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_addon_catalog_api_v1_addons_catalog_get: {
+        parameters: {
+            query?: {
+                /** @description Public sale channel filter */
+                channel?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddonResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_addons_api_v1_addons_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddonResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_addon_api_v1_addons_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAddonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddonResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_addon_api_v1_addons__addon_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                addon_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAddonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddonResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13684,7 +14610,7 @@ export interface operations {
             };
         };
     };
-    checkout_api_v1_payments_checkout_post: {
+    quote_checkout_api_v1_payments_checkout_quote_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -13693,7 +14619,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CheckoutRequest"];
+                "application/json": components["schemas"]["CheckoutQuoteRequest"];
             };
         };
         responses: {
@@ -13703,7 +14629,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CheckoutResponse"];
+                    "application/json": components["schemas"]["CheckoutQuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_checkout_api_v1_payments_checkout_commit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutQuoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checkout_alias_api_v1_payments_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutQuoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutCommitResponse"];
                 };
             };
             /** @description Validation Error */

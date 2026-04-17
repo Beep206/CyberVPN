@@ -5,6 +5,7 @@ import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
@@ -20,14 +21,19 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
+
+late SharedPreferences _testPrefs;
 
 class _MockVpnRepository implements VpnRepository {
   final StreamController<ConnectionStateEntity> stateController =
@@ -179,16 +185,16 @@ class _MockReviewService implements ReviewService {
 // ---------------------------------------------------------------------------
 
 ServerEntity _server({String id = 'srv-1'}) => ServerEntity(
-      id: id,
-      name: 'Test Server',
-      countryCode: 'US',
-      countryName: 'United States',
-      city: 'New York',
-      address: '1.2.3.4',
-      port: 443,
-      protocol: 'vless',
-      isAvailable: true,
-    );
+  id: id,
+  name: 'Test Server',
+  countryCode: 'US',
+  countryName: 'United States',
+  city: 'New York',
+  address: '1.2.3.4',
+  port: 443,
+  protocol: 'vless',
+  isAvailable: true,
+);
 
 ProviderContainer _createContainer({
   required _MockVpnRepository repo,
@@ -210,11 +216,17 @@ ProviderContainer _createContainer({
       killSwitchServiceProvider.overrideWithValue(killSwitch),
       webSocketClientProvider.overrideWithValue(wsClient),
       connectVpnUseCaseProvider.overrideWithValue(ConnectVpnUseCase(repo)),
-      disconnectVpnUseCaseProvider.overrideWithValue(DisconnectVpnUseCase(repo)),
+      disconnectVpnUseCaseProvider.overrideWithValue(
+        DisconnectVpnUseCase(repo),
+      ),
       vpnSettingsProvider.overrideWith((ref) => vpnSettings),
       deviceRegistrationServiceProvider.overrideWithValue(deviceRegistration),
       reviewServiceProvider.overrideWithValue(reviewService),
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
+      sharedPreferencesProvider.overrideWithValue(_testPrefs),
+      activeVpnProfileProvider.overrideWith(
+        (ref) => Stream<VpnProfile?>.value(null),
+      ),
     ],
   );
 }
@@ -231,6 +243,8 @@ Future<VpnConnectionState> _waitForState(ProviderContainer container) async {
 // ---------------------------------------------------------------------------
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late _MockVpnRepository repo;
   late _MockNetworkInfo networkInfo;
   late _MockSecureStorage storage;
@@ -241,7 +255,9 @@ void main() {
   late _MockReviewService reviewService;
   late ProviderContainer container;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _testPrefs = await SharedPreferences.getInstance();
     repo = _MockVpnRepository();
     networkInfo = _MockNetworkInfo();
     storage = _MockSecureStorage();
@@ -342,20 +358,26 @@ void main() {
   });
 
   group('VPN state machine — network change / reconnect', () {
-    test('network loss while connected transitions to VpnReconnecting', () async {
-      buildContainer();
-      await _waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'network loss while connected transitions to VpnReconnecting',
+      () async {
+        buildContainer();
+        await _waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      await notifier.connect(_server());
-      expect(container.read(vpnConnectionProvider).requireValue, isA<VpnConnected>());
+        await notifier.connect(_server());
+        expect(
+          container.read(vpnConnectionProvider).requireValue,
+          isA<VpnConnected>(),
+        );
 
-      await notifier.handleNetworkChange(false);
-      final state = container.read(vpnConnectionProvider).requireValue;
-      expect(state, isA<VpnReconnecting>());
-      expect((state as VpnReconnecting).attempt, 1);
-      expect(state.server?.id, 'srv-1');
-    });
+        await notifier.handleNetworkChange(false);
+        final state = container.read(vpnConnectionProvider).requireValue;
+        expect(state, isA<VpnReconnecting>());
+        expect((state as VpnReconnecting).attempt, 1);
+        expect(state.server?.id, 'srv-1');
+      },
+    );
 
     test('network loss while disconnected is a no-op', () async {
       buildContainer();
@@ -375,18 +397,25 @@ void main() {
       final notifier = container.read(vpnConnectionProvider.notifier);
 
       await notifier.connect(_server());
-      expect(container.read(vpnConnectionProvider).requireValue, isA<VpnConnected>());
+      expect(
+        container.read(vpnConnectionProvider).requireValue,
+        isA<VpnConnected>(),
+      );
 
       // Simulate force disconnect event via the WebSocket stream
-      wsClient.forceDisconnectController
-          .add(const ForceDisconnect(reason: 'Account suspended'));
+      wsClient.forceDisconnectController.add(
+        const ForceDisconnect(reason: 'Account suspended'),
+      );
 
       // Let the event propagate
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(vpnConnectionProvider).requireValue;
-      expect(state, isA<VpnError>());
-      expect((state as VpnError).message, contains('Account suspended'));
+      expect(state, isA<VpnForceDisconnected>());
+      expect(
+        (state as VpnForceDisconnected).reason,
+        contains('Account suspended'),
+      );
     });
   });
 
@@ -436,32 +465,37 @@ void main() {
       await notifier.connect(_server());
 
       // Simulate external disconnect from the VPN engine
-      repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.disconnected,
-      ));
+      repo.stateController.add(
+        const ConnectionStateEntity(status: VpnConnectionStatus.disconnected),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       final state = container.read(vpnConnectionProvider).requireValue;
       expect(state, isA<VpnDisconnected>());
     });
 
-    test('error state from repository stream transitions to VpnError', () async {
-      buildContainer();
-      await _waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'error state from repository stream transitions to VpnError',
+      () async {
+        buildContainer();
+        await _waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      await notifier.connect(_server());
+        await notifier.connect(_server());
 
-      repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.error,
-        errorMessage: 'Tunnel crashed',
-      ));
+        repo.stateController.add(
+          const ConnectionStateEntity(
+            status: VpnConnectionStatus.error,
+            errorMessage: 'Tunnel crashed',
+          ),
+        );
 
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      final state = container.read(vpnConnectionProvider).requireValue;
-      expect(state, isA<VpnError>());
-      expect((state as VpnError).message, 'Tunnel crashed');
-    });
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        final state = container.read(vpnConnectionProvider).requireValue;
+        expect(state, isA<VpnError>());
+        expect((state as VpnError).message, 'Tunnel crashed');
+      },
+    );
   });
 
   group('VPN state machine — derived providers', () {

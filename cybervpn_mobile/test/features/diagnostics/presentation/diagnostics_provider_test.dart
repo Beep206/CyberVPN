@@ -9,6 +9,7 @@ import 'package:cybervpn_mobile/features/diagnostics/data/services/speed_test_se
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/diagnostic_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -47,6 +48,10 @@ void main() {
   late MockSpeedTestService mockSpeedTestService;
   late MockDiagnosticService mockDiagnosticService;
   late ProviderContainer container;
+
+  setUpAll(() {
+    registerFallbackValue(SpeedTestLatencyMode.proxyHead);
+  });
 
   setUp(() {
     mockSpeedTestService = MockSpeedTestService();
@@ -126,6 +131,8 @@ void main() {
         () => mockSpeedTestService.runSpeedTest(
           vpnActive: any(named: 'vpnActive'),
           serverName: any(named: 'serverName'),
+          latencyMode: any(named: 'latencyMode'),
+          pingTestUrl: any(named: 'pingTestUrl'),
           progressController: any(named: 'progressController'),
         ),
       ).thenAnswer((_) async => result);
@@ -150,11 +157,49 @@ void main() {
       expect(state.logEntries, isNotEmpty);
     });
 
+    test('maps ping preferences into the speed test service call', () async {
+      final result = _createSpeedTestResult();
+
+      when(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: false,
+          serverName: null,
+          latencyMode: SpeedTestLatencyMode.proxyHead,
+          pingTestUrl: 'https://example.com/generate_204',
+          progressController: any(named: 'progressController'),
+        ),
+      ).thenAnswer((_) async => result);
+      when(
+        () => mockSpeedTestService.getHistory(),
+      ).thenAnswer((_) async => [result]);
+
+      await waitForState();
+
+      await container
+          .read(diagnosticsProvider.notifier)
+          .runSpeedTest(
+            pingMode: PingMode.realDelay,
+            pingTestUrl: 'https://example.com/generate_204',
+          );
+
+      verify(
+        () => mockSpeedTestService.runSpeedTest(
+          vpnActive: false,
+          serverName: null,
+          latencyMode: SpeedTestLatencyMode.proxyHead,
+          pingTestUrl: 'https://example.com/generate_204',
+          progressController: any(named: 'progressController'),
+        ),
+      ).called(1);
+    });
+
     test('sets isRunningSpeedTest to false on error', () async {
       when(
         () => mockSpeedTestService.runSpeedTest(
           vpnActive: any(named: 'vpnActive'),
           serverName: any(named: 'serverName'),
+          latencyMode: any(named: 'latencyMode'),
+          pingTestUrl: any(named: 'pingTestUrl'),
           progressController: any(named: 'progressController'),
         ),
       ).thenThrow(Exception('Network error'));
@@ -180,6 +225,8 @@ void main() {
         () => mockSpeedTestService.runSpeedTest(
           vpnActive: any(named: 'vpnActive'),
           serverName: any(named: 'serverName'),
+          latencyMode: any(named: 'latencyMode'),
+          pingTestUrl: any(named: 'pingTestUrl'),
           progressController: any(named: 'progressController'),
         ),
       ).thenThrow(const SpeedTestCancelledException());
@@ -204,6 +251,8 @@ void main() {
         () => mockSpeedTestService.runSpeedTest(
           vpnActive: any(named: 'vpnActive'),
           serverName: any(named: 'serverName'),
+          latencyMode: any(named: 'latencyMode'),
+          pingTestUrl: any(named: 'pingTestUrl'),
           progressController: any(named: 'progressController'),
         ),
       ).thenAnswer((_) async {
@@ -345,6 +394,8 @@ void main() {
         () => mockSpeedTestService.runSpeedTest(
           vpnActive: any(named: 'vpnActive'),
           serverName: any(named: 'serverName'),
+          latencyMode: any(named: 'latencyMode'),
+          pingTestUrl: any(named: 'pingTestUrl'),
           progressController: any(named: 'progressController'),
         ),
       ).thenAnswer((_) async => result);

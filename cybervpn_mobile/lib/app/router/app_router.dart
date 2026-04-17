@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/services/log_file_store.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_handler.dart';
 import 'package:cybervpn_mobile/core/routing/deep_link_parser.dart';
@@ -45,12 +46,23 @@ import 'package:cybervpn_mobile/features/wallet/presentation/screens/wallet_scre
 import 'package:cybervpn_mobile/features/servers/presentation/screens/server_detail_screen.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/screens/server_list_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/appearance_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/advanced_vpn_settings_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/debug_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/language_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/log_file_viewer_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/logs_center_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/other_settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/ping_settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/routing_settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/reset_settings_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/statistics_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/subscription_settings_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/trusted_wifi_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_general_settings_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/per_app_proxy_screen.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/plans_screen.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/payment_history_screen.dart';
 import 'package:cybervpn_mobile/features/splash/presentation/screens/splash_screen.dart';
@@ -875,6 +887,86 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         child: VpnSettingsScreen(),
                       ),
                     ),
+                    routes: [
+                      GoRoute(
+                        path: 'general',
+                        name: 'settings-vpn-general',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'VPN General Settings',
+                                child: VpnGeneralSettingsScreen(),
+                              ),
+                            ),
+                      ),
+                      GoRoute(
+                        path: 'routing',
+                        name: 'settings-vpn-routing',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Routing Settings',
+                                child: RoutingSettingsScreen(),
+                              ),
+                            ),
+                      ),
+                      GoRoute(
+                        path: 'per-app-proxy',
+                        name: 'settings-vpn-per-app-proxy',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Per-App Proxy',
+                                child: PerAppProxyScreen(),
+                              ),
+                            ),
+                      ),
+                      GoRoute(
+                        path: 'advanced',
+                        name: 'settings-vpn-advanced',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Advanced VPN Settings',
+                                child: AdvancedVpnSettingsScreen(),
+                              ),
+                            ),
+                      ),
+                      GoRoute(
+                        path: 'subscriptions',
+                        name: 'settings-vpn-subscriptions',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Subscription Settings',
+                                child: SubscriptionSettingsScreen(),
+                              ),
+                            ),
+                      ),
+                      GoRoute(
+                        path: 'ping',
+                        name: 'settings-vpn-ping',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Ping Settings',
+                                child: PingSettingsScreen(),
+                              ),
+                            ),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'trusted-wifi',
@@ -923,6 +1015,83 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         child: NotificationPrefsScreen(),
                       ),
                     ),
+                  ),
+                  GoRoute(
+                    path: 'other',
+                    name: 'settings-other',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildAdaptiveTransition(
+                      state: state,
+                      child: const FeatureErrorBoundary(
+                        featureName: 'Other Settings',
+                        child: OtherSettingsScreen(),
+                      ),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'statistics',
+                        name: 'settings-other-statistics',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Statistics',
+                                child: StatisticsScreen(),
+                              ),
+                            ),
+                      ),
+                      GoRoute(
+                        path: 'logs',
+                        name: 'settings-other-logs',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Logs Center',
+                                child: LogsCenterScreen(),
+                              ),
+                            ),
+                        routes: [
+                          GoRoute(
+                            path: 'file',
+                            name: 'settings-other-log-file',
+                            parentNavigatorKey: rootNavigatorKey,
+                            pageBuilder: (context, state) {
+                              final file = state.extra;
+                              if (file is! PersistentLogFile) {
+                                return _buildAdaptiveTransition(
+                                  state: state,
+                                  child: const FeatureErrorBoundary(
+                                    featureName: 'Logs Center',
+                                    child: LogsCenterScreen(),
+                                  ),
+                                );
+                              }
+
+                              return _buildAdaptiveTransition(
+                                state: state,
+                                child: LogFileViewerScreen(file: file),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      GoRoute(
+                        path: 'reset',
+                        name: 'settings-other-reset',
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            _buildAdaptiveTransition(
+                              state: state,
+                              child: const FeatureErrorBoundary(
+                                featureName: 'Reset',
+                                child: ResetSettingsScreen(),
+                              ),
+                            ),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'debug',

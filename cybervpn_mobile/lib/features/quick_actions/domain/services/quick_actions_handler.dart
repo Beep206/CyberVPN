@@ -1,18 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
-import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/quick_actions/domain/services/quick_actions_service.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart'
-    show serverRepositoryProvider;
-import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
-
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 
 /// Provider that handles quick action taps.
@@ -83,8 +76,7 @@ class QuickActionsHandler with WidgetsBindingObserver {
 
   /// Handle Quick Connect action.
   ///
-  /// Connects to the last used server if available, otherwise connects to
-  /// the best available server (first non-premium or first premium).
+  /// Resolves the target using the stored subscription connect strategy.
   Future<void> _handleQuickConnect() async {
     try {
       final connectionNotifier = _ref.read(vpnConnectionProvider.notifier);
@@ -99,57 +91,9 @@ class QuickActionsHandler with WidgetsBindingObserver {
         return;
       }
 
-      // Try to load the last connected server from storage
-      final lastServer = await _loadLastServer();
-
-      if (lastServer != null) {
-        AppLogger.info(
-          'Quick connect: using last server ${lastServer.name}',
-          category: 'quick_actions',
-        );
-        await connectionNotifier.connect(lastServer);
-        return;
-      }
-
-      // No last server -- try to connect to best available server
-      try {
-        final serverRepo = _ref.read(serverRepositoryProvider);
-        final serversResult = await serverRepo.getServers();
-        final servers = switch (serversResult) {
-          Success(:final data) => data,
-          Failure() => <ServerEntity>[],
-        };
-
-        if (servers.isEmpty) {
-          AppLogger.warning(
-            'Quick connect: no servers available',
-            category: 'quick_actions',
-          );
-          return;
-        }
-
-        // Find best server: first available non-premium, or first premium
-        final bestServer = servers.firstWhere(
-          (s) => s.isAvailable && !s.isPremium,
-          orElse: () => servers.firstWhere(
-            (s) => s.isAvailable,
-            orElse: () => servers.first,
-          ),
-        );
-
-        AppLogger.info(
-          'Quick connect: using best available server ${bestServer.name}',
-          category: 'quick_actions',
-        );
-        await connectionNotifier.connect(bestServer);
-      } catch (e, st) {
-        AppLogger.error(
-          'Failed to fetch servers for quick connect',
-          error: e,
-          stackTrace: st,
-          category: 'quick_actions',
-        );
-      }
+      await connectionNotifier.connectBySubscriptionPolicy(
+        trigger: 'quick_action',
+      );
     } catch (e, st) {
       AppLogger.error(
         'Quick connect failed',
@@ -157,39 +101,6 @@ class QuickActionsHandler with WidgetsBindingObserver {
         stackTrace: st,
         category: 'quick_actions',
       );
-    }
-  }
-
-  /// Load the last connected server from secure storage.
-  ///
-  /// This duplicates the logic from VpnConnectionNotifier._loadLastServer()
-  /// since that method is private. We can't access it directly.
-  Future<ServerEntity?> _loadLastServer() async {
-    try {
-      final storage = SecureStorageWrapper();
-      const lastServerKey = 'last_connected_server';
-
-      final raw = await storage.read(key: lastServerKey);
-      if (raw == null) return null;
-
-      // Parse JSON
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      return ServerEntity(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        countryCode: map['countryCode'] as String,
-        countryName: map['countryName'] as String,
-        city: map['city'] as String,
-        address: map['address'] as String,
-        port: map['port'] as int,
-        protocol: map['protocol'] as String? ?? 'vless',
-        isAvailable: map['isAvailable'] as bool? ?? true,
-        isPremium: map['isPremium'] as bool? ?? false,
-        isFavorite: map['isFavorite'] as bool? ?? false,
-      );
-    } catch (e) {
-      AppLogger.warning('Failed to load last server', error: e);
-      return null;
     }
   }
 

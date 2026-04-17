@@ -100,7 +100,9 @@ trial-offer = 🎁 <b>Бесплатный пробный период!</b>
        *[other] { $days } дней
     }!
 
-    📊 Лимит трафика: { $traffic_gb } ГБ
+    📱 1 устройство
+    🌐 Только shared-серверы
+    📊 Безлимитный трафик по fair use
 
 trial-activated = ✅ <b>Пробный период активирован!</b>
 
@@ -122,12 +124,25 @@ trial-already-used = ℹ️ Вы уже использовали пробный 
 
 trial-unavailable = ⚠️ Пробный период временно недоступен.
 
+subscription-hidden-plan-unavailable = ⚠️ Это предложение сейчас недоступно.
+
 # ── Подписка и планы ─────────────────────────────────────────────────────
 subscription-select-plan = 💳 <b>Выберите тариф</b>
 
     Можно сменить позже.
 
 subscription-select-duration = ⏰ <b>Выберите длительность</b>
+
+subscription-direct-offer = 🔓 <b>Специальное предложение: { $plan }</b>
+
+    Этот тариф доступен только по прямому предложению.
+    Выберите период, чтобы продолжить.
+
+subscription-direct-offer-duration = Запрошенный период: { $duration_days ->
+        [one] { $duration_days } день
+        [few] { $duration_days } дня
+       *[other] { $duration_days } дней
+    }
 
 subscription-select-payment = 💰 <b>Выберите способ оплаты</b>
 

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 import structlog
 from pydantic import ValidationError
 
-from src.models.subscription import SubscriptionPlan
+from src.models.subscription import EntitlementsSnapshot, SubscriptionPlan, subscription_plan_from_catalog
 from src.services.api_client import APIError, NotFoundError
 
 if TYPE_CHECKING:
@@ -64,9 +64,12 @@ class SubscriptionService:
             cached_plans = await self._cache.get_plans()
             if cached_plans is not None:
                 try:
-                    return [SubscriptionPlan.model_validate(p) for p in cached_plans]
+                    return [subscription_plan_from_catalog(plan) for plan in cached_plans]
                 except ValidationError:
                     logger.warning("subscription_plans_cache_invalid")
+                    await self._cache.invalidate_plans()
+                except Exception:
+                    logger.warning("subscription_plans_cache_transform_failed")
                     await self._cache.invalidate_plans()
 
         # Fetch from API
@@ -74,11 +77,10 @@ class SubscriptionService:
             plans_data = await self._api.get_available_plans(telegram_id=telegram_id)
             logger.info("subscription_plans_fetched", count=len(plans_data))
 
-            # Parse and validate
-            plans = [SubscriptionPlan.model_validate(p) for p in plans_data]
+            plans = [subscription_plan_from_catalog(plan) for plan in plans_data if isinstance(plan, dict)]
 
             # Cache for future requests
-            await self._cache.set_plans(plans_data, ttl=600)
+            await self._cache.set_plans([plan for plan in plans_data if isinstance(plan, dict)], ttl=600)
 
             return plans
 
@@ -113,16 +115,23 @@ class SubscriptionService:
             if cached_user is not None and "subscription" in cached_user:
                 return cached_user.get("subscription")
 
-        # Fetch from API
         try:
-            user_data = await self._api.get_user(telegram_id)
-            logger.info("user_subscription_fetched", telegram_id=telegram_id)
+            entitlements = await self.get_user_entitlements(telegram_id, force_refresh=force_refresh)
+            if entitlements.status == "none":
+                return None
 
-            # Cache user data
-            await self._cache.set_user(telegram_id, user_data, ttl=300)
-
-            return user_data.get("subscription")
-
+            subscription = {
+                "status": entitlements.status,
+                "plan_name": entitlements.display_name or entitlements.plan_code or "N/A",
+                "expires_at": entitlements.expires_at,
+                "period_days": entitlements.period_days,
+                "device_limit": entitlements.effective_entitlements.get("device_limit"),
+                "traffic_label": entitlements.effective_entitlements.get("display_traffic_label", "Unlimited"),
+                "dedicated_ip_count": entitlements.effective_entitlements.get("dedicated_ip_count", 0),
+                "addons": entitlements.addons,
+            }
+            logger.info("user_subscription_fetched", telegram_id=telegram_id, status=entitlements.status)
+            return subscription
         except NotFoundError:
             logger.info("user_not_found", telegram_id=telegram_id)
             return None
@@ -133,6 +142,39 @@ class SubscriptionService:
                 error=str(exc),
             )
             raise
+
+    async def get_user_entitlements(
+        self,
+        telegram_id: int,
+        force_refresh: bool = False,
+    ) -> EntitlementsSnapshot:
+        """Get the user's effective entitlements from the canonical pricing backend."""
+
+        if not force_refresh:
+            cached_user = await self._cache.get_user(telegram_id)
+            if cached_user is not None and "entitlements" in cached_user:
+                try:
+                    return EntitlementsSnapshot.model_validate(cached_user["entitlements"])
+                except ValidationError:
+                    logger.warning("user_entitlements_cache_invalid", telegram_id=telegram_id)
+                    await self._cache.invalidate_user(telegram_id)
+
+        entitlements_data = await self._api.get_current_entitlements(telegram_id)
+        entitlements = EntitlementsSnapshot.model_validate(entitlements_data)
+
+        try:
+            user_snapshot = await self._api.get_user(telegram_id)
+        except NotFoundError:
+            user_snapshot = {"telegram_id": telegram_id}
+
+        user_snapshot["entitlements"] = entitlements.model_dump(mode="json")
+        user_snapshot["subscription"] = {
+            "status": entitlements.status,
+            "plan_name": entitlements.display_name or entitlements.plan_code or "N/A",
+            "expires_at": entitlements.expires_at,
+        }
+        await self._cache.set_user(telegram_id, user_snapshot, ttl=300)
+        return entitlements
 
     async def create_subscription(
         self,
@@ -156,18 +198,28 @@ class SubscriptionService:
         Raises:
             APIError: On backend errors (e.g., trial already used).
         """
-        try:
-            subscription = await self._api.create_subscription(
+        if is_trial:
+            return await self.activate_trial(
                 telegram_id=telegram_id,
-                plan_id=plan_id,
-                duration_days=duration_days,
-                is_trial=is_trial,
+                trial_plan_id=plan_id,
+                trial_days=duration_days,
+            )
+
+        try:
+            subscription = await self._api.commit_checkout(
+                telegram_id,
+                {
+                    "plan_id": plan_id,
+                    "addons": [],
+                    "currency": "USD",
+                    "payment_method": "cryptobot",
+                },
             )
             logger.info(
                 "subscription_created",
                 telegram_id=telegram_id,
                 plan_id=plan_id,
-                is_trial=is_trial,
+                duration_days=duration_days,
             )
 
             # Invalidate user cache to force refresh
@@ -203,12 +255,11 @@ class SubscriptionService:
         Raises:
             APIError: On backend errors (e.g., trial already used, user ineligible).
         """
-        return await self.create_subscription(
-            telegram_id=telegram_id,
-            plan_id=trial_plan_id,
-            duration_days=trial_days,
-            is_trial=True,
-        )
+        _ = trial_plan_id
+        _ = trial_days
+        trial = await self._api.activate_trial(telegram_id)
+        await self._cache.invalidate_user(telegram_id)
+        return trial
 
     async def get_user_config(self, telegram_id: int) -> dict[str, Any]:
         """Get user's VPN connection configuration.

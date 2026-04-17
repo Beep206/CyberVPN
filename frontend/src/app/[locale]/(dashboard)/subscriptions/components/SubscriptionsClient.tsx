@@ -9,27 +9,20 @@ import { PurchaseConfirmModal } from './PurchaseConfirmModal';
 import { PlanCard } from './PlanCard';
 import { TrialSection } from './TrialSection';
 import { CodesSection } from './CodesSection';
-import type { components } from '@/lib/api/generated/types';
+import type { SubscriptionPlan } from '../lib/plan-presenter';
 
-// Type for subscription plans from API
-type SubscriptionPlan = components['schemas']['RemnavwavePlanResponse'];
-
-// Local interface for user subscription data (API returns subscription templates, not user subscriptions)
 interface UserSubscription {
   uuid: string;
   name?: string;
   plan_name?: string;
   plan_uuid?: string;
+  plan_code?: string;
   status?: string;
   expires_at?: string;
   created_at?: string;
   is_active?: boolean;
 }
 
-/**
- * Subscriptions client component
- * Displays user's current subscriptions and available plans
- */
 export function SubscriptionsClient() {
   const t = useTranslations('Subscriptions');
   const { data: subscriptions, isLoading, error, refetch } = useSubscriptions();
@@ -170,16 +163,16 @@ export function SubscriptionsClient() {
             ))}
           </div>
         ) : plans && plans.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {plans
-              .filter((plan: SubscriptionPlan) => plan.isActive)
+              .filter((plan: SubscriptionPlan) => plan.is_active && plan.catalog_visibility === 'public')
               .map((plan: SubscriptionPlan) => (
                 <PlanCard
                   key={plan.uuid}
                   plan={plan}
                   isCurrentPlan={
                     activeSubscription &&
-                    activeSubscription.plan_uuid === plan.uuid
+                    (activeSubscription.plan_uuid === plan.uuid || activeSubscription.plan_code === plan.plan_code)
                   }
                   onPurchase={handlePurchase}
                 />

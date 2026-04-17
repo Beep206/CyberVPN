@@ -5,6 +5,7 @@ import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
@@ -13,6 +14,10 @@ import 'package:cybervpn_mobile/features/profile/domain/services/device_registra
 import 'package:cybervpn_mobile/features/review/data/services/review_service.dart';
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
+import 'package:cybervpn_mobile/features/settings/data/datasources/per_app_proxy_platform_service.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/installed_app.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/per_app_proxy_providers.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_service.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_state_entity.dart';
@@ -23,12 +28,18 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
+
+late SharedPreferences _testPrefs;
 
 class _MockVpnRepository implements VpnRepository {
   final StreamController<ConnectionStateEntity> _stateController =
@@ -71,8 +82,7 @@ class _MockVpnRepository implements VpnRepository {
 }
 
 class _MockNetworkInfo implements NetworkInfo {
-  final StreamController<bool> _ctrl =
-      StreamController<bool>.broadcast();
+  final StreamController<bool> _ctrl = StreamController<bool>.broadcast();
 
   @override
   Stream<bool> get onConnectivityChanged => _ctrl.stream;
@@ -160,6 +170,26 @@ class _MockDeviceRegistration implements DeviceRegistrationService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _FakePerAppProxyPlatformService implements PerAppProxyPlatformService {
+  const _FakePerAppProxyPlatformService({
+    this.isSupported = false,
+    this.apps = const <InstalledApp>[],
+    this.currentPackageName,
+  });
+
+  @override
+  final bool isSupported;
+
+  final List<InstalledApp> apps;
+  final String? currentPackageName;
+
+  @override
+  Future<List<InstalledApp>> getInstalledApps() async => apps;
+
+  @override
+  Future<String?> getCurrentPackageName() async => currentPackageName;
+}
+
 class _MockReviewService implements ReviewService {
   int connectionCount = 0;
 
@@ -230,6 +260,9 @@ ProviderContainer _createContainer({
   required _MockDeviceRegistration deviceRegistration,
   required _MockReviewService reviewService,
   VpnSettings vpnSettings = const VpnSettings(),
+  PerAppProxyPlatformService perAppProxyPlatformService =
+      const _FakePerAppProxyPlatformService(),
+  VpnProfile? activeProfile,
 }) {
   return ProviderContainer(
     overrides: [
@@ -240,13 +273,20 @@ ProviderContainer _createContainer({
       killSwitchServiceProvider.overrideWithValue(killSwitch),
       webSocketClientProvider.overrideWithValue(wsClient),
       connectVpnUseCaseProvider.overrideWithValue(ConnectVpnUseCase(repo)),
-      disconnectVpnUseCaseProvider
-          .overrideWithValue(DisconnectVpnUseCase(repo)),
+      disconnectVpnUseCaseProvider.overrideWithValue(
+        DisconnectVpnUseCase(repo),
+      ),
       vpnSettingsProvider.overrideWith((ref) => vpnSettings),
-      deviceRegistrationServiceProvider
-          .overrideWithValue(deviceRegistration),
+      deviceRegistrationServiceProvider.overrideWithValue(deviceRegistration),
       reviewServiceProvider.overrideWithValue(reviewService),
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
+      sharedPreferencesProvider.overrideWithValue(_testPrefs),
+      perAppProxyPlatformServiceProvider.overrideWithValue(
+        perAppProxyPlatformService,
+      ),
+      activeVpnProfileProvider.overrideWith(
+        (ref) => Stream.value(activeProfile),
+      ),
     ],
   );
 }
@@ -263,6 +303,8 @@ Future<VpnConnectionState> _waitForState(ProviderContainer container) async {
 // ---------------------------------------------------------------------------
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late _MockVpnRepository repo;
   late _MockNetworkInfo networkInfo;
   late _MockSecureStorage storage;
@@ -273,7 +315,9 @@ void main() {
   late _MockReviewService reviewService;
   late ProviderContainer container;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _testPrefs = await SharedPreferences.getInstance();
     repo = _MockVpnRepository();
     networkInfo = _MockNetworkInfo();
     storage = _MockSecureStorage();
@@ -319,32 +363,34 @@ void main() {
       expect(connected.protocol, VpnProtocol.vless);
     });
 
-    test('connectFromCustomServer() transitions through Connecting → Connected',
-        () async {
-      container = _createContainer(
-        repo: repo,
-        networkInfo: networkInfo,
-        storage: storage,
-        autoReconnect: autoReconnect,
-        killSwitch: killSwitch,
-        wsClient: wsClient,
-        deviceRegistration: deviceRegistration,
-        reviewService: reviewService,
-      );
+    test(
+      'connectFromCustomServer() transitions through Connecting → Connected',
+      () async {
+        container = _createContainer(
+          repo: repo,
+          networkInfo: networkInfo,
+          storage: storage,
+          autoReconnect: autoReconnect,
+          killSwitch: killSwitch,
+          wsClient: wsClient,
+          deviceRegistration: deviceRegistration,
+          reviewService: reviewService,
+        );
 
-      await _waitForState(container);
+        await _waitForState(container);
 
-      final imported = _makeImportedConfig(id: 'custom-1');
-      final notifier = container.read(vpnConnectionProvider.notifier);
-      await notifier.connectFromCustomServer(imported);
+        final imported = _makeImportedConfig(id: 'custom-1');
+        final notifier = container.read(vpnConnectionProvider.notifier);
+        await notifier.connectFromCustomServer(imported);
 
-      final state = container.read(vpnConnectionProvider).requireValue;
-      expect(state.isConnected, isTrue);
+        final state = container.read(vpnConnectionProvider).requireValue;
+        expect(state.isConnected, isTrue);
 
-      final connected = state as VpnConnected;
-      expect(connected.server.id, 'custom-1');
-      expect(connected.protocol, VpnProtocol.vless);
-    });
+        final connected = state as VpnConnected;
+        expect(connected.server.id, 'custom-1');
+        expect(connected.protocol, VpnProtocol.vless);
+      },
+    );
 
     test('both paths start auto-reconnect service', () async {
       container = _createContainer(
@@ -370,9 +416,7 @@ void main() {
       await notifier.disconnect();
 
       // connectFromCustomServer()
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
       expect(autoReconnect.isStarted, isTrue);
     });
 
@@ -400,9 +444,7 @@ void main() {
       await notifier.disconnect();
 
       // connectFromCustomServer()
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
       final stored2 = await storage.read(key: 'last_connected_server');
       expect(stored2, isNotNull);
       expect(stored2, contains('"c1"'));
@@ -432,9 +474,7 @@ void main() {
 
       await notifier.disconnect();
 
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
       await Future<void>.delayed(Duration.zero);
       expect(reviewService.connectionCount, 2);
     });
@@ -463,9 +503,7 @@ void main() {
       killSwitch.enabled = false;
       await notifier.disconnect();
 
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
       expect(killSwitch.enabled, isTrue);
     });
 
@@ -490,9 +528,7 @@ void main() {
 
       await notifier.disconnect();
 
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
       expect(killSwitch.enabled, isFalse);
     });
 
@@ -541,9 +577,7 @@ void main() {
 
       await notifier.connect(_makeServer(id: 's1'));
 
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
 
       final connected =
           container.read(vpnConnectionProvider).requireValue as VpnConnected;
@@ -565,11 +599,7 @@ void main() {
       await _waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
 
-      final server = _makeServer(
-        id: 'srv-1',
-        address: '10.0.0.1',
-        port: 8080,
-      );
+      final server = _makeServer(id: 'srv-1', address: '10.0.0.1', port: 8080);
       await notifier.connect(server);
 
       expect(repo.lastConnectConfig, isNotNull);
@@ -579,6 +609,122 @@ void main() {
       expect(repo.lastConnectConfig!.protocol, VpnProtocol.vless);
       expect(repo.lastConnectConfig!.configData, ''); // empty for normal server
     });
+
+    test(
+      'connect() resolves configData from the active profile server',
+      () async {
+        container = _createContainer(
+          repo: repo,
+          networkInfo: networkInfo,
+          storage: storage,
+          autoReconnect: autoReconnect,
+          killSwitch: killSwitch,
+          wsClient: wsClient,
+          deviceRegistration: deviceRegistration,
+          reviewService: reviewService,
+          activeProfile: VpnProfile.local(
+            id: 'profile-1',
+            name: 'Test Profile',
+            sortOrder: 0,
+            createdAt: DateTime(2026, 1, 1),
+            servers: [
+              ProfileServer(
+                id: 'srv-1',
+                profileId: 'profile-1',
+                name: 'Server From Profile',
+                serverAddress: '10.0.0.1',
+                port: 8080,
+                protocol: VpnProtocol.vless,
+                configData: 'vless://profile-config',
+                sortOrder: 0,
+                createdAt: DateTime(2026, 1, 1),
+              ),
+            ],
+          ),
+        );
+
+        await _waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
+
+        await notifier.connect(
+          _makeServer(id: 'srv-1', address: '10.0.0.1', port: 8080),
+        );
+
+        expect(repo.lastConnectConfig?.configData, 'vless://profile-config');
+      },
+    );
+
+    test('connect() maps per-app bypass selection into blockedApps', () async {
+      container = _createContainer(
+        repo: repo,
+        networkInfo: networkInfo,
+        storage: storage,
+        autoReconnect: autoReconnect,
+        killSwitch: killSwitch,
+        wsClient: wsClient,
+        deviceRegistration: deviceRegistration,
+        reviewService: reviewService,
+        vpnSettings: const VpnSettings(
+          perAppProxyMode: PerAppProxyMode.bypassSelected,
+          perAppProxyAppIds: ['com.example.alpha', 'com.example.beta'],
+        ),
+        perAppProxyPlatformService: const _FakePerAppProxyPlatformService(
+          isSupported: true,
+        ),
+      );
+
+      await _waitForState(container);
+      final notifier = container.read(vpnConnectionProvider.notifier);
+      await notifier.connect(_makeServer(id: 's1'));
+
+      expect(
+        repo.lastConnectConfig?.blockedApps,
+        equals(['com.example.alpha', 'com.example.beta']),
+      );
+    });
+
+    test(
+      'connect() maps proxySelected into blockedApps using installed apps',
+      () async {
+        container = _createContainer(
+          repo: repo,
+          networkInfo: networkInfo,
+          storage: storage,
+          autoReconnect: autoReconnect,
+          killSwitch: killSwitch,
+          wsClient: wsClient,
+          deviceRegistration: deviceRegistration,
+          reviewService: reviewService,
+          vpnSettings: const VpnSettings(
+            perAppProxyMode: PerAppProxyMode.proxySelected,
+            perAppProxyAppIds: ['com.example.alpha'],
+          ),
+          perAppProxyPlatformService: const _FakePerAppProxyPlatformService(
+            isSupported: true,
+            apps: [
+              InstalledApp(
+                packageName: 'com.example.alpha',
+                displayName: 'Alpha',
+              ),
+              InstalledApp(
+                packageName: 'com.example.beta',
+                displayName: 'Beta',
+              ),
+            ],
+            currentPackageName: 'com.cybervpn.cybervpn_mobile',
+          ),
+        );
+
+        await _waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
+        await notifier.connect(_makeServer(id: 's1'));
+
+        expect(
+          repo.lastConnectConfig?.blockedApps,
+          equals(['com.example.beta']),
+        );
+      },
+    );
 
     test('connectFromCustomServer() passes rawUri as configData', () async {
       container = _createContainer(
@@ -638,9 +784,7 @@ void main() {
       );
 
       // Connect via custom path, then disconnect
-      await notifier.connectFromCustomServer(
-        _makeImportedConfig(id: 'c1'),
-      );
+      await notifier.connectFromCustomServer(_makeImportedConfig(id: 'c1'));
       expect(
         container.read(vpnConnectionProvider).requireValue.isConnected,
         isTrue,

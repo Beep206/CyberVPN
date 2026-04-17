@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:cybervpn_mobile/core/analytics/noop_analytics.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
@@ -28,13 +30,20 @@ import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // =============================================================================
 // Mocks
 // =============================================================================
+
+late SharedPreferences _testPrefs;
 
 class MockVpnRepository implements VpnRepository {
   final StreamController<ConnectionStateEntity> stateController =
@@ -54,8 +63,7 @@ class MockVpnRepository implements VpnRepository {
   Future<Result<bool>> get isConnected async => Success(isConnectedValue);
 
   @override
-  Future<Result<VpnConfigEntity?>> getLastConfig() async =>
-      Success(lastConfig);
+  Future<Result<VpnConfigEntity?>> getLastConfig() async => Success(lastConfig);
 
   @override
   Future<Result<void>> connect(VpnConfigEntity config) async {
@@ -221,19 +229,22 @@ ServerEntity testServer({
   String city = 'New York',
   bool isAvailable = true,
   bool isPremium = false,
-}) =>
-    ServerEntity(
-      id: id,
-      name: name,
-      countryCode: countryCode,
-      countryName: 'United States',
-      city: city,
-      address: '1.2.3.4',
-      port: 443,
-      protocol: 'vless',
-      isAvailable: isAvailable,
-      isPremium: isPremium,
-    );
+  int? ping,
+  double? load,
+}) => ServerEntity(
+  id: id,
+  name: name,
+  countryCode: countryCode,
+  countryName: 'United States',
+  city: city,
+  address: '1.2.3.4',
+  port: 443,
+  protocol: 'vless',
+  isAvailable: isAvailable,
+  isPremium: isPremium,
+  ping: ping,
+  load: load,
+);
 
 VpnConfigEntity testVpnConfig({
   String id = 'cfg-1',
@@ -242,15 +253,14 @@ VpnConfigEntity testVpnConfig({
   int port = 443,
   VpnProtocol protocol = VpnProtocol.vless,
   String configData = 'vless://test-config-data',
-}) =>
-    VpnConfigEntity(
-      id: id,
-      name: name,
-      serverAddress: serverAddress,
-      port: port,
-      protocol: protocol,
-      configData: configData,
-    );
+}) => VpnConfigEntity(
+  id: id,
+  name: name,
+  serverAddress: serverAddress,
+  port: port,
+  protocol: protocol,
+  configData: configData,
+);
 
 /// Holds all mock instances for a single test to simplify access.
 class TestMocks {
@@ -264,14 +274,14 @@ class TestMocks {
   final MockReviewService reviewService;
 
   TestMocks()
-      : repo = MockVpnRepository(),
-        networkInfo = MockNetworkInfo(),
-        storage = MockSecureStorage(),
-        autoReconnect = MockAutoReconnect(),
-        killSwitch = MockKillSwitch(),
-        wsClient = MockWebSocketClient(),
-        deviceRegistration = MockDeviceRegistration(),
-        reviewService = MockReviewService();
+    : repo = MockVpnRepository(),
+      networkInfo = MockNetworkInfo(),
+      storage = MockSecureStorage(),
+      autoReconnect = MockAutoReconnect(),
+      killSwitch = MockKillSwitch(),
+      wsClient = MockWebSocketClient(),
+      deviceRegistration = MockDeviceRegistration(),
+      reviewService = MockReviewService();
 
   void dispose() {
     repo.dispose();
@@ -289,7 +299,9 @@ const _testUser = UserEntity(
 ProviderContainer createContainer({
   required TestMocks mocks,
   VpnSettings vpnSettings = const VpnSettings(),
+  SubscriptionSettings subscriptionSettings = const SubscriptionSettings(),
   bool isAuthenticated = false,
+  List<Override> extraOverrides = const <Override>[],
 }) {
   return ProviderContainer(
     overrides: [
@@ -299,15 +311,24 @@ ProviderContainer createContainer({
       autoReconnectServiceProvider.overrideWithValue(mocks.autoReconnect),
       killSwitchServiceProvider.overrideWithValue(mocks.killSwitch),
       webSocketClientProvider.overrideWithValue(mocks.wsClient),
-      connectVpnUseCaseProvider
-          .overrideWithValue(ConnectVpnUseCase(mocks.repo)),
-      disconnectVpnUseCaseProvider
-          .overrideWithValue(DisconnectVpnUseCase(mocks.repo)),
+      connectVpnUseCaseProvider.overrideWithValue(
+        ConnectVpnUseCase(mocks.repo),
+      ),
+      disconnectVpnUseCaseProvider.overrideWithValue(
+        DisconnectVpnUseCase(mocks.repo),
+      ),
       vpnSettingsProvider.overrideWith((ref) => vpnSettings),
-      deviceRegistrationServiceProvider
-          .overrideWithValue(mocks.deviceRegistration),
+      subscriptionSettingsProvider.overrideWith((ref) => subscriptionSettings),
+      deviceRegistrationServiceProvider.overrideWithValue(
+        mocks.deviceRegistration,
+      ),
       reviewServiceProvider.overrideWithValue(mocks.reviewService),
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
+      sharedPreferencesProvider.overrideWithValue(_testPrefs),
+      activeVpnProfileProvider.overrideWith(
+        (ref) => Stream<VpnProfile?>.value(null),
+      ),
+      ...extraOverrides,
       if (isAuthenticated)
         authProvider.overrideWith(
           () => _FakeAuthNotifier(const AuthAuthenticated(_testUser)),
@@ -336,6 +357,24 @@ Future<VpnConnectionState> waitForState(ProviderContainer container) async {
   return container.read(vpnConnectionProvider).value!;
 }
 
+Future<VpnConnectionState> waitForPredicate(
+  ProviderContainer container,
+  bool Function(VpnConnectionState state) predicate, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final asyncState = container.read(vpnConnectionProvider);
+    final value = asyncState.value;
+    if (value != null && predicate(value)) {
+      return value;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
+
+  return container.read(vpnConnectionProvider).value!;
+}
+
 /// Seeds the mock secure storage with a last-connected server JSON.
 void seedLastServer(MockSecureStorage storage, ServerEntity server) {
   storage.store['last_connected_server'] = jsonEncode(server.toJson());
@@ -351,7 +390,9 @@ void main() {
 
   late TestMocks mocks;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _testPrefs = await SharedPreferences.getInstance();
     mocks = TestMocks();
   });
 
@@ -369,35 +410,41 @@ void main() {
       container.dispose();
     });
 
-    test('starts in VpnConnected when engine reports connected + last config exists', () async {
-      mocks.repo.isConnectedValue = true;
-      mocks.repo.lastConfig = testVpnConfig();
-      seedLastServer(mocks.storage, testServer());
+    test(
+      'starts in VpnConnected when engine reports connected + last config exists',
+      () async {
+        mocks.repo.isConnectedValue = true;
+        mocks.repo.lastConfig = testVpnConfig();
+        seedLastServer(mocks.storage, testServer());
 
-      final container = createContainer(mocks: mocks);
-      final state = await waitForState(container);
-      expect(state, isA<VpnConnected>());
-      container.dispose();
-    });
+        final container = createContainer(mocks: mocks);
+        final state = await waitForState(container);
+        expect(state, isA<VpnConnected>());
+        container.dispose();
+      },
+    );
   });
 
   // ── Connect ────────────────────────────────────────────────────────────────
 
   group('connect()', () {
-    test('transitions Disconnected → Connecting → Connected on success', () async {
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
-      final server = testServer();
+    test(
+      'transitions Disconnected → Connecting → Connected on success',
+      () async {
+        final container = createContainer(mocks: mocks);
+        await waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
+        final server = testServer();
 
-      await notifier.connect(server);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        await notifier.connect(server);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnConnected>());
-      expect(mocks.repo.connectCallCount, equals(1));
-      container.dispose();
-    });
+        final state = container.read(vpnConnectionProvider).value;
+        expect(state, isA<VpnConnected>());
+        expect(mocks.repo.connectCallCount, equals(1));
+        container.dispose();
+      },
+    );
 
     test('no-ops when already connected', () async {
       mocks.repo.isConnectedValue = true;
@@ -458,28 +505,31 @@ void main() {
   // ── Auto-connect on launch ─────────────────────────────────────────────────
 
   group('auto-connect on launch', () {
-    test('connects when enabled + authenticated + last server available', () async {
-      seedLastServer(mocks.storage, testServer());
+    test(
+      'connects when enabled + authenticated + last server available',
+      () async {
+        seedLastServer(mocks.storage, testServer());
 
-      final container = createContainer(
-        mocks: mocks,
-        vpnSettings: const VpnSettings(autoConnectOnLaunch: true),
-        isAuthenticated: true,
-      );
+        final container = createContainer(
+          mocks: mocks,
+          vpnSettings: const VpnSettings(autoConnectOnLaunch: true),
+          isAuthenticated: true,
+        );
 
-      // Force auth provider to settle so vpnConnectionProvider sees
-      // AuthAuthenticated (not AsyncLoading) when it calls ref.read().
-      await container.read(authProvider.future);
+        // Force auth provider to settle so vpnConnectionProvider sees
+        // AuthAuthenticated (not AsyncLoading) when it calls ref.read().
+        await container.read(authProvider.future);
 
-      await waitForState(container);
-      // Give auto-connect time to run (unawaited).
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnConnected>());
-      expect(mocks.repo.connectCallCount, equals(1));
-      container.dispose();
-    });
+        await waitForState(container);
+        final state = await waitForPredicate(
+          container,
+          (state) => state is VpnConnected,
+        );
+        expect(state, isA<VpnConnected>());
+        expect(mocks.repo.connectCallCount, equals(1));
+        container.dispose();
+      },
+    );
 
     test('skips when no network', () async {
       mocks.networkInfo.isConnectedValue = false;
@@ -554,6 +604,34 @@ void main() {
       final state = container.read(vpnConnectionProvider).value;
       expect(state, isA<VpnDisconnected>());
       expect(mocks.repo.connectCallCount, equals(0));
+      container.dispose();
+    });
+
+    test('uses the lowest-delay candidate when strategy is lowestDelay', () async {
+      final fast = testServer(id: 'fast', name: 'Fast', ping: 20, load: 0.2);
+      final slow = testServer(id: 'slow', name: 'Slow', ping: 140, load: 0.5);
+      final container = createContainer(
+        mocks: mocks,
+        vpnSettings: const VpnSettings(autoConnectOnLaunch: true),
+        subscriptionSettings: const SubscriptionSettings(
+          connectStrategy: SubscriptionConnectStrategy.lowestDelay,
+        ),
+        isAuthenticated: true,
+        extraOverrides: [
+          allServersWithPingProvider.overrideWithValue([slow, fast]),
+        ],
+      );
+
+      await container.read(authProvider.future);
+      await waitForState(container);
+      final state = await waitForPredicate(
+        container,
+        (state) => state is VpnConnected,
+      );
+
+      expect(state, isA<VpnConnected>());
+      expect((state as VpnConnected).server.id, fast.id);
+      expect(mocks.repo.connectCallCount, equals(1));
       container.dispose();
     });
   });
@@ -675,37 +753,52 @@ void main() {
       container.dispose();
     });
 
-    test('network restored while reconnecting → state unchanged (auto-reconnect handles)', () async {
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'network restored while reconnecting → state unchanged (auto-reconnect handles)',
+      () async {
+        final container = createContainer(mocks: mocks);
+        await waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      // Connect, then lose network.
-      await notifier.connect(testServer());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      await notifier.handleNetworkChange(false);
-      expect(container.read(vpnConnectionProvider).value, isA<VpnReconnecting>());
+        // Connect, then lose network.
+        await notifier.connect(testServer());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await notifier.handleNetworkChange(false);
+        expect(
+          container.read(vpnConnectionProvider).value,
+          isA<VpnReconnecting>(),
+        );
 
-      // Network restored — state stays reconnecting (auto-reconnect manages tunnel).
-      await notifier.handleNetworkChange(true);
+        // Network restored — state stays reconnecting (auto-reconnect manages tunnel).
+        await notifier.handleNetworkChange(true);
 
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnReconnecting>());
-      container.dispose();
-    });
+        final state = container.read(vpnConnectionProvider).value;
+        expect(state, isA<VpnReconnecting>());
+        container.dispose();
+      },
+    );
 
     test('network change while disconnected → no state change', () async {
       final container = createContainer(mocks: mocks);
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
 
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
 
       await notifier.handleNetworkChange(false);
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
 
       await notifier.handleNetworkChange(true);
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
       container.dispose();
     });
 
@@ -714,12 +807,18 @@ void main() {
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
 
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
 
       // Network loss while disconnected should not trigger reconnecting.
       await notifier.handleNetworkChange(false);
 
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
       container.dispose();
     });
   });
@@ -734,46 +833,52 @@ void main() {
       String protocol = 'vless',
       String serverAddress = '10.0.0.1',
       int port = 443,
-    }) =>
-        ImportedConfig(
-          id: id,
-          name: name,
-          rawUri: rawUri,
-          protocol: protocol,
-          serverAddress: serverAddress,
-          port: port,
-          source: ImportSource.manual,
-          importedAt: DateTime.now(),
-        );
+    }) => ImportedConfig(
+      id: id,
+      name: name,
+      rawUri: rawUri,
+      protocol: protocol,
+      serverAddress: serverAddress,
+      port: port,
+      source: ImportSource.manual,
+      importedAt: DateTime.now(),
+    );
 
-    test('transitions Disconnected → Connecting → Connected on success', () async {
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'transitions Disconnected → Connecting → Connected on success',
+      () async {
+        final container = createContainer(mocks: mocks);
+        await waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      await notifier.connectFromCustomServer(testImportedConfig());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        await notifier.connectFromCustomServer(testImportedConfig());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnConnected>());
-      expect(mocks.repo.connectCallCount, equals(1));
-      container.dispose();
-    });
+        final state = container.read(vpnConnectionProvider).value;
+        expect(state, isA<VpnConnected>());
+        expect(mocks.repo.connectCallCount, equals(1));
+        container.dispose();
+      },
+    );
 
-    test('creates pseudo server with countryCode XX and Custom country', () async {
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'creates pseudo server with countryCode XX and Custom country',
+      () async {
+        final container = createContainer(mocks: mocks);
+        await waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      await notifier.connectFromCustomServer(testImportedConfig());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        await notifier.connectFromCustomServer(testImportedConfig());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      final state = container.read(vpnConnectionProvider).value as VpnConnected;
-      expect(state.server.countryCode, equals('XX'));
-      expect(state.server.countryName, equals('Custom'));
-      expect(state.server.city, equals('10.0.0.1'));
-      container.dispose();
-    });
+        final state =
+            container.read(vpnConnectionProvider).value as VpnConnected;
+        expect(state.server.countryCode, equals('XX'));
+        expect(state.server.countryName, equals('Custom'));
+        expect(state.server.city, equals('10.0.0.1'));
+        container.dispose();
+      },
+    );
 
     test('no-ops when already connected', () async {
       mocks.repo.isConnectedValue = true;
@@ -804,7 +909,6 @@ void main() {
       expect(state, isA<VpnError>());
       container.dispose();
     });
-
   });
 
   // ── disconnect() failure ─────────────────────────────────────────────────
@@ -820,18 +924,27 @@ void main() {
           vpnRepositoryProvider.overrideWithValue(failRepo),
           networkInfoProvider.overrideWithValue(failMocks.networkInfo),
           secureStorageProvider.overrideWithValue(failMocks.storage),
-          autoReconnectServiceProvider.overrideWithValue(failMocks.autoReconnect),
+          autoReconnectServiceProvider.overrideWithValue(
+            failMocks.autoReconnect,
+          ),
           killSwitchServiceProvider.overrideWithValue(failMocks.killSwitch),
           webSocketClientProvider.overrideWithValue(failMocks.wsClient),
-          connectVpnUseCaseProvider
-              .overrideWithValue(ConnectVpnUseCase(failRepo)),
-          disconnectVpnUseCaseProvider
-              .overrideWithValue(DisconnectVpnUseCase(failRepo)),
+          connectVpnUseCaseProvider.overrideWithValue(
+            ConnectVpnUseCase(failRepo),
+          ),
+          disconnectVpnUseCaseProvider.overrideWithValue(
+            DisconnectVpnUseCase(failRepo),
+          ),
           vpnSettingsProvider.overrideWith((ref) => const VpnSettings()),
-          deviceRegistrationServiceProvider
-              .overrideWithValue(failMocks.deviceRegistration),
+          deviceRegistrationServiceProvider.overrideWithValue(
+            failMocks.deviceRegistration,
+          ),
           reviewServiceProvider.overrideWithValue(failMocks.reviewService),
           analyticsProvider.overrideWithValue(const NoopAnalytics()),
+          sharedPreferencesProvider.overrideWithValue(_testPrefs),
+          activeVpnProfileProvider.overrideWith(
+            (ref) => Stream<VpnProfile?>.value(null),
+          ),
         ],
       );
 
@@ -873,9 +986,9 @@ void main() {
       expect(container.read(vpnConnectionProvider).value, isA<VpnConnected>());
 
       // Emit a connected event from repository stream.
-      mocks.repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.connected,
-      ));
+      mocks.repo.stateController.add(
+        const ConnectionStateEntity(status: VpnConnectionStatus.connected),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       expect(container.read(vpnConnectionProvider).value, isA<VpnConnected>());
@@ -891,12 +1004,15 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       // Emit unexpected disconnect from repository.
-      mocks.repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.disconnected,
-      ));
+      mocks.repo.stateController.add(
+        const ConnectionStateEntity(status: VpnConnectionStatus.disconnected),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
       expect(mocks.autoReconnect.isStarted, isFalse);
       container.dispose();
     });
@@ -905,10 +1021,12 @@ void main() {
       final container = createContainer(mocks: mocks);
       await waitForState(container);
 
-      mocks.repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.error,
-        errorMessage: 'tunnel died',
-      ));
+      mocks.repo.stateController.add(
+        const ConnectionStateEntity(
+          status: VpnConnectionStatus.error,
+          errorMessage: 'tunnel died',
+        ),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(vpnConnectionProvider).value;
@@ -921,9 +1039,9 @@ void main() {
       final container = createContainer(mocks: mocks);
       await waitForState(container);
 
-      mocks.repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.connecting,
-      ));
+      mocks.repo.stateController.add(
+        const ConnectionStateEntity(status: VpnConnectionStatus.connecting),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       expect(container.read(vpnConnectionProvider).value, isA<VpnConnecting>());
@@ -934,12 +1052,15 @@ void main() {
       final container = createContainer(mocks: mocks);
       await waitForState(container);
 
-      mocks.repo.stateController.add(const ConnectionStateEntity(
-        status: VpnConnectionStatus.disconnecting,
-      ));
+      mocks.repo.stateController.add(
+        const ConnectionStateEntity(status: VpnConnectionStatus.disconnecting),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnecting>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnecting>(),
+      );
       container.dispose();
     });
 
@@ -959,27 +1080,36 @@ void main() {
   // ── WebSocket force_disconnect ──────────────────────────────────────────
 
   group('WebSocket force_disconnect', () {
-    test('force disconnect transitions connected to VpnError with reason', () async {
-      final container = createContainer(mocks: mocks);
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'force disconnect transitions connected to VpnError with reason',
+      () async {
+        final container = createContainer(mocks: mocks);
+        await waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      // Connect first.
-      await notifier.connect(testServer());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(container.read(vpnConnectionProvider).value, isA<VpnConnected>());
+        // Connect first.
+        await notifier.connect(testServer());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(
+          container.read(vpnConnectionProvider).value,
+          isA<VpnConnected>(),
+        );
 
-      // Emit force disconnect event.
-      mocks.wsClient.forceDisconnectController.add(
-        const ForceDisconnect(reason: 'Session expired'),
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+        // Emit force disconnect event.
+        mocks.wsClient.forceDisconnectController.add(
+          const ForceDisconnect(reason: 'Session expired'),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnError>());
-      expect((state as VpnError).message, contains('Session expired'));
-      container.dispose();
-    });
+        final state = container.read(vpnConnectionProvider).value;
+        expect(state, isA<VpnForceDisconnected>());
+        expect(
+          (state as VpnForceDisconnected).reason,
+          contains('Session expired'),
+        );
+        container.dispose();
+      },
+    );
 
     test('force disconnect with empty reason uses default message', () async {
       final container = createContainer(mocks: mocks);
@@ -995,8 +1125,8 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(vpnConnectionProvider).value;
-      expect(state, isA<VpnError>());
-      expect((state as VpnError).message, equals('Disconnected by server'));
+      expect(state, isA<VpnForceDisconnected>());
+      expect((state as VpnForceDisconnected).reason, equals(''));
       container.dispose();
     });
   });
@@ -1030,15 +1160,22 @@ void main() {
           autoReconnectServiceProvider.overrideWithValue(mocks.autoReconnect),
           killSwitchServiceProvider.overrideWithValue(mocks.killSwitch),
           webSocketClientProvider.overrideWithValue(mocks.wsClient),
-          connectVpnUseCaseProvider
-              .overrideWithValue(ConnectVpnUseCase(mocks.repo)),
-          disconnectVpnUseCaseProvider
-              .overrideWithValue(DisconnectVpnUseCase(mocks.repo)),
+          connectVpnUseCaseProvider.overrideWithValue(
+            ConnectVpnUseCase(mocks.repo),
+          ),
+          disconnectVpnUseCaseProvider.overrideWithValue(
+            DisconnectVpnUseCase(mocks.repo),
+          ),
           vpnSettingsProvider.overrideWith((ref) => const VpnSettings()),
-          deviceRegistrationServiceProvider
-              .overrideWithValue(mocks.deviceRegistration),
+          deviceRegistrationServiceProvider.overrideWithValue(
+            mocks.deviceRegistration,
+          ),
           reviewServiceProvider.overrideWithValue(mocks.reviewService),
           analyticsProvider.overrideWithValue(const NoopAnalytics()),
+          sharedPreferencesProvider.overrideWithValue(_testPrefs),
+          activeVpnProfileProvider.overrideWith(
+            (ref) => Stream<VpnProfile?>.value(null),
+          ),
           recommendedServerProvider.overrideWithValue(recommended),
         ],
       );
@@ -1062,15 +1199,22 @@ void main() {
           autoReconnectServiceProvider.overrideWithValue(mocks.autoReconnect),
           killSwitchServiceProvider.overrideWithValue(mocks.killSwitch),
           webSocketClientProvider.overrideWithValue(mocks.wsClient),
-          connectVpnUseCaseProvider
-              .overrideWithValue(ConnectVpnUseCase(mocks.repo)),
-          disconnectVpnUseCaseProvider
-              .overrideWithValue(DisconnectVpnUseCase(mocks.repo)),
+          connectVpnUseCaseProvider.overrideWithValue(
+            ConnectVpnUseCase(mocks.repo),
+          ),
+          disconnectVpnUseCaseProvider.overrideWithValue(
+            DisconnectVpnUseCase(mocks.repo),
+          ),
           vpnSettingsProvider.overrideWith((ref) => const VpnSettings()),
-          deviceRegistrationServiceProvider
-              .overrideWithValue(mocks.deviceRegistration),
+          deviceRegistrationServiceProvider.overrideWithValue(
+            mocks.deviceRegistration,
+          ),
           reviewServiceProvider.overrideWithValue(mocks.reviewService),
           analyticsProvider.overrideWithValue(const NoopAnalytics()),
+          sharedPreferencesProvider.overrideWithValue(_testPrefs),
+          activeVpnProfileProvider.overrideWith(
+            (ref) => Stream<VpnProfile?>.value(null),
+          ),
           recommendedServerProvider.overrideWithValue(null),
         ],
       );
@@ -1078,10 +1222,7 @@ void main() {
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
 
-      expect(
-        notifier.connectToLastOrRecommended,
-        throwsException,
-      );
+      expect(notifier.connectToLastOrRecommended, throwsException);
       container.dispose();
     });
 
@@ -1100,6 +1241,38 @@ void main() {
 
       // Should not have connected again.
       expect(mocks.repo.connectCallCount, equals(0));
+      container.dispose();
+    });
+
+    test('respects seeded random connect strategy', () async {
+      final servers = [
+        testServer(id: 'alpha', name: 'Alpha', ping: 10),
+        testServer(id: 'bravo', name: 'Bravo', ping: 30),
+        testServer(id: 'charlie', name: 'Charlie', ping: 60),
+      ];
+      final expectedIndex = math.Random(11).nextInt(servers.length);
+      final container = createContainer(
+        mocks: mocks,
+        subscriptionSettings: const SubscriptionSettings(
+          connectStrategy: SubscriptionConnectStrategy.random,
+        ),
+        extraOverrides: [
+          allServersWithPingProvider.overrideWithValue(servers),
+          subscriptionPolicyRuntimeProvider.overrideWithValue(
+            SubscriptionPolicyRuntime(random: math.Random(11)),
+          ),
+        ],
+      );
+
+      await waitForState(container);
+      final notifier = container.read(vpnConnectionProvider.notifier);
+
+      await notifier.connectBySubscriptionPolicy(trigger: 'test');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(vpnConnectionProvider).value;
+      expect(state, isA<VpnConnected>());
+      expect((state as VpnConnected).server.id, servers[expectedIndex].id);
       container.dispose();
     });
   });
@@ -1140,7 +1313,10 @@ void main() {
       final container = createContainer(mocks: mocks);
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
-      expect(container.read(vpnConnectionProvider).value, isA<VpnDisconnected>());
+      expect(
+        container.read(vpnConnectionProvider).value,
+        isA<VpnDisconnected>(),
+      );
 
       await notifier.applyKillSwitchSetting(true);
       expect(mocks.killSwitch.enableCallCount, equals(0));
@@ -1171,9 +1347,7 @@ void main() {
     test('connect with cloudflare DNS provider', () async {
       final container = createContainer(
         mocks: mocks,
-        vpnSettings: const VpnSettings(
-          dnsProvider: DnsProvider.cloudflare,
-        ),
+        vpnSettings: const VpnSettings(dnsProvider: DnsProvider.cloudflare),
       );
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
@@ -1188,9 +1362,7 @@ void main() {
     test('connect with google DNS provider', () async {
       final container = createContainer(
         mocks: mocks,
-        vpnSettings: const VpnSettings(
-          dnsProvider: DnsProvider.google,
-        ),
+        vpnSettings: const VpnSettings(dnsProvider: DnsProvider.google),
       );
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
@@ -1205,9 +1377,7 @@ void main() {
     test('connect with quad9 DNS provider', () async {
       final container = createContainer(
         mocks: mocks,
-        vpnSettings: const VpnSettings(
-          dnsProvider: DnsProvider.quad9,
-        ),
+        vpnSettings: const VpnSettings(dnsProvider: DnsProvider.quad9),
       );
       await waitForState(container);
       final notifier = container.read(vpnConnectionProvider.notifier);
@@ -1237,21 +1407,25 @@ void main() {
       container.dispose();
     });
 
-    test('connect with custom DNS provider but no value falls back to default', () async {
-      final container = createContainer(
-        mocks: mocks,
-        vpnSettings: const VpnSettings(
-          dnsProvider: DnsProvider.custom,
-        ),
-      );
-      await waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+    test(
+      'connect with custom DNS provider but no value falls back to default',
+      () async {
+        final container = createContainer(
+          mocks: mocks,
+          vpnSettings: const VpnSettings(dnsProvider: DnsProvider.custom),
+        );
+        await waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      await notifier.connect(testServer());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        await notifier.connect(testServer());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(container.read(vpnConnectionProvider).value, isA<VpnConnected>());
-      container.dispose();
-    });
+        expect(
+          container.read(vpnConnectionProvider).value,
+          isA<VpnConnected>(),
+        );
+        container.dispose();
+      },
+    );
   });
 }

@@ -10,12 +10,15 @@ import 'package:cybervpn_mobile/features/vpn_profiles/data/services/legacy_profi
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/repositories/profile_repository.dart'
     as vpn_profiles;
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/usecases/add_local_profile.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/usecases/add_remote_profile.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/usecases/delete_profile.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/usecases/migrate_legacy_profiles.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/usecases/switch_active_profile.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/usecases/update_subscriptions.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 
 // ── Data Sources ────────────────────────────────────────────────────
 
@@ -27,7 +30,18 @@ final vpnProfileLocalDataSourceProvider =
 
 /// Provides the HTTP subscription fetcher.
 final subscriptionFetcherProvider = Provider<SubscriptionFetcher>((ref) {
-  return SubscriptionFetcher(dio: ref.watch(dioProvider));
+  final policyRuntime = ref.watch(subscriptionPolicyRuntimeProvider);
+
+  Future<SubscriptionPolicyState> resolvePolicy() async {
+    final liveSettings = ref.read(settingsProvider).value;
+    return policyRuntime.resolve(liveSettings ?? const AppSettings());
+  }
+
+  return SubscriptionFetcher(
+    dio: ref.watch(dioProvider),
+    resolvePolicy: resolvePolicy,
+    policyRuntime: policyRuntime,
+  );
 });
 
 /// Provides the encrypted field service for subscription URL encryption.
@@ -47,6 +61,13 @@ final vpnProfileRepositoryProvider =
     localDataSource: ref.watch(vpnProfileLocalDataSourceProvider),
     subscriptionFetcher: ref.watch(subscriptionFetcherProvider),
     encryptedField: ref.watch(encryptedFieldServiceProvider),
+    policyRuntime: ref.watch(subscriptionPolicyRuntimeProvider),
+    resolvePolicy: () async {
+      final liveSettings = ref.read(settingsProvider).value;
+      return ref
+          .read(subscriptionPolicyRuntimeProvider)
+          .resolve(liveSettings ?? const AppSettings());
+    },
   );
 });
 

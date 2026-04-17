@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -206,7 +207,7 @@ void main() {
       // Simulate 5 pings with controlled delays.
       var pingCallCount = 0;
       when(
-        () => mockDio.head<void>(
+        () => mockDio.request<void>(
           any(),
           cancelToken: any(named: 'cancelToken'),
           options: any(named: 'options'),
@@ -233,7 +234,7 @@ void main() {
       _stubUpload(mockDio);
 
       when(
-        () => mockDio.head<void>(
+        () => mockDio.request<void>(
           any(),
           cancelToken: any(named: 'cancelToken'),
           options: any(named: 'options'),
@@ -250,6 +251,87 @@ void main() {
       // All pings failed, latency and jitter should be 0.
       expect(result.latencyMs, equals(0));
       expect(result.jitterMs, equals(0));
+    });
+
+    test('uses custom ping url for proxy-head mode', () async {
+      _stubDownload(mockDio);
+      _stubUpload(mockDio);
+
+      when(
+        () => mockDio.request<void>(
+          'https://example.com/generate_204',
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            Response<void>(statusCode: 200, requestOptions: RequestOptions()),
+      );
+
+      final result = await service.runSpeedTest(
+        latencyMode: SpeedTestLatencyMode.proxyHead,
+        pingTestUrl: 'https://example.com/generate_204',
+      );
+
+      expect(result.latencyMs, greaterThanOrEqualTo(0));
+      verify(
+        () => mockDio.request<void>(
+          'https://example.com/generate_204',
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).called(5);
+    });
+
+    test('supports proxy-get latency mode', () async {
+      _stubDownload(mockDio);
+      _stubUpload(mockDio);
+
+      when(
+        () => mockDio.request<void>(
+          'https://example.com/generate_204',
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            Response<void>(statusCode: 200, requestOptions: RequestOptions()),
+      );
+
+      final result = await service.runSpeedTest(
+        latencyMode: SpeedTestLatencyMode.proxyGet,
+        pingTestUrl: 'https://example.com/generate_204',
+      );
+
+      expect(result.latencyMs, greaterThanOrEqualTo(0));
+      verify(
+        () => mockDio.request<void>(
+          'https://example.com/generate_204',
+          cancelToken: any(named: 'cancelToken'),
+          options: any(named: 'options'),
+        ),
+      ).called(5);
+    });
+
+    test('supports tcp-connect latency mode', () async {
+      _stubDownload(mockDio);
+      _stubUpload(mockDio);
+
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close());
+      unawaited(
+        server.forEach((client) {
+          client.destroy();
+        }),
+      );
+
+      final result = await service.runSpeedTest(
+        latencyMode: SpeedTestLatencyMode.tcpConnect,
+        pingTestUrl: 'http://127.0.0.1:${server.port}/generate_204',
+      );
+
+      expect(result.latencyMs, greaterThanOrEqualTo(0));
+      expect(result.jitterMs, greaterThanOrEqualTo(0));
     });
   });
 
@@ -561,7 +643,7 @@ void _stubUpload(MockDio dio) {
 /// Stubs the latency ping endpoint.
 void _stubLatency(MockDio dio, {required int count}) {
   when(
-    () => dio.head<void>(
+    () => dio.request<void>(
       any(),
       cancelToken: any(named: 'cancelToken'),
       options: any(named: 'options'),

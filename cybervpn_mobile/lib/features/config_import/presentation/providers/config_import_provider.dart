@@ -319,9 +319,9 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
   ///
   /// Finds all unique subscription URLs from the current configs and
   /// re-imports each one. Updates the state with the latest configs.
-  Future<void> refreshSubscriptions() async {
+  Future<int> refreshSubscriptions() async {
     final current = state.value;
-    if (current == null) return;
+    if (current == null) return 0;
 
     // Collect unique subscription URLs
     final subscriptionUrls = current.customServers
@@ -329,33 +329,22 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
         .map((c) => c.subscriptionUrl!)
         .toSet();
 
-    if (subscriptionUrls.isEmpty) return;
+    if (subscriptionUrls.isEmpty) return 0;
 
     state = AsyncData(
       current.copyWith(isImporting: true, lastError: () => null),
     );
 
     try {
+      var refreshedCount = 0;
       for (final url in subscriptionUrls) {
-        try {
-          await _repository.importFromSubscriptionUrl(url);
-        } catch (e) {
-          AppLogger.warning('Failed to refresh subscription: $url', error: e);
-          // Continue refreshing other subscriptions
+        final didRefresh = await refreshSubscriptionUrl(url);
+        if (didRefresh) {
+          refreshedCount++;
         }
       }
-
-      final updated = await _repository.getImportedConfigs();
-      state = AsyncData(
-        current.copyWith(
-          customServers: updated,
-          isImporting: false,
-          lastError: () => null,
-        ),
-      );
-      AppLogger.info(
-        'Subscriptions refreshed: ${subscriptionUrls.length} URLs',
-      );
+      AppLogger.info('Subscriptions refreshed: $refreshedCount URLs');
+      return refreshedCount;
     } catch (e, st) {
       AppLogger.error(
         'Failed to refresh subscriptions',
@@ -368,6 +357,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
           lastError: e.toString,
         ),
       );
+      return 0;
     }
   }
 
@@ -376,9 +366,9 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
   /// Refresh a specific subscription URL.
   ///
   /// Re-imports configurations from the given URL and updates the state.
-  Future<void> refreshSubscriptionUrl(String url) async {
+  Future<bool> refreshSubscriptionUrl(String url) async {
     final current = state.value;
-    if (current == null) return;
+    if (current == null) return false;
 
     state = AsyncData(
       current.copyWith(isImporting: true, lastError: () => null),
@@ -395,6 +385,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
         ),
       );
       AppLogger.info('Subscription refreshed: $url');
+      return true;
     } catch (e, st) {
       AppLogger.error(
         'Failed to refresh subscription',
@@ -407,6 +398,7 @@ class ConfigImportNotifier extends AsyncNotifier<ConfigImportState> {
           lastError: e.toString,
         ),
       );
+      return false;
     }
   }
 

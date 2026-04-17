@@ -45,7 +45,7 @@ export function SubscriptionTemplatesConsole() {
     queryKey: ['commerce', 'subscription-templates'],
     queryFn: async () => {
       const response = await subscriptionsApi.list();
-      return response.data;
+      return response.data.templates ?? [];
     },
     staleTime: 60_000,
   });

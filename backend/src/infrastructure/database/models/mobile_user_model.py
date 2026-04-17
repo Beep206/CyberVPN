@@ -98,6 +98,16 @@ class MobileUserModel(Base):
         nullable=True,
     )
 
+    # Trial state
+    trial_activated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    trial_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     # Account status
     is_active: Mapped[bool] = mapped_column(
         Boolean,

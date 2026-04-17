@@ -1,140 +1,116 @@
-"""Subscription-related keyboards for CyberVPN Telegram Bot.
-
-Provides plan selection, duration picker, and payment method chooser
-keyboards with dynamic content from backend API responses.
-"""
+"""Subscription-related keyboards for CyberVPN Telegram Bot."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from aiogram.types import InlineKeyboardMarkup
+
     from src.config import BotSettings
-    from src.models.subscription import PlanDuration, SubscriptionPlan
+
+
+def _price_label(*, price_rub: Any = None, price_usd: Any = None, prices: dict[str, Any] | None = None) -> str:
+    if isinstance(prices, dict):
+        if "RUB" in prices:
+            return f"{float(prices['RUB']):.0f} RUB"
+        if "USD" in prices:
+            return f"${float(prices['USD']):.2f}"
+        if prices:
+            currency = next(iter(prices))
+            return f"{float(prices[currency]):.2f} {currency}"
+
+    if price_rub is not None:
+        return f"{float(price_rub):.0f} RUB"
+    if price_usd is not None:
+        return f"${float(price_usd):.2f}"
+    return ""
 
 
 def plans_keyboard(
     i18n: Callable[..., str],
-    plans: list[SubscriptionPlan] | list[dict[str, Any]],
+    plans: list[dict[str, Any]],
 ) -> InlineKeyboardMarkup:
-    """Build subscription plan selection keyboard.
-
-    Args:
-        i18n: Fluent translator function for localization.
-        plans: List of available subscription plans.
-
-    Returns:
-        InlineKeyboardMarkup with plan buttons and navigation.
-    """
     builder = InlineKeyboardBuilder()
 
     for plan in plans:
-        # Format button text with plan name and tag
-        if isinstance(plan, dict):
-            plan_id = plan.get("id")
-            plan_name = plan.get("name", "")
-            plan_tag = plan.get("tag") or plan.get("code") or ""
-        else:
-            plan_id = plan.id
-            plan_name = plan.name
-            plan_tag = plan.tag
+        plan_code = str(plan.get("plan_code") or plan.get("id") or "")
+        plan_name = str(plan.get("display_name") or plan.get("name") or plan_code.title())
+        durations = plan.get("durations") or []
+        starting_price = ""
+        if durations:
+            first = durations[0]
+            starting_price = _price_label(
+                price_rub=first.get("price_rub"),
+                price_usd=first.get("price_usd"),
+                prices=first.get("prices"),
+            )
+        elif plan:
+            starting_price = _price_label(
+                price_rub=plan.get("price_rub"),
+                price_usd=plan.get("price_usd"),
+                prices=plan.get("prices"),
+            )
 
-        label = plan_name or plan_tag or "Plan"
-        button_text = f"{plan_tag} — {plan_name}" if plan_tag and plan_name else label
+        devices = plan.get("devices_included") or plan.get("device_limit")
+        details = f" · {devices} dev" if devices else ""
+        price_suffix = f" · {starting_price}" if starting_price else ""
         builder.button(
-            text=button_text,
-            callback_data=f"plan:select:{plan_id}",
+            text=f"{plan_name}{details}{price_suffix}",
+            callback_data=f"plan:select:{plan_code}",
         )
 
-    # Navigation
-    builder.button(
-        text=i18n("btn-back"),
-        callback_data="nav:menu",
-    )
-
-    # Layout: 1 plan per row for clarity
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
     builder.adjust(1)
-
     return builder.as_markup()
 
 
 def duration_keyboard(
     i18n: Callable[..., str],
-    plan: SubscriptionPlan | dict[str, Any] | None = None,
-    durations: list[PlanDuration] | list[dict[str, Any]] | None = None,
+    plan: dict[str, Any] | None = None,
+    durations: list[dict[str, Any]] | None = None,
 ) -> InlineKeyboardMarkup:
-    """Build duration selection keyboard for a specific plan.
-
-    Args:
-        i18n: Fluent translator function for localization.
-        plan: The selected subscription plan.
-        durations: Available duration options with pricing.
-
-    Returns:
-        InlineKeyboardMarkup with duration buttons.
-    """
     builder = InlineKeyboardBuilder()
 
-    if plan is None or durations is None:
-        for duration_days in (30, 90, 180, 365):
-            builder.button(
-                text=i18n("duration-item", duration_days=duration_days, price=""),
-                callback_data=f"duration:{duration_days}",
-            )
-
-        builder.button(
-            text=i18n("btn-back"),
-            callback_data="nav:menu",
-        )
-
-        builder.adjust(1)
-        return builder.as_markup()
-
-    if isinstance(plan, dict):
-        plan_id = plan.get("id")
-    else:
-        plan_id = plan.id
-
-    for duration in durations:
-        # Get first available price (prefer USD, fallback to first currency)
-        if isinstance(duration, dict):
-            duration_days = int(duration.get("duration_days") or duration.get("days") or 0)
-            prices = duration.get("prices") or {}
-        else:
-            duration_days = duration.duration_days
-            prices = duration.prices
-
-        price_display = ""
-        if isinstance(prices, dict) and "USD" in prices:
-            price_display = f"${prices['USD']:.2f}"
-        elif isinstance(prices, dict) and prices:
-            currency = next(iter(prices))
-            price_display = f"{prices[currency]:.2f} {currency}"
-
-        button_text = i18n(
-            "duration-item",
-            duration_days=duration_days,
-            price=price_display,
+    plan_code = str((plan or {}).get("plan_code") or "")
+    for duration in durations or []:
+        duration_days = int(duration.get("duration_days") or duration.get("days") or 0)
+        price_display = _price_label(
+            price_rub=duration.get("price_rub"),
+            price_usd=duration.get("price_usd"),
+            prices=duration.get("prices"),
         )
         builder.button(
-            text=button_text,
-            callback_data=f"duration:select:{plan_id}:{duration_days}",
+            text=i18n("duration-item", duration_days=duration_days, price=price_display),
+            callback_data=f"duration:select:{plan_code}:{duration_days}",
         )
 
-    # Navigation
-    builder.button(
-        text=i18n("btn-back"),
-        callback_data="subscription:back",
-    )
-
-    # Layout: 1 duration per row
+    builder.button(text=i18n("btn-back"), callback_data="subscription:back")
     builder.adjust(1)
+    return builder.as_markup()
 
+
+def addons_keyboard(
+    i18n: Callable[..., str],
+    *,
+    extra_device_qty: int = 0,
+    extra_device_limit: int = 0,
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+
+    if extra_device_limit > 0:
+        if extra_device_qty > 0:
+            builder.button(text="- 1 device", callback_data="addon:dec:extra_device")
+        if extra_device_qty < extra_device_limit:
+            builder.button(text="+ 1 device", callback_data="addon:inc:extra_device")
+
+    builder.button(text=i18n("btn-next"), callback_data="addon:continue")
+    builder.button(text=i18n("btn-back"), callback_data="subscription:back")
+    builder.adjust(2, 1, 1)
     return builder.as_markup()
 
 
@@ -142,48 +118,15 @@ def payment_methods_keyboard(
     i18n: Callable[..., str],
     settings: BotSettings,
 ) -> InlineKeyboardMarkup:
-    """Build payment method selection keyboard.
-
-    Args:
-        i18n: Fluent translator function for localization.
-        settings: Application settings with payment gateway configs.
-
-    Returns:
-        InlineKeyboardMarkup with available payment methods.
-    """
     builder = InlineKeyboardBuilder()
 
-    # CryptoBot (cryptocurrency)
     if settings.cryptobot.enabled:
         builder.button(
             text=i18n("btn-pay-cryptobot"),
             callback_data="pay:cryptobot",
-            style="primary",
         )
 
-    # YooKassa (cards, wallets)
-    if settings.yookassa.enabled:
-        builder.button(
-            text=i18n("btn-pay-yookassa"),
-            callback_data="pay:yookassa",
-            style="primary",
-        )
-
-    # Telegram Stars
-    if settings.telegram_stars.enabled:
-        builder.button(
-            text=i18n("btn-pay-stars"),
-            callback_data="pay:telegram_stars",
-            style="primary",
-        )
-
-    # Navigation
-    builder.button(
-        text=i18n("btn-back"),
-        callback_data="subscription:back",
-        style="primary",
-    )
-
+    builder.button(text=i18n("btn-back"), callback_data="subscription:back")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -196,15 +139,14 @@ def subscription_keyboard(
     builder = InlineKeyboardBuilder()
 
     if has_active:
-        builder.button(text=i18n("btn-get-config"), callback_data="config:menu", style="primary")
-        builder.button(text=i18n("btn-extend"), callback_data="subscription:buy", style="primary")
-        builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions", style="primary")
+        builder.button(text=i18n("btn-get-config"), callback_data="config:menu")
+        builder.button(text=i18n("btn-extend"), callback_data="subscription:buy")
+        builder.button(text=i18n("btn-subscription"), callback_data="account:subscriptions")
     else:
-        builder.button(text=i18n("btn-trial"), callback_data="trial:activate", style="success")
-        builder.button(text=i18n("btn-buy"), callback_data="subscription:buy", style="primary")
-        builder.button(text=i18n("btn-enter-promo"), callback_data="promocode:enter", style="primary")
+        builder.button(text=i18n("btn-trial"), callback_data="trial:activate")
+        builder.button(text=i18n("btn-buy"), callback_data="subscription:buy")
+        builder.button(text=i18n("btn-enter-promo"), callback_data="promocode:enter")
 
-    builder.button(text=i18n("btn-back"), callback_data="nav:menu", style="primary")
+    builder.button(text=i18n("btn-back"), callback_data="nav:menu")
     builder.adjust(1)
-
     return builder.as_markup()

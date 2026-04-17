@@ -14,6 +14,7 @@ sealed class SubscriptionInfo with _$SubscriptionInfo {
     DateTime? expiresAt,
     @Default(60) int updateIntervalMinutes,
     String? supportUrl,
+    String? testUrl,
   }) = _SubscriptionInfo;
 
   /// Total bytes consumed (upload + download).

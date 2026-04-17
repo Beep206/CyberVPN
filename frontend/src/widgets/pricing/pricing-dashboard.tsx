@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl';
 import { useEnhancementReady } from '@/shared/hooks/use-enhancement-ready';
 import { useVisualTier } from '@/shared/hooks/use-visual-tier';
 import { ResponsiveSplitShell } from '@/shared/ui/layout/responsive-split-shell';
+import type { PricingCatalogData, PricingTierCode } from '@/widgets/pricing/types';
+import { getCatalogDefaultPeriod } from '@/widgets/pricing/utils';
 import { TierCards } from './tier-cards';
 import { FeatureMatrix } from './feature-matrix';
 import { FAQAccordion } from './faq-accordion';
@@ -18,7 +20,7 @@ const PricingCore3D = dynamic(
   },
 );
 
-export type TierLevel = 'none' | 'basic' | 'pro' | 'elite';
+export type TierLevel = 'none' | PricingTierCode;
 
 const TIER_VISUAL_STYLES: Record<
   TierLevel,
@@ -40,13 +42,19 @@ const TIER_VISUAL_STYLES: Record<
     accentBorderClassName: 'border-neon-cyan/30',
     accentTextClassName: 'text-neon-cyan/80',
   },
-  pro: {
+  plus: {
     glowClassName:
       'bg-[radial-gradient(circle_at_center,rgba(0,255,136,0.2),transparent_55%),linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,12,6,0.88)_100%)]',
     accentBorderClassName: 'border-matrix-green/30',
     accentTextClassName: 'text-matrix-green/80',
   },
-  elite: {
+  pro: {
+    glowClassName:
+      'bg-[radial-gradient(circle_at_center,rgba(255,0,255,0.16),transparent_55%),linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(12,0,8,0.88)_100%)]',
+    accentBorderClassName: 'border-neon-pink/30',
+    accentTextClassName: 'text-neon-pink/80',
+  },
+  max: {
     glowClassName:
       'bg-[radial-gradient(circle_at_center,rgba(255,0,255,0.18),transparent_55%),linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(10,0,12,0.88)_100%)]',
     accentBorderClassName: 'border-neon-purple/30',
@@ -84,18 +92,20 @@ function PricingVisualFallback({
   );
 }
 
-export function PricingDashboard() {
+export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
   const t = useTranslations('Pricing');
-  const [hoveredTier, setHoveredTier] = useState<TierLevel>('none');
+  const [hoveredTier, setHoveredTier] = useState<TierLevel>('plus');
+  const [selectedPeriod, setSelectedPeriod] = useState<number>(() => getCatalogDefaultPeriod(catalog));
   const { tier: visualTier, isFull } = useVisualTier();
   const { isReady: isSceneReady } = useEnhancementReady({
     minimumTier: 'full',
     defer: 'idle',
   });
   const showScene = visualTier === 'full' && isSceneReady;
+  const sourceLabel = catalog.source === 'api' ? 'LIVE' : 'CATALOG';
 
   const header = (
-    <header className="mt-4 text-center">
+    <header className="mt-4 space-y-8 text-center">
       <p
         className={`mb-4 font-mono text-xs uppercase tracking-widest text-neon-cyan md:text-sm ${
           isFull ? 'animate-pulse' : ''
@@ -106,17 +116,76 @@ export function PricingDashboard() {
       <h1 className="font-display text-5xl font-black uppercase tracking-widest text-white shadow-black drop-shadow-2xl md:text-7xl">
         {t('title')}
       </h1>
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-3 px-4">
+        {([
+          { label: t('introPills.plans') },
+          { label: t('introPills.periods') },
+          { label: t('introPills.addons') },
+          { label: sourceLabel },
+        ]).map((pill) => (
+          <span
+            key={pill.label}
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white/70 backdrop-blur"
+          >
+            {pill.label}
+          </span>
+        ))}
+      </div>
+      <div className="mx-auto max-w-4xl rounded-[1.75rem] border border-white/10 bg-black/45 px-4 py-5 backdrop-blur-xl">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-left">
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/50">
+              {t('periods.label')}
+            </p>
+            <p className="mt-1 text-sm font-mono text-white/70">
+              {t('periods.helper')}
+            </p>
+          </div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-neon-cyan/70">
+            {t('summary.selectedTerm', { days: selectedPeriod })}
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          {catalog.periods.map((period) => {
+            const isSelected = selectedPeriod === period;
+            return (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setSelectedPeriod(period)}
+                className={`rounded-2xl border px-4 py-3 text-left transition-all duration-300 ${
+                  isSelected
+                    ? 'border-neon-cyan bg-neon-cyan/10 shadow-[0_0_30px_rgba(0,255,255,0.12)]'
+                    : 'border-white/10 bg-white/[0.03] hover:border-white/30 hover:bg-white/[0.06]'
+                }`}
+              >
+                <div className="font-display text-lg uppercase tracking-[0.18em] text-white">
+                  {t(`periods.options.${period}`)}
+                </div>
+                <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+                  {period === 365 ? t('periods.best') : t('periods.term')}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </header>
   );
 
   const content = (
     <div className="space-y-20 pb-12 md:space-y-24 lg:pb-24">
       <div className="relative z-20">
-        <TierCards hoveredTier={hoveredTier} onHover={setHoveredTier} />
+        <TierCards
+          hoveredTier={hoveredTier}
+          onHover={setHoveredTier}
+          plans={catalog.plans}
+          selectedPeriod={selectedPeriod}
+        />
       </div>
 
       <div className="relative z-20 mx-auto max-w-5xl">
-        <FeatureMatrix />
+        <FeatureMatrix plans={catalog.plans} addons={catalog.addons} selectedPeriod={selectedPeriod} />
       </div>
 
       <div className="relative z-20 mx-auto max-w-4xl">
@@ -130,7 +199,10 @@ export function PricingDashboard() {
       {showScene ? (
         <PricingCore3D hoveredTier={hoveredTier} />
       ) : (
-        <PricingVisualFallback hoveredTier={hoveredTier} visualTier={visualTier === 'full' ? 'reduced' : visualTier} />
+        <PricingVisualFallback
+          hoveredTier={hoveredTier}
+          visualTier={visualTier === 'full' ? 'reduced' : visualTier}
+        />
       )}
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />

@@ -587,6 +587,43 @@
     }
   },
   "Commerce": {
+    "addons": {
+      "createAction": "Создать add-on",
+      "createTitle": "Создать add-on",
+      "description": "Управление расширениями checkout, такими как Extra Device и Dedicated IP, с явными entitlement delta и лимитами количества по планам.",
+      "editTitle": "Изменить add-on",
+      "empty": "Add-ons ещё не настроены.",
+      "eyebrow": "КАТАЛОГ ADD-ONS",
+      "fields": {
+        "code": "Код",
+        "deltaEntitlements": "Delta entitlements",
+        "displayName": "Название",
+        "durationMode": "Duration mode",
+        "isStackable": "Stackable",
+        "maxQuantityByPlan": "Лимит по планам",
+        "priceRub": "Цена RUB",
+        "priceUsd": "Цена USD",
+        "quantityStep": "Шаг количества",
+        "requiresLocation": "Требует локацию",
+        "saleChannels": "Sale channels"
+      },
+      "metaTitle": "Add-ons - Ozoxy Admin",
+      "metrics": {
+        "active": "Активные add-ons",
+        "activeHint": "доступны в checkout",
+        "locationRequired": "Нужна локация",
+        "locationRequiredHint": "требует location_code",
+        "stackable": "Stackable",
+        "stackableHint": "add-ons с количеством",
+        "total": "Всего add-ons",
+        "totalHint": "расширений каталога"
+      },
+      "title": "Управление add-ons",
+      "validation": {
+        "jsonInvalid": "JSON-поля add-on должны быть валидными.",
+        "numericInvalid": "Шаг количества и цена должны быть корректными неотрицательными числами."
+      }
+    },
     "common": {
       "actionFailed": "Операция не выполнена. Попробуйте ещё раз.",
       "actions": "Действия",
@@ -640,6 +677,7 @@
       "subnavLabel": "Навигация Commerce"
     },
     "nav": {
+      "addons": "Add-ons",
       "overview": "Обзор",
       "payments": "Платежи",
       "plans": "Тарифы",
@@ -653,12 +691,12 @@
       "metaTitle": "Commerce - Ozoxy Admin",
       "metrics": {
         "activePlansHint": "активно сейчас",
+        "addons": "Add-ons",
+        "addonsHint": "расширений каталога загружено",
         "payments": "Платежи",
         "paymentsHint": "записей в ленте",
         "pendingItemsHint": "элементов в очереди",
         "plans": "Тарифы",
-        "templates": "Шаблоны",
-        "templatesHint": "шаблонов загружено",
         "withdrawals": "Выводы в ожидании"
       },
       "modulesDescription": "Ниже собраны основные маршруты Commerce, чтобы быстро перейти от обзора к нужной рабочей очереди.",
@@ -667,6 +705,7 @@
       "paymentsDescription": "Свежие платежи по всем провайдерам с текущим состоянием расчётов.",
       "paymentsTitle": "Последние платежи",
       "routes": {
+        "addons": "Управление каталогом add-ons, лимитами количества и entitlement delta для checkout surfaces.",
         "payments": "Разбор платежей с фильтрами по провайдеру и статусу.",
         "plans": "Создание, настройка и вывод из эксплуатации коммерческих тарифов без выхода из админки.",
         "subscriptionTemplates": "Поддержка шаблонов Remnawave и их config payload.",
@@ -708,26 +747,58 @@
       "createTitle": "Создать тариф",
       "deleteConfirm": "Удалить этот тариф из каталога?",
       "deleteTitle": "Удалить тариф",
-      "description": "Поддержка цен, длительности, лимитов и коммерческой упаковки каталога тарифов.",
+      "description": "Поддержка канонического pricing catalog: public и hidden планы, invite bundles, routing surface, server pool, support SLA и visibility.",
       "editTitle": "Изменить тариф",
       "empty": "Тарифы ещё не настроены.",
       "eyebrow": "КАТАЛОГ ТАРИФОВ",
+      "fields": {
+        "connectionModes": "Connection modes",
+        "dedicatedIpEligible": "Dedicated IP доступен",
+        "dedicatedIpIncluded": "Dedicated IP включено",
+        "devicesIncluded": "Устройств включено",
+        "displayName": "Display name",
+        "featuresJson": "Features JSON",
+        "inviteBundle": "Invite bundle",
+        "inviteCount": "Количество invite",
+        "inviteExpiryDays": "Срок invite",
+        "inviteFriendDays": "Friend days",
+        "planCode": "Plan code",
+        "priceRub": "Цена RUB",
+        "priceUsd": "Цена USD",
+        "saleChannels": "Sale channels",
+        "serverPool": "Server pool",
+        "sortOrder": "Порядок сортировки",
+        "supportSla": "Support SLA",
+        "trafficLabel": "Traffic label",
+        "trafficLimitBytes": "Traffic limit bytes",
+        "trafficMode": "Traffic mode",
+        "trafficProfile": "Traffic profile",
+        "trialEligible": "Trial eligible",
+        "visibility": "Visibility"
+      },
       "form": {
-        "featuresPlaceholder": "Приоритетная маршрутизация\nРегиональный failover\nПовышенный лимит устройств",
-        "namePlaceholder": "Premium Monthly"
+        "namePlaceholder": "plus_365"
       },
       "metaTitle": "Тарифы - Ozoxy Admin",
       "metrics": {
         "active": "Активные тарифы",
         "activeHint": "доступны для checkout",
-        "averagePrice": "Средняя цена",
-        "averagePriceHint": "среднее по каталогу",
-        "maxDuration": "Макс. длительность",
-        "maxDurationHint": "самое длинное окно биллинга",
+        "families": "Семейства тарифов",
+        "familiesHint": "уникальных plan code",
+        "hidden": "Hidden-планы",
+        "hiddenHint": "внутренние или direct-only",
         "total": "Всего тарифов",
         "totalHint": "записей в каталоге"
       },
-      "title": "Управление тарифами"
+      "title": "Управление тарифами",
+      "validation": {
+        "jsonInvalid": "Features JSON должен быть валидным.",
+        "numericInvalid": "Длительность, устройства и цена должны быть корректными неотрицательными числами."
+      },
+      "visibility": {
+        "hidden": "Hidden",
+        "public": "Public"
+      }
     },
     "subscriptionTemplates": {
       "createAction": "Создать шаблон",

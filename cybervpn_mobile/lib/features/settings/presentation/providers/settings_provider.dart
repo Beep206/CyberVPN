@@ -7,7 +7,10 @@ import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/excluded_route_entry.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/routing_profile.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
+import 'package:cybervpn_mobile/features/settings/domain/services/ping_policy_runtime.dart';
 
 part 'settings_provider.freezed.dart';
 
@@ -21,6 +24,7 @@ part 'settings_provider.freezed.dart';
 /// and persists every mutation back to the repository.
 class SettingsNotifier extends AsyncNotifier<AppSettings> {
   late final SettingsRepository _repository;
+  static const _pingPolicyRuntime = PingPolicyRuntime();
 
   /// Stores the last failed operation for retry.
   Future<void> Function()? _lastFailedOperation;
@@ -134,17 +138,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
     if (cleanSsid.isEmpty) return;
 
-    await _updateSetting(
-      (settings) {
-        if (settings.trustedWifiNetworks.contains(cleanSsid)) {
-          return settings;
-        }
-        return settings.copyWith(
-          trustedWifiNetworks: [...settings.trustedWifiNetworks, cleanSsid],
-        );
-      },
-      'addTrustedNetwork($cleanSsid)',
-    );
+    await _updateSetting((settings) {
+      if (settings.trustedWifiNetworks.contains(cleanSsid)) {
+        return settings;
+      }
+      return settings.copyWith(
+        trustedWifiNetworks: [...settings.trustedWifiNetworks, cleanSsid],
+      );
+    }, 'addTrustedNetwork($cleanSsid)');
   }
 
   /// Remove a WiFi SSID from the trusted networks list.
@@ -153,8 +154,9 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
 
     await _updateSetting(
       (settings) => settings.copyWith(
-        trustedWifiNetworks:
-            settings.trustedWifiNetworks.where((s) => s != cleanSsid).toList(),
+        trustedWifiNetworks: settings.trustedWifiNetworks
+            .where((s) => s != cleanSsid)
+            .toList(),
       ),
       'removeTrustedNetwork($cleanSsid)',
     );
@@ -188,19 +190,135 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   /// Toggle split tunneling.
   Future<void> toggleSplitTunneling() async {
     await _updateSetting(
-      (settings) =>
-          settings.copyWith(splitTunneling: !settings.splitTunneling),
+      (settings) => settings.copyWith(splitTunneling: !settings.splitTunneling),
       'toggleSplitTunneling',
     );
+  }
+
+  /// Enable or disable advanced rule-based traffic routing.
+  Future<void> updateRoutingEnabled(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(routingEnabled: enabled),
+      'updateRoutingEnabled',
+    );
+  }
+
+  /// Replace the full set of stored routing profiles.
+  Future<void> replaceRoutingProfiles(List<RoutingProfile> profiles) async {
+    await _updateSetting(
+      (settings) =>
+          settings.copyWith(routingProfiles: _dedupeRoutingProfiles(profiles)),
+      'replaceRoutingProfiles',
+    );
+  }
+
+  /// Insert or update one routing profile in-place.
+  Future<void> upsertRoutingProfile(RoutingProfile profile) async {
+    await _updateSetting((settings) {
+      final updatedProfiles = [
+        for (final existing in settings.routingProfiles)
+          if (existing.id != profile.id) existing,
+        profile,
+      ];
+      return settings.copyWith(
+        routingProfiles: _dedupeRoutingProfiles(updatedProfiles),
+      );
+    }, 'upsertRoutingProfile(${profile.id})');
+  }
+
+  /// Remove a routing profile and clear the active id if it matched.
+  Future<void> removeRoutingProfile(String profileId) async {
+    await _updateSetting((settings) {
+      final remaining = settings.routingProfiles
+          .where((profile) => profile.id != profileId)
+          .toList();
+      return settings.copyWith(
+        routingProfiles: remaining,
+        activeRoutingProfileId: settings.activeRoutingProfileId == profileId
+            ? null
+            : settings.activeRoutingProfileId,
+      );
+    }, 'removeRoutingProfile($profileId)');
+  }
+
+  /// Set the currently active routing profile id.
+  Future<void> setActiveRoutingProfile(String? profileId) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(activeRoutingProfileId: profileId),
+      'setActiveRoutingProfile($profileId)',
+    );
+  }
+
+  /// Update bypass subnets used for direct routing outside the VPN tunnel.
+  Future<void> updateBypassSubnets(List<String> subnets) async {
+    final normalizedSubnets = _normalizeStringList(subnets);
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        bypassSubnets: normalizedSubnets,
+        excludedRouteEntries: _normalizeExcludedRouteEntries(
+          normalizedSubnets.map(ExcludedRouteEntry.parse).toList(),
+        ),
+      ),
+      'updateBypassSubnets',
+    );
+  }
+
+  /// Replace excluded route entries while keeping legacy string routing values
+  /// in sync for the current runtime.
+  Future<void> updateExcludedRouteEntries(
+    List<ExcludedRouteEntry> entries,
+  ) async {
+    final normalizedEntries = _normalizeExcludedRouteEntries(entries);
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        excludedRouteEntries: normalizedEntries,
+        bypassSubnets: normalizedEntries
+            .map((entry) => entry.normalizedValue)
+            .toList(growable: false),
+      ),
+      'updateExcludedRouteEntries',
+    );
+  }
+
+  /// Update per-app proxy mode.
+  Future<void> updatePerAppProxyMode(PerAppProxyMode mode) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(perAppProxyMode: mode),
+      'updatePerAppProxyMode',
+    );
+  }
+
+  /// Replace the stored list of selected application identifiers.
+  Future<void> setPerAppProxyAppIds(List<String> appIds) async {
+    await _updateSetting(
+      (settings) =>
+          settings.copyWith(perAppProxyAppIds: _normalizeStringList(appIds)),
+      'setPerAppProxyAppIds',
+    );
+  }
+
+  /// Toggle one application id in the per-app proxy selection.
+  Future<void> togglePerAppProxyApp(String appId) async {
+    final normalized = appId.trim();
+    if (normalized.isEmpty) return;
+
+    await _updateSetting((settings) {
+      final current = settings.perAppProxyAppIds.toList();
+      if (current.contains(normalized)) {
+        current.remove(normalized);
+      } else {
+        current.add(normalized);
+      }
+      return settings.copyWith(
+        perAppProxyAppIds: _normalizeStringList(current),
+      );
+    }, 'togglePerAppProxyApp($normalized)');
   }
 
   // ── MTU ──────────────────────────────────────────────────────────────────
 
   /// Update the MTU mode and optional manual value.
-  Future<void> updateMtu({
-    required MtuMode mode,
-    int? mtuValue,
-  }) async {
+  Future<void> updateMtu({required MtuMode mode, int? mtuValue}) async {
     await _updateSetting(
       (settings) => settings.copyWith(
         mtuMode: mode,
@@ -218,11 +336,196 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     String? customDns,
   }) async {
     await _updateSetting(
-      (settings) => settings.copyWith(
-        dnsProvider: provider,
-        customDns: customDns,
-      ),
+      (settings) =>
+          settings.copyWith(dnsProvider: provider, customDns: customDns),
       'updateDns',
+    );
+  }
+
+  /// Update local DNS settings used by future advanced tunnel flows.
+  Future<void> updateLocalDnsSettings({
+    required bool enabled,
+    int? port,
+  }) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        useLocalDns: enabled,
+        localDnsPort: port ?? settings.localDnsPort,
+      ),
+      'updateLocalDnsSettings',
+    );
+  }
+
+  /// Control whether generated runtime config should respect DNS servers from
+  /// imported JSON instead of app-level overrides.
+  Future<void> updateUseDnsFromJson(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(useDnsFromJson: enabled),
+      'updateUseDnsFromJson',
+    );
+  }
+
+  /// Enable or disable sniffing/packet analysis in future runtime phases.
+  Future<void> updateSniffing(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(sniffingEnabled: enabled),
+      'updateSniffing',
+    );
+  }
+
+  /// Update the preferred engine run mode.
+  Future<void> updateVpnRunMode(VpnRunMode mode) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(vpnRunMode: mode),
+      'updateVpnRunMode',
+    );
+  }
+
+  /// Update server-address resolve settings used before connect.
+  Future<void> updateServerAddressResolve({
+    required bool enabled,
+    String? dohUrl,
+    String? dnsIp,
+  }) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        serverAddressResolveEnabled: enabled,
+        serverAddressResolveDohUrl: dohUrl,
+        serverAddressResolveDnsIp: dnsIp,
+      ),
+      'updateServerAddressResolve',
+    );
+  }
+
+  /// Enable or disable packet fragmentation.
+  Future<void> updateFragmentation(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(fragmentationEnabled: enabled),
+      'updateFragmentation',
+    );
+  }
+
+  /// Enable or disable Xray Mux.
+  Future<void> updateMux(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(muxEnabled: enabled),
+      'updateMux',
+    );
+  }
+
+  /// Update preferred IP family.
+  Future<void> updatePreferredIpType(PreferredIpType ipType) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(preferredIpType: ipType),
+      'updatePreferredIpType',
+    );
+  }
+
+  /// Update ping strategy and optional probe URL used by real-delay tests.
+  Future<void> updatePingSettings({
+    required PingMode mode,
+    String? pingTestUrl,
+  }) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        pingMode: mode,
+        pingTestUrl: pingTestUrl ?? settings.pingTestUrl,
+      ),
+      'updatePingSettings',
+    );
+  }
+
+  /// Update how ping values are rendered across the app.
+  Future<void> updatePingDisplayMode(PingDisplayMode displayMode) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        pingDisplayMode: displayMode,
+        pingResultMode: _pingPolicyRuntime.resultModeForDisplay(displayMode),
+      ),
+      'updatePingDisplayMode',
+    );
+  }
+
+  /// Update Happ-like ping result presentation mode.
+  Future<void> updatePingResultMode(PingResultMode resultMode) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        pingResultMode: resultMode,
+        pingDisplayMode: _pingPolicyRuntime.displayModeForResult(resultMode),
+      ),
+      'updatePingResultMode',
+    );
+  }
+
+  /// Update subscription automation and policy settings in one persisted write.
+  Future<void> updateSubscriptionSettings({
+    bool? autoUpdateEnabled,
+    int? autoUpdateIntervalHours,
+    bool? updateNotificationsEnabled,
+    bool? autoUpdateOnOpen,
+    bool? pingOnOpenEnabled,
+    SubscriptionConnectStrategy? connectStrategy,
+    bool? preventDuplicateImports,
+    bool? collapseSubscriptions,
+    bool? noFilter,
+    SubscriptionSortMode? sortMode,
+  }) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        subscriptionAutoUpdateEnabled:
+            autoUpdateEnabled ?? settings.subscriptionAutoUpdateEnabled,
+        subscriptionAutoUpdateIntervalHours:
+            autoUpdateIntervalHours ??
+            settings.subscriptionAutoUpdateIntervalHours,
+        subscriptionUpdateNotificationsEnabled:
+            updateNotificationsEnabled ??
+            settings.subscriptionUpdateNotificationsEnabled,
+        subscriptionAutoUpdateOnOpen:
+            autoUpdateOnOpen ?? settings.subscriptionAutoUpdateOnOpen,
+        subscriptionPingOnOpenEnabled:
+            pingOnOpenEnabled ?? settings.subscriptionPingOnOpenEnabled,
+        subscriptionConnectStrategy:
+            connectStrategy ?? settings.subscriptionConnectStrategy,
+        preventDuplicateImports:
+            preventDuplicateImports ?? settings.preventDuplicateImports,
+        collapseSubscriptions:
+            collapseSubscriptions ?? settings.collapseSubscriptions,
+        subscriptionNoFilter: noFilter ?? settings.subscriptionNoFilter,
+        subscriptionSortMode: sortMode ?? settings.subscriptionSortMode,
+      ),
+      'updateSubscriptionSettings',
+    );
+  }
+
+  /// Update subscription User-Agent behavior.
+  Future<void> updateSubscriptionUserAgent({
+    required SubscriptionUserAgentMode mode,
+    String? value,
+  }) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(
+        subscriptionUserAgentMode: mode,
+        subscriptionUserAgentValue: mode == SubscriptionUserAgentMode.custom
+            ? value?.trim()
+            : null,
+      ),
+      'updateSubscriptionUserAgent',
+    );
+  }
+
+  /// Toggle LAN connection exposure for future Android-first flows.
+  Future<void> updateAllowLanConnections(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(allowLanConnections: enabled),
+      'updateAllowLanConnections',
+    );
+  }
+
+  /// Toggle application auto-start preference for Android-first flows.
+  Future<void> updateAppAutoStart(bool enabled) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(appAutoStart: enabled),
+      'updateAppAutoStart',
     );
   }
 
@@ -250,20 +553,20 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     await _updateSetting(
       (settings) => switch (type) {
         NotificationType.connection => settings.copyWith(
-            notificationConnection: !settings.notificationConnection,
-          ),
+          notificationConnection: !settings.notificationConnection,
+        ),
         NotificationType.expiry => settings.copyWith(
-            notificationExpiry: !settings.notificationExpiry,
-          ),
+          notificationExpiry: !settings.notificationExpiry,
+        ),
         NotificationType.promotional => settings.copyWith(
-            notificationPromotional: !settings.notificationPromotional,
-          ),
+          notificationPromotional: !settings.notificationPromotional,
+        ),
         NotificationType.referral => settings.copyWith(
-            notificationReferral: !settings.notificationReferral,
-          ),
+          notificationReferral: !settings.notificationReferral,
+        ),
         NotificationType.vpnSpeed => settings.copyWith(
-            notificationVpnSpeed: !settings.notificationVpnSpeed,
-          ),
+          notificationVpnSpeed: !settings.notificationVpnSpeed,
+        ),
       },
       'toggleNotification($type)',
     );
@@ -276,20 +579,22 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   ///
   /// Runs asynchronously without blocking the settings update.
   void _syncFcmTopicSubscription(NotificationType type, bool enabled) {
-    unawaited(Future(() async {
-      try {
-        final topicService = ref.read(fcmTopicServiceProvider);
-        await topicService.setTopicSubscription(type, enabled);
-      } catch (e, st) {
-        // Log but don't throw - FCM sync failure should not affect settings
-        AppLogger.warning(
-          'Failed to sync FCM topic subscription for $type',
-          error: e,
-          stackTrace: st,
-          category: 'settings.fcm',
-        );
-      }
-    }));
+    unawaited(
+      Future(() async {
+        try {
+          final topicService = ref.read(fcmTopicServiceProvider);
+          await topicService.setTopicSubscription(type, enabled);
+        } catch (e, st) {
+          // Log but don't throw - FCM sync failure should not affect settings
+          AppLogger.warning(
+            'Failed to sync FCM topic subscription for $type',
+            error: e,
+            stackTrace: st,
+            category: 'settings.fcm',
+          );
+        }
+      }),
+    );
   }
 
   // ── Server View ──────────────────────────────────────────────────────────
@@ -307,9 +612,8 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
   /// Toggle clipboard auto-detect for VPN config import.
   Future<void> toggleClipboardAutoDetect() async {
     await _updateSetting(
-      (settings) => settings.copyWith(
-        clipboardAutoDetect: !settings.clipboardAutoDetect,
-      ),
+      (settings) =>
+          settings.copyWith(clipboardAutoDetect: !settings.clipboardAutoDetect),
       'toggleClipboardAutoDetect',
     );
   }
@@ -370,7 +674,11 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
       await operation();
       return true;
     } catch (e) {
-      AppLogger.warning('Retry operation failed', error: e, category: 'settings');
+      AppLogger.warning(
+        'Retry operation failed',
+        error: e,
+        category: 'settings',
+      );
       return false;
     }
   }
@@ -386,7 +694,9 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
         case Success(:final data):
           final current = state.value;
           if (current != data) {
-            AppLogger.info('Settings consistency mismatch detected, reconciling');
+            AppLogger.info(
+              'Settings consistency mismatch detected, reconciling',
+            );
             state = AsyncData(data);
           }
         case Failure(:final failure):
@@ -439,6 +749,40 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
         throw failure;
     }
   }
+
+  List<String> _normalizeStringList(List<String> items) {
+    final result = <String>[];
+    for (final item in items) {
+      final normalized = item.trim();
+      if (normalized.isEmpty || result.contains(normalized)) continue;
+      result.add(normalized);
+    }
+    return result;
+  }
+
+  List<ExcludedRouteEntry> _normalizeExcludedRouteEntries(
+    List<ExcludedRouteEntry> entries,
+  ) {
+    final byValue = <String, ExcludedRouteEntry>{};
+    for (final entry in entries) {
+      final normalized = entry.normalizedValue;
+      if (normalized.isEmpty) continue;
+      byValue[normalized] = ExcludedRouteEntry.parse(normalized);
+    }
+
+    final result = byValue.values.toList()
+      ..sort((a, b) => a.normalizedValue.compareTo(b.normalizedValue));
+    return result;
+  }
+
+  List<RoutingProfile> _dedupeRoutingProfiles(List<RoutingProfile> profiles) {
+    final byId = <String, RoutingProfile>{};
+    for (final profile in profiles) {
+      if (profile.id.trim().isEmpty) continue;
+      byId[profile.id] = profile;
+    }
+    return byId.values.toList();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -446,21 +790,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
 // ---------------------------------------------------------------------------
 
 /// Identifies which notification toggle to flip.
-enum NotificationType {
-  connection,
-  expiry,
-  promotional,
-  referral,
-  vpnSpeed,
-}
+enum NotificationType { connection, expiry, promotional, referral, vpnSpeed }
 
 // ---------------------------------------------------------------------------
 // Main provider
 // ---------------------------------------------------------------------------
 
 /// Provides the [SettingsNotifier] managing [AppSettings] state.
-final settingsProvider =
-    AsyncNotifierProvider<SettingsNotifier, AppSettings>(
+final settingsProvider = AsyncNotifierProvider<SettingsNotifier, AppSettings>(
   SettingsNotifier.new,
 );
 
@@ -501,12 +838,76 @@ final vpnSettingsProvider = Provider<VpnSettings>((ref) {
     autoConnectOnLaunch: settings.autoConnectOnLaunch,
     autoConnectUntrustedWifi: settings.autoConnectUntrustedWifi,
     killSwitch: settings.killSwitch,
+    routingEnabled: settings.routingEnabled,
+    routingProfiles: settings.routingProfiles,
+    activeRoutingProfileId: settings.activeRoutingProfileId,
+    bypassSubnets: settings.bypassSubnets,
+    excludedRouteEntries: settings.excludedRouteEntries,
     splitTunneling: settings.splitTunneling,
+    perAppProxyMode: settings.perAppProxyMode,
+    perAppProxyAppIds: settings.perAppProxyAppIds,
     dnsProvider: settings.dnsProvider,
     customDns: settings.customDns,
+    useLocalDns: settings.useLocalDns,
+    localDnsPort: settings.localDnsPort,
+    useDnsFromJson: settings.useDnsFromJson,
+    fragmentationEnabled: settings.fragmentationEnabled,
+    muxEnabled: settings.muxEnabled,
+    preferredIpType: settings.preferredIpType,
+    sniffingEnabled: settings.sniffingEnabled,
+    vpnRunMode: settings.vpnRunMode,
+    serverAddressResolveEnabled: settings.serverAddressResolveEnabled,
+    serverAddressResolveDohUrl: settings.serverAddressResolveDohUrl,
+    serverAddressResolveDnsIp: settings.serverAddressResolveDnsIp,
+    pingMode: settings.pingMode,
+    pingTestUrl: settings.pingTestUrl,
+    pingResultMode: settings.pingResultMode,
+    logLevel: settings.logLevel,
     mtuMode: settings.mtuMode,
     mtuValue: settings.mtuValue,
+    allowLanConnections: settings.allowLanConnections,
+    appAutoStart: settings.appAutoStart,
     trustedWifiNetworks: settings.trustedWifiNetworks,
+  );
+});
+
+/// Subscription-specific policy preferences.
+final subscriptionSettingsProvider = Provider<SubscriptionSettings>((ref) {
+  final asyncSettings = ref.watch(settingsProvider);
+  final settings = asyncSettings.value;
+
+  if (settings == null) return const SubscriptionSettings();
+
+  return SubscriptionSettings(
+    autoUpdateEnabled: settings.subscriptionAutoUpdateEnabled,
+    autoUpdateIntervalHours: settings.subscriptionAutoUpdateIntervalHours,
+    updateNotificationsEnabled: settings.subscriptionUpdateNotificationsEnabled,
+    autoUpdateOnOpen: settings.subscriptionAutoUpdateOnOpen,
+    pingOnOpenEnabled: settings.subscriptionPingOnOpenEnabled,
+    connectStrategy: settings.subscriptionConnectStrategy,
+    preventDuplicateImports: settings.preventDuplicateImports,
+    collapseSubscriptions: settings.collapseSubscriptions,
+    noFilter: settings.subscriptionNoFilter,
+    userAgentMode: settings.subscriptionUserAgentMode,
+    userAgentValue: settings.subscriptionUserAgentValue,
+    sortMode: settings.subscriptionSortMode,
+  );
+});
+
+/// Ping-specific preferences used by diagnostics and server lists.
+final pingSettingsPreferencesProvider = Provider<PingSettingsPreferences>((
+  ref,
+) {
+  final asyncSettings = ref.watch(settingsProvider);
+  final settings = asyncSettings.value;
+
+  if (settings == null) return const PingSettingsPreferences();
+
+  return PingSettingsPreferences(
+    mode: settings.pingMode,
+    testUrl: settings.pingTestUrl,
+    displayMode: settings.pingDisplayMode,
+    resultMode: settings.pingResultMode,
   );
 });
 
@@ -530,11 +931,36 @@ sealed class VpnSettings with _$VpnSettings {
     @Default(false) bool autoConnectOnLaunch,
     @Default(false) bool autoConnectUntrustedWifi,
     @Default(false) bool killSwitch,
+    @Default(false) bool routingEnabled,
+    @Default(<RoutingProfile>[]) List<RoutingProfile> routingProfiles,
+    String? activeRoutingProfileId,
+    @Default(<String>[]) List<String> bypassSubnets,
+    @Default(<ExcludedRouteEntry>[])
+    List<ExcludedRouteEntry> excludedRouteEntries,
     @Default(false) bool splitTunneling,
+    @Default(PerAppProxyMode.off) PerAppProxyMode perAppProxyMode,
+    @Default(<String>[]) List<String> perAppProxyAppIds,
     @Default(DnsProvider.system) DnsProvider dnsProvider,
     String? customDns,
+    @Default(false) bool useLocalDns,
+    @Default(1053) int localDnsPort,
+    @Default(false) bool useDnsFromJson,
+    @Default(false) bool fragmentationEnabled,
+    @Default(false) bool muxEnabled,
+    @Default(PreferredIpType.auto) PreferredIpType preferredIpType,
+    @Default(false) bool sniffingEnabled,
+    @Default(VpnRunMode.vpn) VpnRunMode vpnRunMode,
+    @Default(false) bool serverAddressResolveEnabled,
+    String? serverAddressResolveDohUrl,
+    String? serverAddressResolveDnsIp,
+    @Default(PingMode.tcp) PingMode pingMode,
+    @Default('https://google.com/generate_204') String pingTestUrl,
+    @Default(PingResultMode.time) PingResultMode pingResultMode,
+    @Default(LogLevel.info) LogLevel logLevel,
     @Default(MtuMode.auto) MtuMode mtuMode,
     @Default(1400) int mtuValue,
+    @Default(false) bool allowLanConnections,
+    @Default(false) bool appAutoStart,
     @Default([]) List<String> trustedWifiNetworks,
   }) = _VpnSettings;
 
@@ -543,4 +969,47 @@ sealed class VpnSettings with _$VpnSettings {
     final cleanSsid = ssid.replaceAll(RegExp(r'^"|"$'), '').trim();
     return trustedWifiNetworks.contains(cleanSsid);
   }
+
+  /// Currently active routing profile, if present in the stored profiles list.
+  RoutingProfile? get activeRoutingProfile {
+    final profileId = activeRoutingProfileId;
+    if (profileId == null) return null;
+
+    for (final profile in routingProfiles) {
+      if (profile.id == profileId) return profile;
+    }
+    return null;
+  }
+}
+
+/// Immutable subset of [AppSettings] with subscription policy preferences.
+@freezed
+sealed class SubscriptionSettings with _$SubscriptionSettings {
+  const factory SubscriptionSettings({
+    @Default(true) bool autoUpdateEnabled,
+    @Default(24) int autoUpdateIntervalHours,
+    @Default(false) bool updateNotificationsEnabled,
+    @Default(true) bool autoUpdateOnOpen,
+    @Default(false) bool pingOnOpenEnabled,
+    @Default(SubscriptionConnectStrategy.lastUsed)
+    SubscriptionConnectStrategy connectStrategy,
+    @Default(true) bool preventDuplicateImports,
+    @Default(true) bool collapseSubscriptions,
+    @Default(false) bool noFilter,
+    @Default(SubscriptionUserAgentMode.appDefault)
+    SubscriptionUserAgentMode userAgentMode,
+    String? userAgentValue,
+    @Default(SubscriptionSortMode.none) SubscriptionSortMode sortMode,
+  }) = _SubscriptionSettings;
+}
+
+/// Immutable subset of [AppSettings] with ping-specific preferences.
+@freezed
+sealed class PingSettingsPreferences with _$PingSettingsPreferences {
+  const factory PingSettingsPreferences({
+    @Default(PingMode.tcp) PingMode mode,
+    @Default('https://google.com/generate_204') String testUrl,
+    @Default(PingDisplayMode.latency) PingDisplayMode displayMode,
+    @Default(PingResultMode.time) PingResultMode resultMode,
+  }) = _PingSettingsPreferences;
 }

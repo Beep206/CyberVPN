@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
 
 from src.keyboards.account import language_selection_keyboard
 from src.keyboards.menu import profile_kb
 from src.states.account import AccountState
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -135,7 +135,7 @@ async def show_subscriptions_handler(
         subs_text = i18n.get("subscriptions-title") + "\n\n"
 
         for sub in subscriptions:
-            status_emoji = "✅" if sub.get("status") == "active" else "❌"
+            status_emoji = "✅" if sub.get("status") in {"active", "trial"} else "❌"
             subs_text += (
                 f"{status_emoji} {sub.get('plan_name', 'N/A')}\n"
                 f"   {i18n.get('status')}: {sub.get('status', 'N/A')}\n"

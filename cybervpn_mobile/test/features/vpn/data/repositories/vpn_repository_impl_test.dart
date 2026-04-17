@@ -22,6 +22,10 @@ class _MockVpnEngine implements VpnEngineDatasource {
   bool shouldFailDisconnect = false;
   int initializeCallCount = 0;
   int connectCallCount = 0;
+  List<String>? lastDnsServers;
+  int? lastMtu;
+  bool lastProxyOnly = false;
+  bool lastAllowLanConnections = false;
 
   final StreamController<VlessStatus> _statusController =
       StreamController<VlessStatus>.broadcast();
@@ -38,9 +42,22 @@ class _MockVpnEngine implements VpnEngineDatasource {
   }
 
   @override
-  Future<void> connect(String config, {String? remark, List<String>? blockedApps}) async {
+  Future<void> connect(
+    String config, {
+    String? remark,
+    List<String>? blockedApps,
+    List<String>? bypassSubnets,
+    List<String>? dnsServers,
+    int? mtu,
+    bool proxyOnly = false,
+    bool allowLanConnections = false,
+  }) async {
     connectCallCount++;
     if (shouldFailConnect) throw Exception('Engine connect failed');
+    lastDnsServers = dnsServers;
+    lastMtu = mtu;
+    lastProxyOnly = proxyOnly;
+    lastAllowLanConnections = allowLanConnections;
     connected = true;
   }
 
@@ -121,15 +138,22 @@ VpnConfigEntity _testConfig({
   int port = 443,
   VpnProtocol protocol = VpnProtocol.vless,
   String configData = 'vless://test-config-data',
-}) =>
-    VpnConfigEntity(
-      id: id,
-      name: name,
-      serverAddress: serverAddress,
-      port: port,
-      protocol: protocol,
-      configData: configData,
-    );
+  List<String>? dnsServers,
+  int? mtu,
+  bool proxyOnly = false,
+  bool allowLanConnections = false,
+}) => VpnConfigEntity(
+  id: id,
+  name: name,
+  serverAddress: serverAddress,
+  port: port,
+  protocol: protocol,
+  configData: configData,
+  dnsServers: dnsServers,
+  mtu: mtu,
+  proxyOnly: proxyOnly,
+  allowLanConnections: allowLanConnections,
+);
 
 // =============================================================================
 // Tests
@@ -155,28 +179,33 @@ void main() {
   // ── saveConfig / getLastConfig ─────────────────────────────────────────────
 
   group('saveConfig + getLastConfig', () {
-    test('saveConfig splits metadata (SharedPrefs) and data (SecureStorage)', () async {
-      final config = _testConfig();
-      final result = await repo.saveConfig(config);
-      expect(result, isA<Success<void>>());
+    test(
+      'saveConfig splits metadata (SharedPrefs) and data (SecureStorage)',
+      () async {
+        final config = _testConfig();
+        final result = await repo.saveConfig(config);
+        expect(result, isA<Success<void>>());
 
-      // Metadata in SharedPreferences.
-      final metaJson = await localStorage.getString('last_vpn_config_meta');
-      expect(metaJson, isNotNull);
-      final meta = jsonDecode(metaJson!) as Map<String, dynamic>;
-      expect(meta['id'], equals('cfg-1'));
-      expect(meta['name'], equals('Test Config'));
-      expect(meta['serverAddress'], equals('1.2.3.4'));
-      expect(meta['port'], equals(443));
-      expect(meta['protocol'], equals('vless'));
+        // Metadata in SharedPreferences.
+        final metaJson = await localStorage.getString('last_vpn_config_meta');
+        expect(metaJson, isNotNull);
+        final meta = jsonDecode(metaJson!) as Map<String, dynamic>;
+        expect(meta['id'], equals('cfg-1'));
+        expect(meta['name'], equals('Test Config'));
+        expect(meta['serverAddress'], equals('1.2.3.4'));
+        expect(meta['port'], equals(443));
+        expect(meta['protocol'], equals('vless'));
 
-      // Sensitive data NOT in metadata.
-      expect(meta.containsKey('configData'), isFalse);
+        // Sensitive data NOT in metadata.
+        expect(meta.containsKey('configData'), isFalse);
 
-      // Config data in SecureStorage.
-      final secureData = await secureStorage.read(key: 'last_vpn_config_data');
-      expect(secureData, equals('vless://test-config-data'));
-    });
+        // Config data in SecureStorage.
+        final secureData = await secureStorage.read(
+          key: 'last_vpn_config_data',
+        );
+        expect(secureData, equals('vless://test-config-data'));
+      },
+    );
 
     test('getLastConfig reconstructs entity from split storage', () async {
       final config = _testConfig();
@@ -199,22 +228,25 @@ void main() {
       expect((result as Success).data, isNull);
     });
 
-    test('getLastConfig returns null when metadata exists but data missing', () async {
-      // Write metadata without corresponding secure data.
-      await localStorage.setString(
-        'last_vpn_config_meta',
-        jsonEncode({
-          'id': 'cfg-orphan',
-          'name': 'Orphan',
-          'serverAddress': '5.6.7.8',
-          'port': 443,
-          'protocol': 'vless',
-        }),
-      );
+    test(
+      'getLastConfig returns null when metadata exists but data missing',
+      () async {
+        // Write metadata without corresponding secure data.
+        await localStorage.setString(
+          'last_vpn_config_meta',
+          jsonEncode({
+            'id': 'cfg-orphan',
+            'name': 'Orphan',
+            'serverAddress': '5.6.7.8',
+            'port': 443,
+            'protocol': 'vless',
+          }),
+        );
 
-      final result = await repo.getLastConfig();
-      expect((result as Success).data, isNull);
-    });
+        final result = await repo.getLastConfig();
+        expect((result as Success).data, isNull);
+      },
+    );
   });
 
   // ── getSavedConfigs / deleteConfig ─────────────────────────────────────────
@@ -224,6 +256,36 @@ void main() {
       final result = await repo.getSavedConfigs();
       expect(result, isA<Success<List<VpnConfigEntity>>>());
       expect((result as Success).data, isEmpty);
+    });
+  });
+
+  group('connectionStatsStream', () {
+    test('maps engine status counters into connection stats entities', () async {
+      final config = _testConfig(name: 'Primary');
+      final statsFuture = repo.connectionStatsStream.first;
+
+      await repo.connect(config);
+      engine.emitStatus(
+        VlessStatus(
+          duration: 120,
+          uploadSpeed: 64,
+          downloadSpeed: 128,
+          upload: 2048,
+          download: 4096,
+          state: 'CONNECTED',
+        ),
+      );
+
+      final stats = await statsFuture;
+      expect(stats.serverName, 'Primary');
+      expect(stats.protocol, 'vless');
+      expect(stats.ipAddress, '1.2.3.4');
+      expect(stats.connectionDuration, const Duration(seconds: 120));
+      expect(stats.uploadSpeed, 64);
+      expect(stats.downloadSpeed, 128);
+      expect(stats.totalUpload, 2048);
+      expect(stats.totalDownload, 4096);
+      expect(stats.sessionStartedAt, isNotNull);
     });
   });
 
@@ -240,7 +302,10 @@ void main() {
           'protocol': 'vless',
         },
       ];
-      await localStorage.setString('saved_vpn_configs_meta', jsonEncode(metaList));
+      await localStorage.setString(
+        'saved_vpn_configs_meta',
+        jsonEncode(metaList),
+      );
       await secureStorage.write(
         key: 'vpn_config_data_$configId',
         value: 'vless://delete-me',
@@ -258,8 +323,9 @@ void main() {
       expect((result as Success<List<VpnConfigEntity>>).data, isEmpty);
 
       // SecureStorage data should be removed.
-      final secureData =
-          await secureStorage.read(key: 'vpn_config_data_$configId');
+      final secureData = await secureStorage.read(
+        key: 'vpn_config_data_$configId',
+      );
       expect(secureData, isNull);
     });
   });
@@ -399,7 +465,10 @@ void main() {
       expect((result as Success).data, isNull);
 
       // Migration flag should still be set.
-      expect(await freshLocal.getBool('vpn_config_migration_v1_complete'), isTrue);
+      expect(
+        await freshLocal.getBool('vpn_config_migration_v1_complete'),
+        isTrue,
+      );
     });
   });
 
@@ -426,6 +495,24 @@ void main() {
       expect(result, isA<Success<void>>());
       expect(engine.connected, isTrue);
     });
+
+    test(
+      'passes dnsServers, mtu, and proxyOnly through to the engine',
+      () async {
+        final result = await repo.connect(
+          _testConfig(
+            dnsServers: const ['1.1.1.1'],
+            mtu: 1400,
+            proxyOnly: true,
+          ),
+        );
+
+        expect(result, isA<Success<void>>());
+        expect(engine.lastDnsServers, const ['1.1.1.1']);
+        expect(engine.lastMtu, 1400);
+        expect(engine.lastProxyOnly, isTrue);
+      },
+    );
 
     test('returns Failure(VpnFailure) on engine error', () async {
       engine.shouldFailConnect = true;
@@ -476,17 +563,20 @@ void main() {
       await sub.cancel();
     });
 
-    test('maps DISCONNECTED status to VpnConnectionStatus.disconnected', () async {
-      final events = <ConnectionStateEntity>[];
-      final sub = repo.connectionStateStream.listen(events.add);
+    test(
+      'maps DISCONNECTED status to VpnConnectionStatus.disconnected',
+      () async {
+        final events = <ConnectionStateEntity>[];
+        final sub = repo.connectionStateStream.listen(events.add);
 
-      engine.emitStatus(VlessStatus(state: 'DISCONNECTED'));
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+        engine.emitStatus(VlessStatus(state: 'DISCONNECTED'));
+        await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      expect(events, hasLength(1));
-      expect(events[0].status, equals(VpnConnectionStatus.disconnected));
-      await sub.cancel();
-    });
+        expect(events, hasLength(1));
+        expect(events[0].status, equals(VpnConnectionStatus.disconnected));
+        await sub.cancel();
+      },
+    );
 
     test('maps unknown engine states to disconnected', () async {
       final events = <ConnectionStateEntity>[];

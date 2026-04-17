@@ -1,112 +1,36 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
-import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/vpn_settings_support_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_section.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_tile.dart';
 
-// ---------------------------------------------------------------------------
-// VpnSettingsScreen
-// ---------------------------------------------------------------------------
-
-/// VPN settings sub-screen with protocol picker, auto-connect toggles,
-/// kill switch, split tunneling, DNS picker, and MTU configuration.
-///
-/// All changes are persisted via [settingsProvider] and take effect on the
-/// next VPN connection.
-class VpnSettingsScreen extends ConsumerStatefulWidget {
-  final bool embedded;
+/// VPN settings hub that exposes the modular Phase 5 information architecture.
+class VpnSettingsScreen extends ConsumerWidget {
   const VpnSettingsScreen({super.key, this.embedded = false});
 
-  @override
-  ConsumerState<VpnSettingsScreen> createState() => _VpnSettingsScreenState();
-}
-
-class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
-  late final TextEditingController _customDnsController;
-  late final TextEditingController _mtuController;
+  final bool embedded;
 
   @override
-  void initState() {
-    super.initState();
-    _customDnsController = TextEditingController();
-    _mtuController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _customDnsController.dispose();
-    _mtuController.dispose();
-    super.dispose();
-  }
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  /// Returns a human-readable label for the [PreferredProtocol].
-  String _protocolLabel(PreferredProtocol protocol) {
-    return switch (protocol) {
-      PreferredProtocol.auto => 'Auto',
-      PreferredProtocol.vlessReality => 'VLESS Reality',
-      PreferredProtocol.vlessXhttp => 'VLESS XHTTP',
-      PreferredProtocol.vlessWsTls => 'VLESS WS+TLS',
-    };
-  }
-
-  /// Returns a human-readable label for the [DnsProvider].
-  String _dnsLabel(DnsProvider dns) {
-    return switch (dns) {
-      DnsProvider.system => 'System',
-      DnsProvider.cloudflare => 'Cloudflare (1.1.1.1)',
-      DnsProvider.google => 'Google (8.8.8.8)',
-      DnsProvider.quad9 => 'Quad9 (9.9.9.9)',
-      DnsProvider.custom => 'Custom',
-    };
-  }
-
-  /// Shows a warning dialog before enabling the kill switch.
-  Future<bool> _showKillSwitchWarning() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        final dialogL10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(dialogL10n.settingsKillSwitchDialogTitle),
-          content: Text(dialogL10n.settingsKillSwitchDialogContent),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(dialogL10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(dialogL10n.settingsKillSwitchDialogEnable),
-            ),
-          ],
-        );
-      },
-    );
-    return confirmed ?? false;
-  }
-
-  // ── Build ────────────────────────────────────────────────────────────────
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final asyncSettings = ref.watch(settingsProvider);
     final l10n = AppLocalizations.of(context);
 
     final content = asyncSettings.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _buildError(error),
-      data: _buildBody,
+      error: (error, _) => _buildError(context, ref),
+      data: (settings) => _buildBody(context, ref, settings),
     );
 
-    if (widget.embedded) return content;
+    if (embedded) {
+      return content;
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsVpn)),
@@ -114,9 +38,7 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────────
-
-  Widget _buildError(Object error) {
+  Widget _buildError(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return Center(
@@ -125,7 +47,10 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
         children: [
           Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
           const SizedBox(height: 12),
-          Text(AppLocalizations.of(context).settingsLoadError, style: theme.textTheme.bodyLarge),
+          Text(
+            AppLocalizations.of(context).settingsLoadError,
+            style: theme.textTheme.bodyLarge,
+          ),
           const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: () => ref.invalidate(settingsProvider),
@@ -136,273 +61,206 @@ class _VpnSettingsScreenState extends ConsumerState<VpnSettingsScreen> {
     );
   }
 
-  // ── Data state ─────────────────────────────────────────────────────────
-
-  Widget _buildBody(AppSettings settings) {
-    // Sync text controllers with current settings values.
-    if (_customDnsController.text != (settings.customDns ?? '')) {
-      _customDnsController.text = settings.customDns ?? '';
-    }
-    if (_mtuController.text != settings.mtuValue.toString()) {
-      _mtuController.text = settings.mtuValue.toString();
-    }
+  Widget _buildBody(BuildContext context, WidgetRef ref, AppSettings settings) {
+    final supportMatrix = ref.watch(vpnSettingsSupportMatrixProvider);
+    final importedConfigs = ref.watch(importedConfigsProvider);
+    final subscriptionMetadata = ref.watch(subscriptionUrlMetadataProvider);
 
     return ListView(
       children: [
-        // --- Protocol Preference ---
-        _buildProtocolSection(settings),
-
-        // --- Auto-Connect ---
-        _buildAutoConnectSection(settings),
-
-        // --- Security ---
-        _buildSecuritySection(settings),
-
-        // --- DNS Configuration ---
-        _buildDnsSection(settings),
-
-        // --- Advanced ---
-        _buildAdvancedSection(settings),
-
-        // --- Info notice ---
-        _buildConnectionNotice(),
-
-        // Bottom padding
+        SettingsSection(
+          title: 'Connection',
+          children: [
+            SettingsTile.navigation(
+              key: const Key('nav_vpn_general_settings'),
+              title: 'VPN Settings',
+              subtitle: _generalSummary(settings),
+              leading: const Icon(Icons.vpn_key_outlined),
+              onTap: () => context.push('/settings/vpn/general'),
+            ),
+            SettingsTile.navigation(
+              key: const Key('nav_vpn_routing_settings'),
+              title: 'Routing',
+              subtitle: _routingSummary(settings),
+              leading: const Icon(Icons.route_outlined),
+              onTap: () => context.push('/settings/vpn/routing'),
+            ),
+            if (supportMatrix.perAppProxy.isVisible)
+              SettingsTile.navigation(
+                key: const Key('nav_vpn_per_app_proxy_settings'),
+                title: 'Per-App Proxy',
+                subtitle: _perAppProxySummary(settings),
+                leading: const Icon(Icons.apps_outlined),
+                onTap: () => context.push('/settings/vpn/per-app-proxy'),
+              ),
+            SettingsTile.navigation(
+              key: const Key('nav_vpn_advanced_settings'),
+              title: 'Advanced',
+              subtitle: _advancedSummary(settings),
+              leading: const Icon(Icons.tune_outlined),
+              onTap: () => context.push('/settings/vpn/advanced'),
+            ),
+          ],
+        ),
+        SettingsSection(
+          title: 'Operations',
+          children: [
+            SettingsTile.navigation(
+              key: const Key('nav_vpn_subscription_settings'),
+              title: 'Subscriptions',
+              subtitle: _subscriptionSummary(
+                importedConfigCount: importedConfigs.length,
+                subscriptionCount: subscriptionMetadata.length,
+              ),
+              leading: const Icon(Icons.cloud_sync_outlined),
+              onTap: () => context.push('/settings/vpn/subscriptions'),
+            ),
+            SettingsTile.navigation(
+              key: const Key('nav_vpn_ping_settings'),
+              title: 'Ping',
+              subtitle: _pingSummary(settings),
+              leading: const Icon(Icons.network_ping_outlined),
+              onTap: () => context.push('/settings/vpn/ping'),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.md,
+            Spacing.sm,
+            Spacing.md,
+            Spacing.lg,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(Radii.lg),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(Spacing.md),
+              child: Text(
+                'Phase 5 reorganizes VPN controls into operational areas. '
+                'Use General, Routing, Advanced, Subscriptions, and Ping to avoid one overloaded settings page.',
+              ),
+            ),
+          ),
+        ),
         SizedBox(height: Spacing.navBarClearance(context)),
       ],
     );
   }
 
-  // ── Protocol Preference ────────────────────────────────────────────────
-
-  Widget _buildProtocolSection(AppSettings settings) {
-    final notifier = ref.read(settingsProvider.notifier);
-    final l10n = AppLocalizations.of(context);
-
-    return SettingsSection(
-      title: l10n.settingsVpnProtocolPreference,
-      children: [
-        for (final protocol in PreferredProtocol.values)
-          SettingsTile.radio(
-            key: Key('radio_protocol_${protocol.name}'),
-            title: _protocolLabel(protocol),
-            value: protocol,
-            groupValue: settings.preferredProtocol,
-            onChanged: (_) => notifier.updateProtocol(protocol),
-          ),
-      ],
-    );
+  String _generalSummary(AppSettings settings) {
+    final dnsSummary = settings.useDnsFromJson
+        ? 'DNS from JSON'
+        : '${_dnsLabel(settings.dnsProvider)} DNS';
+    final resolveSummary = settings.serverAddressResolveEnabled
+        ? 'Resolve on connect'
+        : 'No pre-resolve';
+    return '${_protocolLabel(settings.preferredProtocol)} • '
+        '$dnsSummary • '
+        '$resolveSummary • '
+        '${settings.mtuMode == MtuMode.auto ? 'MTU Auto' : 'MTU ${settings.mtuValue}'}';
   }
 
-  // ── Auto-Connect ───────────────────────────────────────────────────────
+  String _routingSummary(AppSettings settings) {
+    if (!settings.routingEnabled) {
+      return 'Routing disabled';
+    }
 
-  Widget _buildAutoConnectSection(AppSettings settings) {
-    final notifier = ref.read(settingsProvider.notifier);
-    final l10n = AppLocalizations.of(context);
-
-    return SettingsSection(
-      title: l10n.settingsAutoConnectLabel,
-      children: [
-        SettingsTile.toggle(
-          key: const Key('toggle_auto_connect_launch'),
-          title: l10n.settingsAutoConnectOnLaunchLabel,
-          subtitle: l10n.settingsAutoConnectOnLaunchDescription,
-          value: settings.autoConnectOnLaunch,
-          onChanged: (_) => notifier.toggleAutoConnect(),
-        ),
-        SettingsTile.toggle(
-          key: const Key('toggle_auto_connect_wifi'),
-          title: l10n.settingsAutoConnectUntrustedWifiLabel,
-          subtitle: l10n.settingsAutoConnectUntrustedWifiDescription,
-          value: settings.autoConnectUntrustedWifi,
-          onChanged: (_) => notifier.toggleAutoConnectUntrustedWifi(),
-        ),
-        // Show trusted networks link when auto-connect WiFi is enabled
-        if (settings.autoConnectUntrustedWifi)
-          SettingsTile.navigation(
-            key: const Key('nav_trusted_networks'),
-            title: l10n.settingsManageTrustedNetworks,
-            subtitle: settings.trustedWifiNetworks.isEmpty
-                ? l10n.settingsNoTrustedNetworks
-                : l10n.settingsTrustedNetworkCount(settings.trustedWifiNetworks.length),
-            onTap: () => Navigator.of(context).pushNamed('/settings/trusted-wifi'),
-          ),
-      ],
+    final activeProfile = settings.routingProfiles.where(
+      (profile) => profile.id == settings.activeRoutingProfileId,
     );
+    final activeProfileName = activeProfile.isNotEmpty
+        ? activeProfile.first.name
+        : 'No active profile';
+
+    final excludedRoutesSummary = settings.bypassSubnets.isEmpty
+        ? 'no excluded routes'
+        : '${settings.bypassSubnets.length} excluded route(s)';
+
+    return '$activeProfileName • $excludedRoutesSummary';
   }
 
-  // ── Security ───────────────────────────────────────────────────────────
-
-  Widget _buildSecuritySection(AppSettings settings) {
-    final notifier = ref.read(settingsProvider.notifier);
-    final l10n = AppLocalizations.of(context);
-
-    return SettingsSection(
-      title: l10n.settingsSecuritySection,
-      children: [
-        SettingsTile.toggle(
-          key: const Key('toggle_kill_switch'),
-          title: l10n.settingsKillSwitchLabel,
-          subtitle: l10n.settingsKillSwitchSubtitle,
-          value: settings.killSwitch,
-          onChanged: (dynamic newValue) async {
-            final bool enabled = newValue as bool;
-            if (enabled) {
-              final confirmed = await _showKillSwitchWarning();
-              if (!confirmed) return;
-            }
-            unawaited(notifier.toggleKillSwitch());
-          },
-        ),
-      ],
-    );
+  String _perAppProxySummary(AppSettings settings) {
+    final count = settings.perAppProxyAppIds.length;
+    return switch (settings.perAppProxyMode) {
+      PerAppProxyMode.off => 'Proxy applies to all apps',
+      PerAppProxyMode.proxySelected =>
+        count == 0
+            ? 'Only selected apps will use proxy'
+            : '$count selected app(s) use proxy',
+      PerAppProxyMode.bypassSelected =>
+        count == 0
+            ? 'Selected apps will bypass proxy'
+            : '$count selected app(s) bypass proxy',
+    };
   }
 
-  // ── DNS Configuration ──────────────────────────────────────────────────
-
-  Widget _buildDnsSection(AppSettings settings) {
-    final notifier = ref.read(settingsProvider.notifier);
-    final l10n = AppLocalizations.of(context);
-
-    return SettingsSection(
-      title: l10n.settingsDnsProviderSection,
-      children: [
-        for (final dns in DnsProvider.values)
-          SettingsTile.radio(
-            key: Key('radio_dns_${dns.name}'),
-            title: _dnsLabel(dns),
-            value: dns,
-            groupValue: settings.dnsProvider,
-            onChanged: (_) => notifier.updateDns(
-              provider: dns,
-              customDns: dns == DnsProvider.custom ? settings.customDns : null,
-            ),
-          ),
-
-        // Custom DNS input (visible when Custom is selected)
-        if (settings.dnsProvider == DnsProvider.custom)
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.sm,
-            ),
-            child: TextField(
-              key: const Key('input_custom_dns'),
-              controller: _customDnsController,
-              decoration: InputDecoration(
-                labelText: l10n.settingsDnsCustomAddressLabel,
-                hintText: l10n.settingsDnsCustomAddressHint,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.url,
-              onSubmitted: (value) => notifier.updateDns(
-                provider: DnsProvider.custom,
-                customDns: value,
-              ),
-            ),
-          ),
-      ],
-    );
+  String _advancedSummary(AppSettings settings) {
+    final enabledFlags = [
+      if (settings.vpnRunMode == VpnRunMode.proxyOnly) 'proxy-only',
+      if (settings.sniffingEnabled) 'packet analysis',
+      if (settings.fragmentationEnabled) 'fragmentation',
+      if (settings.muxEnabled) 'mux',
+    ];
+    final base = enabledFlags.isEmpty
+        ? 'No transport modifiers enabled'
+        : enabledFlags.join(', ');
+    return '$base • ${_preferredIpTypeLabel(settings.preferredIpType)}';
   }
 
-  // ── Advanced ───────────────────────────────────────────────────────────
+  String _subscriptionSummary({
+    required int importedConfigCount,
+    required int subscriptionCount,
+  }) {
+    if (importedConfigCount == 0 && subscriptionCount == 0) {
+      return 'No imported configs yet';
+    }
 
-  Widget _buildAdvancedSection(AppSettings settings) {
-    final notifier = ref.read(settingsProvider.notifier);
-    final l10n = AppLocalizations.of(context);
-
-    return SettingsSection(
-      title: l10n.settingsAdvancedSection,
-      children: [
-        // Split tunneling toggle
-        SettingsTile.toggle(
-          key: const Key('toggle_split_tunneling'),
-          title: l10n.settingsSplitTunnelingLabel,
-          subtitle: l10n.settingsSplitTunnelingSubtitle,
-          value: settings.splitTunneling,
-          onChanged: (_) => notifier.toggleSplitTunneling(),
-        ),
-
-        // MTU selection
-        SettingsTile.radio(
-          key: const Key('radio_mtu_auto'),
-          title: l10n.settingsMtuAutoLabel,
-          subtitle: l10n.settingsMtuAutoDescription,
-          value: MtuMode.auto,
-          groupValue: settings.mtuMode,
-          onChanged: (_) => notifier.updateMtu(mode: MtuMode.auto),
-        ),
-        SettingsTile.radio(
-          key: const Key('radio_mtu_manual'),
-          title: l10n.settingsMtuManualLabel,
-          subtitle: l10n.settingsMtuManualDescription,
-          value: MtuMode.manual,
-          groupValue: settings.mtuMode,
-          onChanged: (_) => notifier.updateMtu(mode: MtuMode.manual),
-        ),
-
-        // Manual MTU input (visible when Manual is selected)
-        if (settings.mtuMode == MtuMode.manual)
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.sm,
-            ),
-            child: TextField(
-              key: const Key('input_mtu_value'),
-              controller: _mtuController,
-              decoration: InputDecoration(
-                labelText: l10n.settingsMtuValueLabel,
-                hintText: l10n.settingsMtuValueHint,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                final parsed = int.tryParse(value);
-                if (parsed != null &&
-                    parsed >= VpnConstants.minMtu &&
-                    parsed <= VpnConstants.maxMtu) {
-                  unawaited(notifier.updateMtu(
-                    mode: MtuMode.manual,
-                    mtuValue: parsed,
-                  ));
-                }
-              },
-            ),
-          ),
-      ],
-    );
+    return '$subscriptionCount subscription source(s) • '
+        '$importedConfigCount imported config(s)';
   }
 
-  // ── Connection notice ──────────────────────────────────────────────────
+  String _pingSummary(AppSettings settings) {
+    final label = switch (settings.pingMode) {
+      PingMode.tcp => 'TCP connect',
+      PingMode.realDelay => 'Real delay',
+      PingMode.proxyGet => 'Via proxy GET',
+      PingMode.proxyHead => 'Via proxy HEAD',
+      PingMode.icmp => 'ICMP',
+    };
+    final host = Uri.tryParse(settings.pingTestUrl)?.host;
+    if (host == null || host.isEmpty) {
+      return label;
+    }
+    return '$label • $host';
+  }
 
-  Widget _buildConnectionNotice() {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
+  String _protocolLabel(PreferredProtocol protocol) {
+    return switch (protocol) {
+      PreferredProtocol.auto => 'Auto',
+      PreferredProtocol.vlessReality => 'VLESS Reality',
+      PreferredProtocol.vlessXhttp => 'VLESS XHTTP',
+      PreferredProtocol.vlessWsTls => 'VLESS WS+TLS',
+    };
+  }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.md,
-        vertical: Spacing.lg,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: Spacing.sm),
-          Expanded(
-            child: Text(
-              l10n.settingsChangesApplyOnNextConnection,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _dnsLabel(DnsProvider dns) {
+    return switch (dns) {
+      DnsProvider.system => 'System',
+      DnsProvider.cloudflare => 'Cloudflare',
+      DnsProvider.google => 'Google',
+      DnsProvider.quad9 => 'Quad9',
+      DnsProvider.custom => 'Custom',
+    };
+  }
+
+  String _preferredIpTypeLabel(PreferredIpType ipType) {
+    return switch (ipType) {
+      PreferredIpType.auto => 'IP Auto',
+      PreferredIpType.ipv4 => 'IPv4 only',
+      PreferredIpType.ipv6 => 'IPv6 only',
+    };
   }
 }

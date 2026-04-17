@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
@@ -40,13 +43,19 @@ class _FakeSettingsNotifier extends SettingsNotifier {
 
 Widget _buildTestWidget({
   AppSettings settings = const AppSettings(),
+  int developerModeTapThreshold = 7,
 }) {
   return ProviderScope(
     overrides: [
       settingsProvider.overrideWith(() => _FakeSettingsNotifier(settings)),
     ],
-    child: const MaterialApp(
-      home: DebugScreen(),
+    child: MaterialApp(
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: DebugScreen(
+        developerModeTapThreshold: developerModeTapThreshold,
+      ),
     ),
   );
 }
@@ -166,17 +175,17 @@ void main() {
     });
 
     testWidgets('tapping version 7 times activates developer mode', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(
+        _buildTestWidget(developerModeTapThreshold: 1),
+      );
       await tester.pumpAndSettle();
 
       // Developer panel should not be visible initially
       expect(find.text('Developer Options'), findsNothing);
 
-      // Tap version tile 7 times
-      for (var i = 0; i < 7; i++) {
-        await tester.tap(find.byKey(const Key('tile_app_version')));
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+      await tester.ensureVisible(find.byKey(const Key('tile_app_version')));
+
+      await tester.tap(find.byKey(const Key('tile_app_version')));
       await tester.pumpAndSettle();
 
       // Developer panel should now be visible
@@ -190,14 +199,14 @@ void main() {
     });
 
     testWidgets('developer mode shows all developer tiles', (tester) async {
-      await tester.pumpWidget(_buildTestWidget());
+      await tester.pumpWidget(
+        _buildTestWidget(developerModeTapThreshold: 1),
+      );
       await tester.pumpAndSettle();
 
       // Activate developer mode
-      for (var i = 0; i < 7; i++) {
-        await tester.tap(find.byKey(const Key('tile_app_version')));
-        await tester.pump(const Duration(milliseconds: 100));
-      }
+      await tester.ensureVisible(find.byKey(const Key('tile_app_version')));
+      await tester.tap(find.byKey(const Key('tile_app_version')));
       await tester.pumpAndSettle();
 
       // Verify all developer tiles are present
@@ -225,6 +234,9 @@ void main() {
             settingsProvider.overrideWith(_NeverCompleteSettingsNotifier.new),
           ],
           child: const MaterialApp(
+            locale: Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: DebugScreen(),
           ),
         ),
@@ -241,6 +253,9 @@ void main() {
             settingsProvider.overrideWith(_ErrorSettingsNotifier.new),
           ],
           child: const MaterialApp(
+            locale: Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: DebugScreen(),
           ),
         ),
@@ -260,7 +275,7 @@ void main() {
 class _NeverCompleteSettingsNotifier extends SettingsNotifier {
   @override
   Future<AppSettings> build() {
-    return Future<AppSettings>.delayed(const Duration(days: 1));
+    return Completer<AppSettings>().future;
   }
 }
 

@@ -12,6 +12,7 @@ import 'package:cybervpn_mobile/features/servers/data/datasources/server_remote_
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show
+        pingPolicyRuntimeProvider,
         serverRepositoryProvider,
         pingServiceProvider,
         favoritesLocalDatasourceProvider;
@@ -19,6 +20,8 @@ import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/profile_aware_server_list.dart';
 
 part 'server_list_provider.freezed.dart';
@@ -516,6 +519,21 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
 
   void _triggerPingTest(List<ServerEntity> servers) {
     final pingService = ref.read(pingServiceProvider);
+    final settings = ref.read(settingsProvider).value ?? const AppSettings();
+    final plan = ref.read(pingPolicyRuntimeProvider).resolveServerListPlan(
+      settings.pingMode,
+    );
+    if (plan.isFallback) {
+      AppLogger.info(
+        'Server list ping fell back to TCP',
+        category: 'servers.ping',
+        data: {
+          'requestedMode': plan.requestedMode.name,
+          'effectiveTransport': plan.effectiveTransport.name,
+          'reason': plan.fallbackReason,
+        },
+      );
+    }
     final staleServers = servers
         .where((server) => !pingService.isFresh(server.id))
         .toList(growable: false);

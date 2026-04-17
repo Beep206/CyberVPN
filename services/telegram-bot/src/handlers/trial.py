@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -51,8 +51,8 @@ async def activate_trial_handler(
         # Activate trial
         trial = await api_client.activate_trial(user_id)
 
-        trial_duration = trial.get("duration_days", 3)
-        expires_at = trial.get("expires_at", "N/A")
+        trial_duration = int(trial.get("duration_days", 7) or 7)
+        expires_at = trial.get("expires_at") or trial.get("trial_end") or "N/A"
 
         await callback.message.edit_text(
             text=i18n.get(

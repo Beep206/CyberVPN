@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
+import { addonsApi } from '../addons';
 import { adminWalletApi } from '../wallet';
 import { plansApi } from '../plans';
 import { subscriptionsApi } from '../subscriptions';
@@ -8,6 +9,8 @@ import { subscriptionsApi } from '../subscriptions';
 const MATCH_ANY_API_ORIGIN = {
   plans: /https?:\/\/localhost(?::\d+)?\/api\/v1\/plans$/,
   planById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/plans\/[^/]+$/,
+  addons: /https?:\/\/localhost(?::\d+)?\/api\/v1\/addons$/,
+  addonById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/addons\/[^/]+$/,
   subscriptions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/subscriptions\/$/,
   subscriptionById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/subscriptions\/[^/]+$/,
   walletByUser: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/wallets\/[^/]+$/,
@@ -33,34 +36,56 @@ describe('plansApi admin operations', () => {
 
         return HttpResponse.json({
           uuid: 'plan_001',
-          name: 'Premium Monthly',
-          price: 9.99,
-          currency: 'USD',
-          durationDays: 30,
-          dataLimitGb: 100,
-          maxDevices: 5,
-          features: ['Priority routing'],
-          isActive: true,
-        });
+          name: 'plus_365',
+          plan_code: 'plus',
+          display_name: 'Plus',
+          catalog_visibility: 'public',
+          duration_days: 365,
+          devices_included: 5,
+          price_usd: 79,
+          price_rub: null,
+          traffic_policy: { mode: 'fair_use', display_label: 'Unlimited' },
+          connection_modes: ['standard', 'stealth'],
+          server_pool: ['shared_plus'],
+          support_sla: 'standard',
+          dedicated_ip: { included: 0, eligible: true },
+          sale_channels: ['web', 'miniapp'],
+          invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
+          trial_eligible: false,
+          features: { marketing_badge: 'Most Popular' },
+          is_active: true,
+          sort_order: 30,
+        }, { status: 201 });
       }),
     );
 
     const response = await plansApi.create({
-      name: 'Premium Monthly',
-      price: 9.99,
-      currency: 'USD',
-      duration_days: 30,
-      data_limit_gb: 100,
-      max_devices: 5,
-      features: ['Priority routing'],
+      name: 'plus_365',
+      plan_code: 'plus',
+      display_name: 'Plus',
+      catalog_visibility: 'public',
+      duration_days: 365,
+      devices_included: 5,
+      price_usd: 79,
+      traffic_policy: { mode: 'fair_use', display_label: 'Unlimited' },
+      connection_modes: ['standard', 'stealth'],
+      server_pool: ['shared_plus'],
+      support_sla: 'standard',
+      dedicated_ip: { included: 0, eligible: true },
+      sale_channels: ['web', 'miniapp'],
+      invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
+      trial_eligible: false,
+      features: { marketing_badge: 'Most Popular' },
       is_active: true,
+      sort_order: 30,
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(response.data.uuid).toBe('plan_001');
     expect(capturedBody).toMatchObject({
-      name: 'Premium Monthly',
-      duration_days: 30,
+      name: 'plus_365',
+      plan_code: 'plus',
+      duration_days: 365,
       is_active: true,
     });
   });
@@ -76,23 +101,124 @@ describe('plansApi admin operations', () => {
         return HttpResponse.json({
           uuid: requestedPath,
           name: body.name,
-          price: body.price,
-          currency: 'USD',
-          durationDays: 90,
-          isActive: false,
+          plan_code: body.plan_code,
+          display_name: body.display_name,
+          catalog_visibility: 'hidden',
+          duration_days: 90,
+          devices_included: 10,
+          price_usd: 29.99,
+          price_rub: null,
+          traffic_policy: { mode: 'fair_use', display_label: 'Unlimited' },
+          connection_modes: ['standard', 'stealth', 'manual_config'],
+          server_pool: ['premium_shared'],
+          support_sla: 'priority',
+          dedicated_ip: { included: 0, eligible: true },
+          sale_channels: ['admin'],
+          invite_bundle: { count: 1, friend_days: 14, expiry_days: 60 },
+          trial_eligible: false,
+          features: { audience: 'power_user' },
+          is_active: false,
+          sort_order: 40,
         });
       }),
     );
 
     const response = await plansApi.update('plan_001', {
-      name: 'Premium Quarterly',
-      price: 19.99,
+      name: 'pro_90',
+      plan_code: 'pro',
+      display_name: 'Pro',
       is_active: false,
     });
 
     expect(response.status).toBe(200);
     expect(requestedPath).toBe('plan_001');
-    expect(response.data.name).toBe('Premium Quarterly');
+    expect(response.data.name).toBe('pro_90');
+  });
+});
+
+describe('addonsApi admin operations', () => {
+  it('creates an addon with the expected payload', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.addons, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+
+        return HttpResponse.json({
+          uuid: 'addon_001',
+          code: 'extra_device',
+          display_name: '+1 device',
+          duration_mode: 'inherits_subscription',
+          is_stackable: true,
+          quantity_step: 1,
+          price_usd: 6,
+          price_rub: null,
+          max_quantity_by_plan: { basic: 2, plus: 3, pro: 5, max: 10 },
+          delta_entitlements: { device_limit: 1 },
+          requires_location: false,
+          sale_channels: ['web', 'miniapp'],
+          is_active: true,
+        }, { status: 201 });
+      }),
+    );
+
+    const response = await addonsApi.create({
+      code: 'extra_device',
+      display_name: '+1 device',
+      duration_mode: 'inherits_subscription',
+      is_stackable: true,
+      quantity_step: 1,
+      price_usd: 6,
+      max_quantity_by_plan: { basic: 2, plus: 3, pro: 5, max: 10 },
+      delta_entitlements: { device_limit: 1 },
+      requires_location: false,
+      sale_channels: ['web', 'miniapp'],
+      is_active: true,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.data.code).toBe('extra_device');
+    expect(capturedBody).toMatchObject({
+      code: 'extra_device',
+      quantity_step: 1,
+      is_active: true,
+    });
+  });
+
+  it('updates an addon through the UUID route', async () => {
+    let requestedPath = '';
+
+    server.use(
+      http.put(MATCH_ANY_API_ORIGIN.addonById, async ({ request }) => {
+        requestedPath = new URL(request.url).pathname.split('/').at(-1) ?? '';
+        const body = (await request.json()) as Record<string, unknown>;
+
+        return HttpResponse.json({
+          uuid: requestedPath,
+          code: 'dedicated_ip',
+          display_name: body.display_name,
+          duration_mode: 'inherits_subscription',
+          is_stackable: true,
+          quantity_step: 1,
+          price_usd: 24,
+          price_rub: null,
+          max_quantity_by_plan: {},
+          delta_entitlements: { dedicated_ip_count: 1 },
+          requires_location: true,
+          sale_channels: ['web', 'miniapp'],
+          is_active: false,
+        });
+      }),
+    );
+
+    const response = await addonsApi.update('addon_001', {
+      display_name: 'Dedicated IP',
+      is_active: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(requestedPath).toBe('addon_001');
+    expect(response.data.display_name).toBe('Dedicated IP');
   });
 });
 

@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_
 import 'package:cybervpn_mobile/features/config_import/domain/entities/parsed_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/parsers/vpn_uri_parser.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 import 'package:dio/dio.dart';
 
 /// Result of parsing a subscription URL.
@@ -81,11 +82,14 @@ class SubscriptionUrlParser {
   SubscriptionUrlParser({
     required Dio dio,
     ParseVpnUri? parseVpnUri,
+    Future<SubscriptionPolicyState> Function()? resolvePolicy,
   })  : _dio = dio,
-        _parseVpnUri = parseVpnUri ?? ParseVpnUri();
+        _parseVpnUri = parseVpnUri ?? ParseVpnUri(),
+        _resolvePolicy = resolvePolicy;
 
   final Dio _dio;
   final ParseVpnUri _parseVpnUri;
+  final Future<SubscriptionPolicyState> Function()? _resolvePolicy;
 
   /// Default HTTP timeout for subscription URL requests.
   static const Duration defaultTimeout = Duration(seconds: 30);
@@ -120,12 +124,20 @@ class SubscriptionUrlParser {
     }
 
     try {
+      final policy = await (_resolvePolicy?.call() ??
+          Future<SubscriptionPolicyState>.value(
+            const SubscriptionPolicyState(),
+          ));
       final response = await _dio.get<String>(
         url,
         options: Options(
           responseType: ResponseType.plain,
           receiveTimeout: defaultTimeout,
           sendTimeout: defaultTimeout,
+          headers: {
+            'User-Agent': policy.effectiveUserAgent,
+            'Accept': '*/*',
+          },
         ),
       );
 

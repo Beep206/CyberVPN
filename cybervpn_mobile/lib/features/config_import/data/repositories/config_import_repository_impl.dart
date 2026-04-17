@@ -7,6 +7,7 @@ import 'package:cybervpn_mobile/features/config_import/domain/entities/parsed_co
 import 'package:cybervpn_mobile/features/config_import/domain/parsers/vpn_uri_parser.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/repositories/config_import_repository.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Concrete implementation of [ConfigImportRepository] backed by
@@ -20,13 +21,19 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
     required SharedPreferences sharedPreferences,
     required SubscriptionUrlParser subscriptionUrlParser,
     ParseVpnUri? parseVpnUri,
+    Future<SubscriptionPolicyState> Function()? resolvePolicy,
+    SubscriptionPolicyRuntime? policyRuntime,
   })  : _prefs = sharedPreferences,
         _subscriptionUrlParser = subscriptionUrlParser,
-        _parseVpnUri = parseVpnUri ?? ParseVpnUri();
+        _parseVpnUri = parseVpnUri ?? ParseVpnUri(),
+        _resolvePolicy = resolvePolicy,
+        _policyRuntime = policyRuntime ?? const SubscriptionPolicyRuntime();
 
   final SharedPreferences _prefs;
   final SubscriptionUrlParser _subscriptionUrlParser;
   final ParseVpnUri _parseVpnUri;
+  final Future<SubscriptionPolicyState> Function()? _resolvePolicy;
+  final SubscriptionPolicyRuntime _policyRuntime;
 
   // ---------------------------------------------------------------------------
   // SharedPreferences key constants
@@ -53,6 +60,7 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
   @override
   Future<ImportedConfig> importFromUri(String uri, ImportSource source) async {
     final result = _parseVpnUri.call(uri);
+    final policy = await _readPolicy();
 
     switch (result) {
       case ParseSuccess(:final config):
@@ -63,10 +71,12 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
         );
 
         final existing = await getImportedConfigs();
-        // Avoid duplicates by checking for same raw URI
-        final deduped = existing.where((c) => c.rawUri != uri).toList();
-        deduped.add(imported);
-        await _saveConfigs(deduped);
+        final merged = policy.preventDuplicateImports
+            ? existing.where((c) => c.rawUri != uri).toList()
+            : List<ImportedConfig>.from(existing);
+        merged.add(imported);
+        final sorted = _policyRuntime.sortImportedConfigs(merged, policy);
+        await _saveConfigs(sorted);
 
         return imported;
 
@@ -80,6 +90,7 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
 
   @override
   Future<List<ImportedConfig>> importFromSubscriptionUrl(String url) async {
+    final policy = await _readPolicy();
     final parseResult = await _subscriptionUrlParser.parse(url);
 
     if (parseResult.isFailure) {
@@ -91,15 +102,20 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
       );
     }
 
-    final newConfigs = parseResult.configs;
+    final newConfigs = _policyRuntime.sortImportedConfigs(
+      parseResult.configs,
+      policy,
+    );
 
-    // Merge with existing configs, deduplicating by raw URI
+    // Merge with existing configs, optionally deduplicating by raw URI.
     final existing = await getImportedConfigs();
     final existingUris = existing.map((c) => c.rawUri).toSet();
-    final toAdd =
-        newConfigs.where((c) => !existingUris.contains(c.rawUri)).toList();
+    final toAdd = policy.preventDuplicateImports
+        ? newConfigs.where((c) => !existingUris.contains(c.rawUri)).toList()
+        : List<ImportedConfig>.from(newConfigs);
     final merged = [...existing, ...toAdd];
-    await _saveConfigs(merged);
+    final sorted = _policyRuntime.sortImportedConfigs(merged, policy);
+    await _saveConfigs(sorted);
 
     // Update subscription metadata with current timestamp
     await _updateSubscriptionMeta(url);
@@ -245,6 +261,7 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
 
   /// Refresh a single subscription URL and merge new configs.
   Future<void> _refreshSubscription(String url) async {
+    final policy = await _readPolicy();
     final parseResult = await _subscriptionUrlParser.parse(url);
     if (parseResult.isFailure) return;
 
@@ -253,9 +270,20 @@ class ConfigImportRepositoryImpl implements ConfigImportRepository {
     // Remove old configs from this subscription, replace with fresh ones
     final withoutOld =
         existing.where((c) => c.subscriptionUrl != url).toList();
-    final merged = [...withoutOld, ...parseResult.configs];
-    await _saveConfigs(merged);
+    final sortedConfigs = _policyRuntime.sortImportedConfigs(
+      parseResult.configs,
+      policy,
+    );
+    final merged = [...withoutOld, ...sortedConfigs];
+    await _saveConfigs(_policyRuntime.sortImportedConfigs(merged, policy));
     await _updateSubscriptionMeta(url);
+  }
+
+  Future<SubscriptionPolicyState> _readPolicy() async {
+    return await (_resolvePolicy?.call() ??
+        Future<SubscriptionPolicyState>.value(
+          const SubscriptionPolicyState(),
+        ));
   }
 
   /// Read subscription metadata from SharedPreferences.

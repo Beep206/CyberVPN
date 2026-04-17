@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter_v2ray_plus/flutter_v2ray.dart';
+import 'package:cybervpn_mobile/core/services/log_file_store.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Maps the raw string states from [VlessStatus.state] to typed values.
@@ -33,8 +35,13 @@ enum VlessEngineState {
 }
 
 class VpnEngineDatasource {
+  VpnEngineDatasource({LogFileStore? logFileStore})
+    : _logFileStore = logFileStore;
+
   @visibleForTesting
   static bool? debugSupportedPlatformOverride;
+
+  final LogFileStore? _logFileStore;
 
   FlutterV2ray? _v2ray;
   VlessStatus? _lastStatus;
@@ -46,6 +53,11 @@ class VpnEngineDatasource {
   String? _lastConfig;
   String? _lastRemark;
   List<String>? _lastBlockedApps;
+  List<String>? _lastBypassSubnets;
+  List<String>? _lastDnsServers;
+  int? _lastMtu;
+  bool _lastProxyOnly = false;
+  bool _lastAllowLanConnections = false;
 
   FlutterV2ray get v2ray {
     _v2ray ??= FlutterV2ray();
@@ -106,22 +118,52 @@ class VpnEngineDatasource {
     String config, {
     String? remark,
     List<String>? blockedApps,
+    List<String>? bypassSubnets,
+    List<String>? dnsServers,
+    int? mtu,
+    bool proxyOnly = false,
+    bool allowLanConnections = false,
   }) async {
     if (!_isSupportedPlatform) {
       throw _unsupportedAction('VPN connect');
     }
 
-    _lastConfig = config;
+    final normalizedConfig = _normalizeRuntimeConfig(config);
+    _lastConfig = normalizedConfig;
     _lastRemark = remark;
     _lastBlockedApps = blockedApps;
+    _lastBypassSubnets = bypassSubnets;
+    _lastDnsServers = dnsServers;
+    _lastMtu = mtu;
+    _lastProxyOnly = proxyOnly;
+    _lastAllowLanConnections = allowLanConnections;
 
-    final v2rayConfig = FlutterV2ray.parseFromURL(config);
+    final logFileStore = _logFileStore;
+    if (logFileStore != null) {
+      try {
+        await logFileStore.writeXrayRuntimeSnapshot(
+          normalizedConfig,
+          remark: remark,
+        );
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Failed to persist Xray runtime snapshot',
+          category: 'logs',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
     await v2ray.startVless(
       remark: remark ?? 'CyberVPN',
-      config: v2rayConfig.getFullConfiguration(),
+      config: normalizedConfig,
       blockedApps: blockedApps ?? [],
-      bypassSubnets: [],
-      proxyOnly: false,
+      bypassSubnets: bypassSubnets ?? [],
+      dnsServers: dnsServers,
+      mtu: mtu,
+      proxyOnly: proxyOnly,
+      allowLanConnections: allowLanConnections,
     );
     _isReconnecting = false;
     AppLogger.info('V2Ray connected');
@@ -154,7 +196,16 @@ class VpnEngineDatasource {
     AppLogger.info('V2Ray reconnecting...', category: 'vpn.engine');
 
     await v2ray.stopVless();
-    await connect(config, remark: _lastRemark, blockedApps: _lastBlockedApps);
+    await connect(
+      config,
+      remark: _lastRemark,
+      blockedApps: _lastBlockedApps,
+      bypassSubnets: _lastBypassSubnets,
+      dnsServers: _lastDnsServers,
+      mtu: _lastMtu,
+      proxyOnly: _lastProxyOnly,
+      allowLanConnections: _lastAllowLanConnections,
+    );
   }
 
   /// Whether a reconnect is currently in progress.
@@ -180,20 +231,31 @@ class VpnEngineDatasource {
       ? const Stream<VlessStatus>.empty()
       : v2ray.onStatusChanged.distinct((a, b) => a.state == b.state);
 
-  Future<int> getServerDelay(String config) async {
+  Future<int> getServerDelay(
+    String config, {
+    String url = 'https://google.com/generate_204',
+    String httpMethod = 'HEAD',
+  }) async {
     if (!_isSupportedPlatform) {
       throw _unsupportedAction('server delay checks');
     }
 
-    return v2ray.getServerDelay(config: config);
+    return v2ray.getServerDelay(
+      config: _normalizeRuntimeConfig(config),
+      url: url,
+      httpMethod: httpMethod,
+    );
   }
 
-  Future<int> getConnectedServerDelay() async {
+  Future<int> getConnectedServerDelay({
+    String url = 'https://google.com/generate_204',
+    String httpMethod = 'HEAD',
+  }) async {
     if (!_isSupportedPlatform) {
       throw _unsupportedAction('connected server delay checks');
     }
 
-    return v2ray.getConnectedServerDelay();
+    return v2ray.getConnectedServerDelay(url: url, httpMethod: httpMethod);
   }
 
   Future<bool> requestPermission() async {
@@ -220,7 +282,30 @@ class VpnEngineDatasource {
     _lastConfig = null;
     _lastRemark = null;
     _lastBlockedApps = null;
+    _lastBypassSubnets = null;
+    _lastDnsServers = null;
+    _lastMtu = null;
+    _lastProxyOnly = false;
+    _lastAllowLanConnections = false;
     _isReconnecting = false;
     _initialized = false;
+  }
+
+  String _normalizeRuntimeConfig(String config) {
+    final trimmed = config.trim();
+    if (trimmed.isEmpty) {
+      return trimmed;
+    }
+
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map || decoded is List) {
+        return trimmed;
+      }
+    } catch (_) {
+      // Fall through to URI parsing.
+    }
+
+    return FlutterV2ray.parseFromURL(trimmed).getFullConfiguration();
   }
 }

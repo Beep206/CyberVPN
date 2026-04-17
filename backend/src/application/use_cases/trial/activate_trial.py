@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +32,13 @@ class ActivateTrialUseCase:
             session: SQLAlchemy async session for database access
         """
         self.session = session
-        self.user_repo = AdminUserRepository(session)
+        self.user_repo = MobileUserRepository(session)
 
     async def execute(self, user_id: UUID) -> TrialActivationResult:
         """Activate a trial period for the user.
 
         Args:
-            user_id: UUID of the admin user
+            user_id: UUID of the mobile user
 
         Returns:
             TrialActivationResult with activation status and details

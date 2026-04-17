@@ -324,6 +324,37 @@ void main() {
       });
     });
 
+    group('wipeAll', () {
+      test('wipeAll removes feature-specific secure keys and preserves device ID', () async {
+        final deviceId = await storage.getOrCreateDeviceId();
+        await storage.write(key: 'oauth_state', value: 'csrf-state');
+        await storage.write(key: 'oauth_provider', value: 'discord');
+        await storage.write(
+          key: 'encrypted_field_master_key',
+          value: 'base64-master-key',
+        );
+        await storage.write(key: 'biometric_enabled', value: 'true');
+
+        await storage.wipeAll(preserveDeviceId: true);
+
+        expect(await storage.read(key: 'oauth_state'), isNull);
+        expect(await storage.read(key: 'oauth_provider'), isNull);
+        expect(await storage.read(key: 'encrypted_field_master_key'), isNull);
+        expect(await storage.read(key: 'biometric_enabled'), isNull);
+        expect(await storage.getOrCreateDeviceId(), deviceId);
+      });
+
+      test('wipeAll can remove device ID when explicitly requested', () async {
+        await storage.getOrCreateDeviceId();
+        await storage.write(key: 'oauth_state', value: 'csrf-state');
+
+        await storage.wipeAll(preserveDeviceId: false);
+
+        expect(await storage.read(key: 'oauth_state'), isNull);
+        expect(storage.store[SecureStorageWrapper.deviceIdKey], isNull);
+      });
+    });
+
     group('UUID Generation', () {
       test('generates unique UUIDs', () async {
         // Create multiple storage instances to test uniqueness

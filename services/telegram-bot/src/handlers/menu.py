@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
 
 from src.keyboards.menu import main_menu_keyboard, profile_kb
 from src.keyboards.subscription import subscription_keyboard
 
 if TYPE_CHECKING:
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
     from src.config import BotSettings
@@ -52,7 +52,7 @@ async def connect_menu_handler(
     try:
         # Get active subscriptions
         subscriptions = await api_client.get_user_subscriptions(user_id)
-        active_subs = [sub for sub in subscriptions if sub.get("status") == "active"]
+        active_subs = [sub for sub in subscriptions if sub.get("status") in {"active", "trial"}]
 
         if active_subs:
             # Show subscription details

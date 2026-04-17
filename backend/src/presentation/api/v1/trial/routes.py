@@ -8,6 +8,7 @@ Both endpoints require authentication and track trial usage in the database.
 """
 
 import logging
+from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,9 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
 from src.application.use_cases.trial.get_trial_status import GetTrialStatusUseCase
 from src.infrastructure.cache.redis_client import get_redis
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.monitoring.instrumentation.routes import track_trial_activation
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 
 from .schemas import TrialActivateResponse, TrialStatusResponse
@@ -40,7 +40,7 @@ router = APIRouter(prefix="/trial", tags=["trial"])
     },
 )
 async def activate_trial(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> TrialActivateResponse:
@@ -52,7 +52,7 @@ async def activate_trial(
     Rate limited to 3 requests per hour per user to prevent abuse.
     """
     # Rate limiting: 3 requests per hour per user
-    rate_limit_key = f"trial_activate:{current_user.id}"
+    rate_limit_key = f"trial_activate:{current_user_id}"
     rate_limit_window = 3600  # 1 hour in seconds
     rate_limit_max = 3
 
@@ -68,7 +68,7 @@ async def activate_trial(
     use_case = ActivateTrialUseCase(db)
 
     try:
-        result = await use_case.execute(current_user.id)
+        result = await use_case.execute(current_user_id)
 
         if not result.activated:
             # Trial is already active
@@ -112,7 +112,7 @@ async def activate_trial(
     responses={404: {"description": "User not found"}},
 )
 async def get_trial_status(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
 ) -> TrialStatusResponse:
     """Return the trial status for the authenticated user.
@@ -123,7 +123,7 @@ async def get_trial_status(
     use_case = GetTrialStatusUseCase(db)
 
     try:
-        status_data = await use_case.execute(current_user.id)
+        status_data = await use_case.execute(current_user_id)
 
         return TrialStatusResponse(
             is_trial_active=status_data.is_trial_active,

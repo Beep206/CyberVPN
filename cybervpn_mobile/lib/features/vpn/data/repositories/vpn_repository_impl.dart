@@ -26,7 +26,8 @@ class VpnRepositoryImpl implements VpnRepository {
   static const String _savedConfigDataPrefix = 'vpn_config_data_';
 
   // Migration flag to track if old insecure configs have been migrated
-  static const String _migrationCompleteKey = 'vpn_config_migration_v1_complete';
+  static const String _migrationCompleteKey =
+      'vpn_config_migration_v1_complete';
 
   // Old keys for migration
   static const String _oldLastConfigKey = 'last_vpn_config';
@@ -35,14 +36,15 @@ class VpnRepositoryImpl implements VpnRepository {
   /// Future that completes when the one-time config migration finishes.
   /// Config-reading methods await this to prevent race conditions.
   late final Future<void> _migrationFuture;
+  VpnConfigEntity? _activeConfig;
 
   VpnRepositoryImpl({
     required VpnEngineDatasource engine,
     required LocalStorageWrapper localStorage,
     required SecureStorageWrapper secureStorage,
-  })  : _engine = engine,
-        _localStorage = localStorage,
-        _secureStorage = secureStorage {
+  }) : _engine = engine,
+       _localStorage = localStorage,
+       _secureStorage = secureStorage {
     _migrationFuture = _migrateOldConfigsIfNeeded();
   }
 
@@ -60,7 +62,17 @@ class VpnRepositoryImpl implements VpnRepository {
   Future<Result<void>> connect(VpnConfigEntity config) async {
     try {
       await _ensureInitialized();
-      await _engine.connect(config.configData, remark: config.name);
+      await _engine.connect(
+        config.configData,
+        remark: config.name,
+        blockedApps: config.blockedApps,
+        bypassSubnets: config.bypassSubnets,
+        dnsServers: config.dnsServers,
+        mtu: config.mtu,
+        proxyOnly: config.proxyOnly,
+        allowLanConnections: config.allowLanConnections,
+      );
+      _activeConfig = config;
       AppLogger.info('VPN connected to ${config.name}');
       return const Success(null);
     } catch (e, st) {
@@ -73,6 +85,7 @@ class VpnRepositoryImpl implements VpnRepository {
   Future<Result<void>> disconnect() async {
     try {
       await _engine.disconnect();
+      _activeConfig = null;
       return const Success(null);
     } catch (e, st) {
       AppLogger.warning('VPN disconnect failed', error: e, stackTrace: st);
@@ -85,7 +98,11 @@ class VpnRepositoryImpl implements VpnRepository {
     try {
       return Success(_engine.isConnected);
     } catch (e, st) {
-      AppLogger.warning('VPN isConnected check failed', error: e, stackTrace: st);
+      AppLogger.warning(
+        'VPN isConnected check failed',
+        error: e,
+        stackTrace: st,
+      );
       return Failure(VpnFailure(message: e.toString()));
     }
   }
@@ -104,7 +121,25 @@ class VpnRepositoryImpl implements VpnRepository {
 
   @override
   Stream<ConnectionStatsEntity> get connectionStatsStream {
-    return _engine.statusStream.map((status) => const ConnectionStatsEntity());
+    return _engine.statusStream.map((status) {
+      final duration = Duration(seconds: status.duration);
+      final sessionStartedAt = status.duration > 0
+          ? DateTime.now().subtract(duration)
+          : null;
+      final activeConfig = _activeConfig;
+
+      return ConnectionStatsEntity(
+        downloadSpeed: status.downloadSpeed,
+        uploadSpeed: status.uploadSpeed,
+        totalDownload: status.download,
+        totalUpload: status.upload,
+        connectionDuration: duration,
+        sessionStartedAt: sessionStartedAt,
+        serverName: activeConfig?.name,
+        protocol: activeConfig?.protocol.name,
+        ipAddress: activeConfig?.serverAddress,
+      );
+    });
   }
 
   @override
@@ -121,21 +156,31 @@ class VpnRepositoryImpl implements VpnRepository {
       // SENSITIVE: Read config data from SecureStorage
       final configData = await _secureStorage.read(key: _lastConfigDataKey);
       if (configData == null) {
-        AppLogger.warning('VPN config metadata exists but config data is missing');
+        AppLogger.warning(
+          'VPN config metadata exists but config data is missing',
+        );
         return const Success(null);
       }
 
-      return Success(VpnConfigEntity(
-        id: meta['id'] as String,
-        name: meta['name'] as String,
-        serverAddress: meta['serverAddress'] as String,
-        port: meta['port'] as int,
-        protocol: VpnProtocol.values.firstWhere(
-          (e) => e.name == meta['protocol'],
-          orElse: () => VpnProtocol.vless,
+      return Success(
+        VpnConfigEntity(
+          id: meta['id'] as String,
+          name: meta['name'] as String,
+          serverAddress: meta['serverAddress'] as String,
+          port: meta['port'] as int,
+          protocol: VpnProtocol.values.firstWhere(
+            (e) => e.name == meta['protocol'],
+            orElse: () => VpnProtocol.vless,
+          ),
+          configData: configData,
+          blockedApps: _readStringList(meta['blockedApps']),
+          bypassSubnets: _readStringList(meta['bypassSubnets']),
+          dnsServers: _readNullableStringList(meta['dnsServers']),
+          mtu: meta['mtu'] as int?,
+          proxyOnly: meta['proxyOnly'] as bool? ?? false,
+          allowLanConnections: meta['allowLanConnections'] as bool? ?? false,
         ),
-        configData: configData,
-      ));
+      );
     } catch (e) {
       return Failure(CacheFailure(message: e.toString()));
     }
@@ -147,13 +192,7 @@ class VpnRepositoryImpl implements VpnRepository {
       // NON-SENSITIVE: Store metadata in SharedPreferences
       await _localStorage.setString(
         _lastConfigKey,
-        jsonEncode({
-          'id': config.id,
-          'name': config.name,
-          'serverAddress': config.serverAddress,
-          'port': config.port,
-          'protocol': config.protocol.name,
-        }),
+        jsonEncode(_encodeConfigMeta(config)),
       );
 
       // SENSITIVE: Store config data in SecureStorage for encryption at rest
@@ -191,19 +230,30 @@ class VpnRepositoryImpl implements VpnRepository {
         );
 
         if (configData != null) {
-          configs.add(VpnConfigEntity(
-            id: configId,
-            name: meta['name'] as String,
-            serverAddress: meta['serverAddress'] as String,
-            port: meta['port'] as int,
-            protocol: VpnProtocol.values.firstWhere(
-              (e) => e.name == meta['protocol'],
-              orElse: () => VpnProtocol.vless,
+          configs.add(
+            VpnConfigEntity(
+              id: configId,
+              name: meta['name'] as String,
+              serverAddress: meta['serverAddress'] as String,
+              port: meta['port'] as int,
+              protocol: VpnProtocol.values.firstWhere(
+                (e) => e.name == meta['protocol'],
+                orElse: () => VpnProtocol.vless,
+              ),
+              configData: configData,
+              blockedApps: _readStringList(meta['blockedApps']),
+              bypassSubnets: _readStringList(meta['bypassSubnets']),
+              dnsServers: _readNullableStringList(meta['dnsServers']),
+              mtu: meta['mtu'] as int?,
+              proxyOnly: meta['proxyOnly'] as bool? ?? false,
+              allowLanConnections:
+                  meta['allowLanConnections'] as bool? ?? false,
             ),
-            configData: configData,
-          ));
+          );
         } else {
-          AppLogger.warning('Skipping config $configId: metadata exists but data is missing');
+          AppLogger.warning(
+            'Skipping config $configId: metadata exists but data is missing',
+          );
         }
       }
 
@@ -230,13 +280,7 @@ class VpnRepositoryImpl implements VpnRepository {
       // NON-SENSITIVE: Update metadata list in SharedPreferences
       await _localStorage.setString(
         _savedConfigsKey,
-        jsonEncode(configs.map((c) => {
-              'id': c.id,
-              'name': c.name,
-              'serverAddress': c.serverAddress,
-              'port': c.port,
-              'protocol': c.protocol.name,
-            }).toList()),
+        jsonEncode(configs.map(_encodeConfigMeta).toList()),
       );
 
       // SENSITIVE: Delete config data from SecureStorage
@@ -259,7 +303,9 @@ class VpnRepositoryImpl implements VpnRepository {
   Future<void> _migrateOldConfigsIfNeeded() async {
     try {
       // Check if migration already completed
-      final migrationComplete = await _localStorage.getBool(_migrationCompleteKey);
+      final migrationComplete = await _localStorage.getBool(
+        _migrationCompleteKey,
+      );
       if (migrationComplete == true) {
         return;
       }
@@ -291,13 +337,7 @@ class VpnRepositoryImpl implements VpnRepository {
       final old = jsonDecode(oldJsonStr) as Map<String, dynamic>;
 
       // Extract metadata
-      final meta = {
-        'id': old['id'],
-        'name': old['name'],
-        'serverAddress': old['serverAddress'],
-        'port': old['port'],
-        'protocol': old['protocol'],
-      };
+      final meta = Map<String, dynamic>.from(old)..remove('configData');
 
       // Store metadata in new location
       await _localStorage.setString(_lastConfigKey, jsonEncode(meta));
@@ -330,13 +370,7 @@ class VpnRepositoryImpl implements VpnRepository {
         final configId = old['id'] as String;
 
         // Extract metadata
-        final meta = {
-          'id': configId,
-          'name': old['name'],
-          'serverAddress': old['serverAddress'],
-          'port': old['port'],
-          'protocol': old['protocol'],
-        };
+        final meta = Map<String, dynamic>.from(old)..remove('configData');
         metaList.add(meta);
 
         // Store config data securely
@@ -352,9 +386,47 @@ class VpnRepositoryImpl implements VpnRepository {
       // Delete old insecure data
       await _localStorage.remove(_oldSavedConfigsKey);
 
-      AppLogger.info('Migrated ${metaList.length} saved VPN configs to secure storage');
+      AppLogger.info(
+        'Migrated ${metaList.length} saved VPN configs to secure storage',
+      );
     } catch (e) {
       AppLogger.error('Failed to migrate saved VPN configs', error: e);
     }
+  }
+
+  Map<String, dynamic> _encodeConfigMeta(VpnConfigEntity config) {
+    return {
+      'id': config.id,
+      'name': config.name,
+      'serverAddress': config.serverAddress,
+      'port': config.port,
+      'protocol': config.protocol.name,
+      if (config.blockedApps.isNotEmpty) 'blockedApps': config.blockedApps,
+      if (config.bypassSubnets.isNotEmpty)
+        'bypassSubnets': config.bypassSubnets,
+      if (config.dnsServers != null) 'dnsServers': config.dnsServers,
+      if (config.mtu != null) 'mtu': config.mtu,
+      if (config.proxyOnly) 'proxyOnly': config.proxyOnly,
+      if (config.allowLanConnections)
+        'allowLanConnections': config.allowLanConnections,
+    };
+  }
+
+  List<String> _readStringList(Object? raw) {
+    if (raw is! List) {
+      return const <String>[];
+    }
+    return raw
+        .whereType<String>()
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  List<String>? _readNullableStringList(Object? raw) {
+    if (raw == null) {
+      return null;
+    }
+    return _readStringList(raw);
   }
 }

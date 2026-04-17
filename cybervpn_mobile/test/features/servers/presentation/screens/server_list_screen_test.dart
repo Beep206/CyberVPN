@@ -89,6 +89,7 @@ SharedPreferences? _mockPrefs;
 Widget _buildTestWidget({
   required ServerListState state,
   NavigatorObserver? navigatorObserver,
+  AppSettings settings = const AppSettings(),
 }) {
   final router = GoRouter(
     initialLocation: '/',
@@ -111,9 +112,7 @@ Widget _buildTestWidget({
       sharedPreferencesProvider.overrideWithValue(_mockPrefs!),
       importedConfigsProvider.overrideWith((ref) => const []),
       activeVpnProfileProvider.overrideWith((ref) => Stream.value(null)),
-      settingsProvider.overrideWith(
-        () => _FakeSettingsNotifier(const AppSettings()),
-      ),
+      settingsProvider.overrideWith(() => _FakeSettingsNotifier(settings)),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -639,6 +638,36 @@ void main() {
 
       // Non-favorite servers have star_border icons.
       expect(find.byIcon(Icons.star_border), findsAtLeast(1));
+    });
+
+    testWidgets('ping result preference changes ping chips to icons', (
+      tester,
+    ) async {
+      final servers = _buildTestServers()
+          .map((s) => s.copyWith(isFavorite: false))
+          .toList();
+      final state = ServerListState(servers: servers, favoriteServerIds: []);
+
+      await tester.pumpWidget(
+        _buildTestWidget(
+          state: state,
+          settings: const AppSettings(pingResultMode: PingResultMode.icon),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.signal_cellular_alt), findsWidgets);
+      expect(find.byIcon(Icons.network_cell), findsWidgets);
+      await tester.scrollUntilVisible(
+        find.byIcon(Icons.signal_cellular_connected_no_internet_4_bar),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byIcon(Icons.signal_cellular_connected_no_internet_4_bar),
+        findsWidgets,
+      );
     });
 
     testWidgets('favorite toggle updates state via notifier', (tester) async {

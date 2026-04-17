@@ -1,8 +1,4 @@
-"""Unit tests for the trial period endpoints.
-
-Tests use httpx AsyncClient with ASGITransport and mock the
-authentication dependency via FastAPI dependency overrides.
-"""
+"""Unit tests for the trial period endpoints."""
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
@@ -12,25 +8,14 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.main import app
 from src.infrastructure.cache.redis_client import get_redis
+from src.main import app
+from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
-from src.presentation.dependencies.auth import get_current_active_user
 
 
-class _MockUser:
-    """Lightweight mock that satisfies AdminUserModel interface for routes."""
-
-    def __init__(self) -> None:
-        self.id = uuid4()
-        self.login = "testuser"
-        self.email = "test@cybervpn.dev"
-        self.is_active = True
-        self.updated_at = datetime.now(UTC)
-
-
-def _mock_current_active_user() -> _MockUser:
-    return _MockUser()
+def _mock_current_mobile_user_id():
+    return uuid4()
 
 
 async def _mock_db():
@@ -66,11 +51,11 @@ async def _mock_redis():
 @pytest.fixture(autouse=True)
 def _override_auth():
     """Override authentication for all tests in this module."""
-    app.dependency_overrides[get_current_active_user] = _mock_current_active_user
+    app.dependency_overrides[get_current_mobile_user_id] = _mock_current_mobile_user_id
     app.dependency_overrides[get_db] = _mock_db
     app.dependency_overrides[get_redis] = _mock_redis
     yield
-    app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_current_mobile_user_id, None)
     app.dependency_overrides.pop(get_db, None)
     app.dependency_overrides.pop(get_redis, None)
 
@@ -156,7 +141,7 @@ async def test_activate_trial_idempotency() -> None:
 @pytest.mark.asyncio
 async def test_trial_status_requires_auth() -> None:
     """GET /api/v1/trial/status returns 401/403 without auth."""
-    app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_current_mobile_user_id, None)
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app),
@@ -166,13 +151,13 @@ async def test_trial_status_requires_auth() -> None:
 
         assert response.status_code in (401, 403)
     finally:
-        app.dependency_overrides[get_current_active_user] = _mock_current_active_user
+        app.dependency_overrides[get_current_mobile_user_id] = _mock_current_mobile_user_id
 
 
 @pytest.mark.asyncio
 async def test_activate_trial_requires_auth() -> None:
     """POST /api/v1/trial/activate returns 401/403 without auth."""
-    app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_current_mobile_user_id, None)
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app),
@@ -182,4 +167,4 @@ async def test_activate_trial_requires_auth() -> None:
 
         assert response.status_code in (401, 403)
     finally:
-        app.dependency_overrides[get_current_active_user] = _mock_current_active_user
+        app.dependency_overrides[get_current_mobile_user_id] = _mock_current_mobile_user_id

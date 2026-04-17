@@ -5,6 +5,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.presentation.api.v1.addons.schemas import AddonResponse
+from src.presentation.api.v1.payments.schemas import (
+    CheckoutAddonRequest,
+    CheckoutCommitResponse,
+    CheckoutQuoteResponse,
+)
+from src.presentation.api.v1.plans.schemas import PlanResponse
+from src.presentation.api.v1.subscriptions.schemas import CurrentEntitlementsResponse
+
 
 class TelegramUserResponse(BaseModel):
     """Response schema for Telegram user information."""
@@ -163,6 +172,9 @@ class TelegramBotTrialStatusResponse(BaseModel):
     trial_start: datetime | None = None
     trial_end: datetime | None = None
     days_remaining: int = 0
+    duration_days: int = 0
+    expires_at: datetime | None = None
+    entitlements_snapshot: CurrentEntitlementsResponse | None = None
 
 
 class TelegramBotReferralStatsResponse(BaseModel):
@@ -171,3 +183,34 @@ class TelegramBotReferralStatsResponse(BaseModel):
     total_referrals: int = 0
     bonus_days: int = 0
     referral_link: str | None = None
+
+
+class TelegramBotCheckoutRequest(BaseModel):
+    """Canonical checkout payload accepted from the Telegram bot."""
+
+    plan_id: UUID = Field(..., description="Subscription plan UUID")
+    addons: list[CheckoutAddonRequest] = Field(default_factory=list)
+    promo_code: str | None = Field(default=None, max_length=50)
+    use_wallet: float = Field(default=0, ge=0)
+    currency: str = Field(default="USD", min_length=3, max_length=12)
+    payment_method: str = Field(default="cryptobot", min_length=1, max_length=30)
+
+
+class TelegramBotPaymentStatusResponse(BaseModel):
+    """Payment status returned to the Telegram bot."""
+
+    payment_id: UUID
+    status: str
+    provider: str
+    external_id: str | None = None
+    amount: float
+    currency: str
+    created_at: datetime
+    updated_at: datetime
+
+
+TelegramBotPlanResponse = PlanResponse
+TelegramBotAddonResponse = AddonResponse
+TelegramBotEntitlementsResponse = CurrentEntitlementsResponse
+TelegramBotCheckoutQuoteResponse = CheckoutQuoteResponse
+TelegramBotCheckoutCommitResponse = CheckoutCommitResponse

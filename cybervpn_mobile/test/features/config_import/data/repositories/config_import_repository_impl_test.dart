@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_
 import 'package:cybervpn_mobile/features/config_import/domain/entities/parsed_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/parsers/vpn_uri_parser.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -115,6 +116,29 @@ void main() {
 
       final configs = await repo.getImportedConfigs();
       expect(configs, hasLength(1));
+    });
+
+    test('keeps duplicates when preventDuplicateImports is disabled', () async {
+      when(() => mockParseVpnUri.call(_validVlessUri))
+          .thenReturn(const ParseSuccess(_parsedVlessConfig));
+
+      final repoWithoutDedupe = ConfigImportRepositoryImpl(
+        sharedPreferences: prefs,
+        subscriptionUrlParser: mockSubParser,
+        parseVpnUri: mockParseVpnUri,
+        resolvePolicy: () async => const SubscriptionPolicyState(
+          preventDuplicateImports: false,
+        ),
+      );
+
+      await repoWithoutDedupe.importFromUri(_validVlessUri, ImportSource.manual);
+      await repoWithoutDedupe.importFromUri(
+        _validVlessUri,
+        ImportSource.clipboard,
+      );
+
+      final configs = await repoWithoutDedupe.getImportedConfigs();
+      expect(configs, hasLength(2));
     });
 
     test('throws ConfigImportException on parse failure', () async {

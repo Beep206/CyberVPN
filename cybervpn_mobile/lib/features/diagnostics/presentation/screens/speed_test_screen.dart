@@ -5,12 +5,15 @@ import 'package:lottie/lottie.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/haptics/haptic_service.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speed_test_results_card.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speedometer_gauge.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/shared/widgets/adaptive_switch.dart';
 import 'package:cybervpn_mobile/shared/widgets/cyber_app_bar.dart';
 
@@ -42,6 +45,11 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
     final isRunning = ref.watch(speedTestProgressProvider);
     final latestResult = ref.watch(latestSpeedTestProvider);
     final history = ref.watch(speedHistoryProvider);
+    final settings = ref.watch(settingsProvider).value ?? const AppSettings();
+    final pingTargetHost =
+        Uri.tryParse(settings.pingTestUrl)?.host.isNotEmpty == true
+        ? Uri.parse(settings.pingTestUrl).host
+        : settings.pingTestUrl;
 
     // Find the previous result for comparison (second in history).
     final previousResult = history.length >= 2 ? history[1] : null;
@@ -111,6 +119,27 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
                       activeColor: CyberColors.matrixGreen,
                     ),
                   ],
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg,
+                  0,
+                  Spacing.lg,
+                  Spacing.sm,
+                ),
+                child: Text(
+                  'Latency mode: ${_pingModeLabel(settings.pingMode)} • Target: $pingTargetHost',
+                  key: const Key('speed_test_ping_summary'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
             ),
@@ -233,8 +262,17 @@ class _SpeedTestScreenState extends ConsumerState<SpeedTestScreen> {
     final haptics = ref.read(hapticServiceProvider);
     unawaited(haptics.selection());
 
+    final settings = ref.read(settingsProvider).value ?? const AppSettings();
     final notifier = ref.read(diagnosticsProvider.notifier);
-    await notifier.runSpeedTest(vpnActive: _vpnToggle);
+    await notifier.runSpeedTest(
+      vpnActive: _vpnToggle,
+      pingMode: settings.pingMode,
+      pingTestUrl: settings.pingTestUrl,
+    );
+  }
+
+  String _pingModeLabel(PingMode mode) {
+    return ref.read(pingPolicyRuntimeProvider).modeLabel(mode);
   }
 
   void _shareResults(SpeedTestResult result) {

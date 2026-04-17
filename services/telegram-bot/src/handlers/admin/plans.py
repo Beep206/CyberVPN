@@ -4,14 +4,15 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.admin import AdminPlanState
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
+    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
@@ -37,28 +38,33 @@ async def plans_menu_handler(
         builder = InlineKeyboardBuilder()
 
         for plan in plans:
-            plan_id = plan.get("id")
-            plan_name = plan.get("name")
-            price = plan.get("price")
+            plan_id = plan.get("uuid") or plan.get("id")
+            plan_name = plan.get("display_name") or plan.get("name")
+            duration_days = plan.get("duration_days")
+            price = plan.get("price_rub") or plan.get("price_usd")
             is_active = plan.get("is_active", True)
+            visibility = str(plan.get("catalog_visibility") or "hidden")
 
             status_emoji = "✅" if is_active else "❌"
+            visibility_emoji = "🌍" if visibility == "public" else "🙈"
+            duration_suffix = f" · {duration_days}d" if duration_days else ""
+            price_suffix = f" · {price}" if price is not None else ""
 
             builder.row(
                 InlineKeyboardButton(
-                    text=f"{status_emoji} {plan_name} - ${price}",
+                    text=f"{status_emoji} {visibility_emoji} {plan_name}{duration_suffix}{price_suffix}",
                     callback_data=f"admin:plan:view:{plan_id}",
                     style="primary",
                 )
             )
 
         builder.row(
-            InlineKeyboardButton(
-                text="➕ " + i18n.get("admin-plans-create"),
-                callback_data="admin:plan:create",
-                style="success",
+                InlineKeyboardButton(
+                    text="+ " + i18n.get("admin-plans-create"),
+                    callback_data="admin:plan:create",
+                    style="success",
+                )
             )
-        )
         builder.row(
             InlineKeyboardButton(
                 text="🔙 " + i18n.get("button-back"),
@@ -86,6 +92,7 @@ async def plan_view_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    settings: BotSettings,
 ) -> None:
     """View plan details."""
     plan_id = callback.data.split(":")[3]
@@ -94,14 +101,40 @@ async def plan_view_handler(
         # Get plan details
         plan = await api_client.get_plan(plan_id)
 
-        plan_text = i18n.get(
-            "admin-plan-details",
-            name=plan.get("name", "N/A"),
-            price=plan.get("price", 0),
-            bandwidth=plan.get("bandwidth_limit", "Unlimited"),
-            devices=plan.get("max_devices", "Unlimited"),
-            description=plan.get("description", "N/A"),
-            is_active=i18n.get("yes") if plan.get("is_active") else i18n.get("no"),
+        from src.utils.deep_links import create_subscription_link
+
+        price_label = plan.get("price_rub") or plan.get("price_usd") or "0"
+        visibility = plan.get("catalog_visibility", "hidden")
+        traffic_policy = (plan.get("traffic_policy") or {}).get("display_label", "Unlimited")
+        devices = plan.get("devices_included", plan.get("device_limit", "N/A"))
+        dedicated_ip = plan.get("dedicated_ip") or {}
+        invite_bundle = plan.get("invite_bundle") or {}
+        sale_channels = ", ".join(plan.get("sale_channels") or []) or "n/a"
+        dedicated_ip_text = (
+            f"included={dedicated_ip.get('included', 0)} / eligible={'yes' if dedicated_ip.get('eligible') else 'no'}"
+        )
+        invite_text = (
+            f"count={invite_bundle.get('count', 0)} / friend_days={invite_bundle.get('friend_days', 0)}"
+            f" / expiry_days={invite_bundle.get('expiry_days', 0)}"
+        )
+        plan_text = (
+            f"📦 <b>{plan.get('display_name') or plan.get('name', 'N/A')}</b>\n\n"
+            f"UUID: <code>{plan.get('uuid') or plan_id}</code>\n"
+            f"Code: <code>{plan.get('plan_code', 'n/a')}</code>\n"
+            f"Duration: {plan.get('duration_days', 'N/A')}d\n"
+            f"Price: {price_label}\n"
+            f"Devices: {devices}\n"
+            f"Traffic: {traffic_policy}\n"
+            f"Visibility: {visibility}\n"
+            f"Channels: {sale_channels}\n"
+            f"Support: {plan.get('support_sla', 'standard')}\n"
+            f"Dedicated IP: {dedicated_ip_text}\n"
+            f"Invites: {invite_text}\n"
+            f"Active: {'yes' if plan.get('is_active') else 'no'}"
+        )
+        offer_link = create_subscription_link(
+            settings.bot_username or "CyberVPNBot",
+            str(plan.get("uuid") or plan_id),
         )
 
         # Create action buttons
@@ -124,6 +157,12 @@ async def plan_view_handler(
                 text=i18n.get("admin-plan-edit"),
                 callback_data=f"admin:plan:edit:{plan_id}",
                 style="primary",
+            )
+        )
+        builder.row(
+            InlineKeyboardButton(
+                text=i18n.get("admin-plan-open-offer"),
+                url=offer_link,
             )
         )
         builder.row(
@@ -153,6 +192,7 @@ async def plan_toggle_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    settings: BotSettings,
 ) -> None:
     """Toggle plan active status."""
     plan_id = callback.data.split(":")[3]
@@ -168,7 +208,7 @@ async def plan_toggle_handler(
             await callback.answer(i18n.get("admin-plan-disabled"), show_alert=True)
 
         # Refresh plan view
-        await plan_view_handler(callback, i18n, api_client)
+        await plan_view_handler(callback, i18n, api_client, settings)
 
         logger.info("admin_plan_toggled", admin_id=callback.from_user.id, plan_id=plan_id, is_active=is_active)
 
@@ -181,17 +221,10 @@ async def plan_toggle_handler(
 async def plan_create_prompt_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
-    state: FSMContext,
 ) -> None:
-    """Prompt for new plan creation."""
-    await callback.message.edit_text(
-        text=i18n.get("admin-plan-create-name-prompt"),
-    )
-
-    await state.set_state(AdminPlanState.creating_name)
-    logger.info("admin_plan_creation_started", admin_id=callback.from_user.id)
-
-    await callback.answer()
+    """Plan creation is deferred until the bot gets a dedicated canonical editor."""
+    await callback.answer(i18n.get("admin-feature-coming-soon"), show_alert=True)
+    logger.info("admin_plan_creation_blocked", admin_id=callback.from_user.id)
 
 
 @router.message(AdminPlanState.creating_name, F.text)

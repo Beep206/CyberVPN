@@ -18,6 +18,7 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/appearanc
 import 'package:cybervpn_mobile/features/settings/presentation/screens/debug_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/language_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/screens/other_settings_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/vpn_settings_screen.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_search.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
@@ -61,7 +62,15 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 /// Represents a settings detail page for the master-detail layout.
-enum _SettingsDetail { vpn, appearance, language, notifications, account, debug }
+enum _SettingsDetail {
+  vpn,
+  appearance,
+  language,
+  notifications,
+  account,
+  other,
+  debug,
+}
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Global key for the appearance tile to position the tooltip.
@@ -180,6 +189,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _SettingsDetail.language => const LanguageScreen(embedded: true),
       _SettingsDetail.notifications => const NotificationPrefsScreen(embedded: true),
       _SettingsDetail.account => const _DetailPlaceholder(icon: Icons.security_outlined),
+      _SettingsDetail.other => const OtherSettingsScreen(embedded: true),
       _SettingsDetail.debug => const DebugScreen(embedded: true),
       null => Center(
           child: Text(
@@ -379,6 +389,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.profileDeleteAccount,
               leading: const Icon(Icons.delete_forever_outlined),
               onTap: () => context.push('/profile/delete-account'),
+            ),
+          ],
+        ),
+
+        // --- Other Settings ---
+        SettingsSection(
+          title: 'Other Settings',
+          children: [
+            SettingsTile.navigation(
+              key: const Key('tile_other_settings'),
+              title: 'Other Settings',
+              subtitle: 'Statistics, logs, and operational tooling',
+              leading: const Icon(Icons.build_circle_outlined),
+              onTap: () => _navigateToDetail(
+                context,
+                _SettingsDetail.other,
+                '/settings/other',
+              ),
             ),
           ],
         ),

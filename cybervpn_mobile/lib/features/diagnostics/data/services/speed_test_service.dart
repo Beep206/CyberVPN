@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -14,6 +15,9 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Phase of the speed test currently executing.
 enum SpeedTestPhase { download, upload, latency, idle }
+
+/// Strategy used for the latency phase of the speed test.
+enum SpeedTestLatencyMode { tcpConnect, proxyHead, proxyGet }
 
 class SpeedTestCancelledException implements Exception {
   const SpeedTestCancelledException([this.message = 'Speed test cancelled.']);
@@ -62,7 +66,7 @@ class SpeedTestProgress {
 /// Upload: POSTs random data to a test endpoint, measuring throughput over
 /// the same duration.
 ///
-/// Latency: performs a series of HTTP HEAD requests and averages the RTTs.
+/// Latency: performs a series of TCP / HTTP probes and averages the RTTs.
 ///
 /// Jitter: computes the standard deviation of the individual ping RTTs.
 ///
@@ -154,6 +158,8 @@ class SpeedTestService {
   Future<SpeedTestResult> runSpeedTest({
     bool vpnActive = false,
     String? serverName,
+    SpeedTestLatencyMode latencyMode = SpeedTestLatencyMode.proxyHead,
+    String? pingTestUrl,
     StreamController<SpeedTestProgress>? progressController,
   }) async {
     if (_isRunning) {
@@ -178,6 +184,8 @@ class SpeedTestService {
       final latencyResult = await _measureLatency(
         progressController,
         cancelToken,
+        latencyMode: latencyMode,
+        pingTargetUrl: pingTestUrl,
       );
 
       final result = SpeedTestResult(
@@ -321,17 +329,23 @@ class SpeedTestService {
   // Latency & jitter measurement
   // ====================================================================
 
-  /// Performs [pingCount] HTTP HEAD requests and returns the average latency
-  /// and the jitter (standard deviation) across all pings.
+  /// Performs [pingCount] latency probes and returns the average RTT
+  /// and jitter (standard deviation) across all pings.
   Future<_LatencyResult> _measureLatency(
     StreamController<SpeedTestProgress>? progressController,
-    CancelToken cancelToken,
-  ) async {
+    CancelToken cancelToken, {
+    required SpeedTestLatencyMode latencyMode,
+    String? pingTargetUrl,
+  }) async {
     final pings = <int>[];
 
     for (var i = 0; i < pingCount; i++) {
       _throwIfCancelled(cancelToken);
-      final rtt = await _singlePing(cancelToken);
+      final rtt = await _singlePing(
+        cancelToken,
+        latencyMode: latencyMode,
+        pingTargetUrl: pingTargetUrl,
+      );
       if (rtt != null) {
         pings.add(rtt);
       }
@@ -362,15 +376,45 @@ class SpeedTestService {
     return _LatencyResult(averageMs: averageMs, jitterMs: jitterMs);
   }
 
-  /// Performs a single HTTP HEAD request and returns RTT in milliseconds,
+  /// Performs a single latency probe and returns RTT in milliseconds,
   /// or `null` on failure.
-  Future<int?> _singlePing(CancelToken cancelToken) async {
+  Future<int?> _singlePing(
+    CancelToken cancelToken, {
+    required SpeedTestLatencyMode latencyMode,
+    String? pingTargetUrl,
+  }) async {
+    final targetUrl = pingTargetUrl ?? pingUrl;
+
+    return switch (latencyMode) {
+      SpeedTestLatencyMode.tcpConnect => _singleTcpPing(targetUrl, cancelToken),
+      SpeedTestLatencyMode.proxyHead => _singleHttpPing(
+          targetUrl,
+          cancelToken,
+          method: 'HEAD',
+        ),
+      SpeedTestLatencyMode.proxyGet => _singleHttpPing(
+          targetUrl,
+          cancelToken,
+          method: 'GET',
+        ),
+    };
+  }
+
+  Future<int?> _singleHttpPing(
+    String targetUrl,
+    CancelToken cancelToken,
+    {required String method}
+  ) async {
     try {
       final stopwatch = Stopwatch()..start();
-      await _dio.head<void>(
-        pingUrl,
+      await _dio.request<void>(
+        targetUrl,
         cancelToken: cancelToken,
-        options: Options(receiveTimeout: pingTimeout),
+        options: Options(
+          method: method,
+          receiveTimeout: pingTimeout,
+          responseType: ResponseType.plain,
+        ),
       );
       stopwatch.stop();
       return stopwatch.elapsedMilliseconds;
@@ -380,6 +424,39 @@ class SpeedTestService {
       }
 
       return null;
+    }
+  }
+
+  Future<int?> _singleTcpPing(String targetUrl, CancelToken cancelToken) async {
+    final uri = Uri.tryParse(targetUrl);
+    final host = uri?.host;
+    if (uri == null || host == null || host.isEmpty) {
+      return null;
+    }
+
+    final port = uri.hasPort
+        ? uri.port
+        : switch (uri.scheme) {
+            'http' => 80,
+            'https' => 443,
+            _ => 443,
+          };
+
+    Socket? socket;
+    try {
+      final stopwatch = Stopwatch()..start();
+      socket = await Socket.connect(host, port, timeout: pingTimeout);
+      if (cancelToken.isCancelled) {
+        throw const SpeedTestCancelledException();
+      }
+      stopwatch.stop();
+      return stopwatch.elapsedMilliseconds;
+    } on SocketException {
+      return null;
+    } on TimeoutException {
+      return null;
+    } finally {
+      socket?.destroy();
     }
   }
 

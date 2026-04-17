@@ -6,6 +6,7 @@ import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/device.dart';
@@ -21,15 +22,20 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Mocks (same pattern as vpn_state_machine_test.dart)
 // ---------------------------------------------------------------------------
+
+late SharedPreferences _testPrefs;
 
 class _MockVpnRepository implements VpnRepository {
   final StreamController<ConnectionStateEntity> stateController =
@@ -47,8 +53,7 @@ class _MockVpnRepository implements VpnRepository {
   Future<Result<bool>> get isConnected async => Success(isConnectedValue);
 
   @override
-  Future<Result<VpnConfigEntity?>> getLastConfig() async =>
-      Success(lastConfig);
+  Future<Result<VpnConfigEntity?>> getLastConfig() async => Success(lastConfig);
 
   @override
   Future<Result<void>> connect(VpnConfigEntity config) async {
@@ -211,11 +216,17 @@ ProviderContainer _createContainer({
       killSwitchServiceProvider.overrideWithValue(killSwitch),
       webSocketClientProvider.overrideWithValue(wsClient),
       connectVpnUseCaseProvider.overrideWithValue(ConnectVpnUseCase(repo)),
-      disconnectVpnUseCaseProvider.overrideWithValue(DisconnectVpnUseCase(repo)),
+      disconnectVpnUseCaseProvider.overrideWithValue(
+        DisconnectVpnUseCase(repo),
+      ),
       vpnSettingsProvider.overrideWith((ref) => vpnSettings),
       deviceRegistrationServiceProvider.overrideWithValue(deviceRegistration),
       reviewServiceProvider.overrideWithValue(reviewService),
       analyticsProvider.overrideWithValue(const NoopAnalytics()),
+      sharedPreferencesProvider.overrideWithValue(_testPrefs),
+      activeVpnProfileProvider.overrideWith(
+        (ref) => Stream<VpnProfile?>.value(null),
+      ),
     ],
   );
 }
@@ -224,6 +235,26 @@ Future<VpnConnectionState> _waitForState(ProviderContainer container) async {
   final sub = container.listen(vpnConnectionProvider, (_, _) {});
   await container.read(vpnConnectionProvider.future);
   sub.close();
+  return container.read(vpnConnectionProvider).requireValue;
+}
+
+Future<VpnConnectionState> _waitForPredicate(
+  ProviderContainer container,
+  bool Function(VpnConnectionState state) predicate, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final asyncState = container.read(vpnConnectionProvider);
+    if (asyncState.hasValue) {
+      final value = asyncState.requireValue;
+      if (predicate(value)) {
+        return value;
+      }
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
+
   return container.read(vpnConnectionProvider).requireValue;
 }
 
@@ -256,7 +287,9 @@ void main() {
   late _MockReviewService reviewService;
   late ProviderContainer container;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _testPrefs = await SharedPreferences.getInstance();
     repo = _MockVpnRepository();
     networkInfo = _MockNetworkInfo();
     storage = _MockSecureStorage();
@@ -295,18 +328,18 @@ void main() {
       expect(state, isA<VpnDisconnected>());
 
       // Simulate app resume — the observer should not change state.
-      TestWidgetsFlutterBinding.instance
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       final stateAfter = container.read(vpnConnectionProvider).requireValue;
       expect(stateAfter, isA<VpnDisconnected>());
     });
 
-    test(
-        'transitions to VpnDisconnected when engine is disconnected and '
-        'autoConnect is off', () async {
-      final server = _testServer();
+    test('transitions to VpnDisconnected when server is unavailable on '
+        'resume mismatch', () async {
+      final server = _testServer(isAvailable: false);
       repo.isConnectedValue = true;
       repo.lastConfig = VpnConfigEntity(
         id: server.id,
@@ -320,7 +353,9 @@ void main() {
 
       // Build container — initial state should be VpnConnected because
       // repo.isConnected returns true.
-      buildContainer(vpnSettings: const VpnSettings(autoConnectOnLaunch: false));
+      buildContainer(
+        vpnSettings: const VpnSettings(autoConnectOnLaunch: false),
+      );
       final initialState = await _waitForState(container);
       expect(initialState, isA<VpnConnected>());
 
@@ -328,17 +363,18 @@ void main() {
       repo.isConnectedValue = false;
 
       // Simulate app resume.
-      TestWidgetsFlutterBinding.instance
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-
-      final stateAfter = container.read(vpnConnectionProvider).requireValue;
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      final stateAfter = await _waitForPredicate(
+        container,
+        (state) => state is VpnDisconnected,
+      );
       expect(stateAfter, isA<VpnDisconnected>());
     });
 
-    test(
-        'attempts reconnect when engine is disconnected and '
-        'autoConnect is on', () async {
+    test('attempts reconnect when engine is disconnected and '
+        'server is available', () async {
       final server = _testServer();
       repo.isConnectedValue = true;
       repo.lastConfig = VpnConfigEntity(
@@ -351,9 +387,7 @@ void main() {
       );
       await _seedLastServer(storage, server);
 
-      buildContainer(
-        vpnSettings: const VpnSettings(autoConnectOnLaunch: true),
-      );
+      buildContainer(vpnSettings: const VpnSettings(autoConnectOnLaunch: true));
       final initialState = await _waitForState(container);
       expect(initialState, isA<VpnConnected>());
 
@@ -361,18 +395,17 @@ void main() {
       repo.isConnectedValue = false;
 
       // Trigger resume.
-      TestWidgetsFlutterBinding.instance
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-
-      // After reconnect attempt, the state should return to VpnConnected
-      // because the mock connect succeeds.
-      final stateAfter = container.read(vpnConnectionProvider).requireValue;
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      final stateAfter = await _waitForPredicate(
+        container,
+        (state) => state is VpnConnected,
+      );
       expect(stateAfter, isA<VpnConnected>());
     });
 
-    test(
-        'transitions to VpnError when reconnect fails and '
+    test('transitions to VpnError when reconnect fails and '
         'autoConnect is on', () async {
       final server = _testServer();
       repo.isConnectedValue = true;
@@ -386,9 +419,7 @@ void main() {
       );
       await _seedLastServer(storage, server);
 
-      buildContainer(
-        vpnSettings: const VpnSettings(autoConnectOnLaunch: true),
-      );
+      buildContainer(vpnSettings: const VpnSettings(autoConnectOnLaunch: true));
       final initialState = await _waitForState(container);
       expect(initialState, isA<VpnConnected>());
 
@@ -397,43 +428,46 @@ void main() {
       repo.shouldFail = true;
 
       // Trigger resume.
-      TestWidgetsFlutterBinding.instance
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-
-      // The notifier's connect() catches the error and sets VpnError
-      // (not VpnDisconnected) so the UI can display an error message.
-      final stateAfter = container.read(vpnConnectionProvider).requireValue;
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
+        AppLifecycleState.resumed,
+      );
+      final stateAfter = await _waitForPredicate(
+        container,
+        (state) => state is VpnError,
+      );
       expect(stateAfter, isA<VpnError>());
     });
 
-    test('stays VpnConnected when engine is still connected on resume',
-        () async {
-      final server = _testServer();
-      repo.isConnectedValue = true;
-      repo.lastConfig = VpnConfigEntity(
-        id: server.id,
-        name: server.name,
-        serverAddress: server.address,
-        port: server.port,
-        protocol: VpnProtocol.vless,
-        configData: '',
-      );
-      await _seedLastServer(storage, server);
+    test(
+      'stays VpnConnected when engine is still connected on resume',
+      () async {
+        final server = _testServer();
+        repo.isConnectedValue = true;
+        repo.lastConfig = VpnConfigEntity(
+          id: server.id,
+          name: server.name,
+          serverAddress: server.address,
+          port: server.port,
+          protocol: VpnProtocol.vless,
+          configData: '',
+        );
+        await _seedLastServer(storage, server);
 
-      buildContainer();
-      final initialState = await _waitForState(container);
-      expect(initialState, isA<VpnConnected>());
+        buildContainer();
+        final initialState = await _waitForState(container);
+        expect(initialState, isA<VpnConnected>());
 
-      // Engine is still running on resume.
-      // repo.isConnectedValue is already true.
+        // Engine is still running on resume.
+        // repo.isConnectedValue is already true.
 
-      TestWidgetsFlutterBinding.instance
-          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+        TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 200));
 
-      final stateAfter = container.read(vpnConnectionProvider).requireValue;
-      expect(stateAfter, isA<VpnConnected>());
-    });
+        final stateAfter = container.read(vpnConnectionProvider).requireValue;
+        expect(stateAfter, isA<VpnConnected>());
+      },
+    );
   });
 }

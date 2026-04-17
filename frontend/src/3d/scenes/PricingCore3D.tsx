@@ -17,15 +17,17 @@ import { createDeterministicRandom, randomInRange, randomSigned } from '@/3d/lib
 const TIER_COLORS = {
     none: new THREE.Color('#00ffff').multiplyScalar(0.5), // Subtle blue
     basic: new THREE.Color('#00ffff'), // Bright blue
-    pro: new THREE.Color('#00ff88'), // Matrix green
-    elite: new THREE.Color('#ff00ff'), // Neon purple
+    plus: new THREE.Color('#00ff88'), // Matrix green
+    pro: new THREE.Color('#ff00ff'), // Neon pink
+    max: new THREE.Color('#9d00ff'), // Neon purple
 };
 
 const TIER_SPEEDS = {
     none: 0.2,
     basic: 0.5,
-    pro: 1.5,
-    elite: 3.5,
+    plus: 1.2,
+    pro: 2.2,
+    max: 3.5,
 };
 
 // --- DATA CRYSTAL COMPONENT ---
@@ -51,7 +53,14 @@ function DataCrystal({ hoveredTier }: { hoveredTier: TierLevel }) {
         groupRef.current.position.y = Math.sin(state.clock.elapsedTime * targetSpeed) * 0.2;
         
         // Dynamic scale
-        const targetScale = hoveredTier === 'elite' ? 1.2 : (hoveredTier === 'pro' ? 1.1 : 1.0);
+        const targetScale =
+            hoveredTier === 'max'
+                ? 1.2
+                : hoveredTier === 'pro'
+                    ? 1.12
+                    : hoveredTier === 'plus'
+                        ? 1.06
+                        : 1.0;
         groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 2);
     });
 

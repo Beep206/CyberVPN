@@ -1,45 +1,278 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { plansApi, paymentsApi, promoApi, invitesApi, trialApi } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocale, useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 import {
-  Zap,
+  AlertCircle,
   Check,
+  ChevronRight,
   Gift,
+  Loader2,
+  Minus,
+  Orbit,
+  ShieldCheck,
+  Sparkles,
   Tag,
   Users,
-  Loader2,
-  AlertCircle
+  Zap,
 } from 'lucide-react';
+import { addonsApi, invitesApi, paymentsApi, plansApi, subscriptionsApi, trialApi } from '@/lib/api';
+import type { CheckoutCommitResponse, CheckoutQuoteResponse } from '@/lib/api/payments';
+import type { PlanRecord } from '@/lib/api/plans';
+import type { CurrentEntitlementsResponse } from '@/lib/api/subscriptions';
+import { formatMoney } from '@/widgets/pricing/utils';
+import type { PricingTierCode } from '@/widgets/pricing/types';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 
-/**
- * Mini App Plans & Purchase page
- * Shows subscription plans, trial activation, promo codes, and invite redemption
- */
+type PlanFamily = {
+  code: PricingTierCode;
+  displayName: string;
+  devicesIncluded: number;
+  connectionModes: string[];
+  serverPool: string[];
+  supportSla: string;
+  dedicatedIpIncluded: number;
+  dedicatedIpEligible: boolean;
+  periods: PlanRecord[];
+  sortOrder: number;
+};
+
+type QuoteFlow = 'checkout' | 'upgrade' | 'addons' | 'current' | 'none';
+
+const PUBLIC_PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
+const PLAN_ICON_MAP = {
+  basic: Orbit,
+  plus: Sparkles,
+  pro: ShieldCheck,
+  max: Zap,
+} satisfies Record<PricingTierCode, typeof Orbit>;
+const PLAN_ACCENT_MAP = {
+  basic: 'text-neon-cyan border-neon-cyan/30',
+  plus: 'text-matrix-green border-matrix-green/30',
+  pro: 'text-neon-pink border-neon-pink/30',
+  max: 'text-neon-purple border-neon-purple/30',
+} satisfies Record<PricingTierCode, string>;
+
+function groupPlanFamilies(plans: PlanRecord[]): PlanFamily[] {
+  const grouped = new Map<PricingTierCode, PlanFamily>();
+
+  for (const plan of plans) {
+    if (!PUBLIC_PLAN_ORDER.includes(plan.plan_code as PricingTierCode)) {
+      continue;
+    }
+
+    if (!plan.is_active) {
+      continue;
+    }
+
+    const code = plan.plan_code as PricingTierCode;
+    const existing = grouped.get(code);
+
+    if (!existing) {
+      grouped.set(code, {
+        code,
+        displayName: plan.display_name,
+        devicesIncluded: plan.devices_included,
+        connectionModes: plan.connection_modes,
+        serverPool: plan.server_pool,
+        supportSla: plan.support_sla,
+        dedicatedIpIncluded: plan.dedicated_ip.included,
+        dedicatedIpEligible: plan.dedicated_ip.eligible,
+        periods: [plan],
+        sortOrder: plan.sort_order,
+      });
+      continue;
+    }
+
+    existing.periods.push(plan);
+    existing.sortOrder = Math.min(existing.sortOrder, plan.sort_order);
+  }
+
+  return PUBLIC_PLAN_ORDER
+    .map((code) => grouped.get(code))
+    .filter((plan): plan is PlanFamily => Boolean(plan))
+    .map((plan) => ({
+      ...plan,
+      periods: [...plan.periods].sort((left, right) => left.duration_days - right.duration_days),
+    }));
+}
+
+function findPlanByUuid(
+  planFamilies: PlanFamily[],
+  uuid: string | null | undefined,
+): { family: PlanFamily; period: PlanRecord } | null {
+  if (!uuid) {
+    return null;
+  }
+
+  for (const family of planFamilies) {
+    const period = family.periods.find((candidate) => candidate.uuid === uuid);
+    if (period) {
+      return { family, period };
+    }
+  }
+
+  return null;
+}
+
+function formatPeriodLabel(t: ReturnType<typeof useTranslations>, durationDays: number) {
+  if (durationDays === 30) return t('periods.monthly');
+  if (durationDays === 90) return t('periods.quarterly');
+  if (durationDays === 180) return t('periods.semiAnnual');
+  if (durationDays === 365) return t('periods.annual');
+  return t('periods.custom', { days: durationDays });
+}
+
+function normalizeCurrentEntitlements(snapshot: CurrentEntitlementsResponse | undefined) {
+  const effective = (snapshot?.effective_entitlements ?? {}) as {
+    device_limit?: number;
+    display_traffic_label?: string;
+    connection_modes?: string[];
+    server_pool?: string[];
+    support_sla?: string;
+    dedicated_ip_count?: number;
+  };
+
+  return {
+    deviceLimit: effective.device_limit ?? 0,
+    trafficLabel: effective.display_traffic_label ?? 'Unlimited',
+    connectionModes: effective.connection_modes ?? [],
+    serverPool: effective.server_pool ?? [],
+    supportSla: effective.support_sla ?? 'standard',
+    dedicatedIpCount: effective.dedicated_ip_count ?? 0,
+  };
+}
+
+function openPaymentUrl(
+  paymentUrl: string,
+  webApp: ReturnType<typeof useTelegramWebApp>['webApp'],
+  onStatus?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void,
+) {
+  try {
+    if (
+      (paymentUrl.includes('t.me/invoice/') || paymentUrl.includes('t.me/$'))
+      && webApp?.openInvoice
+    ) {
+      webApp.openInvoice(paymentUrl, onStatus);
+      return;
+    }
+
+    if (webApp?.openTelegramLink) {
+      webApp.openTelegramLink(paymentUrl);
+      return;
+    }
+
+    if (webApp?.openLink) {
+      webApp.openLink(paymentUrl);
+      return;
+    }
+
+    window.open(paymentUrl, '_blank');
+  } catch {
+    window.open(paymentUrl, '_blank');
+  }
+}
+
+function QuoteBreakdown({
+  t,
+  locale,
+  quote,
+}: {
+  t: ReturnType<typeof useTranslations>;
+  locale: string;
+  quote: CheckoutQuoteResponse;
+}) {
+  const entitlements = quote.entitlements_snapshot.effective_entitlements;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-2 rounded-2xl border border-white/10 bg-black/35 p-4">
+        {[
+          { label: t('quote.basePrice'), value: quote.base_price },
+          { label: t('quote.addonAmount'), value: quote.addon_amount },
+          { label: t('quote.discount'), value: quote.discount_amount },
+          { label: t('quote.walletAmount'), value: quote.wallet_amount },
+          { label: t('quote.gatewayAmount'), value: quote.gateway_amount },
+        ].map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-4 text-sm font-mono text-white/72">
+            <span>{row.label}</span>
+            <span>{formatMoney(locale, row.value, 'USD')}</span>
+          </div>
+        ))}
+        <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-3 font-display text-lg uppercase tracking-[0.16em] text-white">
+          <span>{t('quote.total')}</span>
+          <span>{formatMoney(locale, quote.displayed_price, 'USD')}</span>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
+          {t('quote.entitlements')}
+        </p>
+        <div className="mt-3 grid gap-2 text-sm font-mono text-white/75">
+          <div className="flex items-center justify-between gap-4">
+            <span>{t('quote.devices')}</span>
+            <span>{entitlements.device_limit}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span>{t('quote.traffic')}</span>
+            <span>{entitlements.display_traffic_label}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span>{t('quote.dedicatedIp')}</span>
+            <span>{entitlements.dedicated_ip_count}</span>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <span>{t('quote.modes')}</span>
+            <span className="max-w-[60%] text-right">
+              {entitlements.connection_modes.join(' · ') || t('quote.none')}
+            </span>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <span>{t('quote.serverPool')}</span>
+            <span className="max-w-[60%] text-right">
+              {entitlements.server_pool.join(' · ') || t('quote.none')}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MiniAppPlansPage() {
   const t = useTranslations('MiniApp.plans');
-  const { haptic, colorScheme, webApp } = useTelegramWebApp();
+  const locale = useLocale();
+  const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();
   const queryClient = useQueryClient();
 
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [promoCode, setPromoCode] = useState('');
+  const [selectedPlanCodeOverride, setSelectedPlanCodeOverride] = useState<PricingTierCode | null>(null);
+  const [selectedPeriodOverride, setSelectedPeriodOverride] = useState<number | null>(null);
+  const [extraDeviceQty, setExtraDeviceQty] = useState(0);
+  const [wantsDedicatedIp, setWantsDedicatedIp] = useState(false);
+  const [dedicatedIpLocation, setDedicatedIpLocation] = useState('');
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState<number | null>(null);
 
-  // Fetch plans with pricing
   const { data: plansData, isLoading: plansLoading } = useQuery({
-    queryKey: ['plans'],
+    queryKey: ['plans', 'miniapp'],
     queryFn: async () => {
-      const { data } = await plansApi.list();
+      const { data } = await plansApi.list({ channel: 'miniapp' });
       return data;
     },
   });
 
-  // Fetch trial status
+  const { data: addonsData } = useQuery({
+    queryKey: ['addons', 'miniapp'],
+    queryFn: async () => {
+      const { data } = await addonsApi.listCatalog({ channel: 'miniapp' });
+      return data;
+    },
+  });
+
   const { data: trialData } = useQuery({
     queryKey: ['trial'],
     queryFn: async () => {
@@ -48,175 +281,325 @@ export default function MiniAppPlansPage() {
     },
   });
 
-  // Activate trial mutation
+  const { data: currentEntitlements } = useQuery({
+    queryKey: ['current-entitlements'],
+    queryFn: async () => {
+      const { data } = await subscriptionsApi.getCurrentEntitlements();
+      return data;
+    },
+  });
+
+  const groupedPlans = groupPlanFamilies(plansData ?? []);
+  const currentMatch = findPlanByUuid(groupedPlans, currentEntitlements?.plan_uuid);
+  const defaultFamily = currentMatch?.family ?? groupedPlans.find((plan) => plan.code === 'plus') ?? groupedPlans[0] ?? null;
+  const selectedPlanCode = selectedPlanCodeOverride ?? defaultFamily?.code ?? null;
+  const selectedFamily = groupedPlans.find((plan) => plan.code === selectedPlanCode) ?? null;
+  const selectedPeriod =
+    selectedPeriodOverride
+    ?? (currentMatch?.family.code === selectedPlanCode ? currentMatch.period.duration_days : null)
+    ?? selectedFamily?.periods.find((period) => period.duration_days === 365)?.duration_days
+    ?? selectedFamily?.periods[0]?.duration_days
+    ?? null;
+  const selectedSku = selectedFamily?.periods.find((plan) => plan.duration_days === selectedPeriod) ?? null;
+  const extraDeviceAddon = addonsData?.find((addon) => addon.code === 'extra_device');
+  const dedicatedIpAddon = addonsData?.find((addon) => addon.code === 'dedicated_ip');
+
+  const isCurrentPlan = Boolean(selectedSku && currentEntitlements?.plan_uuid === selectedSku.uuid);
+  const hasCurrentSubscription = currentEntitlements?.status === 'active';
+  const isUpgradeFlow = Boolean(hasCurrentSubscription && selectedSku && !isCurrentPlan);
+  const canAddExtraDevice = Boolean(
+    selectedFamily
+    && extraDeviceAddon
+    && typeof extraDeviceAddon.max_quantity_by_plan[selectedFamily.code] === 'number',
+  );
+  const maxExtraDevices =
+    (selectedFamily && extraDeviceAddon?.max_quantity_by_plan[selectedFamily.code]) || 0;
+
+  const addonLines =
+    !isUpgradeFlow
+      ? [
+          ...(extraDeviceQty > 0
+            ? [{ code: 'extra_device', qty: extraDeviceQty }]
+            : []),
+          ...(wantsDedicatedIp
+            ? [{
+                code: 'dedicated_ip',
+                qty: 1,
+                location_code: dedicatedIpLocation.trim() || undefined,
+              }]
+            : []),
+        ]
+      : [];
+
+  const flow: QuoteFlow = !selectedSku
+    ? 'none'
+    : isCurrentPlan
+      ? addonLines.length > 0
+        ? 'addons'
+        : 'current'
+      : hasCurrentSubscription
+        ? 'upgrade'
+        : 'checkout';
+
+  const dedicatedIpReady = !wantsDedicatedIp || dedicatedIpLocation.trim().length >= 2;
+
+  const quoteQuery = useQuery({
+    queryKey: [
+      'miniapp-pricing-quote',
+      flow,
+      selectedSku?.uuid,
+      extraDeviceQty,
+      wantsDedicatedIp,
+      dedicatedIpLocation,
+      appliedPromoCode,
+    ],
+    enabled: Boolean(selectedSku) && flow !== 'none' && flow !== 'current' && dedicatedIpReady,
+    queryFn: async () => {
+      if (!selectedSku) {
+        throw new Error('Missing selected plan');
+      }
+
+      if (flow === 'addons') {
+        const { data } = await subscriptionsApi.quoteAddons({
+          addons: addonLines,
+          promo_code: appliedPromoCode,
+          use_wallet: 0,
+          currency: 'USD',
+          channel: 'miniapp',
+        });
+        return data;
+      }
+
+      if (flow === 'upgrade') {
+        const { data } = await subscriptionsApi.quoteUpgrade({
+          target_plan_id: selectedSku.uuid,
+          promo_code: appliedPromoCode,
+          use_wallet: 0,
+          currency: 'USD',
+          channel: 'miniapp',
+        });
+        return data;
+      }
+
+      const { data } = await paymentsApi.quoteCheckout({
+        plan_id: selectedSku.uuid,
+        addons: addonLines,
+        promo_code: appliedPromoCode,
+        use_wallet: 0,
+        currency: 'USD',
+        channel: 'miniapp',
+      });
+      return data;
+    },
+  });
+
   const activateTrialMutation = useMutation({
     mutationFn: async () => {
       const { data } = await trialApi.activate();
       return data;
     },
     onSuccess: () => {
-      haptic('heavy');
+      hapticNotification('success');
       queryClient.invalidateQueries({ queryKey: ['trial'] });
+      queryClient.invalidateQueries({ queryKey: ['current-entitlements'] });
       queryClient.invalidateQueries({ queryKey: ['usage'] });
       webApp?.showAlert(t('trialActivated'));
     },
     onError: (error: unknown) => {
-      haptic('heavy');
+      hapticNotification('error');
       const axiosError = error as { response?: { data?: { detail?: string } } };
       webApp?.showAlert(axiosError.response?.data?.detail || t('trialError'));
     },
   });
 
-  // Validate promo code mutation
-  const validatePromoMutation = useMutation({
-    mutationFn: async (code: string) => {
-      if (!selectedPlanId) throw new Error('No plan selected');
-      const { data } = await promoApi.validate({
-        code,
-        plan_id: selectedPlanId,
+  const commitMutation = useMutation({
+    mutationFn: async (): Promise<CheckoutCommitResponse> => {
+      if (!selectedSku) {
+        throw new Error('No plan selected');
+      }
+
+      if (flow === 'addons') {
+        const { data } = await subscriptionsApi.purchaseAddons({
+          addons: addonLines,
+          promo_code: appliedPromoCode,
+          use_wallet: 0,
+          currency: 'USD',
+          channel: 'miniapp',
+        });
+        return data;
+      }
+
+      if (flow === 'upgrade') {
+        const { data } = await subscriptionsApi.commitUpgrade({
+          target_plan_id: selectedSku.uuid,
+          promo_code: appliedPromoCode,
+          use_wallet: 0,
+          currency: 'USD',
+          channel: 'miniapp',
+        });
+        return data;
+      }
+
+      const { data } = await paymentsApi.commitCheckout({
+        plan_id: selectedSku.uuid,
+        addons: addonLines,
+        promo_code: appliedPromoCode,
+        use_wallet: 0,
+        currency: 'USD',
+        channel: 'miniapp',
       });
       return data;
     },
     onSuccess: (data) => {
-      haptic('medium');
-      setPromoDiscount(data.discount_amount || 0);
-      webApp?.showAlert(t('promoValid', { discount: data.discount_amount }));
+      hapticNotification('success');
+      queryClient.invalidateQueries({ queryKey: ['current-entitlements'] });
+      queryClient.invalidateQueries({ queryKey: ['trial'] });
+      queryClient.invalidateQueries({ queryKey: ['usage'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-history'] });
+
+      if (data.invoice?.payment_url) {
+        openPaymentUrl(data.invoice.payment_url, webApp, (status) => {
+          if (status === 'paid') {
+            webApp?.showAlert(t('paymentSuccess'));
+            queryClient.invalidateQueries({ queryKey: ['current-entitlements'] });
+          } else if (status === 'cancelled') {
+            webApp?.showAlert(t('paymentCancelled'));
+          } else if (status === 'failed') {
+            webApp?.showAlert(t('paymentFailed'));
+          }
+        });
+        return;
+      }
+
+      webApp?.showAlert(
+        data.status === 'completed' ? t('purchaseCompleted') : t('paymentPending'),
+      );
     },
     onError: (error: unknown) => {
-      haptic('heavy');
+      hapticNotification('error');
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('promoInvalid'));
-      setPromoDiscount(null);
+      webApp?.showAlert(axiosError.response?.data?.detail || t('paymentError'));
     },
   });
 
-  // Redeem invite code mutation
   const redeemInviteMutation = useMutation({
     mutationFn: async (code: string) => {
       const { data } = await invitesApi.redeem({ code });
       return data;
     },
     onSuccess: (data) => {
-      haptic('heavy');
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      const reward = data.free_days ? `${data.free_days} days free` : 'bonus';
+      hapticNotification('success');
+      const reward = data.free_days
+        ? t('inviteRewardDays', { count: data.free_days })
+        : t('inviteRewardDefault');
       webApp?.showAlert(t('inviteRedeemed', { reward }));
       setInviteCode('');
     },
     onError: (error: unknown) => {
-      haptic('heavy');
+      hapticNotification('error');
       const axiosError = error as { response?: { data?: { detail?: string } } };
       webApp?.showAlert(axiosError.response?.data?.detail || t('inviteInvalid'));
     },
   });
 
-  // Create payment invoice mutation
-  const createInvoiceMutation = useMutation({
-    mutationFn: async (planId: string) => {
-      const invoiceData: {
-        plan_id: string;
-        currency: string;
-        user_uuid: string;
-        promo_code?: string;
-      } = {
-        plan_id: planId,
-        currency: 'USDT', // Use USDT for crypto payments
-        user_uuid: '', // Will be filled by backend from auth
-      };
-
-      // Add promo code if validated
-      if (promoCode && promoDiscount !== null && promoDiscount > 0) {
-        invoiceData.promo_code = promoCode;
-      }
-
-      const { data } = await paymentsApi.createInvoice(invoiceData);
-      return data;
-    },
-    onSuccess: (data) => {
-      haptic('medium');
-
-      // Open payment URL in Telegram
-      if (data.payment_url) {
-        try {
-          // Try Telegram native invoice first (for t.me/invoice/ or t.me/$)
-          if (data.payment_url.includes('t.me/invoice/') || data.payment_url.includes('t.me/$')) {
-            // Extract invoice slug from URL
-            const match = data.payment_url.match(/t\.me\/(invoice\/|\\$)(.+)/);
-            if (match && match[2] && webApp?.openInvoice) {
-              webApp.openInvoice(data.payment_url, (status: 'paid' | 'cancelled' | 'failed' | 'pending') => {
-                if (status === 'paid') {
-                  webApp.showAlert(t('paymentSuccess'));
-                  queryClient.invalidateQueries({ queryKey: ['usage'] });
-                  queryClient.invalidateQueries({ queryKey: ['trial'] });
-                } else if (status === 'cancelled') {
-                  webApp.showAlert(t('paymentCancelled'));
-                } else if (status === 'failed') {
-                  webApp.showAlert(t('paymentFailed'));
-                }
-              });
-              return;
-            }
-          }
-
-          // Fallback 1: Try openTelegramLink (opens in Telegram internal browser)
-          if (webApp?.openTelegramLink) {
-            webApp.openTelegramLink(data.payment_url);
-          } else {
-            // Fallback 2: Standard window.open for external browser
-            window.open(data.payment_url, '_blank');
-          }
-        } catch {
-          // Final fallback: window.open
-          window.open(data.payment_url, '_blank');
-        }
-      }
-    },
-    onError: (error: unknown) => {
-      haptic('heavy');
-      const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('paymentError'));
-    },
-  });
-
-  const canActivateTrial = trialData?.is_eligible && !trialData?.is_trial_active;
-
-  // Theme colors
+  const canActivateTrial = Boolean(
+    trialData?.is_eligible && currentEntitlements?.status !== 'trial',
+  );
+  const currentValues = normalizeCurrentEntitlements(currentEntitlements);
   const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = isDark
+    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
+    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
+  const borderColor = isDark
+    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
+    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
 
-  const handlePurchase = (planId: string) => {
-    haptic('medium');
-    setSelectedPlanId(planId);
-    createInvoiceMutation.mutate(planId);
-  };
+  const selectedPrice = selectedSku ? formatMoney(locale, selectedSku.price_usd, 'USD') : null;
+  const flowLabel = flow === 'addons'
+    ? t('flow.addons')
+    : flow === 'upgrade'
+      ? t('flow.upgrade')
+      : flow === 'checkout'
+        ? t('flow.checkout')
+        : flow === 'current'
+          ? t('flow.current')
+          : t('flow.none');
+  const ctaLabel = flow === 'addons'
+    ? t('actions.purchaseAddons')
+    : flow === 'upgrade'
+      ? t('actions.upgradeNow')
+      : t('actions.openPayment');
 
   return (
-    <div className="max-w-screen-sm mx-auto space-y-4">
-      {/* Trial Section */}
-      {canActivateTrial && (
+    <div className="mx-auto max-w-screen-sm space-y-4">
+      {currentEntitlements?.status && currentEntitlements.status !== 'none' ? (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`${cardBg} ${borderColor} border rounded-lg p-4`}
+          className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
+                {t('currentPlanTitle')}
+              </p>
+              <h2 className="mt-1 font-display text-xl uppercase tracking-[0.16em] text-neon-cyan">
+                {currentEntitlements.display_name || t('trialLabel')}
+              </h2>
+              <p className="mt-1 text-sm font-mono text-white/60">
+                {currentEntitlements.expires_at
+                  ? t('currentPlanExpiry', { date: currentEntitlements.expires_at })
+                  : t('currentPlanNoExpiry')}
+              </p>
+            </div>
+            <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+              {flowLabel}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 text-sm font-mono text-white/72">
+            <div className="flex items-center justify-between gap-4">
+              <span>{t('quote.devices')}</span>
+              <span>{currentValues.deviceLimit}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span>{t('quote.traffic')}</span>
+              <span>{currentValues.trafficLabel}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span>{t('quote.dedicatedIp')}</span>
+              <span>{currentValues.dedicatedIpCount}</span>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+
+      {canActivateTrial ? (
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}
         >
           <div className="flex items-start gap-3">
-            <Gift className="h-6 w-6 text-neon-pink flex-shrink-0 mt-0.5" />
+            <Gift className="mt-0.5 h-6 w-6 shrink-0 text-neon-pink" />
             <div className="flex-1">
-              <h3 className="font-display mb-1">{t('freeTrialTitle')}</h3>
-              <p className="text-sm text-muted-foreground font-mono mb-3">
+              <h3 className="font-display text-lg uppercase tracking-[0.14em]">
+                {t('freeTrialTitle')}
+              </h3>
+              <p className="mt-2 text-sm font-mono leading-relaxed text-muted-foreground">
                 {t('freeTrialDescription')}
               </p>
               <button
+                type="button"
                 onClick={() => activateTrialMutation.mutate()}
                 disabled={activateTrialMutation.isPending}
-                className="w-full py-2 px-4 bg-neon-pink text-white font-mono rounded-lg hover:bg-neon-pink/90 transition-colors disabled:opacity-50 touch-manipulation"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-neon-pink px-4 py-3 font-mono text-white transition-colors hover:bg-neon-pink/90 disabled:opacity-50"
               >
                 {activateTrialMutation.isPending ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     {t('activating')}
-                  </span>
+                  </>
                 ) : (
                   t('activateTrial')
                 )}
@@ -224,118 +607,337 @@ export default function MiniAppPlansPage() {
             </div>
           </div>
         </motion.div>
-      )}
+      ) : null}
 
-      {/* Plans Grid */}
-      <div>
-        <h2 className="text-lg font-display mb-3">{t('availablePlans')}</h2>
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+        <div className="mb-4">
+          <h2 className="font-display text-lg uppercase tracking-[0.16em]">{t('availablePlans')}</h2>
+          <p className="mt-1 text-sm font-mono text-muted-foreground">{t('catalogHint')}</p>
+        </div>
+
         {plansLoading ? (
-          <div className="flex items-center justify-center h-48">
+          <div className="flex h-44 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-neon-cyan" />
           </div>
-        ) : plansData && plansData.length > 0 ? (
-          <div className="space-y-3">
-            {plansData.map((plan, index: number) => (
-              <PlanCard
-                key={plan.uuid}
-                plan={plan}
-                index={index}
-                onPurchase={handlePurchase}
-                isLoading={createInvoiceMutation.isPending && selectedPlanId === plan.uuid}
-                colorScheme={colorScheme}
-                haptic={haptic}
-                t={t}
-              />
-            ))}
+        ) : groupedPlans.length > 0 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {groupedPlans.map((plan) => {
+                const Icon = PLAN_ICON_MAP[plan.code];
+                const accentClassName = PLAN_ACCENT_MAP[plan.code];
+                const isSelected = selectedPlanCode === plan.code;
+
+                return (
+                  <button
+                    key={plan.code}
+                    type="button"
+                    onClick={() => {
+                      haptic('medium');
+                      setSelectedPlanCodeOverride(plan.code);
+                      setSelectedPeriodOverride(
+                        plan.periods.find((period) => period.duration_days === 365)?.duration_days
+                          ?? plan.periods[0]?.duration_days
+                          ?? null,
+                      );
+                      setExtraDeviceQty(0);
+                      setWantsDedicatedIp(false);
+                      setDedicatedIpLocation('');
+                    }}
+                    className={`rounded-2xl border p-4 text-left transition-all ${
+                      isSelected
+                        ? 'border-neon-cyan bg-white/[0.06]'
+                        : 'border-white/10 bg-black/25'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-display text-base uppercase tracking-[0.16em] text-white">
+                          {plan.displayName}
+                        </p>
+                        <p className="mt-1 text-xs font-mono text-white/55">
+                          {t('planDevices', { count: plan.devicesIncluded })}
+                        </p>
+                      </div>
+                      <div className={`rounded-xl border p-2 ${accentClassName}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs font-mono text-white/60">
+                      {plan.connectionModes.join(' · ')}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedFamily ? (
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-black/25 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">
+                      {t('periodSelectorTitle')}
+                    </p>
+                    <p className="mt-1 text-sm font-mono text-white/60">
+                      {selectedFamily.displayName} · {selectedPrice}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+                    {flowLabel}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedFamily.periods.map((period) => {
+                    const isSelected = selectedPeriod === period.duration_days;
+
+                    return (
+                      <button
+                        key={period.uuid}
+                        type="button"
+                        onClick={() => {
+                          haptic('light');
+                          setSelectedPeriodOverride(period.duration_days);
+                        }}
+                        className={`rounded-xl border px-3 py-3 text-left transition-all ${
+                          isSelected
+                            ? 'border-neon-cyan bg-neon-cyan/10'
+                            : 'border-white/10 bg-white/[0.03]'
+                        }`}
+                      >
+                        <div className="font-display text-sm uppercase tracking-[0.14em] text-white">
+                          {formatPeriodLabel(t, period.duration_days)}
+                        </div>
+                        <div className="mt-1 text-xs font-mono text-white/55">
+                          {formatMoney(locale, period.price_usd, 'USD')}
+                        </div>
+                        {period.invite_bundle.count > 0 ? (
+                          <div className="mt-2 text-[11px] font-mono text-matrix-green">
+                            {t('periodInviteBonus', {
+                              count: period.invite_bundle.count,
+                              days: period.invite_bundle.friend_days,
+                            })}
+                          </div>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className={`${cardBg} ${borderColor} border rounded-lg p-8 text-center`}
-          >
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground font-mono">{t('noPlans')}</p>
-          </motion.div>
+          <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center">
+            <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground" />
+            <p className="mt-3 text-sm font-mono text-muted-foreground">{t('noPlans')}</p>
+          </div>
         )}
       </div>
 
-      {/* Promo Code Input */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className={`${cardBg} ${borderColor} border rounded-lg p-4`}
-      >
-        <div className="flex items-center gap-2 mb-3">
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+        <div className="mb-4">
+          <h3 className="font-display text-lg uppercase tracking-[0.16em]">{t('addonsTitle')}</h3>
+          <p className="mt-1 text-sm font-mono text-muted-foreground">{t('addonsDescription')}</p>
+        </div>
+
+        {isUpgradeFlow ? (
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-mono text-amber-200">
+            {t('addonsUpgradeLocked')}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-display text-base uppercase tracking-[0.14em] text-white">
+                    {t('extraDeviceTitle')}
+                  </p>
+                  <p className="mt-2 text-sm font-mono text-white/60">
+                    {extraDeviceAddon
+                      ? t('extraDevicePrice', {
+                          price: formatMoney(locale, extraDeviceAddon.price_usd, 'USD'),
+                        })
+                      : t('addonUnavailable')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={extraDeviceQty <= 0}
+                    onClick={() => setExtraDeviceQty((current) => Math.max(0, current - 1))}
+                    className="rounded-lg border border-white/10 p-2 text-white/70 disabled:opacity-40"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="min-w-10 text-center font-display text-lg text-white">{extraDeviceQty}</div>
+                  <button
+                    type="button"
+                    disabled={!canAddExtraDevice || extraDeviceQty >= maxExtraDevices}
+                    onClick={() => setExtraDeviceQty((current) => Math.min(maxExtraDevices, current + 1))}
+                    className="rounded-lg border border-white/10 p-2 text-white/70 disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4 rotate-90" />
+                  </button>
+                </div>
+              </div>
+              {canAddExtraDevice ? (
+                <p className="mt-3 text-xs font-mono text-white/55">
+                  {t('extraDeviceLimit', { count: maxExtraDevices })}
+                </p>
+              ) : (
+                <p className="mt-3 text-xs font-mono text-white/45">{t('addonUnavailable')}</p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={wantsDedicatedIp}
+                  onChange={(event) => setWantsDedicatedIp(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-white/20 bg-black"
+                />
+                <div className="flex-1">
+                  <p className="font-display text-base uppercase tracking-[0.14em] text-white">
+                    {t('dedicatedIpTitle')}
+                  </p>
+                  <p className="mt-2 text-sm font-mono text-white/60">
+                    {dedicatedIpAddon
+                      ? t('dedicatedIpPrice', {
+                          price: formatMoney(locale, dedicatedIpAddon.price_usd, 'USD'),
+                        })
+                      : t('addonUnavailable')}
+                  </p>
+                </div>
+              </label>
+
+              {wantsDedicatedIp ? (
+                <div className="mt-4 space-y-2">
+                  <input
+                    type="text"
+                    value={dedicatedIpLocation}
+                    onChange={(event) => setDedicatedIpLocation(event.target.value.toLowerCase())}
+                    placeholder={t('dedicatedIpLocationPlaceholder')}
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
+                  />
+                  <p className="text-xs font-mono text-white/45">
+                    {t('dedicatedIpLocationHint')}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+        <div className="mb-3 flex items-center gap-2">
           <Tag className="h-5 w-5 text-neon-cyan" />
-          <h3 className="font-display text-sm">{t('havePromoCode')}</h3>
+          <h3 className="font-display text-sm uppercase tracking-[0.14em]">{t('havePromoCode')}</h3>
         </div>
         <div className="flex gap-2">
           <input
             type="text"
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            value={promoInput}
+            onChange={(event) => setPromoInput(event.target.value.toUpperCase())}
             placeholder={t('promoCodePlaceholder')}
-            className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan uppercase"
+            className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
           />
           <button
-            onClick={() => {
-              if (promoCode && selectedPlanId) {
-                validatePromoMutation.mutate(promoCode);
-              } else if (!selectedPlanId) {
-                webApp?.showAlert(t('selectPlanFirst'));
-              }
-            }}
-            disabled={!promoCode || validatePromoMutation.isPending}
-            className="px-4 py-2 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors disabled:opacity-50 touch-manipulation whitespace-nowrap"
+            type="button"
+            onClick={() => setAppliedPromoCode(promoInput.trim() || null)}
+            className="rounded-xl bg-neon-cyan px-4 py-3 font-mono text-sm text-black"
           >
-            {validatePromoMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              t('apply')
-            )}
+            {t('apply')}
           </button>
         </div>
-        {promoDiscount !== null && promoDiscount > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-2 text-xs font-mono text-neon-cyan flex items-center gap-1"
-          >
+        {appliedPromoCode ? (
+          <div className="mt-3 flex items-center gap-2 text-xs font-mono text-neon-cyan">
             <Check className="h-3 w-3" />
-            {t('discountApplied', { amount: promoDiscount })}
-          </motion.div>
-        )}
-      </motion.div>
+            {t('promoApplied', { code: appliedPromoCode })}
+          </div>
+        ) : null}
+      </div>
 
-      {/* Invite Code Input */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className={`${cardBg} ${borderColor} border rounded-lg p-4`}
-      >
-        <div className="flex items-center gap-2 mb-3">
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg uppercase tracking-[0.16em]">{t('quoteTitle')}</h3>
+            <p className="mt-1 text-sm font-mono text-muted-foreground">{t('quoteSubtitle')}</p>
+          </div>
+          <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+            {flowLabel}
+          </span>
+        </div>
+
+        {!dedicatedIpReady ? (
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-mono text-amber-200">
+            {t('dedicatedIpLocationRequired')}
+          </div>
+        ) : flow === 'current' ? (
+          <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-4 text-sm font-mono text-white/70">
+            {t('currentPlanSelected')}
+          </div>
+        ) : quoteQuery.isLoading ? (
+          <div className="flex h-44 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-neon-cyan" />
+          </div>
+        ) : quoteQuery.error ? (
+          <div className="rounded-xl border border-neon-pink/25 bg-neon-pink/10 px-4 py-3 text-sm font-mono text-neon-pink">
+            {(quoteQuery.error as Error).message || t('quoteError')}
+          </div>
+        ) : quoteQuery.data ? (
+          <QuoteBreakdown t={t} locale={locale} quote={quoteQuery.data} />
+        ) : (
+          <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-4 text-sm font-mono text-white/55">
+            {t('selectPlanToQuote')}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => commitMutation.mutate()}
+          disabled={
+            commitMutation.isPending
+            || flow === 'none'
+            || flow === 'current'
+            || !selectedSku
+            || !dedicatedIpReady
+            || quoteQuery.isError
+          }
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-neon-cyan px-4 py-3 font-mono text-black transition-colors hover:bg-neon-cyan/90 disabled:opacity-50"
+        >
+          {commitMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('processing')}
+            </>
+          ) : (
+            <>
+              <Zap className="h-4 w-4" />
+              {ctaLabel}
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+        <div className="mb-3 flex items-center gap-2">
           <Users className="h-5 w-5 text-neon-purple" />
-          <h3 className="font-display text-sm">{t('haveInviteCode')}</h3>
+          <h3 className="font-display text-sm uppercase tracking-[0.14em]">{t('haveInviteCode')}</h3>
         </div>
         <div className="flex gap-2">
           <input
             type="text"
             value={inviteCode}
-            onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+            onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
             placeholder={t('inviteCodePlaceholder')}
-            className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-purple uppercase"
+            className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
           />
           <button
-            onClick={() => {
-              if (inviteCode) {
-                redeemInviteMutation.mutate(inviteCode);
-              }
-            }}
+            type="button"
+            onClick={() => redeemInviteMutation.mutate(inviteCode)}
             disabled={!inviteCode || redeemInviteMutation.isPending}
-            className="px-4 py-2 bg-neon-purple text-white font-mono rounded-lg hover:bg-neon-purple/90 transition-colors disabled:opacity-50 touch-manipulation whitespace-nowrap"
+            className="rounded-xl bg-neon-purple px-4 py-3 font-mono text-sm text-white disabled:opacity-50"
           >
             {redeemInviteMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -344,121 +946,8 @@ export default function MiniAppPlansPage() {
             )}
           </button>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground font-mono">
-          {t('inviteCodeNote')}
-        </p>
-      </motion.div>
-    </div>
-  );
-}
-
-// Plan Card Component
-function PlanCard({
-  plan,
-  index,
-  onPurchase,
-  isLoading,
-  colorScheme,
-  haptic,
-  t,
-}: {
-  plan: {
-    uuid: string;
-    name: string;
-    price: number;
-    currency: string;
-    durationDays: number;
-    dataLimitGb?: number | null;
-    maxDevices?: number | null;
-    features?: string[] | null;
-    isActive: boolean;
-  };
-  index: number;
-  onPurchase: (planId: string) => void;
-  isLoading: boolean;
-  colorScheme: 'light' | 'dark';
-  haptic: () => void;
-  t: (key: string, values?: Record<string, string | number>) => string;
-}) {
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
-
-  // Format duration
-  const formatDuration = (days: number): string => {
-    if (days === 1) return t('oneDay') || '1 day';
-    if (days === 7) return t('oneWeek') || '1 week';
-    if (days === 30 || days === 31) return t('oneMonth') || '1 month';
-    if (days === 90) return t('threeMonths') || '3 months';
-    if (days === 180) return t('sixMonths') || '6 months';
-    if (days === 365 || days === 366) return t('oneYear') || '1 year';
-    return `${days} ${t('days') || 'days'}`;
-  };
-
-  // Format traffic limit
-  const formatTraffic = (gb: number | null | undefined): string => {
-    if (!gb) return t('unlimited') || 'Unlimited';
-    if (gb >= 1000) return `${(gb / 1000).toFixed(1)} TB`;
-    return `${gb} GB`;
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className={`${cardBg} ${borderColor} border rounded-lg p-4`}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="text-lg font-display text-neon-cyan mb-1">{plan.name}</h3>
-          <p className="text-sm text-muted-foreground font-mono">
-            {formatDuration(plan.durationDays)} • {formatTraffic(plan.dataLimitGb)}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-display text-foreground">
-            {plan.price}
-          </div>
-          <div className="text-xs text-muted-foreground font-mono">
-            {plan.currency}
-          </div>
-        </div>
+        <p className="mt-2 text-xs font-mono text-muted-foreground">{t('inviteCodeNote')}</p>
       </div>
-
-      {/* Features */}
-      {plan.features && plan.features.length > 0 && (
-        <div className="space-y-1 mb-4">
-          {plan.features.slice(0, 3).map((feature, idx) => (
-            <div key={idx} className="flex items-start gap-2">
-              <Check className="h-3 w-3 text-neon-cyan flex-shrink-0 mt-0.5" />
-              <span className="text-xs text-muted-foreground">{feature}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Purchase Button */}
-      <button
-        onClick={() => {
-          haptic();
-          onPurchase(plan.uuid);
-        }}
-        disabled={isLoading}
-        className="w-full py-2 px-4 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors disabled:opacity-50 touch-manipulation"
-      >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {t('processing')}
-          </span>
-        ) : (
-          <span className="flex items-center justify-center gap-2">
-            <Zap className="h-4 w-4" />
-            {t('purchasePlan')}
-          </span>
-        )}
-      </button>
-    </motion.div>
+    </div>
   );
 }

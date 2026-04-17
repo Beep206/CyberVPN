@@ -11,6 +11,8 @@ import 'package:cybervpn_mobile/features/vpn_profiles/data/security/encrypted_fi
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/subscription_info.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/core/domain/vpn_protocol.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -50,7 +52,7 @@ final _testProfile = Profile(
   expiresAt: DateTime(2026, 12, 31),
   updateIntervalMinutes: 60,
   supportUrl: 'https://support.example.com',
-  testUrl: null,
+  testUrl: 'https://provider.example.com',
 );
 
 final _testConfig = ProfileConfig(
@@ -110,6 +112,7 @@ final _testFetchResult = FetchResult(
     expiresAt: DateTime(2026, 12, 31),
     updateIntervalMinutes: 60,
     supportUrl: 'https://support.example.com',
+    testUrl: 'https://provider.example.com',
   ),
   servers: const [
     ParsedServer(
@@ -153,6 +156,10 @@ void main() {
       localDataSource: mockLocalDs,
       subscriptionFetcher: mockFetcher,
       encryptedField: mockEncField,
+      policyRuntime: const SubscriptionPolicyRuntime(),
+      resolvePolicy: () async => const SubscriptionPolicyState(
+        autoUpdateInterval: Duration(hours: 1),
+      ),
     );
   });
 
@@ -172,6 +179,10 @@ void main() {
       expect(profile.id, 'profile-1');
       expect(profile.name, 'Test Sub');
       expect(profile, isA<RemoteVpnProfile>());
+      expect(
+        (profile as RemoteVpnProfile).testUrl,
+        'https://provider.example.com',
+      );
     });
 
     test('returns Failure when profile not found', () async {
@@ -336,10 +347,16 @@ void main() {
         () => mockLocalDs.getById('profile-1'),
       ).thenAnswer((_) async => _testProfile);
       when(
+        () => mockLocalDs.getConfigsByProfileId('profile-1'),
+      ).thenAnswer((_) async => [_testConfig]);
+      when(
         () => mockEncField.decrypt(_encryptedUrl),
       ).thenAnswer((_) async => _testUrl);
       when(
-        () => mockFetcher.fetch(_testUrl),
+        () => mockFetcher.fetch(
+          _testUrl,
+          existingServers: any(named: 'existingServers'),
+        ),
       ).thenAnswer((_) async => _testFetchResult);
       when(
         () => mockLocalDs.update(any(), any()),
@@ -351,7 +368,12 @@ void main() {
       final result = await repo.updateSubscription('profile-1');
 
       expect(result.isSuccess, isTrue);
-      verify(() => mockFetcher.fetch(_testUrl)).called(1);
+      verify(
+        () => mockFetcher.fetch(
+          _testUrl,
+          existingServers: any(named: 'existingServers'),
+        ),
+      ).called(1);
       verify(() => mockLocalDs.replaceConfigs('profile-1', any())).called(1);
     });
 
@@ -378,9 +400,17 @@ void main() {
         () => mockLocalDs.getById('profile-1'),
       ).thenAnswer((_) async => _testProfile);
       when(
+        () => mockLocalDs.getConfigsByProfileId('profile-1'),
+      ).thenAnswer((_) async => [_testConfig]);
+      when(
         () => mockEncField.decrypt(_encryptedUrl),
       ).thenAnswer((_) async => _testUrl);
-      when(() => mockFetcher.fetch(_testUrl)).thenThrow(
+      when(
+        () => mockFetcher.fetch(
+          _testUrl,
+          existingServers: any(named: 'existingServers'),
+        ),
+      ).thenThrow(
         const SubscriptionFetcherException(
           url: _testUrl,
           message: 'Network error',
@@ -390,6 +420,48 @@ void main() {
       final result = await repo.updateSubscription('profile-1');
 
       expect(result.isFailure, isTrue);
+    });
+  });
+
+  group('updateProfileServerLatencies', () {
+    test('persists latency updates and keeps sorted order by ping', () async {
+      when(
+        () => mockLocalDs.getById('profile-1'),
+      ).thenAnswer((_) async => _testProfile);
+      when(
+        () => mockLocalDs.getConfigsByProfileId('profile-1'),
+      ).thenAnswer(
+        (_) async => [
+          _testConfig.copyWith(id: 'config-1', sortOrder: 0),
+          _testConfig2.copyWith(
+            id: 'config-2',
+            profileId: 'profile-1',
+            protocol: 'trojan',
+            sortOrder: 1,
+          ),
+        ],
+      );
+      when(
+        () => mockLocalDs.replaceConfigs('profile-1', any()),
+      ).thenAnswer((_) async {});
+
+      final repoWithPingSort = ProfileRepositoryImpl(
+        localDataSource: mockLocalDs,
+        subscriptionFetcher: mockFetcher,
+        encryptedField: mockEncField,
+        policyRuntime: const SubscriptionPolicyRuntime(),
+        resolvePolicy: () async => const SubscriptionPolicyState(
+          sortMode: SubscriptionSortMode.ping,
+        ),
+      );
+
+      final result = await repoWithPingSort.updateProfileServerLatencies(
+        'profile-1',
+        const {'config-1': 180, 'config-2': 40},
+      );
+
+      expect(result.isSuccess, isTrue);
+      verify(() => mockLocalDs.replaceConfigs('profile-1', any())).called(1);
     });
   });
 
@@ -406,10 +478,16 @@ void main() {
         () => mockLocalDs.getById('profile-1'),
       ).thenAnswer((_) async => staleProfile);
       when(
+        () => mockLocalDs.getConfigsByProfileId('profile-1'),
+      ).thenAnswer((_) async => [_testConfig]);
+      when(
         () => mockEncField.decrypt(_encryptedUrl),
       ).thenAnswer((_) async => _testUrl);
       when(
-        () => mockFetcher.fetch(_testUrl),
+        () => mockFetcher.fetch(
+          _testUrl,
+          existingServers: any(named: 'existingServers'),
+        ),
       ).thenAnswer((_) async => _testFetchResult);
       when(
         () => mockLocalDs.update(any(), any()),

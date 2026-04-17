@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from src.presentation.api.v1.admin.invites import router as invites_router
+from src.presentation.api.v1.addons.routes import router as addons_router
 from src.presentation.api.v1.admin.growth import router as admin_growth_router
 from src.presentation.api.v1.admin.customer_support import router as admin_customer_support_router
 from src.presentation.api.v1.admin.mobile_users import router as admin_mobile_users_router
@@ -63,6 +64,7 @@ api_router.include_router(notifications_router)
 api_router.include_router(servers_router)
 api_router.include_router(subscriptions_router)
 api_router.include_router(plans_router)
+api_router.include_router(addons_router)
 api_router.include_router(helix_router)
 api_router.include_router(usage_router)
 api_router.include_router(trial_router)

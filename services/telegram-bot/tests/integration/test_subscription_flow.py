@@ -253,7 +253,7 @@ async def test_subscription_flow_no_plans_available(
 
     async with respx.mock:
         # Mock empty plans response
-        respx.get(f"{mock_settings.backend.api_url}telegram/plans").mock(
+        respx.get("https://api.test.cybervpn.local/telegram/bot/plans").mock(
             return_value=respx.MockResponse(200, json=[])
         )
 

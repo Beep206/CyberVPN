@@ -59,6 +59,8 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  bool _localNotificationsReady = false;
+
   /// Android notification channel for VPN-related notifications.
   static const _vpnChannel = AndroidNotificationChannel(
     'cybervpn_notifications',
@@ -276,6 +278,7 @@ class PushNotificationService {
         onNotificationTap?.call(response.payload);
       },
     );
+    _localNotificationsReady = true;
 
     // Create the Android notification channel.
     if (Platform.isAndroid) {
@@ -285,6 +288,40 @@ class PushNotificationService {
           >()
           ?.createNotificationChannel(_vpnChannel);
     }
+  }
+
+  /// Show a local notification using the app-wide CyberVPN channel.
+  Future<void> showLocalNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (!_localNotificationsReady) {
+      await _initLocalNotifications();
+    }
+
+    await _localNotifications.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _vpnChannel.id,
+          _vpnChannel.name,
+          channelDescription: _vpnChannel.description,
+          importance: _vpnChannel.importance,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: payload,
+    );
   }
 
   /// Navigates to the given [route] using the root navigator.

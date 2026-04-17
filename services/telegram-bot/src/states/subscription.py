@@ -12,13 +12,15 @@ class SubscriptionStates(StatesGroup):
     Flow:
         1. selecting_plan: User selects a subscription plan (free/basic/premium/enterprise)
         2. selecting_duration: User selects subscription duration (7/30/90/365 days)
-        3. selecting_payment: User selects payment method (crypto/card/etc)
-        4. confirming: User confirms the purchase before payment
+        3. selecting_addons: User optionally configures supported add-ons
+        4. selecting_payment: User selects payment method (crypto/card/etc)
+        5. confirming: Reserved for future explicit confirmation step
         5. processing: Payment is being processed (transitional state)
     """
 
     selecting_plan = State()
     selecting_duration = State()
+    selecting_addons = State()
     selecting_payment = State()
     confirming = State()
     processing = State()

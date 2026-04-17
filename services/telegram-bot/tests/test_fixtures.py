@@ -6,7 +6,7 @@ can be imported, instantiated, and used properly.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 import respx
@@ -116,7 +116,7 @@ class TestMockAPIClient:
     ) -> None:
         """Verify we can add custom endpoint mocks."""
         # Setup custom endpoint mock
-        respx_mock.get("/telegram/users/123").mock(
+        respx_mock.get("/telegram/bot/user/123").mock(
             return_value=respx.MockResponse(
                 200,
                 json={
@@ -125,8 +125,8 @@ class TestMockAPIClient:
                     "username": "test_user",
                     "language": "en",
                     "status": "active",
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 },
             ),
         )

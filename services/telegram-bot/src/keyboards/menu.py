@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from src.models.user import UserDTO, UserStatus
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from src.models.user import UserDTO, UserStatus
+    from aiogram.types import InlineKeyboardMarkup
 
 
 def main_menu_kb(i18n: Callable[[str], str], user: UserDTO) -> InlineKeyboardMarkup:
@@ -32,8 +33,10 @@ def main_menu_kb(i18n: Callable[[str], str], user: UserDTO) -> InlineKeyboardMar
     # Determine subscription state
     has_active_subscription = user.status in {
         "active",
+        "trial",
         "ACTIVE",
         UserStatus.ACTIVE if hasattr(UserStatus, "ACTIVE") else None,
+        UserStatus.TRIAL if hasattr(UserStatus, "TRIAL") else None,
     }
 
     # Connection/Subscription section
