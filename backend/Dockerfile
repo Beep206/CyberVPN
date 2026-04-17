@@ -1,5 +1,5 @@
 # Stage 1: Builder — compiles C-extensions (argon2-cffi, asyncpg, etc.)
-FROM python:3.13.13-slim-bookworm AS builder
+FROM python:3.14.0-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0"
 RUN pip install --no-cache-dir .
 
 # Stage 2: Runtime — lean image without build-essential
-FROM python:3.13.13-slim-bookworm
+FROM python:3.14.0-slim-bookworm
 
 # SEC-002: Create non-root user for security
 RUN groupadd -r cybervpn && useradd -r -g cybervpn cybervpn
