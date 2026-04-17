@@ -108,7 +108,7 @@ dev_dependencies:
 
   # Testing
   golden_toolkit: ^0.15.0
-  mocktail: ^1.0.4
+  mocktail: ^1.0.5
 
   # App Icon Generation
   flutter_launcher_icons: ^0.14.4
