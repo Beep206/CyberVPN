@@ -221,7 +221,7 @@ export function TelegramOpsConsole() {
     },
   });
 
-  const activePlans = (plansQuery.data ?? []).filter((plan) => plan.isActive);
+  const activePlans = (plansQuery.data ?? []).filter((plan) => plan.is_active);
   const effectiveTelegramIdInput = telegramIdTouched
     ? telegramIdInput
     : sessionQuery.data?.telegram_id

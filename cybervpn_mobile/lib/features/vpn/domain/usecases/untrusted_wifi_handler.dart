@@ -195,8 +195,10 @@ class UntrustedWifiHandler {
     );
 
     try {
-      // Connect to the last used server or the recommended server
-      await ref.read(vpnConnectionProvider.notifier).connectToLastOrRecommended();
+      // Reuse the same policy-driven target resolver as launch auto-connect.
+      await ref
+          .read(vpnConnectionProvider.notifier)
+          .connectBySubscriptionPolicy(trigger: 'untrusted_wifi');
 
       AppLogger.info(
         'Auto-connected VPN due to untrusted WiFi "$ssid"',

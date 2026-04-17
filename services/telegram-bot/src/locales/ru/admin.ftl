@@ -108,6 +108,8 @@ admin-plan-info = 📋 <b>{ $name }</b>
     📊 Трафик: { $traffic }
     ✅ Активен: { $is_active }
 
+admin-plan-open-offer = 🔗 Открыть direct-offer
+
 # ── Промокоды ────────────────────────────────────────────────────────────
 admin-promos-title = 🎟 <b>Промокоды</b>
 

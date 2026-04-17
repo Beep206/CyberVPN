@@ -8,7 +8,9 @@ import 'package:cybervpn_mobile/features/config_import/domain/parsers/vpn_uri_pa
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/data/models/fetch_result.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/data/models/parsed_server.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/subscription_info.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 
 /// Fetches a VPN subscription URL and parses the response into
 /// structured subscription metadata and a list of VPN server configs.
@@ -40,17 +42,21 @@ class SubscriptionFetcher {
   SubscriptionFetcher({
     required Dio dio,
     ParseVpnUri? parseVpnUri,
-  })  : _dio = dio,
-        _parseVpnUri = parseVpnUri ?? ParseVpnUri();
+    Future<SubscriptionPolicyState> Function()? resolvePolicy,
+    SubscriptionPolicyRuntime? policyRuntime,
+  })
+    : _dio = dio,
+      _parseVpnUri = parseVpnUri ?? ParseVpnUri(),
+      _resolvePolicy = resolvePolicy,
+      _policyRuntime = policyRuntime ?? const SubscriptionPolicyRuntime();
 
   final Dio _dio;
   final ParseVpnUri _parseVpnUri;
+  final Future<SubscriptionPolicyState> Function()? _resolvePolicy;
+  final SubscriptionPolicyRuntime _policyRuntime;
 
   /// HTTP request timeout.
   static const Duration _timeout = Duration(seconds: 10);
-
-  /// User-Agent header sent with subscription requests.
-  static const String _userAgent = 'CyberVPN/1.0';
 
   /// Fetch and parse a subscription URL.
   ///
@@ -59,31 +65,45 @@ class SubscriptionFetcher {
   /// parses each URI using the existing VPN URI parsers.
   ///
   /// Throws [SubscriptionFetcherException] on network or HTTP errors.
-  Future<FetchResult> fetch(String url) async {
-    final response = await _fetchRaw(url);
+  Future<FetchResult> fetch(
+    String url, {
+    List<ProfileServer> existingServers = const <ProfileServer>[],
+  }) async {
+    final policy = await _readPolicy();
+    final response = await _fetchRaw(url, policy: policy);
     final info = _parseHeaders(response.headers);
     final (servers, errors) = _parseBody(response.data ?? '');
+    final sortedServers = _policyRuntime.sortParsedServers(
+      servers,
+      policy,
+      existingServers: existingServers,
+    );
 
     AppLogger.info(
       'Subscription fetched',
       category: 'subscription',
       data: {
         'url': _sanitizeUrl(url),
-        'serverCount': servers.length,
+        'serverCount': sortedServers.length,
         'errorCount': errors.length,
         'title': info.title,
+        'userAgent': policy.effectiveUserAgent,
+        'sortMode': policy.sortMode.name,
       },
     );
 
     return FetchResult(
       info: info,
-      servers: servers,
+      servers: sortedServers,
       parseErrors: errors,
     );
   }
 
   /// Perform the HTTP GET request.
-  Future<Response<String>> _fetchRaw(String url) async {
+  Future<Response<String>> _fetchRaw(
+    String url, {
+    required SubscriptionPolicyState policy,
+  }) async {
     final uri = Uri.tryParse(url);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
       throw SubscriptionFetcherException(
@@ -100,7 +120,7 @@ class SubscriptionFetcher {
           receiveTimeout: _timeout,
           sendTimeout: _timeout,
           headers: {
-            'User-Agent': _userAgent,
+            'User-Agent': policy.effectiveUserAgent,
             'Accept': '*/*',
           },
         ),
@@ -116,12 +136,22 @@ class SubscriptionFetcher {
     }
   }
 
+  Future<SubscriptionPolicyState> _readPolicy() async {
+    return await (_resolvePolicy?.call() ??
+        Future<SubscriptionPolicyState>.value(
+          const SubscriptionPolicyState(),
+        ));
+  }
+
   /// Extract subscription metadata from response headers.
   SubscriptionInfo _parseHeaders(Headers headers) {
     final title = _headerValue(headers, 'profile-title');
     final userInfo = _headerValue(headers, 'subscription-userinfo');
     final updateInterval = _headerValue(headers, 'profile-update-interval');
     final supportUrl = _headerValue(headers, 'support-url');
+    final testUrl =
+        _headerValue(headers, 'test-url') ??
+        _headerValue(headers, 'profile-web-page-url');
 
     int uploadBytes = 0;
     int downloadBytes = 0;
@@ -135,8 +165,7 @@ class SubscriptionFetcher {
       totalBytes = parsed['total'] ?? 0;
       final expireTimestamp = parsed['expire'];
       if (expireTimestamp != null && expireTimestamp > 0) {
-        expiresAt =
-            DateTime.fromMillisecondsSinceEpoch(expireTimestamp * 1000);
+        expiresAt = DateTime.fromMillisecondsSinceEpoch(expireTimestamp * 1000);
       }
     }
 
@@ -156,6 +185,7 @@ class SubscriptionFetcher {
       expiresAt: expiresAt,
       updateIntervalMinutes: updateIntervalMinutes,
       supportUrl: supportUrl,
+      testUrl: testUrl,
     );
   }
 
@@ -208,15 +238,17 @@ class SubscriptionFetcher {
       final result = _parseVpnUri.call(line);
       switch (result) {
         case ParseSuccess(:final config):
-          servers.add(ParsedServer(
-            name: config.remark ??
-                '${config.protocol}:${config.serverAddress}',
-            rawUri: line,
-            protocol: config.protocol,
-            serverAddress: config.serverAddress,
-            port: config.port,
-            configData: _buildConfigData(config),
-          ));
+          servers.add(
+            ParsedServer(
+              name:
+                  config.remark ?? '${config.protocol}:${config.serverAddress}',
+              rawUri: line,
+              protocol: config.protocol,
+              serverAddress: config.serverAddress,
+              port: config.port,
+              configData: _buildConfigData(config),
+            ),
+          );
         case ParseFailure(:final message):
           errors.add('Line ${i + 1}: $message');
           AppLogger.debug(
@@ -239,8 +271,10 @@ class SubscriptionFetcher {
       var normalized = body.replaceAll('-', '+').replaceAll('_', '/');
       final remainder = normalized.length % 4;
       if (remainder != 0) {
-        normalized =
-            normalized.padRight(normalized.length + (4 - remainder), '=');
+        normalized = normalized.padRight(
+          normalized.length + (4 - remainder),
+          '=',
+        );
       }
       return utf8.decode(base64.decode(normalized));
     } on FormatException {

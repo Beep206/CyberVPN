@@ -869,37 +869,92 @@
       "total": "total"
     },
     "plans": {
-      "activateTrial": "Activate 7-Day Trial",
-      "activating": "Activating...",
-      "apply": "Apply",
-      "availablePlans": "Subscription Plans",
-      "contactForPrice": "Contact",
-      "daysCount": "{count} days",
-      "discountApplied": "Discount applied: ${amount}",
-      "free": "Free",
-      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
-      "freeTrialTitle": "Try CyberVPN Free",
-      "haveInviteCode": "Have an Invite Code?",
-      "havePromoCode": "Have a Promo Code?",
-      "inviteCodeNote": "Earn rewards by redeeming invite codes from friends",
+      "actions": {
+        "openPayment": "Открыть оплату",
+        "purchaseAddons": "Купить add-ons",
+        "upgradeNow": "Сделать upgrade"
+      },
+      "activateTrial": "Активировать trial",
+      "activating": "Активация...",
+      "addonsDescription": "Дополнительные устройства и Dedicated IP вынесены отдельно от основной линейки. Так каталог остаётся коротким, а quote не превращается в хаос.",
+      "addonsTitle": "Add-ons",
+      "addonsUpgradeLocked": "Сначала выполните upgrade, потом докупайте add-ons. Текущий API специально держит upgrade и add-on purchase как две отдельные операции.",
+      "addonUnavailable": "Этот add-on недоступен на выбранном плане.",
+      "apply": "Применить",
+      "availablePlans": "Выберите план",
+      "catalogHint": "Показывается только публичный каталог: Basic, Plus, Pro, Max. Hidden-планы не попадают сюда, пока backend не откроет их явно.",
+      "currentPlanExpiry": "Истекает: {date}",
+      "currentPlanNoExpiry": "Дата окончания не указана",
+      "currentPlanSelected": "У вас уже активен этот план. Можно докупить add-ons или выбрать другой срок.",
+      "currentPlanTitle": "Текущие entitlements",
+      "dedicatedIpLocationHint": "Для Dedicated IP требуется location code. Лучше держать его коротким и понятным, чтобы backend и support читали его одинаково.",
+      "dedicatedIpLocationPlaceholder": "Код локации, например us-ny",
+      "dedicatedIpLocationRequired": "Добавьте location code для Dedicated IP перед расчётом quote.",
+      "dedicatedIpPrice": "Цена: {price}",
+      "dedicatedIpTitle": "Dedicated IP",
+      "extraDeviceLimit": "На выбранном плане доступно до +{count} устройств.",
+      "extraDevicePrice": "Цена: {price}",
+      "extraDeviceTitle": "+1 устройство",
+      "flow": {
+        "addons": "Add-ons",
+        "checkout": "Новая покупка",
+        "current": "Текущий план",
+        "none": "Ожидание",
+        "upgrade": "Upgrade"
+      },
+      "freeTrialDescription": "1 устройство, только shared pool, без dedicated IP и без premium узлов. Этого достаточно, чтобы оценить продукт без жирного trial-перекоса.",
+      "freeTrialTitle": "7-дневный trial",
+      "haveInviteCode": "Есть invite code?",
+      "havePromoCode": "Есть promo code?",
+      "inviteCodeNote": "Redeem invite работает отдельно от платного checkout flow.",
       "inviteCodePlaceholder": "INVITE123",
-      "inviteInvalid": "Invalid or already used invite code",
-      "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
-      "monthly": "per month",
-      "noPlans": "No plans available at the moment",
-      "paymentError": "Payment failed. Please try again.",
-      "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
-      "processing": "Processing...",
-      "promoCodePlaceholder": "PROMO2024",
-      "promoInvalid": "Invalid or expired promo code",
-      "promoValid": "Promo code applied! Discount: ${discount}",
-      "purchasePlan": "Purchase Plan",
-      "quarterly": "per quarter",
-      "redeem": "Redeem",
-      "selectPlanFirst": "Please select a plan first",
-      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
-      "trialError": "Failed to activate trial. Please try again.",
-      "yearly": "per year"
+      "inviteInvalid": "Неверный invite code или он уже использован",
+      "inviteRedeemed": "Invite code активирован. Награда: {reward}",
+      "inviteRewardDays": "{count} бесплатных дней",
+      "inviteRewardDefault": "бонус активирован",
+      "noPlans": "Сейчас нет доступных планов",
+      "paymentCancelled": "Оплата отменена.",
+      "paymentError": "Оплата не удалась. Попробуйте ещё раз.",
+      "paymentFailed": "Оплата не удалась. Попробуйте ещё раз.",
+      "paymentPending": "Платёж создан и ожидает подтверждения.",
+      "paymentSuccess": "Оплата прошла успешно. Entitlements активированы.",
+      "periodInviteBonus": "{count} invite’ов · {days} дней другу",
+      "periods": {
+        "annual": "365 дней",
+        "custom": "{days} дней",
+        "monthly": "30 дней",
+        "quarterly": "90 дней",
+        "semiAnnual": "180 дней"
+      },
+      "periodSelectorTitle": "Выберите период",
+      "planDevices": "{count} устройств",
+      "processing": "Обработка...",
+      "promoApplied": "Промокод применён: {code}",
+      "promoCodePlaceholder": "PROMO2026",
+      "purchaseCompleted": "Операция успешно завершена.",
+      "quote": {
+        "addonAmount": "Add-ons",
+        "basePrice": "Базовый план",
+        "dedicatedIp": "Dedicated IP",
+        "devices": "Устройства",
+        "discount": "Скидка",
+        "entitlements": "Итоговые entitlements",
+        "gatewayAmount": "Gateway",
+        "modes": "Режимы",
+        "none": "Нет",
+        "serverPool": "Server pool",
+        "total": "Итого",
+        "traffic": "Трафик",
+        "walletAmount": "Кошелёк"
+      },
+      "quoteError": "Не удалось посчитать quote с текущими параметрами.",
+      "quoteSubtitle": "Снимок ниже является источником истины по тому, что пользователь реально получит после покупки.",
+      "quoteTitle": "Quote и entitlements",
+      "redeem": "Активировать",
+      "selectPlanToQuote": "Выберите план и период, чтобы посчитать quote.",
+      "trialActivated": "Trial активирован. У вас есть 7 дней входного доступа.",
+      "trialError": "Не удалось активировать trial. Попробуйте ещё раз.",
+      "trialLabel": "Trial"
     },
     "profile": {
       "accountDeleted": "Account deleted successfully",
@@ -1100,61 +1155,139 @@
     "title": "МОДУЛЬ СИСТЕМЫ ОФЛАЙН"
   },
   "Pricing": {
-    "faq": {
-      "a1": "Никак нет. Мы работаем на строгой инфраструктуре Zero-Log. Ваш цифровой след стирается при отключении.",
-      "a2": "Ваше соединение перейдет на базовую сниженную скорость (128 kbps). Обновитесь до Pro для безлимитной передачи.",
-      "a3": "Подтверждаю. Мы принимаем Bitcoin, Monero и защищенные цифровые кредиты. Абсолютная анонимность — наша главная директива.",
-      "q1": "Ведутся ли логи моей активности?",
-      "q2": "Что будет, если я превышу лимит трафика на тарифе Stealth?",
-      "q3": "Принимаете ли вы крипту?",
-      "title": "РАСШИФРОВАННЫЕ АРХИВЫ"
+    "addons": {
+      "dedicated_ip": {
+        "availability": "Доступен на всех paid-планах. В Max уже включён 1 dedicated IP.",
+        "description": "Один IP, одна локация, одна предсказуемая routing identity для сервисов, которым не нравятся shared pool сценарии.",
+        "title": "Dedicated IP"
+      },
+      "extra_device": {
+        "availability": "Лимиты по планам: {limits}",
+        "description": "Сразу расширяет device limit и продлевается вместе с базовой подпиской. Продуктовая логика чистая, без отдельного SKU на каждый микросценарий.",
+        "title": "+1 устройство"
+      },
+      "priceLabel": "от {price}",
+      "subtitle": "Публичная линейка остаётся короткой. Гибкость добавляется только там, где пользователь понимает ценность сразу.",
+      "title": "Add-ons вместо раздувания тарифов"
     },
-    "subtitle": "Распределение мощности сети",
+    "faq": {
+      "items": [
+        {
+          "a": "Да. Базовая VPN-защита не режется по tier’ам. Платные планы отличаются количеством устройств, routing modes, качеством server pool, доступом к dedicated IP и уровнем поддержки.",
+          "q": "Все ли paid-планы являются полноценными VPN-планами?"
+        },
+        {
+          "a": "Потому что именно так рынок consumer VPN сейчас объясняет продукт. Реальная экономика и ограничения остаются внутри fair-use policy и правил серверных пулов, а не в публичных жёстких data cap.",
+          "q": "Почему на витрине написано Unlimited / fair use?"
+        },
+        {
+          "a": "Invite bundles зависят от срока конкретного SKU. На коротких периодах их может не быть, а на 180 и 365 днях появляются заметные бонусы с friend days и сроком жизни кода.",
+          "q": "Когда появляются invite bundles?"
+        },
+        {
+          "a": "Нет. Это premium option. Его можно докупить как add-on на paid-планах, а в Max один dedicated IP уже включён.",
+          "q": "Dedicated IP — это отдельный тариф?"
+        }
+      ],
+      "title": "Что важно понять до выбора"
+    },
+    "introPills": {
+      "addons": "2 add-on’а",
+      "periods": "4 периода",
+      "plans": "4 плана"
+    },
+    "labels": {
+      "dedicatedIpAddon": "Dedicated IP как add-on",
+      "devices": "{count} устройств",
+      "includedDedicatedIp": "{count} dedicated IP включён",
+      "inviteBundle": "{count} invite’ов · {days} дней другу",
+      "inviteNone": "Без invite bundle",
+      "monthlyEquivalent": "{price} / 30 дней в эквиваленте",
+      "perSelectedTerm": "за {days}-дневный срок",
+      "unlimitedFairUse": "Unlimited / fair use"
+    },
+    "matrix": {
+      "rows": {
+        "capability": "Параметр",
+        "dedicatedIp": "Dedicated IP",
+        "devices": "Устройства",
+        "invites": "Invite bundle",
+        "modes": "Режимы подключения",
+        "serverPool": "Доступ к серверам",
+        "support": "Поддержка",
+        "traffic": "Трафик"
+      },
+      "subtitle": "Core VPN security не продаётся кусками. Отличия идут через количество устройств, connection modes, server pool, invite bundles и уровень поддержки.",
+      "title": "Что реально меняется между планами"
+    },
+    "modeNames": {
+      "dedicated_ip": "Dedicated IP",
+      "experimental": "Experimental",
+      "manual_config": "Manual / Advanced",
+      "standard": "Standard",
+      "stealth": "Stealth"
+    },
+    "periods": {
+      "best": "Лучшая ценность",
+      "helper": "Add-ons наследуют тот же срок, поэтому checkout остаётся чистым и без размножения SKU.",
+      "label": "Выберите срок подписки",
+      "options": {
+        "30": "30 дней",
+        "90": "90 дней",
+        "180": "180 дней",
+        "365": "365 дней"
+      },
+      "term": "Доступный срок"
+    },
+    "poolNames": {
+      "exclusive": "Exclusive",
+      "premium": "Premium",
+      "premium_shared": "Premium Shared",
+      "shared": "Shared",
+      "shared_plus": "Shared+"
+    },
+    "subtitle": "4 плана, 4 периода, 2 add-on’а. Полноценный базовый VPN-слой есть на каждом платном плане.",
+    "summary": {
+      "noInviteBonus": "На этом сроке invite bundle не включён.",
+      "selectedTerm": "Выбранный срок: {days} дней"
+    },
+    "supportNames": {
+      "internal": "Internal",
+      "priority": "Приоритетная поддержка",
+      "standard": "Стандартная поддержка",
+      "vip": "VIP поддержка"
+    },
     "tiers": {
       "basic": {
-        "button": "ИНИЦИАЛИЗАЦИЯ STEALTH",
-        "description": "Базовое шифрование для навигации по окраинам цифрового мира.",
-        "features": [
-          "Ядерное шифрование AES-256",
-          "5 Глобальных Ретрансляторов",
-          "Лимит 10 ГБ/мес",
-          "Стандартный Пинг Поддержки"
-        ],
-        "name": "STEALTH",
-        "period": "/навсегда",
-        "price": "Free"
+        "audience": "Один пользователь, чистый старт",
+        "badge": "Starter",
+        "button": "Выбрать Basic",
+        "description": "Полноценный входной VPN-план для персонального использования. Без слабой коммуникации про жёсткие лимиты и без устаревшей логики «1 устройство как основной публичный тариф».",
+        "eyebrow": "Стартовый план"
       },
-      "elite": {
-        "button": "ПОЛУЧИТЬ ELITE",
-        "description": "Полный перехват сети. Выделенные IP и тотальный контроль инфраструктуры.",
-        "features": [
-          "Выделенный Cyber-IP Адрес",
-          "Обфусцированные Стелс Протоколы",
-          "Приоритетный Выбор Узлов",
-          "Сетевые Каналы 10Гбит/с",
-          "Доступ к Бета Директивам"
-        ],
-        "name": "ELITE_SYNC",
-        "period": "/месяц",
-        "price": "$15.99"
+      "max": {
+        "audience": "Семья или premium setup",
+        "badge": "Flagship",
+        "button": "Выбрать Max",
+        "description": "Настоящий premium-tier: больше устройств, сильнее server pool и уже включён 1 dedicated IP, чтобы верхний план ощущался реальной вершиной лестницы ценности.",
+        "eyebrow": "Флагман"
+      },
+      "plus": {
+        "audience": "Для большинства",
+        "badge": "Most Popular",
+        "button": "Выбрать Plus",
+        "description": "Основной consumer-план: телефон, ноутбук и ещё несколько устройств без лишней математики. Именно здесь появляется Stealth, потому что это уже массовая продуктовая ценность.",
+        "eyebrow": "Массовый тариф"
       },
       "pro": {
-        "badge": "ПОПУЛЯРНЫЙ_ВЫБОР",
-        "button": "ОБНОВИТЬ ДО PRO",
-        "description": "Неограниченная скорость и анонимность матричного уровня для истинных раннеров.",
-        "features": [
-          "Квантово-Устойчивые Протоколы",
-          "8,000+ Узлов 1-го Уровня",
-          "Безлимитная Пропускная Способность",
-          "Усиленные Ядра без Логов",
-          "Двойная Маршрутизация (Double VPN)"
-        ],
-        "name": "CYBER_PRO",
-        "period": "/месяц",
-        "price": "$8.99"
+        "audience": "Поездки, работа, стриминг",
+        "badge": "Best Balance",
+        "button": "Выбрать Pro",
+        "description": "Тариф для более активного сценария: лучшая поверхность маршрутов, manual и advanced профили, приоритетная поддержка и заметно более сильная routing story.",
+        "eyebrow": "Для power use"
       }
     },
-    "title": "УРОВНИ ДОСТУПА"
+    "title": "Прайсинг без перегруза"
   },
   "Privacy": {
     "description": "СОВЕРШЕННО СЕКРЕТНО. РАСШИФРОВКА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ...",

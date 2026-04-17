@@ -2,6 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <!-- WiFi SSID detection for auto-connect on untrusted networks -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -95,6 +96,16 @@
                 <action android:name="android.net.VpnService"/>
             </intent-filter>
         </service>
+
+        <receiver
+            android:name=".AppAutoStartBootReceiver"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- VPN Widget Provider -->
         <receiver

@@ -8,6 +8,7 @@ import 'package:cybervpn_mobile/core/auth/token_refresh_coordinator.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/storage/local_storage.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
+import 'package:cybervpn_mobile/core/services/log_file_store.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 
 // Data sources (lazy - created on first access via ref.watch)
@@ -53,6 +54,7 @@ import 'package:cybervpn_mobile/features/onboarding/data/repositories/onboarding
 import 'package:cybervpn_mobile/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:cybervpn_mobile/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:cybervpn_mobile/features/settings/domain/repositories/settings_repository.dart';
+import 'package:cybervpn_mobile/features/settings/domain/services/ping_policy_runtime.dart';
 import 'package:cybervpn_mobile/features/referral/data/repositories/referral_repository_impl.dart';
 import 'package:cybervpn_mobile/features/referral/domain/repositories/referral_repository.dart';
 import 'package:cybervpn_mobile/features/partner/data/repositories/partner_repository_impl.dart';
@@ -70,6 +72,10 @@ import 'package:cybervpn_mobile/features/vpn/domain/repositories/vpn_repository.
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/auto_reconnect.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/services/vpn_runtime_capabilities.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/services/vpn_runtime_config_builder.dart';
+import 'package:cybervpn_mobile/features/vpn/domain/services/vpn_server_address_resolver.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_service.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 
@@ -274,9 +280,23 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 
 /// Provides the [ConfigImportRepository] lazily via ref.watch.
 final configImportRepositoryProvider = Provider<ConfigImportRepository>((ref) {
+  final policyRuntime = ref.watch(subscriptionPolicyRuntimeProvider);
+
+  Future<SubscriptionPolicyState> resolvePolicy() async {
+    final result = await ref.read(settingsRepositoryProvider).getSettings();
+    return switch (result) {
+      Success(:final data) => policyRuntime.resolve(data),
+      Failure() => const SubscriptionPolicyState(),
+    };
+  }
+
   return ConfigImportRepositoryImpl(
     sharedPreferences: ref.watch(sharedPreferencesProvider),
-    subscriptionUrlParser: SubscriptionUrlParser(dio: ref.watch(dioProvider)),
+    subscriptionUrlParser: SubscriptionUrlParser(
+      dio: ref.watch(dioProvider),
+      resolvePolicy: resolvePolicy,
+    ),
+    resolvePolicy: resolvePolicy,
   );
 });
 
@@ -314,6 +334,37 @@ final autoReconnectServiceProvider = Provider<AutoReconnectService>((ref) {
 /// Provides the [KillSwitchService].
 final killSwitchServiceProvider = Provider<KillSwitchService>((ref) {
   return KillSwitchService();
+});
+
+/// Provides runtime feature capability flags for the active platform.
+final vpnRuntimeCapabilitiesProvider = Provider<VpnRuntimeCapabilities>((ref) {
+  return VpnRuntimeCapabilities.currentPlatform();
+});
+
+/// Resolves effective subscription policies from persisted app settings.
+final subscriptionPolicyRuntimeProvider = Provider<SubscriptionPolicyRuntime>((
+  ref,
+) {
+  return const SubscriptionPolicyRuntime();
+});
+
+/// Normalizes Happ-like ping preferences into executable runtime plans.
+final pingPolicyRuntimeProvider = Provider<PingPolicyRuntime>((ref) {
+  return const PingPolicyRuntime();
+});
+
+/// Provides the config builder that maps settings into runtime-ready Xray JSON.
+final vpnRuntimeConfigBuilderProvider = Provider<VpnRuntimeConfigBuilder>((
+  ref,
+) {
+  return const VpnRuntimeConfigBuilder();
+});
+
+/// Resolves server hostnames to the fastest IP before connect when enabled.
+final vpnServerAddressResolverProvider = Provider<VpnServerAddressResolver>((
+  ref,
+) {
+  return VpnServerAddressResolver();
 });
 
 /// Holds the currently active DNS server list resolved from user settings.
@@ -480,9 +531,14 @@ final localStorageProvider = Provider<LocalStorageWrapper>((ref) {
   return LocalStorageWrapper(prefs: ref.watch(sharedPreferencesProvider));
 });
 
+/// Provides the hybrid file-backed log store.
+final logFileStoreProvider = Provider<LogFileStore>((ref) {
+  return LogFileStore();
+});
+
 /// Provides the [VpnEngineDatasource] singleton.
 final vpnEngineDatasourceProvider = Provider<VpnEngineDatasource>((ref) {
-  final engine = VpnEngineDatasource();
+  final engine = VpnEngineDatasource(logFileStore: ref.watch(logFileStoreProvider));
   ref.onDispose(engine.dispose);
   return engine;
 });

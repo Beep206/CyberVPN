@@ -1,9 +1,12 @@
 import logging
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.wallet_service import WalletService
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
+from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 
 logger = logging.getLogger(__name__)
@@ -13,6 +16,8 @@ class ProcessPaymentWebhookUseCase:
     def __init__(self, session: AsyncSession, webhook_handler: CryptoBotWebhookHandler) -> None:
         self._session = session
         self._handler = webhook_handler
+        wallet_repo = WalletRepository(session)
+        self._wallet = WalletService(wallet_repo)
 
     async def execute(self, provider: str, body: bytes, signature: str) -> dict:
         is_valid = self._handler.validate_signature(body, signature)
@@ -31,10 +36,12 @@ class ProcessPaymentWebhookUseCase:
             return {"status": "invalid_signature"}
 
         update_type = payload.get("update_type")
+        invoice = payload.get("payload", {})
+        invoice_id = invoice.get("invoice_id")
         if update_type == "invoice_paid":
-            invoice = payload.get("payload", {})
-            invoice_id = invoice.get("invoice_id")
             return await self._handle_invoice_paid(str(invoice_id))
+        if update_type in {"invoice_expired", "invoice_cancelled", "invoice_failed"}:
+            return await self._handle_invoice_failed(str(invoice_id), update_type)
 
         return {"status": "ignored", "update_type": update_type}
 
@@ -67,3 +74,34 @@ class ProcessPaymentWebhookUseCase:
             extra={"external_id": external_id, "payment_id": str(payment.id), **post_results},
         )
         return {"status": "processed", "invoice_id": external_id, "post_payment": post_results}
+
+    async def _handle_invoice_failed(self, external_id: str, update_type: str) -> dict:
+        """Release any frozen wallet amount for abandoned invoices."""
+        payment_repo = PaymentRepository(self._session)
+        payment = await payment_repo.get_by_external_id(external_id)
+
+        if payment is None:
+            logger.warning("Webhook %s: payment not found for external_id=%s", update_type, external_id)
+            return {"status": "processed", "invoice_id": external_id, "warning": "payment_not_found"}
+
+        if payment.status in {"completed", "failed"}:
+            return {"status": "already_processed", "invoice_id": external_id}
+
+        wallet_used = Decimal(str(payment.wallet_amount_used or 0))
+        if wallet_used > 0 and (payment.metadata_ or {}).get("wallet_frozen"):
+            try:
+                await self._wallet.unfreeze(payment.user_uuid, wallet_used)
+            except Exception:
+                logger.exception(
+                    "payment_webhook_wallet_unfreeze_failed",
+                    extra={"external_id": external_id, "payment_id": str(payment.id)},
+                )
+
+        payment.status = "failed"
+        await payment_repo.update(payment)
+        await self._session.commit()
+        logger.info(
+            "Webhook invoice failure processed",
+            extra={"external_id": external_id, "payment_id": str(payment.id), "update_type": update_type},
+        )
+        return {"status": "processed", "invoice_id": external_id, "update_type": update_type}

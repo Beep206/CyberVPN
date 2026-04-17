@@ -5,6 +5,7 @@
   "nav": {
     "overview": "Overview",
     "plans": "Plans",
+    "addons": "Add-ons",
     "subscriptionTemplates": "Templates",
     "payments": "Payments",
     "wallets": "Wallets",
@@ -75,6 +76,7 @@
     "noFlow": "No flow",
     "routes": {
       "plans": "Create, tune, and retire monetization plans without leaving the admin app.",
+      "addons": "Maintain the add-on catalog, quantity caps, and entitlement deltas used across checkout surfaces.",
       "subscriptionTemplates": "Maintain Remnawave subscription templates and delivery config payloads.",
       "payments": "Investigate payment records with provider and status filtering.",
       "wallets": "Lookup a user wallet by UUID and apply manual top-ups when operations requires it.",
@@ -83,8 +85,8 @@
     "metrics": {
       "plans": "Plans",
       "activePlansHint": "active now",
-      "templates": "Templates",
-      "templatesHint": "config templates loaded",
+      "addons": "Add-ons",
+      "addonsHint": "catalog extensions loaded",
       "payments": "Payments",
       "paymentsHint": "records in the recent feed",
       "withdrawals": "Pending withdrawals",
@@ -95,7 +97,7 @@
     "metaTitle": "Plans - Ozoxy Admin",
     "eyebrow": "PLAN CATALOG",
     "title": "Plan Management",
-    "description": "Maintain pricing, duration, access limits, and commercial packaging for the plan catalog.",
+    "description": "Maintain the canonical pricing catalog: public and hidden plans, invite bundles, routing surface, server pool, support SLA, and visibility.",
     "createAction": "Create plan",
     "createTitle": "Create plan",
     "editTitle": "Edit plan",
@@ -103,18 +105,87 @@
     "deleteConfirm": "Delete this plan from the catalog?",
     "empty": "No plans are configured yet.",
     "form": {
-      "namePlaceholder": "Premium Monthly",
-      "featuresPlaceholder": "Priority routing\nRegional failover\nHigher device quota"
+      "namePlaceholder": "plus_365"
     },
     "metrics": {
       "total": "Total plans",
       "totalHint": "catalog records",
       "active": "Active plans",
       "activeHint": "available for checkout",
-      "averagePrice": "Average price",
-      "averagePriceHint": "catalog average",
-      "maxDuration": "Longest duration",
-      "maxDurationHint": "largest billing window"
+      "families": "Plan families",
+      "familiesHint": "unique plan codes",
+      "hidden": "Hidden plans",
+      "hiddenHint": "internal or direct-only"
+    },
+    "fields": {
+      "planCode": "Plan code",
+      "displayName": "Display name",
+      "visibility": "Visibility",
+      "devicesIncluded": "Devices included",
+      "priceUsd": "Price USD",
+      "priceRub": "Price RUB",
+      "trafficMode": "Traffic mode",
+      "trafficLabel": "Traffic label",
+      "trafficProfile": "Traffic profile",
+      "trafficLimitBytes": "Traffic limit bytes",
+      "connectionModes": "Connection modes",
+      "serverPool": "Server pool",
+      "supportSla": "Support SLA",
+      "dedicatedIpIncluded": "Dedicated IP included",
+      "dedicatedIpEligible": "Dedicated IP eligible",
+      "saleChannels": "Sale channels",
+      "inviteCount": "Invite count",
+      "inviteFriendDays": "Invite friend days",
+      "inviteExpiryDays": "Invite expiry days",
+      "inviteBundle": "Invite bundle",
+      "trialEligible": "Trial eligible",
+      "sortOrder": "Sort order",
+      "featuresJson": "Features JSON"
+    },
+    "visibility": {
+      "public": "Public",
+      "hidden": "Hidden"
+    },
+    "validation": {
+      "numericInvalid": "Duration, devices, and price must be valid non-negative numbers.",
+      "jsonInvalid": "Features JSON must be valid."
+    }
+  },
+  "addons": {
+    "metaTitle": "Add-ons - Ozoxy Admin",
+    "eyebrow": "ADD-ON CATALOG",
+    "title": "Add-on Management",
+    "description": "Manage checkout extensions such as Extra Device and Dedicated IP with explicit entitlement deltas and plan-level quantity caps.",
+    "createAction": "Create add-on",
+    "createTitle": "Create add-on",
+    "editTitle": "Edit add-on",
+    "empty": "No add-ons are configured yet.",
+    "metrics": {
+      "total": "Total add-ons",
+      "totalHint": "catalog extensions",
+      "active": "Active add-ons",
+      "activeHint": "available in checkout",
+      "stackable": "Stackable",
+      "stackableHint": "quantity-based add-ons",
+      "locationRequired": "Location required",
+      "locationRequiredHint": "needs location_code"
+    },
+    "fields": {
+      "code": "Code",
+      "displayName": "Display name",
+      "durationMode": "Duration mode",
+      "quantityStep": "Quantity step",
+      "priceUsd": "Price USD",
+      "priceRub": "Price RUB",
+      "maxQuantityByPlan": "Max quantity by plan",
+      "deltaEntitlements": "Delta entitlements",
+      "requiresLocation": "Requires location",
+      "saleChannels": "Sale channels",
+      "isStackable": "Is stackable"
+    },
+    "validation": {
+      "numericInvalid": "Quantity step and price must be valid non-negative numbers.",
+      "jsonInvalid": "Add-on JSON fields must be valid."
     }
   },
   "subscriptionTemplates": {

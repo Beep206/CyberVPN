@@ -4,6 +4,7 @@ import { Landmark, Package2, ReceiptText, WalletCards } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { addonsApi } from '@/lib/api/addons';
 import { paymentsApi } from '@/lib/api/payments';
 import { plansApi } from '@/lib/api/plans';
 import { subscriptionsApi } from '@/lib/api/subscriptions';
@@ -45,7 +46,15 @@ export function CommerceOverview() {
   const plansQuery = useQuery({
     queryKey: ['commerce', 'plans'],
     queryFn: async () => {
-      const response = await plansApi.list();
+      const response = await plansApi.listAdmin({ include_inactive: true });
+      return response.data;
+    },
+    staleTime: 60_000,
+  });
+  const addonsQuery = useQuery({
+    queryKey: ['commerce', 'addons'],
+    queryFn: async () => {
+      const response = await addonsApi.listAdmin({ include_inactive: true });
       return response.data;
     },
     staleTime: 60_000,
@@ -76,7 +85,7 @@ export function CommerceOverview() {
   });
 
   const activePlans =
-    plansQuery.data?.filter((plan) => plan.isActive).length ?? 0;
+    plansQuery.data?.filter((plan) => plan.is_active).length ?? 0;
   const payoutVolume = withdrawalsQuery.data?.reduce(
     (sum, withdrawal) => sum + withdrawal.amount,
     0,
@@ -96,9 +105,9 @@ export function CommerceOverview() {
           tone: 'info',
         },
         {
-          label: t('overview.metrics.templates'),
-          value: formatCompactNumber(templatesQuery.data?.length),
-          hint: t('overview.metrics.templatesHint'),
+          label: t('overview.metrics.addons'),
+          value: formatCompactNumber(addonsQuery.data?.length),
+          hint: t('overview.metrics.addonsHint'),
           tone: 'neutral',
         },
         {
@@ -129,6 +138,11 @@ export function CommerceOverview() {
                 href: '/commerce/plans',
                 title: t('nav.plans'),
                 description: t('overview.routes.plans'),
+              },
+              {
+                href: '/commerce/addons',
+                title: t('nav.addons'),
+                description: t('overview.routes.addons'),
               },
               {
                 href: '/commerce/subscription-templates',
@@ -231,8 +245,8 @@ export function CommerceOverview() {
           </div>
 
           <div className="mt-5 space-y-3">
-            {templatesQuery.data?.length ? (
-              templatesQuery.data.slice(0, 4).map((template) => (
+            {templatesQuery.data?.templates?.length ? (
+              templatesQuery.data.templates.slice(0, 4).map((template) => (
                 <div
                   key={template.uuid}
                   className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"

@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cybervpn_mobile/core/constants/vpn_constants.dart';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
@@ -18,6 +17,7 @@ import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_
     show profileProvider;
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/per_app_proxy_providers.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/vpn/data/datasources/kill_switch_service.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/connection_state_entity.dart';
@@ -37,12 +37,19 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
         autoReconnectServiceProvider,
         killSwitchServiceProvider,
         activeDnsServersProvider,
-        deviceRegistrationServiceProvider;
+        deviceRegistrationServiceProvider,
+        vpnRuntimeCapabilitiesProvider,
+        vpnRuntimeConfigBuilderProvider,
+        vpnServerAddressResolverProvider,
+        subscriptionPolicyRuntimeProvider;
 import 'package:cybervpn_mobile/features/review/presentation/providers/review_provider.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/recent_servers_provider.dart'
     show recentServerIdsProvider;
 import 'package:cybervpn_mobile/features/servers/presentation/providers/server_list_provider.dart'
-    show recommendedServerProvider;
+    show allServersWithPingProvider, recommendedServerProvider;
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_state.dart';
 
@@ -52,6 +59,7 @@ import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connecti
 
 const _lastServerKey = 'last_connected_server';
 const _lastProtocolKey = 'last_connected_protocol';
+const _activeProfileLookupTimeout = Duration(milliseconds: 750);
 
 // ---------------------------------------------------------------------------
 // VpnConnectionNotifier
@@ -170,8 +178,9 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         serverAddress: server.address,
         port: server.port,
         protocol: protocol,
-        configData: '', // populated by the repository / platform layer
+        configData: await _resolveProfileConfigData(server) ?? '',
       );
+      if (!ref.mounted) return;
 
       await _executeConnection(
         config: config,
@@ -182,6 +191,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
       AppLogger.error('VPN connect failed', error: e, stackTrace: st);
       _autoReconnect.stop();
       await _killSwitch.disable();
+      if (!ref.mounted) return;
       state = AsyncData(VpnError(message: e.toString()));
     }
   }
@@ -223,6 +233,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         protocol: protocol,
         configData: customServer.rawUri,
       );
+      if (!ref.mounted) return;
 
       await _executeConnection(
         config: config,
@@ -237,6 +248,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
       );
       _autoReconnect.stop();
       await _killSwitch.disable();
+      if (!ref.mounted) return;
       state = AsyncData(VpnError(message: e.toString()));
     }
   }
@@ -251,24 +263,30 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     required VpnProtocol protocol,
   }) async {
     final vpnSettings = ref.read(vpnSettingsProvider);
+    final runtimeConfig = await _applyRuntimeSettings(
+      config,
+      vpnSettings: vpnSettings,
+    );
+    if (!ref.mounted) return;
 
-    // Resolve DNS servers from settings and publish for lower layers.
-    final dnsServers = _resolveDnsServers(vpnSettings);
-    ref.read(activeDnsServersProvider.notifier).set(dnsServers);
+    ref.read(activeDnsServersProvider.notifier).set(runtimeConfig.dnsServers);
 
     // Enable kill switch before connecting if the setting is on.
     if (vpnSettings.killSwitch) {
       await _killSwitch.enable();
+      if (!ref.mounted) return;
     }
 
-    final connectResult = await _connectUseCase.call(config);
+    final connectResult = await _connectUseCase.call(runtimeConfig);
     if (connectResult case Failure(:final failure)) throw failure;
+    if (!ref.mounted) return;
 
     // Persist for auto-reconnect on app restart.
     await _persistLastConnection(server, protocol);
+    if (!ref.mounted) return;
 
     // Start the auto-reconnect service.
-    _autoReconnect.start(config);
+    _autoReconnect.start(runtimeConfig);
 
     // Auto-register device on first connection
     unawaited(_registerDeviceIfNeeded());
@@ -335,39 +353,50 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     }
   }
 
-  /// Connect to the last used server or the recommended server.
+  /// Connect using the current subscription auto-connect strategy.
   ///
-  /// Used by auto-connect features like untrusted WiFi handler.
-  /// Attempts to connect to:
-  /// 1. The last connected server (if saved and available)
-  /// 2. The recommended server (if last server unavailable)
-  /// 3. Throws if no suitable server is found
-  Future<void> connectToLastOrRecommended() async {
+  /// Used by launch auto-connect, quick actions, and untrusted WiFi flows.
+  Future<void> connectBySubscriptionPolicy({
+    String trigger = 'auto_connect',
+  }) async {
     final current = state.value;
     if (current is VpnConnected || current is VpnConnecting) {
-      AppLogger.debug('Already connected/connecting, skipping auto-connect');
-      return;
-    }
-
-    // Try last connected server first
-    final lastServer = await _loadLastServer();
-    if (lastServer != null && lastServer.isAvailable) {
-      AppLogger.info('Auto-connecting to last server: ${lastServer.name}');
-      await connect(lastServer);
-      return;
-    }
-
-    // Fall back to recommended server
-    final recommendedServer = ref.read(recommendedServerProvider);
-    if (recommendedServer != null) {
-      AppLogger.info(
-        'Auto-connecting to recommended server: ${recommendedServer.name}',
+      AppLogger.debug(
+        'Already connected/connecting, skipping policy connect',
+        category: 'vpn.auto-connect',
+        data: {'trigger': trigger},
       );
-      await connect(recommendedServer);
       return;
     }
 
-    throw Exception('No available server for auto-connect');
+    final selection = await _resolveSubscriptionConnectSelection(
+      trigger: trigger,
+    );
+    if (selection == null) {
+      throw Exception('No available server for auto-connect');
+    }
+
+    AppLogger.info(
+      'Policy-driven auto-connect target resolved',
+      category: 'vpn.auto-connect',
+      data: {
+        'trigger': trigger,
+        'requestedStrategy': selection.requestedStrategy.name,
+        'appliedStrategy': selection.appliedStrategy.name,
+        'candidateCount': selection.candidateCount,
+        'usedFallback': selection.usedFallback,
+        'selectedServerId': selection.server.id,
+        'selectedServerName': selection.server.name,
+        'note': selection.note,
+      },
+    );
+
+    await connect(selection.server);
+  }
+
+  /// Backwards-compatible alias for legacy call sites.
+  Future<void> connectToLastOrRecommended() async {
+    await connectBySubscriptionPolicy(trigger: 'legacy_auto_connect');
   }
 
   /// Apply or remove the kill switch immediately (e.g. when the user toggles
@@ -385,7 +414,266 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
 
   // -- Private helpers ------------------------------------------------------
 
+  Future<SubscriptionConnectSelection?> _resolveSubscriptionConnectSelection({
+    required String trigger,
+  }) async {
+    final subscriptionSettings = ref.read(subscriptionSettingsProvider);
+    final policyRuntime = ref.read(subscriptionPolicyRuntimeProvider);
+    final policy = SubscriptionPolicyState(
+      autoUpdateEnabled: subscriptionSettings.autoUpdateEnabled,
+      autoUpdateInterval: Duration(
+        hours: subscriptionSettings.autoUpdateIntervalHours.clamp(1, 168),
+      ),
+      updateNotificationsEnabled:
+          subscriptionSettings.updateNotificationsEnabled,
+      autoUpdateOnOpen: subscriptionSettings.autoUpdateOnOpen,
+      pingOnOpenEnabled: subscriptionSettings.pingOnOpenEnabled,
+      connectStrategy: subscriptionSettings.connectStrategy,
+      preventDuplicateImports: subscriptionSettings.preventDuplicateImports,
+      collapseSubscriptions: subscriptionSettings.collapseSubscriptions,
+      noFilter: subscriptionSettings.noFilter,
+      userAgentMode: subscriptionSettings.userAgentMode,
+      customUserAgent: subscriptionSettings.userAgentValue,
+      effectiveUserAgent: SubscriptionPolicyRuntime.defaultUserAgent,
+      sortMode: subscriptionSettings.sortMode,
+    );
+    final lastServer = await _loadLastServer();
+    final availableServers = ref.read(allServersWithPingProvider);
+    final recommendedServer = ref.read(recommendedServerProvider);
+
+    final selection = policyRuntime.selectAutoConnectServer(
+      policy: policy,
+      availableServers: availableServers,
+      lastServer: lastServer,
+      recommendedServer: recommendedServer,
+    );
+
+    if (selection == null) {
+      AppLogger.info(
+        'Policy-driven auto-connect could not resolve a server',
+        category: 'vpn.auto-connect',
+        data: {
+          'trigger': trigger,
+          'requestedStrategy': policy.connectStrategy.name,
+          'availableServerCount': availableServers.length,
+          'hasLastServer': lastServer != null,
+          'hasRecommendedServer': recommendedServer != null,
+        },
+      );
+    }
+
+    return selection;
+  }
+
+  Future<String?> _resolveProfileConfigData(ServerEntity server) async {
+    final activeProfileState = ref.read(activeVpnProfileProvider);
+    final hasResolvedProfile = activeProfileState is AsyncData;
+
+    var activeProfile = switch (activeProfileState) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+
+    if (!hasResolvedProfile) {
+      final subscription = ref.container.listen<AsyncValue<VpnProfile?>>(
+        activeVpnProfileProvider,
+        (_, _) {},
+      );
+      try {
+        final refreshedState = ref.read(activeVpnProfileProvider);
+        if (refreshedState case AsyncData(:final value)) {
+          activeProfile = value;
+        } else {
+          activeProfile = await ref
+              .read(activeVpnProfileProvider.future)
+              .timeout(_activeProfileLookupTimeout, onTimeout: () => null)
+              .catchError((Object error, StackTrace stackTrace) {
+                AppLogger.warning(
+                  'Failed to resolve active VPN profile during config lookup',
+                  category: 'vpn.connect',
+                  error: error,
+                  stackTrace: stackTrace,
+                  data: {'serverId': server.id},
+                );
+                return null;
+              });
+        }
+      } finally {
+        subscription.close();
+      }
+    }
+
+    if (activeProfile == null) {
+      return null;
+    }
+
+    for (final profileServer in activeProfile.servers) {
+      final matchesId = profileServer.id == server.id;
+      final matchesEndpoint =
+          profileServer.serverAddress == server.address &&
+          profileServer.port == server.port &&
+          profileServer.protocol.name.toLowerCase() ==
+              server.protocol.toLowerCase();
+
+      if (matchesId || matchesEndpoint) {
+        return profileServer.configData;
+      }
+    }
+
+    return null;
+  }
+
+  Future<VpnConfigEntity> _applyRuntimeSettings(
+    VpnConfigEntity config, {
+    required VpnSettings vpnSettings,
+  }) async {
+    final blockedApps = await _resolveBlockedApps(vpnSettings);
+    final builder = ref.read(vpnRuntimeConfigBuilderProvider);
+    final capabilities = ref.read(vpnRuntimeCapabilitiesProvider);
+    final resolver = ref.read(vpnServerAddressResolverProvider);
+    final resolveResult = await resolver.resolve(
+      sourceConfig: config,
+      vpnSettings: vpnSettings,
+      capabilities: capabilities,
+    );
+    final buildResult = builder.build(
+      sourceConfig: resolveResult.config,
+      vpnSettings: vpnSettings,
+      capabilities: capabilities,
+      blockedApps: blockedApps,
+    );
+    final appliedSettings = [
+      ...resolveResult.appliedSettings,
+      ...buildResult.appliedSettings,
+    ];
+    final skippedSettings = <String, String>{
+      ...resolveResult.skippedSettings,
+      ...buildResult.skippedSettings,
+    };
+    final allowLanConnections =
+        vpnSettings.allowLanConnections && capabilities.supportsLanProxyAccess;
+    if (vpnSettings.allowLanConnections && !capabilities.supportsLanProxyAccess) {
+      skippedSettings['allowLanConnections'] =
+          'LAN proxy access is unsupported on this platform';
+    }
+    final runtimeConfig = buildResult.config.copyWith(
+      allowLanConnections: allowLanConnections,
+    );
+    if (allowLanConnections) {
+      appliedSettings.add('allowLanConnections');
+    }
+
+    AppLogger.info(
+      'VPN runtime config prepared',
+      category: 'vpn.runtime',
+      data: {
+        'serverId': config.id,
+        'resolvedServerAddress': resolveResult.selectedAddress,
+        'resolvedCandidateCount': resolveResult.candidateAddresses.length,
+        'resolvedCandidates': resolveResult.candidateAddresses,
+        'activeRoutingProfileId': vpnSettings.activeRoutingProfileId,
+        'perAppProxyMode': vpnSettings.perAppProxyMode.name,
+        'perAppSelectionCount': vpnSettings.perAppProxyAppIds.length,
+        'blockedAppCount': runtimeConfig.blockedApps.length,
+        'pingMode': vpnSettings.pingMode.name,
+        'muxEnabled': vpnSettings.muxEnabled,
+        'fragmentationEnabled': vpnSettings.fragmentationEnabled,
+        'sniffingEnabled': vpnSettings.sniffingEnabled,
+        'preferredIpType': vpnSettings.preferredIpType.name,
+        'vpnRunMode': vpnSettings.vpnRunMode.name,
+        'proxyOnly': runtimeConfig.proxyOnly,
+        'allowLanConnections': runtimeConfig.allowLanConnections,
+        'serverAddressResolveEnabled': vpnSettings.serverAddressResolveEnabled,
+        'useDnsFromJson': vpnSettings.useDnsFromJson,
+        'useLocalDns': vpnSettings.useLocalDns,
+        'localDnsPort': vpnSettings.localDnsPort,
+        'applied': appliedSettings,
+        'skipped': skippedSettings,
+        'bypassSubnets': runtimeConfig.bypassSubnets,
+        'bypassSubnetCount': runtimeConfig.bypassSubnets.length,
+        'dnsServers': runtimeConfig.dnsServers,
+        'dnsServerCount': runtimeConfig.dnsServers?.length ?? 0,
+        'mtu': runtimeConfig.mtu,
+      },
+    );
+
+    if (skippedSettings.isNotEmpty) {
+      AppLogger.warning(
+        'VPN runtime settings fell back to supported subset',
+        category: 'vpn.runtime',
+        data: {
+          'serverId': config.id,
+          'unsupportedFallbacks': skippedSettings,
+          'activeRoutingProfileId': vpnSettings.activeRoutingProfileId,
+          'perAppProxyMode': vpnSettings.perAppProxyMode.name,
+          'pingMode': vpnSettings.pingMode.name,
+          'muxEnabled': vpnSettings.muxEnabled,
+          'fragmentationEnabled': vpnSettings.fragmentationEnabled,
+          'sniffingEnabled': vpnSettings.sniffingEnabled,
+          'preferredIpType': vpnSettings.preferredIpType.name,
+          'vpnRunMode': vpnSettings.vpnRunMode.name,
+          'serverAddressResolveEnabled':
+              vpnSettings.serverAddressResolveEnabled,
+          'useDnsFromJson': vpnSettings.useDnsFromJson,
+          'useLocalDns': vpnSettings.useLocalDns,
+        },
+      );
+    }
+
+    if (runtimeConfig.configData.isEmpty) {
+      AppLogger.warning(
+        'VPN configData is empty before connect; runtime may fail for API-backed servers without active profile config',
+        category: 'vpn.connect',
+        data: {'serverId': config.id, 'serverAddress': config.serverAddress},
+      );
+    }
+
+    return runtimeConfig;
+  }
+
+  Future<List<String>> _resolveBlockedApps(VpnSettings vpnSettings) async {
+    final mode = vpnSettings.perAppProxyMode;
+    if (mode == PerAppProxyMode.off) {
+      return const <String>[];
+    }
+
+    final selectedAppIds =
+        vpnSettings.perAppProxyAppIds
+            .map((appId) => appId.trim())
+            .where((appId) => appId.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+
+    final platformService = ref.read(perAppProxyPlatformServiceProvider);
+    if (!platformService.isSupported) {
+      AppLogger.info(
+        'Per-app proxy ignored on unsupported platform',
+        category: 'vpn.connect',
+        data: {'mode': mode.name, 'selectedAppCount': selectedAppIds.length},
+      );
+      return const <String>[];
+    }
+
+    if (mode == PerAppProxyMode.bypassSelected) {
+      return selectedAppIds;
+    }
+
+    final installedApps = await platformService.getInstalledApps();
+    final currentPackageName = await platformService.getCurrentPackageName();
+    final resolver = ref.read(perAppProxyRuntimeResolverProvider);
+
+    return resolver.resolveBlockedApps(
+      mode: mode,
+      selectedAppIds: selectedAppIds,
+      installedApps: installedApps,
+      currentPackageName: currentPackageName,
+    );
+  }
+
   void _onRepositoryStateChanged(ConnectionStateEntity repoState) {
+    if (!ref.mounted) return;
+
     final current = state.value;
     final vpnSettings = ref.read(vpnSettingsProvider);
 
@@ -436,36 +724,6 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
     }
   }
 
-  /// Resolves DNS server addresses based on user settings.
-  ///
-  /// Returns `null` for system DNS (uses platform defaults) or a list of
-  /// IP addresses for the selected provider.
-  List<String>? _resolveDnsServers(VpnSettings vpnSettings) {
-    switch (vpnSettings.dnsProvider) {
-      case DnsProvider.system:
-        return null;
-      case DnsProvider.cloudflare:
-        return [
-          VpnConstants.cloudflareIPv4Primary,
-          VpnConstants.cloudflareIPv4Secondary,
-        ];
-      case DnsProvider.google:
-        return [
-          VpnConstants.googleIPv4Primary,
-          VpnConstants.googleIPv4Secondary,
-        ];
-      case DnsProvider.quad9:
-        return [VpnConstants.quad9IPv4Primary, VpnConstants.quad9IPv4Secondary];
-      case DnsProvider.custom:
-        final custom = vpnSettings.customDns;
-        if (custom != null && custom.isNotEmpty) {
-          return [custom];
-        }
-        // Fall back to default if custom DNS is not set.
-        return VpnConstants.defaultDnsServers;
-    }
-  }
-
   /// Attempt auto-connect using the last connected server.
   ///
   /// Runs asynchronously after the provider is initialized. Gracefully
@@ -505,24 +763,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
         return;
       }
 
-      // Load the last connected server from secure storage.
-      final savedServer = await _loadLastServer();
-      if (savedServer == null) {
-        AppLogger.info('Auto-connect: no saved server found, skipping');
-        return;
-      }
-
-      // Verify the saved server is available before attempting connection.
-      // If the server is marked as unavailable, skip auto-connect gracefully.
-      if (!savedServer.isAvailable) {
-        AppLogger.info(
-          'Auto-connect: saved server ${savedServer.name} is unavailable, skipping',
-        );
-        return;
-      }
-
-      AppLogger.info('Auto-connect: connecting to ${savedServer.name}');
-      await connect(savedServer);
+      await connectBySubscriptionPolicy(trigger: 'launch');
     } catch (e, st) {
       // Log auto-connect failures but do not block app startup.
       // The error will be shown in the UI via the VpnError state if the
@@ -600,6 +841,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
 
     // Disconnect the VPN immediately.
     await disconnect();
+    if (!ref.mounted) return;
 
     // Transition to VpnForceDisconnected so the UI shows a dialog.
     state = AsyncData(VpnForceDisconnected(reason: event.reason));
@@ -710,6 +952,7 @@ class VpnConnectionNotifier extends AsyncNotifier<VpnConnectionState> {
 
     try {
       final connectedResult = await _repository.isConnected;
+      if (!ref.mounted) return;
       final isActuallyConnected = switch (connectedResult) {
         Success(:final data) => data,
         Failure() => false,

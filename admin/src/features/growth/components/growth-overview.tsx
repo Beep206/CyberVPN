@@ -283,15 +283,15 @@ export function GrowthOverview() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
-                        {plan.name}
+                        {plan.display_name}
                       </p>
                       <p className="mt-2 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                        #{shortId(plan.uuid)} / {formatCurrencyAmount(plan.price, plan.currency, locale)}
+                        #{shortId(plan.uuid)} / {formatCurrencyAmount(plan.price_usd, 'USD', locale)}
                       </p>
                     </div>
                     <GrowthStatusChip
-                      label={plan.isActive ? t('common.active') : t('common.inactive')}
-                      tone={plan.isActive ? 'success' : 'warning'}
+                      label={plan.is_active ? t('common.active') : t('common.inactive')}
+                      tone={plan.is_active ? 'success' : 'warning'}
                     />
                   </div>
                 </div>

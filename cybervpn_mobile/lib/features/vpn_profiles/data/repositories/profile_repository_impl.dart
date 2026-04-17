@@ -14,6 +14,7 @@ import 'package:cybervpn_mobile/features/vpn_profiles/data/security/encrypted_fi
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/repositories/profile_repository.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/services/subscription_policy_runtime.dart';
 
 /// Concrete implementation of [ProfileRepository].
 ///
@@ -24,13 +25,19 @@ class ProfileRepositoryImpl implements ProfileRepository {
     required ProfileLocalDataSource localDataSource,
     required SubscriptionFetcher subscriptionFetcher,
     required EncryptedFieldService encryptedField,
+    required SubscriptionPolicyRuntime policyRuntime,
+    required Future<SubscriptionPolicyState> Function() resolvePolicy,
   }) : _localDs = localDataSource,
        _fetcher = subscriptionFetcher,
-       _encField = encryptedField;
+       _encField = encryptedField,
+       _policyRuntime = policyRuntime,
+       _resolvePolicy = resolvePolicy;
 
   final ProfileLocalDataSource _localDs;
   final SubscriptionFetcher _fetcher;
   final EncryptedFieldService _encField;
+  final SubscriptionPolicyRuntime _policyRuntime;
+  final Future<SubscriptionPolicyState> Function() _resolvePolicy;
 
   // ── Reactive Streams ──────────────────────────────────────────────
 
@@ -126,6 +133,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
         expiresAt: Value(fetchResult.info.expiresAt),
         updateIntervalMinutes: Value(fetchResult.info.updateIntervalMinutes),
         supportUrl: Value(fetchResult.info.supportUrl),
+        testUrl: Value(fetchResult.info.testUrl),
       );
 
       await _localDs.insert(profileCompanion);
@@ -242,7 +250,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
         );
       }
 
-      final fetchResult = await _fetcher.fetch(decryptedUrl);
+      final existingServers = (await getById(profileId)).dataOrNull?.servers ??
+          const <ProfileServer>[];
+      final fetchResult = await _fetcher.fetch(
+        decryptedUrl,
+        existingServers: existingServers,
+      );
       final now = DateTime.now();
 
       // Update profile metadata.
@@ -256,6 +269,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
           expiresAt: Value(fetchResult.info.expiresAt),
           updateIntervalMinutes: Value(fetchResult.info.updateIntervalMinutes),
           supportUrl: Value(fetchResult.info.supportUrl),
+          testUrl: Value(fetchResult.info.testUrl),
         ),
       );
 
@@ -300,6 +314,49 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<Result<void>> updateProfileServerLatencies(
+    String profileId,
+    Map<String, int?> latenciesByServerId,
+  ) async {
+    try {
+      final profile = await _localDs.getById(profileId);
+      if (profile == null) {
+        return const Failure(CacheFailure(message: 'Profile not found'));
+      }
+      if (profile.type != ProfileType.remote) {
+        return const Failure(
+          ValidationFailure(message: 'Only remote profiles support ping cache'),
+        );
+      }
+
+      final configRows = await _localDs.getConfigsByProfileId(profileId);
+      final policy = await _resolvePolicy();
+      final updatedServers = configRows
+          .map(ProfileMapper.configToDomain)
+          .map(
+            (server) => server.copyWith(
+              latencyMs: latenciesByServerId[server.id] ?? server.latencyMs,
+            ),
+          )
+          .toList(growable: false);
+      final reorderedServers = _policyRuntime.sortExistingServers(
+        updatedServers,
+        policy,
+      );
+      final companions = reorderedServers
+          .map(ProfileMapper.serverToCompanion)
+          .toList(growable: false);
+
+      await _localDs.replaceConfigs(profileId, companions);
+      return const Success(null);
+    } catch (e) {
+      return Failure(
+        CacheFailure(message: 'Failed to update server latencies: $e'),
+      );
+    }
+  }
+
+  @override
   Future<Result<void>> delete(String profileId) async {
     try {
       await _localDs.delete(profileId);
@@ -326,19 +383,21 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<Result<int>> updateAllDueSubscriptions() async {
     try {
+      final policy = await _resolvePolicy();
+      if (!policy.autoUpdateEnabled) {
+        return const Success(0);
+      }
+
       // This is called from watchAll, so we need a snapshot.
       final profiles = await (_localDs.watchAll().first);
-      final now = DateTime.now();
       var updatedCount = 0;
 
       for (final profile in profiles) {
         if (profile.type != ProfileType.remote) continue;
-        if (profile.lastUpdatedAt == null) continue;
-
-        final elapsed = now.difference(profile.lastUpdatedAt!);
-        final interval = Duration(minutes: profile.updateIntervalMinutes);
-
-        if (elapsed >= interval) {
+        if (_policyRuntime.isRefreshDue(
+          lastUpdated: profile.lastUpdatedAt,
+          policy: policy,
+        )) {
           final result = await updateSubscription(profile.id);
           if (result.isSuccess) updatedCount++;
         }

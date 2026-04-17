@@ -7,6 +7,7 @@ import {
 } from '@/shared/lib/structured-data';
 import { Footer } from '@/widgets/footer';
 import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
+import { getPublicPricingCatalog } from '@/widgets/pricing/catalog';
 import { PricingDashboard } from '@/widgets/pricing/pricing-dashboard';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
@@ -31,6 +32,7 @@ export async function generateMetadata({
 export default async function PricingPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Pricing' });
+    const catalog = await getPublicPricingCatalog();
     const pageTitle = t('title');
     const appStructuredData = buildSoftwareApplicationStructuredData({
         locale,
@@ -39,31 +41,18 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         description: t('subtitle'),
         applicationCategory: 'SecurityApplication',
         operatingSystems: ['Telegram Bot', 'iOS', 'Android', 'Windows', 'macOS', 'Linux'],
-        featureList: [
-            t('tiers.basic.description'),
-            t('tiers.pro.description'),
-            t('tiers.elite.description'),
-        ],
-        offers: [
-            {
-                name: t('tiers.basic.name'),
-                description: t('tiers.basic.description'),
-                price: '0',
+        featureList: catalog.plans.map((plan) => t(`tiers.${plan.code}.description`)),
+        offers: catalog.plans.map((plan) => {
+            const lowestPrice = Math.min(...plan.periods.map((period) => period.price_usd));
+
+            return {
+                name: plan.display_name,
+                description: t(`tiers.${plan.code}.description`),
+                price: String(lowestPrice),
+                priceCurrency: 'USD',
                 url: '/pricing',
-            },
-            {
-                name: t('tiers.pro.name'),
-                description: t('tiers.pro.description'),
-                price: '8.99',
-                url: '/pricing',
-            },
-            {
-                name: t('tiers.elite.name'),
-                description: t('tiers.elite.description'),
-                price: '15.99',
-                url: '/pricing',
-            },
-        ],
+            };
+        }),
     });
     const breadcrumbStructuredData = buildBreadcrumbListStructuredData({
         locale,
@@ -79,7 +68,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
                 <PublicTerminalHeader locale={locale} />
                 
                 <main className="flex-1 relative w-full h-full flex flex-col">
-                    <PricingDashboard />
+                    <PricingDashboard catalog={catalog} />
                 </main>
 
                 <div className="relative z-20 bg-background/80 backdrop-blur-md border-t border-white/5">

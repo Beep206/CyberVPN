@@ -119,7 +119,7 @@ export function TrialSection() {
               <p className="text-sm text-muted-foreground mb-3">
                 {isExpiringSoon
                   ? 'Your trial is expiring soon. Choose a plan to continue access.'
-                  : 'Enjoy full access to all premium features during your trial period.'}
+                  : 'Your trial keeps the core CyberVPN layer active with 1 device on the shared pool.'}
               </p>
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
@@ -154,16 +154,15 @@ export function TrialSection() {
                 Try CyberVPN Free for 7 Days
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Get full access to all premium features with no payment required. Cancel anytime.
+                Start with 1 device, shared pool access, and the standard connection path. No payment required.
               </p>
 
-              {/* Features List */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                 {[
-                  'Unlimited bandwidth',
-                  'All server locations',
-                  'Multi-device support',
-                  'Premium protocols',
+                  '1 device included',
+                  'Shared server pool',
+                  'Standard connection mode',
+                  'No add-ons or dedicated IP',
                 ].map((feature, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CheckCircle className="h-3 w-3 text-matrix-green" />

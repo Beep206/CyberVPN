@@ -10,7 +10,8 @@ import pytest
 import respx
 from aiogram.types import Message, User
 
-from src.handlers.start import _get_start_payload, start_handler
+from src.handlers.start import _get_start_payload, _parse_subscription_offer_payload, start_handler
+from src.utils.deep_links import encode_deep_link
 
 if TYPE_CHECKING:
     from src.config import BotSettings
@@ -168,6 +169,122 @@ class TestStartHandler:
 
         # Should be None for invalid format
         assert referrer_id is None
+
+    async def test_parse_subscription_offer_payload(self) -> None:
+        """Signed deep links for hidden plans must decode into explicit offers."""
+        encoded = encode_deep_link({"type": "subscribe", "plan": "start_plan_uuid", "days": 90})
+
+        payload = _parse_subscription_offer_payload(encoded)
+
+        assert payload == {"plan_id": "start_plan_uuid", "duration_days": 90}
+
+    async def test_start_with_subscription_offer_opens_direct_plan_flow(self, mock_simple_api_client) -> None:
+        """Encoded subscribe deep links should open a scoped duration selector."""
+        telegram_user = User(
+            id=515151,
+            is_bot=False,
+            first_name="Bob",
+            username="bob",
+            language_code="en",
+        )
+
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = encode_deep_link({"type": "subscribe", "plan": "plan-hidden-uuid", "days": 180})
+
+        i18n = MagicMock()
+        i18n.side_effect = lambda key, **kwargs: key
+        i18n.get.side_effect = lambda key, **kwargs: key
+
+        state = MagicMock()
+        state.clear = AsyncMock()
+        state.update_data = AsyncMock()
+        state.set_state = AsyncMock()
+
+        mock_simple_api_client.get_plan = AsyncMock(
+            return_value={
+                "uuid": "plan-hidden-uuid",
+                "plan_code": "start",
+                "display_name": "Start",
+                "catalog_visibility": "hidden",
+                "duration_days": 30,
+                "price_usd": 4.99,
+                "devices_included": 1,
+                "sale_channels": ["telegram_bot", "admin"],
+                "is_active": True,
+                "sort_order": 5,
+            }
+        )
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            state=state,
+            user={"status": "none"},
+        )
+
+        mock_simple_api_client.get_plan.assert_awaited_once_with("plan-hidden-uuid")
+        state.set_state.assert_awaited()
+        assert message.answer.await_count == 2
+
+    async def test_start_with_unavailable_subscription_offer_shows_warning(self, mock_simple_api_client) -> None:
+        """Hidden offers disabled for Telegram must not open the purchase flow."""
+        telegram_user = User(
+            id=616161,
+            is_bot=False,
+            first_name="Eve",
+            username="eve",
+            language_code="en",
+        )
+
+        message = MagicMock(spec=Message)
+        message.from_user = telegram_user
+        message.answer = AsyncMock()
+
+        command = MagicMock()
+        command.args = encode_deep_link({"type": "subscribe", "plan": "plan-web-only"})
+
+        i18n = MagicMock()
+        i18n.side_effect = lambda key, **kwargs: key
+        i18n.get.side_effect = lambda key, **kwargs: key
+
+        state = MagicMock()
+        state.clear = AsyncMock()
+        state.update_data = AsyncMock()
+        state.set_state = AsyncMock()
+
+        mock_simple_api_client.get_plan = AsyncMock(
+            return_value={
+                "uuid": "plan-web-only",
+                "plan_code": "test",
+                "display_name": "Test",
+                "catalog_visibility": "hidden",
+                "duration_days": 30,
+                "price_usd": 9.99,
+                "devices_included": 15,
+                "sale_channels": ["web"],
+                "is_active": True,
+                "sort_order": 90,
+            }
+        )
+
+        await start_handler(
+            message=message,
+            command=command,
+            i18n=i18n,
+            api_client=mock_simple_api_client,
+            state=state,
+            user={"status": "none"},
+        )
+
+        state.set_state.assert_not_awaited()
+        last_answer_text = message.answer.await_args_list[-1].args[0]
+        assert last_answer_text == "subscription-hidden-plan-unavailable"
 
     async def test_start_sends_welcome_message(self) -> None:
         """Test that /start sends welcome message."""

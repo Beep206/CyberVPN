@@ -14,10 +14,12 @@ from src.infrastructure.database.models.oauth_account_model import OAuthAccount
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
 from src.infrastructure.database.models.partner_model import PartnerCodeModel, PartnerEarningModel
 from src.infrastructure.database.models.payment_model import PaymentModel
+from src.infrastructure.database.models.plan_addon_model import PlanAddonModel, SubscriptionAddonModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel, PromoCodeUsageModel
 from src.infrastructure.database.models.referral_commission_model import ReferralCommissionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.models.server_geolocation_model import ServerGeolocation
+from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.models.system_config_model import SystemConfigModel
 from src.infrastructure.database.models.wallet_model import WalletModel, WalletTransactionModel
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
@@ -37,11 +39,14 @@ __all__ = [
     "PartnerCodeModel",
     "PartnerEarningModel",
     "PaymentModel",
+    "PlanAddonModel",
     "PromoCodeModel",
     "PromoCodeUsageModel",
     "ReferralCommissionModel",
     "RefreshToken",
     "ServerGeolocation",
+    "SubscriptionAddonModel",
+    "SubscriptionPlanModel",
     "SystemConfigModel",
     "WalletModel",
     "WalletTransactionModel",

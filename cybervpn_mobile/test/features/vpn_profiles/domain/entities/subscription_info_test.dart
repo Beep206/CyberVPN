@@ -13,6 +13,7 @@ void main() {
       expect(info.expiresAt, isNull);
       expect(info.updateIntervalMinutes, 60);
       expect(info.supportUrl, isNull);
+      expect(info.testUrl, isNull);
     });
 
     test('creates with all fields', () {
@@ -25,6 +26,7 @@ void main() {
         expiresAt: expires,
         updateIntervalMinutes: 120,
         supportUrl: 'https://support.example.com',
+        testUrl: 'https://provider.example.com',
       );
 
       expect(info.title, 'Premium Plan');
@@ -34,6 +36,7 @@ void main() {
       expect(info.expiresAt, expires);
       expect(info.updateIntervalMinutes, 120);
       expect(info.supportUrl, 'https://support.example.com');
+      expect(info.testUrl, 'https://provider.example.com');
     });
 
     test('copyWith preserves unchanged fields', () {

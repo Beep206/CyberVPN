@@ -17,9 +17,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import logging
 import sys
+import types
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -27,8 +29,14 @@ from pathlib import Path
 # of the current working directory.
 # ---------------------------------------------------------------------------
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
+_SRC_ROOT = _BACKEND_ROOT / "src"
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
+if "src" not in sys.modules:
+    src_package = types.ModuleType("src")
+    src_package.__file__ = str(_SRC_ROOT / "__init__.py")
+    src_package.__path__ = [str(_SRC_ROOT)]
+    sys.modules["src"] = src_package
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("export_openapi")
@@ -40,6 +48,11 @@ def get_openapi_spec() -> dict:
     """Import the FastAPI app and return its OpenAPI schema dict."""
     try:
         from src.main import app
+    except ModuleNotFoundError:
+        importlib.invalidate_caches()
+        sys.modules.pop("src", None)
+        app_module = importlib.import_module("src.main")
+        app = app_module.app
     except Exception as exc:
         logger.error("Failed to import the FastAPI app: %s", exc)
         raise SystemExit(1) from exc

@@ -1,18 +1,29 @@
+from dataclasses import asdict
 from datetime import UTC, datetime
+from decimal import Decimal
+from uuid import UUID
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.cache_service import CacheService
+from src.application.use_cases.payments.checkout import CheckoutAddonInput
+from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
 from src.application.use_cases.subscriptions import (
     CancelSubscriptionUseCase,
     GenerateConfigUseCase,
     GetActiveSubscriptionUseCase,
+    GetCurrentEntitlementsUseCase,
+    PurchaseAddonsUseCase,
+    UpgradeSubscriptionUseCase,
 )
 from src.domain.enums import AdminRole
+from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.monitoring.instrumentation.routes import track_subscription_activation
+from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import (
     RemnawaveSubscriptionConfigResponse,
@@ -21,17 +32,235 @@ from src.infrastructure.remnawave.contracts import (
 )
 from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient, RemnawaveSubscriptionClient
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.api.v1.payments.schemas import (
+    CheckoutAddonResponse,
+    CheckoutCommitResponse,
+    CheckoutQuoteResponse,
+    EntitlementsSnapshotResponse,
+    InvoiceResponse,
+)
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
+from src.presentation.dependencies.auth import get_current_mobile_user_id
+from src.presentation.dependencies.database import get_db
+from src.presentation.dependencies.services import get_crypto_client
 
 from .schemas import (
     ActiveSubscriptionResponse,
     CancelSubscriptionResponse,
     CreateSubscriptionTemplateRequest,
+    CurrentEntitlementsResponse,
+    PurchaseSubscriptionAddonsRequest,
     SubscriptionTemplateListResponse,
     UpdateSubscriptionTemplateRequest,
+    UpgradeSubscriptionRequest,
 )
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
+
+
+def _serialize_subscription_quote(result) -> CheckoutQuoteResponse:
+    return CheckoutQuoteResponse(
+        base_price=float(result.base_price),
+        addon_amount=float(result.addon_amount),
+        displayed_price=float(result.displayed_price),
+        discount_amount=float(result.discount_amount),
+        wallet_amount=float(result.wallet_amount),
+        gateway_amount=float(result.gateway_amount),
+        partner_markup=float(result.partner_markup),
+        is_zero_gateway=result.is_zero_gateway,
+        plan_id=result.plan_id,
+        promo_code_id=result.promo_code_id,
+        partner_code_id=result.partner_code_id,
+        addons=[
+            CheckoutAddonResponse(
+                addon_id=line.addon_id,
+                code=line.code,
+                display_name=line.display_name,
+                qty=line.qty,
+                unit_price=float(line.unit_price),
+                total_price=float(line.total_price),
+                location_code=line.location_code,
+            )
+            for line in result.addons
+        ],
+        entitlements_snapshot=EntitlementsSnapshotResponse.model_validate(result.entitlements_snapshot),
+    )
+
+
+@router.get(
+    "/current/entitlements",
+    response_model=CurrentEntitlementsResponse,
+    summary="Get current effective entitlements",
+    description="Return the canonical pricing entitlement snapshot for the authenticated mobile user.",
+)
+async def get_current_entitlements(
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> CurrentEntitlementsResponse:
+    use_case = GetCurrentEntitlementsUseCase(db)
+    snapshot = await use_case.execute(user_id)
+    return CurrentEntitlementsResponse(**snapshot)
+
+
+@router.post("/current/upgrade/quote", response_model=CheckoutQuoteResponse)
+async def quote_subscription_upgrade(
+    body: UpgradeSubscriptionRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> CheckoutQuoteResponse:
+    use_case = UpgradeSubscriptionUseCase(db)
+    try:
+        result = await use_case.execute(
+            user_id=user_id,
+            target_plan_id=body.target_plan_id,
+            promo_code=body.promo_code,
+            use_wallet=Decimal(str(body.use_wallet)),
+            sale_channel=body.channel,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+    return _serialize_subscription_quote(result)
+
+
+@router.post("/current/upgrade", response_model=CheckoutCommitResponse)
+async def commit_subscription_upgrade(
+    body: UpgradeSubscriptionRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+    crypto_client: CryptoBotClient = Depends(get_crypto_client),
+) -> CheckoutCommitResponse:
+    use_case = UpgradeSubscriptionUseCase(db)
+    try:
+        result = await use_case.execute(
+            user_id=user_id,
+            target_plan_id=body.target_plan_id,
+            promo_code=body.promo_code,
+            use_wallet=Decimal(str(body.use_wallet)),
+            sale_channel=body.channel,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+    quote = _serialize_subscription_quote(result)
+    commit_use_case = CommitCheckoutUseCase(db, crypto_client)
+    try:
+        commit_result = await commit_use_case.execute(
+            user_id=user_id,
+            quote_result=result,
+            currency=body.currency,
+            channel=body.channel,
+            description=f"CyberVPN upgrade to {result.plan_name or 'plan'}",
+            payload=f"{user_id}:{body.target_plan_id}:upgrade",
+            checkout_mode="upgrade",
+            payment_plan_id=result.plan_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Upgrade processing failed",
+        ) from None
+
+    invoice = InvoiceResponse(**asdict(commit_result.invoice)) if commit_result.invoice is not None else None
+    return CheckoutCommitResponse(
+        **quote.model_dump(),
+        payment_id=commit_result.payment.id,
+        status=commit_result.status,
+        invoice=invoice,
+    )
+
+
+@router.post("/current/addons/quote", response_model=CheckoutQuoteResponse)
+async def quote_subscription_addons(
+    body: PurchaseSubscriptionAddonsRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> CheckoutQuoteResponse:
+    use_case = PurchaseAddonsUseCase(db)
+    try:
+        result = await use_case.execute(
+            user_id=user_id,
+            addons=[
+                CheckoutAddonInput(
+                    code=addon.code,
+                    qty=addon.qty,
+                    location_code=addon.location_code,
+                )
+                for addon in body.addons
+            ],
+            promo_code=body.promo_code,
+            use_wallet=Decimal(str(body.use_wallet)),
+            sale_channel=body.channel,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+    return _serialize_subscription_quote(result)
+
+
+@router.post("/current/addons", response_model=CheckoutCommitResponse)
+async def purchase_subscription_addons(
+    body: PurchaseSubscriptionAddonsRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+    crypto_client: CryptoBotClient = Depends(get_crypto_client),
+) -> CheckoutCommitResponse:
+    use_case = PurchaseAddonsUseCase(db)
+    try:
+        result = await use_case.execute(
+            user_id=user_id,
+            addons=[
+                CheckoutAddonInput(
+                    code=addon.code,
+                    qty=addon.qty,
+                    location_code=addon.location_code,
+                )
+                for addon in body.addons
+            ],
+            promo_code=body.promo_code,
+            use_wallet=Decimal(str(body.use_wallet)),
+            sale_channel=body.channel,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+    quote = _serialize_subscription_quote(result)
+    commit_use_case = CommitCheckoutUseCase(db, crypto_client)
+    try:
+        commit_result = await commit_use_case.execute(
+            user_id=user_id,
+            quote_result=result,
+            currency=body.currency,
+            channel=body.channel,
+            description=f"CyberVPN add-ons for {result.plan_name or 'plan'}",
+            payload=f"{user_id}:{result.plan_id}:addons",
+            checkout_mode="addon_only",
+            payment_plan_id=None,
+            use_quote_plan_id_for_payment=False,
+            subscription_days_override=result.duration_days,
+            metadata_extra={"base_plan_id": str(result.plan_id) if result.plan_id else None},
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Add-on purchase processing failed",
+        ) from None
+
+    invoice = InvoiceResponse(**asdict(commit_result.invoice)) if commit_result.invoice is not None else None
+    return CheckoutCommitResponse(
+        **quote.model_dump(),
+        payment_id=commit_result.payment.id,
+        status=commit_result.status,
+        invoice=invoice,
+    )
 
 
 @router.get("/", response_model=SubscriptionTemplateListResponse)

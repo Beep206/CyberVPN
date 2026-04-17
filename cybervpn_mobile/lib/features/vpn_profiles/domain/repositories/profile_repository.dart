@@ -39,6 +39,12 @@ abstract class ProfileRepository {
   /// updates its server list and metadata.
   Future<Result<void>> updateSubscription(String profileId);
 
+  /// Persists measured server latencies and re-applies subscription sorting.
+  Future<Result<void>> updateProfileServerLatencies(
+    String profileId,
+    Map<String, int?> latenciesByServerId,
+  );
+
   /// Deletes the profile with [profileId] and all associated servers.
   Future<Result<void>> delete(String profileId);
 

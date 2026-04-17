@@ -99,7 +99,9 @@ trial-offer = 🎁 <b>Free Trial!</b>
        *[other] { $days } days
     }!
 
-    📊 Traffic limit: { $traffic_gb } GB
+    📱 1 device
+    🌐 Shared servers only
+    📊 Unlimited traffic with fair use
 
 trial-activated = ✅ <b>Trial Activated!</b>
 
@@ -120,12 +122,24 @@ trial-already-used = ℹ️ You've already used your free trial.
 
 trial-unavailable = ⚠️ Free trial is temporarily unavailable.
 
+subscription-hidden-plan-unavailable = ⚠️ This offer is unavailable right now.
+
 # ── Subscription and Plans ───────────────────────────────────────────────
 subscription-select-plan = 💳 <b>Choose a plan</b>
 
     You can change it later.
 
 subscription-select-duration = ⏰ <b>Select duration</b>
+
+subscription-direct-offer = 🔓 <b>Special offer: { $plan }</b>
+
+    This plan is available only through a direct offer.
+    Choose the period to continue.
+
+subscription-direct-offer-duration = Requested period: { $duration_days ->
+        [one] { $duration_days } day
+       *[other] { $duration_days } days
+    }
 
 subscription-select-payment = 💰 <b>Select payment method</b>
 

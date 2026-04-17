@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -89,6 +90,43 @@ class ActiveSubscriptionResponse(BaseModel):
     traffic_limit_bytes: int | None = Field(None, description="Traffic limit in bytes")
     used_traffic_bytes: int | None = Field(None, description="Used traffic in bytes")
     auto_renew: bool = Field(False, description="Whether subscription auto-renews")
+
+
+class CurrentEntitlementsResponse(BaseModel):
+    """Canonical effective entitlement snapshot."""
+
+    status: str
+    plan_uuid: str | None = None
+    plan_code: str | None = None
+    display_name: str | None = None
+    period_days: int | None = None
+    expires_at: str | None = None
+    effective_entitlements: dict[str, Any]
+    invite_bundle: dict[str, int]
+    is_trial: bool
+    addons: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class UpgradeSubscriptionRequest(BaseModel):
+    target_plan_id: UUID = Field(..., description="Target subscription plan UUID")
+    promo_code: str | None = Field(None, max_length=50)
+    use_wallet: float = Field(0, ge=0)
+    currency: str = Field("USD", min_length=3, max_length=12)
+    channel: str = Field("web", min_length=1, max_length=30)
+
+
+class SubscriptionAddonItemRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=50)
+    qty: int = Field(default=1, ge=1, le=100)
+    location_code: str | None = Field(None, min_length=2, max_length=64)
+
+
+class PurchaseSubscriptionAddonsRequest(BaseModel):
+    addons: list[SubscriptionAddonItemRequest] = Field(..., min_length=1)
+    promo_code: str | None = Field(None, max_length=50)
+    use_wallet: float = Field(0, ge=0)
+    currency: str = Field("USD", min_length=3, max_length=12)
+    channel: str = Field("web", min_length=1, max_length=30)
 
 
 class CancelSubscriptionResponse(BaseModel):

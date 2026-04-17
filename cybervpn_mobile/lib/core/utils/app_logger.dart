@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:developer' as developer;
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -19,6 +20,7 @@ class LogEntry {
     required this.level,
     required this.message,
     this.data,
+    this.category,
   });
 
   /// UTC timestamp of when the log was recorded.
@@ -32,6 +34,9 @@ class LogEntry {
 
   /// Optional structured data attached to the log entry.
   final Map<String, dynamic>? data;
+
+  /// Optional category attached to the log entry.
+  final String? category;
 
   /// Formats this entry as a single line for export.
   ///
@@ -50,8 +55,23 @@ class LogEntry {
         ..write(' ')
         ..write(data);
     }
+    if (category != null && category!.isNotEmpty) {
+      buf
+        ..write(' ')
+        ..write('{category: ')
+        ..write(category)
+        ..write('}');
+    }
     return buf.toString();
   }
+}
+
+/// Severity threshold used by [AppLogger].
+enum AppLogSeverity { debug, info, warning, error, none }
+
+/// Sink for hybrid persistent logging.
+abstract class AppLogPersistence {
+  Future<void> record(LogEntry entry, {String? category});
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +109,31 @@ class AppLogger {
   /// Whether Sentry breadcrumb recording is active.
   static bool get _sentryEnabled => EnvironmentConfig.sentryDsn.isNotEmpty;
 
+  /// Configurable severity threshold for runtime logging.
+  static AppLogSeverity _minimumLevel = AppLogSeverity.debug;
+
+  /// Optional persistent sink used for file-backed logging.
+  static AppLogPersistence? _persistence;
+
+  /// Current effective threshold for application logging.
+  static AppLogSeverity get minimumLevel => _minimumLevel;
+
+  /// Bind or replace the persistent sink used for file-backed logging.
+  static void bindPersistence(AppLogPersistence? persistence) {
+    _persistence = persistence;
+  }
+
+  /// Update the minimum severity accepted by the logger.
+  static void setMinimumLevel(AppLogSeverity level) {
+    _minimumLevel = level;
+  }
+
+  @visibleForTesting
+  static void resetConfiguration() {
+    _minimumLevel = AppLogSeverity.debug;
+    _persistence = null;
+  }
+
   // ── Public log methods ──────────────────────────────────────────────
 
   /// Logs a debug-level message.
@@ -101,6 +146,9 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    if (!_shouldLog(AppLogSeverity.debug)) {
+      return;
+    }
     final sanitizedMessage = _sanitizePii(message);
     final sanitizedData = _sanitizeData(data);
     final sanitizedError = error == null
@@ -113,7 +161,16 @@ class AppLogger {
       error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('debug', sanitizedMessage, data: sanitizedData);
+    final entry = _addToBuffer(
+      'debug',
+      sanitizedMessage,
+      data: sanitizedData,
+      category: category,
+    );
+    final persistence = _persistence;
+    if (persistence != null) {
+      unawaited(persistence.record(entry, category: category));
+    }
     _addBreadcrumb(
       sanitizedMessage,
       SentryLevel.debug,
@@ -133,6 +190,9 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    if (!_shouldLog(AppLogSeverity.info)) {
+      return;
+    }
     final sanitizedMessage = _sanitizePii(message);
     final sanitizedData = _sanitizeData(data);
     final sanitizedError = error == null
@@ -145,7 +205,16 @@ class AppLogger {
       error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('info', sanitizedMessage, data: sanitizedData);
+    final entry = _addToBuffer(
+      'info',
+      sanitizedMessage,
+      data: sanitizedData,
+      category: category,
+    );
+    final persistence = _persistence;
+    if (persistence != null) {
+      unawaited(persistence.record(entry, category: category));
+    }
     _addBreadcrumb(
       sanitizedMessage,
       SentryLevel.info,
@@ -165,6 +234,9 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    if (!_shouldLog(AppLogSeverity.warning)) {
+      return;
+    }
     final sanitizedMessage = _sanitizePii(message);
     final sanitizedData = _sanitizeData(data);
     final sanitizedError = error == null
@@ -177,7 +249,16 @@ class AppLogger {
       error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('warning', sanitizedMessage, data: sanitizedData);
+    final entry = _addToBuffer(
+      'warning',
+      sanitizedMessage,
+      data: sanitizedData,
+      category: category,
+    );
+    final persistence = _persistence;
+    if (persistence != null) {
+      unawaited(persistence.record(entry, category: category));
+    }
     _addBreadcrumb(
       sanitizedMessage,
       SentryLevel.warning,
@@ -197,6 +278,9 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
   }) {
+    if (!_shouldLog(AppLogSeverity.error)) {
+      return;
+    }
     final sanitizedMessage = _sanitizePii(message);
     final sanitizedData = _sanitizeData(data);
     final sanitizedError = error == null
@@ -209,7 +293,16 @@ class AppLogger {
       error: sanitizedError,
       stackTrace: stackTrace,
     );
-    _addToBuffer('error', sanitizedMessage, data: sanitizedData);
+    final entry = _addToBuffer(
+      'error',
+      sanitizedMessage,
+      data: sanitizedData,
+      category: category,
+    );
+    final persistence = _persistence;
+    if (persistence != null) {
+      unawaited(persistence.record(entry, category: category));
+    }
     _addBreadcrumb(
       sanitizedMessage,
       SentryLevel.error,
@@ -305,22 +398,31 @@ class AppLogger {
 
   /// Appends a [LogEntry] to the ring buffer, evicting the oldest entry
   /// when the buffer is at capacity.
-  static void _addToBuffer(
+  static LogEntry _addToBuffer(
     String level,
     String message, {
     Map<String, dynamic>? data,
+    String? category,
   }) {
     if (_ringBuffer.length >= maxBufferSize) {
       _ringBuffer.removeFirst();
     }
-    _ringBuffer.add(
-      LogEntry(
-        timestamp: DateTime.now().toUtc(),
-        level: level,
-        message: message,
-        data: data,
-      ),
+    final entry = LogEntry(
+      timestamp: DateTime.now().toUtc(),
+      level: level,
+      message: message,
+      data: data,
+      category: category,
     );
+    _ringBuffer.add(entry);
+    return entry;
+  }
+
+  static bool _shouldLog(AppLogSeverity severity) {
+    if (_minimumLevel == AppLogSeverity.none) {
+      return false;
+    }
+    return severity.index >= _minimumLevel.index;
   }
 
   /// Records a Sentry breadcrumb if Sentry is initialised.

@@ -113,6 +113,10 @@ dev_dependencies:
   # App Icon Generation
   flutter_launcher_icons: ^0.14.4
 
+dependency_overrides:
+  flutter_v2ray_plus:
+    path: ../packages/flutter_v2ray_plus
+
 flutter:
   generate: true
   uses-material-design: true

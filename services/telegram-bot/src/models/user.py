@@ -6,16 +6,21 @@ that match the Backend API responses.
 
 from __future__ import annotations
 
-from datetime import datetime
+import datetime as dt
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class UserStatus(StrEnum):
     """User account status enumeration."""
 
     ACTIVE = "active"
+    TRIAL = "trial"
     EXPIRED = "expired"
     LIMITED = "limited"
     DISABLED = "disabled"
@@ -47,7 +52,11 @@ class UserDTO(BaseModel):
     telegram_id: int = Field(..., description="Telegram user ID")
     username: str | None = Field(None, description="Telegram username")
     first_name: str | None = Field(None, description="User's first name")
-    language: str = Field(default="en", description="User's language preference")
+    language: str = Field(
+        default="en",
+        validation_alias=AliasChoices("language", "language_code"),
+        description="User's language preference",
+    )
     status: UserStatus = Field(default=UserStatus.NONE, description="User account status")
     is_admin: bool = Field(default=False, description="Admin privileges flag")
     personal_discount: float = Field(default=0.0, ge=0, le=100, description="Personal discount percentage")
@@ -82,7 +91,11 @@ class UserProfile(BaseModel):
     telegram_id: int = Field(..., description="Telegram user ID")
     username: str | None = Field(None, description="Telegram username")
     first_name: str | None = Field(None, description="User's first name")
-    language: str = Field(default="en", description="User's language preference")
+    language: str = Field(
+        default="en",
+        validation_alias=AliasChoices("language", "language_code"),
+        description="User's language preference",
+    )
     status: UserStatus = Field(default=UserStatus.NONE, description="User account status")
     is_admin: bool = Field(default=False, description="Admin privileges flag")
     personal_discount: float = Field(default=0.0, ge=0, le=100, description="Personal discount percentage")
@@ -101,3 +114,7 @@ class UserProfile(BaseModel):
     device_limit: int = Field(default=-1, ge=-1, description="Maximum allowed devices (-1 for unlimited)")
     subscription_status: UserStatus = Field(default=UserStatus.NONE, description="Subscription status")
     reset_strategy: str | None = Field(None, description="Traffic reset strategy")
+
+
+UserDTO.model_rebuild(_types_namespace={"datetime": dt.datetime, "UserStatus": UserStatus})
+UserProfile.model_rebuild(_types_namespace={"datetime": dt.datetime, "UserStatus": UserStatus})

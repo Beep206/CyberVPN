@@ -934,48 +934,92 @@
       "total": "total"
     },
     "plans": {
-      "activateTrial": "Activate 7-Day Trial",
+      "actions": {
+        "openPayment": "Open Payment",
+        "purchaseAddons": "Purchase Add-ons",
+        "upgradeNow": "Upgrade Now"
+      },
+      "activateTrial": "Activate Trial",
       "activating": "Activating...",
+      "addonsDescription": "Extra devices and Dedicated IP stay separate from the main tier ladder. That keeps the catalog short and the quote logic predictable.",
+      "addonsTitle": "Add-ons",
+      "addonsUpgradeLocked": "Upgrade first, then attach add-ons. The current API treats upgrade and add-on purchase as two clean operations.",
+      "addonUnavailable": "This add-on is not available on the selected plan.",
       "apply": "Apply",
-      "availablePlans": "Subscription Plans",
-      "contactForPrice": "Contact",
-      "days": "days",
-      "daysCount": "{count} days",
-      "discountApplied": "Discount applied: ${amount}",
-      "free": "Free",
-      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
-      "freeTrialTitle": "Try CyberVPN Free",
+      "availablePlans": "Choose Your Plan",
+      "catalogHint": "Public catalog only: Basic, Plus, Pro, Max. Hidden plans stay hidden unless the backend exposes them intentionally.",
+      "currentPlanExpiry": "Expires at: {date}",
+      "currentPlanNoExpiry": "No expiry date available",
+      "currentPlanSelected": "You already have this plan. Add extras or switch to another term to continue.",
+      "currentPlanTitle": "Current entitlements",
+      "dedicatedIpLocationHint": "Dedicated IP requires a location code. Keep it short and predictable so support and backend can match it cleanly.",
+      "dedicatedIpLocationPlaceholder": "Location code, for example us-ny",
+      "dedicatedIpLocationRequired": "Add a location code for Dedicated IP before requesting a quote.",
+      "dedicatedIpPrice": "Price: {price}",
+      "dedicatedIpTitle": "Dedicated IP",
+      "extraDeviceLimit": "Available up to +{count} devices on the selected plan.",
+      "extraDevicePrice": "Price: {price}",
+      "extraDeviceTitle": "+1 Device",
+      "flow": {
+        "addons": "Add-ons",
+        "checkout": "New purchase",
+        "current": "Current plan",
+        "none": "Idle",
+        "upgrade": "Upgrade"
+      },
+      "freeTrialDescription": "One device, shared pool only, no dedicated IP, no premium nodes. Clean enough to evaluate the product without breaking anti-fraud economics.",
+      "freeTrialTitle": "7-Day Trial",
       "haveInviteCode": "Have an Invite Code?",
       "havePromoCode": "Have a Promo Code?",
-      "inviteCodeNote": "Earn rewards by redeeming invite codes from friends",
+      "inviteCodeNote": "Invite redemption stays separate from the paid checkout flow.",
       "inviteCodePlaceholder": "INVITE123",
       "inviteInvalid": "Invalid or already used invite code",
-      "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
-      "monthly": "per month",
+      "inviteRedeemed": "Invite code redeemed. Reward: {reward}",
+      "inviteRewardDays": "{count} free days",
+      "inviteRewardDefault": "bonus unlocked",
       "noPlans": "No plans available at the moment",
-      "oneDay": "1 day",
-      "oneMonth": "1 month",
-      "oneWeek": "1 week",
-      "oneYear": "1 year",
       "paymentCancelled": "Payment was cancelled.",
       "paymentError": "Payment failed. Please try again.",
       "paymentFailed": "Payment failed. Please try again.",
-      "paymentSuccess": "Payment successful! Your subscription is now active.",
-      "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+      "paymentPending": "Payment was created and is awaiting confirmation.",
+      "paymentSuccess": "Payment successful. Your entitlements are now active.",
+      "periodInviteBonus": "{count} invites · {days} friend days",
+      "periods": {
+        "annual": "365 days",
+        "custom": "{days} days",
+        "monthly": "30 days",
+        "quarterly": "90 days",
+        "semiAnnual": "180 days"
+      },
+      "periodSelectorTitle": "Choose period",
+      "planDevices": "{count} devices",
       "processing": "Processing...",
-      "promoCodePlaceholder": "PROMO2024",
-      "promoInvalid": "Invalid or expired promo code",
-      "promoValid": "Promo code applied! Discount: ${discount}",
-      "purchasePlan": "Purchase Plan",
-      "quarterly": "per quarter",
+      "promoApplied": "Promo applied: {code}",
+      "promoCodePlaceholder": "PROMO2026",
+      "purchaseCompleted": "The operation was completed successfully.",
+      "quote": {
+        "addonAmount": "Add-ons",
+        "basePrice": "Base plan",
+        "dedicatedIp": "Dedicated IP",
+        "devices": "Devices",
+        "discount": "Discount",
+        "entitlements": "Effective entitlements",
+        "gatewayAmount": "Gateway",
+        "modes": "Modes",
+        "none": "None",
+        "serverPool": "Server pool",
+        "total": "Total",
+        "traffic": "Traffic",
+        "walletAmount": "Wallet"
+      },
+      "quoteError": "Unable to calculate a quote with the current selections.",
+      "quoteSubtitle": "The snapshot below is the source of truth for what the user will receive after purchase.",
+      "quoteTitle": "Quote & entitlements",
       "redeem": "Redeem",
-      "selectPlanFirst": "Please select a plan first",
-      "sixMonths": "6 months",
-      "threeMonths": "3 months",
-      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+      "selectPlanToQuote": "Choose a plan and period to calculate the quote.",
+      "trialActivated": "Trial activated. You now have 7 days of entry access.",
       "trialError": "Failed to activate trial. Please try again.",
-      "unlimited": "Unlimited",
-      "yearly": "per year"
+      "trialLabel": "Trial"
     },
     "profile": {
       "accountDeleted": "Account deleted successfully",
@@ -1198,61 +1242,139 @@
     "title": "SYSTEM MODULE OFFLINE"
   },
   "Pricing": {
-    "faq": {
-      "a1": "Negative. We operate on a strict Zero-Log infrastructure. Your digital footprint is erased upon disconnection.",
-      "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
-      "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive.",
-      "q1": "Are my logs recorded?",
-      "q2": "What happens if I exceed the Stealth tier bandwidth?",
-      "q3": "Do you accept crypto?",
-      "title": "DECRYPTED ARCHIVES"
+    "addons": {
+      "dedicated_ip": {
+        "availability": "Available on every paid plan. Max includes 1 by default.",
+        "description": "One IP, one location, one predictable routing identity for services that dislike shared pools.",
+        "title": "Dedicated IP"
+      },
+      "extra_device": {
+        "availability": "Limits by plan: {limits}",
+        "description": "Extends device limit immediately and renews with the base subscription. Good product hygiene, no extra tariff cloning.",
+        "title": "+1 Device"
+      },
+      "priceLabel": "from {price}",
+      "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
+      "title": "Add-ons, Not Tariff Sprawl"
     },
-    "subtitle": "Network Power Allocation",
+    "faq": {
+      "items": [
+        {
+          "a": "Yes. Baseline VPN protection is not tiered away. Paid plans differ by seats, routing modes, server pool quality, dedicated IP access, and support.",
+          "q": "Are all paid plans full VPN plans?"
+        },
+        {
+          "a": "Because that is how the mainstream VPN market communicates consumer plans. Enforcement stays internal through fair-use rules and server policy instead of public hard caps.",
+          "q": "Why does the storefront say Unlimited / fair use?"
+        },
+        {
+          "a": "Invite bundles are a term-level bonus. Short terms can have none, while 180-day and 365-day plans can include invite codes with defined friend days and expiry windows.",
+          "q": "When do invite bundles appear?"
+        },
+        {
+          "a": "No. It is a premium option. You can buy it as an add-on on paid plans, and Max already includes one dedicated IP.",
+          "q": "Is Dedicated IP a separate plan?"
+        }
+      ],
+      "title": "Before You Choose"
+    },
+    "introPills": {
+      "addons": "2 add-ons",
+      "periods": "4 periods",
+      "plans": "4 plans"
+    },
+    "labels": {
+      "dedicatedIpAddon": "Dedicated IP as add-on",
+      "devices": "{count} devices",
+      "includedDedicatedIp": "{count} dedicated IP included",
+      "inviteBundle": "{count} invites · {days} friend days",
+      "inviteNone": "No invite bundle",
+      "monthlyEquivalent": "{price} / 30 days equivalent",
+      "perSelectedTerm": "per {days}-day term",
+      "unlimitedFairUse": "Unlimited / fair use"
+    },
+    "matrix": {
+      "rows": {
+        "capability": "Capability",
+        "dedicatedIp": "Dedicated IP",
+        "devices": "Devices",
+        "invites": "Invite bundle",
+        "modes": "Connection modes",
+        "serverPool": "Server access",
+        "support": "Support",
+        "traffic": "Traffic"
+      },
+      "subtitle": "Core VPN security stays on every paid plan. The difference is device count, routing surface, premium access, invite bundles, and support.",
+      "title": "What Actually Changes Between Plans"
+    },
+    "modeNames": {
+      "dedicated_ip": "Dedicated IP",
+      "experimental": "Experimental",
+      "manual_config": "Manual / Advanced",
+      "standard": "Standard",
+      "stealth": "Stealth"
+    },
+    "periods": {
+      "best": "Best value",
+      "helper": "Add-ons inherit the same subscription term, so you keep one clean checkout shape.",
+      "label": "Choose your billing term",
+      "options": {
+        "30": "30 days",
+        "90": "90 days",
+        "180": "180 days",
+        "365": "365 days"
+      },
+      "term": "Selectable term"
+    },
+    "poolNames": {
+      "exclusive": "Exclusive",
+      "premium": "Premium",
+      "premium_shared": "Premium Shared",
+      "shared": "Shared",
+      "shared_plus": "Shared+"
+    },
+    "subtitle": "4 plans, 4 terms, 2 add-ons. One full VPN baseline on every paid plan.",
+    "summary": {
+      "noInviteBonus": "No invite bundle on this term.",
+      "selectedTerm": "Selected term: {days} days"
+    },
+    "supportNames": {
+      "internal": "Internal",
+      "priority": "Priority support",
+      "standard": "Standard support",
+      "vip": "VIP support"
+    },
     "tiers": {
       "basic": {
-        "button": "INITIATE STEALTH",
-        "description": "Essential encryption for navigating the digital outer rims.",
-        "features": [
-          "AES-256 Core Encryption",
-          "5 Global Relay Nodes",
-          "10 GB/mc Bandwidth limit",
-          "Standard Support Ping"
-        ],
-        "name": "STEALTH",
-        "period": "/forever",
-        "price": "Free"
+        "audience": "One person, clean start",
+        "badge": "Starter",
+        "button": "Choose Basic",
+        "description": "A full VPN baseline for personal use with simple routing, no hard data cap messaging, and a healthier default than a single-device tariff.",
+        "eyebrow": "Entry plan"
       },
-      "elite": {
-        "button": "ACQUIRE ELITE",
-        "description": "Full network override. Dedicated IPs and total infrastructure control.",
-        "features": [
-          "Dedicated Cyber-IP Address",
-          "Obfuscated Stealth Protocols",
-          "Priority Node Selection",
-          "10Gbps Network Links",
-          "Access to Beta Directives"
-        ],
-        "name": "ELITE_SYNC",
-        "period": "/month",
-        "price": "$15.99"
+      "max": {
+        "audience": "Family or premium setup",
+        "badge": "Flagship",
+        "button": "Choose Max",
+        "description": "The premium top tier. More seats, stronger server access, and one included dedicated IP so the upsell is obvious instead of cosmetic.",
+        "eyebrow": "Flagship plan"
+      },
+      "plus": {
+        "audience": "Most users",
+        "badge": "Most Popular",
+        "button": "Choose Plus",
+        "description": "The mainline plan for phones, laptops, and normal multi-device life. Stealth mode lands here because it solves real networks, not niche edge cases.",
+        "eyebrow": "Mass market"
       },
       "pro": {
-        "badge": "MOST POPULAR",
-        "button": "UPGRADE TO PRO",
-        "description": "Unrestricted speed and matrix-level anonymity for true runners.",
-        "features": [
-          "Quantum-Resistant Protocols",
-          "8,000+ Tier-1 Relays",
-          "Unlimited Bandwidth",
-          "Zero-Log Hardened Cores",
-          "Double VPN Routing"
-        ],
-        "name": "CYBER_PRO",
-        "period": "/month",
-        "price": "$8.99"
+        "audience": "Travel, work, streaming",
+        "badge": "Best Balance",
+        "button": "Choose Pro",
+        "description": "Built for heavier use: stronger routing access, manual and advanced profiles, and a support posture that fits users who actually notice network quality.",
+        "eyebrow": "Power users"
       }
     },
-    "title": "ACCESS TIERS"
+    "title": "Pricing That Stays Clear"
   },
   "Privacy": {
     "description": "TOP SECRET. DECRYPTING PRIVACY POLICY...",

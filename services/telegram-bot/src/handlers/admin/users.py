@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.admin import AdminUserState
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -207,7 +207,7 @@ async def user_view_handler(
 
         # Get user subscriptions
         subscriptions = await api_client.get_user_subscriptions(user_id)
-        active_subs = [sub for sub in subscriptions if sub.get("status") == "active"]
+        active_subs = [sub for sub in subscriptions if sub.get("status") in {"active", "trial"}]
 
         user_text = i18n.get(
             "admin-user-details",

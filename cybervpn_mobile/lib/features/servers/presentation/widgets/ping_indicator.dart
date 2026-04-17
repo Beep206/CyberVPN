@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 
 /// Small chip displaying server latency with color-coded background.
 ///
@@ -48,10 +50,54 @@ class PingIndicator extends ConsumerWidget {
     return Colors.white;
   }
 
-  String _label(AppLocalizations l10n) {
-    if (isTesting) return '...';
-    if (latencyMs == null) return l10n.serverPingUnknown;
-    return l10n.serverPingMs(latencyMs!);
+  String _qualityLabel(int latencyMs) {
+    if (latencyMs < 100) return 'Fast';
+    if (latencyMs < 200) return 'Okay';
+    return 'Slow';
+  }
+
+  IconData _qualityIcon(int? latencyMs) {
+    if (latencyMs == null) return Icons.help_outline;
+    if (latencyMs < 100) return Icons.signal_cellular_alt;
+    if (latencyMs < 200) return Icons.network_cell;
+    return Icons.signal_cellular_connected_no_internet_4_bar;
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    AppLocalizations l10n,
+    PingResultMode resultMode,
+    Color fg,
+  ) {
+    if (isTesting) {
+      return _ShimmerDots(color: fg);
+    }
+
+    if (resultMode == PingResultMode.time) {
+      final label = latencyMs == null
+          ? l10n.serverPingUnknown
+          : l10n.serverPingMs(latencyMs!);
+      return Text(
+        label,
+        style: TextStyle(
+          color: fg,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+
+    final tooltip = latencyMs == null
+        ? l10n.serverPingUnknown
+        : _qualityLabel(latencyMs!);
+    return Tooltip(
+      message: tooltip,
+      child: Icon(
+        _qualityIcon(latencyMs),
+        size: 16,
+        color: fg,
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -61,14 +107,20 @@ class PingIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final resultMode = ref.watch(
+      settingsProvider.select(
+        (asyncSettings) =>
+            asyncSettings.value?.pingResultMode ?? PingResultMode.time,
+      ),
+    );
     final bg = _backgroundColor(context);
     final fg = _foregroundColor();
 
     final semanticLabel = isTesting
         ? l10n.a11yMeasuringLatency
         : latencyMs == null
-            ? l10n.a11yLatencyUnknown
-            : l10n.a11yLatencyMs(latencyMs!);
+        ? l10n.a11yLatencyUnknown
+        : '${l10n.a11yLatencyMs(latencyMs!)} (${_qualityLabel(latencyMs!)})';
 
     final chip = Semantics(
       label: semanticLabel,
@@ -86,16 +138,7 @@ class PingIndicator extends ConsumerWidget {
               color: bg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: isTesting
-                ? _ShimmerDots(color: fg)
-                : Text(
-                    _label(l10n),
-                    style: TextStyle(
-                      color: fg,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            child: _buildContent(context, l10n, resultMode, fg),
           ),
         ),
       ),

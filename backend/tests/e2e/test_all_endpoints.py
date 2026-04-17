@@ -26,7 +26,6 @@ from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.wallet_model import WalletModel
-from src.infrastructure.totp.totp_service import TOTPService
 
 ADMIN_PASSWORD = "FixtureAdminPassword123!"
 MOBILE_PASSWORD = "MobileFixturePassword123!"
@@ -527,13 +526,13 @@ class TestSecurityEndpoints:
 
 class TestTrialEndpoints:
     @pytest.mark.asyncio
-    async def test_activate_trial(self, async_client: AsyncClient, admin_headers: dict[str, str]):
-        response = await async_client.post("/api/v1/trial/activate", headers=admin_headers)
+    async def test_activate_trial(self, async_client: AsyncClient, mobile_headers: dict[str, str]):
+        response = await async_client.post("/api/v1/trial/activate", headers=mobile_headers)
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_trial_status(self, async_client: AsyncClient, admin_headers: dict[str, str]):
-        response = await async_client.get("/api/v1/trial/status", headers=admin_headers)
+    async def test_trial_status(self, async_client: AsyncClient, mobile_headers: dict[str, str]):
+        response = await async_client.get("/api/v1/trial/status", headers=mobile_headers)
         assert response.status_code == 200
 
 

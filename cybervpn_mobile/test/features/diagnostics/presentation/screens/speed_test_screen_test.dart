@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lottie/lottie.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/speed_test_screen.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speedometer_gauge.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/speed_test_results_card.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -42,6 +46,8 @@ class _FakeDiagnosticsNotifier extends AsyncNotifier<DiagnosticsState>
 
   final DiagnosticsState _state;
   bool runSpeedTestCalled = false;
+  PingMode? lastPingMode;
+  String? lastPingTestUrl;
 
   @override
   Future<DiagnosticsState> build() async => _state;
@@ -50,14 +56,16 @@ class _FakeDiagnosticsNotifier extends AsyncNotifier<DiagnosticsState>
   Future<void> runSpeedTest({
     bool vpnActive = false,
     String? serverName,
+    PingMode pingMode = PingMode.tcp,
+    String? pingTestUrl,
   }) async {
     runSpeedTestCalled = true;
+    lastPingMode = pingMode;
+    lastPingTestUrl = pingTestUrl;
   }
 
   @override
-  Future<void> runDiagnostics({
-    dynamic serverTarget,
-  }) async {}
+  Future<void> runDiagnostics({dynamic serverTarget}) async {}
 
   @override
   List<SpeedTestResult> getHistory() => _state.speedHistory;
@@ -84,22 +92,38 @@ void _ignoreOverflowErrors() {
 Widget _buildTestWidget({
   required DiagnosticsState state,
   _FakeDiagnosticsNotifier? notifier,
+  AppSettings settings = const AppSettings(),
 }) {
   final fakeNotifier = notifier ?? _FakeDiagnosticsNotifier(state);
+
+  final fakeSettingsNotifier = _FakeSettingsNotifier(settings);
 
   return ProviderScope(
     overrides: [
       // Override the async notifier itself
       diagnosticsProvider.overrideWith(() => fakeNotifier),
+      settingsProvider.overrideWith(() => fakeSettingsNotifier),
       // Override all derived providers so they don't depend on the async resolution
       speedTestProgressProvider.overrideWithValue(state.isRunningSpeedTest),
       latestSpeedTestProvider.overrideWithValue(state.speedTestResult),
       speedHistoryProvider.overrideWithValue(state.speedHistory),
     ],
     child: const MaterialApp(
+      locale: Locale('en'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: SpeedTestScreen(),
     ),
   );
+}
+
+class _FakeSettingsNotifier extends SettingsNotifier {
+  _FakeSettingsNotifier(this._settings);
+
+  final AppSettings _settings;
+
+  @override
+  Future<AppSettings> build() async => _settings;
 }
 
 // ---------------------------------------------------------------------------
@@ -113,8 +137,7 @@ void main() {
   const testSurfaceSize = Size(430, 932);
 
   group('SpeedTestScreen', () {
-    testWidgets('renders gauge and start button in idle state',
-        (tester) async {
+    testWidgets('renders gauge and start button in idle state', (tester) async {
       tester.view.physicalSize = testSurfaceSize;
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -125,12 +148,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SpeedometerGauge), findsOneWidget);
-      expect(find.text('Start Test'), findsOneWidget);
+      expect(find.text('Start Speed Test'), findsOneWidget);
       expect(find.text('No speed tests yet'), findsOneWidget);
+      expect(find.byKey(const Key('speed_test_ping_summary')), findsOneWidget);
     });
 
-    testWidgets('shows running indicator when test is in progress',
-        (tester) async {
+    testWidgets('shows running indicator when test is in progress', (
+      tester,
+    ) async {
       tester.view.physicalSize = testSurfaceSize;
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -146,11 +171,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Testing...'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(LottieBuilder), findsOneWidget);
     });
 
-    testWidgets('displays results card after test completion',
-        (tester) async {
+    testWidgets('displays results card after test completion', (tester) async {
       tester.view.physicalSize = testSurfaceSize;
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -199,17 +223,47 @@ void main() {
       final notifier = _FakeDiagnosticsNotifier(const DiagnosticsState());
 
       await tester.pumpWidget(
+        _buildTestWidget(state: const DiagnosticsState(), notifier: notifier),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Start Speed Test'));
+      await tester.pump();
+
+      expect(notifier.runSpeedTestCalled, isTrue);
+      expect(notifier.lastPingMode, PingMode.tcp);
+      expect(notifier.lastPingTestUrl, 'https://google.com/generate_204');
+    });
+
+    testWidgets('uses current ping preferences from settings', (tester) async {
+      tester.view.physicalSize = testSurfaceSize;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final notifier = _FakeDiagnosticsNotifier(const DiagnosticsState());
+
+      await tester.pumpWidget(
         _buildTestWidget(
           state: const DiagnosticsState(),
           notifier: notifier,
+          settings: const AppSettings(
+            pingMode: PingMode.realDelay,
+            pingTestUrl: 'https://example.com/generate_204',
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Start Test'));
+      expect(
+        find.textContaining('Latency mode: Via Proxy HEAD'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Start Speed Test'));
       await tester.pump();
 
-      expect(notifier.runSpeedTestCalled, isTrue);
+      expect(notifier.lastPingMode, PingMode.realDelay);
+      expect(notifier.lastPingTestUrl, 'https://example.com/generate_204');
     });
   });
 
@@ -219,9 +273,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: Center(
-                child: SpeedometerGauge(speed: speed, size: 200),
-              ),
+              body: Center(child: SpeedometerGauge(speed: speed, size: 200)),
             ),
           ),
         );
@@ -236,9 +288,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: Center(
-              child: SpeedometerGauge(speed: 50.0, size: 200),
-            ),
+            body: Center(child: SpeedometerGauge(speed: 50.0, size: 200)),
           ),
         ),
       );
@@ -290,6 +340,9 @@ void main() {
     testWidgets('displays all metric values', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: SingleChildScrollView(
               child: SpeedTestResultsCard(result: _testResult),
@@ -299,7 +352,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Speed Test Results'), findsOneWidget);
+      expect(find.text('Speed Test Result'), findsOneWidget);
       expect(find.text('85.3'), findsOneWidget);
       expect(find.text('42.1'), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
@@ -307,10 +360,14 @@ void main() {
       expect(find.text('VPN ON'), findsOneWidget);
     });
 
-    testWidgets('shows compare button when previous result exists',
-        (tester) async {
+    testWidgets('shows compare button when previous result exists', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: Scaffold(
             body: SingleChildScrollView(
               child: SpeedTestResultsCard(

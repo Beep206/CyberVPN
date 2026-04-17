@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cybervpn_mobile/app/theme/dynamic_colors.dart';
 import 'package:cybervpn_mobile/app/theme/theme_provider.dart';
 import 'package:cybervpn_mobile/app/router/app_router.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/core/l10n/locale_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/widgets/clipboard_import_button.dart';
 import 'package:cybervpn_mobile/core/startup/startup_providers.dart';
@@ -29,6 +30,7 @@ import 'package:cybervpn_mobile/features/auth/domain/services/app_lock_service.d
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/widgets/in_app_banner.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/providers/profile_update_notifier.dart';
 
 /// Convert [TextScale] enum to a double scale factor.
 double _textScaleToDouble(TextScale scale, double systemScale) {
@@ -38,6 +40,17 @@ double _textScaleToDouble(TextScale scale, double systemScale) {
     TextScale.normal => 1.0,
     TextScale.large => 1.15,
     TextScale.extraLarge => 1.3,
+  };
+}
+
+AppLogSeverity _logSeverityForSetting(LogLevel level) {
+  return switch (level) {
+    LogLevel.auto => AppLogSeverity.warning,
+    LogLevel.debug => AppLogSeverity.debug,
+    LogLevel.info => AppLogSeverity.info,
+    LogLevel.warning => AppLogSeverity.warning,
+    LogLevel.error => AppLogSeverity.error,
+    LogLevel.none => AppLogSeverity.none,
   };
 }
 
@@ -206,16 +219,40 @@ class _AppLifecycleManagerState extends ConsumerState<_AppLifecycleManager>
   /// Whether a force-disconnect dialog is currently being shown.
   /// Prevents stacking multiple dialogs if several events arrive in sequence.
   bool _isForceDisconnectDialogShowing = false;
+  ProviderSubscription<AsyncValue<AppSettings>>? _settingsSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final logFileStore = ref.read(logFileStoreProvider);
+    AppLogger.bindPersistence(logFileStore);
+    unawaited(logFileStore.initialize());
+    _settingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
+      settingsProvider,
+      (previous, next) {
+        final settings = next.asData?.value;
+        if (settings == null) {
+          return;
+        }
+        AppLogger.setMinimumLevel(_logSeverityForSetting(settings.logLevel));
+      },
+      fireImmediately: true,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        ref
+            .read(profileUpdateNotifierProvider.notifier)
+            .handleAppOpen(trigger: SubscriptionLifecycleTrigger.startup),
+      );
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _settingsSubscription?.close();
+    AppLogger.bindPersistence(null);
     super.dispose();
   }
 
@@ -267,6 +304,11 @@ class _AppLifecycleManagerState extends ConsumerState<_AppLifecycleManager>
       AppLogger.info(
         'App resumed from background, reconnecting WebSocket',
         category: 'lifecycle.websocket',
+      );
+      unawaited(
+        ref
+            .read(profileUpdateNotifierProvider.notifier)
+            .handleAppOpen(trigger: SubscriptionLifecycleTrigger.resume),
       );
       unawaited(
         client.connect().catchError((Object e, StackTrace st) {

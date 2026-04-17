@@ -1,57 +1,135 @@
 {
-  "title": "ACCESS TIERS",
-  "subtitle": "Network Power Allocation",
+  "title": "Pricing That Stays Clear",
+  "subtitle": "4 plans, 4 terms, 2 add-ons. One full VPN baseline on every paid plan.",
+  "introPills": {
+    "plans": "4 plans",
+    "periods": "4 periods",
+    "addons": "2 add-ons"
+  },
+  "periods": {
+    "label": "Choose your billing term",
+    "helper": "Add-ons inherit the same subscription term, so you keep one clean checkout shape.",
+    "best": "Best value",
+    "term": "Selectable term",
+    "options": {
+      "30": "30 days",
+      "90": "90 days",
+      "180": "180 days",
+      "365": "365 days"
+    }
+  },
+  "summary": {
+    "selectedTerm": "Selected term: {days} days",
+    "noInviteBonus": "No invite bundle on this term."
+  },
   "tiers": {
     "basic": {
-      "name": "STEALTH",
-      "price": "Free",
-      "period": "/forever",
-      "description": "Essential encryption for navigating the digital outer rims.",
-      "features": [
-        "AES-256 Core Encryption",
-        "5 Global Relay Nodes",
-        "10 GB/mc Bandwidth limit",
-        "Standard Support Ping"
-      ],
-      "button": "INITIATE STEALTH"
+      "eyebrow": "Entry plan",
+      "audience": "One person, clean start",
+      "description": "A full VPN baseline for personal use with simple routing, no hard data cap messaging, and a healthier default than a single-device tariff.",
+      "button": "Choose Basic",
+      "badge": "Starter"
+    },
+    "plus": {
+      "eyebrow": "Mass market",
+      "audience": "Most users",
+      "description": "The mainline plan for phones, laptops, and normal multi-device life. Stealth mode lands here because it solves real networks, not niche edge cases.",
+      "button": "Choose Plus",
+      "badge": "Most Popular"
     },
     "pro": {
-      "name": "CYBER_PRO",
-      "price": "$8.99",
-      "period": "/month",
-      "description": "Unrestricted speed and matrix-level anonymity for true runners.",
-      "features": [
-        "Quantum-Resistant Protocols",
-        "8,000+ Tier-1 Relays",
-        "Unlimited Bandwidth",
-        "Zero-Log Hardened Cores",
-        "Double VPN Routing"
-      ],
-      "button": "UPGRADE TO PRO",
-      "badge": "MOST POPULAR"
+      "eyebrow": "Power users",
+      "audience": "Travel, work, streaming",
+      "description": "Built for heavier use: stronger routing access, manual and advanced profiles, and a support posture that fits users who actually notice network quality.",
+      "button": "Choose Pro",
+      "badge": "Best Balance"
     },
-    "elite": {
-      "name": "ELITE_SYNC",
-      "price": "$15.99",
-      "period": "/month",
-      "description": "Full network override. Dedicated IPs and total infrastructure control.",
-      "features": [
-        "Dedicated Cyber-IP Address",
-        "Obfuscated Stealth Protocols",
-        "Priority Node Selection",
-        "10Gbps Network Links",
-        "Access to Beta Directives"
-      ],
-      "button": "ACQUIRE ELITE"
+    "max": {
+      "eyebrow": "Flagship plan",
+      "audience": "Family or premium setup",
+      "description": "The premium top tier. More seats, stronger server access, and one included dedicated IP so the upsell is obvious instead of cosmetic.",
+      "button": "Choose Max",
+      "badge": "Flagship"
+    }
+  },
+  "labels": {
+    "devices": "{count} devices",
+    "unlimitedFairUse": "Unlimited / fair use",
+    "perSelectedTerm": "per {days}-day term",
+    "monthlyEquivalent": "{price} / 30 days equivalent",
+    "inviteBundle": "{count} invites · {days} friend days",
+    "inviteNone": "No invite bundle",
+    "includedDedicatedIp": "{count} dedicated IP included",
+    "dedicatedIpAddon": "Dedicated IP as add-on"
+  },
+  "modeNames": {
+    "standard": "Standard",
+    "stealth": "Stealth",
+    "manual_config": "Manual / Advanced",
+    "dedicated_ip": "Dedicated IP",
+    "experimental": "Experimental"
+  },
+  "poolNames": {
+    "shared": "Shared",
+    "shared_plus": "Shared+",
+    "premium_shared": "Premium Shared",
+    "premium": "Premium",
+    "exclusive": "Exclusive"
+  },
+  "supportNames": {
+    "standard": "Standard support",
+    "priority": "Priority support",
+    "vip": "VIP support",
+    "internal": "Internal"
+  },
+  "matrix": {
+    "title": "What Actually Changes Between Plans",
+    "subtitle": "Core VPN security stays on every paid plan. The difference is device count, routing surface, premium access, invite bundles, and support.",
+    "rows": {
+      "capability": "Capability",
+      "devices": "Devices",
+      "traffic": "Traffic",
+      "modes": "Connection modes",
+      "serverPool": "Server access",
+      "dedicatedIp": "Dedicated IP",
+      "support": "Support",
+      "invites": "Invite bundle"
+    }
+  },
+  "addons": {
+    "title": "Add-ons, Not Tariff Sprawl",
+    "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
+    "priceLabel": "from {price}",
+    "extra_device": {
+      "title": "+1 Device",
+      "description": "Extends device limit immediately and renews with the base subscription. Good product hygiene, no extra tariff cloning.",
+      "availability": "Limits by plan: {limits}"
+    },
+    "dedicated_ip": {
+      "title": "Dedicated IP",
+      "description": "One IP, one location, one predictable routing identity for services that dislike shared pools.",
+      "availability": "Available on every paid plan. Max includes 1 by default."
     }
   },
   "faq": {
-    "title": "DECRYPTED ARCHIVES",
-    "q1": "Are my logs recorded?",
-    "a1": "Negative. We operate on a strict Zero-Log infrastructure. Your digital footprint is erased upon disconnection.",
-    "q2": "What happens if I exceed the Stealth tier bandwidth?",
-    "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
-    "q3": "Do you accept crypto?",
-    "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive."
+    "title": "Before You Choose",
+    "items": [
+      {
+        "q": "Are all paid plans full VPN plans?",
+        "a": "Yes. Baseline VPN protection is not tiered away. Paid plans differ by seats, routing modes, server pool quality, dedicated IP access, and support."
+      },
+      {
+        "q": "Why does the storefront say Unlimited / fair use?",
+        "a": "Because that is how the mainstream VPN market communicates consumer plans. Enforcement stays internal through fair-use rules and server policy instead of public hard caps."
+      },
+      {
+        "q": "When do invite bundles appear?",
+        "a": "Invite bundles are a term-level bonus. Short terms can have none, while 180-day and 365-day plans can include invite codes with defined friend days and expiry windows."
+      },
+      {
+        "q": "Is Dedicated IP a separate plan?",
+        "a": "No. It is a premium option. You can buy it as an add-on on paid plans, and Max already includes one dedicated IP."
+      }
+    ]
   }
 }

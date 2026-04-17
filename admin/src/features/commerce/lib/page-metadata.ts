@@ -12,6 +12,11 @@ const COMMERCE_PAGE_CONFIG = {
     titleKey: 'plans.metaTitle',
     descriptionKey: 'plans.description',
   },
+  addons: {
+    canonicalPath: '/commerce/addons',
+    titleKey: 'addons.metaTitle',
+    descriptionKey: 'addons.description',
+  },
   subscriptionTemplates: {
     canonicalPath: '/commerce/subscription-templates',
     titleKey: 'subscriptionTemplates.metaTitle',

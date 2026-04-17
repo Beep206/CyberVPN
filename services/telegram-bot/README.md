@@ -9,11 +9,11 @@ The CyberVPN Telegram Bot provides a complete VPN subscription management interf
 ### Key Features
 
 - User registration and authentication with CyberVPN Backend API
-- Multi-payment gateway support (Telegram Stars, CryptoBot, YooKassa)
-- Subscription plan selection and management
+- Canonical bot checkout with CryptoBot payments
+- Subscription plan selection with periods and add-ons
 - WireGuard config delivery with QR codes
 - Referral system with bonus rewards
-- Trial subscriptions (2 days, 2GB traffic)
+- Canonical trial flow (7 days, 1 device, shared-only access)
 - Multi-language support (i18n with Fluent) - Russian and English
 - Admin panel for user management, broadcasts, and statistics
 - Prometheus metrics for monitoring
@@ -210,8 +210,8 @@ TELEGRAM_STARS_ENABLED=true
 
 ```env
 TRIAL_ENABLED=true
-TRIAL_DAYS=2
-TRIAL_TRAFFIC_GB=2
+TRIAL_DAYS=7
+TRIAL_TRAFFIC_GB=0
 
 REFERRAL_ENABLED=true
 REFERRAL_BONUS_DAYS=3

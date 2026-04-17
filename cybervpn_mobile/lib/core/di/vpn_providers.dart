@@ -12,4 +12,6 @@ export 'package:cybervpn_mobile/core/di/providers.dart'
         killSwitchServiceProvider,
         vpnEngineDatasourceProvider,
         activeDnsServersProvider,
-        ActiveDnsServersNotifier;
+        ActiveDnsServersNotifier,
+        vpnRuntimeCapabilitiesProvider,
+        vpnRuntimeConfigBuilderProvider;

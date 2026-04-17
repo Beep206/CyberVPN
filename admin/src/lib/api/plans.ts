@@ -1,17 +1,24 @@
 import { apiClient } from './client';
 import type { operations } from './generated/types';
 
-// Extract types from OpenAPI operations
-type PlansResponse = operations['list_plans_api_v1_plans__get']['responses'][200]['content']['application/json'];
-type CreatePlanRequest =
+type ListPlansOperation = operations['list_plans_api_v1_plans__get'];
+type ListAdminPlansOperation = operations['list_admin_plans_api_v1_plans_admin_get'];
+
+export type PlansResponse = ListPlansOperation['responses'][200]['content']['application/json'];
+export type PlanRecord = PlansResponse[number];
+export type ListPlansParams = ListPlansOperation['parameters']['query'];
+export type AdminPlansResponse =
+  ListAdminPlansOperation['responses'][200]['content']['application/json'];
+export type ListAdminPlansParams = ListAdminPlansOperation['parameters']['query'];
+export type CreatePlanRequest =
   operations['create_plan_api_v1_plans__post']['requestBody']['content']['application/json'];
-type CreatePlanResponse =
-  operations['create_plan_api_v1_plans__post']['responses'][200]['content']['application/json'];
-type UpdatePlanRequest =
+export type CreatePlanResponse =
+  operations['create_plan_api_v1_plans__post']['responses'][201]['content']['application/json'];
+export type UpdatePlanRequest =
   operations['update_plan_api_v1_plans__uuid__put']['requestBody']['content']['application/json'];
-type UpdatePlanResponse =
+export type UpdatePlanResponse =
   operations['update_plan_api_v1_plans__uuid__put']['responses'][200]['content']['application/json'];
-type DeletePlanResponse =
+export type DeletePlanResponse =
   operations['delete_plan_api_v1_plans__uuid__delete']['responses'][200]['content']['application/json'];
 
 /**
@@ -26,8 +33,15 @@ export const plansApi = {
    * Returns all public subscription plans with pricing, features, and limits.
    * Plans are displayed to users for purchase selection.
    */
-  list: () =>
-    apiClient.get<PlansResponse>('/plans'),
+  list: (params?: ListPlansParams) =>
+    apiClient.get<PlansResponse>('/plans', { params }),
+
+  /**
+   * List all canonical pricing catalog plans for admin tooling.
+   * GET /api/v1/plans/admin
+   */
+  listAdmin: (params?: ListAdminPlansParams) =>
+    apiClient.get<AdminPlansResponse>('/plans/admin', { params }),
 
   /**
    * Create a new subscription plan.

@@ -545,6 +545,14 @@ class CyberVPNAPIClient:
             logger.warning("plans_fetch_failed", status_code=exc.status_code, detail=exc.detail)
             return []
 
+    async def get_addons_catalog(self) -> list[dict[str, Any]]:
+        try:
+            addons = await self._request_auth_backend_list("GET", "/telegram/bot/addons/catalog")
+            return [addon for addon in addons if isinstance(addon, dict)]
+        except APIError as exc:
+            logger.warning("addons_fetch_failed", status_code=exc.status_code, detail=exc.detail)
+            return []
+
     async def get_plans(self) -> list[Any]:
         return await self.get_available_plans()
 
@@ -553,7 +561,18 @@ class CyberVPNAPIClient:
         for plan in plans:
             if str(plan.get("id") or plan.get("uuid")) == str(plan_id):
                 return plan
+            if str(plan.get("plan_code")) == str(plan_id):
+                return plan
+        admin_plans = await self.get_all_plans()
+        for plan in admin_plans:
+            if str(plan.get("uuid") or plan.get("id")) == str(plan_id):
+                return plan
+            if str(plan.get("plan_code")) == str(plan_id):
+                return plan
         raise NotFoundError("Resource not found", status_code=404, detail=f"Plan {plan_id} not found")
+
+    async def get_current_entitlements(self, telegram_id: int) -> dict[str, Any]:
+        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/entitlements")
 
     async def create_subscription(
         self,
@@ -587,7 +606,24 @@ class CyberVPNAPIClient:
 
     async def get_user_subscriptions(self, telegram_id: int) -> list[Any]:
         try:
-            return await self._request_auth_backend_list("GET", f"/telegram/bot/user/{telegram_id}/subscriptions")
+            entitlements = await self.get_current_entitlements(telegram_id)
+            status = str(entitlements.get("status") or "none")
+            if status == "none":
+                return []
+            effective = entitlements.get("effective_entitlements") or {}
+            return [
+                {
+                    "status": status,
+                    "plan_name": entitlements.get("display_name") or entitlements.get("plan_code") or "N/A",
+                    "expires_at": entitlements.get("expires_at"),
+                    "traffic_limit_bytes": None,
+                    "used_traffic_bytes": None,
+                    "device_limit": effective.get("device_limit"),
+                    "dedicated_ip_count": effective.get("dedicated_ip_count", 0),
+                    "period_days": entitlements.get("period_days"),
+                    "addons": entitlements.get("addons") or [],
+                }
+            ]
         except NotFoundError:
             user_data = await self.get_user(telegram_id)
             if isinstance(user_data, dict):
@@ -606,10 +642,35 @@ class CyberVPNAPIClient:
             "reason": trial_status.get("reason"),
             "is_trial_active": bool(trial_status.get("is_trial_active", False)),
             "trial_end": trial_status.get("trial_end"),
+            "duration_days": int(trial_status.get("duration_days", 0) or 0),
+            "expires_at": trial_status.get("expires_at"),
+            "entitlements_snapshot": trial_status.get("entitlements_snapshot"),
         }
 
     async def activate_trial(self, telegram_id: int) -> dict[str, Any]:
         return await self._request_auth_backend_dict("POST", f"/telegram/bot/user/{telegram_id}/trial/activate")
+
+    async def quote_checkout(
+        self,
+        telegram_id: int,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return await self._request_auth_backend_dict(
+            "POST",
+            f"/telegram/bot/user/{telegram_id}/checkout/quote",
+            json=payload,
+        )
+
+    async def commit_checkout(
+        self,
+        telegram_id: int,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return await self._request_auth_backend_dict(
+            "POST",
+            f"/telegram/bot/user/{telegram_id}/checkout/commit",
+            json=payload,
+        )
 
     # ── Payments ─────────────────────────────────────────────────────
 
@@ -701,7 +762,16 @@ class CyberVPNAPIClient:
         )
 
     async def create_payment(self, payload: dict[str, Any]) -> dict[str, Any]:
-        result = await self._request_dict("POST", "/telegram/payments", json=payload)
+        telegram_id = int(payload.get("telegram_id"))
+        commit_payload = {
+            "plan_id": payload.get("plan_id"),
+            "addons": payload.get("addons") or [],
+            "promo_code": payload.get("promo_code"),
+            "use_wallet": payload.get("use_wallet", 0),
+            "currency": payload.get("currency", "USD"),
+            "payment_method": payload.get("payment_method", "cryptobot"),
+        }
+        result = await self.commit_checkout(telegram_id, commit_payload)
         return result if isinstance(result, dict) else {}
 
     async def get_invoice_status(self, invoice_id: str) -> dict[str, Any]:
@@ -720,8 +790,11 @@ class CyberVPNAPIClient:
         self._handle_response(response)
         return response.content
 
-    async def get_payment_status(self, payment_id: str) -> dict[str, Any]:
-        return await self.get_invoice_status(payment_id)
+    async def get_payment_status(self, telegram_id: int, payment_id: str) -> dict[str, Any]:
+        return await self._request_auth_backend_dict(
+            "GET",
+            f"/telegram/bot/user/{telegram_id}/payments/{payment_id}",
+        )
 
     async def get_payment(self, payment_id: str) -> dict[str, Any]:
         return await self.get_invoice_status(payment_id)
@@ -895,19 +968,22 @@ class CyberVPNAPIClient:
         Returns:
             List of all plans with full details.
         """
-        return await self._request_list("GET", "/telegram/admin/plans")
+        return await self._request_list("GET", "/plans/admin")
 
     async def get_all_plans(self) -> list[dict[str, Any]]:
         plans = await self.get_admin_plans()
         return list(plans) if isinstance(plans, list) else []
 
     async def create_plan(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request_dict("POST", "/telegram/admin/plans", json=payload)
+        return await self._request_dict("POST", "/plans/", json=payload)
 
     async def toggle_plan_status(self, plan_id: str) -> dict[str, Any]:
+        current = await self.get_plan(plan_id)
+        plan_uuid = str(current.get("uuid") or current.get("id") or plan_id)
         return await self._request_dict(
-            "POST",
-            f"/telegram/admin/plans/{plan_id}/toggle",
+            "PUT",
+            f"/plans/{plan_uuid}",
+            json={"is_active": not bool(current.get("is_active", True))},
         )
 
     async def get_admin_promocodes(

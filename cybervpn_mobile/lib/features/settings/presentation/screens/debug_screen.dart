@@ -29,7 +29,12 @@ import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_
 /// - Developer panel with raw config viewer, force crash, experimental features
 class DebugScreen extends ConsumerStatefulWidget {
   final bool embedded;
-  const DebugScreen({super.key, this.embedded = false});
+  final int developerModeTapThreshold;
+  const DebugScreen({
+    super.key,
+    this.embedded = false,
+    this.developerModeTapThreshold = 7,
+  });
 
   @override
   ConsumerState<DebugScreen> createState() => _DebugScreenState();
@@ -45,11 +50,18 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   int _versionTapCount = 0;
   bool _developerModeEnabled = false;
   bool _experimentalFeaturesEnabled = false;
+  Timer? _developerModeResetTimer;
 
   @override
   void initState() {
     super.initState();
     unawaited(_loadVersionInfo());
+  }
+
+  @override
+  void dispose() {
+    _developerModeResetTimer?.cancel();
+    super.dispose();
   }
 
   // ── Version Info ─────────────────────────────────────────────────────────
@@ -184,16 +196,16 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         SettingsSection(
           title: l10n.settingsAbout,
           children: [
-            GestureDetector(
-              onTap: _handleVersionTap,
-              child: SettingsTile.info(
-                key: const Key('tile_app_version'),
-                title: l10n.settingsAppVersionLabel,
-                subtitle: _buildNumber.isNotEmpty
+            ListTile(
+              key: const Key('tile_app_version'),
+              leading: const Icon(Icons.info_outline),
+              title: Text(l10n.settingsAppVersionLabel),
+              subtitle: Text(
+                _buildNumber.isNotEmpty
                     ? '$_appVersion ($_buildNumber)'
                     : _appVersion,
-                leading: const Icon(Icons.info_outline),
               ),
+              onTap: _handleVersionTap,
             ),
             SettingsTile.info(
               key: const Key('tile_xray_version'),
@@ -237,61 +249,71 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   String _logLevelLabel(LogLevel level) {
     final l10n = AppLocalizations.of(context);
     return switch (level) {
+      LogLevel.auto => 'Auto',
       LogLevel.debug => l10n.settingsLogLevelDebug,
       LogLevel.info => l10n.settingsLogLevelInfo,
       LogLevel.warning => l10n.settingsLogLevelWarning,
       LogLevel.error => l10n.settingsLogLevelError,
+      LogLevel.none => 'Disabled',
     };
   }
 
   // ── Log Level Dialog ─────────────────────────────────────────────────────
 
   void _showLogLevelDialog(BuildContext context, LogLevel currentLevel) {
-    unawaited(showDialog<void>(
-      context: context,
-      builder: (dialogCtx) {
-        final dialogL10n = AppLocalizations.of(dialogCtx);
-        return AlertDialog(
-          title: Text(dialogL10n.settingsLogLevelLabel),
-          content: RadioGroup<LogLevel>(
-            groupValue: currentLevel,
-            onChanged: (LogLevel? newLevel) {
-              if (newLevel != null) {
-                unawaited(ref
-                    .read(settingsProvider.notifier)
-                    .updateLogLevel(newLevel));
-                Navigator.pop(dialogCtx);
-              }
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: LogLevel.values.map((level) {
-                return RadioListTile<LogLevel>(
-                  title: Text(_logLevelLabel(level)),
-                  subtitle: Text(_logLevelDescription(level)),
-                  value: level,
-                );
-              }).toList(),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogCtx) {
+          final dialogL10n = AppLocalizations.of(dialogCtx);
+          return AlertDialog(
+            title: Text(dialogL10n.settingsLogLevelLabel),
+            content: RadioGroup<LogLevel>(
+              groupValue: currentLevel,
+              onChanged: (LogLevel? newLevel) {
+                if (newLevel != null) {
+                  unawaited(
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateLogLevel(newLevel),
+                  );
+                  Navigator.pop(dialogCtx);
+                }
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: LogLevel.values.map((level) {
+                  return RadioListTile<LogLevel>(
+                    title: Text(_logLevelLabel(level)),
+                    subtitle: Text(_logLevelDescription(level)),
+                    value: level,
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(dialogL10n.cancel),
-            ),
-          ],
-        );
-      },
-    ));
+            scrollable: true,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: Text(dialogL10n.cancel),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   String _logLevelDescription(LogLevel level) {
     final l10n = AppLocalizations.of(context);
     return switch (level) {
+      LogLevel.auto =>
+        'Follow the runtime default until dedicated advanced logging arrives.',
       LogLevel.debug => l10n.settingsLogLevelDebugDescription,
       LogLevel.info => l10n.settingsLogLevelInfoDescription,
       LogLevel.warning => l10n.settingsLogLevelWarningDescription,
       LogLevel.error => l10n.settingsLogLevelErrorDescription,
+      LogLevel.none => 'Disable app-side logging output where supported.',
     };
   }
 
@@ -303,7 +325,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
     final logs = AppLogger.exportLogs();
     if (logs.isEmpty) {
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(ctx).settingsNoLogsToExport)),
+        SnackBar(
+          content: Text(AppLocalizations.of(ctx).settingsNoLogsToExport),
+        ),
       );
       return;
     }
@@ -312,11 +336,13 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
       final filename = 'cybervpn_logs_$timestamp.txt';
 
-      await SharePlus.instance.share(ShareParams(
-        text: logs,
-        subject: 'CyberVPN Logs',
-        sharePositionOrigin: _getSharePositionOrigin(ctx),
-      ));
+      await SharePlus.instance.share(
+        ShareParams(
+          text: logs,
+          subject: 'CyberVPN Logs',
+          sharePositionOrigin: _getSharePositionOrigin(ctx),
+        ),
+      );
 
       AppLogger.info('Logs exported: $filename');
     } catch (e) {
@@ -324,7 +350,11 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       if (!ctx.mounted) return;
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(ctx).debugExportLogsFailed(e.toString()))),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(ctx).debugExportLogsFailed(e.toString()),
+          ),
+        ),
       );
     }
   }
@@ -371,8 +401,8 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       final keys = prefs.getKeys().where((key) {
         // Preserve settings and onboarding state
         return !key.startsWith('settings_') &&
-               !key.startsWith('onboarding_') &&
-               !key.startsWith('auth_');
+            !key.startsWith('onboarding_') &&
+            !key.startsWith('auth_');
       }).toList();
 
       for (final key in keys) {
@@ -386,14 +416,20 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
 
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(ctx).settingsCacheClearedSuccess)),
+        SnackBar(
+          content: Text(AppLocalizations.of(ctx).settingsCacheClearedSuccess),
+        ),
       );
     } catch (e) {
       AppLogger.error('Failed to clear cache', error: e);
       if (!ctx.mounted) return;
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(ctx).debugClearCacheFailed(e.toString()))),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(ctx).debugClearCacheFailed(e.toString()),
+          ),
+        ),
       );
     }
   }
@@ -443,7 +479,11 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       if (!ctx.mounted) return;
 
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(ctx).debugResetSettingsFailed(e.toString()))),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(ctx).debugResetSettingsFailed(e.toString()),
+          ),
+        ),
       );
     }
   }
@@ -456,16 +496,20 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
     });
 
     // Reset counter after 2 seconds of inactivity
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && _versionTapCount > 0 && _versionTapCount < 7) {
+    _developerModeResetTimer?.cancel();
+    _developerModeResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted &&
+          _versionTapCount > 0 &&
+          _versionTapCount < widget.developerModeTapThreshold) {
         setState(() {
           _versionTapCount = 0;
         });
       }
     });
 
-    // Activate developer mode on 7th tap
-    if (_versionTapCount >= 7 && !_developerModeEnabled) {
+    // Activate developer mode once the tap threshold is reached.
+    if (_versionTapCount >= widget.developerModeTapThreshold &&
+        !_developerModeEnabled) {
       setState(() {
         _developerModeEnabled = true;
         _versionTapCount = 0;
@@ -476,7 +520,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).settingsDeveloperModeActivated),
+            content: Text(
+              AppLocalizations.of(context).settingsDeveloperModeActivated,
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -521,37 +567,41 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   // ── Developer Panel Actions ──────────────────────────────────────────────
 
   void _handleRawConfigViewer(BuildContext context) {
-    unawaited(showDialog<void>(
-      context: context,
-      builder: (dialogCtx) {
-        final dl = AppLocalizations.of(dialogCtx);
-        return AlertDialog(
-          title: Text(dl.settingsDeveloperRawConfigDialogTitle),
-          content: SingleChildScrollView(
-            child: SelectableText(
-              _getRawConfig(),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogCtx) {
+          final dl = AppLocalizations.of(dialogCtx);
+          return AlertDialog(
+            title: Text(dl.settingsDeveloperRawConfigDialogTitle),
+            content: SingleChildScrollView(
+              child: SelectableText(
+                _getRawConfig(),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(dl.commonClose),
-            ),
-            FilledButton.tonal(
-              onPressed: () async {
-                await SharePlus.instance.share(ShareParams(
-                  text: _getRawConfig(),
-                  subject: 'VPN Configuration',
-                  sharePositionOrigin: _getSharePositionOrigin(dialogCtx),
-                ));
-              },
-              child: Text(dl.commonShare),
-            ),
-          ],
-        );
-      },
-    ));
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: Text(dl.commonClose),
+              ),
+              FilledButton.tonal(
+                onPressed: () async {
+                  await SharePlus.instance.share(
+                    ShareParams(
+                      text: _getRawConfig(),
+                      subject: 'VPN Configuration',
+                      sharePositionOrigin: _getSharePositionOrigin(dialogCtx),
+                    ),
+                  );
+                },
+                child: Text(dl.commonShare),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   String _getRawConfig() {
@@ -603,37 +653,39 @@ retrieve the active configuration from the VPN engine.
   }
 
   void _handleForceCrash(BuildContext context) {
-    unawaited(showDialog<void>(
-      context: context,
-      builder: (dialogCtx) {
-        final dl = AppLocalizations.of(dialogCtx);
-        return AlertDialog(
-          title: Text(dl.settingsDeveloperForceCrashDialogTitle),
-          content: Text(dl.settingsDeveloperForceCrashDialogContent),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(dl.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogCtx);
-                AppLogger.error('Test crash triggered from developer panel');
-
-                // Delay to allow dialog to close and log to be recorded
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  throw Exception('Test crash from developer panel');
-                });
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(dialogCtx).colorScheme.error,
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogCtx) {
+          final dl = AppLocalizations.of(dialogCtx);
+          return AlertDialog(
+            title: Text(dl.settingsDeveloperForceCrashDialogTitle),
+            content: Text(dl.settingsDeveloperForceCrashDialogContent),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: Text(dl.cancel),
               ),
-              child: Text(dl.settingsDeveloperCrashNow),
-            ),
-          ],
-        );
-      },
-    ));
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  AppLogger.error('Test crash triggered from developer panel');
+
+                  // Delay to allow dialog to close and log to be recorded
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    throw Exception('Test crash from developer panel');
+                  });
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogCtx).colorScheme.error,
+                ),
+                child: Text(dl.settingsDeveloperCrashNow),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _handleExperimentalToggle(bool value) {
@@ -647,7 +699,9 @@ retrieve the active configuration from the VPN engine.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          value ? l10n.settingsDeveloperExperimentalEnabled : l10n.settingsDeveloperExperimentalDisabled,
+          value
+              ? l10n.settingsDeveloperExperimentalEnabled
+              : l10n.settingsDeveloperExperimentalDisabled,
         ),
       ),
     );

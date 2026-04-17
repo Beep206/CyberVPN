@@ -5,10 +5,10 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from src.application.services.config_service import ConfigService
 from src.domain.enums import InviteSource
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
+from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 
 logger = logging.getLogger(__name__)
 
@@ -17,18 +17,17 @@ class GenerateInvitesForPaymentUseCase:
     """Create invite codes for a user who completed a plan purchase.
 
     The number of codes and the ``free_days`` value are driven by the
-    invite plan rules stored in the system configuration.  If the
-    purchased plan has no associated rule the use case returns an empty
-    list (no-op).
+    canonical ``plan.invite_bundle`` configuration. If the purchased plan
+    has no invite bundle the use case returns an empty list (no-op).
     """
 
     def __init__(
         self,
         invite_repo: InviteCodeRepository,
-        config_service: ConfigService,
+        plan_repo: SubscriptionPlanRepository,
     ) -> None:
         self._invite_repo = invite_repo
-        self._config_service = config_service
+        self._plan_repo = plan_repo
 
     async def execute(
         self,
@@ -42,24 +41,27 @@ class GenerateInvitesForPaymentUseCase:
             List of newly persisted ``InviteCodeModel`` instances, or an
             empty list when the plan has no invite rule.
         """
-        rules = await self._config_service.get_invite_plan_rules()
-
-        rule = next(
-            (r for r in rules if str(r["plan_id"]) == str(plan_id)),
-            None,
-        )
-
-        if rule is None:
+        plan = await self._plan_repo.get_by_id(plan_id)
+        if plan is None:
             logger.debug(
-                "no_invite_rule_for_plan",
+                "invite_plan_not_found",
                 extra={"plan_id": str(plan_id), "owner_user_id": str(owner_user_id)},
             )
             return []
 
-        invite_count: int = int(rule["invite_count"])
-        free_days: int = int(rule["free_days"])
-        default_expiry_days = await self._config_service.get_invite_default_expiry_days()
-        expires_at = datetime.now(UTC) + timedelta(days=default_expiry_days)
+        bundle = plan.invite_bundle or {}
+        invite_count = int(bundle.get("count", 0) or 0)
+        free_days = int(bundle.get("friend_days", 0) or 0)
+        expiry_days = int(bundle.get("expiry_days", 0) or 0)
+
+        if invite_count <= 0 or free_days <= 0 or expiry_days <= 0:
+            logger.debug(
+                "invite_bundle_disabled_for_plan",
+                extra={"plan_id": str(plan_id), "owner_user_id": str(owner_user_id), "bundle": bundle},
+            )
+            return []
+
+        expires_at = datetime.now(UTC) + timedelta(days=expiry_days)
 
         models = [
             InviteCodeModel(

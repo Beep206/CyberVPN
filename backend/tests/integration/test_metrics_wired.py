@@ -17,7 +17,9 @@ from httpx import AsyncClient
 from prometheus_client import REGISTRY
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
 from src.main import app
 
@@ -126,35 +128,19 @@ class TestMetricsWired:
         db: AsyncSession,
     ):
         """Test that trial activation increments trials_activated_total counter."""
-        # Create verified user
-        password = "TestP@ssw0rd123!"
-        user_email = f"trialtest{secrets.token_hex(4)}@example.com"
-
-        from src.application.services.auth_service import AuthService
         auth_service = AuthService()
-        password_hash = await auth_service.hash_password(password)
-
-        user = AdminUserModel(
-            login=f"trialuser{secrets.token_hex(4)}",
-            email=user_email,
-            password_hash=password_hash,
-            role="viewer",
+        suffix = secrets.token_hex(4)
+        user = MobileUserModel(
+            email=f"trial-metrics-{suffix}@example.com",
+            password_hash=await auth_service.hash_password("MobileMetricPassword123!"),
+            username=f"trial-metrics-{suffix}",
             is_active=True,
-            is_email_verified=True,
+            status="active",
         )
         db.add(user)
         await db.commit()
-
-        # Login to get access token
-        login_response = await async_client.post(
-            "/api/v1/auth/login",
-            json={
-                "login_or_email": user_email,
-                "password": password,
-            },
-        )
-        assert login_response.status_code == 200
-        access_token = login_response.json()["access_token"]
+        await db.refresh(user)
+        access_token = auth_service.create_access_token_simple(str(user.id), "user")
 
         # Get metric value before trial activation
         before = REGISTRY.get_sample_value('trials_activated_total') or 0

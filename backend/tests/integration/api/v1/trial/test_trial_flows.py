@@ -1,14 +1,4 @@
-"""Integration tests for trial period flows (BT-1).
-
-Tests the trial activation and status endpoints:
-- activate trial success
-- activate trial already used
-- activate trial rate limited
-- get trial status
-- trial endpoints require auth
-
-Requires: AsyncClient, test database, Redis.
-"""
+"""Integration tests for trial period flows on mobile users."""
 
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -20,40 +10,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 
 
-async def _create_verified_user(
-    db: AsyncSession, *, role: str = "viewer",
-) -> tuple[str, str, str]:
-    """Helper: create a verified user and return (user_id, password, email)."""
-    password = "TestP@ssw0rd123!"
-    email = f"trial{secrets.token_hex(4)}@example.com"
+async def _create_mobile_user(
+    db: AsyncSession,
+    *,
+    trial_activated_at: datetime | None = None,
+    trial_expires_at: datetime | None = None,
+) -> tuple[str, str]:
+    """Create an active mobile user and return ``(user_id, access_token)``."""
     auth_service = AuthService()
-    password_hash = await auth_service.hash_password(password)
-
-    user = AdminUserModel(
-        login=f"trialuser{secrets.token_hex(4)}",
-        email=email,
-        password_hash=password_hash,
-        role=role,
+    suffix = secrets.token_hex(4)
+    user = MobileUserModel(
+        email=f"trial-{suffix}@example.com",
+        password_hash=await auth_service.hash_password("MobileTrialPassword123!"),
+        username=f"trial-{suffix}",
         is_active=True,
-        is_email_verified=True,
+        status="active",
+        trial_activated_at=trial_activated_at,
+        trial_expires_at=trial_expires_at,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return str(user.id), password, email
-
-
-async def _login(async_client: AsyncClient, email: str, password: str) -> str:
-    """Helper: login and return access token."""
-    response = await async_client.post(
-        "/api/v1/auth/login",
-        json={"login_or_email": email, "password": password},
-    )
-    assert response.status_code == 200
-    return response.json()["access_token"]
+    return str(user.id), auth_service.create_access_token_simple(str(user.id), "user")
 
 
 class TestTrialActivation:
@@ -65,17 +46,8 @@ class TestTrialActivation:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        """
-        Test POST /api/v1/trial/activate with valid auth -> 200 + trial activated.
-
-        Steps:
-        1. Create verified user (no prior trial)
-        2. Login to get access token
-        3. POST /trial/activate -> 200
-        4. Verify response contains activated=True, trial_end, message
-        """
-        _user_id, password, email = await _create_verified_user(db)
-        access_token = await _login(async_client, email, password)
+        """POST /api/v1/trial/activate activates trial for a mobile user."""
+        _user_id, access_token = await _create_mobile_user(db)
 
         response = await async_client.post(
             "/api/v1/trial/activate",
@@ -95,33 +67,12 @@ class TestTrialActivation:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        """
-        Test POST /api/v1/trial/activate when trial already claimed -> 400.
-
-        Steps:
-        1. Create user who already activated trial (trial_activated_at set)
-        2. Login
-        3. POST /trial/activate -> 400 (already activated)
-        """
-        password = "TestP@ssw0rd123!"
-        email = f"trialused{secrets.token_hex(4)}@example.com"
-        auth_service = AuthService()
-        password_hash = await auth_service.hash_password(password)
-
-        user = AdminUserModel(
-            login=f"trialused{secrets.token_hex(4)}",
-            email=email,
-            password_hash=password_hash,
-            role="viewer",
-            is_active=True,
-            is_email_verified=True,
+        """POST /api/v1/trial/activate rejects users who already spent trial."""
+        _user_id, access_token = await _create_mobile_user(
+            db,
             trial_activated_at=datetime.now(UTC) - timedelta(days=10),
             trial_expires_at=datetime.now(UTC) - timedelta(days=3),
         )
-        db.add(user)
-        await db.commit()
-
-        access_token = await _login(async_client, email, password)
 
         response = await async_client.post(
             "/api/v1/trial/activate",
@@ -137,14 +88,8 @@ class TestTrialActivation:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        """
-        Test POST /api/v1/trial/activate when rate limit reached -> 429.
-
-        Rate limit: 3 requests per hour per user.
-        Pre-sets the Redis rate limit counter to 3 before making a request.
-        """
-        user_id, password, email = await _create_verified_user(db)
-        access_token = await _login(async_client, email, password)
+        """POST /api/v1/trial/activate enforces Redis rate limiting."""
+        user_id, access_token = await _create_mobile_user(db)
 
         # Pre-set the Redis rate limit key to 3 (already at limit)
         redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
@@ -173,16 +118,8 @@ class TestTrialStatus:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        """
-        Test GET /api/v1/trial/status with valid auth -> 200 + status payload.
-
-        Steps:
-        1. Create verified user (no trial yet)
-        2. Login
-        3. GET /trial/status -> 200 with is_eligible=True
-        """
-        _user_id, password, email = await _create_verified_user(db)
-        access_token = await _login(async_client, email, password)
+        """GET /api/v1/trial/status returns the current mobile-user status."""
+        _user_id, access_token = await _create_mobile_user(db)
 
         response = await async_client.get(
             "/api/v1/trial/status",

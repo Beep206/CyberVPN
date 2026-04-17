@@ -44,6 +44,35 @@ class PlanTier(StrEnum):
     CYBER = "cyber"
 
 
+class PlanCode(StrEnum):
+    START = "start"
+    BASIC = "basic"
+    PLUS = "plus"
+    PRO = "pro"
+    MAX = "max"
+    TEST = "test"
+    DEVELOPMENT = "development"
+
+
+class CatalogVisibility(StrEnum):
+    PUBLIC = "public"
+    HIDDEN = "hidden"
+
+
+class SaleChannel(StrEnum):
+    WEB = "web"
+    MINIAPP = "miniapp"
+    TELEGRAM_BOT = "telegram_bot"
+    ADMIN = "admin"
+
+
+class SupportSLA(StrEnum):
+    STANDARD = "standard"
+    PRIORITY = "priority"
+    VIP = "vip"
+    INTERNAL = "internal"
+
+
 class TemplateType(StrEnum):
     CLASH = "clash"
     HIDDIFY = "hiddify"

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Landmark, PencilLine, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { plansApi } from '@/lib/api/plans';
+import { plansApi, type CreatePlanRequest, type PlanRecord, type UpdatePlanRequest } from '@/lib/api/plans';
 import {
   formatCompactNumber,
   formatCurrencyAmount,
@@ -24,18 +24,6 @@ import {
   TableRow,
 } from '@/shared/ui/organisms/table';
 
-interface PlanRecord {
-  uuid: string;
-  name: string;
-  price: number;
-  currency: string;
-  durationDays: number;
-  dataLimitGb?: number | null;
-  maxDevices?: number | null;
-  features?: string[] | null;
-  isActive: boolean;
-}
-
 export function PlansConsole() {
   const t = useTranslations('Commerce');
   const queryClient = useQueryClient();
@@ -45,16 +33,16 @@ export function PlansConsole() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const plansQuery = useQuery({
-    queryKey: ['commerce', 'plans'],
+    queryKey: ['commerce', 'plans', 'admin'],
     queryFn: async () => {
-      const response = await plansApi.list();
-      return response.data;
+      const response = await plansApi.listAdmin({ include_inactive: true });
+      return response.data.sort((left, right) => left.sort_order - right.sort_order);
     },
     staleTime: 60_000,
   });
 
   const createMutation = useMutation({
-    mutationFn: plansApi.create,
+    mutationFn: (payload: CreatePlanRequest) => plansApi.create(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['commerce', 'plans'] });
       setIsCreateOpen(false);
@@ -66,7 +54,7 @@ export function PlansConsole() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ uuid, payload }: { uuid: string; payload: Parameters<typeof plansApi.update>[1] }) =>
+    mutationFn: ({ uuid, payload }: { uuid: string; payload: UpdatePlanRequest }) =>
       plansApi.update(uuid, payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['commerce', 'plans'] });
@@ -90,11 +78,9 @@ export function PlansConsole() {
   });
 
   const plans = plansQuery.data ?? [];
-  const activePlans = plans.filter((plan) => plan.isActive).length;
-  const averagePrice =
-    plans.length > 0
-      ? plans.reduce((sum, plan) => sum + plan.price, 0) / plans.length
-      : undefined;
+  const activePlans = plans.filter((plan) => plan.is_active).length;
+  const hiddenPlans = plans.filter((plan) => plan.catalog_visibility === 'hidden').length;
+  const planFamilies = new Set(plans.map((plan) => plan.plan_code)).size;
 
   return (
     <>
@@ -123,15 +109,15 @@ export function PlansConsole() {
             tone: 'success',
           },
           {
-            label: t('plans.metrics.averagePrice'),
-            value: formatCurrencyAmount(averagePrice, plans[0]?.currency ?? 'USD'),
-            hint: t('plans.metrics.averagePriceHint'),
+            label: t('plans.metrics.families'),
+            value: formatCompactNumber(planFamilies),
+            hint: t('plans.metrics.familiesHint'),
             tone: 'neutral',
           },
           {
-            label: t('plans.metrics.maxDuration'),
-            value: `${Math.max(0, ...plans.map((plan) => plan.durationDays))}d`,
-            hint: t('plans.metrics.maxDurationHint'),
+            label: t('plans.metrics.hidden'),
+            value: formatCompactNumber(hiddenPlans),
+            hint: t('plans.metrics.hiddenHint'),
             tone: 'warning',
           },
         ]}
@@ -161,12 +147,13 @@ export function PlansConsole() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common.name')}</TableHead>
-                  <TableHead>{t('common.price')}</TableHead>
+                  <TableHead>{t('plans.fields.visibility')}</TableHead>
                   <TableHead>{t('common.durationDays')}</TableHead>
-                  <TableHead>{t('common.dataLimitGb')}</TableHead>
-                  <TableHead>{t('common.maxDevices')}</TableHead>
+                  <TableHead>{t('plans.fields.devicesIncluded')}</TableHead>
+                  <TableHead>{t('plans.fields.priceUsd')}</TableHead>
+                  <TableHead>{t('plans.fields.connectionModes')}</TableHead>
+                  <TableHead>{t('plans.fields.inviteBundle')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
-                  <TableHead>{t('common.features')}</TableHead>
                   <TableHead>{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -176,29 +163,32 @@ export function PlansConsole() {
                     <TableCell>
                       <div className="space-y-1">
                         <p className="font-display uppercase tracking-[0.14em] text-white">
-                          {plan.name}
+                          {plan.display_name}
                         </p>
                         <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                          #{plan.uuid.slice(0, 8)}
+                          {plan.plan_code} / {plan.name}
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>{formatCurrencyAmount(plan.price, plan.currency)}</TableCell>
-                    <TableCell>{plan.durationDays}</TableCell>
-                    <TableCell>{plan.dataLimitGb ?? '∞'}</TableCell>
-                    <TableCell>{plan.maxDevices ?? '∞'}</TableCell>
-                    <TableCell>
-                      <StatusChip
-                        label={plan.isActive ? t('common.active') : t('common.inactive')}
-                        tone={plan.isActive ? 'success' : 'warning'}
-                      />
+                    <TableCell>{humanizeToken(plan.catalog_visibility)}</TableCell>
+                    <TableCell>{plan.duration_days}</TableCell>
+                    <TableCell>{plan.devices_included}</TableCell>
+                    <TableCell>{formatCurrencyAmount(plan.price_usd, 'USD')}</TableCell>
+                    <TableCell className="max-w-[18rem]">
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {plan.connection_modes.join(', ')}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <span className="text-sm font-mono text-muted-foreground">
-                        {plan.features?.length
-                          ? humanizeToken(plan.features.join(', '))
-                          : t('common.emptyShort')}
+                        {plan.invite_bundle.count}/{plan.invite_bundle.friend_days}/{plan.invite_bundle.expiry_days}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusChip
+                        label={plan.is_active ? t('common.active') : t('common.inactive')}
+                        tone={plan.is_active ? 'success' : 'warning'}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
@@ -239,7 +229,7 @@ export function PlansConsole() {
         isSubmitting={createMutation.isPending}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={async (payload) => {
-          await createMutation.mutateAsync(payload);
+          await createMutation.mutateAsync(payload as CreatePlanRequest);
         }}
       />
 

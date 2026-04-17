@@ -5,7 +5,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:network_info_plus/network_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart'
+    as permission_handler;
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
@@ -15,11 +16,7 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
 /// Represents current WiFi connection information.
 class WifiInfo {
-  const WifiInfo({
-    this.ssid,
-    this.bssid,
-    this.isConnectedToWifi = false,
-  });
+  const WifiInfo({this.ssid, this.bssid, this.isConnectedToWifi = false});
 
   /// The network SSID (name). May contain surrounding quotes on Android.
   /// Null if not connected to WiFi or permissions denied.
@@ -95,11 +92,9 @@ enum WifiPermissionStatus {
 /// print('Connected to: ${info.cleanSsid}');
 /// ```
 class WifiMonitorService {
-  WifiMonitorService({
-    Connectivity? connectivity,
-    NetworkInfo? networkInfo,
-  })  : _connectivity = connectivity ?? Connectivity(),
-        _networkInfo = networkInfo ?? NetworkInfo();
+  WifiMonitorService({Connectivity? connectivity, NetworkInfo? networkInfo})
+    : _connectivity = connectivity ?? Connectivity(),
+      _networkInfo = networkInfo ?? NetworkInfo();
 
   final Connectivity _connectivity;
   final NetworkInfo _networkInfo;
@@ -185,11 +180,7 @@ class WifiMonitorService {
       final ssid = await _networkInfo.getWifiName();
       final bssid = await _networkInfo.getWifiBSSID();
 
-      return WifiInfo(
-        ssid: ssid,
-        bssid: bssid,
-        isConnectedToWifi: true,
-      );
+      return WifiInfo(ssid: ssid, bssid: bssid, isConnectedToWifi: true);
     } catch (e) {
       AppLogger.error('Failed to get WiFi info', error: e);
       return const WifiInfo(isConnectedToWifi: true);
@@ -205,13 +196,15 @@ class WifiMonitorService {
     try {
       if (Platform.isAndroid) {
         // Android requires location permission for WiFi SSID
-        final status = await Permission.locationWhenInUse.status;
+        final status =
+            await permission_handler.Permission.locationWhenInUse.status;
         return _mapPermissionStatus(status);
       }
 
       if (Platform.isIOS) {
         // iOS requires location permission
-        final status = await Permission.locationWhenInUse.status;
+        final status =
+            await permission_handler.Permission.locationWhenInUse.status;
         return _mapPermissionStatus(status);
       }
 
@@ -231,7 +224,8 @@ class WifiMonitorService {
     }
 
     try {
-      final status = await Permission.locationWhenInUse.request();
+      final status = await permission_handler.Permission.locationWhenInUse
+          .request();
       final result = _mapPermissionStatus(status);
 
       AppLogger.info(
@@ -246,22 +240,26 @@ class WifiMonitorService {
     }
   }
 
-  WifiPermissionStatus _mapPermissionStatus(PermissionStatus status) {
+  WifiPermissionStatus _mapPermissionStatus(
+    permission_handler.PermissionStatus status,
+  ) {
     return switch (status) {
-      PermissionStatus.granted ||
-      PermissionStatus.limited =>
+      permission_handler.PermissionStatus.granted ||
+      permission_handler.PermissionStatus.limited =>
         WifiPermissionStatus.granted,
-      PermissionStatus.denied => WifiPermissionStatus.denied,
-      PermissionStatus.permanentlyDenied =>
+      permission_handler.PermissionStatus.denied => WifiPermissionStatus.denied,
+      permission_handler.PermissionStatus.permanentlyDenied =>
         WifiPermissionStatus.permanentlyDenied,
-      PermissionStatus.restricted => WifiPermissionStatus.restricted,
-      PermissionStatus.provisional => WifiPermissionStatus.denied,
+      permission_handler.PermissionStatus.restricted =>
+        WifiPermissionStatus.restricted,
+      permission_handler.PermissionStatus.provisional =>
+        WifiPermissionStatus.denied,
     };
   }
 
   /// Open app settings for the user to manually grant permission.
   Future<bool> openAppSettings() async {
-    return openAppSettings();
+    return permission_handler.openAppSettings();
   }
 
   /// Dispose resources.
@@ -289,7 +287,9 @@ final wifiInfoStreamProvider = StreamProvider<WifiInfo>((ref) {
 });
 
 /// Provider that returns the current WiFi permission status.
-final wifiPermissionStatusProvider = FutureProvider<WifiPermissionStatus>((ref) {
+final wifiPermissionStatusProvider = FutureProvider<WifiPermissionStatus>((
+  ref,
+) {
   final service = ref.watch(wifiMonitorServiceProvider);
   return service.checkPermission();
 });

@@ -419,4 +419,28 @@ class SecureStorageWrapper {
       await write(key: deviceIdKey, value: deviceId);
     }
   }
+
+  /// Wipes the full secure-storage namespace used by the app.
+  ///
+  /// Unlike [clearAll], this also removes feature-specific secure keys such as:
+  /// - OAuth temporary state
+  /// - biometric feature flags
+  /// - field-encryption master keys
+  ///
+  /// [preserveDeviceId] defaults to `true` so a destructive app reset can
+  /// remove user/session material without losing the installation identity that
+  /// backend services may still rely on.
+  Future<void> wipeAll({bool preserveDeviceId = true}) async {
+    invalidateCache();
+
+    final preservedDeviceId = preserveDeviceId
+        ? await read(key: deviceIdKey)
+        : null;
+
+    await deleteAll();
+
+    if (preservedDeviceId != null && preservedDeviceId.isNotEmpty) {
+      await write(key: deviceIdKey, value: preservedDeviceId);
+    }
+  }
 }

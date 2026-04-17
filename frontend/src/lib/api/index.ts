@@ -26,6 +26,7 @@ export { codesApi } from './codes';
 export { referralApi } from './referral';
 export { promoApi } from './promo';
 export { invitesApi } from './invites';
+export { addonsApi } from './addons';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';

@@ -1,200 +1,202 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '@/shared/ui/modal';
 import { paymentsApi } from '@/lib/api/payments';
-import { promoApi } from '@/lib/api/promo';
 import { motion } from 'motion/react';
-import { AlertTriangle, CheckCircle, CreditCard, Tag, Percent, Check, Zap } from 'lucide-react';
+import { useLocale } from 'next-intl';
+import { AlertTriangle, CheckCircle, CreditCard, Percent, ShieldCheck, Tag, Zap } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import { markPerformance, measurePerformance, PerformanceMarks } from '@/shared/lib/web-vitals';
-
-interface Plan {
-  uuid: string;
-  name: string;
-  price: number;
-  currency: string;
-  durationDays: number;
-  dataLimitGb?: number | null;
-  maxDevices?: number | null;
-  features?: string[] | null;
-}
+import {
+  formatConnectionModes,
+  formatDurationLabel,
+  formatMoney,
+  formatSupportLabel,
+  formatTrafficLabel,
+  getPlanPrice,
+  type SubscriptionPlan,
+  type SubscriptionQuote,
+} from '../lib/plan-presenter';
 
 interface PurchaseConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  plan: Plan | null;
-}
-
-interface PromoDiscount {
-  discount_percent?: number;
-  discount_amount?: number;
-}
-
-interface InvoiceRequest {
-  plan_id: string;
-  user_uuid: string;
-  currency: string;
-  promo_code?: string;
+  plan: SubscriptionPlan | null;
 }
 
 type ModalStep = 'confirm' | 'processing' | 'success' | 'error';
+
+function buildCheckoutRequest(plan: SubscriptionPlan, promo?: string) {
+  return {
+    plan_id: plan.uuid,
+    addons: [],
+    promo_code: promo || undefined,
+    use_wallet: 0,
+    currency: 'USD',
+    channel: 'web',
+  };
+}
 
 export function PurchaseConfirmModal({
   isOpen,
   onClose,
   plan,
 }: PurchaseConfirmModalProps) {
+  const locale = useLocale();
   const [step, setStep] = useState<ModalStep>('confirm');
   const [error, setError] = useState('');
   const [promoCode, setPromoCode] = useState('');
-  const [validatingPromo, setValidatingPromo] = useState(false);
   const [promoError, setPromoError] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState<PromoDiscount | null>(null);
+  const [quote, setQuote] = useState<SubscriptionQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [activePromoCode, setActivePromoCode] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState('Payment page opened');
 
-  // Reset state on close
   const handleClose = () => {
     setStep('confirm');
     setError('');
     setPromoCode('');
-    setPromoDiscount(null);
     setPromoError('');
+    setQuote(null);
+    setQuoteLoading(false);
+    setActivePromoCode(null);
+    setSuccessMessage('Payment page opened');
     onClose();
   };
 
-  // Format duration
-  const formatDuration = (days: number): string => {
-    if (days === 1) return '1 day';
-    if (days === 7) return '1 week';
-    if (days === 30 || days === 31) return '1 month';
-    if (days === 90) return '3 months';
-    if (days === 180) return '6 months';
-    if (days === 365 || days === 366) return '1 year';
-    return `${days} days`;
-  };
+  const planPrice = plan ? getPlanPrice(plan, locale) : null;
 
-  // Format traffic
-  const formatTraffic = (gb: number | null | undefined): string => {
-    if (!gb) return 'Unlimited';
-    if (gb >= 1000) return `${gb / 1000} TB`;
-    return `${gb} GB`;
-  };
-
-  // Calculate final price with discount
-  const calculateFinalPrice = () => {
-    if (!plan) return 0;
-    if (!promoDiscount) return plan.price;
-
-    if (promoDiscount.discount_percent) {
-      return plan.price * (1 - promoDiscount.discount_percent / 100);
+  const handleQuoteError = (err: unknown, fallback: string) => {
+    if (err instanceof AxiosError) {
+      const detail = err.response?.data?.detail;
+      return detail || fallback;
     }
-    if (promoDiscount.discount_amount) {
-      return Math.max(0, plan.price - promoDiscount.discount_amount);
-    }
-    return plan.price;
+
+    return fallback;
   };
 
-  // Validate promo code
+  useEffect(() => {
+    const activePlan = plan;
+
+    if (!isOpen || !activePlan) {
+      return;
+    }
+
+    const initialPlan: SubscriptionPlan = activePlan;
+
+    let isCancelled = false;
+
+    async function loadInitialQuote() {
+      setQuoteLoading(true);
+      setError('');
+      setPromoError('');
+      setQuote(null);
+      setActivePromoCode(null);
+
+      try {
+        const response = await paymentsApi.quoteCheckout(buildCheckoutRequest(initialPlan));
+        if (!isCancelled) {
+          setQuote(response.data);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(handleQuoteError(err, 'Failed to load checkout quote'));
+        }
+      } finally {
+        if (!isCancelled) {
+          setQuoteLoading(false);
+        }
+      }
+    }
+
+    void loadInitialQuote();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, plan]);
+
   const handleValidatePromo = async () => {
+    const activePlan = plan;
     if (!promoCode.trim()) {
       setPromoError('Please enter a promo code');
       return;
     }
+    if (!activePlan) {
+      return;
+    }
 
-    setValidatingPromo(true);
+    setQuoteLoading(true);
     setPromoError('');
-    setPromoDiscount(null);
+    setError('');
 
     try {
-      const response = await promoApi.validate({ code: promoCode });
-      setPromoDiscount(response.data);
-      setPromoError('');
+      const normalizedPromo = promoCode.trim().toUpperCase();
+      const response = await paymentsApi.quoteCheckout(buildCheckoutRequest(activePlan, normalizedPromo));
+      setQuote(response.data);
+      setActivePromoCode(normalizedPromo);
+      setPromoCode(normalizedPromo);
     } catch (err) {
-      if (err instanceof AxiosError) {
-        const detail = err.response?.data?.detail;
-        if (err.response?.status === 404) {
-          setPromoError('Invalid or expired promo code');
-        } else if (err.response?.status === 400) {
-          setPromoError(detail || 'Promo code not valid');
-        } else {
-          setPromoError(detail || 'Failed to validate promo code');
-        }
-      } else {
-        setPromoError('An error occurred. Please try again.');
+      setActivePromoCode(null);
+      setPromoError(handleQuoteError(err, 'Promo code not valid'));
+
+      try {
+        const fallbackQuote = await paymentsApi.quoteCheckout(buildCheckoutRequest(activePlan));
+        setQuote(fallbackQuote.data);
+      } catch {
+        setQuote(null);
       }
-      setPromoDiscount(null);
     } finally {
-      setValidatingPromo(false);
+      setQuoteLoading(false);
     }
   };
 
-  // Handle purchase
   const handlePurchase = async () => {
-    if (!plan) return;
+    const activePlan = plan;
+    if (!activePlan) return;
 
-    // Mark start of purchase flow
     markPerformance(PerformanceMarks.PURCHASE_FLOW_START, {
-      planId: plan.uuid,
-      planName: plan.name,
-      hasPromoCode: !!promoCode,
+      planId: activePlan.uuid,
+      planName: activePlan.display_name,
+      hasPromoCode: !!activePromoCode,
     });
 
     setStep('processing');
     setError('');
 
     try {
-      const requestData: InvoiceRequest = {
-        plan_id: plan.uuid,
-        user_uuid: '',
-        currency: 'USDT',
-      };
+      const response = await paymentsApi.commitCheckout(
+        buildCheckoutRequest(activePlan, activePromoCode ?? undefined)
+      );
 
-      // Add promo code if validated
-      if (promoCode && promoDiscount) {
-        requestData.promo_code = promoCode;
-      }
-
-      const response = await paymentsApi.createInvoice(requestData);
-      const invoiceUrl = response.data?.payment_url;
-
-      if (invoiceUrl) {
-        setStep('success');
-
-        // Mark completion of purchase flow
-        markPerformance(PerformanceMarks.PURCHASE_FLOW_COMPLETE, {
-          planId: plan.uuid,
-          planName: plan.name,
-        });
-
-        // Measure total duration
-        measurePerformance(
-          'purchase-flow-duration',
-          PerformanceMarks.PURCHASE_FLOW_START,
-          PerformanceMarks.PURCHASE_FLOW_COMPLETE
-        );
-
-        // Open payment URL in new tab
-        window.open(invoiceUrl, '_blank');
-
-        // Auto-close modal after 2 seconds
-        setTimeout(() => {
-          handleClose();
-        }, 2000);
+      if (response.data.invoice?.payment_url) {
+        window.open(response.data.invoice.payment_url, '_blank', 'noopener,noreferrer');
+        setSuccessMessage('Payment page opened');
       } else {
-        throw new Error('No payment URL received');
+        setSuccessMessage('Subscription activated');
       }
+
+      setStep('success');
+      markPerformance(PerformanceMarks.PURCHASE_FLOW_COMPLETE, {
+        planId: activePlan.uuid,
+        planName: activePlan.display_name,
+      });
+      measurePerformance(
+        'purchase-flow-duration',
+        PerformanceMarks.PURCHASE_FLOW_START,
+        PerformanceMarks.PURCHASE_FLOW_COMPLETE
+      );
+
+      setTimeout(() => {
+        handleClose();
+      }, 2200);
     } catch (err) {
       setStep('error');
       if (err instanceof AxiosError) {
         const detail = err.response?.data?.detail;
-        if (err.response?.status === 404) {
-          setError('Plan not found');
-        } else if (err.response?.status === 400) {
-          setError(detail || 'Invalid purchase request');
-        } else {
-          setError(detail || 'Failed to create invoice');
-        }
+        setError(detail || 'Failed to commit checkout');
       } else {
         setError('An error occurred. Please try again.');
       }
@@ -202,16 +204,16 @@ export function PurchaseConfirmModal({
   };
 
   if (!plan) return null;
+  const quoteSnapshot = quote?.entitlements_snapshot.effective_entitlements;
+  const quotedTotal = quote?.displayed_price ?? plan.price_usd;
+  const quotedBase = quote?.base_price ?? plan.price_usd;
+  const hasDiscount = (quote?.discount_amount ?? 0) > 0;
+  const quotedGateway = quote?.gateway_amount ?? plan.price_usd;
 
-  // Render confirmation step
   if (step === 'confirm') {
-    const finalPrice = calculateFinalPrice();
-    const savings = plan.price - finalPrice;
-
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="CONFIRM_PURCHASE">
         <div className="space-y-6">
-          {/* Plan Details */}
           <div className="cyber-card p-6 bg-terminal-surface/50">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 bg-neon-cyan/10 border border-neon-cyan/30 rounded-lg">
@@ -219,54 +221,68 @@ export function PurchaseConfirmModal({
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-display text-neon-cyan mb-1">
-                  {plan.name}
+                  {plan.display_name}
                 </h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  {formatDuration(plan.durationDays)} • {formatTraffic(plan.dataLimitGb)}
+                  {formatDurationLabel(plan.duration_days)} • {formatTrafficLabel(plan)}
                 </p>
               </div>
             </div>
 
-            {/* Features */}
-            {plan.features && plan.features.length > 0 && (
-              <div className="space-y-2 mb-4 pb-4 border-b border-grid-line/30">
-                {plan.features.map((feature, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-matrix-green flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-muted-foreground">{feature}</span>
-                  </div>
-                ))}
+            <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-grid-line/30">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+                  Devices
+                </p>
+                <p className="mt-2 text-lg font-display text-white">
+                  {quoteSnapshot?.device_limit ?? plan.devices_included}
+                </p>
               </div>
-            )}
-
-            {/* Price */}
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm text-muted-foreground">Total Price:</span>
-              <div className="flex items-baseline gap-2">
-                {savings > 0 && (
-                  <span className="text-lg text-muted-foreground line-through font-mono">
-                    {plan.price} {plan.currency}
-                  </span>
-                )}
-                <span className="text-3xl font-display text-matrix-green">
-                  {finalPrice.toFixed(2)}
-                </span>
-                <span className="text-lg text-muted-foreground font-mono">
-                  {plan.currency}
-                </span>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/40 font-mono">
+                  Support
+                </p>
+                <p className="mt-2 text-sm font-mono text-white/75">
+                  {formatSupportLabel(quoteSnapshot?.support_sla ?? plan.support_sla)}
+                </p>
               </div>
             </div>
 
-            {savings > 0 && (
-              <div className="mt-2 text-right">
-                <span className="text-sm text-matrix-green font-mono">
-                  You save {savings.toFixed(2)} {plan.currency}!
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-start justify-between gap-4">
+                <span>Connection modes</span>
+                <span className="max-w-[16rem] text-right font-mono text-white/75">
+                  {formatConnectionModes(quoteSnapshot?.connection_modes ?? plan.connection_modes)}
                 </span>
               </div>
+              <div className="flex items-start justify-between gap-4">
+                <span>Traffic policy</span>
+                <span className="font-mono text-white/75">
+                  {quoteSnapshot?.display_traffic_label ?? formatTrafficLabel(plan)}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span>Checkout total</span>
+                <div className="text-right">
+                  {hasDiscount && (
+                    <p className="font-mono text-xs text-white/35 line-through">
+                      {formatMoney(locale, quotedBase, 'USD')}
+                    </p>
+                  )}
+                  <p className="text-2xl font-display text-matrix-green">
+                    {formatMoney(locale, quotedTotal, 'USD')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {planPrice && quote == null && !quoteLoading && (
+              <p className="mt-3 text-xs font-mono text-white/45">
+                Catalog price: {planPrice.formatted}
+              </p>
             )}
           </div>
 
-          {/* Promo Code Section */}
           <div className="cyber-card p-4 bg-terminal-bg">
             <div className="flex items-center gap-3 mb-3">
               <Tag className="h-5 w-5 text-neon-purple" />
@@ -284,12 +300,11 @@ export function PurchaseConfirmModal({
                 placeholder="SAVE20"
                 prefix="promo"
                 error={promoError}
-                disabled={validatingPromo || !!promoDiscount}
+                disabled={quoteLoading}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidatePromo()}
               />
 
-              {/* Discount Preview */}
-              {promoDiscount && (
+              {activePromoCode && quote && (quote.discount_amount > 0 || quote.partner_markup !== 0) && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -298,47 +313,53 @@ export function PurchaseConfirmModal({
                   <Percent className="h-4 w-4 text-matrix-green flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Check className="h-3 w-3 text-matrix-green" />
-                      <span className="text-xs font-semibold text-matrix-green">
-                        Valid Promo Code
+                      <ShieldCheck className="h-3 w-3 text-matrix-green" />
+                      <span className="text-xs font-semibold text-matrix-green uppercase tracking-[0.18em]">
+                        Quote Updated
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {promoDiscount.discount_percent && `${promoDiscount.discount_percent}% discount applied`}
-                      {promoDiscount.discount_amount && `$${promoDiscount.discount_amount} discount applied`}
+                      {quote.discount_amount > 0
+                        ? `${activePromoCode} applied: ${formatMoney(locale, quote.discount_amount, 'USD')} off`
+                        : `${activePromoCode} applied`}
                     </p>
                   </div>
                 </motion.div>
               )}
 
-              {!promoDiscount && (
-                <button
-                  onClick={handleValidatePromo}
-                  disabled={validatingPromo || !promoCode.trim()}
-                  className="w-full px-3 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {validatingPromo ? 'Validating...' : 'Apply Promo'}
-                </button>
-              )}
+              <button
+                onClick={handleValidatePromo}
+                disabled={quoteLoading || !promoCode.trim()}
+                className="w-full px-3 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {quoteLoading ? 'Updating quote...' : 'Apply Promo'}
+              </button>
             </div>
           </div>
 
-          {/* Payment Info */}
           <div className="p-4 bg-neon-cyan/5 border border-neon-cyan/30 rounded-lg">
             <div className="flex items-start gap-3">
               <Zap className="h-5 w-5 text-neon-cyan flex-shrink-0 mt-0.5" />
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-semibold text-neon-cyan">
-                  Crypto Payment
+                  Secure checkout
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  You&apos;ll be redirected to a secure crypto payment page. Complete the payment to activate your subscription instantly.
+                  The dashboard now checks the live canonical quote before payment and carries promo pricing directly into checkout.
+                </p>
+                <p className="text-xs font-mono text-white/55">
+                  Gateway amount: {formatMoney(locale, quotedGateway, 'USD')}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {error && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               onClick={handleClose}
@@ -348,9 +369,10 @@ export function PurchaseConfirmModal({
             </button>
             <button
               onClick={handlePurchase}
-              className="flex-1 px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors hover:shadow-[0_0_15px_rgba(0,255,255,0.3)]"
+              disabled={quoteLoading || Boolean(error)}
+              className="flex-1 px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Pay with Crypto
+              {quote?.is_zero_gateway ? 'Activate Now' : 'Pay with Crypto'}
             </button>
           </div>
         </div>
@@ -358,7 +380,6 @@ export function PurchaseConfirmModal({
     );
   }
 
-  // Render processing step
   if (step === 'processing') {
     return (
       <Modal isOpen={isOpen} onClose={() => {}} title="PROCESSING_PAYMENT">
@@ -377,7 +398,6 @@ export function PurchaseConfirmModal({
     );
   }
 
-  // Render success step
   if (step === 'success') {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="PAYMENT_READY">
@@ -389,10 +409,12 @@ export function PurchaseConfirmModal({
           <CheckCircle className="h-16 w-16 text-matrix-green mx-auto" />
           <div className="space-y-2">
             <h3 className="text-lg font-display text-matrix-green">
-              Payment Page Opened
+              {successMessage}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Complete your payment in the new tab to activate your subscription
+              {successMessage === 'Subscription activated'
+                ? 'Your subscription is now active and the entitlement snapshot has been committed.'
+                : 'Complete your payment in the new tab to activate your subscription.'}
             </p>
           </div>
         </motion.div>
@@ -400,7 +422,6 @@ export function PurchaseConfirmModal({
     );
   }
 
-  // Render error step
   if (step === 'error') {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="PAYMENT_ERROR">

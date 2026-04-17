@@ -197,7 +197,7 @@ def mock_settings() -> BotSettings:
             test_mode=True,
         ),
         telegram_stars=TelegramStarsSettings(enabled=True),
-        trial=TrialSettings(enabled=True, days=2, traffic_gb=2),
+        trial=TrialSettings(enabled=True, days=7, traffic_gb=0),
         referral=ReferralSettings(enabled=True, bonus_days=3, max_referrals=100),
         logging=LoggingSettings(level="DEBUG", json_format=False, show_locals=True),
         prometheus=PrometheusSettings(enabled=False, protect=False, port=9090, path="/metrics"),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cybervpn_mobile/core/network/network_info.dart';
 import 'package:cybervpn_mobile/core/network/websocket_client.dart';
 import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
+import 'package:cybervpn_mobile/core/providers/shared_preferences_provider.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/servers/domain/entities/server_entity.dart';
@@ -16,12 +17,17 @@ import 'package:cybervpn_mobile/features/vpn/domain/usecases/connect_vpn.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/usecases/disconnect_vpn.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Mock VpnRepository
 // ---------------------------------------------------------------------------
+
+late SharedPreferences _testPrefs;
 
 class MockVpnRepository implements VpnRepository {
   final StreamController<ConnectionStateEntity> _stateController =
@@ -38,7 +44,8 @@ class MockVpnRepository implements VpnRepository {
   Future<Result<bool>> get isConnected async => Success(_isConnected);
 
   @override
-  Future<Result<VpnConfigEntity?>> getLastConfig() async => Success(_lastConfig);
+  Future<Result<VpnConfigEntity?>> getLastConfig() async =>
+      Success(_lastConfig);
 
   @override
   Future<Result<void>> connect(VpnConfigEntity config) async {
@@ -185,10 +192,7 @@ class MockWebSocketClient implements WebSocketClient {
 // Test helpers
 // ---------------------------------------------------------------------------
 
-ServerEntity _makeServer({
-  required String id,
-  String name = 'Test Server',
-}) {
+ServerEntity _makeServer({required String id, String name = 'Test Server'}) {
   return ServerEntity(
     id: id,
     name: name,
@@ -220,8 +224,14 @@ ProviderContainer createContainer({
       killSwitchServiceProvider.overrideWithValue(killSwitch),
       webSocketClientProvider.overrideWithValue(wsClient),
       connectVpnUseCaseProvider.overrideWithValue(ConnectVpnUseCase(repo)),
-      disconnectVpnUseCaseProvider.overrideWithValue(DisconnectVpnUseCase(repo)),
+      disconnectVpnUseCaseProvider.overrideWithValue(
+        DisconnectVpnUseCase(repo),
+      ),
       vpnSettingsProvider.overrideWith((ref) => const VpnSettings()),
+      sharedPreferencesProvider.overrideWithValue(_testPrefs),
+      activeVpnProfileProvider.overrideWith(
+        (ref) => Stream<VpnProfile?>.value(null),
+      ),
     ],
   );
 }
@@ -234,11 +244,30 @@ Future<VpnConnectionState> waitForState(ProviderContainer container) async {
   return container.read(vpnConnectionProvider).requireValue;
 }
 
+Future<VpnConnectionState> waitForPredicate(
+  ProviderContainer container,
+  bool Function(VpnConnectionState state) predicate, {
+  Duration timeout = const Duration(seconds: 1),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final state = container.read(vpnConnectionProvider).requireValue;
+    if (predicate(state)) {
+      return state;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+
+  return container.read(vpnConnectionProvider).requireValue;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('VpnConnectionProvider - WebSocket Integration', () {
     late MockVpnRepository repo;
     late MockNetworkInfo networkInfo;
@@ -248,7 +277,9 @@ void main() {
     late MockWebSocketClient wsClient;
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      _testPrefs = await SharedPreferences.getInstance();
       repo = MockVpnRepository();
       networkInfo = MockNetworkInfo();
       storage = MockSecureStorage();
@@ -289,70 +320,72 @@ void main() {
         const ForceDisconnect(reason: 'Account suspended'),
       );
 
-      // Give the stream a tick to process.
-      await Future<void>.delayed(Duration.zero);
-
-      // Verify VPN is disconnected.
-      state = container.read(vpnConnectionProvider).requireValue;
-      expect(state.isDisconnected || state.isError, isTrue);
-
-      // If error state, verify the reason is included.
-      if (state is VpnError) {
-        expect(state.message, contains('Account suspended'));
-      }
+      state = await waitForPredicate(
+        container,
+        (state) => state is VpnForceDisconnected,
+      );
+      expect(state, isA<VpnForceDisconnected>());
+      expect((state as VpnForceDisconnected).reason, 'Account suspended');
     });
 
-    test('force_disconnect event with empty reason still disconnects', () async {
-      container = createContainer(
-        repo: repo,
-        networkInfo: networkInfo,
-        storage: storage,
-        autoReconnect: autoReconnect,
-        killSwitch: killSwitch,
-        wsClient: wsClient,
-      );
+    test(
+      'force_disconnect event with empty reason still disconnects',
+      () async {
+        container = createContainer(
+          repo: repo,
+          networkInfo: networkInfo,
+          storage: storage,
+          autoReconnect: autoReconnect,
+          killSwitch: killSwitch,
+          wsClient: wsClient,
+        );
 
-      await waitForState(container);
+        await waitForState(container);
 
-      // Connect to a server.
-      final server = _makeServer(id: 'server-1');
-      final notifier = container.read(vpnConnectionProvider.notifier);
-      await notifier.connect(server);
+        // Connect to a server.
+        final server = _makeServer(id: 'server-1');
+        final notifier = container.read(vpnConnectionProvider.notifier);
+        await notifier.connect(server);
 
-      // Emit force_disconnect event with empty reason.
-      wsClient.emitForceDisconnect(
-        const ForceDisconnect(reason: ''),
-      );
+        // Emit force_disconnect event with empty reason.
+        wsClient.emitForceDisconnect(const ForceDisconnect(reason: ''));
 
-      await Future<void>.delayed(Duration.zero);
+        final state = await waitForPredicate(
+          container,
+          (state) => state is VpnForceDisconnected,
+        );
+        expect(state, isA<VpnForceDisconnected>());
+        expect((state as VpnForceDisconnected).reason, isEmpty);
+      },
+    );
 
-      final state = container.read(vpnConnectionProvider).requireValue;
-      expect(state.isDisconnected || state.isError, isTrue);
-    });
+    test(
+      'force_disconnect event when already disconnected is handled gracefully',
+      () async {
+        container = createContainer(
+          repo: repo,
+          networkInfo: networkInfo,
+          storage: storage,
+          autoReconnect: autoReconnect,
+          killSwitch: killSwitch,
+          wsClient: wsClient,
+        );
 
-    test('force_disconnect event when already disconnected is handled gracefully', () async {
-      container = createContainer(
-        repo: repo,
-        networkInfo: networkInfo,
-        storage: storage,
-        autoReconnect: autoReconnect,
-        killSwitch: killSwitch,
-        wsClient: wsClient,
-      );
+        var state = await waitForState(container);
+        expect(state.isDisconnected, isTrue);
 
-      var state = await waitForState(container);
-      expect(state.isDisconnected, isTrue);
+        // Emit force_disconnect event while already disconnected.
+        wsClient.emitForceDisconnect(
+          const ForceDisconnect(reason: 'Already disconnected'),
+        );
 
-      // Emit force_disconnect event while already disconnected.
-      wsClient.emitForceDisconnect(
-        const ForceDisconnect(reason: 'Already disconnected'),
-      );
-
-      await Future<void>.delayed(Duration.zero);
-
-      // Verify state remains stable (no crash).
-      state = container.read(vpnConnectionProvider).requireValue;
-      expect(state.isDisconnected || state.isError, isTrue);
-    });
+        state = await waitForPredicate(
+          container,
+          (state) => state is VpnForceDisconnected,
+        );
+        expect(state, isA<VpnForceDisconnected>());
+        expect((state as VpnForceDisconnected).reason, 'Already disconnected');
+      },
+    );
   });
 }

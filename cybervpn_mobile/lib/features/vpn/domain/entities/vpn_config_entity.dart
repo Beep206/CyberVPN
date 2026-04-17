@@ -16,5 +16,11 @@ sealed class VpnConfigEntity with _$VpnConfigEntity {
     required String configData,
     String? remark,
     @Default(false) bool isFavorite,
+    @Default(<String>[]) List<String> blockedApps,
+    @Default(<String>[]) List<String> bypassSubnets,
+    List<String>? dnsServers,
+    int? mtu,
+    @Default(false) bool proxyOnly,
+    @Default(false) bool allowLanConnections,
   }) = _VpnConfigEntity;
 }

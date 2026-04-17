@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/excluded_route_entry.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/routing_profile.dart';
 
 void main() {
   late SettingsRepositoryImpl repository;
@@ -37,17 +39,81 @@ void main() {
       expect(settings.brightness, equals(defaults.brightness));
       expect(settings.dynamicColor, equals(defaults.dynamicColor));
       expect(settings.preferredProtocol, equals(defaults.preferredProtocol));
-      expect(settings.autoConnectOnLaunch, equals(defaults.autoConnectOnLaunch));
+      expect(
+        settings.autoConnectOnLaunch,
+        equals(defaults.autoConnectOnLaunch),
+      );
       expect(
         settings.autoConnectUntrustedWifi,
         equals(defaults.autoConnectUntrustedWifi),
       );
       expect(settings.killSwitch, equals(defaults.killSwitch));
+      expect(settings.routingEnabled, equals(defaults.routingEnabled));
+      expect(settings.routingProfiles, equals(defaults.routingProfiles));
+      expect(
+        settings.activeRoutingProfileId,
+        equals(defaults.activeRoutingProfileId),
+      );
+      expect(settings.bypassSubnets, equals(defaults.bypassSubnets));
+      expect(
+        settings.excludedRouteEntries,
+        equals(defaults.excludedRouteEntries),
+      );
       expect(settings.splitTunneling, equals(defaults.splitTunneling));
+      expect(settings.perAppProxyMode, equals(defaults.perAppProxyMode));
+      expect(settings.perAppProxyAppIds, equals(defaults.perAppProxyAppIds));
       expect(settings.dnsProvider, equals(defaults.dnsProvider));
       expect(settings.customDns, isNull);
+      expect(settings.useLocalDns, equals(defaults.useLocalDns));
+      expect(settings.localDnsPort, equals(defaults.localDnsPort));
+      expect(settings.useDnsFromJson, equals(defaults.useDnsFromJson));
+      expect(
+        settings.fragmentationEnabled,
+        equals(defaults.fragmentationEnabled),
+      );
+      expect(settings.muxEnabled, equals(defaults.muxEnabled));
+      expect(settings.preferredIpType, equals(defaults.preferredIpType));
+      expect(settings.sniffingEnabled, equals(defaults.sniffingEnabled));
+      expect(settings.vpnRunMode, equals(defaults.vpnRunMode));
+      expect(
+        settings.serverAddressResolveEnabled,
+        equals(defaults.serverAddressResolveEnabled),
+      );
+      expect(settings.pingMode, equals(defaults.pingMode));
+      expect(settings.pingTestUrl, equals(defaults.pingTestUrl));
+      expect(settings.pingDisplayMode, equals(defaults.pingDisplayMode));
+      expect(settings.pingResultMode, equals(defaults.pingResultMode));
       expect(settings.mtuMode, equals(defaults.mtuMode));
       expect(settings.mtuValue, equals(defaults.mtuValue));
+      expect(
+        settings.subscriptionAutoUpdateEnabled,
+        equals(defaults.subscriptionAutoUpdateEnabled),
+      );
+      expect(
+        settings.subscriptionAutoUpdateIntervalHours,
+        equals(defaults.subscriptionAutoUpdateIntervalHours),
+      );
+      expect(
+        settings.subscriptionAutoUpdateOnOpen,
+        equals(defaults.subscriptionAutoUpdateOnOpen),
+      );
+      expect(
+        settings.subscriptionConnectStrategy,
+        equals(defaults.subscriptionConnectStrategy),
+      );
+      expect(
+        settings.subscriptionUserAgentMode,
+        equals(defaults.subscriptionUserAgentMode),
+      );
+      expect(
+        settings.subscriptionSortMode,
+        equals(defaults.subscriptionSortMode),
+      );
+      expect(
+        settings.allowLanConnections,
+        equals(defaults.allowLanConnections),
+      );
+      expect(settings.appAutoStart, equals(defaults.appAutoStart));
       expect(settings.locale, equals(defaults.locale));
       expect(
         settings.notificationConnection,
@@ -109,6 +175,21 @@ void main() {
   // ---------------------------------------------------------------------------
   group('getSettings - reads stored values', () {
     test('returns correct AppSettings when all keys are present', () async {
+      final routingProfiles = [
+        const RoutingProfile(
+          id: 'profile-1',
+          name: 'Streaming Direct',
+          rules: [
+            RoutingRule(
+              id: 'rule-1',
+              matchType: RoutingRuleMatchType.domainSuffix,
+              value: 'youtube.com',
+              action: RoutingRuleAction.direct,
+            ),
+          ],
+        ),
+      ];
+
       await initRepo({
         'settings.themeMode': 'materialYou',
         'settings.brightness': 'dark',
@@ -117,11 +198,52 @@ void main() {
         'settings.autoConnectOnLaunch': true,
         'settings.autoConnectUntrustedWifi': true,
         'settings.killSwitch': true,
+        'settings.routingEnabled': true,
+        'settings.routingProfiles':
+            '[{"id":"profile-1","name":"Streaming Direct","enabled":true,"rules":[{"id":"rule-1","matchType":"domainSuffix","value":"youtube.com","action":"direct","enabled":true}]}]',
+        'settings.activeRoutingProfileId': 'profile-1',
+        'settings.bypassSubnets': ['10.0.0.0/8', '2001:db8::/32'],
+        'settings.excludedRouteEntries':
+            '[{"rawValue":"10.0.0.0/8","targetType":"ipv4Cidr"},{"rawValue":"2001:db8::/32","targetType":"ipv6Cidr"}]',
         'settings.splitTunneling': true,
+        'settings.perAppProxyMode': 'proxySelected',
+        'settings.perAppProxyAppIds': [
+          'com.example.browser',
+          'com.example.player',
+        ],
         'settings.dnsProvider': 'cloudflare',
         'settings.customDns': '1.1.1.1',
+        'settings.useLocalDns': true,
+        'settings.localDnsPort': 1054,
+        'settings.useDnsFromJson': true,
+        'settings.fragmentationEnabled': true,
+        'settings.muxEnabled': true,
+        'settings.preferredIpType': 'ipv6',
+        'settings.sniffingEnabled': true,
+        'settings.vpnRunMode': 'proxyOnly',
+        'settings.serverAddressResolveEnabled': true,
+        'settings.serverAddressResolveDohUrl': 'https://dns.example/dns-query',
+        'settings.serverAddressResolveDnsIp': '1.1.1.1',
+        'settings.pingMode': 'realDelay',
+        'settings.pingTestUrl': 'https://cp.cloudflare.com/generate_204',
+        'settings.pingDisplayMode': 'quality',
+        'settings.pingResultMode': 'icon',
         'settings.mtuMode': 'manual',
         'settings.mtuValue': 1500,
+        'settings.subscriptionAutoUpdateEnabled': false,
+        'settings.subscriptionAutoUpdateIntervalHours': 12,
+        'settings.subscriptionUpdateNotificationsEnabled': true,
+        'settings.subscriptionAutoUpdateOnOpen': false,
+        'settings.subscriptionPingOnOpenEnabled': true,
+        'settings.subscriptionConnectStrategy': 'lowestDelay',
+        'settings.preventDuplicateImports': false,
+        'settings.collapseSubscriptions': false,
+        'settings.subscriptionNoFilter': true,
+        'settings.subscriptionUserAgentMode': 'custom',
+        'settings.subscriptionUserAgentValue': 'CyberVPN-Test/8.0',
+        'settings.subscriptionSortMode': 'alphabetical',
+        'settings.allowLanConnections': true,
+        'settings.appAutoStart': true,
         'settings.locale': 'ru',
         'settings.notificationConnection': false,
         'settings.notificationExpiry': false,
@@ -141,11 +263,59 @@ void main() {
       expect(settings.autoConnectOnLaunch, isTrue);
       expect(settings.autoConnectUntrustedWifi, isTrue);
       expect(settings.killSwitch, isTrue);
+      expect(settings.routingEnabled, isTrue);
+      expect(settings.routingProfiles, routingProfiles);
+      expect(settings.activeRoutingProfileId, 'profile-1');
+      expect(settings.bypassSubnets, ['10.0.0.0/8', '2001:db8::/32']);
+      expect(settings.excludedRouteEntries, hasLength(2));
       expect(settings.splitTunneling, isTrue);
+      expect(settings.perAppProxyMode, PerAppProxyMode.proxySelected);
+      expect(settings.perAppProxyAppIds, [
+        'com.example.browser',
+        'com.example.player',
+      ]);
       expect(settings.dnsProvider, DnsProvider.cloudflare);
       expect(settings.customDns, '1.1.1.1');
+      expect(settings.useLocalDns, isTrue);
+      expect(settings.localDnsPort, 1054);
+      expect(settings.useDnsFromJson, isTrue);
+      expect(settings.fragmentationEnabled, isTrue);
+      expect(settings.muxEnabled, isTrue);
+      expect(settings.preferredIpType, PreferredIpType.ipv6);
+      expect(settings.sniffingEnabled, isTrue);
+      expect(settings.vpnRunMode, VpnRunMode.proxyOnly);
+      expect(settings.serverAddressResolveEnabled, isTrue);
+      expect(
+        settings.serverAddressResolveDohUrl,
+        'https://dns.example/dns-query',
+      );
+      expect(settings.serverAddressResolveDnsIp, '1.1.1.1');
+      expect(settings.pingMode, PingMode.realDelay);
+      expect(settings.pingTestUrl, 'https://cp.cloudflare.com/generate_204');
+      expect(settings.pingDisplayMode, PingDisplayMode.quality);
+      expect(settings.pingResultMode, PingResultMode.icon);
       expect(settings.mtuMode, MtuMode.manual);
       expect(settings.mtuValue, 1500);
+      expect(settings.subscriptionAutoUpdateEnabled, isFalse);
+      expect(settings.subscriptionAutoUpdateIntervalHours, 12);
+      expect(settings.subscriptionUpdateNotificationsEnabled, isTrue);
+      expect(settings.subscriptionAutoUpdateOnOpen, isFalse);
+      expect(settings.subscriptionPingOnOpenEnabled, isTrue);
+      expect(
+        settings.subscriptionConnectStrategy,
+        SubscriptionConnectStrategy.lowestDelay,
+      );
+      expect(settings.preventDuplicateImports, isFalse);
+      expect(settings.collapseSubscriptions, isFalse);
+      expect(settings.subscriptionNoFilter, isTrue);
+      expect(
+        settings.subscriptionUserAgentMode,
+        SubscriptionUserAgentMode.custom,
+      );
+      expect(settings.subscriptionUserAgentValue, 'CyberVPN-Test/8.0');
+      expect(settings.subscriptionSortMode, SubscriptionSortMode.alphabetical);
+      expect(settings.allowLanConnections, isTrue);
+      expect(settings.appAutoStart, isTrue);
       expect(settings.locale, 'ru');
       expect(settings.notificationConnection, isFalse);
       expect(settings.notificationExpiry, isFalse);
@@ -161,6 +331,10 @@ void main() {
         'settings.themeMode': 'invalidValue',
         'settings.dnsProvider': 'nonexistent',
         'settings.logLevel': 'verbose', // not in enum
+        'settings.perAppProxyMode': 'nope',
+        'settings.preferredIpType': 'nope',
+        'settings.pingMode': 'nope',
+        'settings.pingDisplayMode': 'nope',
       });
 
       final settings = await getSettings();
@@ -169,13 +343,14 @@ void main() {
       expect(settings.themeMode, defaults.themeMode);
       expect(settings.dnsProvider, defaults.dnsProvider);
       expect(settings.logLevel, defaults.logLevel);
+      expect(settings.perAppProxyMode, defaults.perAppProxyMode);
+      expect(settings.preferredIpType, defaults.preferredIpType);
+      expect(settings.pingMode, defaults.pingMode);
+      expect(settings.pingDisplayMode, defaults.pingDisplayMode);
     });
 
     test('reads partial keys and defaults the rest', () async {
-      await initRepo({
-        'settings.locale': 'de',
-        'settings.killSwitch': true,
-      });
+      await initRepo({'settings.locale': 'de', 'settings.killSwitch': true});
 
       final settings = await getSettings();
 
@@ -186,6 +361,54 @@ void main() {
       expect(settings.brightness, AppBrightness.system);
       expect(settings.dynamicColor, isFalse);
     });
+
+    test('falls back to empty routing profiles for malformed json', () async {
+      await initRepo({
+        'settings.routingProfiles': '{invalid-json',
+        'settings.routingEnabled': true,
+      });
+
+      final settings = await getSettings();
+
+      expect(settings.routingEnabled, isTrue);
+      expect(settings.routingProfiles, isEmpty);
+    });
+
+    test(
+      'derives typed excluded routes from legacy bypassSubnets storage',
+      () async {
+        await initRepo({
+          'settings.bypassSubnets': ['10.0.0.0/8', '2001:db8::/32'],
+        });
+
+        final settings = await getSettings();
+
+        expect(
+          settings.excludedRouteEntries.map((entry) => entry.normalizedValue),
+          ['10.0.0.0/8', '2001:db8::/32'],
+        );
+        expect(
+          settings.excludedRouteEntries.first.targetType,
+          ExcludedRouteTargetType.ipv4Cidr,
+        );
+        expect(
+          settings.excludedRouteEntries.last.targetType,
+          ExcludedRouteTargetType.ipv6Cidr,
+        );
+      },
+    );
+
+    test(
+      'derives pingResultMode from legacy pingDisplayMode when unset',
+      () async {
+        await initRepo({'settings.pingDisplayMode': 'quality'});
+
+        final settings = await getSettings();
+
+        expect(settings.pingDisplayMode, PingDisplayMode.quality);
+        expect(settings.pingResultMode, PingResultMode.icon);
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -195,6 +418,19 @@ void main() {
     test('persists all fields and reads them back correctly', () async {
       await initRepo();
 
+      const routingProfile = RoutingProfile(
+        id: 'profile-1',
+        name: 'Apps Direct',
+        rules: [
+          RoutingRule(
+            id: 'rule-1',
+            matchType: RoutingRuleMatchType.packageName,
+            value: 'com.example.player',
+            action: RoutingRuleAction.direct,
+          ),
+        ],
+      );
+
       const custom = AppSettings(
         themeMode: AppThemeMode.materialYou,
         brightness: AppBrightness.light,
@@ -203,11 +439,52 @@ void main() {
         autoConnectOnLaunch: true,
         autoConnectUntrustedWifi: true,
         killSwitch: true,
+        routingEnabled: true,
+        routingProfiles: [routingProfile],
+        activeRoutingProfileId: 'profile-1',
+        bypassSubnets: ['10.0.0.0/8'],
+        excludedRouteEntries: [
+          ExcludedRouteEntry(
+            rawValue: '10.0.0.0/8',
+            targetType: ExcludedRouteTargetType.ipv4Cidr,
+          ),
+        ],
         splitTunneling: true,
+        perAppProxyMode: PerAppProxyMode.bypassSelected,
+        perAppProxyAppIds: ['com.example.browser'],
         dnsProvider: DnsProvider.google,
         customDns: '8.8.8.8',
+        useLocalDns: true,
+        localDnsPort: 1054,
+        useDnsFromJson: true,
+        fragmentationEnabled: true,
+        muxEnabled: true,
+        preferredIpType: PreferredIpType.ipv4,
+        sniffingEnabled: true,
+        vpnRunMode: VpnRunMode.proxyOnly,
+        serverAddressResolveEnabled: true,
+        serverAddressResolveDohUrl: 'https://dns.example/dns-query',
+        serverAddressResolveDnsIp: '8.8.8.8',
+        pingMode: PingMode.realDelay,
+        pingTestUrl: 'https://cp.cloudflare.com/generate_204',
+        pingDisplayMode: PingDisplayMode.quality,
+        pingResultMode: PingResultMode.icon,
         mtuMode: MtuMode.manual,
         mtuValue: 1300,
+        subscriptionAutoUpdateEnabled: false,
+        subscriptionAutoUpdateIntervalHours: 12,
+        subscriptionUpdateNotificationsEnabled: true,
+        subscriptionAutoUpdateOnOpen: false,
+        subscriptionPingOnOpenEnabled: true,
+        subscriptionConnectStrategy: SubscriptionConnectStrategy.random,
+        preventDuplicateImports: false,
+        collapseSubscriptions: false,
+        subscriptionNoFilter: true,
+        subscriptionUserAgentMode: SubscriptionUserAgentMode.custom,
+        subscriptionUserAgentValue: 'CyberVPN-Test/8.0',
+        subscriptionSortMode: SubscriptionSortMode.alphabetical,
+        allowLanConnections: true,
+        appAutoStart: true,
         locale: 'ja',
         notificationConnection: false,
         notificationExpiry: false,
@@ -228,11 +505,56 @@ void main() {
       expect(result.autoConnectOnLaunch, isTrue);
       expect(result.autoConnectUntrustedWifi, isTrue);
       expect(result.killSwitch, isTrue);
+      expect(result.routingEnabled, isTrue);
+      expect(result.routingProfiles, [routingProfile]);
+      expect(result.activeRoutingProfileId, 'profile-1');
+      expect(result.bypassSubnets, ['10.0.0.0/8']);
+      expect(result.excludedRouteEntries, hasLength(1));
       expect(result.splitTunneling, isTrue);
+      expect(result.perAppProxyMode, PerAppProxyMode.bypassSelected);
+      expect(result.perAppProxyAppIds, ['com.example.browser']);
       expect(result.dnsProvider, DnsProvider.google);
       expect(result.customDns, '8.8.8.8');
+      expect(result.useLocalDns, isTrue);
+      expect(result.localDnsPort, 1054);
+      expect(result.useDnsFromJson, isTrue);
+      expect(result.fragmentationEnabled, isTrue);
+      expect(result.muxEnabled, isTrue);
+      expect(result.preferredIpType, PreferredIpType.ipv4);
+      expect(result.sniffingEnabled, isTrue);
+      expect(result.vpnRunMode, VpnRunMode.proxyOnly);
+      expect(result.serverAddressResolveEnabled, isTrue);
+      expect(
+        result.serverAddressResolveDohUrl,
+        'https://dns.example/dns-query',
+      );
+      expect(result.serverAddressResolveDnsIp, '8.8.8.8');
+      expect(result.pingMode, PingMode.realDelay);
+      expect(result.pingTestUrl, 'https://cp.cloudflare.com/generate_204');
+      expect(result.pingDisplayMode, PingDisplayMode.quality);
+      expect(result.pingResultMode, PingResultMode.icon);
       expect(result.mtuMode, MtuMode.manual);
       expect(result.mtuValue, 1300);
+      expect(result.subscriptionAutoUpdateEnabled, isFalse);
+      expect(result.subscriptionAutoUpdateIntervalHours, 12);
+      expect(result.subscriptionUpdateNotificationsEnabled, isTrue);
+      expect(result.subscriptionAutoUpdateOnOpen, isFalse);
+      expect(result.subscriptionPingOnOpenEnabled, isTrue);
+      expect(
+        result.subscriptionConnectStrategy,
+        SubscriptionConnectStrategy.random,
+      );
+      expect(result.preventDuplicateImports, isFalse);
+      expect(result.collapseSubscriptions, isFalse);
+      expect(result.subscriptionNoFilter, isTrue);
+      expect(
+        result.subscriptionUserAgentMode,
+        SubscriptionUserAgentMode.custom,
+      );
+      expect(result.subscriptionUserAgentValue, 'CyberVPN-Test/8.0');
+      expect(result.subscriptionSortMode, SubscriptionSortMode.alphabetical);
+      expect(result.allowLanConnections, isTrue);
+      expect(result.appAutoStart, isTrue);
       expect(result.locale, 'ja');
       expect(result.notificationConnection, isFalse);
       expect(result.notificationExpiry, isFalse);
@@ -303,6 +625,12 @@ void main() {
         'settings.preferredProtocol': 'vlessReality',
         'settings.autoConnectOnLaunch': true,
         'settings.killSwitch': true,
+        'settings.routingEnabled': true,
+        'settings.routingProfiles':
+            '[{"id":"profile-1","name":"Profile","enabled":true,"rules":[]}]',
+        'settings.activeRoutingProfileId': 'profile-1',
+        'settings.perAppProxyMode': 'proxySelected',
+        'settings.perAppProxyAppIds': ['com.example.browser'],
         'settings.locale': 'zh',
         'settings.logLevel': 'error',
         'settings.mtuValue': 1200,
@@ -314,6 +642,8 @@ void main() {
       expect(settings.themeMode, AppThemeMode.materialYou);
       expect(settings.locale, 'zh');
       expect(settings.mtuValue, 1200);
+      expect(settings.routingProfiles, isNotEmpty);
+      expect(settings.perAppProxyAppIds, ['com.example.browser']);
 
       // Reset
       await repository.resetSettings();
@@ -328,6 +658,11 @@ void main() {
       expect(settings.preferredProtocol, defaults.preferredProtocol);
       expect(settings.autoConnectOnLaunch, defaults.autoConnectOnLaunch);
       expect(settings.killSwitch, defaults.killSwitch);
+      expect(settings.routingEnabled, defaults.routingEnabled);
+      expect(settings.routingProfiles, defaults.routingProfiles);
+      expect(settings.activeRoutingProfileId, defaults.activeRoutingProfileId);
+      expect(settings.perAppProxyMode, defaults.perAppProxyMode);
+      expect(settings.perAppProxyAppIds, defaults.perAppProxyAppIds);
       expect(settings.locale, defaults.locale);
       expect(settings.logLevel, defaults.logLevel);
       expect(settings.mtuValue, defaults.mtuValue);
@@ -420,8 +755,11 @@ void main() {
       for (final brightness in AppBrightness.values) {
         await initRepo({'settings.brightness': brightness.name});
         final settings = await getSettings();
-        expect(settings.brightness, brightness,
-            reason: 'Failed for ${brightness.name}');
+        expect(
+          settings.brightness,
+          brightness,
+          reason: 'Failed for ${brightness.name}',
+        );
       }
     });
 
@@ -429,8 +767,11 @@ void main() {
       for (final protocol in PreferredProtocol.values) {
         await initRepo({'settings.preferredProtocol': protocol.name});
         final settings = await getSettings();
-        expect(settings.preferredProtocol, protocol,
-            reason: 'Failed for ${protocol.name}');
+        expect(
+          settings.preferredProtocol,
+          protocol,
+          reason: 'Failed for ${protocol.name}',
+        );
       }
     });
 

@@ -8,6 +8,10 @@ export const COMMERCE_NAV_ITEMS = [
     labelKey: 'nav.plans',
   },
   {
+    href: '/commerce/addons',
+    labelKey: 'nav.addons',
+  },
+  {
     href: '/commerce/subscription-templates',
     labelKey: 'nav.subscriptionTemplates',
   },

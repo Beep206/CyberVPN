@@ -6,8 +6,8 @@ with nested model support, validators, and a cached singleton accessor.
 
 from __future__ import annotations
 
-from functools import lru_cache
 import ipaddress
+from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -18,7 +18,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 # ── Nested sub-models ────────────────────────────────────────────────────────
 
@@ -132,8 +131,8 @@ class TrialSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="TRIAL_")
 
     enabled: bool = True
-    days: Annotated[int, Field(gt=0, le=30)] = 2
-    traffic_gb: Annotated[int, Field(gt=0, le=100)] = 2
+    days: Annotated[int, Field(gt=0, le=30)] = 7
+    traffic_gb: Annotated[int, Field(ge=0, le=100)] = 0
 
 
 class ReferralSettings(BaseSettings):

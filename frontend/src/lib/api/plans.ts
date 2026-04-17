@@ -1,8 +1,11 @@
 import { apiClient } from './client';
 import type { operations } from './generated/types';
 
-// Extract types from OpenAPI operations
-type PlansResponse = operations['list_plans_api_v1_plans__get']['responses'][200]['content']['application/json'];
+type ListPlansOperation = operations['list_plans_api_v1_plans__get'];
+
+export type PlansResponse = ListPlansOperation['responses'][200]['content']['application/json'];
+export type PlanRecord = PlansResponse[number];
+export type ListPlansParams = ListPlansOperation['parameters']['query'];
 
 /**
  * Plans API client
@@ -16,6 +19,6 @@ export const plansApi = {
    * Returns all public subscription plans with pricing, features, and limits.
    * Plans are displayed to users for purchase selection.
    */
-  list: () =>
-    apiClient.get<PlansResponse>('/plans'),
+  list: (params?: ListPlansParams) =>
+    apiClient.get<PlansResponse>('/plans', { params }),
 };
