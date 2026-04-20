@@ -4,14 +4,201 @@ use crate::engine::error::AppError;
 use crate::engine::manager::ProcessManager;
 use crate::engine::parser;
 use crate::engine::store;
+use crate::engine::{helix, helix::client};
 use models::{ConnectionStatus, ProfileGroup, ProxyNode};
-use std::sync::Arc;
-use tauri::{AppHandle, Emitter, State};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::RwLock;
 
 pub struct AppState {
     pub status: RwLock<ConnectionStatus>,
     pub process_manager: Arc<ProcessManager>,
+    pub connection_attempt: AtomicU64,
+}
+
+fn emit_connection_lifecycle_event(app: &AppHandle, event: &str, payload: serde_json::Value) {
+    let _ = app.emit(
+        "connection-lifecycle",
+        serde_json::json!({
+            "event": event,
+            "payload": payload,
+        }),
+    );
+}
+
+fn emit_connection_options_event(app: &AppHandle, options: &models::LastConnectionOptions) {
+    let _ = app.emit("connection-options", options.clone());
+}
+
+fn begin_connection_attempt(state: &AppState) -> u64 {
+    state.connection_attempt.fetch_add(1, Ordering::SeqCst) + 1
+}
+
+fn invalidate_connection_attempts(state: &AppState) -> u64 {
+    state.connection_attempt.fetch_add(1, Ordering::SeqCst) + 1
+}
+
+fn is_connection_attempt_current(state: &AppState, attempt_id: u64) -> bool {
+    state.connection_attempt.load(Ordering::SeqCst) == attempt_id
+}
+
+pub(crate) fn emit_connection_status_event(
+    app: &AppHandle,
+    status: ConnectionStatus,
+) -> Result<(), AppError> {
+    app.emit("connection-status", status)?;
+    let _ = crate::tray::setup(app);
+    Ok(())
+}
+
+fn current_timestamp_ms() -> Option<u64> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| u64::try_from(duration.as_millis()).ok())
+}
+
+fn sanitize_source_surface(source_surface: Option<&str>, default_surface: &str) -> String {
+    let candidate = source_surface
+        .unwrap_or(default_surface)
+        .trim()
+        .to_lowercase();
+    if candidate.is_empty() {
+        return default_surface.to_string();
+    }
+
+    let sanitized = candidate
+        .chars()
+        .filter(|character| {
+            character.is_ascii_alphanumeric() || *character == '-' || *character == '_'
+        })
+        .take(32)
+        .collect::<String>();
+
+    if sanitized.is_empty() {
+        default_surface.to_string()
+    } else {
+        sanitized
+    }
+}
+
+fn derive_last_connection_options(
+    store_data: &store::AppDataStore,
+) -> models::LastConnectionOptions {
+    let mut options = store_data.last_connection_options.clone();
+    let profile_exists = |profile_id: &str| {
+        store_data
+            .profiles
+            .iter()
+            .any(|profile| profile.id == profile_id)
+    };
+    if options.active_core.trim().is_empty() {
+        options.active_core = store_data.active_core.clone();
+    }
+    if options.profile_id.is_none() {
+        options.profile_id = store_data.active_profile_id.clone();
+    }
+    options.favorite_profile_ids = options
+        .favorite_profile_ids
+        .into_iter()
+        .filter(|profile_id| profile_exists(profile_id))
+        .collect();
+    if options
+        .last_stable_profile_id
+        .as_deref()
+        .is_some_and(|profile_id| !profile_exists(profile_id))
+    {
+        options.last_stable_profile_id = None;
+        options.last_stable_connected_at = None;
+    }
+    options
+}
+
+fn persist_last_connection_options<F>(
+    app: &AppHandle,
+    mutator: F,
+) -> Result<models::LastConnectionOptions, AppError>
+where
+    F: FnOnce(&mut store::AppDataStore, &mut models::LastConnectionOptions),
+{
+    let mut store_data = store::load_store(app)?;
+    let mut options = derive_last_connection_options(&store_data);
+    mutator(&mut store_data, &mut options);
+    if options.active_core.trim().is_empty() {
+        options.active_core = store_data.active_core.clone();
+    }
+    store_data.last_connection_options = options.clone();
+    store::save_store(app, &store_data)?;
+    emit_connection_options_event(app, &options);
+    Ok(options)
+}
+
+fn resolve_profile_id_for_connect(
+    store_data: &store::AppDataStore,
+    preferred_profile_id: Option<&str>,
+) -> Option<String> {
+    let profile_exists = |profile_id: &str| {
+        store_data
+            .profiles
+            .iter()
+            .any(|profile| profile.id == profile_id)
+    };
+
+    if let Some(profile_id) = preferred_profile_id.filter(|profile_id| profile_exists(profile_id)) {
+        return Some(profile_id.to_string());
+    }
+
+    if let Some(profile_id) = store_data
+        .active_profile_id
+        .as_deref()
+        .filter(|profile_id| profile_exists(profile_id))
+    {
+        return Some(profile_id.to_string());
+    }
+
+    if let Some(profile_id) = store_data
+        .last_connection_options
+        .profile_id
+        .as_deref()
+        .filter(|profile_id| profile_exists(profile_id))
+    {
+        return Some(profile_id.to_string());
+    }
+
+    store_data
+        .profiles
+        .first()
+        .map(|profile| profile.id.clone())
+}
+
+pub(crate) async fn connect_with_last_options(
+    source_surface: &str,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let store_data = store::load_store(&app)?;
+    let profile_id =
+        resolve_profile_id_for_connect(&store_data, None).ok_or_else(|| AppError::Actionable {
+            error: "No saved desktop profile is available for reconnect".to_string(),
+            resolution:
+                "Import or create a profile before using tray, hotkey, or remote reconnect."
+                    .to_string(),
+        })?;
+    let tun_mode = store_data.last_connection_options.tun_mode;
+    let system_proxy = store_data.last_connection_options.system_proxy;
+    connect_profile_internal(
+        profile_id,
+        tun_mode,
+        system_proxy,
+        source_surface,
+        app,
+        state,
+    )
+    .await
 }
 
 async fn reset_connection_state(
@@ -38,7 +225,7 @@ async fn reset_connection_state(
     status_lock.up_bytes = 0;
     status_lock.down_bytes = 0;
     status_lock.message = None;
-    app.emit("connection-status", status_lock.clone())?;
+    emit_connection_status_event(app, status_lock.clone())?;
 
     if previous_status.status != "disconnected" {
         let _ = crate::engine::diagnostics::record_event(
@@ -53,6 +240,14 @@ async fn reset_connection_state(
             }),
         );
     }
+
+    emit_connection_lifecycle_event(
+        app,
+        "disconnect_completed",
+        serde_json::json!({
+            "status": "disconnected",
+        }),
+    );
 
     Ok(())
 }
@@ -115,6 +310,16 @@ fn i32_from_usize(value: usize) -> i32 {
 
 fn i32_from_u32(value: u32) -> i32 {
     i32::try_from(value).unwrap_or(i32::MAX)
+}
+
+fn default_canonical_order_limit() -> u32 {
+    20
+}
+
+fn normalize_canonical_order_limit(limit: Option<u32>) -> u32 {
+    limit
+        .unwrap_or_else(default_canonical_order_limit)
+        .clamp(1, 50)
 }
 
 struct HelixBenchmarkPayloadArgs<'a> {
@@ -559,15 +764,26 @@ pub async fn apply_routing_fix(
         (lock.status.clone(), lock.active_id.clone())
     };
 
-    if status == "connecting" {
+    if status == "connecting" || status == "disconnecting" {
         // Do not interrupt an active connection attempt to prevent race conditions
         return Ok(());
     } else if status == "connected" {
-        if let Some(profile_id) = active_id {
-            // Signal the frontend to perform a graceful restart using the existing UI toggles
-            // This safely preserves the user's tun_mode and system_proxy states without needing
-            // to persist them permanently on the backend tracking thread.
-            let _ = app.emit("request-reconnect", profile_id);
+        let store_data = store::load_store(&app)?;
+        if let Some(profile_id) = resolve_profile_id_for_connect(&store_data, active_id.as_deref())
+        {
+            let tun_mode = store_data.last_connection_options.tun_mode;
+            let system_proxy = store_data.last_connection_options.system_proxy;
+            disconnect_internal("routing-rule-reconnect", app.clone(), state).await?;
+            let reconnect_state = app.state::<AppState>();
+            connect_profile_internal(
+                profile_id,
+                tun_mode,
+                system_proxy,
+                "routing-rule-reconnect",
+                app.clone(),
+                reconnect_state,
+            )
+            .await?;
         }
     }
 
@@ -618,106 +834,289 @@ pub async fn connect_profile(
     id: String,
     tun_mode: bool,
     system_proxy: bool,
+    source_surface: Option<String>,
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), AppError> {
-    // 1. Fetch profile
-    let mut store_data = store::load_store(&app)?;
-    let profile = store_data
-        .profiles
-        .iter()
-        .find(|p| p.id == id)
-        .cloned()
-        .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
-    store_data.active_profile_id = Some(id.clone());
-    store::save_store(&app, &store_data)?;
+    let source_surface = sanitize_source_surface(source_surface.as_deref(), "dashboard");
+    connect_profile_internal(id, tun_mode, system_proxy, &source_surface, app, state).await
+}
 
-    let app_dir = crate::engine::store::get_app_dir(&app)?;
-    #[allow(unused_variables)]
-    let log_path = app_dir.join("run.log");
+pub(crate) async fn connect_profile_internal(
+    id: String,
+    tun_mode: bool,
+    system_proxy: bool,
+    source_surface: &str,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let attempt_id = begin_connection_attempt(&state);
+    let requested_profile_id = id.clone();
+    let result: Result<(), AppError> = async {
+        // 1. Fetch profile
+        let mut store_data = store::load_store(&app)?;
+        let profile = store_data
+            .profiles
+            .iter()
+            .find(|p| p.id == id)
+            .cloned()
+            .ok_or_else(|| AppError::System("Profile not found".to_string()))?;
 
-    #[allow(unused_mut, unused_assignments)]
-    let mut log_path_opt = None;
-    let requested_core =
-        crate::engine::helix::config::EngineCore::try_from(store_data.active_core.as_str())?;
-    let mut effective_core = requested_core.clone();
-    let mut helix_runtime = None;
-    let mut helix_launch_started_at = None;
+        let app_dir = crate::engine::store::get_app_dir(&app)?;
+        #[allow(unused_variables)]
+        let log_path = app_dir.join("run.log");
 
-    #[cfg(target_os = "windows")]
-    {
-        if tun_mode && !crate::engine::sys::is_elevated() {
-            log_path_opt = Some(log_path.as_path());
-        }
-    }
+        #[allow(unused_mut, unused_assignments)]
+        let mut log_path_opt = None;
+        let requested_core =
+            crate::engine::helix::config::EngineCore::try_from(store_data.active_core.as_str())?;
+        let mut effective_core = requested_core.clone();
+        let mut helix_runtime = None;
+        let mut helix_launch_started_at = None;
 
-    // 4. Update status to connecting
-    {
-        let mut status_lock = state.status.write().await;
-        status_lock.status = "connecting".to_string();
-        status_lock.active_id = Some(id.clone());
-        status_lock.active_core = Some(requested_core.as_str().to_string());
-        status_lock.proxy_url = None;
-        status_lock.message = if matches!(
-            requested_core,
-            crate::engine::helix::config::EngineCore::Helix
-        ) && tun_mode
+        store_data.active_profile_id = Some(id.clone());
+        store_data.last_connection_options.profile_id = Some(id.clone());
+        store_data.last_connection_options.tun_mode = tun_mode;
+        store_data.last_connection_options.system_proxy = system_proxy;
+        store_data.last_connection_options.active_core = requested_core.as_str().to_string();
+        store_data.last_connection_options.source_surface = source_surface.to_string();
+        store_data.last_connection_options.last_action = Some("connect_requested".to_string());
+        store_data.last_connection_options.last_requested_at = current_timestamp_ms();
+        store::save_store(&app, &store_data)?;
+        emit_connection_options_event(&app, &store_data.last_connection_options);
+
+        #[cfg(target_os = "windows")]
         {
-            Some(
-                "Helix currently uses the embedded SOCKS5 runtime while TUN support is still pending."
-                    .to_string(),
-            )
-        } else {
-            None
-        };
-        app.emit("connection-status", status_lock.clone())?;
-    }
-    let _ = crate::engine::diagnostics::record_event(
-        &app,
-        crate::engine::diagnostics::DiagnosticLevel::Info,
-        "vpn.connect",
-        "Connection requested from desktop client",
-        serde_json::json!({
-            "profile_id": id,
-            "requested_core": requested_core.as_str(),
-            "tun_mode": tun_mode,
-            "system_proxy": system_proxy,
-        }),
-    );
+            if tun_mode && !crate::engine::sys::is_elevated() {
+                let _ = tokio::fs::remove_file(&log_path).await;
+                log_path_opt = Some(log_path.as_path());
+            }
+        }
 
-    if tun_mode {
-        crate::engine::sys::ensure_wintun(&app)?;
-    }
+        // 4. Update status to connecting
+        {
+            let mut status_lock = state.status.write().await;
+            status_lock.status = "connecting".to_string();
+            status_lock.active_id = Some(id.clone());
+            status_lock.active_core = Some(requested_core.as_str().to_string());
+            status_lock.proxy_url = None;
+            status_lock.message = if matches!(
+                requested_core,
+                crate::engine::helix::config::EngineCore::Helix
+            ) && tun_mode
+            {
+                Some(
+                    "Helix currently uses the embedded SOCKS5 runtime while TUN support is still pending."
+                        .to_string(),
+                )
+            } else {
+                None
+            };
+            emit_connection_status_event(&app, status_lock.clone())?;
+        }
+        let _ = crate::engine::diagnostics::record_event(
+            &app,
+            crate::engine::diagnostics::DiagnosticLevel::Info,
+            "vpn.connect",
+            "Connection requested from desktop client",
+            serde_json::json!({
+                "profile_id": id,
+                "requested_core": requested_core.as_str(),
+                "tun_mode": tun_mode,
+                "system_proxy": system_proxy,
+                "source_surface": source_surface,
+            }),
+        );
 
-    let (launched_core, launched_proxy_url) = loop {
-        let (bin_path, config_path, core_name, launch_tun_mode, runtime_monitor, proxy_url) = if matches!(
-            effective_core,
-            crate::engine::helix::config::EngineCore::Helix
-        ) {
-            match crate::engine::helix::prepare_runtime_for_launch(&app).await {
-                Ok(prepared_runtime) => {
-                    helix_runtime = Some(prepared_runtime.clone());
-                    helix_launch_started_at = Some(std::time::Instant::now());
-                    (
-                        std::path::PathBuf::from(&prepared_runtime.sidecar_path),
-                        std::path::PathBuf::from(&prepared_runtime.config_path),
-                        effective_core.as_str().to_string(),
-                        false,
-                        Some(crate::engine::manager::RuntimeMonitorConfig {
-                            health_url: prepared_runtime.health_url.clone(),
-                        }),
-                        Some(prepared_runtime.proxy_url.clone()),
-                    )
+        if tun_mode {
+            crate::engine::sys::ensure_wintun(&app)?;
+        }
+
+        if !is_connection_attempt_current(&state, attempt_id) {
+            return Ok(());
+        }
+
+        let (launched_core, launched_proxy_url) = loop {
+            let (bin_path, config_path, core_name, launch_tun_mode, runtime_monitor, proxy_url) = if matches!(
+                effective_core,
+                crate::engine::helix::config::EngineCore::Helix
+            ) {
+                match crate::engine::helix::prepare_runtime_for_launch(&app).await {
+                    Ok(prepared_runtime) => {
+                        helix_runtime = Some(prepared_runtime.clone());
+                        helix_launch_started_at = Some(std::time::Instant::now());
+                        (
+                            std::path::PathBuf::from(&prepared_runtime.sidecar_path),
+                            std::path::PathBuf::from(&prepared_runtime.config_path),
+                            effective_core.as_str().to_string(),
+                            false,
+                            Some(crate::engine::manager::RuntimeMonitorConfig {
+                                health_url: prepared_runtime.health_url.clone(),
+                            }),
+                            Some(prepared_runtime.proxy_url.clone()),
+                        )
+                    }
+                    Err(error) => {
+                        let fallback_core = crate::engine::helix::fallback_core_from_store(&app)?;
+                        let fallback_core =
+                            crate::engine::helix::config::EngineCore::try_from(fallback_core.as_str())?;
+                        let reason = format!(
+                            "Helix runtime preparation failed: {}. Falling back to {}.",
+                            error,
+                            fallback_core.as_str()
+                        );
+                        crate::engine::helix::record_runtime_fallback(
+                            &app,
+                            fallback_core.as_str(),
+                            &reason,
+                        )?;
+                        let _ = app.emit("helix-fallback", reason);
+                        spawn_helix_runtime_event(
+                            &app,
+                            crate::engine::helix::config::HelixRuntimeEventReport {
+                                event_kind:
+                                    crate::engine::helix::config::HelixRuntimeEventKind::Fallback,
+                                active_core: fallback_core.as_str().to_string(),
+                                fallback_core: Some(fallback_core.as_str().to_string()),
+                                latency_ms: None,
+                                route_count: None,
+                                reason: Some(
+                                    "Helix runtime preparation failed before sidecar launch"
+                                        .to_string(),
+                                ),
+                                payload: crate::engine::helix::config::HelixRuntimeEventPayload {
+                                    stage: Some("prepare".to_string()),
+                                    requested_core: Some("helix".to_string()),
+                                    runtime: Some("embedded-sidecar".to_string()),
+                                    reason_code: Some("runtime-prepare-failed".to_string()),
+                                    ..Default::default()
+                                },
+                            },
+                        );
+                        effective_core = fallback_core;
+                        continue;
+                    }
                 }
-                Err(error) => {
-                    let fallback_core = crate::engine::helix::fallback_core_from_store(&app)?;
+            } else {
+                let mut effective_privacy_shield_level = store_data.privacy_shield_level.clone();
+                if effective_privacy_shield_level != "disabled" {
+                    if let Err(error) = crate::engine::sys::adblock::ensure_blocklists(
+                        &app,
+                        &effective_privacy_shield_level,
+                    )
+                    .await
+                    {
+                        let fallback_message = format!(
+                            "Privacy Shield assets are unavailable: {}. Continuing without local blocklist.",
+                            error
+                        );
+                        let _ = crate::engine::diagnostics::record_event(
+                            &app,
+                            crate::engine::diagnostics::DiagnosticLevel::Warn,
+                            "vpn.connect",
+                            "Privacy Shield assets unavailable; continuing without local blocklist",
+                            serde_json::json!({
+                                "requested_level": effective_privacy_shield_level,
+                                "error": error.to_string(),
+                            }),
+                        );
+                        eprintln!("{fallback_message}");
+                        effective_privacy_shield_level = "disabled".to_string();
+                    }
+                }
+
+                let bin_path = if matches!(
+                    effective_core,
+                    crate::engine::helix::config::EngineCore::Xray
+                ) {
+                    crate::engine::provision::ensure_xray_binary(&app).await?
+                } else {
+                    crate::engine::provision::ensure_sing_box_binary(&app).await?
+                };
+
+                let config_json = if let Some(custom_json_str) = &store_data.custom_config {
+                    println!("Using Custom JSON Override for sing-box configuration.");
+                    serde_json::from_str::<serde_json::Value>(custom_json_str).map_err(|e| {
+                        AppError::System(format!("Custom JSON config parse error: {}", e))
+                    })?
+                } else {
+                    crate::engine::config::generate_singbox_config(
+                        &profile,
+                        &store_data.profiles,
+                        tun_mode,
+                        &store_data.routing_rules,
+                        log_path_opt,
+                        store_data.local_socks_port,
+                        store_data.allow_lan,
+                        &store_data.split_tunneling_apps,
+                        &store_data.split_tunneling_mode,
+                        store_data.stealth_mode_enabled,
+                        store_data.pqc_enforcement_mode,
+                        &effective_privacy_shield_level,
+                        Some(app_dir.as_path()),
+                    )
+                };
+
+                let config_path = app_dir.join("run.json");
+
+                if matches!(
+                    effective_core,
+                    crate::engine::helix::config::EngineCore::SingBox
+                ) {
+                    let pqc_active =
+                        profile.pqc_enabled.unwrap_or(false) || store_data.pqc_enforcement_mode;
+                    if pqc_active {
+                        crate::engine::provision::check_pqc_support(&app).await?;
+                    }
+                }
+
+                tokio::fs::write(&config_path, serde_json::to_string_pretty(&config_json)?).await?;
+
+                let local_proxy_url = format!(
+                    "socks5://127.0.0.1:{}",
+                    store_data.local_socks_port.unwrap_or(2080)
+                );
+
+                (
+                    bin_path,
+                    config_path,
+                    effective_core.as_str().to_string(),
+                    tun_mode,
+                    None,
+                    Some(local_proxy_url),
+                )
+            };
+
+            if let Err(error) = state
+                .process_manager
+                .start(
+                    app.clone(),
+                    bin_path,
+                    config_path,
+                    launch_tun_mode,
+                    &core_name,
+                    runtime_monitor,
+                )
+                .await
+            {
+                if matches!(
+                    effective_core,
+                    crate::engine::helix::config::EngineCore::Helix
+                ) {
+                    let fallback_core = helix_runtime
+                        .as_ref()
+                        .map(|runtime| runtime.fallback_core.clone())
+                        .unwrap_or_else(|| "sing-box".to_string());
                     let fallback_core =
                         crate::engine::helix::config::EngineCore::try_from(fallback_core.as_str())?;
                     let reason = format!(
-                        "Helix runtime preparation failed: {}. Falling back to {}.",
+                        "Helix sidecar failed to launch: {}. Falling back to {}.",
                         error,
                         fallback_core.as_str()
                     );
+                    let latency_ms = helix_launch_started_at
+                        .as_ref()
+                        .and_then(|started| i32::try_from(started.elapsed().as_millis()).ok());
                     crate::engine::helix::record_runtime_fallback(
                         &app,
                         fallback_core.as_str(),
@@ -727,21 +1126,17 @@ pub async fn connect_profile(
                     spawn_helix_runtime_event(
                         &app,
                         crate::engine::helix::config::HelixRuntimeEventReport {
-                            event_kind:
-                                crate::engine::helix::config::HelixRuntimeEventKind::Fallback,
+                            event_kind: crate::engine::helix::config::HelixRuntimeEventKind::Fallback,
                             active_core: fallback_core.as_str().to_string(),
                             fallback_core: Some(fallback_core.as_str().to_string()),
-                            latency_ms: None,
-                            route_count: None,
-                            reason: Some(
-                                "Helix runtime preparation failed before sidecar launch"
-                                    .to_string(),
-                            ),
+                            latency_ms,
+                            route_count: helix_runtime.as_ref().map(|runtime| runtime.route_count),
+                            reason: Some("Helix sidecar launch failed".to_string()),
                             payload: crate::engine::helix::config::HelixRuntimeEventPayload {
-                                stage: Some("prepare".to_string()),
+                                stage: Some("launch".to_string()),
                                 requested_core: Some("helix".to_string()),
                                 runtime: Some("embedded-sidecar".to_string()),
-                                reason_code: Some("runtime-prepare-failed".to_string()),
+                                reason_code: Some("sidecar-launch-failed".to_string()),
                                 ..Default::default()
                             },
                         },
@@ -749,305 +1144,314 @@ pub async fn connect_profile(
                     effective_core = fallback_core;
                     continue;
                 }
-            }
-        } else {
-            let config_json = if let Some(custom_json_str) = &store_data.custom_config {
-                println!("Using Custom JSON Override for sing-box configuration.");
-                serde_json::from_str::<serde_json::Value>(custom_json_str).map_err(|e| {
-                    AppError::System(format!("Custom JSON config parse error: {}", e))
-                })?
-            } else {
-                crate::engine::config::generate_singbox_config(
-                    &profile,
-                    &store_data.profiles,
-                    tun_mode,
-                    &store_data.routing_rules,
-                    log_path_opt,
-                    store_data.local_socks_port,
-                    store_data.allow_lan,
-                    &store_data.split_tunneling_apps,
-                    &store_data.split_tunneling_mode,
-                    store_data.stealth_mode_enabled,
-                    store_data.pqc_enforcement_mode,
-                    &store_data.privacy_shield_level,
-                    Some(app_dir.as_path()),
-                )
-            };
 
-            let config_path = app_dir.join("run.json");
-
-            #[cfg(target_os = "windows")]
-            let bin_name = if matches!(
-                effective_core,
-                crate::engine::helix::config::EngineCore::Xray
-            ) {
-                "xray.exe"
-            } else {
-                "sing-box.exe"
-            };
-            #[cfg(not(target_os = "windows"))]
-            let bin_name = if matches!(
-                effective_core,
-                crate::engine::helix::config::EngineCore::Xray
-            ) {
-                "xray"
-            } else {
-                "sing-box"
-            };
-
-            if matches!(
-                effective_core,
-                crate::engine::helix::config::EngineCore::SingBox
-            ) {
-                let pqc_active =
-                    profile.pqc_enabled.unwrap_or(false) || store_data.pqc_enforcement_mode;
-                if pqc_active {
-                    crate::engine::provision::check_pqc_support(&app).await?;
-                }
+                let mut status_lock = state.status.write().await;
+                status_lock.status = "error".to_string();
+                status_lock.active_core = Some(effective_core.as_str().to_string());
+                status_lock.proxy_url = None;
+                status_lock.message = Some(error.to_string());
+                emit_connection_status_event(&app, status_lock.clone())?;
+                return Err(error);
             }
 
-            tokio::fs::write(&config_path, serde_json::to_string_pretty(&config_json)?).await?;
+            if !is_connection_attempt_current(&state, attempt_id) {
+                let _ = state.process_manager.stop().await;
+                return Ok(());
+            }
 
-            let local_proxy_url = format!(
-                "socks5://127.0.0.1:{}",
-                store_data.local_socks_port.unwrap_or(2080)
-            );
-
-            (
-                app_dir.join("bin").join(bin_name),
-                config_path,
-                effective_core.as_str().to_string(),
-                tun_mode,
-                None,
-                Some(local_proxy_url),
-            )
-        };
-
-        if let Err(error) = state
-            .process_manager
-            .start(
-                app.clone(),
-                bin_path,
-                config_path,
-                launch_tun_mode,
-                &core_name,
-                runtime_monitor,
-            )
-            .await
-        {
             if matches!(
                 effective_core,
                 crate::engine::helix::config::EngineCore::Helix
             ) {
-                let fallback_core = helix_runtime
+                let prepared_runtime = helix_runtime
                     .as_ref()
-                    .map(|runtime| runtime.fallback_core.clone())
-                    .unwrap_or_else(|| "sing-box".to_string());
-                let fallback_core =
-                    crate::engine::helix::config::EngineCore::try_from(fallback_core.as_str())?;
-                let reason = format!(
-                    "Helix sidecar failed to launch: {}. Falling back to {}.",
-                    error,
-                    fallback_core.as_str()
-                );
-                let latency_ms = helix_launch_started_at
-                    .as_ref()
-                    .and_then(|started| i32::try_from(started.elapsed().as_millis()).ok());
-                crate::engine::helix::record_runtime_fallback(
-                    &app,
-                    fallback_core.as_str(),
-                    &reason,
-                )?;
-                let _ = app.emit("helix-fallback", reason);
-                spawn_helix_runtime_event(
-                    &app,
-                    crate::engine::helix::config::HelixRuntimeEventReport {
-                        event_kind: crate::engine::helix::config::HelixRuntimeEventKind::Fallback,
-                        active_core: fallback_core.as_str().to_string(),
-                        fallback_core: Some(fallback_core.as_str().to_string()),
-                        latency_ms,
-                        route_count: helix_runtime.as_ref().map(|runtime| runtime.route_count),
-                        reason: Some("Helix sidecar launch failed".to_string()),
-                        payload: crate::engine::helix::config::HelixRuntimeEventPayload {
-                            stage: Some("launch".to_string()),
-                            requested_core: Some("helix".to_string()),
-                            runtime: Some("embedded-sidecar".to_string()),
-                            reason_code: Some("sidecar-launch-failed".to_string()),
-                            ..Default::default()
-                        },
-                    },
-                );
-                effective_core = fallback_core;
-                continue;
-            }
+                    .ok_or_else(|| AppError::System("Helix runtime was not prepared".to_string()))?;
 
-            let mut status_lock = state.status.write().await;
-            status_lock.status = "error".to_string();
-            status_lock.active_core = Some(effective_core.as_str().to_string());
-            status_lock.proxy_url = None;
-            status_lock.message = Some(error.to_string());
-            app.emit("connection-status", status_lock.clone())?;
-            return Err(error);
-        }
-
-        if matches!(
-            effective_core,
-            crate::engine::helix::config::EngineCore::Helix
-        ) {
-            let prepared_runtime = helix_runtime
-                .as_ref()
-                .ok_or_else(|| AppError::System("Helix runtime was not prepared".to_string()))?;
-
-            match crate::engine::helix::health::await_runtime_ready(prepared_runtime).await {
-                Ok(health) => {
-                    let latency_ms = helix_launch_started_at
-                        .as_ref()
-                        .and_then(|started| i32::try_from(started.elapsed().as_millis()).ok());
-                    spawn_helix_runtime_event(
-                        &app,
-                        crate::engine::helix::config::HelixRuntimeEventReport {
-                            event_kind: crate::engine::helix::config::HelixRuntimeEventKind::Ready,
-                            active_core: "helix".to_string(),
-                            fallback_core: None,
-                            latency_ms,
-                            route_count: Some(health.route_count),
-                            reason: None,
-                            payload: crate::engine::helix::config::HelixRuntimeEventPayload {
-                                stage: Some("ready".to_string()),
-                                runtime: Some("embedded-sidecar".to_string()),
-                                status: Some(health.status.clone()),
-                                proxy_url: Some(prepared_runtime.proxy_url.clone()),
-                                continuity: Some((&health).into()),
-                                ..Default::default()
+                match crate::engine::helix::health::await_runtime_ready(prepared_runtime).await {
+                    Ok(health) => {
+                        let latency_ms = helix_launch_started_at
+                            .as_ref()
+                            .and_then(|started| i32::try_from(started.elapsed().as_millis()).ok());
+                        spawn_helix_runtime_event(
+                            &app,
+                            crate::engine::helix::config::HelixRuntimeEventReport {
+                                event_kind: crate::engine::helix::config::HelixRuntimeEventKind::Ready,
+                                active_core: "helix".to_string(),
+                                fallback_core: None,
+                                latency_ms,
+                                route_count: Some(health.route_count),
+                                reason: None,
+                                payload: crate::engine::helix::config::HelixRuntimeEventPayload {
+                                    stage: Some("ready".to_string()),
+                                    runtime: Some("embedded-sidecar".to_string()),
+                                    status: Some(health.status.clone()),
+                                    proxy_url: Some(prepared_runtime.proxy_url.clone()),
+                                    continuity: Some((&health).into()),
+                                    ..Default::default()
+                                },
                             },
-                        },
-                    );
-                    break (
-                        effective_core.clone(),
-                        Some(prepared_runtime.proxy_url.clone()),
-                    );
-                }
-                Err(error) => {
-                    let _ = state.process_manager.stop().await;
-                    let fallback_core = crate::engine::helix::config::EngineCore::try_from(
-                        prepared_runtime.fallback_core.as_str(),
-                    )?;
-                    let reason = format!(
-                        "Helix sidecar health gate failed: {}. Falling back to {}.",
-                        error,
-                        fallback_core.as_str()
-                    );
-                    let latency_ms = helix_launch_started_at
-                        .as_ref()
-                        .and_then(|started| i32::try_from(started.elapsed().as_millis()).ok());
-                    crate::engine::helix::record_runtime_fallback(
-                        &app,
-                        fallback_core.as_str(),
-                        &reason,
-                    )?;
-                    let _ = app.emit("helix-fallback", reason);
-                    spawn_helix_runtime_event(
-                        &app,
-                        crate::engine::helix::config::HelixRuntimeEventReport {
-                            event_kind:
-                                crate::engine::helix::config::HelixRuntimeEventKind::Fallback,
-                            active_core: fallback_core.as_str().to_string(),
-                            fallback_core: Some(fallback_core.as_str().to_string()),
-                            latency_ms,
-                            route_count: Some(prepared_runtime.route_count),
-                            reason: Some("Helix sidecar failed readiness health gate".to_string()),
-                            payload: crate::engine::helix::config::HelixRuntimeEventPayload {
-                                stage: Some("health-gate".to_string()),
-                                requested_core: Some("helix".to_string()),
-                                runtime: Some("embedded-sidecar".to_string()),
-                                proxy_url: Some(prepared_runtime.proxy_url.clone()),
-                                reason_code: Some("health-gate-timeout".to_string()),
-                                ..Default::default()
+                        );
+                        break (
+                            effective_core.clone(),
+                            Some(prepared_runtime.proxy_url.clone()),
+                        );
+                    }
+                    Err(error) => {
+                        let _ = state.process_manager.stop().await;
+                        let fallback_core = crate::engine::helix::config::EngineCore::try_from(
+                            prepared_runtime.fallback_core.as_str(),
+                        )?;
+                        let reason = format!(
+                            "Helix sidecar health gate failed: {}. Falling back to {}.",
+                            error,
+                            fallback_core.as_str()
+                        );
+                        let latency_ms = helix_launch_started_at
+                            .as_ref()
+                            .and_then(|started| i32::try_from(started.elapsed().as_millis()).ok());
+                        crate::engine::helix::record_runtime_fallback(
+                            &app,
+                            fallback_core.as_str(),
+                            &reason,
+                        )?;
+                        let _ = app.emit("helix-fallback", reason);
+                        spawn_helix_runtime_event(
+                            &app,
+                            crate::engine::helix::config::HelixRuntimeEventReport {
+                                event_kind:
+                                    crate::engine::helix::config::HelixRuntimeEventKind::Fallback,
+                                active_core: fallback_core.as_str().to_string(),
+                                fallback_core: Some(fallback_core.as_str().to_string()),
+                                latency_ms,
+                                route_count: Some(prepared_runtime.route_count),
+                                reason: Some("Helix sidecar failed readiness health gate".to_string()),
+                                payload: crate::engine::helix::config::HelixRuntimeEventPayload {
+                                    stage: Some("health-gate".to_string()),
+                                    requested_core: Some("helix".to_string()),
+                                    runtime: Some("embedded-sidecar".to_string()),
+                                    proxy_url: Some(prepared_runtime.proxy_url.clone()),
+                                    reason_code: Some("health-gate-timeout".to_string()),
+                                    ..Default::default()
+                                },
                             },
-                        },
-                    );
-                    effective_core = fallback_core;
-                    continue;
+                        );
+                        effective_core = fallback_core;
+                        continue;
+                    }
                 }
             }
+
+            break (effective_core.clone(), proxy_url);
+        };
+
+        if !is_connection_attempt_current(&state, attempt_id) {
+            let _ = state.process_manager.stop().await;
+            return Ok(());
         }
 
-        break (effective_core.clone(), proxy_url);
-    };
-
-    // Phase 30: Telemetry sync barrier
-    let _ = crate::engine::sys::stats::flush_session(&app);
-    let country = crate::engine::sys::stats::resolve_ip_country(&profile.server);
-    let session_protocol = if matches!(
-        launched_core,
-        crate::engine::helix::config::EngineCore::Helix
-    ) {
-        "helix".to_string()
-    } else {
-        profile.protocol.clone()
-    };
-    crate::engine::sys::stats::start_session(session_protocol, country);
-
-    if matches!(
-        launched_core,
-        crate::engine::helix::config::EngineCore::Helix
-    ) {
-        if let Some(proxy_url) = &launched_proxy_url {
-            if let Err(error) = crate::engine::sysproxy::set_system_proxy_from_url(proxy_url) {
-                eprintln!("Failed to set Helix system proxy: {}", error);
-            }
-        }
-    } else if system_proxy && !tun_mode && launched_core.is_stable() {
-        let port = store_data.local_socks_port.unwrap_or(2080);
-        if let Err(e) = crate::engine::sysproxy::set_system_proxy(port) {
-            eprintln!("Failed to set system proxy: {}", e);
-        }
-    } else {
-        crate::engine::sysproxy::clear_system_proxy().ok();
-    }
-
-    // 6. Update status to connected
-    {
-        let mut persisted_store = store::load_store(&app)?;
-        persisted_store.active_profile_id = Some(id.clone());
-        store::save_store(&app, &persisted_store)?;
-
-        let mut status_lock = state.status.write().await;
-        status_lock.status = "connected".to_string();
-        status_lock.active_core = Some(launched_core.as_str().to_string());
-        status_lock.proxy_url = launched_proxy_url.clone();
-        status_lock.message = if matches!(
+        // Phase 30: Telemetry sync barrier
+        let _ = crate::engine::sys::stats::flush_session(&app);
+        let country = crate::engine::sys::stats::resolve_ip_country(&profile.server);
+        let session_protocol = if matches!(
             launched_core,
             crate::engine::helix::config::EngineCore::Helix
         ) {
-            Some("Helix is active through the embedded SOCKS5 runtime.".to_string())
+            "helix".to_string()
         } else {
-            None
+            profile.protocol.clone()
         };
-        app.emit("connection-status", status_lock.clone())?;
-    }
-    let _ = crate::engine::diagnostics::record_event(
-        &app,
-        crate::engine::diagnostics::DiagnosticLevel::Info,
-        "vpn.connect",
-        "Connection established",
-        serde_json::json!({
-            "profile_id": profile.id,
-            "effective_core": launched_core.as_str(),
-            "proxy_url": launched_proxy_url,
-            "tun_mode": tun_mode,
-            "system_proxy": system_proxy,
-        }),
-    );
-    let mut store_data = store::load_store(&app)?;
-    store_data.active_profile_id = Some(profile.id.clone());
-    store::save_store(&app, &store_data)?;
+        crate::engine::sys::stats::start_session(session_protocol, country);
 
-    Ok(())
+        if matches!(
+            launched_core,
+            crate::engine::helix::config::EngineCore::Helix
+        ) {
+            if let Some(proxy_url) = &launched_proxy_url {
+                if let Err(error) = crate::engine::sysproxy::set_system_proxy_from_url(proxy_url) {
+                    eprintln!("Failed to set Helix system proxy: {}", error);
+                }
+            }
+        } else if system_proxy && !tun_mode && launched_core.is_stable() {
+            let port = store_data.local_socks_port.unwrap_or(2080);
+            if let Err(e) = crate::engine::sysproxy::set_system_proxy(port) {
+                eprintln!("Failed to set system proxy: {}", e);
+            }
+        } else {
+            crate::engine::sysproxy::clear_system_proxy().ok();
+        }
+
+        if launched_core.is_stable() {
+            if let Some(proxy_url) = launched_proxy_url.as_deref() {
+                let readiness_timeout = if tun_mode {
+                    std::time::Duration::from_secs(20)
+                } else {
+                    std::time::Duration::from_secs(8)
+                };
+                if let Err(error) = crate::engine::helix::benchmark::wait_for_proxy_ready(
+                    proxy_url,
+                    readiness_timeout,
+                )
+                .await
+                {
+                    let _ = state.process_manager.stop().await;
+                    return Err(AppError::System(format!(
+                        "VPN runtime did not become ready for proxy traffic: {}",
+                        error
+                    )));
+                }
+
+                if let Err(error) = crate::engine::helix::benchmark::wait_for_proxy_first_byte_ready(
+                    proxy_url,
+                    "example.com",
+                    80,
+                    "/",
+                    readiness_timeout,
+                    std::time::Duration::from_secs(if tun_mode { 5 } else { 4 }),
+                )
+                .await
+                {
+                    let _ = state.process_manager.stop().await;
+                    return Err(AppError::System(format!(
+                        "VPN runtime became reachable locally but failed real traffic readiness probe: {}",
+                        error
+                    )));
+                }
+            }
+        }
+
+        if !is_connection_attempt_current(&state, attempt_id) {
+            let _ = state.process_manager.stop().await;
+            return Ok(());
+        }
+
+        // 6. Update status to connected
+        {
+            let mut persisted_store = store::load_store(&app)?;
+            persisted_store.active_profile_id = Some(id.clone());
+            persisted_store.last_connection_options.profile_id = Some(id.clone());
+            persisted_store.last_connection_options.tun_mode = tun_mode;
+            persisted_store.last_connection_options.system_proxy = system_proxy;
+            persisted_store.last_connection_options.active_core = launched_core.as_str().to_string();
+            persisted_store.last_connection_options.source_surface = source_surface.to_string();
+            persisted_store.last_connection_options.last_stable_profile_id = Some(id.clone());
+            persisted_store.last_connection_options.last_stable_connected_at =
+                current_timestamp_ms();
+            persisted_store.last_connection_options.last_action = Some("connected".to_string());
+            persisted_store.last_connection_options.last_connected_at = current_timestamp_ms();
+            store::save_store(&app, &persisted_store)?;
+            emit_connection_options_event(&app, &persisted_store.last_connection_options);
+
+            let mut status_lock = state.status.write().await;
+            status_lock.status = "connected".to_string();
+            status_lock.active_core = Some(launched_core.as_str().to_string());
+            status_lock.proxy_url = launched_proxy_url.clone();
+            status_lock.message = if matches!(
+                launched_core,
+                crate::engine::helix::config::EngineCore::Helix
+            ) {
+                Some("Helix is active through the embedded SOCKS5 runtime.".to_string())
+            } else {
+                None
+            };
+            emit_connection_status_event(&app, status_lock.clone())?;
+        }
+        let _ = crate::engine::diagnostics::record_event(
+            &app,
+            crate::engine::diagnostics::DiagnosticLevel::Info,
+            "vpn.connect",
+            "Connection established",
+            serde_json::json!({
+                "profile_id": profile.id,
+                "effective_core": launched_core.as_str(),
+                "proxy_url": launched_proxy_url,
+                "tun_mode": tun_mode,
+                "system_proxy": system_proxy,
+                "source_surface": source_surface,
+            }),
+        );
+
+        Ok(())
+    }
+    .await;
+
+    if !is_connection_attempt_current(&state, attempt_id) {
+        if result.is_err() {
+            let _ = crate::engine::diagnostics::record_event(
+                &app,
+                crate::engine::diagnostics::DiagnosticLevel::Info,
+                "vpn.connect",
+                "Ignored stale connection attempt result",
+                serde_json::json!({
+                    "profile_id": requested_profile_id,
+                    "tun_mode": tun_mode,
+                    "system_proxy": system_proxy,
+                    "source_surface": source_surface,
+                    "attempt_id": attempt_id,
+                }),
+            );
+        }
+        return Ok(());
+    }
+
+    if let Err(error) = &result {
+        let error_message = error.to_string();
+        let _ = persist_last_connection_options(&app, |store_data, options| {
+            options.profile_id = Some(requested_profile_id.clone());
+            options.tun_mode = tun_mode;
+            options.system_proxy = system_proxy;
+            options.active_core = store_data.active_core.clone();
+            options.source_surface = source_surface.to_string();
+            options.last_action = Some("connect_failed".to_string());
+            options.last_requested_at = current_timestamp_ms();
+        });
+        {
+            let mut status_lock = state.status.write().await;
+            status_lock.status = "error".to_string();
+            status_lock.active_id = Some(requested_profile_id.clone());
+            status_lock.proxy_url = None;
+            status_lock.message = Some(error_message.clone());
+            let _ = emit_connection_status_event(&app, status_lock.clone());
+        }
+
+        let _ = crate::engine::diagnostics::record_event(
+            &app,
+            crate::engine::diagnostics::DiagnosticLevel::Error,
+            "vpn.connect",
+            "Connection request failed",
+            serde_json::json!({
+                "profile_id": requested_profile_id,
+                "tun_mode": tun_mode,
+                "system_proxy": system_proxy,
+                "source_surface": source_surface,
+                "error": error_message,
+            }),
+        );
+    }
+
+    result
 }
 
 #[tauri::command]
-pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
+pub async fn disconnect(
+    source_surface: Option<String>,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let source_surface = sanitize_source_surface(source_surface.as_deref(), "dashboard");
+    disconnect_internal(&source_surface, app, state).await
+}
+
+pub(crate) async fn disconnect_internal(
+    source_surface: &str,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    invalidate_connection_attempts(&state);
+    let previous_status = state.status.read().await.clone();
+    if previous_status.status == "disconnected" || previous_status.status == "disconnecting" {
+        return Ok(());
+    }
+
     let store_data = store::load_store(&app)?;
     if store_data.active_core == "helix" && store_data.helix_last_manifest.is_some() {
         spawn_helix_runtime_event(
@@ -1077,11 +1481,75 @@ pub async fn disconnect(app: AppHandle, state: State<'_, AppState>) -> Result<()
         "vpn.disconnect",
         "Disconnect requested from desktop client",
         serde_json::json!({
-            "active_core": store_data.active_core,
+            "active_core": store_data.active_core.clone(),
+            "source_surface": source_surface,
         }),
     );
 
-    reset_connection_state(&app, &state).await
+    {
+        let mut status_lock = state.status.write().await;
+        status_lock.status = "disconnecting".to_string();
+        status_lock.message = Some("Stopping VPN runtime...".to_string());
+        emit_connection_status_event(&app, status_lock.clone())?;
+    }
+
+    emit_connection_lifecycle_event(
+        &app,
+        "disconnect_started",
+        serde_json::json!({
+            "active_id": previous_status.active_id.clone(),
+            "active_core": previous_status.active_core.clone(),
+            "source_surface": source_surface,
+        }),
+    );
+
+    match reset_connection_state(&app, &state).await {
+        Ok(()) => {
+            let _ = persist_last_connection_options(&app, |_store_data, options| {
+                options.source_surface = source_surface.to_string();
+                options.last_action = Some("disconnected".to_string());
+                options.last_disconnected_at = current_timestamp_ms();
+            });
+            Ok(())
+        }
+        Err(error) => {
+            let error_message = format!("Disconnect failed: {}", error);
+            {
+                let mut status_lock = state.status.write().await;
+                status_lock.status = "error".to_string();
+                status_lock.active_id = previous_status.active_id;
+                status_lock.active_core = previous_status.active_core;
+                status_lock.proxy_url = previous_status.proxy_url;
+                status_lock.up_bytes = previous_status.up_bytes;
+                status_lock.down_bytes = previous_status.down_bytes;
+                status_lock.message = Some(error_message.clone());
+                let _ = emit_connection_status_event(&app, status_lock.clone());
+            }
+
+            emit_connection_lifecycle_event(
+                &app,
+                "disconnect_failed",
+                serde_json::json!({
+                    "error": error_message,
+                    "source_surface": source_surface,
+                }),
+            );
+
+            let _ = crate::engine::diagnostics::record_event(
+                &app,
+                crate::engine::diagnostics::DiagnosticLevel::Error,
+                "vpn.disconnect",
+                "Disconnect failed",
+                serde_json::json!({
+                    "error": error.to_string(),
+                    "active_core": store_data.active_core.clone(),
+                    "source_surface": source_surface,
+                }),
+            );
+
+            Err(error)
+        }
+    }
 }
 
 #[tauri::command]
@@ -1090,6 +1558,76 @@ pub async fn get_connection_status(
 ) -> Result<ConnectionStatus, AppError> {
     let status_lock = state.status.read().await;
     Ok(status_lock.clone())
+}
+
+#[tauri::command]
+pub async fn get_last_connection_options(
+    app: AppHandle,
+) -> Result<models::LastConnectionOptions, AppError> {
+    let store_data = store::load_store(&app)?;
+    Ok(derive_last_connection_options(&store_data))
+}
+
+#[tauri::command]
+pub async fn save_last_connection_options(
+    options: models::LastConnectionOptions,
+    app: AppHandle,
+) -> Result<models::LastConnectionOptions, AppError> {
+    let source_surface =
+        sanitize_source_surface(Some(options.source_surface.as_str()), "dashboard");
+    let profile_id = options
+        .profile_id
+        .filter(|profile_id| !profile_id.trim().is_empty());
+    let tun_mode = options.tun_mode;
+    let system_proxy = options.system_proxy;
+    let favorite_profile_ids = {
+        let mut deduped = Vec::new();
+
+        for profile_id in options.favorite_profile_ids {
+            let candidate = profile_id.trim();
+            if candidate.is_empty() || deduped.iter().any(|stored| stored == candidate) {
+                continue;
+            }
+
+            deduped.push(candidate.to_string());
+
+            if deduped.len() >= 24 {
+                break;
+            }
+        }
+
+        deduped
+    };
+    let last_stable_profile_id = options
+        .last_stable_profile_id
+        .filter(|profile_id| !profile_id.trim().is_empty());
+    let last_stable_connected_at = options.last_stable_connected_at;
+    let last_action = options.last_action;
+    let last_requested_at = options.last_requested_at;
+    let last_connected_at = options.last_connected_at;
+    let last_disconnected_at = options.last_disconnected_at;
+    let active_core =
+        if crate::engine::helix::config::EngineCore::try_from(options.active_core.as_str()).is_ok()
+        {
+            options.active_core
+        } else {
+            store::load_store(&app)?.active_core
+        };
+
+    persist_last_connection_options(&app, |_store_data, stored_options| {
+        stored_options.profile_id = profile_id;
+        stored_options.tun_mode = tun_mode;
+        stored_options.system_proxy = system_proxy;
+        stored_options.active_core = active_core;
+        stored_options.source_surface = source_surface;
+        stored_options.favorite_profile_ids = favorite_profile_ids;
+        stored_options.last_stable_profile_id = last_stable_profile_id;
+        stored_options.last_stable_connected_at = last_stable_connected_at;
+        stored_options.last_action = last_action;
+        stored_options.last_requested_at = last_requested_at;
+        stored_options.last_connected_at = last_connected_at;
+        stored_options.last_disconnected_at = last_disconnected_at;
+    })
 }
 
 #[tauri::command]
@@ -1161,12 +1699,14 @@ pub async fn update_subscription(sub_id: String, app: AppHandle) -> Result<(), A
 
     // Update timestamp
     if let Some(sub) = store_data.subscriptions.iter_mut().find(|s| s.id == sub_id) {
-        sub.last_updated = Some(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        );
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|error| {
+                AppError::System(format!(
+                    "System clock is before UNIX_EPOCH while updating subscription timestamp: {error}"
+                ))
+            })?;
+        sub.last_updated = Some(now.as_secs());
     }
 
     store::save_store(&app, &store_data)?;
@@ -1290,14 +1830,20 @@ pub async fn get_active_core(app: AppHandle) -> Result<String, AppError> {
 pub async fn save_active_core(core: String, app: AppHandle) -> Result<(), AppError> {
     let _ = crate::engine::helix::config::EngineCore::try_from(core.as_str())?;
 
+    let app_for_store = app.clone();
+    let core_for_store = core.clone();
     tokio::task::spawn_blocking(move || {
-        let mut store_data = store::load_store(&app)?;
-        store_data.active_core = core;
-        store::save_store(&app, &store_data)?;
+        let mut store_data = store::load_store(&app_for_store)?;
+        store_data.active_core = core_for_store;
+        store_data.last_connection_options.active_core = store_data.active_core.clone();
+        store::save_store(&app_for_store, &store_data)?;
         Ok::<(), AppError>(())
     })
     .await
     .map_err(|e| AppError::System(format!("Tokio spawn blocking failed: {}", e)))??;
+
+    let store_data = store::load_store(&app)?;
+    emit_connection_options_event(&app, &store_data.last_connection_options);
 
     Ok(())
 }
@@ -1320,6 +1866,49 @@ pub async fn get_helix_runtime_state(
     app: AppHandle,
 ) -> Result<crate::engine::helix::config::HelixRuntimeState, AppError> {
     crate::engine::helix::get_runtime_state(&app)
+}
+
+#[tauri::command]
+pub async fn get_canonical_customer_profile(app: AppHandle) -> Result<serde_json::Value, AppError> {
+    let (base_url, access_token, _) = helix::get_authenticated_backend_context(&app)?;
+    client::fetch_authenticated_get(&base_url, &access_token, "/api/v1/mobile/auth/me").await
+}
+
+#[tauri::command]
+pub async fn get_canonical_current_entitlements(
+    app: AppHandle,
+) -> Result<serde_json::Value, AppError> {
+    let (base_url, access_token, _) = helix::get_authenticated_backend_context(&app)?;
+    client::fetch_authenticated_get(&base_url, &access_token, "/api/v1/entitlements/current").await
+}
+
+#[tauri::command]
+pub async fn get_canonical_current_service_state(
+    app: AppHandle,
+) -> Result<serde_json::Value, AppError> {
+    let (base_url, access_token, runtime_state) = helix::get_authenticated_backend_context(&app)?;
+    client::fetch_authenticated_post_json(
+        &base_url,
+        &access_token,
+        "/api/v1/access-delivery-channels/current/service-state",
+        &serde_json::json!({
+            "provider_name": "remnawave",
+            "channel_type": "desktop_manifest",
+            "channel_subject_ref": runtime_state.desktop_client_id,
+        }),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn get_canonical_orders(
+    limit: Option<u32>,
+    app: AppHandle,
+) -> Result<Vec<serde_json::Value>, AppError> {
+    let (base_url, access_token, _) = helix::get_authenticated_backend_context(&app)?;
+    let order_limit = normalize_canonical_order_limit(limit);
+    let path = format!("/api/v1/orders?limit={order_limit}&offset=0");
+    client::fetch_authenticated_get(&base_url, &access_token, &path).await
 }
 
 #[tauri::command]
@@ -1505,10 +2094,11 @@ pub async fn run_transport_core_comparison(
             store::save_store(&app, &store_data)?;
         }
 
-        let comparison_entry = match connect_profile(
+        let comparison_entry = match connect_profile_internal(
             request.profile_id.clone(),
             false,
             false,
+            "transport-core-comparison",
             app.clone(),
             state.clone(),
         )
@@ -1769,10 +2359,11 @@ pub async fn run_helix_recovery_benchmark(
             store::save_store(&app, &store_data)?;
         }
 
-        connect_profile(
+        connect_profile_internal(
             request.profile_id.clone(),
             false,
             false,
+            "helix-recovery-benchmark",
             app.clone(),
             state.clone(),
         )
@@ -2142,13 +2733,20 @@ pub async fn set_privacy_shield_level(
     level: String,
     app: tauri::AppHandle,
 ) -> Result<(), AppError> {
+    let requested_level = level.clone();
+    let app_for_store = app.clone();
     tokio::task::spawn_blocking(move || {
-        let mut store = crate::engine::store::load_store(&app)?;
+        let mut store = crate::engine::store::load_store(&app_for_store)?;
         store.privacy_shield_level = level;
-        crate::engine::store::save_store(&app, &store)
+        crate::engine::store::save_store(&app_for_store, &store)
     })
     .await
     .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+
+    if requested_level != "disabled" {
+        crate::engine::sys::adblock::download_blocklists(&app, &requested_level).await?;
+    }
+
     Ok(())
 }
 
@@ -2242,6 +2840,8 @@ pub async fn apply_stealth_fix(
     state: tauri::State<'_, crate::ipc::AppState>,
 ) -> Result<(), AppError> {
     let mut store = crate::engine::store::load_store(&app)?;
+    let tun_mode = store.last_connection_options.tun_mode;
+    let system_proxy = store.last_connection_options.system_proxy;
     if let Some(node) = store.profiles.iter_mut().find(|p| p.id == node_id) {
         if recommended_protocol == "xhttp"
             || recommended_protocol == "vless-reality"
@@ -2255,7 +2855,15 @@ pub async fn apply_stealth_fix(
     }
     crate::engine::store::save_store(&app, &store)?;
     // Reconnect to apply the altered node and stealth profile
-    crate::ipc::connect_profile(node_id, false, false, app.clone(), state).await?;
+    crate::ipc::connect_profile_internal(
+        node_id,
+        tun_mode,
+        system_proxy,
+        "stealth-fix",
+        app.clone(),
+        state,
+    )
+    .await?;
     Ok(())
 }
 

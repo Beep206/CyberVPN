@@ -42,7 +42,7 @@ describe('MiniAppPaymentsPage', () => {
 
   it('test_displays_payment_history_title', async () => {
     server.use(
-      http.get(`${API_BASE}/payments/history`, () => {
+      http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([]);
       })
     );
@@ -50,29 +50,31 @@ describe('MiniAppPaymentsPage', () => {
     render(<PaymentsPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('paymentHistory')).toBeInTheDocument();
+      expect(screen.getByText('title')).toBeInTheDocument();
     });
   });
 
   it('test_displays_payment_list', async () => {
     server.use(
-      http.get(`${API_BASE}/payments/history`, () => {
+      http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([
           {
-            id: 'pay-1',
-            plan_name: 'Premium Plan',
-            amount: 9.99,
-            currency: 'USD',
-            status: 'completed',
+            id: 'order-1',
+            displayed_price: 9.99,
+            currency_code: 'USD',
+            order_status: 'committed',
+            settlement_status: 'paid',
             created_at: '2026-02-11T10:00:00Z',
+            items: [{ display_name: 'Premium Plan' }],
           },
           {
-            id: 'pay-2',
-            plan_name: 'Basic Plan',
-            amount: 4.99,
-            currency: 'USD',
-            status: 'pending',
+            id: 'order-2',
+            displayed_price: 4.99,
+            currency_code: 'USD',
+            order_status: 'awaiting_payment',
+            settlement_status: 'pending',
             created_at: '2026-02-10T15:00:00Z',
+            items: [{ display_name: 'Basic Plan' }],
           },
         ]);
       })
@@ -89,7 +91,7 @@ describe('MiniAppPaymentsPage', () => {
 
   it('test_shows_empty_state_when_no_payments', async () => {
     server.use(
-      http.get(`${API_BASE}/payments/history`, () => {
+      http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([]);
       })
     );
@@ -103,15 +105,16 @@ describe('MiniAppPaymentsPage', () => {
 
   it('test_displays_status_badges', async () => {
     server.use(
-      http.get(`${API_BASE}/payments/history`, () => {
+      http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([
           {
-            id: 'pay-1',
-            plan_name: 'Plan',
-            amount: 10,
-            currency: 'USD',
-            status: 'completed',
+            id: 'order-1',
+            displayed_price: 10,
+            currency_code: 'USD',
+            order_status: 'committed',
+            settlement_status: 'paid',
             created_at: '2026-02-11T10:00:00Z',
+            items: [{ display_name: 'Plan' }],
           },
         ]);
       })
@@ -120,7 +123,7 @@ describe('MiniAppPaymentsPage', () => {
     render(<PaymentsPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('completed')).toBeInTheDocument();
+      expect(screen.getByText('status_completed')).toBeInTheDocument();
     });
   });
 });

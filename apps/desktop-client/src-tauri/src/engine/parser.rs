@@ -21,6 +21,33 @@ struct VmessFormat {
     alpn: Option<String>,
 }
 
+fn decode_fragment_name(fragment: Option<&str>, fallback: impl FnOnce() -> String) -> String {
+    fragment
+        .map(|value| {
+            urlencoding::decode(&value.replace('+', " "))
+                .unwrap_or_else(|_| value.into())
+                .into_owned()
+        })
+        .unwrap_or_else(fallback)
+}
+
+fn parse_csv_query(value: &str) -> Vec<String> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn parse_bool_query(value: &str) -> Option<bool> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "1" | "true" | "yes" | "on" => Some(true),
+        "0" | "false" | "no" | "off" => Some(false),
+        _ => None,
+    }
+}
+
 pub fn parse_vmess(link: &str) -> Result<ProxyNode, AppError> {
     let b64 = link.trim_start_matches("vmess://");
     let decoded = BASE64_URL_SAFE_NO_PAD
@@ -82,19 +109,7 @@ pub fn parse_vmess(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -191,19 +206,9 @@ pub fn parse_shadowsocks(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn: None,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
         plugin,
         plugin_opts,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -279,19 +284,9 @@ pub fn parse_trojan(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn: None,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
         tls_fragment,
         tls_record_fragment,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -366,19 +361,7 @@ pub fn parse_hysteria2(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps,
         alpn,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -461,19 +444,9 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn: None,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
         tls_fragment,
         tls_record_fragment,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -577,17 +550,7 @@ pub fn parse_tuic(link: &str) -> Result<ProxyNode, AppError> {
         subscription_id: None,
         congestion_control,
         udp_relay_mode,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -615,25 +578,49 @@ pub fn parse_wireguard(link: &str) -> Result<ProxyNode, AppError> {
         .to_string();
     let port = parsed_url.port().unwrap_or(51820);
 
-    let name = if let Some(fragment) = parsed_url.fragment() {
-        urlencoding::decode(&fragment.replace('+', " "))
-            .unwrap_or(std::borrow::Cow::Borrowed("Imported WG"))
-            .into_owned()
-    } else {
-        format!("WG {}", host)
-    };
+    let name = decode_fragment_name(parsed_url.fragment(), || format!("WG {}", host));
 
     let mut private_key = None;
     let mut local_address = None;
     let mut mtu = None;
+    let mut pre_shared_key = None;
+    let mut reserved = None;
+    let mut allowed_ips = None;
+    let mut persistent_keepalive_interval = None;
+    let mut listen_port = None;
 
     for (k, v) in parsed_url.query_pairs() {
         match k.as_ref() {
             "private_key" | "privateKey" => private_key = Some(v.into_owned()),
             "address" | "local_address" => {
-                local_address = Some(v.split(',').map(|s| s.trim().to_string()).collect());
+                local_address = Some(parse_csv_query(&v));
             }
             "mtu" => mtu = v.parse::<u32>().ok(),
+            "pre_shared_key" | "preSharedKey" => pre_shared_key = Some(v.into_owned()),
+            "reserved" => {
+                let bytes = v
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(str::parse::<u8>)
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|error| {
+                        AppError::System(format!("WireGuard reserved parse failed: {}", error))
+                    })?;
+                if !bytes.is_empty() {
+                    reserved = Some(bytes);
+                }
+            }
+            "allowed_ips" | "allowedIps" => {
+                let ips = parse_csv_query(&v);
+                if !ips.is_empty() {
+                    allowed_ips = Some(ips);
+                }
+            }
+            "persistent_keepalive_interval" | "persistentKeepaliveInterval" => {
+                persistent_keepalive_interval = v.parse::<u16>().ok();
+            }
+            "listen_port" | "listenPort" => listen_port = v.parse::<u16>().ok(),
             _ => {}
         }
     }
@@ -670,6 +657,27 @@ pub fn parse_wireguard(link: &str) -> Result<ProxyNode, AppError> {
         private_key,
         peer_public_key: Some(peer_public_key),
         mtu,
+        pre_shared_key,
+        reserved,
+        allowed_ips,
+        persistent_keepalive_interval,
+        listen_port,
+        tailscale_auth_key: None,
+        tailscale_control_url: None,
+        tailscale_state_directory: None,
+        tailscale_hostname: None,
+        tailscale_ephemeral: None,
+        tailscale_accept_routes: None,
+        tailscale_exit_node: None,
+        tailscale_exit_node_allow_lan_access: None,
+        tailscale_advertise_routes: None,
+        tailscale_advertise_exit_node: None,
+        tailscale_system_interface: None,
+        tailscale_system_interface_name: None,
+        tailscale_system_interface_mtu: None,
+        tailscale_udp_timeout: None,
+        tailscale_relay_server_port: None,
+        tailscale_relay_server_static_endpoints: None,
         mux: None,
         group_id: None,
         plugin: None,
@@ -728,19 +736,7 @@ pub fn parse_socks(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn: None,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -803,19 +799,7 @@ pub fn parse_http(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn: None,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
-        private_key: None,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -874,19 +858,8 @@ pub fn parse_ssh(link: &str) -> Result<ProxyNode, AppError> {
         down_mbps: None,
         alpn: None,
         subscription_id: None,
-        congestion_control: None,
-        udp_relay_mode: None,
-        local_address: None,
         private_key,
-        peer_public_key: None,
-        mtu: None,
-        mux: None,
-        group_id: None,
-        plugin: None,
-        plugin_opts: None,
-        tls_fragment: None,
-        tls_record_fragment: None,
-        pqc_enabled: None,
+        ..Default::default()
     })
 }
 
@@ -1007,6 +980,115 @@ pub fn generate_link(node: &ProxyNode) -> String {
             let json_str = serde_json::to_string(&vmess).unwrap_or_default();
             format!("vmess://{}", BASE64_STANDARD.encode(json_str))
         }
+        "wireguard" => {
+            let mut u = Url::parse("wg://").unwrap();
+            let _ = u.set_username(node.peer_public_key.as_deref().unwrap_or(""));
+            let _ = u.set_host(Some(&node.server));
+            let _ = u.set_port(Some(node.port));
+
+            let mut q = u.query_pairs_mut();
+            if let Some(ref private_key) = node.private_key {
+                q.append_pair("private_key", private_key);
+            }
+            if let Some(ref address) = node.local_address {
+                q.append_pair("address", &address.join(","));
+            }
+            if let Some(mtu) = node.mtu {
+                q.append_pair("mtu", &mtu.to_string());
+            }
+            if let Some(ref pre_shared_key) = node.pre_shared_key {
+                q.append_pair("pre_shared_key", pre_shared_key);
+            }
+            if let Some(ref allowed_ips) = node.allowed_ips {
+                q.append_pair("allowed_ips", &allowed_ips.join(","));
+            }
+            if let Some(interval) = node.persistent_keepalive_interval {
+                q.append_pair("persistent_keepalive_interval", &interval.to_string());
+            }
+            if let Some(ref reserved) = node.reserved {
+                let reserved_csv = reserved
+                    .iter()
+                    .map(|value| value.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                q.append_pair("reserved", &reserved_csv);
+            }
+            if let Some(listen_port) = node.listen_port {
+                q.append_pair("listen_port", &listen_port.to_string());
+            }
+            drop(q);
+
+            u.set_fragment(Some(&node.name));
+            u.to_string()
+        }
+        "tailscale" => {
+            let mut u = Url::parse("tailscale://").unwrap();
+            let mut q = u.query_pairs_mut();
+            if let Some(ref auth_key) = node.tailscale_auth_key {
+                q.append_pair("auth_key", auth_key);
+            }
+            if let Some(ref control_url) = node.tailscale_control_url {
+                q.append_pair("control_url", control_url);
+            }
+            if let Some(ref state_directory) = node.tailscale_state_directory {
+                q.append_pair("state_directory", state_directory);
+            }
+            if let Some(ref hostname) = node.tailscale_hostname {
+                q.append_pair("hostname", hostname);
+            }
+            if let Some(ephemeral) = node.tailscale_ephemeral {
+                q.append_pair("ephemeral", if ephemeral { "true" } else { "false" });
+            }
+            if let Some(accept_routes) = node.tailscale_accept_routes {
+                q.append_pair(
+                    "accept_routes",
+                    if accept_routes { "true" } else { "false" },
+                );
+            }
+            if let Some(ref exit_node) = node.tailscale_exit_node {
+                q.append_pair("exit_node", exit_node);
+            }
+            if let Some(allow_lan) = node.tailscale_exit_node_allow_lan_access {
+                q.append_pair(
+                    "exit_node_allow_lan_access",
+                    if allow_lan { "true" } else { "false" },
+                );
+            }
+            if let Some(ref advertise_routes) = node.tailscale_advertise_routes {
+                q.append_pair("advertise_routes", &advertise_routes.join(","));
+            }
+            if let Some(advertise_exit_node) = node.tailscale_advertise_exit_node {
+                q.append_pair(
+                    "advertise_exit_node",
+                    if advertise_exit_node { "true" } else { "false" },
+                );
+            }
+            if let Some(system_interface) = node.tailscale_system_interface {
+                q.append_pair(
+                    "system_interface",
+                    if system_interface { "true" } else { "false" },
+                );
+            }
+            if let Some(ref interface_name) = node.tailscale_system_interface_name {
+                q.append_pair("system_interface_name", interface_name);
+            }
+            if let Some(interface_mtu) = node.tailscale_system_interface_mtu {
+                q.append_pair("system_interface_mtu", &interface_mtu.to_string());
+            }
+            if let Some(ref udp_timeout) = node.tailscale_udp_timeout {
+                q.append_pair("udp_timeout", udp_timeout);
+            }
+            if let Some(relay_server_port) = node.tailscale_relay_server_port {
+                q.append_pair("relay_server_port", &relay_server_port.to_string());
+            }
+            if let Some(ref static_endpoints) = node.tailscale_relay_server_static_endpoints {
+                q.append_pair("relay_server_static_endpoints", &static_endpoints.join(","));
+            }
+            drop(q);
+
+            u.set_fragment(Some(&node.name));
+            u.to_string()
+        }
         _ => "".to_string(),
     };
 
@@ -1018,14 +1100,69 @@ pub fn generate_link(node: &ProxyNode) -> String {
 fn parse_tailscale(link: &str) -> Result<ProxyNode, AppError> {
     let url = Url::parse(link).map_err(|e| AppError::System(format!("Invalid URL: {}", e)))?;
 
-    let name = url
-        .fragment()
-        .map(|f| {
-            urlencoding::decode(f)
-                .unwrap_or_else(|_| f.into())
-                .into_owned()
-        })
-        .unwrap_or_else(|| "Tailscale Node".to_string());
+    let name = decode_fragment_name(url.fragment(), || "Tailscale Node".to_string());
+    let mut tailscale_auth_key = None;
+    let mut tailscale_control_url = None;
+    let mut tailscale_state_directory = None;
+    let mut tailscale_hostname = None;
+    let mut tailscale_ephemeral = None;
+    let mut tailscale_accept_routes = None;
+    let mut tailscale_exit_node = None;
+    let mut tailscale_exit_node_allow_lan_access = None;
+    let mut tailscale_advertise_routes = None;
+    let mut tailscale_advertise_exit_node = None;
+    let mut tailscale_system_interface = None;
+    let mut tailscale_system_interface_name = None;
+    let mut tailscale_system_interface_mtu = None;
+    let mut tailscale_udp_timeout = None;
+    let mut tailscale_relay_server_port = None;
+    let mut tailscale_relay_server_static_endpoints = None;
+
+    for (key, value) in url.query_pairs() {
+        match key.as_ref() {
+            "auth_key" | "authKey" => tailscale_auth_key = Some(value.into_owned()),
+            "control_url" | "controlUrl" => tailscale_control_url = Some(value.into_owned()),
+            "state_directory" | "stateDirectory" => {
+                tailscale_state_directory = Some(value.into_owned());
+            }
+            "hostname" => tailscale_hostname = Some(value.into_owned()),
+            "ephemeral" => tailscale_ephemeral = parse_bool_query(&value),
+            "accept_routes" | "acceptRoutes" => tailscale_accept_routes = parse_bool_query(&value),
+            "exit_node" | "exitNode" => tailscale_exit_node = Some(value.into_owned()),
+            "exit_node_allow_lan_access" | "exitNodeAllowLanAccess" => {
+                tailscale_exit_node_allow_lan_access = parse_bool_query(&value);
+            }
+            "advertise_routes" | "advertiseRoutes" => {
+                let routes = parse_csv_query(&value);
+                if !routes.is_empty() {
+                    tailscale_advertise_routes = Some(routes);
+                }
+            }
+            "advertise_exit_node" | "advertiseExitNode" => {
+                tailscale_advertise_exit_node = parse_bool_query(&value);
+            }
+            "system_interface" | "systemInterface" => {
+                tailscale_system_interface = parse_bool_query(&value);
+            }
+            "system_interface_name" | "systemInterfaceName" => {
+                tailscale_system_interface_name = Some(value.into_owned());
+            }
+            "system_interface_mtu" | "systemInterfaceMtu" => {
+                tailscale_system_interface_mtu = value.parse::<u32>().ok();
+            }
+            "udp_timeout" | "udpTimeout" => tailscale_udp_timeout = Some(value.into_owned()),
+            "relay_server_port" | "relayServerPort" => {
+                tailscale_relay_server_port = value.parse::<u16>().ok();
+            }
+            "relay_server_static_endpoints" | "relayServerStaticEndpoints" => {
+                let endpoints = parse_csv_query(&value);
+                if !endpoints.is_empty() {
+                    tailscale_relay_server_static_endpoints = Some(endpoints);
+                }
+            }
+            _ => {}
+        }
+    }
 
     Ok(ProxyNode {
         id: uuid::Uuid::new_v4().to_string(),
@@ -1059,6 +1196,27 @@ fn parse_tailscale(link: &str) -> Result<ProxyNode, AppError> {
         private_key: None,
         peer_public_key: None,
         mtu: None,
+        pre_shared_key: None,
+        reserved: None,
+        allowed_ips: None,
+        persistent_keepalive_interval: None,
+        listen_port: None,
+        tailscale_auth_key,
+        tailscale_control_url,
+        tailscale_state_directory,
+        tailscale_hostname,
+        tailscale_ephemeral,
+        tailscale_accept_routes,
+        tailscale_exit_node,
+        tailscale_exit_node_allow_lan_access,
+        tailscale_advertise_routes,
+        tailscale_advertise_exit_node,
+        tailscale_system_interface,
+        tailscale_system_interface_name,
+        tailscale_system_interface_mtu,
+        tailscale_udp_timeout,
+        tailscale_relay_server_port,
+        tailscale_relay_server_static_endpoints,
         mux: None,
         group_id: None,
         plugin: None,
@@ -1225,7 +1383,7 @@ mod tests {
 
     #[test]
     fn parse_wireguard_should_extract_parameters() {
-        let link = "wg://peer_pubkey@1.1.1.1:51820?private_key=priv_key&address=10.0.0.1/24,fd00::1/64&mtu=1420#wg_node";
+        let link = "wg://peer_pubkey@1.1.1.1:51820?private_key=priv_key&address=10.0.0.1/24,fd00::1/64&mtu=1420&pre_shared_key=psk&allowed_ips=0.0.0.0/0,::/0&persistent_keepalive_interval=25&reserved=1,2,3&listen_port=51821#wg_node";
         let node = parse_link(link).expect("Failed to parse WG");
         assert_eq!(node.protocol, "wireguard");
         assert_eq!(node.peer_public_key.as_deref(), Some("peer_pubkey"));
@@ -1237,7 +1395,41 @@ mod tests {
             vec!["10.0.0.1/24".to_string(), "fd00::1/64".to_string()]
         );
         assert_eq!(node.mtu, Some(1420));
+        assert_eq!(node.pre_shared_key.as_deref(), Some("psk"));
+        assert_eq!(
+            node.allowed_ips.unwrap(),
+            vec!["0.0.0.0/0".to_string(), "::/0".to_string()]
+        );
+        assert_eq!(node.persistent_keepalive_interval, Some(25));
+        assert_eq!(node.reserved.unwrap(), vec![1, 2, 3]);
+        assert_eq!(node.listen_port, Some(51821));
         assert_eq!(node.name, "wg_node");
+    }
+
+    #[test]
+    fn parse_tailscale_should_extract_parameters() {
+        let link = "tailscale://?state_directory=tailscale-state&accept_routes=true&exit_node=100.64.0.1&system_interface=true&system_interface_name=tailscale0&system_interface_mtu=1280&udp_timeout=10m&relay_server_port=41641&relay_server_static_endpoints=1.1.1.1:443,2.2.2.2:443#TS%20Node";
+        let node = parse_link(link).expect("Failed to parse Tailscale");
+        assert_eq!(node.protocol, "tailscale");
+        assert_eq!(node.name, "TS Node");
+        assert_eq!(
+            node.tailscale_state_directory.as_deref(),
+            Some("tailscale-state")
+        );
+        assert_eq!(node.tailscale_accept_routes, Some(true));
+        assert_eq!(node.tailscale_exit_node.as_deref(), Some("100.64.0.1"));
+        assert_eq!(node.tailscale_system_interface, Some(true));
+        assert_eq!(
+            node.tailscale_system_interface_name.as_deref(),
+            Some("tailscale0")
+        );
+        assert_eq!(node.tailscale_system_interface_mtu, Some(1280));
+        assert_eq!(node.tailscale_udp_timeout.as_deref(), Some("10m"));
+        assert_eq!(node.tailscale_relay_server_port, Some(41641));
+        assert_eq!(
+            node.tailscale_relay_server_static_endpoints.unwrap(),
+            vec!["1.1.1.1:443".to_string(), "2.2.2.2:443".to_string()]
+        );
     }
 
     #[test]

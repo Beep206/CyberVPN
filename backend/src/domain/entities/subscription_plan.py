@@ -29,3 +29,20 @@ class SubscriptionPlan:
     features: dict[str, Any]
     is_active: bool
     sort_order: int
+
+    @property
+    def product_family_key(self) -> str:
+        """Stable product-family identifier independent of commercial overlays."""
+
+        return str(self.plan_code or self.name)
+
+    @property
+    def legacy_offer_overlay(self) -> dict[str, Any]:
+        """Commercial overlay fields that still live on the base catalog row."""
+
+        return {
+            "catalog_visibility": str(self.catalog_visibility),
+            "sale_channels": list(self.sale_channels),
+            "invite_bundle": dict(self.invite_bundle),
+            "trial_eligible": self.trial_eligible,
+        }

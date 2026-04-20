@@ -1,6 +1,7 @@
 """Forgot password use case - generates OTP for password reset."""
 
 import logging
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,12 +30,23 @@ class ForgotPasswordUseCase:
         self._email_dispatcher = email_dispatcher
         self._session = session
 
-    async def execute(self, email: str, locale: str = "en-EN") -> None:
+    async def execute(
+        self,
+        email: str,
+        locale: str = "en-EN",
+        *,
+        auth_realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
+    ) -> None:
         """Generate password reset OTP and dispatch email.
 
         Silently succeeds even if email not found (prevent enumeration).
         """
-        user = await self._user_repo.get_by_email(email.lower())
+        user = await self._user_repo.get_by_email(
+            email.lower(),
+            realm_id=auth_realm_id,
+            include_legacy_default=include_legacy_default,
+        )
         if not user:
             # Silent success to prevent email enumeration
             logger.info(

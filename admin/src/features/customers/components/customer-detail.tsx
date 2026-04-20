@@ -31,6 +31,7 @@ import {
 } from '@/lib/api/customers';
 import { growthApi } from '@/lib/api/growth';
 import { paymentsApi } from '@/lib/api/payments';
+import { CustomerOperationsInsight } from '@/features/customers/components/customer-operations-insight';
 import { CustomersPageShell } from '@/features/customers/components/customers-page-shell';
 import { CustomerStatusChip } from '@/features/customers/components/customer-status-chip';
 import {
@@ -678,6 +679,7 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'vpn'] }),
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'subscription'] }),
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'timeline'] }),
+                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'operations-insight'] }),
               ]);
             }}
           >
@@ -1430,6 +1432,8 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
             </div>
           </div>
         </section>
+
+        <CustomerOperationsInsight userId={userId} />
 
         <div className="grid gap-6 xl:grid-cols-12">
           <section

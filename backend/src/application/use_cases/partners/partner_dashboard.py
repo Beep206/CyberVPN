@@ -25,11 +25,20 @@ class PartnerDashboardUseCase:
         self._partner_repo = partner_repo
         self._config = config_service
 
-    async def execute(self, partner_user_id: UUID) -> dict[str, Any]:
-        """Build and return dashboard data for *partner_user_id*."""
-        total_clients = await self._partner_repo.count_clients(partner_user_id)
-        total_earned = await self._partner_repo.get_total_earnings(partner_user_id)
-        codes = await self._partner_repo.get_codes_by_partner(partner_user_id)
+    async def execute(
+        self,
+        partner_user_id: UUID,
+        partner_account_id: UUID | None = None,
+    ) -> dict[str, Any]:
+        """Build and return dashboard data for a partner user or workspace."""
+        if partner_account_id is not None:
+            total_clients = await self._partner_repo.count_clients_by_account(partner_account_id)
+            total_earned = await self._partner_repo.get_total_earnings_by_account(partner_account_id)
+            codes = await self._partner_repo.get_codes_by_account(partner_account_id)
+        else:
+            total_clients = await self._partner_repo.count_clients(partner_user_id)
+            total_earned = await self._partner_repo.get_total_earnings(partner_user_id)
+            codes = await self._partner_repo.get_codes_by_partner(partner_user_id)
         tiers = await self._config.get_partner_tiers()
 
         current_tier = self._resolve_tier(total_clients, tiers)

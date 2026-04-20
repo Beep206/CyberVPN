@@ -53,6 +53,12 @@ interface EditableMatrixTarget {
   path: string;
 }
 
+function formatProfileOptionLabel(profile: ProxyNode): string {
+  const endpointLabel =
+    profile.server && profile.port > 0 ? `${profile.server}:${profile.port}` : "endpoint";
+  return `${profile.name} • ${profile.protocol.toUpperCase()} • ${endpointLabel}`;
+}
+
 const DEFAULT_MATRIX_TARGETS: EditableMatrixTarget[] = [
   { label: "Warm HTTP", host: "example.com", port: "80", path: "/" },
   {
@@ -1234,7 +1240,7 @@ export function DiagnosticsSupportPanel() {
               ) : null}
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
-                  {profile.name} • {profile.protocol.toUpperCase()} • {profile.server}:{profile.port}
+                  {formatProfileOptionLabel(profile)}
                 </option>
               ))}
             </select>
@@ -1581,7 +1587,7 @@ export function DiagnosticsSupportPanel() {
                 {profiles.length === 0 ? <option value="">No saved profiles</option> : null}
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
-                    {profile.name} • {profile.protocol.toUpperCase()} • {profile.server}:{profile.port}
+                    {formatProfileOptionLabel(profile)}
                   </option>
                 ))}
               </select>
@@ -1946,7 +1952,7 @@ export function DiagnosticsSupportPanel() {
                 {profiles.length === 0 ? <option value="">No saved profiles</option> : null}
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
-                    {profile.name} • {profile.protocol.toUpperCase()} • {profile.server}:{profile.port}
+                    {formatProfileOptionLabel(profile)}
                   </option>
                 ))}
               </select>

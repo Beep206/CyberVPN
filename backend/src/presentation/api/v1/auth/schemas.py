@@ -51,6 +51,11 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int = 0
+    auth_realm_id: UUID | None = None
+    auth_realm_key: str | None = None
+    audience: str | None = None
+    principal_type: str | None = None
+    scope_family: str | None = None
 
 
 class LoginResponse(TokenResponse):
@@ -72,6 +77,11 @@ class AdminUserResponse(BaseModel):
     sign_in_count: int = 0
     current_sign_in_ip: str | None = None
     last_login_at: datetime | None = None
+    auth_realm_id: UUID | None = None
+    auth_realm_key: str | None = None
+    audience: str | None = None
+    principal_type: str | None = None
+    scope_family: str | None = None
 
 
 # OTP Verification schemas
@@ -96,6 +106,11 @@ class VerifyOtpResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int = 0
+    auth_realm_id: UUID | None = None
+    auth_realm_key: str | None = None
+    audience: str | None = None
+    principal_type: str | None = None
+    scope_family: str | None = None
     user: AdminUserResponse
 
 

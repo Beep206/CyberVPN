@@ -1,14 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Modal } from '@/shared/ui/modal';
-import { paymentsApi } from '@/lib/api/payments';
+import {
+  commerceApi,
+  createClientIdempotencyKey,
+  OFFICIAL_WEB_SALE_CHANNEL,
+  OFFICIAL_WEB_STOREFRONT_KEY,
+} from '@/lib/api/commerce';
 import { motion } from 'motion/react';
 import { useLocale } from 'next-intl';
 import { AlertTriangle, CheckCircle, CreditCard, Percent, ShieldCheck, Tag, Zap } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import { markPerformance, measurePerformance, PerformanceMarks } from '@/shared/lib/web-vitals';
+import {
+  canOfficialWebSurfaceAccess,
+  shouldRenderOfficialQuoteAdjustmentBanner,
+} from '@/shared/lib/surface-policy';
 import {
   formatConnectionModes,
   formatDurationLabel,
@@ -28,14 +38,15 @@ interface PurchaseConfirmModalProps {
 
 type ModalStep = 'confirm' | 'processing' | 'success' | 'error';
 
-function buildCheckoutRequest(plan: SubscriptionPlan, promo?: string) {
+function buildQuoteRequest(plan: SubscriptionPlan, promo?: string) {
   return {
+    storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
     plan_id: plan.uuid,
     addons: [],
-    promo_code: promo || undefined,
+    promo_code: canOfficialWebSurfaceAccess('promo_codes') ? promo || undefined : undefined,
     use_wallet: 0,
     currency: 'USD',
-    channel: 'web',
+    channel: OFFICIAL_WEB_SALE_CHANNEL,
   };
 }
 
@@ -45,6 +56,7 @@ export function PurchaseConfirmModal({
   plan,
 }: PurchaseConfirmModalProps) {
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<ModalStep>('confirm');
   const [error, setError] = useState('');
   const [promoCode, setPromoCode] = useState('');
@@ -96,9 +108,9 @@ export function PurchaseConfirmModal({
       setActivePromoCode(null);
 
       try {
-        const response = await paymentsApi.quoteCheckout(buildCheckoutRequest(initialPlan));
+        const response = await commerceApi.createQuoteSession(buildQuoteRequest(initialPlan));
         if (!isCancelled) {
-          setQuote(response.data);
+          setQuote(response.data.quote);
         }
       } catch (err) {
         if (!isCancelled) {
@@ -134,8 +146,8 @@ export function PurchaseConfirmModal({
 
     try {
       const normalizedPromo = promoCode.trim().toUpperCase();
-      const response = await paymentsApi.quoteCheckout(buildCheckoutRequest(activePlan, normalizedPromo));
-      setQuote(response.data);
+      const response = await commerceApi.createQuoteSession(buildQuoteRequest(activePlan, normalizedPromo));
+      setQuote(response.data.quote);
       setActivePromoCode(normalizedPromo);
       setPromoCode(normalizedPromo);
     } catch (err) {
@@ -143,8 +155,8 @@ export function PurchaseConfirmModal({
       setPromoError(handleQuoteError(err, 'Promo code not valid'));
 
       try {
-        const fallbackQuote = await paymentsApi.quoteCheckout(buildCheckoutRequest(activePlan));
-        setQuote(fallbackQuote.data);
+        const fallbackQuote = await commerceApi.createQuoteSession(buildQuoteRequest(activePlan));
+        setQuote(fallbackQuote.data.quote);
       } catch {
         setQuote(null);
       }
@@ -167,12 +179,31 @@ export function PurchaseConfirmModal({
     setError('');
 
     try {
-      const response = await paymentsApi.commitCheckout(
-        buildCheckoutRequest(activePlan, activePromoCode ?? undefined)
+      const quoteResponse = await commerceApi.createQuoteSession(
+        buildQuoteRequest(activePlan, activePromoCode ?? undefined)
+      );
+      const checkoutSessionResponse = await commerceApi.createCheckoutSession(
+        { quote_session_id: quoteResponse.data.id },
+        createClientIdempotencyKey('checkout-session')
+      );
+      const orderResponse = await commerceApi.commitOrder({
+        checkout_session_id: checkoutSessionResponse.data.id,
+      });
+      const paymentAttemptResponse = await commerceApi.createPaymentAttempt(
+        { order_id: orderResponse.data.id },
+        createClientIdempotencyKey('payment-attempt')
       );
 
-      if (response.data.invoice?.payment_url) {
-        window.open(response.data.invoice.payment_url, '_blank', 'noopener,noreferrer');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['current-entitlements'] }),
+        queryClient.invalidateQueries({ queryKey: ['current-service-state'] }),
+        queryClient.invalidateQueries({ queryKey: ['subscriptions'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments', 'history'] }),
+      ]);
+
+      if (paymentAttemptResponse.data.invoice?.payment_url) {
+        window.open(paymentAttemptResponse.data.invoice.payment_url, '_blank', 'noopener,noreferrer');
         setSuccessMessage('Payment page opened');
       } else {
         setSuccessMessage('Subscription activated');
@@ -209,6 +240,13 @@ export function PurchaseConfirmModal({
   const quotedBase = quote?.base_price ?? plan.price_usd;
   const hasDiscount = (quote?.discount_amount ?? 0) > 0;
   const quotedGateway = quote?.gateway_amount ?? plan.price_usd;
+  const showPromoControls = canOfficialWebSurfaceAccess('promo_codes');
+  const showQuoteAdjustmentBanner = activePromoCode && quote
+    ? shouldRenderOfficialQuoteAdjustmentBanner({
+        discountAmount: quote.discount_amount,
+        partnerMarkup: quote.partner_markup,
+      })
+    : false;
 
   if (step === 'confirm') {
     return (
@@ -283,7 +321,8 @@ export function PurchaseConfirmModal({
             )}
           </div>
 
-          <div className="cyber-card p-4 bg-terminal-bg">
+          {showPromoControls ? (
+            <div className="cyber-card p-4 bg-terminal-bg">
             <div className="flex items-center gap-3 mb-3">
               <Tag className="h-5 w-5 text-neon-purple" />
               <h4 className="text-sm font-display text-neon-purple">
@@ -304,7 +343,7 @@ export function PurchaseConfirmModal({
                 onKeyDown={(e) => e.key === 'Enter' && handleValidatePromo()}
               />
 
-              {activePromoCode && quote && (quote.discount_amount > 0 || quote.partner_markup !== 0) && (
+              {showQuoteAdjustmentBanner ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -325,7 +364,7 @@ export function PurchaseConfirmModal({
                     </p>
                   </div>
                 </motion.div>
-              )}
+              ) : null}
 
               <button
                 onClick={handleValidatePromo}
@@ -335,7 +374,8 @@ export function PurchaseConfirmModal({
                 {quoteLoading ? 'Updating quote...' : 'Apply Promo'}
               </button>
             </div>
-          </div>
+            </div>
+          ) : null}
 
           <div className="p-4 bg-neon-cyan/5 border border-neon-cyan/30 rounded-lg">
             <div className="flex items-start gap-3">

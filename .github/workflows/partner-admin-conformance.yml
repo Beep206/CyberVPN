@@ -1,0 +1,130 @@
+name: Partner Admin Conformance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'admin/**'
+      - 'partner/**'
+      - 'scripts/run-partner-admin-conformance.sh'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/partner-admin-conformance.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'admin/**'
+      - 'partner/**'
+      - 'scripts/run-partner-admin-conformance.sh'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/partner-admin-conformance.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-conformance:
+    name: Backend Conformance Pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.13'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e ".[dev]"
+
+      - name: Run backend partner/admin conformance
+        env:
+          SKIP_TEST_DB_BOOTSTRAP: '1'
+        run: bash scripts/run-partner-admin-conformance.sh --backend
+
+  admin-surface:
+    name: Admin Surface Readiness
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Run admin conformance surface checks
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: bash scripts/run-partner-admin-conformance.sh --admin
+
+  partner-surface:
+    name: Partner Surface Readiness
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Run partner conformance surface checks
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: bash scripts/run-partner-admin-conformance.sh --partner
+
+  all-checks:
+    name: All Partner/Admin Checks Passed
+    runs-on: ubuntu-latest
+    needs:
+      - backend-conformance
+      - admin-surface
+      - partner-surface
+    if: always()
+    steps:
+      - name: Check all jobs
+        env:
+          BACKEND_RESULT: ${{ needs.backend-conformance.result }}
+          ADMIN_RESULT: ${{ needs.admin-surface.result }}
+          PARTNER_RESULT: ${{ needs.partner-surface.result }}
+        run: |
+          if [[ "$BACKEND_RESULT" != "success" ]]; then
+            echo "Backend conformance failed"
+            exit 1
+          fi
+          if [[ "$ADMIN_RESULT" != "success" ]]; then
+            echo "Admin surface readiness failed"
+            exit 1
+          fi
+          if [[ "$PARTNER_RESULT" != "success" ]]; then
+            echo "Partner surface readiness failed"
+            exit 1
+          fi
+          echo "All partner/admin conformance checks passed"

@@ -17,6 +17,8 @@ use tauri::Manager;
 pub struct AppDataStore {
     pub profiles: Vec<ProxyNode>,
     pub active_profile_id: Option<String>,
+    #[serde(default)]
+    pub last_connection_options: crate::ipc::models::LastConnectionOptions,
     pub routing_rules: Vec<crate::ipc::models::RoutingRule>,
     pub subscriptions: Vec<crate::ipc::models::Subscription>,
     pub custom_config: Option<String>,
@@ -82,6 +84,7 @@ impl Default for AppDataStore {
         Self {
             profiles: Vec::new(),
             active_profile_id: None,
+            last_connection_options: crate::ipc::models::LastConnectionOptions::default(),
             routing_rules: Vec::new(),
             subscriptions: Vec::new(),
             custom_config: None,
@@ -161,4 +164,55 @@ pub fn save_store(app_handle: &AppHandle, store: &AppDataStore) -> Result<(), Ap
     let contents = serde_json::to_string_pretty(store)?;
     fs::write(store_path, contents)?;
     Ok(())
+}
+
+#[derive(Debug, Default)]
+pub struct ConnectionMetadataReconciliation {
+    pub cleared_stale_active_profile: bool,
+    pub cleared_missing_last_profile: bool,
+    pub synced_last_active_core: bool,
+}
+
+pub fn reconcile_connection_metadata(
+    app_handle: &AppHandle,
+) -> Result<ConnectionMetadataReconciliation, AppError> {
+    let mut store = load_store(app_handle)?;
+    let mut report = ConnectionMetadataReconciliation::default();
+    let mut changed = false;
+
+    if store.active_profile_id.is_some() {
+        store.active_profile_id = None;
+        report.cleared_stale_active_profile = true;
+        changed = true;
+    }
+
+    if store
+        .last_connection_options
+        .profile_id
+        .as_ref()
+        .is_some_and(|profile_id| {
+            !store
+                .profiles
+                .iter()
+                .any(|profile| &profile.id == profile_id)
+        })
+    {
+        store.last_connection_options.profile_id = None;
+        report.cleared_missing_last_profile = true;
+        changed = true;
+    }
+
+    if store.last_connection_options.active_core.trim().is_empty()
+        || store.last_connection_options.active_core != store.active_core
+    {
+        store.last_connection_options.active_core = store.active_core.clone();
+        report.synced_last_active_core = true;
+        changed = true;
+    }
+
+    if changed {
+        save_store(app_handle, &store)?;
+    }
+
+    Ok(report)
 }

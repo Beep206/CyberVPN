@@ -75,6 +75,7 @@ class ProcessPartnerEarningUseCase:
 
         # Record earning in ledger
         earning = PartnerEarningModel(
+            partner_account_id=code.partner_account_id,
             partner_user_id=partner_user_id,
             client_user_id=client_user_id,
             payment_id=payment_id,

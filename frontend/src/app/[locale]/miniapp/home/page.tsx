@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { vpnApi, trialApi, subscriptionsApi } from '@/lib/api';
+import { entitlementsApi, serviceAccessApi, trialApi, vpnApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import {
   Shield,
@@ -26,7 +26,7 @@ import { VpnConfigCard } from '../components/VpnConfigCard';
  */
 export default function MiniAppHomePage() {
   const t = useTranslations('MiniApp.home');
-  const { haptic, colorScheme } = useTelegramWebApp();
+  const { haptic, colorScheme, webApp } = useTelegramWebApp();
   // const user = useAuthStore((s) => s.user); // TODO: Use for subscription info when available
 
   // Fetch usage stats
@@ -47,21 +47,32 @@ export default function MiniAppHomePage() {
     },
   });
 
-  // Fetch user subscriptions
-  const { data: subscriptionsData, isLoading: subscriptionsLoading } = useQuery({
-    queryKey: ['subscriptions'],
+  const { data: entitlementData, isLoading: entitlementsLoading } = useQuery({
+    queryKey: ['miniapp-current-entitlements'],
     queryFn: async () => {
-      const { data } = await subscriptionsApi.list();
-      return data.templates ?? [];
+      const { data } = await entitlementsApi.getCurrent();
+      return data;
     },
   });
 
-  // Find active subscription (note: subscriptions API returns templates, not user subscriptions)
-  // Note: Replace with proper user subscription endpoint when available
-  const activeSubscription = subscriptionsData?.[0] as (Record<string, unknown> & { name?: string; plan_name?: string; expires_at?: string; data_limit_gb?: number }) | undefined;
-  const hasActiveSubscription = !!activeSubscription;
-  const isOnTrial = trialData?.is_trial_active || false;
-  const canActivateTrial = trialData?.is_eligible || false;
+  const telegramUserId = webApp?.initDataUnsafe.user?.id ?? null;
+  const { data: currentServiceState, isLoading: serviceStateLoading } = useQuery({
+    queryKey: ['miniapp-current-service-state', telegramUserId],
+    queryFn: async () => {
+      const { data } = await serviceAccessApi.getCurrentServiceState({
+        provider_name: 'remnawave',
+        channel_type: 'telegram_bot',
+        credential_type: 'telegram_bot',
+        credential_subject_key: telegramUserId ? `telegram-miniapp:${telegramUserId}` : 'telegram-miniapp',
+      });
+      return data;
+    },
+    enabled: telegramUserId !== null,
+  });
+
+  const hasActiveSubscription = entitlementData?.status === 'active';
+  const isOnTrial = Boolean(entitlementData?.is_trial || trialData?.is_trial_active);
+  const canActivateTrial = Boolean(trialData?.eligible || trialData?.is_eligible);
 
   // Format usage percentage
   const usagePercentage = usageData?.bandwidth_limit_bytes
@@ -75,7 +86,7 @@ export default function MiniAppHomePage() {
     return `${gb.toFixed(2)} GB`;
   };
 
-  const isLoading = usageLoading || trialLoading || subscriptionsLoading;
+  const isLoading = usageLoading || trialLoading || entitlementsLoading || serviceStateLoading;
 
   // Theme colors
   const isDark = colorScheme === 'dark';
@@ -112,31 +123,32 @@ export default function MiniAppHomePage() {
             </div>
 
             {/* Active Subscription Info */}
-            {hasActiveSubscription && activeSubscription && (
+            {hasActiveSubscription && entitlementData && (
               <div className="space-y-2 text-sm font-mono text-muted-foreground">
                 <div className="flex justify-between">
                   <span>{t('plan')}:</span>
                   <span className="text-foreground font-semibold">
-                    {activeSubscription.plan_name || activeSubscription.name || 'Premium'}
+                    {entitlementData.display_name || entitlementData.plan_code || 'Premium'}
                   </span>
                 </div>
-                {activeSubscription.expires_at && (
+                {entitlementData.expires_at && (
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(activeSubscription.expires_at).toLocaleDateString()}
+                      {new Date(entitlementData.expires_at).toLocaleDateString()}
                     </span>
                   </div>
                 )}
-                {activeSubscription.data_limit_gb && (
+                {currentServiceState?.provider_name && (
                   <div className="flex justify-between">
-                    <span>{t('trafficLimit') || 'Traffic'}:</span>
-                    <span className="text-foreground">
-                      {activeSubscription.data_limit_gb >= 1000
-                        ? `${(activeSubscription.data_limit_gb / 1000).toFixed(1)} TB`
-                        : `${activeSubscription.data_limit_gb} GB`
-                      }
-                    </span>
+                    <span>Provider:</span>
+                    <span className="text-foreground">{currentServiceState.provider_name}</span>
+                  </div>
+                )}
+                {currentServiceState?.consumption_context?.channel_type && (
+                  <div className="flex justify-between">
+                    <span>Channel:</span>
+                    <span className="text-foreground">{currentServiceState.consumption_context.channel_type}</span>
                   </div>
                 )}
               </div>

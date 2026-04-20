@@ -1,5 +1,14 @@
+import 'dart:async';
+
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/data/cache_strategy.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show subscriptionRepositoryProvider;
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
+import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
+import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
+import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/payment_history_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/payment_history_screen.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +21,71 @@ import 'package:flutter_test/flutter_test.dart';
 
 // PaymentHistoryEntry and PaginatedPaymentHistory are plain classes (not sealed/freezed)
 // so we can construct them directly without mocks.
+
+class _StubSubscriptionRepository implements SubscriptionRepository {
+  _StubSubscriptionRepository(this._loadHistory);
+
+  final Future<Result<PaginatedPaymentHistory>> Function() _loadHistory;
+
+  @override
+  Future<Result<PaginatedPaymentHistory>> getPaymentHistory({
+    int offset = 0,
+    int limit = 20,
+  }) => _loadHistory();
+
+  @override
+  Future<Result<void>> cancelSubscription(String subscriptionId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<SubscriptionEntity>> subscribe(
+    String planId, {
+    String? paymentMethod,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<void>> restorePurchases() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<List<PlanEntity>>> getPlans({
+    strategy = CacheStrategy.cacheFirst,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<SubscriptionEntity?>> getActiveSubscription() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<SubscriptionEntity>> redeemInviteCode(String code) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> applyPromoCode(
+    String code,
+    String planId,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getTrialStatus() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Result<SubscriptionEntity>> activateTrial() {
+    throw UnimplementedError();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Test Helpers
@@ -45,16 +119,24 @@ Widget buildTestablePaymentHistoryScreen({
   AsyncValue<PaginatedPaymentHistory>? historyOverride,
 }) {
   return ProviderScope(
-    overrides: [
-      if (historyOverride != null)
-        paymentHistoryProvider.overrideWith((ref) async {
-          return historyOverride.when(
-            data: (data) => data,
-            loading: () => throw StateError('loading'),
-            error: (e, st) => throw e,
-          );
-        }),
-    ],
+    overrides: historyOverride == null
+        ? const []
+        : [
+            subscriptionRepositoryProvider.overrideWithValue(
+              _StubSubscriptionRepository(() {
+                if (historyOverride.isLoading) {
+                  return Completer<Result<PaginatedPaymentHistory>>().future;
+                }
+                if (historyOverride.hasError) {
+                  return Future<Result<PaginatedPaymentHistory>>.error(
+                    historyOverride.error!,
+                    historyOverride.stackTrace ?? StackTrace.current,
+                  );
+                }
+                return Future.value(Success(historyOverride.value!));
+              }),
+            ),
+          ],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -301,7 +383,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Your subscription payments will appear here'),
+        find.text(
+          'Your payment history will appear here once you make a subscription payment.',
+        ),
         findsOneWidget,
       );
     });
@@ -324,8 +408,10 @@ void main() {
     testWidgets('test_error_shows_error_message', (tester) async {
       await tester.pumpWidget(
         buildTestablePaymentHistoryScreen(
-          historyOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          historyOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -337,13 +423,18 @@ void main() {
     testWidgets('test_error_state_shows_explanation', (tester) async {
       await tester.pumpWidget(
         buildTestablePaymentHistoryScreen(
-          historyOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          historyOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Failed to load payment history'), findsOneWidget);
+      expect(
+        find.text('Failed to load payment history. Please try again.'),
+        findsOneWidget,
+      );
     });
   });
 

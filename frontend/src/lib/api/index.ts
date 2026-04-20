@@ -22,6 +22,7 @@ export { usageApi } from './usage';
 // Financial
 export { walletApi } from './wallet';
 export { paymentsApi } from './payments';
+export { commerceApi } from './commerce';
 export { codesApi } from './codes';
 export { referralApi } from './referral';
 export { promoApi } from './promo';
@@ -30,6 +31,7 @@ export { addonsApi } from './addons';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';
+export { entitlementsApi, serviceAccessApi } from './service-access';
 export { plansApi } from './plans';
 
 // Infrastructure

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use keyring::Entry;
 use reqwest::Client;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::engine::{
     error::AppError,
@@ -24,6 +25,21 @@ fn build_client() -> Result<Client, AppError> {
         ))
         .build()
         .map_err(AppError::Reqwest)
+}
+
+async fn ensure_success(
+    response: reqwest::Response,
+    failure_message: &str,
+) -> Result<reqwest::Response, AppError> {
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(AppError::System(format!(
+            "{failure_message} with status {status}: {body}"
+        )));
+    }
+
+    Ok(response)
 }
 
 fn build_event_client() -> Result<Client, AppError> {
@@ -67,21 +83,63 @@ pub async fn fetch_capability_defaults(
     base_url: &str,
     access_token: &str,
 ) -> Result<HelixCapabilityDefaults, AppError> {
-    let response = build_client()?
-        .get(format!(
-            "{}/api/v1/helix/capabilities",
-            base_url.trim_end_matches('/')
-        ))
-        .bearer_auth(access_token)
-        .send()
-        .await?;
+    let response = ensure_success(
+        build_client()?
+            .get(format!(
+                "{}/api/v1/helix/capabilities",
+                base_url.trim_end_matches('/')
+            ))
+            .bearer_auth(access_token)
+            .send()
+            .await?,
+        "Helix capability fetch failed",
+    )
+    .await?;
 
-    if !response.status().is_success() {
-        return Err(AppError::System(format!(
-            "Helix capability fetch failed with status: {}",
-            response.status()
-        )));
-    }
+    response.json().await.map_err(AppError::Reqwest)
+}
+
+pub async fn fetch_authenticated_get<T>(
+    base_url: &str,
+    access_token: &str,
+    path: &str,
+) -> Result<T, AppError>
+where
+    T: DeserializeOwned,
+{
+    let response = ensure_success(
+        build_client()?
+            .get(format!("{}{}", base_url.trim_end_matches('/'), path))
+            .bearer_auth(access_token)
+            .send()
+            .await?,
+        "Canonical backend GET failed",
+    )
+    .await?;
+
+    response.json().await.map_err(AppError::Reqwest)
+}
+
+pub async fn fetch_authenticated_post_json<T, P>(
+    base_url: &str,
+    access_token: &str,
+    path: &str,
+    payload: &P,
+) -> Result<T, AppError>
+where
+    T: DeserializeOwned,
+    P: Serialize + ?Sized,
+{
+    let response = ensure_success(
+        build_client()?
+            .post(format!("{}{}", base_url.trim_end_matches('/'), path))
+            .bearer_auth(access_token)
+            .json(payload)
+            .send()
+            .await?,
+        "Canonical backend POST failed",
+    )
+    .await?;
 
     response.json().await.map_err(AppError::Reqwest)
 }
@@ -91,22 +149,19 @@ pub async fn report_runtime_event(
     access_token: &str,
     request: &HelixRuntimeEventRequest,
 ) -> Result<(), AppError> {
-    let response = build_event_client()?
-        .post(format!(
-            "{}/api/v1/helix/events/runtime",
-            base_url.trim_end_matches('/')
-        ))
-        .bearer_auth(access_token)
-        .json(request)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        return Err(AppError::System(format!(
-            "Helix runtime event report failed with status: {}",
-            response.status()
-        )));
-    }
+    ensure_success(
+        build_event_client()?
+            .post(format!(
+                "{}/api/v1/helix/events/runtime",
+                base_url.trim_end_matches('/')
+            ))
+            .bearer_auth(access_token)
+            .json(request)
+            .send()
+            .await?,
+        "Helix runtime event report failed",
+    )
+    .await?;
 
     Ok(())
 }
@@ -116,22 +171,19 @@ pub async fn resolve_manifest(
     access_token: &str,
     request: &HelixResolveManifestRequest,
 ) -> Result<HelixResolvedManifest, AppError> {
-    let response = build_client()?
-        .post(format!(
-            "{}/api/v1/helix/manifest",
-            base_url.trim_end_matches('/')
-        ))
-        .bearer_auth(access_token)
-        .json(request)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        return Err(AppError::System(format!(
-            "Helix manifest resolve failed with status: {}",
-            response.status()
-        )));
-    }
+    let response = ensure_success(
+        build_client()?
+            .post(format!(
+                "{}/api/v1/helix/manifest",
+                base_url.trim_end_matches('/')
+            ))
+            .bearer_auth(access_token)
+            .json(request)
+            .send()
+            .await?,
+        "Helix manifest resolve failed",
+    )
+    .await?;
 
     response.json().await.map_err(AppError::Reqwest)
 }

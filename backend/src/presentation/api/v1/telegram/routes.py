@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,15 +17,21 @@ from src.application.services.auth_service import AuthService
 from src.application.services.entitlements_service import EntitlementsService
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.permissions import Permission
+from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.orders import ListOrdersUseCase
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.service_access import GetCurrentServiceStateUseCase
 from src.application.use_cases.subscriptions import GenerateConfigUseCase
 from src.application.use_cases.subscriptions.get_current_entitlements import GetCurrentEntitlementsUseCase
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
 from src.config.settings import settings
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
+from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
@@ -36,7 +42,14 @@ from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remn
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveCreatedSubscriptionResponse
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.api.v1.access_delivery_channels.routes import (
+    _serialize_access_delivery_channel,
+    _serialize_purchase_context,
+)
+from src.presentation.api.v1.access_delivery_channels.schemas import CurrentServiceStateConsumptionContextResponse
 from src.presentation.api.v1.addons.schemas import AddonResponse
+from src.presentation.api.v1.device_credentials.routes import _serialize_device_credential
+from src.presentation.api.v1.orders.routes import _serialize_order
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
     CheckoutCommitResponse,
@@ -45,6 +58,8 @@ from src.presentation.api.v1.payments.schemas import (
     InvoiceResponse,
 )
 from src.presentation.api.v1.plans.schemas import PlanResponse
+from src.presentation.api.v1.provisioning_profiles.routes import _serialize_provisioning_profile
+from src.presentation.api.v1.service_identities.routes import _serialize_service_identity
 from src.presentation.api.v1.telegram.schemas import (
     ConfigResponse,
     CreateSubscriptionRequest,
@@ -54,7 +69,9 @@ from src.presentation.api.v1.telegram.schemas import (
     TelegramBotCheckoutCommitResponse,
     TelegramBotCheckoutQuoteResponse,
     TelegramBotCheckoutRequest,
+    TelegramBotCurrentServiceStateResponse,
     TelegramBotEntitlementsResponse,
+    TelegramBotOrderResponse,
     TelegramBotPaymentStatusResponse,
     TelegramBotPlanResponse,
     TelegramBotReferralStatsResponse,
@@ -300,6 +317,33 @@ async def _build_mobile_trial_status(
     )
 
 
+def _build_bot_subscription_from_entitlements(
+    entitlements_snapshot: dict[str, Any] | None,
+) -> TelegramBotSubscriptionResponse | None:
+    if not entitlements_snapshot:
+        return None
+
+    status = str(entitlements_snapshot.get("status") or "none")
+    if status == "none":
+        return None
+
+    expires_at_raw = entitlements_snapshot.get("expires_at")
+    effective = dict(entitlements_snapshot.get("effective_entitlements") or {})
+
+    return TelegramBotSubscriptionResponse(
+        status=status,
+        plan_name=str(entitlements_snapshot.get("display_name") or entitlements_snapshot.get("plan_code") or "VPN"),
+        expires_at=(
+            datetime.fromisoformat(str(expires_at_raw).replace("Z", "+00:00"))
+            if expires_at_raw
+            else None
+        ),
+        traffic_limit_bytes=effective.get("traffic_limit_bytes"),
+        used_traffic_bytes=effective.get("used_traffic_bytes"),
+        auto_renew=False,
+    )
+
+
 def _build_bot_user_response(
     user: AdminUserModel,
     *,
@@ -323,16 +367,7 @@ def _build_bot_user_response(
     status = status_value if has_subscription or effective_status in {"active", "trial"} else "none"
     subscription = _build_bot_subscription(remnawave_user)
     if subscription is None and entitlements_snapshot and status in {"active", "trial"}:
-        subscription = TelegramBotSubscriptionResponse(
-            status=status,
-            plan_name=str(entitlements_snapshot.get("display_name") or entitlements_snapshot.get("plan_code") or "VPN"),
-            expires_at=datetime.fromisoformat(
-                str(entitlements_snapshot["expires_at"]).replace("Z", "+00:00")
-            ) if entitlements_snapshot.get("expires_at") else None,
-            traffic_limit_bytes=None,
-            used_traffic_bytes=None,
-            auto_renew=False,
-        )
+        subscription = _build_bot_subscription_from_entitlements(entitlements_snapshot)
     subscriptions = [subscription.model_dump()] if subscription is not None else []
 
     return TelegramBotUserResponse(
@@ -375,6 +410,18 @@ def _build_bot_subscription(remnawave_user: Any | None) -> TelegramBotSubscripti
         used_traffic_bytes=getattr(remnawave_user, "used_traffic_bytes", None),
         auto_renew=False,
     )
+
+
+async def _resolve_bot_customer_realm(
+    db: AsyncSession,
+    mobile_user: MobileUserModel,
+) -> RealmResolution:
+    repo = AuthRealmRepository(db)
+    default_realm_id = stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"]))
+    realm = await repo.get_realm_by_id(mobile_user.auth_realm_id or default_realm_id)
+    if realm is None:
+        realm = await repo.get_or_create_default_realm("customer")
+    return RealmResolution(auth_realm=realm, source="telegram_bot")
 
 
 async def _get_bot_user_or_404(db: Any, telegram_id: int) -> AdminUserModel:
@@ -738,15 +785,13 @@ async def get_bot_user_subscriptions(
     telegram_id: int,
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
-    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> list[TelegramBotSubscriptionResponse]:
-    """Return Telegram bot-facing subscriptions list."""
+    """Return Telegram bot-facing subscriptions list from the canonical entitlement snapshot."""
     _require_telegram_bot_secret(telegram_bot_secret)
 
-    await _get_bot_user_or_404(db, telegram_id)
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    remnawave_user = await gateway.get_by_telegram_id(telegram_id)
-    subscription = _build_bot_subscription(remnawave_user)
+    mobile_user = await _get_mobile_user_or_404(db, telegram_id)
+    entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
+    subscription = _build_bot_subscription_from_entitlements(entitlements_snapshot)
 
     route_operations_total.labels(route="telegram_bot", action="list_subscriptions", status="success").inc()
     return [subscription] if subscription is not None else []
@@ -764,6 +809,75 @@ async def get_bot_user_entitlements(
     snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
     route_operations_total.labels(route="telegram_bot", action="entitlements", status="success").inc()
     return TelegramBotEntitlementsResponse(**snapshot)
+
+
+@router.get("/bot/user/{telegram_id}/orders", response_model=list[TelegramBotOrderResponse])
+async def get_bot_user_orders(
+    telegram_id: int,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> list[TelegramBotOrderResponse]:
+    """Return canonical order history for a Telegram bot user."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+    mobile_user = await _get_mobile_user_or_404(db, telegram_id)
+    orders = await ListOrdersUseCase(db).execute(user_id=mobile_user.id, limit=limit, offset=offset)
+    route_operations_total.labels(route="telegram_bot", action="orders", status="success").inc()
+    return [_serialize_order(order) for order in orders]
+
+
+@router.get("/bot/user/{telegram_id}/service-state", response_model=TelegramBotCurrentServiceStateResponse)
+async def get_bot_user_service_state(
+    telegram_id: int,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramBotCurrentServiceStateResponse:
+    """Return the canonical current service-state snapshot for Telegram delivery semantics."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+    mobile_user = await _get_mobile_user_or_404(db, telegram_id)
+    current_realm = await _resolve_bot_customer_realm(db, mobile_user)
+    result = await GetCurrentServiceStateUseCase(db).execute(
+        customer_account_id=mobile_user.id,
+        current_realm=current_realm,
+        provider_name="remnawave",
+        channel_type=AccessDeliveryChannelType.TELEGRAM_BOT.value,
+        channel_subject_ref=None,
+        provisioning_profile_key=None,
+        credential_type=DeviceCredentialType.TELEGRAM_BOT.value,
+        credential_subject_key=f"telegram-bot:{telegram_id}",
+    )
+    route_operations_total.labels(route="telegram_bot", action="service_state", status="success").inc()
+    return TelegramBotCurrentServiceStateResponse(
+        customer_account_id=mobile_user.id,
+        auth_realm_id=current_realm.auth_realm.id,
+        provider_name="remnawave",
+        entitlement_snapshot=result.entitlement_snapshot,
+        service_identity=(
+            _serialize_service_identity(result.service_identity) if result.service_identity is not None else None
+        ),
+        provisioning_profile=(
+            _serialize_provisioning_profile(result.provisioning_profile)
+            if result.provisioning_profile is not None
+            else None
+        ),
+        device_credential=(
+            _serialize_device_credential(result.device_credential) if result.device_credential is not None else None
+        ),
+        access_delivery_channel=(
+            _serialize_access_delivery_channel(result.access_delivery_channel)
+            if result.access_delivery_channel is not None
+            else None
+        ),
+        purchase_context=_serialize_purchase_context(result.active_entitlement_grant),
+        consumption_context=CurrentServiceStateConsumptionContextResponse(
+            channel_type=AccessDeliveryChannelType.TELEGRAM_BOT,
+            channel_subject_ref=result.resolved_channel_subject_ref or f"telegram-bot:{telegram_id}",
+            provisioning_profile_key=result.resolved_provisioning_profile_key,
+            credential_type=DeviceCredentialType.TELEGRAM_BOT,
+            credential_subject_key=f"telegram-bot:{telegram_id}",
+        ),
+    )
 
 
 @router.post("/bot/user/{telegram_id}/checkout/quote", response_model=TelegramBotCheckoutQuoteResponse)

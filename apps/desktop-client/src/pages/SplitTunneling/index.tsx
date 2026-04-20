@@ -23,10 +23,12 @@ import {
   Box,
   Route
 } from "lucide-react";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { useTranslation } from "react-i18next";
 
 export function SplitTunnelingPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -108,10 +110,10 @@ export function SplitTunnelingPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="max-w-4xl mx-auto space-y-6"
     >
       <div className="flex items-center justify-between">
@@ -268,7 +270,7 @@ export function SplitTunnelingPage() {
                     <Switch
                       checked={selectedApps.has(app.packageName)}
                       onCheckedChange={() => handleToggleApp(app.packageName)}
-                      className="data-[state=checked]:bg-[var(--color-matrix-green)]"
+                      className="data-checked:bg-[var(--color-matrix-green)]"
                     />
                   </motion.div>
                 ))}

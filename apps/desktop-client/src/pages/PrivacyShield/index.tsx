@@ -10,9 +10,11 @@ import {
   getThreatCount,
   listenTrackerBlocked
 } from "../../shared/api/ipc";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 
 export function PrivacyShieldPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const [level, setLevel] = useState("disabled");
   const [threatCount, setThreatCount] = useState<number>(0);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -63,17 +65,22 @@ export function PrivacyShieldPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="p-8 max-w-5xl mx-auto space-y-8 min-h-full"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
         <div className="z-10 relative">
           <h1 className="text-4xl font-black text-white tracking-widest uppercase flex items-center gap-4">
             <motion.div
-               animate={isActive ? { rotate: 360 } : {}}
-               transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+               animate={isActive && !prefersReducedMotion ? { rotate: 360 } : { rotate: 0 }}
+               transition={
+                 isActive && !prefersReducedMotion
+                   ? { duration: 12, repeat: Infinity, ease: "linear" }
+                   : { duration: durations.micro, ease: desktopMotionEase }
+               }
             >
               <EyeOff size={36} className={isActive ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"} />
             </motion.div>
@@ -87,8 +94,17 @@ export function PrivacyShieldPage() {
         <div className="flex flex-col items-end z-10">
           <motion.div 
             key={threatCount}
-            initial={{ scale: 1.2, textShadow: "0 0 30px var(--color-matrix-green)" }}
-            animate={{ scale: 1, textShadow: isActive ? "0 0 10px var(--color-matrix-green)" : "0 0 0px transparent" }}
+            initial={{
+              opacity: 0,
+              scale: prefersReducedMotion ? 1 : 1.08,
+              textShadow: "0 0 18px var(--color-matrix-green)",
+            }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              textShadow: isActive ? "0 0 10px var(--color-matrix-green)" : "0 0 0px transparent",
+            }}
+            transition={{ duration: durations.page, ease: desktopMotionEase }}
             className={`text-6xl font-mono font-black tracking-tighter ${isActive ? "text-[var(--color-matrix-green)]" : "text-muted-foreground"}`}
           >
             {threatCount.toLocaleString()}

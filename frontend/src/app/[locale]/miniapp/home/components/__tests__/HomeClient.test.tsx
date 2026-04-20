@@ -23,6 +23,12 @@ vi.mock('@/lib/api', () => ({
   vpnApi: {
     getUsage: vi.fn(),
   },
+  entitlementsApi: {
+    getCurrent: vi.fn(),
+  },
+  serviceAccessApi: {
+    getCurrentServiceState: vi.fn(),
+  },
   trialApi: {
     getStatus: vi.fn(),
   },
@@ -64,9 +70,64 @@ function renderWithProviders(ui: React.ReactElement) {
 }
 
 describe('MiniApp Home Page', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setupTelegramWebAppMock();
     vi.clearAllMocks();
+
+    const { entitlementsApi, serviceAccessApi } = await import('@/lib/api');
+    vi.mocked(entitlementsApi.getCurrent).mockResolvedValue({
+      data: {
+        status: 'none',
+        plan_uuid: null,
+        plan_code: null,
+        display_name: null,
+        period_days: null,
+        expires_at: null,
+        effective_entitlements: {},
+        invite_bundle: {},
+        is_trial: false,
+        addons: [],
+      }
+    } as never);
+    vi.mocked(serviceAccessApi.getCurrentServiceState).mockResolvedValue({
+      data: {
+        customer_account_id: 'user-001',
+        auth_realm_id: 'realm-001',
+        provider_name: 'remnawave',
+        entitlement_snapshot: {
+          status: 'none',
+          plan_uuid: null,
+          plan_code: null,
+          display_name: null,
+          period_days: null,
+          expires_at: null,
+          effective_entitlements: {},
+          invite_bundle: {},
+          is_trial: false,
+          addons: [],
+        },
+        service_identity: null,
+        provisioning_profile: null,
+        device_credential: null,
+        access_delivery_channel: null,
+        purchase_context: {
+          active_entitlement_grant_id: null,
+          source_type: null,
+          source_order_id: null,
+          source_growth_reward_allocation_id: null,
+          source_renewal_order_id: null,
+          manual_source_key: null,
+          origin_storefront_id: null,
+        },
+        consumption_context: {
+          channel_type: 'telegram_bot',
+          channel_subject_ref: 'telegram-miniapp:123456789',
+          provisioning_profile_key: null,
+          credential_type: 'telegram_bot',
+          credential_subject_key: 'telegram-miniapp:123456789',
+        },
+      }
+    } as never);
   });
 
   afterEach(() => {
@@ -75,11 +136,12 @@ describe('MiniApp Home Page', () => {
 
   describe('Loading State', () => {
     it('test_displays_loading_spinner', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
+      const { vpnApi, trialApi, entitlementsApi, serviceAccessApi } = await import('@/lib/api');
 
       vi.mocked(vpnApi.getUsage).mockReturnValue(new Promise(() => {}) as never);
       vi.mocked(trialApi.getStatus).mockReturnValue(new Promise(() => {}) as never);
-      vi.mocked(subscriptionsApi.list).mockReturnValue(new Promise(() => {}) as never);
+      vi.mocked(entitlementsApi.getCurrent).mockReturnValue(new Promise(() => {}) as never);
+      vi.mocked(serviceAccessApi.getCurrentServiceState).mockReturnValue(new Promise(() => {}) as never);
 
       renderWithProviders(<MiniAppHomePage />);
 
@@ -183,7 +245,7 @@ describe('MiniApp Home Page', () => {
 
   describe('Active Subscription', () => {
     it('test_displays_active_subscription', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
+      const { vpnApi, trialApi, entitlementsApi, serviceAccessApi } = await import('@/lib/api');
 
       vi.mocked(vpnApi.getUsage).mockResolvedValue({
         data: {
@@ -197,15 +259,58 @@ describe('MiniApp Home Page', () => {
       vi.mocked(trialApi.getStatus).mockResolvedValue({
         data: { is_trial_active: false, is_eligible: false }
       } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({
-        data: [
-          {
+      vi.mocked(entitlementsApi.getCurrent).mockResolvedValue({
+        data: {
+          status: 'active',
+          plan_uuid: 'plan-pro-001',
+          plan_code: 'pro',
+          display_name: 'Premium',
+          expires_at: '2025-12-31T23:59:59Z',
+          period_days: 30,
+          effective_entitlements: {},
+          invite_bundle: {},
+          is_trial: false,
+          addons: [],
+        }
+      } as never);
+      vi.mocked(serviceAccessApi.getCurrentServiceState).mockResolvedValue({
+        data: {
+          customer_account_id: 'user-001',
+          auth_realm_id: 'realm-001',
+          provider_name: 'remnawave',
+          entitlement_snapshot: {
             status: 'active',
-            plan_name: 'Premium',
+            plan_uuid: 'plan-pro-001',
+            plan_code: 'pro',
+            display_name: 'Premium',
             expires_at: '2025-12-31T23:59:59Z',
-            data_limit_gb: 100,
+            period_days: 30,
+            effective_entitlements: {},
+            invite_bundle: {},
+            is_trial: false,
+            addons: [],
           },
-        ]
+          service_identity: null,
+          provisioning_profile: null,
+          device_credential: null,
+          access_delivery_channel: null,
+          purchase_context: {
+            active_entitlement_grant_id: null,
+            source_type: null,
+            source_order_id: null,
+            source_growth_reward_allocation_id: null,
+            source_renewal_order_id: null,
+            manual_source_key: null,
+            origin_storefront_id: null,
+          },
+          consumption_context: {
+            channel_type: 'telegram_bot',
+            channel_subject_ref: 'telegram-miniapp:123456789',
+            provisioning_profile_key: null,
+            credential_type: 'telegram_bot',
+            credential_subject_key: 'telegram-miniapp:123456789',
+          },
+        }
       } as never);
 
       renderWithProviders(<MiniAppHomePage />);

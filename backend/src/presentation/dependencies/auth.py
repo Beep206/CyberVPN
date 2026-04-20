@@ -16,10 +16,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.jwt_revocation_service import JWTRevocationService
+from src.application.use_cases.auth_realms import RealmResolution
+from src.domain.enums import PrincipalClass
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
+from src.presentation.api.v1.auth.cookies import get_access_token_cookie
+from src.presentation.dependencies.auth_realms import (
+    get_request_admin_realm,
+    get_request_auth_realm,
+    get_request_customer_realm,
+)
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 
@@ -34,6 +42,19 @@ class TokenValidationResult:
 
     user_id: str
     jti: str | None = None
+    principal_type: str | None = None
+    realm_id: str | None = None
+    realm_key: str | None = None
+    audience: str | None = None
+
+
+@dataclass
+class CurrentPrincipalActor:
+    principal_id: UUID
+    principal_type: str
+    auth_realm_id: UUID
+    auth_realm_key: str
+    audience: str
 
 
 async def _validate_token(
@@ -43,6 +64,9 @@ async def _validate_token(
     *,
     check_revocation: bool = True,
     allowed_token_types: frozenset[str] = frozenset({"access"}),
+    expected_audience: str | None = None,
+    expected_realm_key: str | None = None,
+    allow_legacy_without_realm: bool = False,
 ) -> TokenValidationResult | None:
     """Validate JWT token and optionally check revocation.
 
@@ -61,13 +85,23 @@ async def _validate_token(
         HTTPException: If token is revoked and check_revocation=True
         JWTError: If token decoding fails (caller should handle)
     """
-    payload = auth_service.decode_token(token)
+    try:
+        payload = auth_service.decode_token(token, audience=expected_audience)
+    except JWTError:
+        if not allow_legacy_without_realm:
+            raise
+        payload = auth_service.decode_token(token, audience=None)
 
     if payload.get("type") not in allowed_token_types:
         return None
 
     user_id = payload.get("sub")
     if not user_id:
+        return None
+
+    if expected_realm_key and payload.get("realm_key") and payload.get("realm_key") != expected_realm_key:
+        return None
+    if expected_audience and payload.get("aud") and payload.get("aud") != expected_audience:
         return None
 
     jti = payload.get("jti")
@@ -82,7 +116,14 @@ async def _validate_token(
             )
             return None  # Return None for optional auth, caller decides on exception
 
-    return TokenValidationResult(user_id=user_id, jti=jti)
+    return TokenValidationResult(
+        user_id=user_id,
+        jti=jti,
+        principal_type=payload.get("principal_type"),
+        realm_id=payload.get("realm_id"),
+        realm_key=payload.get("realm_key"),
+        audience=payload.get("aud"),
+    )
 
 
 async def get_current_user(
@@ -91,6 +132,7 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> AdminUserModel:
     """Get current authenticated user from JWT token.
 
@@ -107,7 +149,7 @@ async def get_current_user(
     if credentials:
         token = credentials.credentials
     else:
-        token = request.cookies.get("access_token")
+        token = get_access_token_cookie(request.cookies, current_realm.cookie_namespace)
 
     if not token:
         raise HTTPException(
@@ -122,6 +164,9 @@ async def get_current_user(
             auth_service,
             redis_client,
             check_revocation=True,
+            expected_audience=current_realm.audience,
+            expected_realm_key=current_realm.realm_key,
+            allow_legacy_without_realm=current_realm.realm_key == "admin",
         )
         if not result:
             # Token was invalid or revoked
@@ -143,9 +188,13 @@ async def get_current_pending_2fa_user(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> AdminUserModel:
     """Resolve a user from a short-lived pending-2FA token."""
-    token = credentials.credentials if credentials else request.cookies.get("access_token")
+    token = credentials.credentials if credentials else get_access_token_cookie(
+        request.cookies,
+        current_realm.cookie_namespace,
+    )
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -160,6 +209,9 @@ async def get_current_pending_2fa_user(
             redis_client,
             check_revocation=True,
             allowed_token_types=frozenset({"2fa_pending"}),
+            expected_audience=current_realm.audience,
+            expected_realm_key=current_realm.realm_key,
+            allow_legacy_without_realm=current_realm.realm_key == "admin",
         )
         if not result:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired 2FA login session")
@@ -189,6 +241,7 @@ async def optional_user(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> AdminUserModel | None:
     """Get user from JWT token if present and valid, None otherwise.
 
@@ -211,7 +264,7 @@ async def optional_user(
     if credentials:
         token = credentials.credentials
     else:
-        token = request.cookies.get("access_token")
+        token = get_access_token_cookie(request.cookies, current_realm.cookie_namespace)
 
     if not token:
         return None
@@ -222,6 +275,9 @@ async def optional_user(
             auth_service,
             redis_client,
             check_revocation=True,
+            expected_audience=current_realm.audience,
+            expected_realm_key=current_realm.realm_key,
+            allow_legacy_without_realm=current_realm.realm_key == "admin",
         )
         if not result:
             return None
@@ -241,6 +297,7 @@ async def get_current_mobile_user_id(
     auth_service: AuthService = Depends(get_auth_service),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> UUID:
     """Extract and validate mobile user ID from JWT token.
 
@@ -254,7 +311,10 @@ async def get_current_mobile_user_id(
     Raises:
         HTTPException: 401 if token is invalid, expired, revoked, or user inactive.
     """
-    token: str | None = credentials.credentials if credentials else request.cookies.get("access_token")
+    token: str | None = credentials.credentials if credentials else get_access_token_cookie(
+        request.cookies,
+        current_realm.cookie_namespace,
+    )
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -262,11 +322,24 @@ async def get_current_mobile_user_id(
         )
 
     try:
-        payload = auth_service.decode_token(token)
+        try:
+            payload = auth_service.decode_token(token, audience=current_realm.audience)
+        except JWTError:
+            payload = auth_service.decode_token(token, audience=None)
         if payload.get("type") != "access":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"code": "INVALID_TOKEN", "message": "Invalid token type"},
+            )
+        if payload.get("aud") and payload.get("aud") != current_realm.audience:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid audience"},
+            )
+        if payload.get("realm_key") and payload.get("realm_key") != current_realm.realm_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid realm"},
             )
         user_id = payload.get("sub")
         if not user_id:
@@ -307,3 +380,80 @@ async def get_current_mobile_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "INVALID_TOKEN", "message": "Invalid or expired token"},
         )
+
+
+async def get_current_principal_actor(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service),
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
+) -> CurrentPrincipalActor:
+    token: str | None = credentials.credentials if credentials else get_access_token_cookie(
+        request.cookies,
+        current_realm.cookie_namespace,
+    )
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
+        )
+
+    try:
+        result = await _validate_token(
+            token,
+            auth_service,
+            redis_client,
+            check_revocation=True,
+            expected_audience=current_realm.audience,
+            expected_realm_key=current_realm.realm_key,
+            allow_legacy_without_realm=current_realm.realm_key in {"admin", "customer"},
+        )
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "INVALID_TOKEN", "message": "Invalid token"},
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TOKEN", "message": "Invalid or expired token"},
+        )
+
+    principal_id = UUID(result.user_id)
+    if current_realm.realm_type in {"admin", "partner"}:
+        repo = AdminUserRepository(db)
+        actor = await repo.get_by_id(principal_id)
+        if not actor or not actor.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "USER_NOT_FOUND", "message": "User not found or inactive"},
+            )
+        fallback_principal_type = (
+            PrincipalClass.PARTNER_OPERATOR.value
+            if current_realm.realm_type == "partner"
+            else PrincipalClass.ADMIN.value
+        )
+    elif current_realm.realm_type == "customer":
+        repo = MobileUserRepository(db)
+        actor = await repo.get_by_id(principal_id)
+        if not actor or not actor.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"code": "USER_NOT_FOUND", "message": "User not found or inactive"},
+            )
+        fallback_principal_type = PrincipalClass.CUSTOMER.value
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "UNSUPPORTED_PRINCIPAL", "message": "Unsupported principal realm"},
+        )
+
+    return CurrentPrincipalActor(
+        principal_id=principal_id,
+        principal_type=result.principal_type or fallback_principal_type,
+        auth_realm_id=current_realm.auth_realm.id,
+        auth_realm_key=current_realm.realm_key,
+        audience=current_realm.audience,
+    )

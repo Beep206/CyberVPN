@@ -16,6 +16,7 @@ import {
   shortId,
 } from '@/features/commerce/lib/formatting';
 import { adminWalletApi } from '@/lib/api/wallet';
+import { canAdminConsoleSurfaceAccess } from '@/shared/lib/surface-policy';
 import {
   Table,
   TableBody,
@@ -37,6 +38,7 @@ interface PendingWithdrawalRecord {
 export function WithdrawalsConsole() {
   const t = useTranslations('Commerce');
   const queryClient = useQueryClient();
+  const canRenderMakerCheckerControls = canAdminConsoleSurfaceAccess('maker_checker_controls');
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<PendingWithdrawalRecord | null>(null);
   const [decisionMode, setDecisionMode] = useState<'approve' | 'reject'>('approve');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -165,7 +167,9 @@ export function WithdrawalsConsole() {
                   <TableHead>{t('common.method')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
                   <TableHead>{t('common.createdAt')}</TableHead>
-                  <TableHead>{t('common.actions')}</TableHead>
+                  {canRenderMakerCheckerControls ? (
+                    <TableHead>{t('common.actions')}</TableHead>
+                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -192,29 +196,31 @@ export function WithdrawalsConsole() {
                       />
                     </TableCell>
                     <TableCell>{formatDateTime(withdrawal.created_at)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          magnetic={false}
-                          onClick={() => openDecision(withdrawal, 'approve')}
-                        >
-                          <Check className="mr-2 h-4 w-4" />
-                          {t('withdrawals.approve')}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          magnetic={false}
-                          onClick={() => openDecision(withdrawal, 'reject')}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          {t('withdrawals.reject')}
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {canRenderMakerCheckerControls ? (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            magnetic={false}
+                            onClick={() => openDecision(withdrawal, 'approve')}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            {t('withdrawals.approve')}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            magnetic={false}
+                            onClick={() => openDecision(withdrawal, 'reject')}
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            {t('withdrawals.reject')}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 ))}
               </TableBody>

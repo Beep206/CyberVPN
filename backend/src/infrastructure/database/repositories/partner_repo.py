@@ -39,6 +39,12 @@ class PartnerRepository:
         )
         return list(result.scalars().all())
 
+    async def get_codes_by_account(self, partner_account_id: UUID) -> list[PartnerCodeModel]:
+        result = await self._session.execute(
+            select(PartnerCodeModel).where(PartnerCodeModel.partner_account_id == partner_account_id)
+        )
+        return list(result.scalars().all())
+
     async def get_codes_by_partners(self, partner_user_ids: list[UUID]) -> list[PartnerCodeModel]:
         if not partner_user_ids:
             return []
@@ -75,6 +81,18 @@ class PartnerRepository:
         )
         return list(result.scalars().all())
 
+    async def get_earnings_by_account(
+        self, partner_account_id: UUID, offset: int = 0, limit: int = 50
+    ) -> list[PartnerEarningModel]:
+        result = await self._session.execute(
+            select(PartnerEarningModel)
+            .where(PartnerEarningModel.partner_account_id == partner_account_id)
+            .order_by(PartnerEarningModel.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def count_clients(self, partner_user_id: UUID) -> int:
         result = await self._session.execute(
             select(func.count(func.distinct(PartnerEarningModel.client_user_id))).where(
@@ -83,10 +101,26 @@ class PartnerRepository:
         )
         return result.scalar_one() or 0
 
+    async def count_clients_by_account(self, partner_account_id: UUID) -> int:
+        result = await self._session.execute(
+            select(func.count(func.distinct(PartnerEarningModel.client_user_id))).where(
+                PartnerEarningModel.partner_account_id == partner_account_id
+            )
+        )
+        return result.scalar_one() or 0
+
     async def get_total_earnings(self, partner_user_id: UUID) -> Decimal:
         result = await self._session.execute(
             select(func.sum(PartnerEarningModel.total_earning)).where(
                 PartnerEarningModel.partner_user_id == partner_user_id
+            )
+        )
+        return result.scalar_one() or Decimal(0)
+
+    async def get_total_earnings_by_account(self, partner_account_id: UUID) -> Decimal:
+        result = await self._session.execute(
+            select(func.sum(PartnerEarningModel.total_earning)).where(
+                PartnerEarningModel.partner_account_id == partner_account_id
             )
         )
         return result.scalar_one() or Decimal(0)
@@ -146,6 +180,82 @@ class PartnerRepository:
         for row in earning_stats_result:
             entry = stats.setdefault(
                 row.partner_user_id,
+                {
+                    "code_count": 0,
+                    "active_code_count": 0,
+                    "total_clients": 0,
+                    "total_earned": Decimal(0),
+                    "last_activity_at": None,
+                },
+            )
+            entry["total_clients"] = int(row.total_clients or 0)
+            entry["total_earned"] = Decimal(str(row.total_earned or 0))
+            if row.last_earning_at and (
+                entry["last_activity_at"] is None or row.last_earning_at > entry["last_activity_at"]
+            ):
+                entry["last_activity_at"] = row.last_earning_at
+
+        return stats
+
+    async def get_account_stats_map(self, partner_account_ids: list[UUID]) -> dict[UUID, dict[str, Any]]:
+        if not partner_account_ids:
+            return {}
+
+        code_stats_result = await self._session.execute(
+            select(
+                PartnerCodeModel.partner_account_id.label("partner_account_id"),
+                func.count(PartnerCodeModel.id).label("code_count"),
+                func.sum(case((PartnerCodeModel.is_active == True, 1), else_=0)).label("active_code_count"),  # noqa: E712
+                func.max(PartnerCodeModel.updated_at).label("last_code_at"),
+            )
+            .where(PartnerCodeModel.partner_account_id.in_(partner_account_ids))
+            .group_by(PartnerCodeModel.partner_account_id)
+        )
+
+        earning_stats_result = await self._session.execute(
+            select(
+                PartnerEarningModel.partner_account_id.label("partner_account_id"),
+                func.count(distinct(PartnerEarningModel.client_user_id)).label("total_clients"),
+                func.coalesce(func.sum(PartnerEarningModel.total_earning), 0).label("total_earned"),
+                func.max(PartnerEarningModel.created_at).label("last_earning_at"),
+            )
+            .where(PartnerEarningModel.partner_account_id.in_(partner_account_ids))
+            .group_by(PartnerEarningModel.partner_account_id)
+        )
+
+        stats: dict[UUID, dict[str, Any]] = {
+            account_id: {
+                "code_count": 0,
+                "active_code_count": 0,
+                "total_clients": 0,
+                "total_earned": Decimal(0),
+                "last_activity_at": None,
+            }
+            for account_id in partner_account_ids
+        }
+
+        for row in code_stats_result:
+            if row.partner_account_id is None:
+                continue
+            entry = stats.setdefault(
+                row.partner_account_id,
+                {
+                    "code_count": 0,
+                    "active_code_count": 0,
+                    "total_clients": 0,
+                    "total_earned": Decimal(0),
+                    "last_activity_at": None,
+                },
+            )
+            entry["code_count"] = int(row.code_count or 0)
+            entry["active_code_count"] = int(row.active_code_count or 0)
+            entry["last_activity_at"] = row.last_code_at
+
+        for row in earning_stats_result:
+            if row.partner_account_id is None:
+                continue
+            entry = stats.setdefault(
+                row.partner_account_id,
                 {
                     "code_count": 0,
                     "active_code_count": 0,

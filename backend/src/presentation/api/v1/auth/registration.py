@@ -10,6 +10,7 @@ from src.application.services.auth_service import AuthService
 from src.application.services.invite_service import InviteTokenService
 from src.application.services.otp_service import OtpService
 from src.application.use_cases.auth.register import RegisterUseCase
+from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.cache.redis_client import get_redis
@@ -29,6 +30,7 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     get_email_dispatcher,
 )
 from src.presentation.api.v1.auth.schemas import RegisterRequest, RegisterResponse
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 from src.presentation.dependencies.database import get_db
 from src.shared.logging.sanitization import sanitize_email, sanitize_username
 
@@ -76,6 +78,7 @@ async def register(
         description="Invite token required for registration when invite-only mode is enabled",
     ),
     db: AsyncSession = Depends(get_db),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> RegisterResponse:
@@ -208,6 +211,8 @@ async def register(
         marketing_consent=request.marketing_consent,
         role=role,
         locale=request.locale or "en-EN",
+        auth_realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
     )
 
     registration_method = "email" if request.email else "username"

@@ -39,6 +39,60 @@ type AdminCustomerTimelineParams =
   operations['get_customer_timeline_api_v1_admin_mobile_users__user_id__timeline_get']['parameters']['query'];
 type AdminCustomerTimelineResponse =
   operations['get_customer_timeline_api_v1_admin_mobile_users__user_id__timeline_get']['responses'][200]['content']['application/json'];
+type AdminCustomerOperationsInsightResponse =
+  operations['get_customer_operations_insight_api_v1_admin_mobile_users__user_id__operations_insight_get']['responses'][200]['content']['application/json'];
+type AdminCustomerOperationsActionRequest =
+  operations['perform_customer_operations_action_api_v1_admin_mobile_users__user_id__operations_insight_actions_post']['requestBody']['content']['application/json'];
+type AdminCustomerOperationsActionResponse =
+  operations['perform_customer_operations_action_api_v1_admin_mobile_users__user_id__operations_insight_actions_post']['responses'][200]['content']['application/json'];
+type AdminCustomerWorkspaceFinanceEvidenceResponse =
+  operations['export_customer_workspace_finance_evidence_api_v1_admin_mobile_users__user_id__operations_insight_exports_workspaces__partner_account_id__get']['responses'][200]['content']['application/json'];
+type AdminCustomerPartnerStatementEvidenceResponse =
+  operations['export_customer_partner_statement_evidence_api_v1_admin_mobile_users__user_id__operations_insight_exports_partner_statements__statement_id__get']['responses'][200]['content']['application/json'];
+type AdminCustomerPayoutInstructionEvidenceResponse =
+  operations['export_customer_payout_instruction_evidence_api_v1_admin_mobile_users__user_id__operations_insight_exports_payout_instructions__payout_instruction_id__get']['responses'][200]['content']['application/json'];
+type AdminCustomerPayoutExecutionEvidenceResponse =
+  operations['export_customer_payout_execution_evidence_api_v1_admin_mobile_users__user_id__operations_insight_exports_payout_executions__payout_execution_id__get']['responses'][200]['content']['application/json'];
+
+export interface AdminApiDownloadResult {
+  blob: Blob;
+  filename: string;
+}
+
+function resolveDownloadFilename(
+  contentDisposition: string | undefined,
+  fallback: string,
+): string {
+  if (!contentDisposition) {
+    return fallback;
+  }
+
+  const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    return decodeURIComponent(utfMatch[1]);
+  }
+
+  const asciiMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+  if (asciiMatch?.[1]) {
+    return asciiMatch[1];
+  }
+
+  return fallback;
+}
+
+async function downloadAdminEvidence(
+  path: string,
+  fallbackFilename: string,
+): Promise<AdminApiDownloadResult> {
+  const response = await apiClient.get<Blob>(path, { responseType: 'blob' });
+  return {
+    blob: response.data,
+    filename: resolveDownloadFilename(
+      response.headers['content-disposition'] as string | undefined,
+      fallbackFilename,
+    ),
+  };
+}
 
 export const customersApi = {
   listMobileUsers: (params?: AdminMobileUsersListParams) =>
@@ -82,6 +136,36 @@ export const customersApi = {
 
   getTimeline: (userId: string, params?: AdminCustomerTimelineParams) =>
     apiClient.get<AdminCustomerTimelineResponse>(`/admin/mobile-users/${userId}/timeline`, { params }),
+
+  getOperationsInsight: (userId: string) =>
+    apiClient.get<AdminCustomerOperationsInsightResponse>(`/admin/mobile-users/${userId}/operations-insight`),
+
+  performOperationsAction: (userId: string, data: AdminCustomerOperationsActionRequest) =>
+    apiClient.post<AdminCustomerOperationsActionResponse>(`/admin/mobile-users/${userId}/operations-insight/actions`, data),
+
+  downloadWorkspaceFinanceEvidence: (userId: string, partnerAccountId: string) =>
+    downloadAdminEvidence(
+      `/admin/mobile-users/${userId}/operations-insight/exports/workspaces/${partnerAccountId}`,
+      `customer-operations-workspace-finance-evidence-${partnerAccountId}.json`,
+    ),
+
+  downloadPartnerStatementEvidence: (userId: string, statementId: string) =>
+    downloadAdminEvidence(
+      `/admin/mobile-users/${userId}/operations-insight/exports/partner-statements/${statementId}`,
+      `customer-operations-partner-statement-evidence-${statementId}.json`,
+    ),
+
+  downloadPayoutInstructionEvidence: (userId: string, payoutInstructionId: string) =>
+    downloadAdminEvidence(
+      `/admin/mobile-users/${userId}/operations-insight/exports/payout-instructions/${payoutInstructionId}`,
+      `customer-operations-payout-instruction-evidence-${payoutInstructionId}.json`,
+    ),
+
+  downloadPayoutExecutionEvidence: (userId: string, payoutExecutionId: string) =>
+    downloadAdminEvidence(
+      `/admin/mobile-users/${userId}/operations-insight/exports/payout-executions/${payoutExecutionId}`,
+      `customer-operations-payout-execution-evidence-${payoutExecutionId}.json`,
+    ),
 };
 
 export type {
@@ -96,11 +180,18 @@ export type {
   AdminCustomerTimelineParams,
   AdminCustomerTimelineResponse,
   AdminCustomerVpnUserResponse,
+  AdminCustomerOperationsInsightResponse,
+  AdminCustomerOperationsActionRequest,
+  AdminCustomerOperationsActionResponse,
+  AdminCustomerPartnerStatementEvidenceResponse,
+  AdminCustomerPayoutExecutionEvidenceResponse,
+  AdminCustomerPayoutInstructionEvidenceResponse,
   AdminBulkDeviceRevokeResponse,
   AdminMobileUserDetailResponse,
   AdminMobileUserSubscriptionSnapshotResponse,
   AdminMobileUsersListParams,
   AdminMobileUsersListResponse,
+  AdminCustomerWorkspaceFinanceEvidenceResponse,
   AdminRevokeCustomerDeviceResponse,
   AdminUpdateMobileUserRequest,
   AdminUpdateMobileUserResponse,

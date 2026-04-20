@@ -19,7 +19,49 @@ export interface ProxyNode {
   shortId?: string;
   ping?: number;
   nextHopId?: string;
+  alterId?: number;
+  security?: string;
+  method?: string;
+  obfs?: string;
+  obfsPassword?: string;
+  upMbps?: number;
+  downMbps?: number;
+  alpn?: string[];
   subscriptionId?: string;
+  congestionControl?: string;
+  udpRelayMode?: string;
+  localAddress?: string[];
+  privateKey?: string;
+  peerPublicKey?: string;
+  mtu?: number;
+  preSharedKey?: string;
+  reserved?: number[];
+  allowedIps?: string[];
+  persistentKeepaliveInterval?: number;
+  listenPort?: number;
+  tailscaleAuthKey?: string;
+  tailscaleControlUrl?: string;
+  tailscaleStateDirectory?: string;
+  tailscaleHostname?: string;
+  tailscaleEphemeral?: boolean;
+  tailscaleAcceptRoutes?: boolean;
+  tailscaleExitNode?: string;
+  tailscaleExitNodeAllowLanAccess?: boolean;
+  tailscaleAdvertiseRoutes?: string[];
+  tailscaleAdvertiseExitNode?: boolean;
+  tailscaleSystemInterface?: boolean;
+  tailscaleSystemInterfaceName?: string;
+  tailscaleSystemInterfaceMtu?: number;
+  tailscaleUdpTimeout?: string;
+  tailscaleRelayServerPort?: number;
+  tailscaleRelayServerStaticEndpoints?: string[];
+  mux?: string;
+  groupId?: string;
+  plugin?: string;
+  pluginOpts?: string;
+  tlsFragment?: boolean;
+  tlsRecordFragment?: boolean;
+  pqcEnabled?: boolean;
 }
 
 export interface RoutingRule {
@@ -31,13 +73,34 @@ export interface RoutingRule {
 }
 
 export interface ConnectionStatus {
-  status: "disconnected" | "connecting" | "connected" | "error";
-  activeId?: string;
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "disconnecting"
+    | "degraded"
+    | "error";
+  activeId?: string | null;
   activeCore?: string | null;
   proxyUrl?: string | null;
-  message?: string;
+  message?: string | null;
   upBytes: number;
   downBytes: number;
+}
+
+export interface LastConnectionOptions {
+  profileId?: string | null;
+  tunMode: boolean;
+  systemProxy: boolean;
+  activeCore: string;
+  sourceSurface: string;
+  favoriteProfileIds?: string[];
+  lastStableProfileId?: string | null;
+  lastStableConnectedAt?: number | null;
+  lastAction?: string | null;
+  lastRequestedAt?: number | null;
+  lastConnectedAt?: number | null;
+  lastDisconnectedAt?: number | null;
 }
 
 /** Get all saved proxy profiles */
@@ -51,13 +114,18 @@ export const addProfile = async (profile: ProxyNode): Promise<void> => {
 };
 
 /** Connect to a proxy profile */
-export const connectProfile = async (id: string, tunMode: boolean): Promise<void> => {
-  return await invoke("connect_profile", { id, tunMode });
+export const connectProfile = async (
+  id: string,
+  tunMode: boolean,
+  systemProxy = false,
+  sourceSurface = "dashboard"
+): Promise<void> => {
+  return await invoke("connect_profile", { id, tunMode, systemProxy, sourceSurface });
 };
 
 /** Disconnect the active proxy */
-export const disconnectProxy = async (): Promise<void> => {
-  return await invoke("disconnect");
+export const disconnectProxy = async (sourceSurface = "dashboard"): Promise<void> => {
+  return await invoke("disconnect", { sourceSurface });
 };
 
 /** Get the current engine connection status */
@@ -71,6 +139,34 @@ export const listenConnectionStatus = async (
 ) => {
   return await listen<ConnectionStatus>("connection-status", (event) => {
     callback(event.payload);
+  });
+};
+
+export const getLastConnectionOptions = async (): Promise<LastConnectionOptions> => {
+  return await invoke<LastConnectionOptions>("get_last_connection_options");
+};
+
+export const saveLastConnectionOptions = async (
+  options: LastConnectionOptions
+): Promise<LastConnectionOptions> => {
+  return await invoke<LastConnectionOptions>("save_last_connection_options", { options });
+};
+
+export const listenConnectionOptions = async (
+  callback: (options: LastConnectionOptions) => void
+) => {
+  return await listen<LastConnectionOptions>("connection-options", (event) => {
+    callback(event.payload);
+  });
+};
+
+export const testAllLatencies = async (): Promise<void> => {
+  return await invoke("test_all_latencies");
+};
+
+export const listenProfilesUpdated = async (callback: () => void) => {
+  return await listen("profiles-updated", () => {
+    callback();
   });
 };
 
@@ -116,6 +212,11 @@ export interface Subscription {
   lastUpdated?: number;
 }
 
+export interface ProfileGroup {
+  id: string;
+  name: string;
+}
+
 /** Get all subscriptions */
 export const getSubscriptions = async (): Promise<Subscription[]> => {
   return await invoke<Subscription[]>("get_subscriptions");
@@ -129,6 +230,11 @@ export const addSubscription = async (sub: Subscription): Promise<void> => {
 /** Update/Sync an existing subscription by ID */
 export const updateSubscription = async (subId: string): Promise<void> => {
   return await invoke("update_subscription", { subId });
+};
+
+/** Get all user-defined profile groups */
+export const getGroups = async (): Promise<ProfileGroup[]> => {
+  return await invoke<ProfileGroup[]>("get_groups");
 };
 
 /** Scan active screens for a QR code and return a ProxyNode */
@@ -354,6 +460,189 @@ export interface HelixRuntimeState {
   last_manifest: HelixResolvedManifest | null;
   last_prepared_runtime: HelixPreparedRuntime | null;
   last_fallback_reason: string | null;
+}
+
+export interface CanonicalCustomerProfile {
+  id: string;
+  email: string;
+  username?: string | null;
+  status: string;
+  telegram_id?: number | null;
+  telegram_username?: string | null;
+  created_at?: string | null;
+  subscription?: {
+    status: string;
+    plan_name?: string | null;
+    expires_at?: string | null;
+    traffic_limit_bytes?: number | null;
+    used_traffic_bytes?: number | null;
+    auto_renew?: boolean;
+  } | null;
+}
+
+export interface CanonicalEntitlementState {
+  status: string;
+  plan_uuid?: string | null;
+  plan_code?: string | null;
+  display_name?: string | null;
+  period_days?: number | null;
+  expires_at?: string | null;
+  effective_entitlements: Record<string, unknown>;
+  invite_bundle: Record<string, number>;
+  is_trial: boolean;
+  addons: Array<Record<string, unknown>>;
+}
+
+export interface CanonicalServiceIdentity {
+  id: string;
+  service_key: string;
+  customer_account_id: string;
+  auth_realm_id: string;
+  source_order_id?: string | null;
+  origin_storefront_id?: string | null;
+  provider_name: string;
+  provider_subject_ref?: string | null;
+  identity_status: string;
+  service_context: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanonicalProvisioningProfile {
+  id: string;
+  service_identity_id: string;
+  profile_key: string;
+  target_channel: string;
+  delivery_method: string;
+  profile_status: string;
+  provider_name: string;
+  provider_profile_ref?: string | null;
+  provisioning_payload: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanonicalDeviceCredential {
+  id: string;
+  credential_key: string;
+  service_identity_id: string;
+  auth_realm_id: string;
+  origin_storefront_id?: string | null;
+  provisioning_profile_id?: string | null;
+  credential_type: string;
+  credential_status: string;
+  subject_key: string;
+  provider_name: string;
+  provider_credential_ref?: string | null;
+  credential_context: Record<string, unknown>;
+  issued_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanonicalAccessDeliveryChannel {
+  id: string;
+  delivery_key: string;
+  service_identity_id: string;
+  auth_realm_id: string;
+  origin_storefront_id?: string | null;
+  provisioning_profile_id?: string | null;
+  device_credential_id?: string | null;
+  channel_type: string;
+  channel_status: string;
+  channel_subject_ref: string;
+  provider_name: string;
+  delivery_context: Record<string, unknown>;
+  delivery_payload: Record<string, unknown>;
+  last_delivered_at?: string | null;
+  last_accessed_at?: string | null;
+  archived_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanonicalCurrentServiceState {
+  customer_account_id: string;
+  auth_realm_id: string;
+  provider_name: string;
+  entitlement_snapshot: CanonicalEntitlementState;
+  service_identity?: CanonicalServiceIdentity | null;
+  provisioning_profile?: CanonicalProvisioningProfile | null;
+  device_credential?: CanonicalDeviceCredential | null;
+  access_delivery_channel?: CanonicalAccessDeliveryChannel | null;
+  purchase_context: {
+    active_entitlement_grant_id?: string | null;
+    source_type?: string | null;
+    source_order_id?: string | null;
+    source_growth_reward_allocation_id?: string | null;
+    source_renewal_order_id?: string | null;
+    manual_source_key?: string | null;
+    origin_storefront_id?: string | null;
+  };
+  consumption_context: {
+    channel_type?: string | null;
+    channel_subject_ref?: string | null;
+    provisioning_profile_key?: string | null;
+    credential_type?: string | null;
+    credential_subject_key?: string | null;
+  };
+}
+
+export interface CanonicalOrderItem {
+  id: string;
+  order_id: string;
+  item_type: string;
+  subject_id?: string | null;
+  subject_code?: string | null;
+  display_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  currency_code: string;
+  item_snapshot: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CanonicalOrder {
+  id: string;
+  quote_session_id?: string | null;
+  checkout_session_id: string;
+  user_id: string;
+  auth_realm_id: string;
+  storefront_id: string;
+  merchant_profile_id?: string | null;
+  invoice_profile_id?: string | null;
+  billing_descriptor_id?: string | null;
+  pricebook_id?: string | null;
+  pricebook_entry_id?: string | null;
+  offer_id?: string | null;
+  legal_document_set_id?: string | null;
+  program_eligibility_policy_id?: string | null;
+  subscription_plan_id?: string | null;
+  promo_code_id?: string | null;
+  partner_code_id?: string | null;
+  sale_channel: string;
+  currency_code: string;
+  order_status: string;
+  settlement_status: string;
+  base_price: number;
+  addon_amount: number;
+  displayed_price: number;
+  discount_amount: number;
+  wallet_amount: number;
+  gateway_amount: number;
+  partner_markup: number;
+  commission_base_amount: number;
+  merchant_snapshot: Record<string, unknown>;
+  pricing_snapshot: Record<string, unknown>;
+  policy_snapshot: Record<string, unknown>;
+  entitlements_snapshot: Record<string, unknown>;
+  items: CanonicalOrderItem[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TransportBenchmarkRequest {
@@ -648,6 +937,26 @@ export const getHelixManifest =
 export const getHelixRuntimeState =
   async (): Promise<HelixRuntimeState> => {
     return await invoke<HelixRuntimeState>("get_helix_runtime_state");
+  };
+
+export const getCanonicalCustomerProfile =
+  async (): Promise<CanonicalCustomerProfile> => {
+    return await invoke<CanonicalCustomerProfile>("get_canonical_customer_profile");
+  };
+
+export const getCanonicalCurrentEntitlements =
+  async (): Promise<CanonicalEntitlementState> => {
+    return await invoke<CanonicalEntitlementState>("get_canonical_current_entitlements");
+  };
+
+export const getCanonicalCurrentServiceState =
+  async (): Promise<CanonicalCurrentServiceState> => {
+    return await invoke<CanonicalCurrentServiceState>("get_canonical_current_service_state");
+  };
+
+export const getCanonicalOrders =
+  async (limit = 20): Promise<CanonicalOrder[]> => {
+    return await invoke<CanonicalOrder[]>("get_canonical_orders", { limit });
   };
 
 export const resolveHelixManifest = async (

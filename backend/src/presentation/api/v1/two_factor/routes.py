@@ -10,7 +10,6 @@ Security improvements:
 import logging
 import secrets
 from datetime import UTC, datetime
-from hashlib import sha256
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -20,15 +19,21 @@ from src.application.services.auth_service import AuthService
 from src.application.services.pending_totp_service import PendingTOTPService
 from src.application.services.reauth_service import ReauthenticationRequired, ReauthService
 from src.application.use_cases.auth.two_factor import TwoFactorUseCase
+from src.application.use_cases.auth_realms import RealmResolution
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
-from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.totp.totp_service import TOTPService
 from src.presentation.api.v1.auth.cookies import set_auth_cookies
+from src.presentation.api.v1.auth.realm_context import (
+    get_principal_type_for_realm,
+    get_scope_family_for_realm,
+)
 from src.presentation.api.v1.auth.schemas import TokenResponse
+from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_user, get_current_pending_2fa_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.shared.security.fingerprint import generate_client_fingerprint
@@ -272,6 +277,7 @@ async def complete_2fa_login(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> TokenResponse:
     """Finish a login that is paused behind a pending 2FA token."""
     await _check_verify_rate_limit(str(user.id), redis_client)
@@ -287,26 +293,52 @@ async def complete_2fa_login(
 
     await _reset_verify_rate_limit(str(user.id), redis_client)
 
-    access_token, _, access_exp = auth_service.create_access_token(
+    principal_type = get_principal_type_for_realm(current_realm)
+    scope_family = get_scope_family_for_realm(current_realm)
+    fingerprint = generate_client_fingerprint(http_request)
+
+    access_token, access_jti, access_exp = auth_service.create_access_token(
         subject=str(user.id),
         role=user.role if isinstance(user.role, str) else user.role.value,
+        audience=current_realm.audience,
+        principal_type=principal_type,
+        realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        scope_family=scope_family,
     )
     refresh_token, _, refresh_exp = auth_service.create_refresh_token(
         subject=str(user.id),
-        fingerprint=generate_client_fingerprint(http_request),
+        fingerprint=fingerprint,
+        audience=current_realm.audience,
+        principal_type=principal_type,
+        realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        scope_family=scope_family,
     )
-
-    db.add(
-        RefreshToken(
-            user_id=user.id,
-            token_hash=sha256(refresh_token.encode()).hexdigest(),
-            expires_at=refresh_exp,
-        )
+    await store_refresh_token(
+        db,
+        user_id=user.id,
+        refresh_token=refresh_token,
+        expires_at=refresh_exp,
+        device_id=fingerprint,
+        ip_address=http_request.client.host if http_request.client else None,
+        user_agent=http_request.headers.get("User-Agent"),
+        auth_realm_id=current_realm.auth_realm.id,
+        principal_class=principal_type,
+        principal_subject=str(user.id),
+        audience=current_realm.audience,
+        scope_family=scope_family,
+        access_token_jti=access_jti,
     )
     user.last_login_at = datetime.now(UTC)
     await db.flush()
 
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(
+        response,
+        access_token,
+        refresh_token,
+        cookie_namespace=current_realm.cookie_namespace,
+    )
     track_2fa_operation(operation="complete_login", success=True)
 
     return TokenResponse(
@@ -314,6 +346,11 @@ async def complete_2fa_login(
         refresh_token=refresh_token,
         token_type=BEARER_SCHEME,
         expires_in=int((access_exp - datetime.now(UTC)).total_seconds()),
+        auth_realm_id=current_realm.auth_realm.id,
+        auth_realm_key=current_realm.realm_key,
+        audience=current_realm.audience,
+        principal_type=principal_type,
+        scope_family=scope_family,
     )
 
 

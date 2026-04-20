@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { authApi, referralApi, twofaApi, paymentsApi, securityApi, partnerApi } from '@/lib/api';
+import { authApi, commerceApi, partnerApi, referralApi, securityApi, twofaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { motion } from 'motion/react';
 import {
@@ -86,11 +86,10 @@ export default function MiniAppProfilePage() {
     },
   });
 
-  // Fetch payment history (limited)
-  const { data: paymentHistory } = useQuery({
-    queryKey: ['payment-history-preview'],
+  const { data: orderHistoryPreview } = useQuery({
+    queryKey: ['order-history-preview'],
     queryFn: async () => {
-      const { data } = await paymentsApi.getHistory();
+      const { data } = await commerceApi.listOrders({ limit: 3, offset: 0 });
       return data;
     },
   });
@@ -474,19 +473,32 @@ export default function MiniAppProfilePage() {
         colorScheme={colorScheme}
       >
         <div className="space-y-2">
-          {paymentHistory?.payments && paymentHistory.payments.length > 0 ? (
+          {orderHistoryPreview && orderHistoryPreview.length > 0 ? (
             <>
-              {paymentHistory.payments.slice(0, 3).map((payment: { id?: string; amount?: number; status?: string; created_at?: string }, index: number) => (
-                <div key={payment.id || index} className="p-3 bg-muted rounded-lg">
+              {orderHistoryPreview.slice(0, 3).map((order: {
+                id?: string;
+                displayed_price?: number;
+                currency_code?: string;
+                settlement_status?: string;
+                order_status?: string;
+                created_at?: string;
+                items?: Array<{ display_name?: string | null }>;
+              }, index: number) => (
+                <div key={order.id || index} className="p-3 bg-muted rounded-lg">
                   <div className="flex justify-between items-start mb-1">
-                    <span className="text-sm font-mono">${(payment.amount || 0).toFixed(2)}</span>
-                    <span className={`text-xs font-mono ${payment.status === 'completed' ? 'text-neon-cyan' : 'text-yellow-400'}`}>
-                      {payment.status}
+                    <span className="text-sm font-mono">
+                      {(order.items?.[0]?.display_name || order.id || 'Order').toString()}
+                    </span>
+                    <span className={`text-xs font-mono ${(order.settlement_status || order.order_status) === 'paid' ? 'text-neon-cyan' : 'text-yellow-400'}`}>
+                      {order.settlement_status || order.order_status}
                     </span>
                   </div>
-                  {payment.created_at && (
+                  <div className="text-sm font-mono mb-1">
+                    ${(order.displayed_price || 0).toFixed(2)} {order.currency_code || 'USD'}
+                  </div>
+                  {order.created_at && (
                     <div className="text-xs text-muted-foreground font-mono">
-                      {new Date(payment.created_at).toLocaleDateString()}
+                      {new Date(order.created_at).toLocaleDateString()}
                     </div>
                   )}
                 </div>

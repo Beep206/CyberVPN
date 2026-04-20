@@ -41,6 +41,7 @@ from src.presentation.api.v1.payments.schemas import (
 )
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
 from src.presentation.dependencies.auth import get_current_mobile_user_id
+from src.presentation.dependencies.auth_realms import get_request_customer_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_crypto_client
 
@@ -95,10 +96,11 @@ def _serialize_subscription_quote(result) -> CheckoutQuoteResponse:
 )
 async def get_current_entitlements(
     user_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm=Depends(get_request_customer_realm),
     db: AsyncSession = Depends(get_db),
 ) -> CurrentEntitlementsResponse:
     use_case = GetCurrentEntitlementsUseCase(db)
-    snapshot = await use_case.execute(user_id)
+    snapshot = await use_case.execute(user_id, auth_realm_id=current_realm.auth_realm.id)
     return CurrentEntitlementsResponse(**snapshot)
 
 

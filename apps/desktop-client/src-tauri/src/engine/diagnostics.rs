@@ -841,19 +841,21 @@ fn sanitize_log_line(line: &str) -> String {
 }
 
 fn should_promote_raw_log_to_event(stream: &str, line: &str) -> bool {
+    let _ = stream;
     let lowered = line.to_ascii_lowercase();
-    stream.eq_ignore_ascii_case("stderr")
+    lowered.contains("fatal")
         || lowered.contains("error")
         || lowered.contains("panic")
         || lowered.contains("failed")
+        || lowered.contains("warn")
         || lowered.contains("degraded")
         || lowered.contains("fallback")
 }
 
 fn classify_log_level(stream: &str, line: &str) -> DiagnosticLevel {
+    let _ = stream;
     let lowered = line.to_ascii_lowercase();
-    if stream.eq_ignore_ascii_case("stderr")
-        || lowered.contains("panic")
+    if lowered.contains("panic")
         || lowered.contains("fatal")
         || lowered.contains("error")
         || lowered.contains("failed")

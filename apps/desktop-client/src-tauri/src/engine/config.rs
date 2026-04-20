@@ -1,27 +1,8 @@
 use crate::ipc::models::{PqcAlgorithm, ProxyNode, RoutingRule};
-use serde::Serialize;
 use serde_json::{json, Value};
 
-#[derive(Serialize)]
-struct StealthPaddingConfig {
-    enabled: bool,
-    size: String,
-}
-
-#[derive(Serialize)]
-struct StealthMultiplexConfig {
-    enabled: bool,
-    protocol: String,
-    max_connections: u32,
-    min_streams: u32,
-    padding: bool,
-}
-
-#[derive(Serialize)]
-struct StealthXhttpConfig {
-    #[serde(rename = "type")]
-    transport_type: String,
-    path: String,
+fn is_endpoint_protocol(protocol: &str) -> bool {
+    matches!(protocol, "wireguard" | "tailscale")
 }
 
 fn apply_pqc_settings(
@@ -51,11 +32,6 @@ fn create_outbound(
     ob_map.insert("server_port".to_string(), json!(node.port));
 
     match node.protocol.as_str() {
-        "tailscale" => {
-            // Tailscale outbounds do not use server/server_port in standard sing-box config
-            ob_map.remove("server");
-            ob_map.remove("server_port");
-        }
         "vless" => {
             if let Some(ref uuid) = node.uuid {
                 ob_map.insert("uuid".to_string(), json!(uuid));
@@ -125,31 +101,6 @@ fn create_outbound(
             }
             if let Some(ref udp) = node.udp_relay_mode {
                 ob_map.insert("udp_relay_mode".to_string(), json!(udp));
-            }
-        }
-        "wireguard" => {
-            // Sing-box wireguard expects endpoint fields within peers, so remove them from the top level
-            ob_map.remove("server");
-            ob_map.remove("server_port");
-
-            if let Some(ref local_address) = node.local_address {
-                ob_map.insert("local_address".to_string(), json!(local_address));
-            }
-            if let Some(ref private_key) = node.private_key {
-                ob_map.insert("private_key".to_string(), json!(private_key));
-            }
-            if let Some(mtu) = node.mtu {
-                ob_map.insert("mtu".to_string(), json!(mtu));
-            }
-            if let Some(ref peer_pk) = node.peer_public_key {
-                ob_map.insert(
-                    "peers".to_string(),
-                    json!([{
-                        "server": node.server,
-                        "server_port": node.port,
-                        "public_key": peer_pk
-                    }]),
-                );
             }
         }
         "socks" | "http" | "ssh" => {
@@ -236,33 +187,27 @@ fn create_outbound(
 
         ob_map.insert("packet_encoding".to_string(), json!("xudp"));
 
-        let padding = StealthPaddingConfig {
-            enabled: true,
-            size: format!("{}-{}", lower, upper),
-        };
-        ob_map.insert(
-            "padding".to_string(),
-            serde_json::to_value(&padding).unwrap(),
-        );
+        let mut padding_map = serde_json::Map::new();
+        padding_map.insert("enabled".to_string(), json!(true));
+        padding_map.insert("size".to_string(), json!(format!("{}-{}", lower, upper)));
+        ob_map.insert("padding".to_string(), Value::Object(padding_map));
 
-        let mx = StealthMultiplexConfig {
-            enabled: true,
-            protocol: "h2mux".to_string(),
-            max_connections: 4,
-            min_streams: 4,
-            padding: true,
-        };
-        ob_map.insert("multiplex".to_string(), serde_json::to_value(&mx).unwrap());
+        let mut multiplex_map = serde_json::Map::new();
+        multiplex_map.insert("enabled".to_string(), json!(true));
+        multiplex_map.insert("protocol".to_string(), json!("h2mux"));
+        multiplex_map.insert("max_connections".to_string(), json!(4));
+        multiplex_map.insert("min_streams".to_string(), json!(4));
+        multiplex_map.insert("padding".to_string(), json!(true));
+        ob_map.insert("multiplex".to_string(), Value::Object(multiplex_map));
         ob_map.insert("tcp_fast_open".to_string(), json!(true));
 
-        let xhttp = StealthXhttpConfig {
-            transport_type: "xhttp".to_string(),
-            path: format!("/api/{}", rand::random::<u32>() % 9000 + 1000),
-        };
-        ob_map.insert(
-            "transport".to_string(),
-            serde_json::to_value(&xhttp).unwrap(),
+        let mut transport_map = serde_json::Map::new();
+        transport_map.insert("type".to_string(), json!("xhttp"));
+        transport_map.insert(
+            "path".to_string(),
+            json!(format!("/api/{}", rand::random::<u32>() % 9000 + 1000)),
         );
+        ob_map.insert("transport".to_string(), Value::Object(transport_map));
     } else if let Some(ref m) = node.mux {
         if m != "none" {
             let mut mux_map = serde_json::Map::new();
@@ -275,6 +220,115 @@ fn create_outbound(
     json!(ob_map)
 }
 
+fn create_endpoint(node: &ProxyNode, tag: &str, detour: Option<&str>) -> Value {
+    let mut endpoint_map = serde_json::Map::new();
+    endpoint_map.insert("type".to_string(), json!(node.protocol));
+    endpoint_map.insert("tag".to_string(), json!(tag));
+
+    match node.protocol.as_str() {
+        "wireguard" => {
+            if let Some(ref local_address) = node.local_address {
+                endpoint_map.insert("address".to_string(), json!(local_address));
+            }
+            if let Some(ref private_key) = node.private_key {
+                endpoint_map.insert("private_key".to_string(), json!(private_key));
+            }
+            if let Some(mtu) = node.mtu {
+                endpoint_map.insert("mtu".to_string(), json!(mtu));
+            }
+            if let Some(listen_port) = node.listen_port {
+                endpoint_map.insert("listen_port".to_string(), json!(listen_port));
+            }
+            if let Some(ref peer_public_key) = node.peer_public_key {
+                let mut peer = serde_json::Map::new();
+                peer.insert("address".to_string(), json!(node.server));
+                peer.insert("port".to_string(), json!(node.port));
+                peer.insert("public_key".to_string(), json!(peer_public_key));
+
+                if let Some(ref pre_shared_key) = node.pre_shared_key {
+                    peer.insert("pre_shared_key".to_string(), json!(pre_shared_key));
+                }
+                if let Some(ref allowed_ips) = node.allowed_ips {
+                    peer.insert("allowed_ips".to_string(), json!(allowed_ips));
+                } else {
+                    peer.insert("allowed_ips".to_string(), json!(["0.0.0.0/0", "::/0"]));
+                }
+                if let Some(interval) = node.persistent_keepalive_interval {
+                    peer.insert("persistent_keepalive_interval".to_string(), json!(interval));
+                }
+                if let Some(ref reserved) = node.reserved {
+                    peer.insert("reserved".to_string(), json!(reserved));
+                }
+
+                endpoint_map.insert("peers".to_string(), json!([peer]));
+            }
+        }
+        "tailscale" => {
+            if let Some(ref auth_key) = node.tailscale_auth_key {
+                endpoint_map.insert("auth_key".to_string(), json!(auth_key));
+            }
+            if let Some(ref control_url) = node.tailscale_control_url {
+                endpoint_map.insert("control_url".to_string(), json!(control_url));
+            }
+            if let Some(ref state_directory) = node.tailscale_state_directory {
+                endpoint_map.insert("state_directory".to_string(), json!(state_directory));
+            }
+            if let Some(ref hostname) = node.tailscale_hostname {
+                endpoint_map.insert("hostname".to_string(), json!(hostname));
+            }
+            if let Some(ephemeral) = node.tailscale_ephemeral {
+                endpoint_map.insert("ephemeral".to_string(), json!(ephemeral));
+            }
+            if let Some(accept_routes) = node.tailscale_accept_routes {
+                endpoint_map.insert("accept_routes".to_string(), json!(accept_routes));
+            }
+            if let Some(ref exit_node) = node.tailscale_exit_node {
+                endpoint_map.insert("exit_node".to_string(), json!(exit_node));
+            }
+            if let Some(allow_lan) = node.tailscale_exit_node_allow_lan_access {
+                endpoint_map.insert("exit_node_allow_lan_access".to_string(), json!(allow_lan));
+            }
+            if let Some(ref advertise_routes) = node.tailscale_advertise_routes {
+                endpoint_map.insert("advertise_routes".to_string(), json!(advertise_routes));
+            }
+            if let Some(advertise_exit_node) = node.tailscale_advertise_exit_node {
+                endpoint_map.insert(
+                    "advertise_exit_node".to_string(),
+                    json!(advertise_exit_node),
+                );
+            }
+            if let Some(system_interface) = node.tailscale_system_interface {
+                endpoint_map.insert("system_interface".to_string(), json!(system_interface));
+            }
+            if let Some(ref interface_name) = node.tailscale_system_interface_name {
+                endpoint_map.insert("system_interface_name".to_string(), json!(interface_name));
+            }
+            if let Some(interface_mtu) = node.tailscale_system_interface_mtu {
+                endpoint_map.insert("system_interface_mtu".to_string(), json!(interface_mtu));
+            }
+            if let Some(ref udp_timeout) = node.tailscale_udp_timeout {
+                endpoint_map.insert("udp_timeout".to_string(), json!(udp_timeout));
+            }
+            if let Some(relay_server_port) = node.tailscale_relay_server_port {
+                endpoint_map.insert("relay_server_port".to_string(), json!(relay_server_port));
+            }
+            if let Some(ref static_endpoints) = node.tailscale_relay_server_static_endpoints {
+                endpoint_map.insert(
+                    "relay_server_static_endpoints".to_string(),
+                    json!(static_endpoints),
+                );
+            }
+        }
+        _ => {}
+    }
+
+    if let Some(d) = detour {
+        endpoint_map.insert("detour".to_string(), json!(d));
+    }
+
+    json!(endpoint_map)
+}
+
 /// Generates a valid sing-box JSON configuration for a given ProxyNode
 ///
 /// # Examples
@@ -284,16 +338,13 @@ fn create_outbound(
 /// use desktop_client_lib::engine::config::generate_singbox_config;
 ///
 /// let node = ProxyNode {
-///     id: "123".into(), name: "Test".into(), server: "1.1.1.1".into(), port: 443,
-///     protocol: "vless".into(), uuid: Some("uuid".into()), password: None, flow: None,
-///     network: None, tls: None, sni: None, fingerprint: None, public_key: None,
-///     short_id: None, ping: None, next_hop_id: None, alter_id: None, security: None,
-///     method: None, obfs: None, obfs_password: None, up_mbps: None, down_mbps: None,
-///     alpn: None, subscription_id: None, congestion_control: None,
-///     udp_relay_mode: None, local_address: None, private_key: None,
-///     peer_public_key: None, mtu: None, mux: None, group_id: None,
-///     plugin: None, plugin_opts: None, tls_fragment: None, tls_record_fragment: None,
-///     pqc_enabled: None,
+///     id: "123".into(),
+///     name: "Test".into(),
+///     server: "1.1.1.1".into(),
+///     port: 443,
+///     protocol: "vless".into(),
+///     uuid: Some("uuid".into()),
+///     ..Default::default()
 /// };
 ///
 /// let config = generate_singbox_config(&node, &[], false, &[], None, None, false, &[], "disallow", false, false, "disabled", None);
@@ -316,6 +367,7 @@ pub fn generate_singbox_config(
     app_data_dir: Option<&std::path::Path>,
 ) -> Value {
     let mut outbounds = Vec::new();
+    let mut endpoints = Vec::new();
 
     // 1. Determine multi-hop chain
     let mut detour_tag = None;
@@ -323,13 +375,17 @@ pub fn generate_singbox_config(
         if let Some(next_node) = all_nodes.iter().find(|n| &n.id == next_id) {
             let next_tag = "proxy-next";
             detour_tag = Some(next_tag);
-            outbounds.push(create_outbound(
-                next_node,
-                next_tag,
-                None,
-                stealth_mode_enabled,
-                pqc_enforcement_mode,
-            ));
+            if is_endpoint_protocol(next_node.protocol.as_str()) {
+                endpoints.push(create_endpoint(next_node, next_tag, None));
+            } else {
+                outbounds.push(create_outbound(
+                    next_node,
+                    next_tag,
+                    None,
+                    stealth_mode_enabled,
+                    pqc_enforcement_mode,
+                ));
+            }
         } else {
             eprintln!(
                 "Warning: Next hop ID {} not found. Falling back to direct single-hop.",
@@ -338,16 +394,18 @@ pub fn generate_singbox_config(
         }
     }
 
-    outbounds.push(create_outbound(
-        proxy,
-        "proxy",
-        detour_tag,
-        stealth_mode_enabled,
-        pqc_enforcement_mode,
-    ));
+    if is_endpoint_protocol(proxy.protocol.as_str()) {
+        endpoints.push(create_endpoint(proxy, "proxy", detour_tag));
+    } else {
+        outbounds.push(create_outbound(
+            proxy,
+            "proxy",
+            detour_tag,
+            stealth_mode_enabled,
+            pqc_enforcement_mode,
+        ));
+    }
     outbounds.push(json!({"type": "direct", "tag": "direct"}));
-    outbounds.push(json!({"type": "block", "tag": "block"}));
-    outbounds.push(json!({"type": "dns", "tag": "dns-out"}));
 
     // 2. Build Inbounds
     let port = local_socks_port.unwrap_or(2080);
@@ -356,34 +414,44 @@ pub fn generate_singbox_config(
         "type": "mixed",
         "tag": "mixed-in",
         "listen": listen_ip,
-        "listen_port": port,
-        "sniff": true,
-        "sniff_override_destination": true
+        "listen_port": port
     })];
 
     if tun_enabled {
-        inbounds.push(json!({
-            "type": "tun",
-            "tag": "tun-in",
-            "interface_name": "tun0",
-            "inet4_address": "172.19.0.1/30",
-            "auto_route": true,
-            "strict_route": true,
-            "auto_redirect": true,
-            "stack": "system",
-            "sniff": true,
-            "sniff_override_destination": true
-        }));
+        let mut tun_inbound = serde_json::Map::new();
+        tun_inbound.insert("type".to_string(), json!("tun"));
+        tun_inbound.insert("tag".to_string(), json!("tun-in"));
+        tun_inbound.insert("address".to_string(), json!(["172.19.0.1/30"]));
+        tun_inbound.insert("auto_route".to_string(), json!(true));
+        tun_inbound.insert("strict_route".to_string(), json!(true));
+        tun_inbound.insert("stack".to_string(), json!("system"));
+
+        #[cfg(target_os = "linux")]
+        {
+            tun_inbound.insert("interface_name".to_string(), json!("tun0"));
+            tun_inbound.insert("auto_redirect".to_string(), json!(true));
+        }
+
+        inbounds.push(Value::Object(tun_inbound));
     }
 
     // 3. Transform user RoutingRules into sing-box route rules using idiomatic Iterators
     let mut route_rules: Vec<Value> = Vec::new();
 
+    route_rules.push(json!({
+        "action": "sniff",
+        "timeout": "300ms"
+    }));
+    route_rules.push(json!({
+        "protocol": "dns",
+        "action": "hijack-dns"
+    }));
+
     // 3a. Inject Privacy Shield rule FIRST
     if privacy_shield_level != "disabled" && app_data_dir.is_some() {
         route_rules.push(json!({
             "rule_set": "adblock-standard",
-            "outbound": "block"
+            "action": "reject"
         }));
     }
 
@@ -438,7 +506,6 @@ pub fn generate_singbox_config(
     route_rules.append(&mut user_mapped_rules);
 
     // Core default rules to prevent leaks and loops
-    route_rules.push(json!({"protocol": "dns", "outbound": "dns-out"}));
     route_rules.push(json!({"ip_is_private": true, "outbound": "direct"}));
 
     let mut log_obj = serde_json::Map::new();
@@ -451,16 +518,23 @@ pub fn generate_singbox_config(
     }
 
     // 4. Final configuration assembly
-    let mut route_obj = json!({
-        "rules": route_rules,
-        "final": if split_mode == "allow" && !split_apps.is_empty() { "direct" } else { "proxy" },
-        "auto_detect_interface": true
-    });
+    let mut route_obj = serde_json::Map::new();
+    route_obj.insert("rules".to_string(), Value::Array(route_rules));
+    route_obj.insert(
+        "final".to_string(),
+        json!(if split_mode == "allow" && !split_apps.is_empty() {
+            "direct"
+        } else {
+            "proxy"
+        }),
+    );
+    route_obj.insert("default_domain_resolver".to_string(), json!("dns-local"));
+    route_obj.insert("auto_detect_interface".to_string(), json!(true));
 
     if privacy_shield_level != "disabled" {
         if let Some(dir) = app_data_dir {
             let rs_path = dir.join("bin").join("adblock-standard.json");
-            route_obj.as_object_mut().unwrap().insert(
+            route_obj.insert(
                 "rule_set".to_string(),
                 json!([
                     {
@@ -479,28 +553,25 @@ pub fn generate_singbox_config(
         "dns": {
             "servers": [
                 {
+                    "type": "https",
                     "tag": "dns-remote",
-                    "address": "https://1.1.1.1/dns-query",
-                    "address_resolver": "dns-local",
-                    "strategy": "ipv4_only",
+                    "server": "1.1.1.1",
+                    "server_port": 443,
+                    "path": "/dns-query",
                     "detour": "proxy"
                 },
                 {
+                    "type": "udp",
                     "tag": "dns-local",
-                    "address": "1.1.1.1",
-                    "detour": "direct"
-                }
-            ],
-            "rules": [
-                {
-                    "outbound": "any",
-                    "server": "dns-local"
+                    "server": "1.1.1.1",
+                    "server_port": 53
                 }
             ],
             "final": "dns-remote",
             "strategy": "ipv4_only"
         },
         "inbounds": inbounds,
+        "endpoints": endpoints,
         "outbounds": outbounds,
         "route": route_obj
     })
@@ -538,19 +609,7 @@ mod tests {
             down_mbps: None,
             alpn: None,
             subscription_id: None,
-            congestion_control: None,
-            udp_relay_mode: None,
-            local_address: None,
-            private_key: None,
-            peer_public_key: None,
-            mtu: None,
-            mux: None,
-            group_id: None,
-            plugin: None,
-            plugin_opts: None,
-            tls_fragment: None,
-            tls_record_fragment: None,
-            pqc_enabled: None,
+            ..Default::default()
         }
     }
 
@@ -627,10 +686,11 @@ mod tests {
         );
         let rules = config["route"]["rules"].as_array().unwrap();
 
-        // Custom rule should be first
-        let first_rule = &rules[0];
-        assert_eq!(first_rule["outbound"], "proxy");
-        assert_eq!(first_rule["domain_suffix"][0], "*.openai.com");
+        let custom_rule = rules
+            .iter()
+            .find(|rule| rule["domain_suffix"][0] == "*.openai.com")
+            .expect("Custom routing rule was not included");
+        assert_eq!(custom_rule["outbound"], "proxy");
 
         // Disabled rule should not be present
         let has_disabled = rules.iter().any(|r| {
@@ -639,6 +699,40 @@ mod tests {
                 .is_some_and(|arr| arr.iter().any(|s| s == "*.google.com"))
         });
         assert!(!has_disabled, "Disabled rule was included in config");
+    }
+
+    #[test]
+    fn generate_config_should_use_non_legacy_direct_dns_resolver() {
+        let node = create_mock_node("1", None);
+
+        let config = generate_singbox_config(
+            &node,
+            &[],
+            true,
+            &[],
+            None,
+            None,
+            false,
+            &[],
+            "allow",
+            false,
+            false,
+            "disabled",
+            None,
+        );
+
+        let dns_servers = config["dns"]["servers"]
+            .as_array()
+            .expect("dns.servers should be an array");
+        let dns_local = dns_servers
+            .iter()
+            .find(|server| server["tag"] == "dns-local")
+            .expect("dns-local server missing");
+
+        assert_eq!(dns_local["type"], "udp");
+        assert_eq!(dns_local["server"], "1.1.1.1");
+        assert!(dns_local.get("detour").is_none());
+        assert_eq!(config["route"]["default_domain_resolver"], "dns-local");
     }
 
     #[test]
@@ -677,5 +771,82 @@ mod tests {
         assert_eq!(proxy_outbound["detour"], "proxy-next");
         // `proxy-next` must have no detour
         assert!(proxy_next_outbound.get("detour").is_none());
+    }
+
+    #[test]
+    fn generate_config_with_wireguard_profile_should_use_endpoint() {
+        let node = ProxyNode {
+            protocol: "wireguard".to_string(),
+            server: "162.159.193.10".to_string(),
+            port: 2408,
+            private_key: Some("private".to_string()),
+            peer_public_key: Some("peer".to_string()),
+            local_address: Some(vec!["10.0.0.2/32".to_string()]),
+            ..create_mock_node("wg", None)
+        };
+
+        let config = generate_singbox_config(
+            &node,
+            &[],
+            false,
+            &[],
+            None,
+            None,
+            false,
+            &[],
+            "allow",
+            false,
+            false,
+            "disabled",
+            None,
+        );
+
+        let endpoints = config["endpoints"].as_array().unwrap();
+        let proxy_endpoint = endpoints
+            .iter()
+            .find(|endpoint| endpoint["tag"] == "proxy")
+            .expect("Missing WireGuard endpoint");
+
+        assert_eq!(proxy_endpoint["type"], "wireguard");
+        assert_eq!(proxy_endpoint["peers"][0]["allowed_ips"][0], "0.0.0.0/0");
+        assert_eq!(config["route"]["final"], "proxy");
+    }
+
+    #[test]
+    fn generate_config_with_tailscale_profile_should_use_endpoint() {
+        let node = ProxyNode {
+            protocol: "tailscale".to_string(),
+            server: String::new(),
+            port: 0,
+            tailscale_state_directory: Some("tailscale-state".to_string()),
+            tailscale_accept_routes: Some(true),
+            ..create_mock_node("ts", None)
+        };
+
+        let config = generate_singbox_config(
+            &node,
+            &[],
+            false,
+            &[],
+            None,
+            None,
+            false,
+            &[],
+            "allow",
+            false,
+            false,
+            "disabled",
+            None,
+        );
+
+        let endpoints = config["endpoints"].as_array().unwrap();
+        let proxy_endpoint = endpoints
+            .iter()
+            .find(|endpoint| endpoint["tag"] == "proxy")
+            .expect("Missing Tailscale endpoint");
+
+        assert_eq!(proxy_endpoint["type"], "tailscale");
+        assert_eq!(proxy_endpoint["state_directory"], "tailscale-state");
+        assert_eq!(proxy_endpoint["accept_routes"], true);
     }
 }

@@ -50,24 +50,33 @@ async def connect_menu_handler(
     user_id = callback.from_user.id
 
     try:
-        # Get active subscriptions
-        subscriptions = await api_client.get_user_subscriptions(user_id)
-        active_subs = [sub for sub in subscriptions if sub.get("status") in {"active", "trial"}]
+        entitlements = await api_client.get_current_entitlements(user_id)
+        status = str(entitlements.get("status") or "none")
 
-        if active_subs:
-            # Show subscription details
-            sub = active_subs[0]
+        if status in {"active", "trial"}:
+            service_state = await api_client.get_current_service_state(user_id)
             text = i18n.get(
                 "subscription-active",
-                plan=sub.get("plan_name", "N/A"),
-                expires=sub.get("expires_at", "N/A"),
+                plan=entitlements.get("display_name") or entitlements.get("plan_code") or "N/A",
+                expires=entitlements.get("expires_at", "N/A"),
             )
+            channel = service_state.get("access_delivery_channel") or {}
+            purchase_context = service_state.get("purchase_context") or {}
+            provider_name = service_state.get("provider_name") or "N/A"
+            channel_type = channel.get("channel_type")
+            source_type = purchase_context.get("source_type")
+            details: list[str] = [f"Provider: {provider_name}"]
+            if channel_type:
+                details.append(f"Channel: {channel_type}")
+            if source_type:
+                details.append(f"Source: {source_type}")
+            text = f"{text}\n\n" + "\n".join(details)
         else:
             text = i18n.get("subscription-none")
 
         await callback.message.edit_text(
             text=text,
-            reply_markup=subscription_keyboard(i18n, has_active=bool(active_subs)),
+            reply_markup=subscription_keyboard(i18n, has_active=status in {"active", "trial"}),
         )
     except Exception as e:
         logger.error("connect_menu_error", user_id=user_id, error=str(e))

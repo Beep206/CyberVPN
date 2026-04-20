@@ -4,14 +4,17 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.application.services.entitlements_service import EntitlementsService
+from src.application.use_cases.service_access import GetCurrentEntitlementStateUseCase
 
 
 class GetCurrentEntitlementsUseCase:
     """Resolve the current entitlement snapshot for a mobile user."""
 
     def __init__(self, session: AsyncSession) -> None:
-        self._entitlements = EntitlementsService(session)
+        self._entitlements = GetCurrentEntitlementStateUseCase(session)
 
-    async def execute(self, user_id: UUID) -> dict:
-        return await self._entitlements.get_current_snapshot(user_id)
+    async def execute(self, user_id: UUID, *, auth_realm_id: UUID | None = None) -> dict:
+        return await self._entitlements.execute(
+            customer_account_id=user_id,
+            auth_realm_id=auth_realm_id,
+        )

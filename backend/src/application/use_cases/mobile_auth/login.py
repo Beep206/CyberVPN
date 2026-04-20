@@ -19,6 +19,7 @@ from src.application.dto.mobile_auth import (
 )
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.repositories.mobile_user_repo import (
@@ -105,11 +106,17 @@ class MobileLoginUseCase:
         await self.user_repo.update(user)
 
         # Generate tokens
+        customer_realm = DEFAULT_AUTH_REALMS["customer"]
         # MED-003: Properly unpack token tuple (token, jti, expires_at)
         access_token, _access_jti, _access_expire = self.auth_service.create_access_token(
             subject=str(user.id),
             role="mobile_user",
             extra={"device_id": request.device.device_id},
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
         )
 
         # Create refresh token with extended TTL if remember_me
@@ -163,5 +170,14 @@ class MobileLoginUseCase:
             JWT refresh token string.
         """
         # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        token, _jti, _expire = self.auth_service.create_refresh_token(subject, remember_me=remember_me)
+        customer_realm = DEFAULT_AUTH_REALMS["customer"]
+        token, _jti, _expire = self.auth_service.create_refresh_token(
+            subject,
+            remember_me=remember_me,
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(stable_auth_realm_id(str(customer_realm["realm_key"]))),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
+        )
         return token

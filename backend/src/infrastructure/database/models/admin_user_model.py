@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -23,12 +23,23 @@ class AdminUserModel(Base):
     """
 
     __tablename__ = "admin_users"
+    __table_args__ = (
+        UniqueConstraint("auth_realm_id", "login", name="uq_admin_users_realm_login"),
+        UniqueConstraint("auth_realm_id", "email", name="uq_admin_users_realm_email"),
+    )
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
-    login: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    login: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
 
-    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+
+    auth_realm_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("auth_realms.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

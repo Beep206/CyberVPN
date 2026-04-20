@@ -62,6 +62,13 @@ class ConfigService:
         )
         return val.get("tiers", [])
 
+    async def get_partner_payout_hold_days(self, *, owner_type: str | None = None) -> int:
+        if owner_type == "performance":
+            val = await self._repo.get_value("performance.payout_hold_days", {"days": 45})
+            return int(val.get("days", 45))
+        val = await self._repo.get_value("affiliate.payout_hold_days", {"days": 30})
+        return int(val.get("days", 30))
+
     # --- Wallet config ---
 
     async def get_wallet_min_withdrawal(self) -> dict[str, Any]:

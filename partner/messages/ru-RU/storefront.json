@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "homeTitle": "{brandName} storefront",
+    "homeDescription": "{brandName} — partner-branded commerce shell со storefront-aware checkout, legal и support context.",
+    "checkoutTitle": "{brandName} checkout",
+    "checkoutDescription": "Канонический flow quote, checkout session, order и payment для {brandName}.",
+    "supportTitle": "{brandName} support",
+    "supportDescription": "Storefront-bound support routing и communication profile для {brandName}.",
+    "legalTitle": "{brandName} legal context",
+    "legalDescription": "Resolved legal-document set и customer obligations для {brandName}."
+  },
+  "home": {
+    "eyebrow": "Partner storefront",
+    "title": "{brandName}",
+    "subtitle": "Customer-facing surface, привязанная к auth realm {realmKey}, storefront routing, branded support и legal context.",
+    "checkoutCta": "Открыть checkout",
+    "legalCta": "Посмотреть legal context",
+    "supportCta": "Профиль support",
+    "loginCta": "Customer sign in",
+    "merchantLabel": "Merchant profile",
+    "supportLabel": "Support profile",
+    "communicationLabel": "Communication profile",
+    "realmLabel": "Auth realm",
+    "storefrontKeyLabel": "Storefront key",
+    "hostLabel": "Resolved host",
+    "billingDescriptorLabel": "Billing descriptor",
+    "refundModelLabel": "Refund model",
+    "chargebackModelLabel": "Chargeback model"
+  },
+  "checkout": {
+    "title": "Canonical checkout shell",
+    "subtitle": "Этот storefront читает pricebooks, legal bindings, entitlements и service state из backend-owned contracts для {brandName}.",
+    "empty": "Для этого storefront сейчас нет активных eligible offers.",
+    "checkoutAction": "Создать order",
+    "checkoutPending": "Создаём order",
+    "signInCta": "Войти для продолжения",
+    "legalNotice": "Checkout остаётся привязан к {count} legal documents этого storefront.",
+    "currentEntitlementLabel": "Текущее entitlement state",
+    "currentServiceStateLabel": "Текущее service state",
+    "orderReadyLabel": "Order committed",
+    "orderIdLabel": "Order ID",
+    "attemptStatusLabel": "Статус payment attempt",
+    "paymentLinkLabel": "Ссылка на invoice",
+    "legalLinkLabel": "Legal docs",
+    "supportLinkLabel": "Support",
+    "pricebookLabel": "Pricebook",
+    "includedAddonsLabel": "Включённые add-ons: {count}"
+  },
+  "support": {
+    "eyebrow": "Storefront support",
+    "title": "{brandName} support routing",
+    "subtitle": "Customer support остаётся storefront-aware. Эскалация partner operator остаётся на portal hosts.",
+    "channelLabel": "Primary channel",
+    "responseWindowLabel": "Response window",
+    "communicationLabel": "Communication profile",
+    "realmLabel": "Auth realm",
+    "storefrontLabel": "Storefront",
+    "checkoutCta": "Назад в checkout",
+    "legalCta": "Посмотреть legal docs"
+  },
+  "legal": {
+    "eyebrow": "Legal document set",
+    "title": "{brandName} legal surface",
+    "subtitle": "Resolved legal set: {setName}",
+    "required": "Required",
+    "optional": "Optional",
+    "checkoutCta": "Назад в checkout",
+    "supportCta": "Профиль support"
+  },
+  "auth": {
+    "title": "{brandName} customer sign in",
+    "subtitle": "Используйте customer credentials этого storefront. Identity partner workspace остаётся изолированной на portal hosts.",
+    "registerBlockedTitle": "Customer self-serve registration остаётся на official identity surface",
+    "registerBlockedDescription": "Используйте существующий customer account для branded checkout или обратитесь в support storefront до создания новой identity.",
+    "verifyBlockedTitle": "Email verification для новых customer identities остаётся вне partner portal shell",
+    "verifyBlockedDescription": "Вернитесь на storefront и продолжайте с существующим account или обратитесь в support для завершения onboarding.",
+    "continueSignIn": "Перейти ко входу",
+    "backHome": "Назад на storefront"
+  }
+}

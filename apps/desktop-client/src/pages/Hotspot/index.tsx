@@ -11,12 +11,14 @@ import {
   startDeviceDiscovery,
   stopDeviceDiscovery
 } from "../../shared/api/ipc";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { toast } from "sonner";
 import { WifiHigh, Info, ShieldAlert, MonitorSmartphone, Power, ArrowRightLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function HotspotPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets, scales } = useDesktopMotionBudget();
   const [isActive, setIsActive] = useState(false);
   const [lanInfo, setLanInfo] = useState<LanInfo | null>(null);
   const [devices, setDevices] = useState<LanDevice[]>([]);
@@ -81,10 +83,10 @@ export function HotspotPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="max-w-4xl mx-auto space-y-8"
     >
       <div>
@@ -106,18 +108,23 @@ export function HotspotPage() {
              <AnimatePresence>
                 {isActive && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 0.5, scale: 1.5 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
+                    initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.9 }}
+                    animate={{ opacity: prefersReducedMotion ? 0.2 : 0.35, scale: prefersReducedMotion ? 1.04 : 1.35 }}
+                    exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.9 }}
+                    transition={{
+                      duration: prefersReducedMotion ? durations.micro : 1.6,
+                      repeat: prefersReducedMotion ? 0 : Infinity,
+                      ease: desktopMotionEase,
+                      repeatType: "reverse",
+                    }}
                     className="absolute inset-0 m-auto w-48 h-48 rounded-full bg-[var(--color-neon-cyan)] blur-[80px] -z-10"
                   />
                 )}
              </AnimatePresence>
 
              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: scales.hover }}
+                whileTap={{ scale: scales.tap }}
                 onClick={handleToggle}
                 disabled={isProcessing}
                 className={`w-40 h-40 rounded-full flex flex-col items-center justify-center border-4 transition-all duration-500 ${

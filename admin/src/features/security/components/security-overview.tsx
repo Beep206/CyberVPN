@@ -152,6 +152,7 @@ export function SecurityOverview() {
 
           <div className="mt-5 grid gap-3">
             {[
+              { href: '/security/review-queue', title: t('nav.reviewQueue'), description: t('overview.routes.reviewQueue') },
               { href: '/security/sessions', title: t('nav.sessions'), description: t('overview.routes.sessions') },
               { href: '/security/two-factor', title: t('nav.twoFactor'), description: t('overview.routes.twoFactor') },
               { href: '/security/anti-phishing', title: t('nav.antiPhishing'), description: t('overview.routes.antiPhishing') },

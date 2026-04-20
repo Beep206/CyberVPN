@@ -19,14 +19,14 @@
 /// | serverStatus | /api/v1/servers/:id/status | GET | JWT | ❌ Missing (backend has no status endpoint) |
 /// | plans | /api/v1/plans | GET | None | ✅ Aligned |
 /// | subscriptions | /api/v1/subscriptions | POST | JWT | ✅ Aligned |
-/// | activeSubscription | /api/v1/subscriptions/active | GET | JWT | ❌ Missing (backend has no active endpoint) |
+/// | activeSubscription | /api/v1/entitlements/current + /api/v1/access-delivery-channels/current/service-state | GET+POST | JWT | ✅ Canonical parity |
 /// | cancelSubscription | /api/v1/subscriptions/cancel | POST | JWT | ❌ Missing (backend has no cancel endpoint) |
 /// | referralStatus | /api/v1/referral/status | GET | JWT | ❌ Missing (no referral routes in backend) |
 /// | referralCode | /api/v1/referral/code | GET | JWT | ❌ Missing (no referral routes in backend) |
 /// | referralStats | /api/v1/referral/stats | GET | JWT | ❌ Missing (no referral routes in backend) |
 /// | referralRecent | /api/v1/referral/recent | GET | JWT | ❌ Missing (no referral routes in backend) |
 /// | createPayment | /api/v1/payments/create | POST | JWT | ⚠️ Partial (backend has /crypto/invoice) |
-/// | paymentHistory | /api/v1/payments/history | GET | JWT | ✅ Aligned |
+/// | paymentHistory | /api/v1/orders | GET | JWT | ✅ Canonical parity |
 /// | paymentStatus | /api/v1/payments/:id/status | GET | JWT | ⚠️ Partial (backend has /crypto/invoice/:id) |
 /// | setup2fa | /api/v1/2fa/setup | POST | JWT | ✅ Aligned |
 /// | verify2fa | /api/v1/2fa/verify | POST | JWT | ✅ Aligned |
@@ -128,7 +128,8 @@ class ApiConstants {
   ///
   /// Request: `{ "device_id": string }`
   /// Response: `{ "device_token": string }`
-  static const String biometricEnroll = '$apiPrefix/mobile/auth/biometric/enroll';
+  static const String biometricEnroll =
+      '$apiPrefix/mobile/auth/biometric/enroll';
 
   /// **POST /api/v1/mobile/auth/biometric/login**
   ///
@@ -236,7 +237,8 @@ class ApiConstants {
   /// Removes the user's antiphishing code.
   /// Response: 200 OK `{ "message": "Antiphishing code removed." }`
   /// Errors: 401 (not authenticated), 404 (code not set)
-  static const String deleteAntiphishingCode = '$apiPrefix/security/antiphishing';
+  static const String deleteAntiphishingCode =
+      '$apiPrefix/security/antiphishing';
 
   // ── Server Endpoints ──────────────────────────────────────────────────
 
@@ -291,15 +293,16 @@ class ApiConstants {
   /// Request: `{ "name": string, "duration_days": int, ... }`
   static const String subscriptions = '$apiPrefix/subscriptions';
 
-  /// **GET /api/v1/subscription/active**
+  /// **GET /api/v1/entitlements/current**
   ///
-  /// Backend: `backend/src/presentation/api/v1/subscription/routes.py` - `/subscription/active`
+  /// Backend: `backend/src/presentation/api/v1/entitlements/routes.py` - `/entitlements/current`
   /// Auth: JWT (current authenticated user)
-  /// Status: ✅ Aligned (Task BF2-3)
+  /// Status: ✅ Canonical parity (`T7.5`)
   ///
-  /// Fetches the active subscription for the current user.
-  /// Note: Backend uses singular `/subscription` (not `/subscriptions`).
-  static const String activeSubscription = '$apiPrefix/subscription/active';
+  /// Returns the effective entitlement snapshot for the current authenticated
+  /// customer realm. Mobile combines this with [currentServiceState] to build
+  /// the active subscription UI model.
+  static const String activeSubscription = '$apiPrefix/entitlements/current';
 
   /// Alias for [activeSubscription] for consistency with task naming.
   static const String subscriptionActive = activeSubscription;
@@ -538,15 +541,27 @@ class ApiConstants {
   /// Note: Backend primary endpoint is `/payments/crypto/invoice`, `/payments/create` is an alias.
   static const String createPayment = '$apiPrefix/payments/create';
 
-  /// **GET /api/v1/payments/history**
+  /// **GET /api/v1/orders**
   ///
-  /// Backend: `backend/src/presentation/api/v1/payments/routes.py` - `/payments/history`
-  /// Auth: JWT (requires PAYMENT_READ permission)
-  /// Status: ✅ Aligned
+  /// Backend: `backend/src/presentation/api/v1/orders/routes.py` - `/orders/`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Canonical parity (`T7.5`)
   ///
-  /// Returns payment history with optional user filter and pagination.
-  /// Query params: `user_uuid`, `offset`, `limit`
-  static const String paymentHistory = '$apiPrefix/payments/history';
+  /// Returns canonical order history for the current authenticated user.
+  /// Query params: `offset`, `limit`
+  static const String paymentHistory = '$apiPrefix/orders';
+
+  /// **POST /api/v1/access-delivery-channels/current/service-state**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/access_delivery_channels/routes.py`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Canonical parity (`T7.5`)
+  ///
+  /// Returns the current service consumption state for the authenticated
+  /// customer, including service identity, provisioning, and access delivery
+  /// artifacts.
+  static const String currentServiceState =
+      '$apiPrefix/access-delivery-channels/current/service-state';
 
   /// **GET /api/v1/payments/:id/status**
   ///
@@ -643,7 +658,8 @@ class ApiConstants {
   /// Response: `{ "success": bool, "message": string }`
   ///
   /// Note: Backend supports both POST (primary) and GET (alias) methods.
-  static const String oauthTelegramCallback = '$apiPrefix/oauth/telegram/callback';
+  static const String oauthTelegramCallback =
+      '$apiPrefix/oauth/telegram/callback';
 
   /// **POST /api/v1/auth/telegram/bot-link**
   ///

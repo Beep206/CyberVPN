@@ -29,10 +29,13 @@ const MOCK_CLOUD_API_URL: &str = "https://mock-sync.cybervpn.com/api/v1/sync";
 
 // Derives a 32-byte (256-bit) key from the given password and salt using Argon2id
 fn derive_key(password: &str, salt: &SaltString) -> Result<[u8; 32], AppError> {
+    let params = Params::new(19456, 2, 1, None).map_err(|error| {
+        AppError::System(format!("Failed to initialize Argon2 parameters: {error}"))
+    })?;
     let argon2 = Argon2::new(
         argon2::Algorithm::Argon2id,
         argon2::Version::V0x13,
-        Params::new(19456, 2, 1, None).unwrap(), // secure baseline params
+        params, // secure baseline params
     );
 
     let mut key = [0u8; 32];

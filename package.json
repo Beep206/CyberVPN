@@ -4,6 +4,7 @@
   "workspaces": [
     "admin",
     "frontend",
+    "partner",
     "apps/*",
     "services/*",
     "packages/*"
@@ -11,10 +12,19 @@
   "scripts": {
     "dev": "npm run dev -w frontend",
     "dev:admin": "npm run dev -w admin",
+    "dev:partner": "npm run dev -w partner",
     "build": "npm run build -w frontend",
     "build:admin": "npm run build -w admin",
+    "build:partner": "npm run build -w partner",
     "lint": "npm run lint -w frontend",
-    "lint:admin": "npm run lint -w admin"
+    "lint:admin": "npm run lint -w admin",
+    "lint:partner": "npm run lint -w partner",
+    "conformance:partner-admin": "bash ./scripts/run-partner-admin-conformance.sh",
+    "conformance:partner-admin:backend": "bash ./scripts/run-partner-admin-conformance.sh --backend",
+    "conformance:partner-admin:admin": "bash ./scripts/run-partner-admin-conformance.sh --admin",
+    "conformance:partner-admin:partner": "bash ./scripts/run-partner-admin-conformance.sh --partner",
+    "evidence:partner-admin:init": "bash ./scripts/bootstrap-partner-admin-evidence.sh",
+    "staging:partner-admin:smoke": "bash ./scripts/run-partner-admin-staging-smoke.sh"
   },
   "engines": {
     "node": ">=20"

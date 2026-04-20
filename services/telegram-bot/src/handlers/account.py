@@ -121,25 +121,27 @@ async def show_subscriptions_handler(
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
 ) -> None:
-    """Show user subscriptions history."""
+    """Show canonical order history for the Telegram user."""
     user_id = callback.from_user.id
 
     try:
-        subscriptions = await api_client.get_user_subscriptions(user_id)
+        orders = await api_client.get_user_orders(user_id, limit=10, offset=0)
 
-        if not subscriptions:
+        if not orders:
             await callback.answer(i18n.get("subscriptions-none"), show_alert=True)
             return
 
-        # Format subscriptions list
         subs_text = i18n.get("subscriptions-title") + "\n\n"
 
-        for sub in subscriptions:
-            status_emoji = "✅" if sub.get("status") in {"active", "trial"} else "❌"
+        for order in orders:
+            item = (order.get("items") or [{}])[0]
+            label = item.get("display_name") or order.get("pricing_snapshot", {}).get("display_name") or "N/A"
+            effective_status = order.get("settlement_status") or order.get("order_status") or "N/A"
+            status_emoji = "✅" if effective_status in {"paid", "succeeded", "committed"} else "❌"
             subs_text += (
-                f"{status_emoji} {sub.get('plan_name', 'N/A')}\n"
-                f"   {i18n.get('status')}: {sub.get('status', 'N/A')}\n"
-                f"   {i18n.get('expires')}: {sub.get('expires_at', 'N/A')}\n\n"
+                f"{status_emoji} {label}\n"
+                f"   {i18n.get('status')}: {effective_status}\n"
+                f"   Date: {order.get('created_at', 'N/A')}\n\n"
             )
 
         await callback.message.edit_text(
@@ -147,7 +149,7 @@ async def show_subscriptions_handler(
             reply_markup=profile_kb(i18n),
         )
 
-        logger.info("subscriptions_viewed", user_id=user_id, count=len(subscriptions))
+        logger.info("subscriptions_viewed", user_id=user_id, count=len(orders))
 
     except Exception as e:
         logger.error("subscriptions_view_error", user_id=user_id, error=str(e))

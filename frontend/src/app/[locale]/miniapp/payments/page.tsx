@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { paymentsApi } from '@/lib/api';
+import { commerceApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import {
   Receipt,
@@ -14,9 +14,6 @@ import {
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 
-type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-type PaymentProvider = 'cryptobot' | 'yookassa' | 'stripe' | 'wallet';
-
 /**
  * Mini App Payment History page
  * Full payment history with status badges and filtering
@@ -25,16 +22,15 @@ export default function MiniAppPaymentsPage() {
   const t = useTranslations('MiniApp.payments');
   const { colorScheme } = useTelegramWebApp();
 
-  // Fetch payment history
-  const { data: paymentHistory, isLoading } = useQuery({
-    queryKey: ['payment-history'],
+  const { data: orderHistory, isLoading } = useQuery({
+    queryKey: ['miniapp-order-history'],
     queryFn: async () => {
-      const { data } = await paymentsApi.getHistory();
+      const { data } = await commerceApi.listOrders({ limit: 50, offset: 0 });
       return data;
     },
   });
 
-  const payments = paymentHistory?.payments || [];
+  const orders = orderHistory || [];
 
   // Theme colors
   const isDark = colorScheme === 'dark';
@@ -61,9 +57,9 @@ export default function MiniAppPaymentsPage() {
           <Receipt className="h-6 w-6 text-neon-cyan" />
           <h1 className="text-xl font-display">{t('title')}</h1>
         </div>
-        {payments.length > 0 && (
+        {orders.length > 0 && (
           <span className="text-sm text-muted-foreground font-mono">
-            {payments.length} {t('total')}
+            {orders.length} {t('total')}
           </span>
         )}
       </motion.div>
@@ -73,7 +69,7 @@ export default function MiniAppPaymentsPage() {
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-neon-cyan" />
         </div>
-      ) : payments.length === 0 ? (
+      ) : orders.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -84,10 +80,10 @@ export default function MiniAppPaymentsPage() {
         </motion.div>
       ) : (
         <div className="space-y-2">
-          {payments.map((payment, index) => (
+          {orders.map((order, index) => (
             <PaymentCard
-              key={payment.id}
-              payment={payment}
+              key={order.id}
+              order={order}
               index={index}
               colorScheme={colorScheme}
               formatCurrency={formatCurrency}
@@ -102,19 +98,20 @@ export default function MiniAppPaymentsPage() {
 
 // Payment Card Component
 function PaymentCard({
-  payment,
+  order,
   index,
   colorScheme,
   formatCurrency,
   t,
 }: {
-  payment: {
+  order: {
     id: string;
-    amount: number;
-    currency: string;
-    status: PaymentStatus;
-    provider: PaymentProvider;
+    displayed_price: number;
+    currency_code: string;
+    order_status: string;
+    settlement_status: string;
     created_at: string;
+    items?: Array<{ display_name?: string | null }>;
   };
   index: number;
   colorScheme: 'light' | 'dark';
@@ -134,21 +131,25 @@ function PaymentCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          {/* Amount */}
-          <div className="text-lg font-display text-neon-cyan mb-1">
-            {formatCurrency(payment.amount, payment.currency)}
+          <div className="text-sm font-mono text-muted-foreground mb-1">
+            {order.items?.[0]?.display_name || order.id}
           </div>
 
-          {/* Provider & Date */}
+          {/* Amount */}
+          <div className="text-lg font-display text-neon-cyan mb-1">
+            {formatCurrency(order.displayed_price, order.currency_code)}
+          </div>
+
+          {/* Status & Date */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono mb-2">
-            <span className="capitalize">{payment.provider}</span>
+            <span className="capitalize">{order.order_status}</span>
             <span>•</span>
-            <span>{new Date(payment.created_at).toLocaleDateString()}</span>
-            <span>{new Date(payment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{new Date(order.created_at).toLocaleDateString()}</span>
+            <span>{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
 
           {/* Status Badge */}
-          <StatusBadge status={payment.status} t={t} />
+          <StatusBadge status={order.settlement_status || order.order_status} t={t} />
         </div>
       </div>
     </motion.div>
@@ -156,20 +157,23 @@ function PaymentCard({
 }
 
 // Status Badge Component
-function StatusBadge({ status, t }: { status: PaymentStatus; t: (key: string) => string }) {
-  const config = {
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
+  const normalizedStatus = status === 'paid' ? 'completed' : status;
+  const config: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
     pending: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
+    awaiting_payment: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
     completed: { icon: CheckCircle2, color: 'text-neon-cyan', bg: 'bg-neon-cyan/10' },
+    committed: { icon: CheckCircle2, color: 'text-neon-cyan', bg: 'bg-neon-cyan/10' },
     failed: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
     refunded: { icon: RefreshCw, color: 'text-neon-purple', bg: 'bg-neon-purple/10' },
   };
 
-  const { icon: Icon, color, bg } = config[status] || config.pending;
+  const { icon: Icon, color, bg } = config[normalizedStatus] || config.pending;
 
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded ${bg} ${color} text-xs font-mono`}>
       <Icon className="h-3 w-3" />
-      {t(`status_${status}`)}
+      {t(`status_${normalizedStatus}`)}
     </span>
   );
 }

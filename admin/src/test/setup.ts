@@ -132,9 +132,11 @@ const sessionStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'sessionStorage', {
-  value: sessionStorageMock,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'sessionStorage', {
+    value: sessionStorageMock,
+  });
+}
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -157,9 +159,11 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+  });
+}
 
 // Mock window.location
 const locationMock = {
@@ -173,7 +177,9 @@ const locationMock = {
   reload: vi.fn(),
 };
 
-Object.defineProperty(window, 'location', {
-  value: locationMock,
-  writable: true,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'location', {
+    value: locationMock,
+    writable: true,
+  });
+}

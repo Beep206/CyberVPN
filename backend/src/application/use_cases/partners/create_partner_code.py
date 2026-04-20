@@ -31,6 +31,7 @@ class CreatePartnerCodeUseCase:
         partner_user_id: UUID,
         code: str,
         markup_pct: float = 0,
+        partner_account_id: UUID | None = None,
     ) -> PartnerCodeModel:
         """Create a partner code for *partner_user_id*.
 
@@ -55,6 +56,7 @@ class CreatePartnerCodeUseCase:
             code = secrets.token_urlsafe(6)[:8].upper()
 
         model = PartnerCodeModel(
+            partner_account_id=partner_account_id,
             partner_user_id=partner_user_id,
             code=code,
             markup_pct=markup_pct,

@@ -1,4 +1,4 @@
-import { PartnersConsole } from '@/features/growth/components/partners-console';
+import { PartnerOperationsConsole } from '@/features/growth/components/partner-operations-console';
 import { getGrowthPageMetadata } from '@/features/growth/lib/page-metadata';
 
 export async function generateMetadata({
@@ -11,5 +11,5 @@ export async function generateMetadata({
 }
 
 export default function GrowthPartnersPage() {
-  return <PartnersConsole />;
+  return <PartnerOperationsConsole />;
 }

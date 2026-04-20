@@ -1,20 +1,34 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Suspense, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Activity, Shield, Settings, Route, Rss, Split, WifiHigh, Brain, Terminal, Smartphone } from "lucide-react";
+import {
+  Activity,
+  Shield,
+  Settings,
+  Route,
+  Rss,
+  Split,
+  WifiHigh,
+  Brain,
+  Terminal,
+  Smartphone,
+  Bug,
+} from "lucide-react";
 import { Toaster } from "../components/ui/sonner";
 import { toast } from "sonner";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
 import { listen } from "@tauri-apps/api/event";
 import { applyRoutingFix } from "../shared/api/ipc";
 import { Titlebar } from "./Titlebar";
+import { PageSkeleton } from "./PageSkeleton";
+import { RouteTransition } from "./RouteTransition";
 import { useTranslation } from "react-i18next";
+import { desktopMotionEase, useDesktopMotionBudget } from "../shared/lib/motion";
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations } = useDesktopMotionBudget();
 
   useEffect(() => {
     if (!localStorage.getItem("onboarding_complete")) {
@@ -23,30 +37,6 @@ export function Layout() {
   }, [navigate]);
 
   useEffect(() => {
-    async function checkForUpdates() {
-      try {
-        const update = await check();
-        if (update) {
-          toast.info(t('layout.updateAvailable', { version: update.version }), {
-            description: t('layout.updateDesc'),
-            action: {
-              label: t('layout.updateAction'),
-              onClick: async () => {
-                toast.loading(t('layout.updateLoading'));
-                await update.downloadAndInstall();
-                await relaunch();
-              }
-            },
-            duration: Number.POSITIVE_INFINITY,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to check for updates:", err);
-      }
-    }
-
-    const timer = setTimeout(checkForUpdates, 3000);
-
     // AI Routing Assistant Listener
     const unlistenRouting = listen<{ domain: string, reason: string }>("routing-suggestion", (event) => {
       toast(t('layout.trafficBlockDetected'), {
@@ -73,7 +63,6 @@ export function Layout() {
     });
 
     return () => {
-       clearTimeout(timer);
        unlistenRouting.then(f => f());
     };
   }, []);
@@ -91,62 +80,124 @@ export function Layout() {
     { path: "/hotspot", label: t('sidebar.hotspot'), icon: WifiHigh },
     { path: "/split-tunneling", label: t('sidebar.splitTunneling'), icon: Split },
     { path: "/subscriptions", label: t('sidebar.subscriptions'), icon: Rss },
+    { path: "/logs", label: t('sidebar.logs'), icon: Bug },
     { path: "/account", label: t('sidebar.account'), icon: Shield },
     { path: "/settings", label: t('sidebar.settings'), icon: Settings },
   ];
+
+  const getActiveChrome = (path: string) =>
+    path === "/stealth-lab"
+      ? {
+          shell:
+            "border-[color:color-mix(in_oklab,var(--color-neon-pink)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-pink)_10%,white)] shadow-[0_12px_28px_rgba(159,99,125,0.12)] dark:border-[color:color-mix(in_oklab,var(--color-neon-pink)_34%,var(--border))] dark:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_18%,black)] dark:shadow-[0_16px_34px_rgba(255,104,220,0.14)]",
+          text: "text-[var(--color-neon-pink)]",
+          rail: "bg-[linear-gradient(180deg,var(--color-neon-pink),color-mix(in_oklab,var(--color-neon-pink)_18%,transparent))]",
+          icon: "border-[color:color-mix(in_oklab,var(--color-neon-pink)_24%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-pink)_12%,white)] text-[var(--color-neon-pink)] shadow-[0_10px_20px_rgba(159,99,125,0.12)] dark:border-[color:color-mix(in_oklab,var(--color-neon-pink)_38%,var(--border))] dark:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_16%,black)] dark:shadow-[0_10px_24px_rgba(255,104,220,0.18)]",
+        }
+      : {
+          shell:
+            "border-[color:color-mix(in_oklab,var(--color-matrix-green)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_9%,white)] shadow-[0_12px_28px_rgba(29,111,99,0.10)] dark:border-[color:color-mix(in_oklab,var(--color-matrix-green)_34%,var(--border))] dark:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_18%,black)] dark:shadow-[0_16px_34px_rgba(56,240,160,0.13)]",
+          text: "text-[var(--color-matrix-green)]",
+          rail: "bg-[linear-gradient(180deg,var(--color-matrix-green),color-mix(in_oklab,var(--color-neon-cyan)_28%,transparent))]",
+          icon: "border-[color:color-mix(in_oklab,var(--color-matrix-green)_24%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_10%,white)] text-[var(--color-matrix-green)] shadow-[0_10px_20px_rgba(29,111,99,0.10)] dark:border-[color:color-mix(in_oklab,var(--color-matrix-green)_40%,var(--border))] dark:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_16%,black)] dark:shadow-[0_10px_24px_rgba(56,240,160,0.18)]",
+        };
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans pt-10">
       <Titlebar />
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border/40 bg-card/30 backdrop-blur flex flex-col items-center py-8 z-10">
-        <div className="mb-12 font-bold text-2xl tracking-widest text-[var(--color-matrix-green)] drop-shadow-[0_0_10px_rgba(0,255,136,0.8)] flex items-center gap-3">
-           <Shield size={28} />
+      <aside className="sidebar-shell relative z-10 flex w-72 shrink-0 flex-col items-center overflow-hidden border-r border-border/60 bg-[color:var(--chrome-elevated)]/88 py-8 shadow-[var(--chrome-shadow)] backdrop-blur-2xl">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="sidebar-ambient-orb sidebar-ambient-orb--top" />
+          <div className="sidebar-ambient-orb sidebar-ambient-orb--bottom" />
+          <div className="sidebar-grid-layer" />
+          <div className="sidebar-scanline-layer" />
+        </div>
+
+        <div className="relative z-10 mb-12 flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--color-matrix-green)_18%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_8%,white)] px-5 py-3 font-bold text-xl tracking-[0.22em] text-[var(--color-matrix-green)] shadow-[var(--panel-shadow)] dark:border-[color:color-mix(in_oklab,var(--color-matrix-green)_34%,var(--border))] dark:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_14%,black)] dark:shadow-[0_16px_34px_rgba(56,240,160,0.12)]">
+           <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-matrix-green)] shadow-[0_0_12px_var(--color-matrix-green)]" />
+           <Shield size={22} />
            CYBERVPN
         </div>
 
-        <nav className="w-full flex-1 px-4 space-y-2">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            
+        <nav className="relative z-10 w-full flex-1 space-y-2.5 px-4">
+          {navItems.map((item, index) => {
+            const activeChrome = getActiveChrome(item.path);
+
             return (
-              <Link 
-                to={item.path} 
+              <NavLink
+                to={item.path}
                 key={item.path}
-                className="relative flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors"
-                style={{
-                  color: isActive ? (item.path === '/stealth-lab' ? "#ff00ff" : "var(--color-matrix-green)") : "var(--muted-foreground)"
-                }}
+                end={item.path === "/"}
+                className={({ isActive }) =>
+                  `cyber-nav-item group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-sm font-medium transition-[transform,color,border-color,box-shadow] duration-200 hover:-translate-y-px hover:border-border/75 hover:bg-[color:var(--panel-subtle)]/72 hover:text-foreground hover:shadow-[0_16px_28px_rgba(15,23,42,0.10)] ${
+                    isActive
+                      ? `border-transparent ${activeChrome.text}`
+                      : "border-transparent text-muted-foreground"
+                  }`
+                }
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-nav"
-                    className={`absolute inset-0 border-l-2 rounded-r-md ${item.path === '/stealth-lab' ? 'bg-[#ff00ff]/10 border-[#ff00ff]' : 'bg-[var(--color-matrix-green)]/10 border-[var(--color-matrix-green)]'}`}
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <>
+                        <motion.span
+                          layoutId="sidebar-active-shell"
+                          transition={{ duration: durations.accent, ease: desktopMotionEase }}
+                          className={`pointer-events-none absolute inset-0 rounded-2xl ${activeChrome.shell}`}
+                        />
+                        <motion.span
+                          layoutId="sidebar-active-rail"
+                          transition={{ duration: prefersReducedMotion ? 0.01 : durations.accent + 0.03, ease: desktopMotionEase }}
+                          className={`pointer-events-none absolute inset-y-2 left-2 w-1 rounded-full ${activeChrome.rail}`}
+                        />
+                      </>
+                    )}
+
+                    <span
+                      className={`relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-2xl border transition-all duration-200 ${
+                        isActive
+                          ? activeChrome.icon
+                          : "border-border/55 bg-[color:var(--panel-surface)]/72 text-muted-foreground group-hover:border-border/80 group-hover:bg-[color:var(--field-surface-hover)] group-hover:text-foreground"
+                      }`}
+                    >
+                      <item.icon size={17} className="drop-shadow-sm transition-transform duration-200 group-hover:translate-x-[1px] group-hover:-translate-y-[1px]" />
+                    </span>
+
+                    <span className="relative z-10 flex min-w-0 flex-1 items-center justify-between gap-3">
+                      <span className="cyber-glitch-label truncate tracking-[0.04em]" data-text={item.label}>
+                        {item.label}
+                      </span>
+                      <span
+                        className={`text-[10px] font-mono uppercase tracking-[0.24em] transition-opacity duration-200 ${
+                          isActive ? "opacity-55" : "opacity-0 group-hover:opacity-35"
+                        }`}
+                      >
+                        {(index + 1).toString().padStart(2, "0")}
+                      </span>
+                    </span>
+                  </>
                 )}
-                <span className="relative z-10 flex items-center gap-3">
-                    <item.icon size={18} className="drop-shadow-sm" />
-                    <span className="tracking-wide">{item.label}</span>
-                </span>
-              </Link>
+              </NavLink>
             );
           })}
         </nav>
         
-        <div className="mt-auto px-4 py-4 w-full text-xs text-muted-foreground/60 text-center font-mono">
+        <div className="relative z-10 mt-auto w-full px-4 py-4 text-center font-mono text-xs text-muted-foreground/60">
             {t('layout.versionSlogan')}
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-y-auto">
-        <div className="absolute inset-0 max-w-5xl mx-auto p-8">
-            <Outlet />
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto min-h-full max-w-5xl p-8">
+          <Suspense fallback={<PageSkeleton />}>
+            <RouteTransition routeKey={location.pathname}>
+              <Outlet />
+            </RouteTransition>
+          </Suspense>
         </div>
       </main>
-      <Toaster theme="dark" position="bottom-right" />
+      <Toaster position="bottom-right" />
     </div>
   );
 }

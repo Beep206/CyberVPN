@@ -10,7 +10,7 @@ process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
 // ---------------------------------------------------------------------------
 
 // Start the MSW server before all tests in a file.
-// onUnhandledRequest: 'bypass' lets real network requests (e.g. jsdom scripts)
+// onUnhandledRequest: 'bypass' lets real network requests initiated by the DOM test runtime
 // pass through without failing, while still intercepting API calls that match
 // the registered handlers.
 beforeAll(() => {
@@ -132,9 +132,11 @@ const sessionStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'sessionStorage', {
-  value: sessionStorageMock,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'sessionStorage', {
+    value: sessionStorageMock,
+  });
+}
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -157,9 +159,11 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+  });
+}
 
 // Mock window.location
 const locationMock = {
@@ -173,7 +177,9 @@ const locationMock = {
   reload: vi.fn(),
 };
 
-Object.defineProperty(window, 'location', {
-  value: locationMock,
-  writable: true,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'location', {
+    value: locationMock,
+    writable: true,
+  });
+}

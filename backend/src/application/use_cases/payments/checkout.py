@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.attribution.qualifying_events.evaluate_order_policy import _evaluate_stacking
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
@@ -84,6 +85,7 @@ class CheckoutUseCase:
         plan_id: UUID,
         *,
         promo_code: str | None = None,
+        partner_code: str | None = None,
         use_wallet: Decimal = Decimal("0"),
         addons: list[CheckoutAddonInput] | None = None,
         sale_channel: str = "web",
@@ -98,12 +100,27 @@ class CheckoutUseCase:
         partner_code_id = None
 
         user = await self._session.get(MobileUserModel, user_id)
-        if user and user.partner_user_id:
+        normalized_partner_code = partner_code.strip() if partner_code else None
+        if normalized_partner_code:
+            explicit_code = await self._partner_repo.get_active_code_by_code(normalized_partner_code)
+            if explicit_code is None:
+                raise ValueError("Partner code not found or inactive")
+            partner_markup = base_price * (Decimal(str(explicit_code.markup_pct)) / Decimal("100"))
+            partner_code_id = explicit_code.id
+        elif user and user.partner_user_id:
             codes = await self._partner_repo.get_codes_by_partner(user.partner_user_id)
             active_code = next((code for code in codes if code.is_active), None)
             if active_code:
                 partner_markup = base_price * (Decimal(str(active_code.markup_pct)) / Decimal("100"))
                 partner_code_id = active_code.id
+
+        stacking = _evaluate_stacking(
+            promo_present=bool(promo_code and promo_code.strip()),
+            partner_code_present=partner_code_id is not None,
+            wallet_present=use_wallet > 0,
+        )
+        if not stacking.stacking_valid:
+            raise ValueError("Promo codes cannot be combined with partner codes")
 
         displayed_price = base_price + addon_amount + partner_markup
 

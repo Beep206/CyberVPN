@@ -1,0 +1,198 @@
+'use client';
+
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { lockDocumentScroll } from '@/shared/lib/scroll-lock';
+
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Stable noop for useSyncExternalStore subscribe — client mount detection */
+const SUBSCRIBE_NOOP = () => () => {};
+
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    children: React.ReactNode;
+    title?: string;
+}
+
+export function Modal({ isOpen, onClose, children, title }: ModalProps) {
+    const t = useTranslations('A11y');
+    // Ref for the scrollable content container
+    const contentRef = useRef<HTMLDivElement>(null);
+    // Ref for the modal dialog container (used for focus trap)
+    const dialogRef = useRef<HTMLDivElement>(null);
+    // Ref to store the element that had focus before modal opened
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
+    // Capture the previously focused element when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            previousFocusRef.current = document.activeElement as HTMLElement;
+        }
+    }, [isOpen]);
+
+    // Focus the first focusable element (close button) when modal opens
+    useEffect(() => {
+        if (!isOpen || !dialogRef.current) return;
+
+        // Small delay to let animation start and DOM settle
+        const timerId = setTimeout(() => {
+            const closeBtn = dialogRef.current?.querySelector<HTMLElement>('[data-modal-close]');
+            closeBtn?.focus();
+        }, 50);
+
+        return () => clearTimeout(timerId);
+    }, [isOpen]);
+
+    // Return focus to the trigger element when modal closes
+    useEffect(() => {
+        if (!isOpen && previousFocusRef.current) {
+            previousFocusRef.current.focus();
+            previousFocusRef.current = null;
+        }
+    }, [isOpen]);
+
+    // Global scroll capture
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            // If the scroll target is NOT inside the content container (e.g., backdrop or header),
+            // manually scroll the content container.
+            if (contentRef.current && !contentRef.current.contains(e.target as Node)) {
+                contentRef.current.scrollTop += e.deltaY;
+            }
+        };
+
+        window.addEventListener('wheel', handleWheel);
+        return () => window.removeEventListener('wheel', handleWheel);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        return lockDocumentScroll();
+    }, [isOpen]);
+
+    // Handle Escape key and focus trap
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+                return;
+            }
+
+            // Focus trap: keep Tab cycling within the modal
+            if (e.key === 'Tab' && dialogRef.current) {
+                const focusable = dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+                if (focusable.length === 0) return;
+
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
+    // SSR Safe: useSyncExternalStore is the React-recommended pattern
+    // for subscribing to an external "is client mounted" signal
+    const mounted = React.useSyncExternalStore(
+        SUBSCRIBE_NOOP,
+        () => true,   // client snapshot
+        () => false   // server snapshot
+    );
+
+    if (!mounted) return null;
+
+    const modalTitleId = 'modal-title';
+
+    return createPortal(
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
+                        aria-hidden="true"
+                    />
+
+                    {/* Modal Container */}
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[calc(var(--safe-area-top)+1rem)] pr-[calc(var(--mobile-page-gutter)+var(--safe-area-right))] pb-[calc(var(--safe-area-bottom)+1rem)] pl-[calc(var(--mobile-page-gutter)+var(--safe-area-left))] pointer-events-none">
+                        <motion.div
+                            ref={dialogRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby={modalTitleId}
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+                            className="safe-area-dialog pointer-events-auto relative flex max-h-[calc(100dvh-var(--safe-area-top)-var(--safe-area-bottom)-1rem)] w-full max-w-2xl flex-col"
+                            data-lenis-prevent
+                        >
+                            {/* Cyberpunk Border Container */}
+                            <div className="relative w-full h-full bg-terminal-bg border border-neon-cyan/50 shadow-[0_0_30px_rgba(0,255,255,0.15)] rounded-lg overflow-hidden flex flex-col">
+
+                                {/* Header */}
+                                <div className="flex items-center justify-between p-4 border-b border-grid-line/30 bg-terminal-surface/50">
+                                    <h2
+                                        id={modalTitleId}
+                                        className="text-xl font-display text-neon-cyan tracking-wider flex items-center gap-2"
+                                    >
+                                        <span className="text-neon-pink" aria-hidden="true">&#9658;</span>
+                                        {title || 'SYSTEM_MODAL'}
+                                    </h2>
+                                    <button
+                                        data-modal-close
+                                        onClick={onClose}
+                                        aria-label={t('closeModal')}
+                                        className="touch-target inline-flex items-center justify-center rounded-sm p-2 text-grid-line transition-colors duration-200 hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+
+                                {/* Content */}
+                                <div
+                                    ref={contentRef}
+                                    className="safe-area-scroll-panel keyboard-safe-bottom flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-neon-cyan scrollbar-track-transparent sm:p-6"
+                                >
+                                    {children}
+                                </div>
+
+                                {/* Decor Elements */}
+                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neon-cyan" aria-hidden="true" />
+                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neon-cyan" aria-hidden="true" />
+                                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neon-cyan" aria-hidden="true" />
+                                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neon-cyan" aria-hidden="true" />
+                            </div>
+                        </motion.div>
+                    </div>
+                </>
+            )}
+        </AnimatePresence>,
+        document.body
+    );
+}

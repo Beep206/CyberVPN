@@ -4,9 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Integer, Numeric, String, func
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy import JSON, DateTime, Integer, Numeric, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -22,11 +20,11 @@ class PaymentModel(Base):
 
     __tablename__ = "payments"
 
-    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
 
     external_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
-    user_uuid: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False, index=True)
+    user_uuid: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, index=True)
 
     amount: Mapped[float] = mapped_column(Numeric(20, 8), nullable=False)
 
@@ -39,11 +37,11 @@ class PaymentModel(Base):
     subscription_days: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Codes & wallet integration
-    plan_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    plan_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
-    promo_code_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    promo_code_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
-    partner_code_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    partner_code_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
     discount_amount: Mapped[float] = mapped_column(Numeric(20, 8), nullable=False, server_default="0")
 
@@ -51,11 +49,11 @@ class PaymentModel(Base):
 
     final_amount: Mapped[float | None] = mapped_column(Numeric(20, 8), nullable=True)
 
-    addons_snapshot: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
+    addons_snapshot: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
 
-    entitlements_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    entitlements_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
-    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, nullable=True)
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

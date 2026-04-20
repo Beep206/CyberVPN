@@ -2,12 +2,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { enableKillswitchCmd, disableKillswitchCmd, repairNetwork, auditQuantumReadiness, AuditResult } from "../../shared/api/ipc";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { toast } from "sonner";
 import { Shield, ShieldAlert, ShieldCheck, Wrench, Activity, Fingerprint, Search, Server } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function SecurityPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets, scales } = useDesktopMotionBudget();
   const [isKillSwitchActive, setIsKillSwitchActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRepairing, setIsRepairing] = useState(false);
@@ -102,20 +104,20 @@ export function SecurityPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="max-w-4xl mx-auto space-y-8 relative overflow-hidden"
     >
       {/* Background Animated Shield Overlay */}
       <AnimatePresence>
         {isKillSwitchActive && (
            <motion.div
-             initial={{ opacity: 0, scale: 0.5 }}
-             animate={{ opacity: 0.05, scale: 2 }}
-             exit={{ opacity: 0, scale: 0.5 }}
-             transition={{ duration: 1.5, ease: "easeInOut" }}
+             initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.8 }}
+             animate={{ opacity: 0.05, scale: prefersReducedMotion ? 1.05 : 1.7 }}
+             exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.8 }}
+             transition={{ duration: prefersReducedMotion ? durations.micro : 0.9, ease: desktopMotionEase }}
              className="absolute md:-top-[20%] md:-right-[20%] w-[800px] h-[800px] bg-[var(--color-matrix-green)] rounded-full blur-[120px] pointer-events-none -z-10"
            />
         )}
@@ -138,8 +140,8 @@ export function SecurityPage() {
            <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-border/50 bg-black/40 min-h-[300px] relative overflow-hidden group">
              
              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: scales.hover }}
+                whileTap={{ scale: scales.tap }}
                 onClick={handleToggleKillSwitch}
                 disabled={isProcessing}
                 className={`w-40 h-40 rounded-full flex flex-col items-center justify-center border-4 transition-all duration-500 z-10 ${

@@ -56,15 +56,19 @@ pub fn update_absolute_bytes(up: u64, down: u64) {
     }
 }
 
-pub fn get_stats_path(app: &AppHandle) -> PathBuf {
+pub fn get_stats_path(app: &AppHandle) -> Result<PathBuf, AppError> {
     app.path()
         .app_data_dir()
-        .unwrap()
-        .join("usage_history.json")
+        .map(|dir| dir.join("usage_history.json"))
+        .map_err(|error| {
+            AppError::System(format!(
+                "Failed to resolve usage history path in app data directory: {error}"
+            ))
+        })
 }
 
 pub fn load_history(app: &AppHandle) -> Result<Vec<UsageRecord>, AppError> {
-    let path = get_stats_path(app);
+    let path = get_stats_path(app)?;
     if !path.exists() {
         return Ok(Vec::new());
     }
@@ -83,7 +87,9 @@ pub fn load_history(app: &AppHandle) -> Result<Vec<UsageRecord>, AppError> {
 
 pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
     let (delta_up, delta_down, protocol, country_code) = {
-        let mut session_opt = ACTIVE_SESSION.lock().unwrap();
+        let mut session_opt = ACTIVE_SESSION.lock().map_err(|_| {
+            AppError::System("Usage session mutex poisoned during flush".to_string())
+        })?;
         if let Some(session) = session_opt.as_mut() {
             let add_up = session.session_up.saturating_sub(session.last_synced_up);
             let add_down = session
@@ -109,7 +115,20 @@ pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
     };
 
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let mut history = load_history(app).unwrap_or_default();
+    let mut history = match load_history(app) {
+        Ok(history) => history,
+        Err(AppError::UsageCorrupted(error)) => {
+            let _ = crate::engine::diagnostics::record_event(
+                app,
+                crate::engine::diagnostics::DiagnosticLevel::Warn,
+                "stats.usage-history",
+                "Usage history was corrupted and has been rotated",
+                serde_json::json!({ "error": error }),
+            );
+            Vec::new()
+        }
+        Err(error) => return Err(error),
+    };
 
     // Look for an existing record for today, protocol, and country
     let mut found = false;
@@ -136,7 +155,11 @@ pub fn flush_session(app: &AppHandle) -> Result<(), AppError> {
     }
 
     let json = serde_json::to_string_pretty(&history)?;
-    fs::write(get_stats_path(app), json)?;
+    let stats_path = get_stats_path(app)?;
+    if let Some(parent) = stats_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(stats_path, json)?;
 
     Ok(())
 }

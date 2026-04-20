@@ -4,6 +4,7 @@
   },
   "nav": {
     "overview": "Overview",
+    "reviewQueue": "Review queue",
     "sessions": "Sessions",
     "twoFactor": "2FA",
     "antiPhishing": "Anti-phishing",
@@ -62,6 +63,7 @@
     "routesTitle": "Security Routes",
     "routesDescription": "Jump directly into the exact trust control you need without leaving the admin shell.",
     "routes": {
+      "reviewQueue": "Work risk review queues, evidence attachments, and governance actions from one internal workflow rail.",
       "sessions": "Review all active sessions and revoke stale or suspicious devices.",
       "twoFactor": "Provision TOTP, validate setup, or disable 2FA with re-auth.",
       "antiPhishing": "Manage the verification code shown in outbound emails.",
@@ -110,6 +112,96 @@
       "strongHint": "strong trust posture",
       "moderateHint": "moderate trust posture",
       "weakHint": "weak trust posture"
+    }
+  },
+  "reviewQueue": {
+    "metaTitle": "Review queue - Ozoxy Admin",
+    "eyebrow": "RISK WORKFLOW",
+    "title": "Review Queue",
+    "description": "Process canonical risk reviews, attach evidence, record governance actions, and resolve decisions from one internal queue.",
+    "metrics": {
+      "openReviews": "Queue",
+      "openReviewsHint": "active review items",
+      "blocking": "Blocking",
+      "blockingHint": "hold or block decisions",
+      "attachments": "Evidence",
+      "attachmentsHint": "linked review artifacts",
+      "governanceActions": "Actions",
+      "governanceActionsHint": "governance records linked to queue"
+    },
+    "queue": {
+      "title": "Queue Inventory",
+      "description": "Every row is a canonical risk review record surfaced from the backend queue.",
+      "loadError": "Could not load the risk review queue.",
+      "empty": "No review items are currently waiting in the queue.",
+      "reviewRef": "Review #{reviewId} / Subject #{subjectId}",
+      "subject": "Principal subject",
+      "updatedAt": "Updated",
+      "attachments": "{count} attachments",
+      "governanceActions": "{count} governance actions"
+    },
+    "detail": {
+      "title": "Review Detail",
+      "description": "Inspect the selected review, subject posture, attached evidence, and linked governance actions.",
+      "loadError": "Could not load the selected review.",
+      "empty": "Select a review from the queue to inspect it.",
+      "review": "Review",
+      "subject": "Subject",
+      "updatedAt": "Updated",
+      "attachmentsTitle": "Attachments",
+      "governanceTitle": "Governance actions",
+      "noAttachments": "No attachments linked to this review yet.",
+      "noGovernanceActions": "No governance actions linked to this review yet."
+    },
+    "attachments": {
+      "title": "Attach Evidence",
+      "description": "Link a storage-backed artifact to the currently selected review without leaving the queue workflow.",
+      "submit": "Attach evidence",
+      "fields": {
+        "type": "Attachment type",
+        "storageKey": "Storage key",
+        "storageKeyPlaceholder": "risk/reviews/evidence/file.pdf",
+        "fileName": "File name",
+        "fileNamePlaceholder": "evidence-file.pdf",
+        "metadata": "Metadata JSON"
+      }
+    },
+    "governance": {
+      "title": "Governance Action",
+      "description": "Record the operational action that accompanies the selected review and keep the audit trail canonical.",
+      "submit": "Record action",
+      "fields": {
+        "actionType": "Action type",
+        "reason": "Reason",
+        "reasonPlaceholder": "Describe why this governance action is required.",
+        "targetType": "Target type",
+        "targetTypePlaceholder": "partner_payout_account",
+        "targetRef": "Target reference",
+        "targetRefPlaceholder": "ppa_demo_001",
+        "payload": "Payload JSON",
+        "applyNow": "Apply immediately"
+      }
+    },
+    "resolve": {
+      "title": "Resolve Review",
+      "description": "Finalize the selected review with a recorded decision and resolution evidence.",
+      "submit": "Resolve review",
+      "fields": {
+        "decision": "Decision",
+        "status": "Resolution status",
+        "reason": "Resolution reason",
+        "reasonPlaceholder": "Summarize the final operator decision.",
+        "evidence": "Resolution evidence JSON"
+      }
+    },
+    "feedback": {
+      "selectReview": "Select a review from the queue first.",
+      "invalidAttachmentMetadata": "Attachment metadata must be a valid JSON object.",
+      "invalidGovernancePayload": "Governance payload must be a valid JSON object.",
+      "invalidResolutionEvidence": "Resolution evidence must be a valid JSON object.",
+      "attachmentCreated": "Review evidence attached.",
+      "governanceActionCreated": "Governance action recorded.",
+      "reviewResolved": "Review resolved successfully."
     }
   },
   "sessions": {

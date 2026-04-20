@@ -1,13 +1,17 @@
 """RefreshToken ORM model for JWT refresh token management."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
+
+if TYPE_CHECKING:
+    from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 
 
 class RefreshToken(Base):
@@ -40,6 +44,12 @@ class RefreshToken(Base):
     user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
     last_used_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    principal_session: Mapped["PrincipalSessionModel | None"] = relationship(
+        "PrincipalSessionModel",
+        back_populates="refresh_token",
+        uselist=False,
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

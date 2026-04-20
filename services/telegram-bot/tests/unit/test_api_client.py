@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
@@ -9,7 +10,6 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 import respx
-from respx import MockRouter
 
 from src.services.api_client import (
     APIError,
@@ -153,6 +153,54 @@ class TestAPIClientGetUser:
 
         await client.close()
 
+
+@pytest.mark.asyncio
+class TestTelegramChannelParityReads:
+    async def test_get_user_orders_success(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        orders = [
+            {
+                "id": "order-1",
+                "sale_channel": "telegram_bot",
+                "settlement_status": "paid",
+                "items": [{"display_name": "Pro Plan"}],
+            }
+        ]
+
+        with respx.mock:
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123456/orders").mock(
+                return_value=httpx.Response(200, json=orders)
+            )
+
+            result = await client.get_user_orders(123456, limit=10, offset=5)
+
+            assert result == orders
+            assert route.called
+            assert route.calls[0].request.url.params["limit"] == "10"
+            assert route.calls[0].request.url.params["offset"] == "5"
+
+        await client.close()
+
+    async def test_get_current_service_state_success(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        service_state = {
+            "provider_name": "remnawave",
+            "entitlement_snapshot": {"status": "active"},
+            "consumption_context": {"channel_type": "telegram_bot"},
+        }
+
+        with respx.mock:
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123456/service-state").mock(
+                return_value=httpx.Response(200, json=service_state)
+            )
+
+            result = await client.get_current_service_state(123456)
+
+            assert result == service_state
+            assert route.called
+
+        await client.close()
+
     async def test_get_user_not_found(self, mock_settings: BotSettings) -> None:
         """Test user not found raises NotFoundError."""
         client = CyberVPNAPIClient(settings=mock_settings.backend)
@@ -199,10 +247,7 @@ class TestAPIClientRegisterUser:
             assert result == expected_response
             assert route.called
 
-            # Verify request payload
-            request = route.calls[0].request
-            payload = httpx.QueryParams(request.content.decode())
-            # Note: respx serializes differently, check json separately
+            # Note: respx serializes differently, payload coverage is handled by the route match above.
 
         await client.close()
 
@@ -474,8 +519,6 @@ class TestCircuitBreakerIntegration:
         Note: With failure_threshold=2 and tenacity retries, the circuit opens
         during the first get_user() call after 2 retry attempts.
         """
-        import time
-
         client = CyberVPNAPIClient(settings=mock_settings.backend)
         client._circuit = CircuitBreaker(failure_threshold=2, recovery_timeout=0.1)
 
@@ -490,7 +533,7 @@ class TestCircuitBreakerIntegration:
             assert client._circuit.state == CircuitState.OPEN
 
             # Wait for recovery timeout
-            time.sleep(0.15)
+            await asyncio.sleep(0.15)
 
             # Should transition to half-open
             assert client._circuit.state == CircuitState.HALF_OPEN
@@ -516,7 +559,7 @@ class TestRetryLogic:
 
         with respx.mock:
             # Simulate connection error
-            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
+            respx.get("https://api.test.cybervpn.local/telegram/bot/user/123").mock(
                 side_effect=httpx.ConnectError("Connection failed")
             )
 

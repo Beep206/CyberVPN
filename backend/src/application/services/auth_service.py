@@ -9,6 +9,7 @@ Security improvements:
 import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import jwt
 from argon2 import PasswordHasher
@@ -46,6 +47,12 @@ class AuthService:
         role: str,
         extra: dict | None = None,
         jti: str | None = None,
+        audience: str | None = None,
+        issuer: str | None = None,
+        principal_type: str | None = None,
+        realm_id: str | None = None,
+        realm_key: str | None = None,
+        scope_family: str | None = None,
     ) -> tuple[str, str, datetime]:
         """Create access token with JTI claim.
 
@@ -71,10 +78,20 @@ class AuthService:
             "jti": jti,  # HIGH-6: JWT ID for revocation
             "type": "access",
         }
-        if self._issuer:
-            payload["iss"] = self._issuer
-        if self._audience:
-            payload["aud"] = self._audience
+        resolved_issuer = issuer if issuer is not None else self._issuer
+        resolved_audience = audience if audience is not None else self._audience
+        if resolved_issuer:
+            payload["iss"] = resolved_issuer
+        if resolved_audience:
+            payload["aud"] = resolved_audience
+        if principal_type:
+            payload["principal_type"] = principal_type
+        if realm_id:
+            payload["realm_id"] = realm_id
+        if realm_key:
+            payload["realm_key"] = realm_key
+        if scope_family:
+            payload["scope_family"] = scope_family
         if extra:
             payload.update(extra)
 
@@ -100,6 +117,12 @@ class AuthService:
         remember_me: bool = False,
         jti: str | None = None,
         fingerprint: str | None = None,
+        audience: str | None = None,
+        issuer: str | None = None,
+        principal_type: str | None = None,
+        realm_id: str | None = None,
+        realm_key: str | None = None,
+        scope_family: str | None = None,
     ) -> tuple[str, str, datetime]:
         """Create refresh token with JTI claim and optional device fingerprint.
 
@@ -130,10 +153,20 @@ class AuthService:
         # MED-002: Add device fingerprint for token binding
         if fingerprint:
             payload["fgp"] = fingerprint
-        if self._issuer:
-            payload["iss"] = self._issuer
-        if self._audience:
-            payload["aud"] = self._audience
+        resolved_issuer = issuer if issuer is not None else self._issuer
+        resolved_audience = audience if audience is not None else self._audience
+        if resolved_issuer:
+            payload["iss"] = resolved_issuer
+        if resolved_audience:
+            payload["aud"] = resolved_audience
+        if principal_type:
+            payload["principal_type"] = principal_type
+        if realm_id:
+            payload["realm_id"] = realm_id
+        if realm_key:
+            payload["realm_key"] = realm_key
+        if scope_family:
+            payload["scope_family"] = scope_family
 
         token = jwt.encode(payload, self._secret, algorithm=self._algorithm)
         return token, jti, expire
@@ -151,24 +184,33 @@ class AuthService:
         token, _, _ = self.create_refresh_token(subject, remember_me, fingerprint=fingerprint)
         return token
 
-    def decode_token(self, token: str) -> dict:
+    def decode_token(
+        self,
+        token: str,
+        *,
+        audience: str | list[str] | None | object = None,
+        issuer: str | None | object = None,
+    ) -> dict:
         """Decode and validate a JWT token.
 
         Note: This does NOT check the revocation list. Use validate_token()
         from the dependency layer for full validation including revocation check.
         """
+        expected_audience: Any = self._audience if audience is None else audience
+        expected_issuer: Any = self._issuer if issuer is None else issuer
+
         options = {"require": ["exp", "sub"]}
-        if not self._audience:
+        if not expected_audience:
             options["verify_aud"] = False
 
         decode_kwargs: dict[str, object] = {
             "algorithms": [self._algorithm],
             "options": options,
         }
-        if self._audience:
-            decode_kwargs["audience"] = self._audience
-        if self._issuer:
-            decode_kwargs["issuer"] = self._issuer
+        if expected_audience:
+            decode_kwargs["audience"] = expected_audience
+        if expected_issuer:
+            decode_kwargs["issuer"] = expected_issuer
 
         return jwt.decode(token, self._secret, **decode_kwargs)
 

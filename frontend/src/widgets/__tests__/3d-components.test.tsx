@@ -1,7 +1,7 @@
 /**
  * Smoke tests for 3D scene components.
  * Verifies modules load and export React components without crashing.
- * Full rendering tests belong in E2E (Playwright) since jsdom has no WebGL.
+ * Full rendering tests belong in E2E (Playwright) since the DOM test runtime has no WebGL.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';

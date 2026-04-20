@@ -5,7 +5,15 @@
  * redirect helper from src/lib/api/client.ts.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tokenStorage, RateLimitError, normalizeApiRequestPath, resolveApiBaseUrl } from '../client';
+import {
+  CANONICAL_API_BASE_PATH,
+  CANONICAL_IDEMPOTENCY_HEADER,
+  CANONICAL_REQUEST_ID_HEADER,
+  tokenStorage,
+  RateLimitError,
+  normalizeApiRequestPath,
+  resolveApiBaseUrl,
+} from '../client';
 
 // ---------------------------------------------------------------------------
 // tokenStorage (SEC-01: now a no-op shim)
@@ -102,7 +110,21 @@ describe('normalizeApiRequestPath', () => {
 
 describe('resolveApiBaseUrl', () => {
   it('uses same-origin api path in the browser', () => {
-    expect(resolveApiBaseUrl()).toBe('/api/v1');
+    expect(resolveApiBaseUrl()).toBe(CANONICAL_API_BASE_PATH);
+  });
+});
+
+describe('canonical API contract constants', () => {
+  it('freezes the browser api base path', () => {
+    expect(CANONICAL_API_BASE_PATH).toBe('/api/v1');
+  });
+
+  it('freezes the request correlation header name', () => {
+    expect(CANONICAL_REQUEST_ID_HEADER).toBe('X-Request-ID');
+  });
+
+  it('freezes the idempotency header name for future write flows', () => {
+    expect(CANONICAL_IDEMPOTENCY_HEADER).toBe('Idempotency-Key');
   });
 });
 

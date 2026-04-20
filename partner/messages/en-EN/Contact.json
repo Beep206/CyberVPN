@@ -1,0 +1,21 @@
+{
+  "title": "SECURE COMMS",
+  "subtitle": "Global encrypted relay",
+  "form": {
+    "name": "Alias / Designation",
+    "email": "Encrypted Reply Address",
+    "department": "Select Sub-net",
+    "department_support": "Technical Operations",
+    "department_sales": "Enterprise Acquisitions",
+    "message": "Transmission Payload",
+    "submit": "INITIATE UPLINK",
+    "success": "Payload Delivered. Trace wiped.",
+    "scanning": "SCANNING SECURE FREQUENCIES...",
+    "establishing": "ESTABLISHING TLS TUNNEL...",
+    "verified": "UPLINK SECURED",
+    "placeholder_name": "guest_774",
+    "placeholder_email": "secure@proton.me",
+    "placeholder_message": "< BEGIN TRANSMISSION >",
+    "new_uplink": "[ INITIATE NEW UPLINK ]"
+  }
+}

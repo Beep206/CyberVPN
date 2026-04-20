@@ -8,6 +8,7 @@ pub mod parser;
 pub mod ping;
 pub mod provision;
 pub mod qr;
+pub mod shell;
 pub mod store;
 pub mod subscription;
 pub mod sys;

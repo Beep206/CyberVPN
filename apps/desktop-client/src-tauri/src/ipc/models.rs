@@ -33,7 +33,7 @@ pub struct ProfileGroup {
     pub name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProxyNode {
     pub id: String,
@@ -63,14 +63,35 @@ pub struct ProxyNode {
     pub alpn: Option<Vec<String>>,       // Hysteria2 / TLS
     pub subscription_id: Option<String>, // Phase 11 Subscription sync
     // Phase 15 Additions
-    pub congestion_control: Option<String>, // TUIC
-    pub udp_relay_mode: Option<String>,     // TUIC
-    pub local_address: Option<Vec<String>>, // Wireguard
-    pub private_key: Option<String>,        // Wireguard / SSH
-    pub peer_public_key: Option<String>,    // Wireguard
-    pub mtu: Option<u32>,                   // Wireguard
-    pub mux: Option<String>,                // Multiplexing
-    pub group_id: Option<String>,           // Profile Grouping
+    pub congestion_control: Option<String>,         // TUIC
+    pub udp_relay_mode: Option<String>,             // TUIC
+    pub local_address: Option<Vec<String>>,         // Wireguard
+    pub private_key: Option<String>,                // Wireguard / SSH
+    pub peer_public_key: Option<String>,            // Wireguard
+    pub mtu: Option<u32>,                           // Wireguard
+    pub pre_shared_key: Option<String>,             // Wireguard
+    pub reserved: Option<Vec<u8>>,                  // Wireguard
+    pub allowed_ips: Option<Vec<String>>,           // Wireguard
+    pub persistent_keepalive_interval: Option<u16>, // Wireguard
+    pub listen_port: Option<u16>,                   // Wireguard
+    pub tailscale_auth_key: Option<String>,
+    pub tailscale_control_url: Option<String>,
+    pub tailscale_state_directory: Option<String>,
+    pub tailscale_hostname: Option<String>,
+    pub tailscale_ephemeral: Option<bool>,
+    pub tailscale_accept_routes: Option<bool>,
+    pub tailscale_exit_node: Option<String>,
+    pub tailscale_exit_node_allow_lan_access: Option<bool>,
+    pub tailscale_advertise_routes: Option<Vec<String>>,
+    pub tailscale_advertise_exit_node: Option<bool>,
+    pub tailscale_system_interface: Option<bool>,
+    pub tailscale_system_interface_name: Option<String>,
+    pub tailscale_system_interface_mtu: Option<u32>,
+    pub tailscale_udp_timeout: Option<String>,
+    pub tailscale_relay_server_port: Option<u16>,
+    pub tailscale_relay_server_static_endpoints: Option<Vec<String>>,
+    pub mux: Option<String>,      // Multiplexing
+    pub group_id: Option<String>, // Profile Grouping
     // Phase 19 Additions
     pub plugin: Option<String>, // Shadowsocks obfs/v2ray-plugin
     pub plugin_opts: Option<String>,
@@ -85,16 +106,41 @@ impl ProxyNode {
         if self.name.trim().is_empty() {
             return Err("Name cannot be empty".to_string());
         }
-        if self.server.trim().is_empty() {
+        if self.protocol != "tailscale" && self.server.trim().is_empty() {
             return Err("Server cannot be empty".to_string());
         }
-        if self.server.contains(|c: char| {
-            c.is_whitespace() || c == ';' || c == '&' || c == '|' || c == '`' || c == '$'
-        }) {
+        if !self.server.trim().is_empty()
+            && self.server.contains(|c: char| {
+                c.is_whitespace() || c == ';' || c == '&' || c == '|' || c == '`' || c == '$'
+            })
+        {
             return Err("Server contains invalid or dangerous characters".to_string());
         }
-        if self.port == 0 {
+        if self.protocol != "tailscale" && self.port == 0 {
             return Err("Port must be greater than 0".to_string());
+        }
+        if self.protocol == "wireguard" {
+            if self
+                .local_address
+                .as_ref()
+                .is_none_or(|addresses| addresses.is_empty())
+            {
+                return Err("WireGuard profile missing local address".to_string());
+            }
+            if self
+                .private_key
+                .as_ref()
+                .is_none_or(|private_key| private_key.trim().is_empty())
+            {
+                return Err("WireGuard profile missing private key".to_string());
+            }
+            if self
+                .peer_public_key
+                .as_ref()
+                .is_none_or(|public_key| public_key.trim().is_empty())
+            {
+                return Err("WireGuard profile missing peer public key".to_string());
+            }
         }
         if let Some(ref method) = self.method {
             if method.trim().is_empty() {
@@ -164,6 +210,61 @@ pub struct ConnectionStatus {
     pub message: Option<String>,
     pub up_bytes: u64,
     pub down_bytes: u64,
+}
+
+fn default_connection_active_core() -> String {
+    "sing-box".to_string()
+}
+
+fn default_connection_source_surface() -> String {
+    "unknown".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LastConnectionOptions {
+    pub profile_id: Option<String>,
+    #[serde(default)]
+    pub tun_mode: bool,
+    #[serde(default)]
+    pub system_proxy: bool,
+    #[serde(default = "default_connection_active_core")]
+    pub active_core: String,
+    #[serde(default = "default_connection_source_surface")]
+    pub source_surface: String,
+    #[serde(default)]
+    pub favorite_profile_ids: Vec<String>,
+    #[serde(default)]
+    pub last_stable_profile_id: Option<String>,
+    #[serde(default)]
+    pub last_stable_connected_at: Option<u64>,
+    #[serde(default)]
+    pub last_action: Option<String>,
+    #[serde(default)]
+    pub last_requested_at: Option<u64>,
+    #[serde(default)]
+    pub last_connected_at: Option<u64>,
+    #[serde(default)]
+    pub last_disconnected_at: Option<u64>,
+}
+
+impl Default for LastConnectionOptions {
+    fn default() -> Self {
+        Self {
+            profile_id: None,
+            tun_mode: false,
+            system_proxy: false,
+            active_core: default_connection_active_core(),
+            source_surface: default_connection_source_surface(),
+            favorite_profile_ids: Vec::new(),
+            last_stable_profile_id: None,
+            last_stable_connected_at: None,
+            last_action: None,
+            last_requested_at: None,
+            last_connected_at: None,
+            last_disconnected_at: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -5,9 +5,11 @@ import { Smartphone, QrCode, Server, WifiOff, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslation } from "react-i18next";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 
 export function RemotePage() {
     const { t } = useTranslation();
+    const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
     const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -35,8 +37,10 @@ export function RemotePage() {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: offsets.page }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+            transition={{ duration: durations.page, ease: desktopMotionEase }}
             className="max-w-4xl mx-auto space-y-8"
         >
             <header className="border-b border-white/5 pb-4">

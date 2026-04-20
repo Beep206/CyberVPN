@@ -1,0 +1,31 @@
+{
+  "common": {
+    "metaTitle": "{section} - Ozoxy Partner Portal",
+    "availableNow": "Доступно Сейчас",
+    "nextModules": "Следующие Модули",
+    "currentState": "Текущее Состояние",
+    "backendCoverage": "Поставка И Готовность",
+    "nextFocus": "Следующий Фокус",
+    "returnToDashboard": "Вернуться на дашборд",
+    "currentStateTemplate": "{section} уже зарегистрирован как каноническая поверхность партнёрского портала и участвует в стабильной route-map модели.",
+    "backendCoverageTemplate": "Целевая фаза {phase}. Release ring {ring}. Доступ раскрывается по статусу, роли, lane и readiness overlay.",
+    "nextFocusTemplate": "Перевести {section} из scaffold в операционную глубину в рамках {phase}, начиная с режима {accessStage}.",
+    "accessStages": {
+      "alwaysVisible": "всегда видимая поверхность",
+      "applicantVisible": "applicant-safe поверхность",
+      "probationVisible": "probation-safe поверхность",
+      "activeVisible": "поверхность только для active",
+      "resellerVisible": "поверхность только для reseller"
+    },
+    "availableNowItems": {
+      "routeSlot": "Route, metadata и ownership этого раздела уже зафиксированы в канонической IA.",
+      "metadata": "Раздел уже можно линковать, открывать и гейтить без изменения route-модели.",
+      "menuPolicy": "Status-aware видимость меню уже можно навешивать без передизайна дерева навигации."
+    },
+    "nextModuleItems": {
+      "liveData": "Подключить live read-model, счётчики и domain-specific API контракты.",
+      "roleActions": "Наложить role-aware действия, task-flow и операционные объяснения.",
+      "laneDepth": "Добавить lane-specific поведение и release-ring gating поверх общего shell."
+    }
+  }
+}

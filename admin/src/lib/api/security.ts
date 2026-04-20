@@ -11,6 +11,28 @@ type SetAntiphishingCodeRequest =
   operations['set_antiphishing_code_api_v1_security_antiphishing_post']['requestBody']['content']['application/json'];
 type DeleteAntiphishingCodeResponse =
   operations['delete_antiphishing_code_api_v1_security_antiphishing_delete']['responses'][200]['content']['application/json'];
+type RiskReviewQueueParams =
+  operations['list_risk_review_queue_api_v1_security_risk_reviews_queue_get']['parameters']['query'];
+type RiskReviewQueueResponse =
+  operations['list_risk_review_queue_api_v1_security_risk_reviews_queue_get']['responses'][200]['content']['application/json'];
+type RiskReviewDetailResponse =
+  operations['get_risk_review_api_v1_security_risk_reviews__risk_review_id__get']['responses'][200]['content']['application/json'];
+type AttachRiskReviewAttachmentRequest =
+  operations['attach_risk_review_attachment_api_v1_security_risk_reviews__risk_review_id__attachments_post']['requestBody']['content']['application/json'];
+type AttachRiskReviewAttachmentResponse =
+  operations['attach_risk_review_attachment_api_v1_security_risk_reviews__risk_review_id__attachments_post']['responses'][201]['content']['application/json'];
+type ResolveRiskReviewRequest =
+  operations['resolve_risk_review_api_v1_security_risk_reviews__risk_review_id__resolve_post']['requestBody']['content']['application/json'];
+type ResolveRiskReviewResponse =
+  operations['resolve_risk_review_api_v1_security_risk_reviews__risk_review_id__resolve_post']['responses'][200]['content']['application/json'];
+type GovernanceActionsParams =
+  operations['list_governance_actions_api_v1_security_governance_actions_get']['parameters']['query'];
+type GovernanceActionsResponse =
+  operations['list_governance_actions_api_v1_security_governance_actions_get']['responses'][200]['content']['application/json'];
+type CreateGovernanceActionRequest =
+  operations['create_governance_action_api_v1_security_governance_actions_post']['requestBody']['content']['application/json'];
+type CreateGovernanceActionResponse =
+  operations['create_governance_action_api_v1_security_governance_actions_post']['responses'][201]['content']['application/json'];
 
 /**
  * Security API client
@@ -63,4 +85,42 @@ export const securityApi = {
    */
   deleteAntiphishingCode: () =>
     apiClient.delete<DeleteAntiphishingCodeResponse>('/security/antiphishing'),
+
+  listRiskReviewQueue: (params?: RiskReviewQueueParams) =>
+    apiClient.get<RiskReviewQueueResponse>('/security/risk-reviews/queue', { params }),
+
+  getRiskReview: (riskReviewId: string) =>
+    apiClient.get<RiskReviewDetailResponse>(`/security/risk-reviews/${riskReviewId}`),
+
+  attachRiskReviewAttachment: (riskReviewId: string, data: AttachRiskReviewAttachmentRequest) =>
+    apiClient.post<AttachRiskReviewAttachmentResponse>(
+      `/security/risk-reviews/${riskReviewId}/attachments`,
+      data,
+    ),
+
+  resolveRiskReview: (riskReviewId: string, data: ResolveRiskReviewRequest) =>
+    apiClient.post<ResolveRiskReviewResponse>(
+      `/security/risk-reviews/${riskReviewId}/resolve`,
+      data,
+    ),
+
+  listGovernanceActions: (params?: GovernanceActionsParams) =>
+    apiClient.get<GovernanceActionsResponse>('/security/governance-actions', { params }),
+
+  createGovernanceAction: (data: CreateGovernanceActionRequest) =>
+    apiClient.post<CreateGovernanceActionResponse>('/security/governance-actions', data),
+};
+
+export type {
+  AttachRiskReviewAttachmentRequest,
+  AttachRiskReviewAttachmentResponse,
+  CreateGovernanceActionRequest,
+  CreateGovernanceActionResponse,
+  GovernanceActionsParams,
+  GovernanceActionsResponse,
+  ResolveRiskReviewRequest,
+  ResolveRiskReviewResponse,
+  RiskReviewDetailResponse,
+  RiskReviewQueueParams,
+  RiskReviewQueueResponse,
 };

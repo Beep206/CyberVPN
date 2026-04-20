@@ -2,7 +2,7 @@
  * QUAL-02.1 Infrastructure Verification Test
  *
  * This test file verifies that the test infrastructure is correctly wired:
- * 1. Vitest runs with jsdom environment
+ * 1. Vitest runs with a browser-like DOM environment
  * 2. React Testing Library renders components
  * 3. @testing-library/jest-dom matchers work (toBeInTheDocument, etc.)
  * 4. Path aliases (@/*) resolve correctly
