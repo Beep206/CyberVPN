@@ -76,7 +76,7 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.3",
     "happy-dom": "^20.9.0",
-    "jsdom": "^28.1.0",
+    "jsdom": "^29.0.2",
     "msw": "^2.12.14",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4.2.2",
