@@ -12,7 +12,7 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-pub fn set_app_locale(locale: String, app_handle: tauri::AppHandle) {
+fn set_app_locale(locale: String, app_handle: tauri::AppHandle) {
     rust_i18n::set_locale(&locale);
     let _ = crate::tray::setup(&app_handle);
 }
@@ -33,6 +33,7 @@ pub fn run() {
     let launch_options =
         crate::engine::lifecycle::parse_launch_options_from_args(std::env::args().skip(1));
     let setup_launch_options = launch_options.clone();
+    let initial_hidden_launch = setup_launch_options.hidden;
 
     std::panic::set_hook(Box::new(|info| {
         let _ = crate::engine::sysproxy::clear_system_proxy();
@@ -40,7 +41,7 @@ pub fn run() {
         eprintln!("Panic occurred: {:?}", info);
     }));
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
@@ -56,36 +57,33 @@ pub fn run() {
 
                         tauri::async_runtime::spawn(async move {
                             let state = app_handle.state::<AppState>();
-                            let (status_str, active_id) = {
+                            let status_str = {
                                 let status_lock = state.status.read().await;
-                                (status_lock.status.clone(), status_lock.active_id.clone())
+                                status_lock.status.clone()
                             };
 
-                            if status_str == "connected" || status_str == "connecting" {
-                                let _ = crate::ipc::disconnect(app_handle.clone(), state).await;
-                            } else if let Some(id) = active_id {
-                                let _ = crate::ipc::connect_profile(
-                                    id,
-                                    false,
-                                    false,
+                            if status_str == "disconnecting" {
+                                return;
+                            }
+
+                            if status_str == "connected"
+                                || status_str == "connecting"
+                                || status_str == "degraded"
+                            {
+                                let _ = crate::ipc::disconnect_internal(
+                                    "global-hotkey",
                                     app_handle.clone(),
                                     state,
                                 )
                                 .await;
                             } else {
-                                if let Ok(profiles) = crate::engine::store::load_store(&app_handle)
-                                {
-                                    if let Some(profile) = profiles.profiles.first() {
-                                        let _ = crate::ipc::connect_profile(
-                                            profile.id.clone(),
-                                            false,
-                                            false,
-                                            app_handle.clone(),
-                                            state,
-                                        )
-                                        .await;
-                                    }
-                                }
+                                let reconnect_state = app_handle.state::<AppState>();
+                                let _ = crate::ipc::connect_with_last_options(
+                                    "global-hotkey",
+                                    app_handle.clone(),
+                                    reconnect_state,
+                                )
+                                .await;
                             }
                         });
                     }
@@ -96,6 +94,26 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let lifecycle_state =
                 crate::engine::lifecycle::initialize(&app_handle, &setup_launch_options)?;
+
+            if let Ok(reconciliation) = crate::engine::store::reconcile_connection_metadata(&app_handle)
+            {
+                if reconciliation.cleared_stale_active_profile
+                    || reconciliation.cleared_missing_last_profile
+                    || reconciliation.synced_last_active_core
+                {
+                    let _ = crate::engine::diagnostics::record_event(
+                        &app_handle,
+                        crate::engine::diagnostics::DiagnosticLevel::Info,
+                        "app.lifecycle",
+                        "Startup reconciled persisted connection metadata",
+                        serde_json::json!({
+                            "cleared_stale_active_profile": reconciliation.cleared_stale_active_profile,
+                            "cleared_missing_last_profile": reconciliation.cleared_missing_last_profile,
+                            "synced_last_active_core": reconciliation.synced_last_active_core,
+                        }),
+                    );
+                }
+            }
 
             if lifecycle_state.previous_unclean_shutdown_detected {
                 let _ = crate::engine::diagnostics::record_event(
@@ -130,9 +148,9 @@ pub fn run() {
             );
 
             if setup_launch_options.hidden {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.hide();
-                }
+                crate::engine::shell::hide_main_window(&app_handle, "launch-hidden");
+            } else {
+                crate::engine::shell::sync_main_window_visibility(&app_handle, "app-startup");
             }
 
             if let Some(delay_ms) = setup_launch_options.smoke_exit_after_ms {
@@ -175,6 +193,20 @@ pub fn run() {
                 }
                 if let Err(e) = engine::provision::ensure_xray_binary(&app_handle).await {
                     eprintln!("Failed to provision xray-core: {}", e);
+                }
+                match engine::store::load_store(&app_handle) {
+                    Ok(store) if store.privacy_shield_level != "disabled" => {
+                        if let Err(e) = engine::sys::adblock::ensure_blocklists(
+                            &app_handle,
+                            &store.privacy_shield_level,
+                        )
+                        .await
+                        {
+                            eprintln!("Failed to provision Privacy Shield blocklists: {}", e);
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(e) => eprintln!("Failed to load store while provisioning assets: {}", e),
                 }
             });
 
@@ -238,7 +270,7 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
+                crate::engine::shell::hide_main_window(&window.app_handle(), "titlebar-close");
                 api.prevent_close();
             }
         })
@@ -253,7 +285,11 @@ pub fn run() {
                 down_bytes: 0,
             }),
             process_manager: Arc::new(engine::manager::ProcessManager::new()),
+            connection_attempt: std::sync::atomic::AtomicU64::new(0),
         })
+        .manage(crate::engine::shell::DesktopShellState::new(
+            initial_hidden_launch,
+        ))
         .manage(bgp::BgpStateWrapper {
             inner: Arc::new(tokio::sync::Mutex::new(bgp::speaker::BgpSessionState::new())),
         })
@@ -266,6 +302,8 @@ pub fn run() {
             ipc::connect_profile,
             ipc::disconnect,
             ipc::get_connection_status,
+            ipc::get_last_connection_options,
+            ipc::save_last_connection_options,
             ipc::get_desktop_diagnostics_snapshot,
             ipc::export_desktop_support_bundle,
             ipc::clear_desktop_diagnostics_logs,
@@ -282,6 +320,7 @@ pub fn run() {
             ipc::get_custom_config,
             ipc::save_custom_config,
             ipc::test_all_latencies,
+            ipc::parse_clipboard_link,
             ipc::get_local_socks_port,
             ipc::save_local_socks_port,
             ipc::get_allow_lan,
@@ -296,6 +335,10 @@ pub fn run() {
             ipc::get_helix_capabilities,
             ipc::get_helix_manifest,
             ipc::get_helix_runtime_state,
+            ipc::get_canonical_customer_profile,
+            ipc::get_canonical_current_entitlements,
+            ipc::get_canonical_current_service_state,
+            ipc::get_canonical_orders,
             ipc::resolve_helix_manifest,
             ipc::prepare_helix_runtime,
             ipc::run_transport_benchmark,
@@ -342,23 +385,47 @@ pub fn run() {
             bgp::get_bgp_routes,
             bgp::check_is_admin,
             bgp::restart_as_admin
-        ])
-        .build(tauri::generate_context!())
-        .expect("error while building tauri application")
-        .run(|app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
-                let _ =
-                    crate::engine::lifecycle::mark_clean_exit(app_handle, "Desktop client exited");
-                let _ = crate::engine::diagnostics::record_event(
-                    app_handle,
-                    crate::engine::diagnostics::DiagnosticLevel::Info,
-                    "app.lifecycle",
-                    "Desktop client exiting",
-                    serde_json::json!({}),
+        ]);
+
+    let app = match builder.build(tauri::generate_context!()) {
+        Ok(app) => app,
+        Err(error) => {
+            let message = format!("failed to build tauri application: {error}");
+            let _ = crate::engine::lifecycle::mark_panic(message.clone());
+            eprintln!("{message}");
+            return;
+        }
+    };
+
+    app.run(|app_handle, event| match event {
+        tauri::RunEvent::ExitRequested { api, .. } => {
+            let should_allow_exit = app_handle
+                .try_state::<crate::engine::shell::DesktopShellState>()
+                .map(|state| state.is_exit_ready())
+                .unwrap_or(true);
+
+            if !should_allow_exit {
+                api.prevent_exit();
+                let _ = crate::engine::shell::request_app_shutdown(
+                    app_handle.clone(),
+                    "runtime-exit-requested",
                 );
-                let _ = crate::engine::sysproxy::clear_system_proxy();
-                let guard = app_handle.state::<crate::engine::sys::sentinel::SentinelGuard>();
-                let _ = guard.disable();
             }
-        });
+        }
+        tauri::RunEvent::Exit => {
+            crate::engine::shell::mark_exit_completed(app_handle, "runtime-exit");
+            let _ = crate::engine::lifecycle::mark_clean_exit(app_handle, "Desktop client exited");
+            let _ = crate::engine::diagnostics::record_event(
+                app_handle,
+                crate::engine::diagnostics::DiagnosticLevel::Info,
+                "app.lifecycle",
+                "Desktop client exiting",
+                serde_json::json!({}),
+            );
+            let _ = crate::engine::sysproxy::clear_system_proxy();
+            let guard = app_handle.state::<crate::engine::sys::sentinel::SentinelGuard>();
+            let _ = guard.disable();
+        }
+        _ => {}
+    });
 }

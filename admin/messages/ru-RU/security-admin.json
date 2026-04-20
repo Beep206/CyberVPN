@@ -4,6 +4,7 @@
   },
   "nav": {
     "overview": "Обзор",
+    "reviewQueue": "Очередь проверок",
     "sessions": "Сессии",
     "twoFactor": "2FA",
     "antiPhishing": "Антифишинг",
@@ -62,6 +63,7 @@
     "routesTitle": "Маршруты безопасности",
     "routesDescription": "Переходите сразу в нужный контур защиты, не покидая admin shell.",
     "routes": {
+      "reviewQueue": "Работа с очередью risk review, evidence attachments и governance actions из одного внутреннего workflow rail.",
       "sessions": "Просмотр всех активных сессий и отзыв устаревших или подозрительных устройств.",
       "twoFactor": "Настройка TOTP, проверка статуса и отключение 2FA с повторной авторизацией.",
       "antiPhishing": "Управление кодом, который показывается в исходящих письмах.",
@@ -110,6 +112,96 @@
       "strongHint": "сильный профиль доверия",
       "moderateHint": "средний профиль доверия",
       "weakHint": "слабый профиль доверия"
+    }
+  },
+  "reviewQueue": {
+    "metaTitle": "Очередь проверок - Ozoxy Admin",
+    "eyebrow": "RISK WORKFLOW",
+    "title": "Очередь проверок",
+    "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте governance actions и резолвите решения из одной внутренней очереди.",
+    "metrics": {
+      "openReviews": "Очередь",
+      "openReviewsHint": "активные review items",
+      "blocking": "Блокирующие",
+      "blockingHint": "решения hold или block",
+      "attachments": "Evidence",
+      "attachmentsHint": "артефакты, привязанные к review",
+      "governanceActions": "Actions",
+      "governanceActionsHint": "governance records, связанные с очередью"
+    },
+    "queue": {
+      "title": "Состав очереди",
+      "description": "Каждая строка — каноническая запись risk review, поднятая из backend queue.",
+      "loadError": "Не удалось загрузить очередь risk review.",
+      "empty": "В очереди сейчас нет элементов на обработку.",
+      "reviewRef": "Review #{reviewId} / Subject #{subjectId}",
+      "subject": "Principal subject",
+      "updatedAt": "Обновлено",
+      "attachments": "attachments: {count}",
+      "governanceActions": "governance actions: {count}"
+    },
+    "detail": {
+      "title": "Детали проверки",
+      "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные governance actions.",
+      "loadError": "Не удалось загрузить выбранный review.",
+      "empty": "Выберите review из очереди для просмотра деталей.",
+      "review": "Review",
+      "subject": "Subject",
+      "updatedAt": "Обновлено",
+      "attachmentsTitle": "Attachments",
+      "governanceTitle": "Governance actions",
+      "noAttachments": "К этому review ещё не привязаны attachments.",
+      "noGovernanceActions": "К этому review ещё не привязаны governance actions."
+    },
+    "attachments": {
+      "title": "Прикрепить evidence",
+      "description": "Привяжите storage-backed артефакт к выбранному review, не выходя из queue workflow.",
+      "submit": "Прикрепить evidence",
+      "fields": {
+        "type": "Тип attachment",
+        "storageKey": "Storage key",
+        "storageKeyPlaceholder": "risk/reviews/evidence/file.pdf",
+        "fileName": "Имя файла",
+        "fileNamePlaceholder": "evidence-file.pdf",
+        "metadata": "Metadata JSON"
+      }
+    },
+    "governance": {
+      "title": "Governance action",
+      "description": "Зафиксируйте operational action, которая сопровождает выбранный review, и сохраните audit trail каноническим.",
+      "submit": "Записать action",
+      "fields": {
+        "actionType": "Тип action",
+        "reason": "Причина",
+        "reasonPlaceholder": "Опишите, почему эта governance action нужна.",
+        "targetType": "Target type",
+        "targetTypePlaceholder": "partner_payout_account",
+        "targetRef": "Target reference",
+        "targetRefPlaceholder": "ppa_demo_001",
+        "payload": "Payload JSON",
+        "applyNow": "Применить сразу"
+      }
+    },
+    "resolve": {
+      "title": "Завершить review",
+      "description": "Завершите выбранный review с зафиксированным решением и resolution evidence.",
+      "submit": "Завершить review",
+      "fields": {
+        "decision": "Решение",
+        "status": "Resolution status",
+        "reason": "Причина решения",
+        "reasonPlaceholder": "Кратко зафиксируйте финальное операторское решение.",
+        "evidence": "Resolution evidence JSON"
+      }
+    },
+    "feedback": {
+      "selectReview": "Сначала выберите review из очереди.",
+      "invalidAttachmentMetadata": "Attachment metadata должна быть валидным JSON object.",
+      "invalidGovernancePayload": "Governance payload должен быть валидным JSON object.",
+      "invalidResolutionEvidence": "Resolution evidence должна быть валидным JSON object.",
+      "attachmentCreated": "Evidence прикреплена к review.",
+      "governanceActionCreated": "Governance action записана.",
+      "reviewResolved": "Review успешно завершён."
     }
   },
   "sessions": {

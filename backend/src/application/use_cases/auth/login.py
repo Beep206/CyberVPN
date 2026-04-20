@@ -1,15 +1,15 @@
 """Login use case for admin user authentication."""
 
 from datetime import UTC, datetime
-from hashlib import sha256
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
-from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 
 
 class LoginUseCase:
@@ -38,6 +38,12 @@ class LoginUseCase:
         client_fingerprint: str | None = None,
         client_ip: str | None = None,
         user_agent: str | None = None,
+        auth_realm_id: UUID | None = None,
+        auth_realm_key: str | None = None,
+        audience: str | None = None,
+        principal_type: str = "admin",
+        scope_family: str = "admin",
+        include_legacy_default: bool = False,
     ) -> dict:
         """
         Authenticate user and generate token pair.
@@ -60,7 +66,11 @@ class LoginUseCase:
             InvalidCredentialsError: If credentials are invalid or user not found
         """
         # Find user by login or email
-        user = await self._user_repo.get_by_login_or_email(login_or_email)
+        user = await self._user_repo.get_by_login_or_email(
+            login_or_email,
+            realm_id=auth_realm_id,
+            include_legacy_default=include_legacy_default,
+        )
         if not user:
             raise InvalidCredentialsError()
 
@@ -94,6 +104,11 @@ class LoginUseCase:
                 subject=str(user.id),
                 role="2fa_pending",
                 extra={"type": "2fa_pending"},
+                audience=audience,
+                principal_type=principal_type,
+                realm_id=str(auth_realm_id) if auth_realm_id else None,
+                realm_key=auth_realm_key,
+                scope_family=scope_family,
             )
             return {
                 "access_token": "",
@@ -107,30 +122,40 @@ class LoginUseCase:
 
         # Create access and refresh tokens
         # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        access_token, _access_jti, _access_expire = self._auth_service.create_access_token(
+        access_token, access_jti, _access_expire = self._auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
+            audience=audience,
+            principal_type=principal_type,
+            realm_id=str(auth_realm_id) if auth_realm_id else None,
+            realm_key=auth_realm_key,
+            scope_family=scope_family,
         )
         # MED-002: Include client fingerprint in refresh token for device binding
         refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
             subject=str(user.id),
             fingerprint=client_fingerprint,
+            audience=audience,
+            principal_type=principal_type,
+            realm_id=str(auth_realm_id) if auth_realm_id else None,
+            realm_key=auth_realm_key,
+            scope_family=scope_family,
         )
-
-        # Store refresh token hash in database
-        token_hash = sha256(refresh_token.encode()).hexdigest()
-        expires_at = refresh_expire  # Use actual expiry from token creation
-
-        refresh_token_record = RefreshToken(
+        await store_refresh_token(
+            self._session,
             user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
+            refresh_token=refresh_token,
+            expires_at=refresh_expire,
             device_id=client_fingerprint,
             ip_address=client_ip,
             user_agent=user_agent,
+            auth_realm_id=auth_realm_id,
+            principal_class=principal_type,
+            principal_subject=str(user.id),
+            audience=audience,
+            scope_family=scope_family,
+            access_token_jti=access_jti,
         )
-        self._session.add(refresh_token_record)
-        await self._session.flush()
 
         return {
             "access_token": access_token,
@@ -140,4 +165,7 @@ class LoginUseCase:
             "requires_2fa": False,
             "tfa_token": None,
             "is_first_username_only_login": is_first_username_only_login,
+            "auth_realm_id": str(auth_realm_id) if auth_realm_id else None,
+            "auth_realm_key": auth_realm_key,
+            "audience": audience,
         }

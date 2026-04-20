@@ -6,7 +6,9 @@ from uuid import UUID
 
 from src.application.services.config_service import ConfigService
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.growth_rewards import CreateGrowthRewardAllocationUseCase
 from src.domain.enums import ReferralDurationMode, WalletTxReason
+from src.domain.enums import GrowthRewardType
 from src.infrastructure.database.models.referral_commission_model import (
     ReferralCommissionModel,
 )
@@ -23,10 +25,12 @@ class ProcessReferralCommissionUseCase:
         commission_repo: ReferralCommissionRepository,
         wallet_service: WalletService,
         config_service: ConfigService,
+        growth_rewards: CreateGrowthRewardAllocationUseCase | None = None,
     ) -> None:
         self._commission_repo = commission_repo
         self._wallet_service = wallet_service
         self._config_service = config_service
+        self._growth_rewards = growth_rewards
 
     async def execute(
         self,
@@ -80,6 +84,25 @@ class ProcessReferralCommissionUseCase:
                 wallet_tx_id=tx.id,
             )
         )
+
+        if self._growth_rewards is not None:
+            await self._growth_rewards.execute(
+                reward_type=GrowthRewardType.REFERRAL_CREDIT.value,
+                beneficiary_user_id=referrer_user_id,
+                referral_commission_id=commission.id,
+                quantity=commission_amount,
+                unit="credit",
+                currency_code=commission.currency,
+                source_key=f"referral_commission:{commission.id}:referral_credit",
+                reward_payload={
+                    "payment_id": str(payment_id),
+                    "referred_user_id": str(referred_user_id),
+                    "wallet_tx_id": str(tx.id) if tx.id else None,
+                    "base_amount": str(base_amount),
+                    "commission_rate": str(commission_rate),
+                },
+                commit=False,
+            )
 
         logger.info(
             "Credited referral commission %s to user %s (amount=%s, payment=%s)",

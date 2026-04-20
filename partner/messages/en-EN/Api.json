@@ -1,0 +1,56 @@
+{
+  "title": "API Documentation",
+  "description": "Programmatic access to the CyberVPN global infrastructure. Automate server routing, user management, and security policies.",
+  "labels": {
+    "method": "METHOD",
+    "endpoint": "ENDPOINT",
+    "headers": "HEADERS",
+    "parameters": "PARAMETERS",
+    "body": "BODY",
+    "request": "REQUEST (cURL)",
+    "response": "RESPONSE (JSON)",
+    "copied": "COPIED TO CLIPBOARD"
+  },
+  "endpoints": {
+    "auth": {
+      "category": "Authentication",
+      "items": {
+        "generateToken": {
+          "title": "Generate API Token",
+          "description": "Exchanges client ID and secret for a short-lived Bearer token. Essential for all subsequent API calls.",
+          "params": [
+            {"name": "client_id", "type": "string", "req": true, "desc": "Your API Client ID."},
+            {"name": "client_secret", "type": "string", "req": true, "desc": "Your API Client Secret."}
+          ],
+          "request": "curl -X POST https://api.cybervpn.com/v1/auth/token \\\n  -d \"client_id=your_id\" \\\n  -d \"client_secret=your_secret\"",
+          "response": "{\n  \"access_token\": \"eyJhbGci...\",\n  \"token_type\": \"Bearer\",\n  \"expires_in\": 3600\n}"
+        }
+      }
+    },
+    "servers": {
+      "category": "Infrastructure",
+      "items": {
+        "listServers": {
+          "title": "List Active Nodes",
+          "description": "Retrieves the real-time status, load, and geographic location of all online VPN instances.",
+          "params": [
+            {"name": "region", "type": "string", "req": false, "desc": "Filter by region (e.g., 'europe')."},
+            {"name": "limit", "type": "int", "req": false, "desc": "Max results to return."}
+          ],
+          "request": "curl -X GET https://api.cybervpn.com/v1/servers?region=europe \\\n  -H \"Authorization: Bearer YOUR_TOKEN\"",
+          "response": "{\n  \"nodes\": [\n    {\n      \"id\": \"eu-frankfurt-01\",\n      \"load\": 42,\n      \"status\": \"online\"\n    }\n  ]\n}"
+        },
+        "connect": {
+          "title": "Initiate Connection",
+          "description": "Requests an optimized routing path and ephemeral keys for a specific target node.",
+          "params": [
+            {"name": "node_id", "type": "string", "req": true, "desc": "Target server instance ID."},
+            {"name": "protocol", "type": "enum", "req": true, "desc": "WireGuard, OpenVPN, or Stealth."}
+          ],
+          "request": "curl -X POST https://api.cybervpn.com/v1/servers/connect \\\n  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"node_id\": \"eu-frankfurt-01\", \"protocol\": \"WireGuard\"}'",
+          "response": "{\n  \"connection_ip\": \"198.51.100.14\",\n  \"port\": 51820,\n  \"public_key\": \"base64_pub_key...\"\n}"
+        }
+      }
+    }
+  }
+}

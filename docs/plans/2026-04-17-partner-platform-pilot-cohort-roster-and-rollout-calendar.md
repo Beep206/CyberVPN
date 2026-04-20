@@ -199,6 +199,7 @@ Pilot widening requires:
 
 - no unresolved severity-high blockers;
 - rollback path still available;
+- current owner acknowledgements, rollback drill, and approved go/no-go decision are recorded on the canonical pilot-control objects;
 - support staffing confirmed for the next cohort;
 - finance sign-off for any payout-bearing lane;
 - risk sign-off for any traffic-bearing lane;
@@ -236,6 +237,7 @@ Every pilot cohort must define:
 - partner-ops owner if partner-facing;
 - finance owner if payout-bearing;
 - risk owner if abuse-sensitive;
+- explicit owner acknowledgements and the runbook references each owner signed;
 - communication plan for pilot participants;
 - escalation path for rollback or containment.
 

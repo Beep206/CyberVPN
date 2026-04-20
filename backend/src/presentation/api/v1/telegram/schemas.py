@@ -5,7 +5,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.presentation.api.v1.access_delivery_channels.schemas import CurrentServiceStateResponse
 from src.presentation.api.v1.addons.schemas import AddonResponse
+from src.presentation.api.v1.orders.schemas import OrderResponse
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonRequest,
     CheckoutCommitResponse,
@@ -214,3 +216,5 @@ TelegramBotAddonResponse = AddonResponse
 TelegramBotEntitlementsResponse = CurrentEntitlementsResponse
 TelegramBotCheckoutQuoteResponse = CheckoutQuoteResponse
 TelegramBotCheckoutCommitResponse = CheckoutCommitResponse
+TelegramBotOrderResponse = OrderResponse
+TelegramBotCurrentServiceStateResponse = CurrentServiceStateResponse

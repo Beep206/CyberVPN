@@ -21,6 +21,14 @@ import {
 } from "../../shared/api/ipc";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Switch } from "../../components/ui/switch";
 import { toast } from "sonner";
 import {
   Activity,
@@ -36,6 +44,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useTheme } from "../../app/theme-provider";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { useTranslation } from "react-i18next";
 
 const DiagnosticsSupportPanel = lazy(() =>
@@ -103,10 +112,13 @@ function formatCoreLabel(core?: string | null): string {
 }
 
 function formatProfileLabel(profile: ProxyNode): string {
-  return `${profile.name} • ${profile.protocol.toUpperCase()} • ${profile.server}:${profile.port}`;
+  const endpointLabel =
+    profile.server && profile.port > 0 ? `${profile.server}:${profile.port}` : "endpoint";
+  return `${profile.name} • ${profile.protocol.toUpperCase()} • ${endpointLabel}`;
 }
 
 export function SettingsPage() {
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const { t } = useTranslation();
   const [useCustomConfig, setUseCustomConfig] = useState(false);
   const [jsonConfig, setJsonConfig] = useState("");
@@ -142,6 +154,10 @@ export function SettingsPage() {
     Boolean(helixPreparedRuntime) ||
     Boolean(helixManifest) ||
     Boolean(comparisonReport);
+  const comparisonProfileItems = profiles.map((profile) => ({
+    value: profile.id,
+    label: formatProfileLabel(profile),
+  }));
 
   const refreshHelixState = async (showToast = false) => {
     setIsRefreshingTransport(true);
@@ -339,10 +355,10 @@ export function SettingsPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="flex h-full flex-col gap-6 pb-6"
     >
       <header className="mb-2">
@@ -355,7 +371,7 @@ export function SettingsPage() {
       </header>
 
       <div className="flex flex-1 flex-col gap-6">
-        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-black/40 p-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-cyan)]">
               <Monitor size={24} />
@@ -387,7 +403,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-black/40 p-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-matrix-green)]">
               <Cpu size={24} />
@@ -434,7 +450,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-5 rounded-xl border border-border/50 bg-black/40 p-6">
+        <div className="flex flex-col gap-5 rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-cyan)]">
@@ -459,7 +475,7 @@ export function SettingsPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+            <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
               <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Desktop Client Id
               </div>
@@ -467,7 +483,7 @@ export function SettingsPage() {
                 {helixDesktopClientId || "Allocating..."}
               </div>
             </div>
-            <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+            <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
               <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Local Supported Profiles
               </div>
@@ -475,7 +491,7 @@ export function SettingsPage() {
                 {helixCapabilities?.supported_transport_profiles.length ?? 0} windows
               </div>
             </div>
-            <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+            <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
               <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Stable Fallback Core
               </div>
@@ -483,7 +499,7 @@ export function SettingsPage() {
                 {resolveStableFallbackCore(activeCore)}
               </div>
             </div>
-            <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+            <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
               <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Prepared Runtime
               </div>
@@ -560,7 +576,7 @@ export function SettingsPage() {
             {helixCapabilities?.supported_transport_profiles.map((profile) => (
               <div
                 key={`${profile.profile_family}-${profile.min_transport_profile_version}-${profile.max_transport_profile_version}`}
-                className="rounded-lg border border-border/40 bg-black/30 p-4"
+                className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4"
               >
                 <div className="text-sm font-semibold text-[var(--color-neon-cyan)]">
                   {profile.profile_family}
@@ -582,7 +598,7 @@ export function SettingsPage() {
             ))}
           </div>
 
-          <div className="rounded-xl border border-border/40 bg-black/30 p-5">
+          <div className="rounded-xl border border-border/40 bg-[color:var(--panel-subtle)] p-5">
             <div className="mb-3 text-sm font-semibold text-[var(--color-matrix-green)]">
               Last Resolved Manifest
             </div>
@@ -660,7 +676,7 @@ export function SettingsPage() {
 
                 {helixManifest.selected_profile_policy ? (
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Policy Score
                     </div>
@@ -668,7 +684,7 @@ export function SettingsPage() {
                       {helixManifest.selected_profile_policy.policy_score}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Observed Events
                     </div>
@@ -676,7 +692,7 @@ export function SettingsPage() {
                       {helixManifest.selected_profile_policy.observed_events}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Continuity Success
                     </div>
@@ -684,7 +700,7 @@ export function SettingsPage() {
                       {(helixManifest.selected_profile_policy.continuity_success_rate * 100).toFixed(0)}%
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Cross-Route Recovery
                     </div>
@@ -692,7 +708,7 @@ export function SettingsPage() {
                       {(helixManifest.selected_profile_policy.cross_route_recovery_rate * 100).toFixed(0)}%
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Connect Success
                     </div>
@@ -700,7 +716,7 @@ export function SettingsPage() {
                       {(helixManifest.selected_profile_policy.connect_success_rate * 100).toFixed(0)}%
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Fallback Rate
                     </div>
@@ -708,7 +724,7 @@ export function SettingsPage() {
                       {(helixManifest.selected_profile_policy.fallback_rate * 100).toFixed(0)}%
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4 md:col-span-2 xl:col-span-2">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4 md:col-span-2 xl:col-span-2">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Policy State
                     </div>
@@ -724,7 +740,7 @@ export function SettingsPage() {
                         : "Healthy: adapter selected a non-degraded compatible profile."}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Advisory State
                     </div>
@@ -732,7 +748,7 @@ export function SettingsPage() {
                       {helixManifest.selected_profile_policy.advisory_state}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       New-Session Posture
                     </div>
@@ -750,7 +766,7 @@ export function SettingsPage() {
                       {helixManifest.selected_profile_policy.new_session_posture}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       New Session Issuance
                     </div>
@@ -783,7 +799,7 @@ export function SettingsPage() {
                       </div>
                     ) : null}
                   </div>
-                  <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+                  <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
                     <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                       Suppression Window
                     </div>
@@ -809,7 +825,7 @@ export function SettingsPage() {
                     ) : null}
                   </div>
                   {helixManifest.selected_profile_policy.recommended_action ? (
-                    <div className="rounded-lg border border-border/40 bg-black/30 p-4 md:col-span-2 xl:col-span-4">
+                    <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4 md:col-span-2 xl:col-span-4">
                       <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                         Recommended Action
                       </div>
@@ -829,7 +845,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-black/40 p-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-pink)]">
               <Activity size={24} />
@@ -842,7 +858,7 @@ export function SettingsPage() {
           </div>
 
           {helixPreparedRuntime ? (
-            <div className="grid gap-3 rounded-xl border border-border/40 bg-black/30 p-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 rounded-xl border border-border/40 bg-[color:var(--panel-subtle)] p-5 md:grid-cols-2 xl:grid-cols-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
                   Sidecar Status
@@ -901,7 +917,7 @@ export function SettingsPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-border/40 bg-black/30 p-5 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/40 bg-[color:var(--panel-subtle)] p-5 text-sm text-muted-foreground">
               The desktop has not prepared a Helix runtime bundle yet.
             </div>
           )}
@@ -913,7 +929,7 @@ export function SettingsPage() {
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-5 rounded-xl border border-border/50 bg-black/40 p-6">
+        <div className="flex flex-col gap-5 rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-cyan)]">
@@ -942,24 +958,26 @@ export function SettingsPage() {
               <label className="text-sm font-medium text-foreground">
                 Desktop Profile For Comparison
               </label>
-              <select
+              <Select
+                items={comparisonProfileItems}
                 value={comparisonProfileId}
-                onChange={(event) => {
-                  setComparisonProfileId(event.target.value);
+                onValueChange={(value) => {
+                  setComparisonProfileId(String(value));
                   setComparisonReport(null);
                 }}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground outline-none transition-colors focus:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 disabled={profiles.length === 0}
               >
-                {profiles.length === 0 ? (
-                  <option value="">No saved profiles available</option>
-                ) : null}
-                {profiles.map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {formatProfileLabel(profile)}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="No saved profiles available" />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  {profiles.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {formatProfileLabel(profile)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 {selectedComparisonProfile
                   ? `Using node ${selectedComparisonProfile.id} as the shared benchmark target.`
@@ -1010,7 +1028,7 @@ export function SettingsPage() {
                 autoComplete="off"
               />
             </div>
-            <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+            <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
               <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Benchmark Scope
               </div>
@@ -1018,7 +1036,7 @@ export function SettingsPage() {
                 Helix, Sing-box, and Xray all run the same request path.
               </div>
             </div>
-            <div className="rounded-lg border border-border/40 bg-black/30 p-4">
+            <div className="rounded-lg border border-border/40 bg-[color:var(--panel-subtle)] p-4">
               <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 Session Impact
               </div>
@@ -1029,7 +1047,7 @@ export function SettingsPage() {
           </div>
 
           {comparisonReport ? (
-            <div className="space-y-4 rounded-xl border border-border/40 bg-black/30 p-5">
+            <div className="space-y-4 rounded-xl border border-border/40 bg-[color:var(--panel-subtle)] p-5">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -1078,7 +1096,7 @@ export function SettingsPage() {
                       className={`rounded-xl border p-5 ${
                         isBaseline
                           ? "border-[var(--color-matrix-green)]/50 bg-[rgba(0,255,136,0.06)]"
-                          : "border-border/40 bg-black/40"
+                          : "border-border/40 bg-[color:var(--panel-surface)]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -1203,7 +1221,7 @@ export function SettingsPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-border/40 bg-black/30 p-5 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/40 bg-[color:var(--panel-subtle)] p-5 text-sm text-muted-foreground">
               Run the comparison to see Helix against the stable desktop cores on the same
               benchmark path.
             </div>
@@ -1212,7 +1230,7 @@ export function SettingsPage() {
 
         <Suspense
           fallback={
-            <div className="rounded-xl border border-border/50 bg-black/40 p-6 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6 text-sm text-muted-foreground">
               Loading Helix diagnostics lab...
             </div>
           }
@@ -1220,29 +1238,25 @@ export function SettingsPage() {
           {diagnosticsPanelReady ? (
             <DiagnosticsSupportPanel />
           ) : (
-            <div className="rounded-xl border border-border/50 bg-black/40 p-6 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6 text-sm text-muted-foreground">
               Helix diagnostics lab will load after you resolve a manifest, prepare a runtime, or
               run a comparison.
             </div>
           )}
         </Suspense>
 
-        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-black/40 p-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-lg font-semibold text-[var(--color-neon-pink)]">
               <FileJson size={24} />
               <h2>Raw "Power-User" Configuration</h2>
             </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                value=""
-                className="peer sr-only"
-                checked={useCustomConfig}
-                onChange={(event) => setUseCustomConfig(event.target.checked)}
-              />
-              <div className="h-6 w-11 rounded-full bg-muted outline-none peer-checked:bg-[var(--color-neon-pink)] peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-['']" />
-            </label>
+            <Switch
+              checked={useCustomConfig}
+              onCheckedChange={(checked) => setUseCustomConfig(checked)}
+              className="data-checked:bg-[var(--color-neon-pink)] data-checked:border-[var(--color-neon-pink)]/40"
+              aria-label='Toggle raw "Power-User" configuration'
+            />
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -1254,9 +1268,10 @@ export function SettingsPage() {
           <AnimatePresence>
             {useCustomConfig && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, height: prefersReducedMotion ? "auto" : 0 }}
                 animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                exit={{ opacity: 0, height: prefersReducedMotion ? "auto" : 0 }}
+                transition={{ duration: durations.micro, ease: desktopMotionEase }}
                 className="mt-2 flex flex-col gap-4"
               >
                 <textarea

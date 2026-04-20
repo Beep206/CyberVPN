@@ -8,6 +8,13 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,10 +23,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { useTranslation } from "react-i18next";
 
 export function ProfilesPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const [profiles, setProfiles] = useState<ProxyNode[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -34,6 +43,7 @@ export function ProfilesPage() {
   const [protocol, setProtocol] = useState("vless");
   const [uuid, setUuid] = useState("");
   const [nextHopId, setNextHopId] = useState<string>("");
+  const nextHopSelectValue = nextHopId || "__direct__";
 
   const refreshProfiles = async () => {
     try {
@@ -47,6 +57,23 @@ export function ProfilesPage() {
   useEffect(() => {
     refreshProfiles();
   }, []);
+
+  const isLikelySubscriptionUrl = (value: string) => {
+    try {
+      const parsed = new URL(value.trim());
+      const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+      const hasBasicAuth = Boolean(parsed.username) || Boolean(parsed.password);
+      const hasNonRootPath = parsed.pathname !== "/" && parsed.pathname !== "";
+      const hasQuery = Boolean(parsed.search);
+      const hasSubscriptionLikePath = /sub|subscribe|subscription|clash|sing[-_]?box/i.test(
+        parsed.pathname
+      );
+
+      return isHttp && !hasBasicAuth && (hasSubscriptionLikePath || hasQuery || hasNonRootPath);
+    } catch {
+      return false;
+    }
+  };
 
   const handleCreateProfile = async () => {
     const newProfile: ProxyNode = {
@@ -81,6 +108,15 @@ export function ProfilesPage() {
       const text = await navigator.clipboard.readText();
       if (!text) {
         toast.error(t('profiles.clipboardEmpty'));
+        return;
+      }
+
+      if (isLikelySubscriptionUrl(text)) {
+        toast.error(
+          t('profiles.subscriptionUrlHint', {
+            destination: t('subscriptions.title'),
+          })
+        );
         return;
       }
       
@@ -122,10 +158,10 @@ export function ProfilesPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="flex flex-col h-full gap-8"
     >
       <header className="flex items-center justify-between">
@@ -142,19 +178,21 @@ export function ProfilesPage() {
             {t('profiles.scanQr')}
           </Button>
           
-          <Button variant="outline" onClick={handlePasteFromClipboard} className="gap-2 border-border/50 bg-black/40 hover:bg-black/60 transition-all">
+          <Button variant="outline" onClick={handlePasteFromClipboard} className="gap-2 border-border/60 bg-[color:var(--panel-subtle)] hover:bg-accent/70 transition-all">
             <ClipboardPaste size={16} />
             {t('profiles.paste')}
           </Button>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger>
-              <Button className="gap-2 bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 hover:shadow-[0_0_15px_rgba(0,255,136,0.6)] transition-all">
-                <Plus size={16} />
-                {t('profiles.addNode')}
-              </Button>
+            <DialogTrigger
+              render={
+                <Button className="gap-2 bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 hover:shadow-[0_0_15px_rgba(0,255,136,0.6)] transition-all" />
+              }
+            >
+              <Plus size={16} />
+              {t('profiles.addNode')}
             </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] border-[var(--color-matrix-green)]/30 bg-card/95 backdrop-blur shadow-2xl">
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">{t('profiles.addDialogTitle')}</DialogTitle>
               <DialogDescription>
@@ -164,37 +202,53 @@ export function ProfilesPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">{t('profiles.name')}</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder={t('profiles.namePlaceholder')} />
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" placeholder={t('profiles.namePlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="server" className="text-right">{t('profiles.serverIp')}</Label>
-                <Input id="server" value={server} onChange={e => setServer(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder={t('profiles.serverPlaceholder')} />
+                <Input id="server" value={server} onChange={e => setServer(e.target.value)} className="col-span-3" placeholder={t('profiles.serverPlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="port" className="text-right">{t('profiles.port')}</Label>
-                <Input id="port" value={port} onChange={e => setPort(e.target.value)} className="col-span-3 bg-black/40 border-border/50" type="number" />
+                <Input id="port" value={port} onChange={e => setPort(e.target.value)} className="col-span-3" type="number" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="protocol" className="text-right">{t('profiles.protocol')}</Label>
-                <Input id="protocol" value={protocol} onChange={e => setProtocol(e.target.value)} className="col-span-3 bg-black/40 border-border/50" placeholder="vless" />
+                <Input id="protocol" value={protocol} onChange={e => setProtocol(e.target.value)} className="col-span-3" placeholder="vless" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="uuid" className="text-right">{t('profiles.uuid')}</Label>
-                <Input id="uuid" value={uuid} onChange={e => setUuid(e.target.value)} className="col-span-3 bg-black/40 border-border/50" type="password" />
+                <Input id="uuid" value={uuid} onChange={e => setUuid(e.target.value)} className="col-span-3" type="password" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="nextHop" className="text-right">{t('profiles.nextHop')}</Label>
-                <select 
-                    id="nextHop" 
-                    value={nextHopId} 
-                    onChange={e => setNextHopId(e.target.value)} 
-                    className="col-span-3 flex h-10 w-full rounded-md border border-border/50 bg-black/40 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-matrix-green)]"
+                <Select
+                  value={nextHopSelectValue}
+                  onValueChange={(value) => setNextHopId(value === "__direct__" ? "" : String(value))}
                 >
-                    <option value="">{t('profiles.noneDirect')}</option>
-                    {profiles.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.server})</option>
+                  <SelectTrigger id="nextHop" className="col-span-3 w-full">
+                    <SelectValue>
+                      {(value) => {
+                        if (value === "__direct__" || !value) {
+                          return t('profiles.noneDirect');
+                        }
+
+                        const selectedProfile = profiles.find((profile) => profile.id === value);
+                        return selectedProfile
+                          ? `${selectedProfile.name} (${selectedProfile.server})`
+                          : t('profiles.unknown');
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="__direct__">{t('profiles.noneDirect')}</SelectItem>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.name} ({profile.server})
+                      </SelectItem>
                     ))}
-                </select>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
@@ -204,18 +258,20 @@ export function ProfilesPage() {
           </Dialog>
         </div>
       </header>
-      
+
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
-        <DialogContent className="sm:max-w-[400px] border-[var(--color-neon-cyan)]/30 bg-card/95 backdrop-blur shadow-2xl flex flex-col items-center pt-8 pb-8">
+        <DialogContent className="flex flex-col items-center pt-8 pb-8 sm:max-w-[400px]">
             <DialogHeader className="w-full text-center mb-4">
               <DialogTitle className="text-[var(--color-neon-cyan)] tracking-wide">{t('profiles.shareNode')}</DialogTitle>
               <DialogDescription>{shareNodeName}</DialogDescription>
             </DialogHeader>
-            <div className="bg-white p-4 rounded-xl shadow-[0_0_20px_rgba(0,255,255,0.2)]">
-                <QRCodeSVG value={shareLink} size={256} className="pointer-events-none" />
+            <div className="rounded-2xl border border-border/70 bg-[color:var(--panel-subtle)] p-4 shadow-[0_0_20px_rgba(0,255,255,0.12)]">
+                <div className="rounded-xl bg-white p-3">
+                    <QRCodeSVG value={shareLink} size={256} className="pointer-events-none" />
+                </div>
             </div>
             <div className="flex flex-col items-center mt-6 w-full px-4 text-center">
-                <p className="text-xs text-muted-foreground/60 break-all w-full font-mono bg-black/40 p-3 rounded-lg border border-border/40 select-all">
+                <p className="w-full break-all rounded-lg border border-border/50 bg-[color:var(--panel-subtle)] p-3 font-mono text-xs text-muted-foreground/80 select-all">
                     {shareLink}
                 </p>
                 <Button 
@@ -234,14 +290,15 @@ export function ProfilesPage() {
       </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-         <AnimatePresence>
+         <AnimatePresence initial={false}>
              {profiles.map((p) => (
                  <motion.div
                      key={p.id}
                      layout
-                     initial={{ opacity: 0, y: 20 }}
+                     initial={{ opacity: 0, y: offsets.list }}
                      animate={{ opacity: 1, y: 0 }}
-                     exit={{ opacity: 0, scale: 0.9 }}
+                     exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+                     transition={{ duration: durations.list, ease: desktopMotionEase }}
                      className="group relative flex flex-col p-5 rounded-xl border border-border/40 bg-card/10 hover:bg-card/30 hover:border-[var(--color-neon-cyan)]/50 transition-all duration-300"
                  >
                      <div className="flex justify-between items-start mb-4">

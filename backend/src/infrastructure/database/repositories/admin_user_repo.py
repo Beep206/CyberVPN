@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -13,23 +13,56 @@ class AdminUserRepository:
     async def get_by_id(self, id: UUID) -> AdminUserModel | None:
         return await self._session.get(AdminUserModel, id)
 
-    async def get_by_login(self, login: str) -> AdminUserModel | None:
-        result = await self._session.execute(select(AdminUserModel).where(AdminUserModel.login == login))
+    @staticmethod
+    def _realm_scope_clause(realm_id: UUID | None, *, include_legacy_default: bool = False):
+        if realm_id is None:
+            return None
+        if include_legacy_default:
+            return or_(AdminUserModel.auth_realm_id == realm_id, AdminUserModel.auth_realm_id.is_(None))
+        return AdminUserModel.auth_realm_id == realm_id
+
+    async def get_by_login(
+        self,
+        login: str,
+        *,
+        realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
+    ) -> AdminUserModel | None:
+        stmt = select(AdminUserModel).where(AdminUserModel.login == login)
+        realm_clause = self._realm_scope_clause(realm_id, include_legacy_default=include_legacy_default)
+        if realm_clause is not None:
+            stmt = stmt.where(realm_clause)
+        result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_email(self, email: str) -> AdminUserModel | None:
-        result = await self._session.execute(
-            select(AdminUserModel).where(func.lower(AdminUserModel.email) == email.lower())
-        )
+    async def get_by_email(
+        self,
+        email: str,
+        *,
+        realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
+    ) -> AdminUserModel | None:
+        stmt = select(AdminUserModel).where(func.lower(AdminUserModel.email) == email.lower())
+        realm_clause = self._realm_scope_clause(realm_id, include_legacy_default=include_legacy_default)
+        if realm_clause is not None:
+            stmt = stmt.where(realm_clause)
+        result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_login_or_email(self, login_or_email: str) -> AdminUserModel | None:
-        result = await self._session.execute(
-            select(AdminUserModel).where(
-                (AdminUserModel.login == login_or_email)
-                | (func.lower(AdminUserModel.email) == login_or_email.lower())
-            )
+    async def get_by_login_or_email(
+        self,
+        login_or_email: str,
+        *,
+        realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
+    ) -> AdminUserModel | None:
+        stmt = select(AdminUserModel).where(
+            (AdminUserModel.login == login_or_email) | (func.lower(AdminUserModel.email) == login_or_email.lower())
         )
+        realm_clause = self._realm_scope_clause(realm_id, include_legacy_default=include_legacy_default)
+        if realm_clause is not None:
+            stmt = stmt.where(realm_clause)
+        result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def create(self, model: AdminUserModel) -> AdminUserModel:

@@ -29,12 +29,33 @@ It covers:
 - go/no-go governance;
 - operational appendices for seam ownership and contract discipline.
 
+The readiness layer assumes the Phase 0 validation baseline defined in [../testing/partner-platform-phase-0-and-phase-1-validation-pack.md](../testing/partner-platform-phase-0-and-phase-1-validation-pack.md) already exists before any foundation phase is promoted beyond internal validation.
+
+The first operational readiness checkpoint that may consume `Phase 1` foundations also requires the signed evidence pack in [../testing/partner-platform-phase1-exit-evidence.md](../testing/partner-platform-phase1-exit-evidence.md).
+
+The first operational readiness checkpoint that may consume `Phase 2` order-domain foundations also requires the signed evidence pack in [../testing/partner-platform-phase2-exit-evidence.md](../testing/partner-platform-phase2-exit-evidence.md).
+
+The first operational readiness checkpoint that may consume `Phase 3` attribution, growth-reward, and renewal foundations also requires the signed evidence pack in [../testing/partner-platform-phase3-exit-evidence.md](../testing/partner-platform-phase3-exit-evidence.md).
+
+The first operational readiness checkpoint that may consume `Phase 4` settlement and payout foundations also requires the signed evidence pack in [../testing/partner-platform-phase4-exit-evidence.md](../testing/partner-platform-phase4-exit-evidence.md).
+
+Any internal payout rehearsal that consumes `Phase 4` settlement and payout foundations also requires the dry-run evidence specification in [../testing/partner-platform-phase4-dry-run-settlement-evidence.md](../testing/partner-platform-phase4-dry-run-settlement-evidence.md) together with the reconciliation pack definition in [../testing/partner-platform-phase4-settlement-reconciliation-pack.md](../testing/partner-platform-phase4-settlement-reconciliation-pack.md).
+
+The first operational readiness checkpoint that may consume `Phase 5` service identity, entitlement, provisioning, and access-delivery foundations also requires the signed evidence pack in [../testing/partner-platform-phase5-exit-evidence.md](../testing/partner-platform-phase5-exit-evidence.md) together with the replay/parity pack definition in [../testing/partner-platform-phase5-service-access-replay-pack.md](../testing/partner-platform-phase5-service-access-replay-pack.md).
+
+The first operational readiness checkpoint that may consume `Phase 6` official-web, partner-storefront, partner-portal, or admin surface foundations also requires the signed evidence pack in [../testing/partner-platform-phase6-exit-evidence.md](../testing/partner-platform-phase6-exit-evidence.md). No surface rollout ring may treat `Phase 6` customer or operator surfaces as promotion-ready without that signed closure record.
+
+The first operational readiness checkpoint that may consume `Phase 7` event/outbox, analytical marts, partner exports, reporting API, or channel-parity foundations also requires the signed evidence pack in [../testing/partner-platform-phase7-exit-evidence.md](../testing/partner-platform-phase7-exit-evidence.md) together with the deterministic packs in [../testing/partner-platform-phase7-analytical-marts-and-reconciliation-pack.md](../testing/partner-platform-phase7-analytical-marts-and-reconciliation-pack.md) and [../testing/partner-platform-phase7-parity-and-evidence-pack.md](../testing/partner-platform-phase7-parity-and-evidence-pack.md). No `Phase 8` shadow, pilot, or rollout-ring promotion may treat `Phase 7` reporting or parity surfaces as ready without those signed artifacts.
+
+Any `Phase 8` promotion from limited pilot posture into broad production activation also requires the signed readiness bundle in [../testing/partner-platform-phase8-production-readiness-bundle.md](../testing/partner-platform-phase8-production-readiness-bundle.md), the signed gate record in [../testing/partner-platform-phase8-exit-evidence.md](../testing/partner-platform-phase8-exit-evidence.md), and the completed human-approval tracker in [../testing/partner-platform-broad-activation-sign-off-tracker.md](../testing/partner-platform-broad-activation-sign-off-tracker.md). No `R3 -> R4` broad activation or broad cutover readiness may proceed without all three records.
+
 This document does not redefine business rules or target-state architecture. It assumes those are already frozen enough to support operational execution.
 
 Derived operational documents:
 
 - [2026-04-17-partner-platform-environment-specific-cutover-runbooks.md](2026-04-17-partner-platform-environment-specific-cutover-runbooks.md)
 - [2026-04-17-partner-platform-rehearsal-logs-and-evidence-archive-template.md](2026-04-17-partner-platform-rehearsal-logs-and-evidence-archive-template.md)
+- [2026-04-19-partner-platform-environment-command-inventory-sheet.md](2026-04-19-partner-platform-environment-command-inventory-sheet.md)
 - [2026-04-17-partner-platform-pilot-cohort-roster-and-rollout-calendar.md](2026-04-17-partner-platform-pilot-cohort-roster-and-rollout-calendar.md)
 - [2026-04-17-partner-platform-post-launch-stabilization-package.md](2026-04-17-partner-platform-post-launch-stabilization-package.md)
 
@@ -346,6 +367,9 @@ Promotion must stop if any of the following remain unresolved:
 - statement or payout liability mismatch above finance tolerance;
 - unresolved legal acceptance evidence gap;
 - entitlement drift causing incorrect service access;
+- missing owner acknowledgements for the pilot cohort being promoted;
+- missing or failed rollback drill for the cutover units in scope;
+- latest pilot go/no-go decision is absent, `hold`, or `no_go`;
 - missing rollback owner or undefined containment method;
 - support not ready for the affected surface or lane.
 

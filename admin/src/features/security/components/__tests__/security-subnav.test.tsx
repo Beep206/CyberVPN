@@ -49,6 +49,10 @@ describe('SecuritySubnav', () => {
       screen.getByRole('navigation', { name: 'layout.subnavLabel' }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('link')).toHaveLength(SECURITY_NAV_ITEMS.length);
+    expect(screen.getByRole('link', { name: 'nav.reviewQueue' })).toHaveAttribute(
+      'href',
+      '/security/review-queue',
+    );
   });
 
   it('marks nested security routes as active', () => {

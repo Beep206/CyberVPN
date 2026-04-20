@@ -5,7 +5,11 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    // Vitest supports both jsdom and happy-dom for browser-like tests.
+    // We use happy-dom here because the current jsdom/cssstyle stack crashes
+    // before test execution in this workspace runtime.
+    pool: 'threads',
+    environment: 'happy-dom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],

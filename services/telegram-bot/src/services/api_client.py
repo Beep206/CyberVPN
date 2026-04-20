@@ -606,24 +606,7 @@ class CyberVPNAPIClient:
 
     async def get_user_subscriptions(self, telegram_id: int) -> list[Any]:
         try:
-            entitlements = await self.get_current_entitlements(telegram_id)
-            status = str(entitlements.get("status") or "none")
-            if status == "none":
-                return []
-            effective = entitlements.get("effective_entitlements") or {}
-            return [
-                {
-                    "status": status,
-                    "plan_name": entitlements.get("display_name") or entitlements.get("plan_code") or "N/A",
-                    "expires_at": entitlements.get("expires_at"),
-                    "traffic_limit_bytes": None,
-                    "used_traffic_bytes": None,
-                    "device_limit": effective.get("device_limit"),
-                    "dedicated_ip_count": effective.get("dedicated_ip_count", 0),
-                    "period_days": entitlements.get("period_days"),
-                    "addons": entitlements.get("addons") or [],
-                }
-            ]
+            return await self._request_auth_backend_list("GET", f"/telegram/bot/user/{telegram_id}/subscriptions")
         except NotFoundError:
             user_data = await self.get_user(telegram_id)
             if isinstance(user_data, dict):
@@ -634,6 +617,22 @@ class CyberVPNAPIClient:
                 if subscription:
                     return [subscription]
             return []
+
+    async def get_user_orders(
+        self,
+        telegram_id: int,
+        *,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[Any]:
+        return await self._request_auth_backend_list(
+            "GET",
+            f"/telegram/bot/user/{telegram_id}/orders",
+            params={"limit": limit, "offset": offset},
+        )
+
+    async def get_current_service_state(self, telegram_id: int) -> dict[str, Any]:
+        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/service-state")
 
     async def check_trial_eligibility(self, telegram_id: int) -> dict[str, Any]:
         trial_status = await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/trial-status")

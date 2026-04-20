@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "title": "Dashboard - Ozoxy Partner Portal",
+    "description": "Status-aware operating surface for onboarding, review, inbox, cases, and readiness gating."
+  },
+  "eyebrow": "PARTNER OPERATING SURFACE",
+  "title": "OZOXY PARTNER PORTAL",
+  "subtitle": "PP2 turns the shell into a state-aware applicant workspace: review requests, inbox events, limited-access modules, and explainable blocked states now move together.",
+  "scenario": {
+    "label": "Local review scenario",
+    "description": "Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior.",
+    "helper": "Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell.",
+    "options": {
+      "draft": "Draft workspace",
+      "needs_info": "Needs info",
+      "under_review": "Under review",
+      "waitlisted": "Waitlisted",
+      "approved_probation": "Approved to probation",
+      "active": "Active workspace",
+      "restricted": "Restricted workspace"
+    }
+  },
+  "role": {
+    "label": "Workspace role simulator",
+    "description": "PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set.",
+    "helper": "The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces."
+  },
+  "releaseRing": {
+    "label": "Portal release ring",
+    "description": "PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens.",
+    "helper": "Use R1 for applicant and probation-safe launch, R2 for Creator / Affiliate launch, R3 for Performance rollout, and R4 for Reseller / API rollout."
+  },
+  "cards": {
+    "workspaceStatus": {
+      "title": "WORKSPACE STATUS",
+      "description": "Home, menu visibility, and direct-route posture all follow the same workspace band."
+    },
+    "pendingTasks": {
+      "title": "PENDING TASKS",
+      "description": "Requested info and readiness blockers are now surfaced as first-class partner tasks."
+    },
+    "notifications": {
+      "title": "INBOX SIGNALS",
+      "description": "Unread portal notifications expose the latest ops, review, and governance signals."
+    },
+    "cases": {
+      "title": "OPEN CASES",
+      "description": "Support and review threads stay visible even before operational launch."
+    }
+  },
+  "tasks": {
+    "title": "Pending tasks",
+    "description": "Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here.",
+    "openCases": "Open support & cases"
+  },
+  "readiness": {
+    "title": "Readiness overlays",
+    "description": "Finance, compliance, technical posture, and governance state are kept separate from the canonical workspace status."
+  },
+  "sections": {
+    "title": "Visible sections",
+    "description": "The sidebar and direct routes now follow the same visibility matrix."
+  },
+  "rollout": {
+    "title": "Rollout readiness",
+    "description": "Release-ring gating prevents modules from leaking ahead of the intended launch band.",
+    "currentRing": "Current ring",
+    "blockedCount": "Held modules",
+    "opensAt": "Opens at {ring}",
+    "empty": "No additional modules are being held back by the current release ring."
+  },
+  "performanceSnapshot": {
+    "title": "Performance Snapshot",
+    "description": "PP5 pulls core reporting signals onto the dashboard so analytics and export posture become visible before deeper conversion surfaces land.",
+    "open": "Open analytics"
+  },
+  "financeSnapshot": {
+    "title": "Finance Snapshot",
+    "description": "Finance readiness, reserves, and payout forecast now have a dedicated dashboard summary instead of hiding behind later settlement screens.",
+    "open": "Open finance",
+    "available": "Available earnings",
+    "onHold": "On hold",
+    "reserves": "Reserves",
+    "forecast": "Next payout forecast"
+  },
+  "notificationsPanel": {
+    "title": "Latest notifications",
+    "open": "Open inbox"
+  },
+  "casesPanel": {
+    "title": "Latest cases",
+    "open": "Open cases"
+  },
+  "nextActions": {
+    "title": "Next actions",
+    "description": "Use the applicant-safe surfaces to continue the review loop: update the application, respond to partner ops, and inspect inbox changes.",
+    "application": "Open application",
+    "cases": "Open cases",
+    "notifications": "Open notifications"
+  }
+}

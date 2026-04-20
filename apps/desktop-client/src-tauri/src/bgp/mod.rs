@@ -1,5 +1,5 @@
-pub mod speaker;
 pub mod os_router;
+pub mod speaker;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -35,7 +35,10 @@ pub async fn start_bgp_session(
     app_handle: AppHandle,
 ) -> Result<(), String> {
     let mut session = state.inner.lock().await;
-    session.start(config, app_handle).await.map_err(|e| e.to_string())?;
+    session
+        .start(config, app_handle)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -66,16 +69,21 @@ pub async fn check_is_admin() -> Result<bool, String> {
         let is_root = unsafe { libc::geteuid() == 0 };
         return Ok(is_root);
     }
-    
+
     #[cfg(windows)]
     {
         // Basic check for Windows: try to open the system physical drive or a privileged key
         // A common poor man's elevated check without pulling in complex winapi calls.
         use std::process::Command;
-        let output = Command::new("net")
-            .arg("session")
-            .output();
-        
+        let mut command = Command::new("net");
+        command.arg("session");
+
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        command.creation_flags(CREATE_NO_WINDOW);
+
+        let output = command.output();
+
         if let Ok(output) = output {
             return Ok(output.status.success());
         }
@@ -98,7 +106,16 @@ pub async fn restart_as_admin(app_handle: AppHandle) -> Result<(), String> {
         use std::process::Command;
         let p_str = format!("'{}'", path_str.replace("'", "''"));
         Command::new("powershell")
-            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Start-Process", &p_str, "-Verb", "runAs"])
+            .args([
+                "-NoProfile",
+                "-WindowStyle",
+                "Hidden",
+                "-Command",
+                "Start-Process",
+                &p_str,
+                "-Verb",
+                "runAs",
+            ])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -115,7 +132,10 @@ pub async fn restart_as_admin(app_handle: AppHandle) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         use std::process::Command;
-        let script = format!("do shell script \"'{}'\" with administrator privileges", path_str);
+        let script = format!(
+            "do shell script \"'{}'\" with administrator privileges",
+            path_str
+        );
         Command::new("osascript")
             .args(["-e", &script])
             .spawn()
@@ -130,4 +150,3 @@ pub async fn restart_as_admin(app_handle: AppHandle) -> Result<(), String> {
 
     Ok(())
 }
-

@@ -16,6 +16,7 @@ from src.application.dto.mobile_auth import (
 )
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import DuplicateUsernameError
 from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
@@ -58,7 +59,9 @@ class MobileRegisterUseCase:
         password_hash = await self.auth_service.hash_password(request.password)
 
         # Create mobile user
+        customer_realm = DEFAULT_AUTH_REALMS["customer"]
         user = MobileUserModel(
+            auth_realm_id=stable_auth_realm_id(str(customer_realm["realm_key"])),
             email=request.email,
             password_hash=password_hash,
             is_active=True,
@@ -86,9 +89,19 @@ class MobileRegisterUseCase:
             subject=str(created_user.id),
             role="mobile_user",
             extra={"device_id": request.device.device_id},
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(created_user.auth_realm_id),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
         )
         refresh_token, _refresh_jti, _refresh_expire = self.auth_service.create_refresh_token(
             subject=str(created_user.id),
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(created_user.auth_realm_id),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
         )
 
         # Build response

@@ -5,6 +5,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.commercial_bindings import CreateCustomerCommercialBindingUseCase
+from src.domain.enums import CommercialOwnerType, CustomerCommercialBindingType
 from src.domain.exceptions import PartnerCodeNotFoundError, UserAlreadyBoundToPartnerError
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
@@ -56,7 +58,28 @@ class BindPartnerUseCase:
             raise ValueError(msg)
 
         user.partner_user_id = code_model.partner_user_id
+        user.partner_account_id = code_model.partner_account_id
         await self._session.flush()
+
+        if user.auth_realm_id is not None:
+            await CreateCustomerCommercialBindingUseCase(self._session).execute(
+                user_id=user.id,
+                binding_type=CustomerCommercialBindingType.RESELLER_BINDING.value,
+                owner_type=CommercialOwnerType.RESELLER.value,
+                partner_code_id=code_model.id,
+                partner_account_id=code_model.partner_account_id,
+                reason_code="customer_partner_bind",
+                evidence_payload={
+                    "source": "partner_bind_endpoint",
+                    "partner_code": code_model.code,
+                },
+                commit=False,
+            )
+        else:
+            logger.warning(
+                "bind_partner_skipped_canonical_binding",
+                extra={"user_id": str(user_id), "reason": "missing_auth_realm_id"},
+            )
 
         logger.info(
             "user_bound_to_partner",

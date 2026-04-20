@@ -5,6 +5,7 @@ Registration use case for creating new admin users with email verification.
 import logging
 from datetime import UTC, datetime
 from typing import Protocol
+from uuid import UUID
 
 from src.application.services.auth_service import AuthService
 from src.application.services.otp_service import OtpService
@@ -69,6 +70,8 @@ class RegisterUseCase:
         email: str | None = None,
         role: AdminRole = AdminRole.VIEWER,
         locale: str = "en-EN",
+        auth_realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
     ) -> RegisterResult:
         """
         Register new admin user, optionally with email verification.
@@ -91,13 +94,21 @@ class RegisterUseCase:
             DuplicateUsernameError: If login or email already exists
         """
         # Check login uniqueness
-        existing_user = await self._user_repo.get_by_login(login)
+        existing_user = await self._user_repo.get_by_login(
+            login,
+            realm_id=auth_realm_id,
+            include_legacy_default=include_legacy_default,
+        )
         if existing_user:
             raise DuplicateUsernameError(username=login)
 
         # Check email uniqueness (only if email provided)
         if email:
-            existing_user = await self._user_repo.get_by_email(email)
+            existing_user = await self._user_repo.get_by_email(
+                email,
+                realm_id=auth_realm_id,
+                include_legacy_default=include_legacy_default,
+            )
             if existing_user:
                 raise DuplicateUsernameError(username=email)
 
@@ -112,6 +123,7 @@ class RegisterUseCase:
         user = AdminUserModel(
             login=login,
             email=email,
+            auth_realm_id=auth_realm_id,
             password_hash=password_hash,
             role=role.value,
             language=locale,

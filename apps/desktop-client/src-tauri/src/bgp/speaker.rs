@@ -36,14 +36,14 @@ impl BgpSessionState {
         // A mock implementation representing connection wait and established state
         self.task_handle = Some(tokio::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-            
+
             loop {
                 tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
             }
         }));
 
         self.status = "Established".to_string();
-        
+
         Ok(())
     }
 

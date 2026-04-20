@@ -125,6 +125,7 @@ class CheckoutQuoteRequest(BaseModel):
     plan_id: UUID = Field(..., description="Subscription plan to purchase")
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
     promo_code: str | None = Field(None, max_length=50, description="Optional promo code")
+    partner_code: str | None = Field(None, max_length=30, description="Optional partner code")
     use_wallet: float = Field(0, ge=0, description="Requested wallet amount in USD")
     currency: str = Field("USD", min_length=3, max_length=12, description="Gateway asset code")
     channel: str = Field("web", min_length=1, max_length=30, description="Checkout sale channel")

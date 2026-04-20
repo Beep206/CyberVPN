@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "homeTitle": "{brandName} storefront",
+    "homeDescription": "{brandName} partner-branded commerce shell with storefront-aware checkout, legal, and support context.",
+    "checkoutTitle": "{brandName} checkout",
+    "checkoutDescription": "Canonical quote, checkout session, order, and payment flow for {brandName}.",
+    "supportTitle": "{brandName} support",
+    "supportDescription": "Storefront-bound support routing and communication profile for {brandName}.",
+    "legalTitle": "{brandName} legal context",
+    "legalDescription": "Resolved legal-document set and customer obligations for {brandName}."
+  },
+  "home": {
+    "eyebrow": "Partner storefront",
+    "title": "{brandName}",
+    "subtitle": "Customer-facing surface bound to auth realm {realmKey}, storefront routing, branded support, and legal context.",
+    "checkoutCta": "Open checkout",
+    "legalCta": "View legal context",
+    "supportCta": "Support profile",
+    "loginCta": "Customer sign in",
+    "merchantLabel": "Merchant profile",
+    "supportLabel": "Support profile",
+    "communicationLabel": "Communication profile",
+    "realmLabel": "Auth realm",
+    "storefrontKeyLabel": "Storefront key",
+    "hostLabel": "Resolved host",
+    "billingDescriptorLabel": "Billing descriptor",
+    "refundModelLabel": "Refund model",
+    "chargebackModelLabel": "Chargeback model"
+  },
+  "checkout": {
+    "title": "Canonical checkout shell",
+    "subtitle": "This storefront reads pricebooks, legal bindings, entitlements, and service state from backend-owned contracts for {brandName}.",
+    "empty": "No eligible offers are currently active for this storefront.",
+    "checkoutAction": "Create order",
+    "checkoutPending": "Creating order",
+    "signInCta": "Sign in to continue",
+    "legalNotice": "Checkout remains bound to {count} legal documents for this storefront.",
+    "currentEntitlementLabel": "Current entitlement state",
+    "currentServiceStateLabel": "Current service state",
+    "orderReadyLabel": "Order committed",
+    "orderIdLabel": "Order ID",
+    "attemptStatusLabel": "Payment attempt status",
+    "paymentLinkLabel": "Invoice link",
+    "legalLinkLabel": "Legal docs",
+    "supportLinkLabel": "Support",
+    "pricebookLabel": "Pricebook",
+    "includedAddonsLabel": "Included add-ons: {count}"
+  },
+  "support": {
+    "eyebrow": "Storefront support",
+    "title": "{brandName} support routing",
+    "subtitle": "Customer support stays storefront-aware. Partner operator escalation remains on portal hosts.",
+    "channelLabel": "Primary channel",
+    "responseWindowLabel": "Response window",
+    "communicationLabel": "Communication profile",
+    "realmLabel": "Auth realm",
+    "storefrontLabel": "Storefront",
+    "checkoutCta": "Back to checkout",
+    "legalCta": "View legal docs"
+  },
+  "legal": {
+    "eyebrow": "Legal document set",
+    "title": "{brandName} legal surface",
+    "subtitle": "Resolved legal set: {setName}",
+    "required": "Required",
+    "optional": "Optional",
+    "checkoutCta": "Back to checkout",
+    "supportCta": "Support profile"
+  },
+  "auth": {
+    "title": "{brandName} customer sign in",
+    "subtitle": "Use customer credentials for this storefront. Partner workspace identity remains isolated on portal hosts.",
+    "registerBlockedTitle": "Customer self-serve registration stays on the official identity surface",
+    "registerBlockedDescription": "Use an existing customer account for branded checkout, or contact storefront support before creating a new identity.",
+    "verifyBlockedTitle": "Email verification for new customer identities stays outside the partner portal shell",
+    "verifyBlockedDescription": "Return to the storefront and continue with an existing account, or contact support to finish onboarding.",
+    "continueSignIn": "Continue to sign in",
+    "backHome": "Back to storefront"
+  }
+}

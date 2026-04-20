@@ -11,6 +11,7 @@ from time import perf_counter
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
@@ -31,10 +32,12 @@ from src.application.use_cases.auth.telegram_bot_link import TelegramBotLinkUseC
 from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
 from src.application.use_cases.auth.telegram_web_auth import TelegramWebAuthUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
+from src.application.use_cases.auth_realms import RealmResolution
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
 from src.infrastructure.monitoring.client_context import resolve_web_client_context
@@ -67,7 +70,15 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
 )
-from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
+from src.presentation.api.v1.auth.cookies import (
+    clear_auth_cookies,
+    get_refresh_token_cookie,
+    set_auth_cookies,
+)
+from src.presentation.api.v1.auth.realm_context import (
+    get_principal_type_for_realm,
+    get_scope_family_for_realm,
+)
 from src.presentation.api.v1.auth.schemas import (
     AdminUserResponse,
     ChangePasswordRequest,
@@ -106,6 +117,7 @@ from src.presentation.api.v1.auth.schemas import (
 )
 from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.presentation.dependencies.telegram_rate_limit import (
@@ -154,6 +166,33 @@ def _lockout_tier_from_remaining(remaining_seconds: int | None, permanent: bool)
     return "tier_1_30s"
 
 
+def _build_admin_user_response(
+    user: AdminUserModel,
+    current_realm: RealmResolution | None = None,
+) -> AdminUserResponse:
+    principal_type = get_principal_type_for_realm(current_realm) if current_realm else None
+    scope_family = get_scope_family_for_realm(current_realm) if current_realm else None
+
+    return AdminUserResponse(
+        id=user.id,
+        login=user.login,
+        email=user.email,
+        role=user.role,
+        telegram_id=user.telegram_id,
+        is_active=user.is_active,
+        is_email_verified=user.is_email_verified,
+        created_at=user.created_at,
+        sign_in_count=user.sign_in_count,
+        current_sign_in_ip=user.current_sign_in_ip,
+        last_login_at=user.last_login_at,
+        auth_realm_id=current_realm.auth_realm.id if current_realm else user.auth_realm_id,
+        auth_realm_key=current_realm.realm_key if current_realm else None,
+        audience=current_realm.audience if current_realm else None,
+        principal_type=principal_type,
+        scope_family=scope_family,
+    )
+
+
 @router.post(
     "/login",
     response_model=LoginResponse,
@@ -170,6 +209,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> LoginResponse:
     """Authenticate user and return access and refresh tokens.
 
@@ -238,6 +278,8 @@ async def login(
         auth_service=auth_service,
         session=db,
     )
+    principal_type = get_principal_type_for_realm(current_realm)
+    scope_family = get_scope_family_for_realm(current_realm)
 
     # Constant-time base delay to prevent timing attacks (HIGH-1)
     min_response_time = 0.1  # 100ms minimum
@@ -252,6 +294,12 @@ async def login(
             client_fingerprint=fingerprint,
             client_ip=_get_client_ip(http_request),
             user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_type=principal_type,
+            scope_family=scope_family,
+            include_legacy_default=current_realm.realm_key == "admin",
         )
     except Exception as e:
         # Record failed attempt
@@ -322,7 +370,11 @@ async def login(
 
     # Track successful auth attempt metric
     track_auth_attempt(method="password", success=True)
-    user = await user_repo.get_by_login_or_email(request.login_or_email)
+    user = await user_repo.get_by_login_or_email(
+        request.login_or_email,
+        realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
+    )
     locale = _resolve_locale(user=user)
     track_auth_password_identifier_event(
         channel="web",
@@ -393,7 +445,12 @@ async def login(
             client_context=client_context,
             status="success",
         )
-        set_auth_cookies(response, result["access_token"], result["refresh_token"])
+        set_auth_cookies(
+            response,
+            result["access_token"],
+            result["refresh_token"],
+            cookie_namespace=current_realm.cookie_namespace,
+        )
         await sync_active_sessions(db)
 
     await sync_auth_security_posture(db, redis_client)
@@ -404,6 +461,11 @@ async def login(
         refresh_token=result["refresh_token"],
         token_type=result["token_type"],
         expires_in=result["expires_in"],
+        auth_realm_id=result.get("auth_realm_id"),
+        auth_realm_key=result.get("auth_realm_key"),
+        audience=result.get("audience"),
+        principal_type=principal_type,
+        scope_family=scope_family,
         requires_2fa=result["requires_2fa"],
         tfa_token=result["tfa_token"],
     )
@@ -420,6 +482,7 @@ async def refresh_token(
     response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> TokenResponse:
     """Refresh access token using refresh token.
 
@@ -430,7 +493,7 @@ async def refresh_token(
     # SEC-01: Resolve refresh token from body or cookie
     token = request.refresh_token
     if not token:
-        token = http_request.cookies.get("refresh_token")
+        token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
     if not token:
         track_auth_error("expired_token")
         track_auth_session_operation("refresh", "missing_token")
@@ -461,6 +524,8 @@ async def refresh_token(
         auth_service=auth_service,
         session=db,
     )
+    principal_type = get_principal_type_for_realm(current_realm)
+    scope_family = get_scope_family_for_realm(current_realm)
 
     try:
         result = await use_case.execute(
@@ -468,6 +533,12 @@ async def refresh_token(
             client_fingerprint=fingerprint,
             client_ip=_get_client_ip(http_request),
             user_agent=http_request.headers.get("User-Agent"),
+            auth_realm_id=current_realm.auth_realm.id,
+            auth_realm_key=current_realm.realm_key,
+            audience=current_realm.audience,
+            principal_type=principal_type,
+            scope_family=scope_family,
+            include_legacy_default=current_realm.realm_key == "admin",
         )
     except InvalidCredentialsError as exc:
         track_auth_error("expired_token")
@@ -492,7 +563,12 @@ async def refresh_token(
             detail="Invalid or expired refresh token",
         ) from exc
 
-    set_auth_cookies(response, result["access_token"], result["refresh_token"])
+    set_auth_cookies(
+        response,
+        result["access_token"],
+        result["refresh_token"],
+        cookie_namespace=current_realm.cookie_namespace,
+    )
     await sync_active_sessions(db)
     track_auth_session_operation("refresh", "success")
     track_auth_session_detail(
@@ -509,6 +585,11 @@ async def refresh_token(
         refresh_token=result["refresh_token"],
         token_type=result["token_type"],
         expires_in=result["expires_in"],
+        auth_realm_id=result.get("auth_realm_id"),
+        auth_realm_key=result.get("auth_realm_key"),
+        audience=result.get("audience"),
+        principal_type=principal_type,
+        scope_family=scope_family,
     )
 
 
@@ -518,6 +599,7 @@ async def logout(
     http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ):
     """Logout user by invalidating refresh token and clearing auth cookies.
 
@@ -526,7 +608,7 @@ async def logout(
     # SEC-01: Resolve refresh token from body or cookie
     token = request.refresh_token
     if not token:
-        token = http_request.cookies.get("refresh_token")
+        token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
 
     if token:
         use_case = LogoutUseCase(session=db)
@@ -550,7 +632,7 @@ async def logout(
             reason="missing_token",
         )
 
-    clear_auth_cookies(response)
+    clear_auth_cookies(response, cookie_namespace=current_realm.cookie_namespace)
     return None
 
 
@@ -564,6 +646,7 @@ async def logout_all_devices(
     current_user=Depends(get_current_active_user),
     redis_client: redis.Redis = Depends(get_redis),
     db: AsyncSession = Depends(get_db),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> LogoutAllResponse:
     """Logout from all devices by revoking all user tokens (HIGH-6).
 
@@ -574,6 +657,23 @@ async def logout_all_devices(
 
     revocation_service = JWTRevocationService(redis_client)
     revoked_count = await revocation_service.revoke_all_user_tokens(str(current_user.id))
+    principal_sessions_result = await db.execute(
+        select(PrincipalSessionModel).where(
+            PrincipalSessionModel.auth_realm_id == current_realm.auth_realm.id,
+            PrincipalSessionModel.principal_subject == str(current_user.id),
+            PrincipalSessionModel.revoked_at.is_(None),
+        )
+    )
+    principal_sessions = list(principal_sessions_result.scalars().all())
+    for principal_session in principal_sessions:
+        if principal_session.access_token_jti:
+            expires_at = principal_session.expires_at
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            await revocation_service.revoke_token(
+                principal_session.access_token_jti,
+                expires_at,
+            )
     sessions_revoked = max(refresh_sessions_revoked, revoked_count)
     await sync_active_sessions(db)
     track_auth_session_operation("logout_all", "success")
@@ -586,7 +686,7 @@ async def logout_all_devices(
         amount=max(sessions_revoked, 1),
     )
 
-    clear_auth_cookies(response)
+    clear_auth_cookies(response, cookie_namespace=current_realm.cookie_namespace)
 
     logger.info(
         "User logged out from all devices",
@@ -626,18 +726,10 @@ async def logout_all_devices(
 )
 async def get_me(
     current_user=Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> AdminUserResponse:
     """Get current authenticated user information."""
-    return AdminUserResponse(
-        id=current_user.id,
-        login=current_user.login,
-        email=current_user.email,
-        role=current_user.role,
-        telegram_id=current_user.telegram_id,
-        is_active=current_user.is_active,
-        is_email_verified=current_user.is_email_verified,
-        created_at=current_user.created_at,
-    )
+    return _build_admin_user_response(current_user, current_realm)
 
 
 @router.delete(
@@ -704,6 +796,7 @@ async def verify_otp(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> VerifyOtpResponse:
     """
     Verify OTP code for email verification.
@@ -740,6 +833,12 @@ async def verify_otp(
         client_fingerprint=generate_client_fingerprint(http_request),
         client_ip=_get_client_ip(http_request),
         user_agent=http_request.headers.get("User-Agent"),
+        auth_realm_id=current_realm.auth_realm.id,
+        auth_realm_key=current_realm.realm_key,
+        audience=current_realm.audience,
+        principal_type=get_principal_type_for_realm(current_realm),
+        scope_family=get_scope_family_for_realm(current_realm),
+        include_legacy_default=current_realm.realm_key == "admin",
     )
 
     if not result.success:
@@ -792,7 +891,11 @@ async def verify_otp(
     track_first_login_after_activation("email_verification")
 
     # Get user for response
-    user = await user_repo.get_by_email(request.email)
+    user = await user_repo.get_by_email(
+        request.email,
+        realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User not found after verification"
@@ -848,7 +951,12 @@ async def verify_otp(
     )
 
     if result.access_token and result.refresh_token:
-        set_auth_cookies(response, result.access_token, result.refresh_token)
+        set_auth_cookies(
+            response,
+            result.access_token,
+            result.refresh_token,
+            cookie_namespace=current_realm.cookie_namespace,
+        )
 
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
@@ -859,7 +967,12 @@ async def verify_otp(
         refresh_token=result.refresh_token or "",
         token_type=result.token_type,
         expires_in=result.expires_in,
-        user=AdminUserResponse.model_validate(user),
+        auth_realm_id=current_realm.auth_realm.id,
+        auth_realm_key=current_realm.realm_key,
+        audience=current_realm.audience,
+        principal_type=get_principal_type_for_realm(current_realm),
+        scope_family=get_scope_family_for_realm(current_realm),
+        user=_build_admin_user_response(user, current_realm),
     )
 
 
@@ -1845,6 +1958,7 @@ async def forgot_password(
     request: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
     email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> ForgotPasswordResponse:
     """Request password reset OTP code.
 
@@ -1861,7 +1975,12 @@ async def forgot_password(
         session=db,
     )
 
-    await use_case.execute(email=request.email, locale=request.locale)
+    await use_case.execute(
+        email=request.email,
+        locale=request.locale,
+        auth_realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
+    )
     track_password_reset(operation="request", success=True)
 
     return ForgotPasswordResponse()
@@ -1879,6 +1998,7 @@ async def reset_password(
     request: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> ResetPasswordResponse:
     """Reset password using OTP code from forgot-password email."""
     started_at = perf_counter()
@@ -1897,6 +2017,8 @@ async def reset_password(
         email=request.email,
         code=request.code,
         new_password=request.new_password,
+        auth_realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
     )
 
     if not result.success:

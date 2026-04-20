@@ -10,11 +10,15 @@
 
 This document governs the period after `R4` activation.
 
+It assumes the signed production-readiness bundle and signed `Phase 8` exit-evidence record already exist for the exact activated scope.
+
 It should be used together with:
 
 - [2026-04-17-partner-platform-operational-readiness-package.md](2026-04-17-partner-platform-operational-readiness-package.md)
 - [2026-04-17-partner-platform-rehearsal-logs-and-evidence-archive-template.md](2026-04-17-partner-platform-rehearsal-logs-and-evidence-archive-template.md)
 - [2026-04-17-partner-platform-pilot-cohort-roster-and-rollout-calendar.md](2026-04-17-partner-platform-pilot-cohort-roster-and-rollout-calendar.md)
+- [../testing/partner-platform-phase8-production-readiness-bundle.md](../testing/partner-platform-phase8-production-readiness-bundle.md)
+- [../testing/partner-platform-phase8-exit-evidence.md](../testing/partner-platform-phase8-exit-evidence.md)
 
 This package exists to keep the platform stable after launch while the system is still proving itself under live scale.
 

@@ -1,6 +1,9 @@
 tray:
   quit: "Quit"
+  quitting: "Quitting..."
   show: "Show App"
+  hide: "Hide to Tray"
   connect: "Connect"
   disconnect: "Disconnect"
   connecting: "Connecting..."
+  disconnecting: "Disconnecting..."

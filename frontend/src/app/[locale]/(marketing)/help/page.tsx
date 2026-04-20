@@ -10,6 +10,7 @@ import { HelpCategories } from '@/widgets/help-categories';
 import { HelpFaq } from '@/widgets/help-faq';
 import { getHelpKnowledge } from '@/widgets/help-faq-server';
 import { HelpContact } from '@/widgets/help-contact';
+import { OfficialSupportRoutingPanel } from '@/widgets/official-support-routing-panel';
 import { Footer } from '@/widgets/footer';
 import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
@@ -60,6 +61,7 @@ export default async function HelpCenterPage({ params }: { params: Promise<{ loc
                 <div className="container mx-auto px-4 py-16 space-y-24 z-10 relative">
                     <HelpCategories />
                     <HelpFaq />
+                    <OfficialSupportRoutingPanel locale={locale} />
                     <HelpContact locale={locale} />
                 </div>
                 <Footer locale={locale} />

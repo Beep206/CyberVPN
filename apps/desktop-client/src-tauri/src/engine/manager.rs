@@ -10,6 +10,15 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{CloseHandle, HANDLE};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Threading::{GetExitCodeProcess, TerminateProcess};
+#[cfg(target_os = "windows")]
+const STILL_ACTIVE_EXIT_CODE: u32 = 259;
+
 lazy_static! {
     static ref TRAFFIC_REGEX: Regex =
         Regex::new(r"(?i)(?:up|sent)\D*(\d+)\D*(?:down|recv)\D*(\d+)").unwrap();
@@ -98,7 +107,7 @@ pub struct ProcessManager {
     #[cfg(target_os = "windows")]
     is_elevated_run: Arc<Mutex<bool>>,
     #[cfg(target_os = "windows")]
-    elevated_process_name: Arc<Mutex<Option<String>>>,
+    elevated_process_handle: Arc<Mutex<Option<usize>>>,
     expected_exit: Arc<Mutex<bool>>,
     domain_failures: Arc<Mutex<std::collections::HashMap<String, (u32, std::time::Instant)>>>,
     pub threats_blocked: Arc<AtomicU64>,
@@ -219,7 +228,7 @@ async fn handle_unexpected_runtime_exit(app_handle: &AppHandle, reason: &str) {
         status_lock.down_bytes = 0;
         let status_snapshot = status_lock.clone();
         drop(status_lock);
-        let _ = app_handle.emit("connection-status", status_snapshot);
+        let _ = crate::ipc::emit_connection_status_event(app_handle, status_snapshot);
 
         let _ = crate::engine::diagnostics::record_event(
             app_handle,
@@ -256,7 +265,7 @@ impl ProcessManager {
             #[cfg(target_os = "windows")]
             is_elevated_run: Arc::new(Mutex::new(false)),
             #[cfg(target_os = "windows")]
-            elevated_process_name: Arc::new(Mutex::new(None)),
+            elevated_process_handle: Arc::new(Mutex::new(None)),
             expected_exit: Arc::new(Mutex::new(false)),
             domain_failures: Arc::new(Mutex::new(std::collections::HashMap::new())),
             threats_blocked: Arc::new(AtomicU64::new(0)),
@@ -307,17 +316,12 @@ impl ProcessManager {
             {
                 // Invoke UAC elevation
                 println!("Requesting elevation via UAC...");
-                crate::engine::sys::elevate_and_run(&bin_path, &config_path)?;
+                let elevated_process_handle =
+                    crate::engine::sys::elevate_and_run(&bin_path, &config_path)?;
 
                 let mut elevated_guard = self.is_elevated_run.lock().await;
                 *elevated_guard = true;
-                *self.elevated_process_name.lock().await = Some(
-                    bin_path
-                        .file_name()
-                        .and_then(|name| name.to_str())
-                        .unwrap_or("sing-box.exe")
-                        .to_string(),
-                );
+                *self.elevated_process_handle.lock().await = Some(elevated_process_handle);
 
                 // We must tail the log file asynchronously
                 let log_path = config_path.with_file_name("run.log");
@@ -325,71 +329,90 @@ impl ProcessManager {
                 let failures_clone1 = self.domain_failures.clone();
                 let threats_clone1 = self.threats_blocked.clone();
                 tokio::spawn(async move {
-                    // Give process a moment to create the log file array
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                    if let Ok(file) = tokio::fs::File::open(&log_path).await {
-                        let mut reader = tokio::io::BufReader::new(file);
-                        let mut line = String::new();
-                        use tokio::io::AsyncBufReadExt;
+                    let deadline =
+                        tokio::time::Instant::now() + tokio::time::Duration::from_secs(15);
+                    let file = loop {
+                        match tokio::fs::File::open(&log_path).await {
+                            Ok(file) => break Some(file),
+                            Err(_) if tokio::time::Instant::now() < deadline => {
+                                tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+                            }
+                            Err(error) => {
+                                let _ = crate::engine::diagnostics::record_event(
+                                    &app_clone,
+                                    crate::engine::diagnostics::DiagnosticLevel::Warn,
+                                    "runtime.sing-box",
+                                    "Elevated sing-box log file did not appear in time",
+                                    serde_json::json!({
+                                        "log_path": log_path.display().to_string(),
+                                        "error": error.to_string(),
+                                    }),
+                                );
+                                break None;
+                            }
+                        }
+                    };
 
-                        loop {
-                            line.clear();
-                            match reader.read_line(&mut line).await {
-                                Ok(0) => {
-                                    // EOF reached, wait and try again
-                                    tokio::time::sleep(tokio::time::Duration::from_millis(200))
-                                        .await;
+                    let Some(file) = file else {
+                        return;
+                    };
+
+                    let mut reader = tokio::io::BufReader::new(file);
+                    let mut line = String::new();
+                    use tokio::io::AsyncBufReadExt;
+
+                    loop {
+                        line.clear();
+                        match reader.read_line(&mut line).await {
+                            Ok(0) => {
+                                // EOF reached, wait and try again
+                                tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                            }
+                            Ok(_) => {
+                                let trimmed = line.trim();
+                                if trimmed.is_empty() {
+                                    continue;
                                 }
-                                Ok(_) => {
-                                    let trimmed = line.trim();
-                                    if trimmed.is_empty() {
-                                        continue;
+
+                                // Check for traffic stats
+                                if let Some(caps) = TRAFFIC_REGEX.captures(trimmed) {
+                                    if let (Ok(up), Ok(down)) =
+                                        (caps[1].parse::<u64>(), caps[2].parse::<u64>())
+                                    {
+                                        let _ = app_clone
+                                            .emit("traffic_update", TrafficUpdate { up, down });
+                                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                                     }
-
-                                    // Check for traffic stats
-                                    if let Some(caps) = TRAFFIC_REGEX.captures(trimmed) {
-                                        if let (Ok(up), Ok(down)) =
-                                            (caps[1].parse::<u64>(), caps[2].parse::<u64>())
-                                        {
-                                            let _ = app_clone
-                                                .emit("traffic_update", TrafficUpdate { up, down });
-                                            crate::engine::sys::stats::update_absolute_bytes(
-                                                up, down,
-                                            );
-                                        }
-                                    } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
-                                        if let (Ok(down), Ok(up)) =
-                                            (caps[1].parse::<u64>(), caps[2].parse::<u64>())
-                                        {
-                                            let _ = app_clone
-                                                .emit("traffic_update", TrafficUpdate { up, down });
-                                            crate::engine::sys::stats::update_absolute_bytes(
-                                                up, down,
-                                            );
-                                        }
+                                } else if let Some(caps) = TRAFFIC_REGEX_REV.captures(trimmed) {
+                                    if let (Ok(down), Ok(up)) =
+                                        (caps[1].parse::<u64>(), caps[2].parse::<u64>())
+                                    {
+                                        let _ = app_clone
+                                            .emit("traffic_update", TrafficUpdate { up, down });
+                                        crate::engine::sys::stats::update_absolute_bytes(up, down);
                                     }
-                                    let _ = app_clone.emit("singbox-log", trimmed);
-                                    let _ = crate::engine::diagnostics::append_core_runtime_log(
-                                        &app_clone, "sing-box", "stdout", trimmed,
-                                    );
-
-                                    check_routing_failures(
-                                        trimmed,
-                                        failures_clone1.clone(),
-                                        app_clone.clone(),
-                                    )
-                                    .await;
-
-                                    check_privacy_threats(
-                                        trimmed,
-                                        threats_clone1.clone(),
-                                        app_clone.clone(),
-                                    )
-                                    .await;
                                 }
-                                Err(_) => {
-                                    break;
-                                }
+                                let _ = app_clone.emit("singbox-log", trimmed);
+                                let _ = crate::engine::diagnostics::append_core_runtime_log(
+                                    &app_clone, "sing-box", "stdout", trimmed,
+                                );
+
+                                check_routing_failures(
+                                    trimmed,
+                                    failures_clone1.clone(),
+                                    app_clone.clone(),
+                                )
+                                .await;
+
+                                check_privacy_threats(
+                                    trimmed,
+                                    threats_clone1.clone(),
+                                    app_clone.clone(),
+                                )
+                                .await;
+                            }
+                            Err(_) => {
+                                break;
                             }
                         }
                     }
@@ -398,12 +421,11 @@ impl ProcessManager {
                 let app_clone_watchdog = app_handle.clone();
                 let expected_exit_arc = self.expected_exit.clone();
                 let is_elevated_arc = self.is_elevated_run.clone();
-                let elevated_process_name_arc = self.elevated_process_name.clone();
+                let elevated_process_handle_arc = self.elevated_process_handle.clone();
 
                 tokio::spawn(async move {
                     let mut interval =
                         tokio::time::interval(tokio::time::Duration::from_millis(500));
-                    let mut sys = sysinfo::System::new();
 
                     loop {
                         interval.tick().await;
@@ -414,21 +436,24 @@ impl ProcessManager {
 
                         let mut is_running = false;
                         if *is_elevated_arc.lock().await {
-                            is_running = true;
-                            sys.refresh_processes();
-                            let expected_process_name = elevated_process_name_arc
-                                .lock()
-                                .await
-                                .clone()
-                                .unwrap_or_else(|| "sing-box.exe".to_string());
-                            let found = sys
-                                .processes_by_exact_name(expected_process_name.as_str())
-                                .next()
-                                .is_some();
-                            if !found {
-                                is_running = false;
+                            if let Some(raw_handle) = *elevated_process_handle_arc.lock().await {
+                                let handle = HANDLE(raw_handle as *mut std::ffi::c_void);
+                                let mut exit_code = 0u32;
+                                let still_active = unsafe {
+                                    GetExitCodeProcess(handle, &mut exit_code).is_ok()
+                                        && exit_code == STILL_ACTIVE_EXIT_CODE
+                                };
+                                if still_active {
+                                    is_running = true;
+                                } else {
+                                    unsafe {
+                                        let _ = CloseHandle(handle);
+                                    }
+                                    *elevated_process_handle_arc.lock().await = None;
+                                    *is_elevated_arc.lock().await = false;
+                                }
+                            } else {
                                 *is_elevated_arc.lock().await = false;
-                                *elevated_process_name_arc.lock().await = None;
                             }
                         }
 
@@ -473,8 +498,11 @@ impl ProcessManager {
             c.arg("run")
                 .arg("-c")
                 .arg(&config_path)
+                .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
+            #[cfg(target_os = "windows")]
+            c.creation_flags(CREATE_NO_WINDOW);
             c
         };
 
@@ -649,19 +677,15 @@ impl ProcessManager {
         {
             let mut elevated_guard = self.is_elevated_run.lock().await;
             if *elevated_guard {
-                let process_name = self
-                    .elevated_process_name
-                    .lock()
-                    .await
-                    .clone()
-                    .unwrap_or_else(|| "sing-box.exe".to_string());
-                println!("Stopping elevated VPN core via taskkill...");
-                let _ = tokio::process::Command::new("taskkill")
-                    .args(["/F", "/IM", process_name.as_str()])
-                    .output()
-                    .await;
+                if let Some(raw_handle) = self.elevated_process_handle.lock().await.take() {
+                    let handle = HANDLE(raw_handle as *mut std::ffi::c_void);
+                    println!("Stopping elevated VPN core via process handle...");
+                    unsafe {
+                        let _ = TerminateProcess(handle, 1);
+                        let _ = CloseHandle(handle);
+                    }
+                }
                 *elevated_guard = false;
-                *self.elevated_process_name.lock().await = None;
                 return Ok(());
             }
         }

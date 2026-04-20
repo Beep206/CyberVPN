@@ -1,0 +1,18 @@
+{
+    "title": "БАЗА КЛИЕНТОВ",
+    "searchPlaceholder": "ПОИСК_ПОЛЬЗОВАТЕЛЯ...",
+    "columns": {
+        "identity": "ИДЕНТИФИКАТОР",
+        "subscription": "ПОДПИСКА",
+        "dataUsage": "ТРАФИК",
+        "status": "СТАТУС",
+        "lastSeen": "ПОСЛЕДНИЙ ВИЗИТ",
+        "actions": "ДЕЙСТВИЯ"
+    },
+    "status": {
+        "active": "АКТИВЕН",
+        "expired": "ИСТЕК",
+        "banned": "ЗАБЛОКИРОВАН",
+        "trial": "ПРОБНЫЙ"
+    }
+}

@@ -1,0 +1,1636 @@
+{
+  "title": "PARTNER DASHBOARD",
+  "subtitle": "Manage codes, track earnings, grow your network",
+  "pageTitle": "Partner Dashboard - CyberVPN",
+  "pageDescription": "Manage your partner codes and track earnings",
+  "application": {
+    "metaTitle": "Application - Ozoxy Partner Portal",
+    "metaDescription": "Create the partner workspace foundation, complete the staged application, and submit the package into the governed backend review flow.",
+    "eyebrow": "PP1 APPLICATION FOUNDATION",
+    "title": "Partner Workspace Application",
+    "subtitle": "This is the first real onboarding loop for the separate partner realm: create the workspace baseline, complete the staged application draft, and submit it into the governed backend review flow.",
+    "status": {
+      "draft": "Draft Application",
+      "ready": "Ready For Review",
+      "submitted": "Submitted For Review",
+      "actionRequired": "Action Required",
+      "backendLinked": "Backend Source Of Truth"
+    },
+    "summary": {
+      "progressLabel": "Foundation progress",
+      "savedAt": "Last saved: {value}",
+      "notSaved": "No local draft has been saved yet."
+    },
+    "stages": {
+      "title": "Application stages",
+      "description": "The portal keeps workspace, profile, compliance, and review as separate steps so the governed activation model stays explicit.",
+      "stageNumber": "Stage {value}",
+      "items": {
+        "workspace": {
+          "label": "Workspace",
+          "description": "Establish the partner workspace shell and declare the primary lane."
+        },
+        "profile": {
+          "label": "Profile",
+          "description": "Capture the starter organization profile that partner ops will review first."
+        },
+        "compliance": {
+          "label": "Compliance",
+          "description": "Record the baseline traffic and disclosure attestations."
+        },
+        "review": {
+          "label": "Review",
+          "description": "Check readiness and mark the draft as prepared for backend submission."
+        }
+      }
+    },
+    "panels": {
+      "workspace": {
+        "intro": "Create the minimum workspace identity for the portal. This stage stays intentionally small so applicants can start quickly without collapsing the later review flow."
+      },
+      "profile": {
+        "intro": "Add the starter organization profile and channel context. The goal is not full KYB yet, but enough signal for fit review and routing."
+      },
+      "compliance": {
+        "intro": "Keep traffic and disclosure expectations explicit. These attestations stay separate from general terms because they drive review and governance later.",
+        "notice": "This baseline declaration does not replace later finance, tax, or lane-specific compliance work. It captures the first mandatory partner-side attestations.",
+        "items": {
+          "disclosure": "I will clearly disclose the material connection when promoting CyberVPN.",
+          "fakeReviews": "I will not use fake reviews, misleading testimonials, or deceptive privacy claims.",
+          "brandBidding": "I will not brand-bid or launch undeclared traffic methods without written approval.",
+          "audit": "I accept evidence requests, traffic review, and compliance audits when required."
+        }
+      },
+      "review": {
+        "intro": "Review the current draft, verify the staged inputs are complete, and submit the package into the backend review queue.",
+        "validation": "Complete the workspace, profile, and compliance stages before marking the application ready.",
+        "backendNote": "Draft data is now persisted in the backend. Local storage remains only as an autosave cache so in-progress edits are not lost before the next sync.",
+        "requestedInfoTitle": "Open review requests",
+        "requiredFields": "Required fields: {value}"
+      }
+    },
+    "fields": {
+      "workspaceName": "Workspace / business name",
+      "country": "Country",
+      "primaryLane": "Primary partner lane",
+      "contactName": "Primary contact",
+      "contactEmail": "Business email",
+      "website": "Website or primary property",
+      "businessDescription": "Business description",
+      "acquisitionChannels": "Main acquisition channels",
+      "complianceAccepted": "I confirm the disclosure, traffic, and compliance baseline for this application draft."
+    },
+    "placeholders": {
+      "workspaceName": "North Star Growth Studio",
+      "country": "Germany",
+      "contactName": "Alex Mercer",
+      "contactEmail": "partners@example.com",
+      "website": "https://example.com",
+      "businessDescription": "Describe the business model, audience, and why CyberVPN fits.",
+      "acquisitionChannels": "SEO content, Telegram channels, paid media, communities, owned storefronts..."
+    },
+    "laneOptions": {
+      "creatorAffiliate": {
+        "label": "Creator / Affiliate",
+        "description": "Owned content, communities, comparison pages, or creator-led promotion."
+      },
+      "performanceMedia": {
+        "label": "Performance / Media",
+        "description": "Declared paid traffic, postback-ready campaigns, and tighter launch controls."
+      },
+      "resellerApi": {
+        "label": "Reseller / API",
+        "description": "Distribution, storefront, or API resale with legal and support responsibilities."
+      }
+    },
+    "laneSummary": {
+      "creator_affiliate": "Creator / Affiliate",
+      "performance_media": "Performance / Media",
+      "reseller_api": "Reseller / API"
+    },
+    "review": {
+      "workspaceSummary": "Workspace summary",
+      "readinessSummary": "Readiness summary",
+      "currentStatus": "Current status",
+      "complete": "Complete",
+      "missing": "Missing"
+    },
+    "actions": {
+      "saveDraft": "Save Draft",
+      "resetDraft": "Reset Draft",
+      "withdraw": "Withdraw",
+      "back": "Back",
+      "next": "Next Stage",
+      "markReady": "Submit Application",
+      "resubmit": "Resubmit Application"
+    },
+    "saveFeedback": {
+      "saved": "Draft synced with the partner backend.",
+      "error": "We couldn't sync the application draft with the partner backend."
+    },
+    "submitFeedback": {
+      "submitted": "Application submitted for partner review.",
+      "resubmitted": "Application resubmitted after requested updates.",
+      "withdrawn": "Application moved back to draft state.",
+      "workspaceRequired": "A backend workspace draft is required before the application can continue.",
+      "error": "We couldn't update the backend application flow."
+    },
+    "readOnlyMode": "This role can review the application foundation, but cannot edit or submit it.",
+    "linkedWorkspaces": {
+      "title": "Next portal surfaces",
+      "description": "Use the canonical route map now: `/organization` will become the durable business profile surface, while `/settings` holds security and session controls.",
+      "organizationLink": "Open organization surface",
+      "settingsLink": "Open settings surface"
+    }
+  },
+  "organization": {
+    "metaTitle": "Organization - Ozoxy Partner Portal",
+    "metaDescription": "Manage the canonical partner organization profile, operating regions, and key contacts for the active workspace.",
+    "eyebrow": "WORKSPACE ORGANIZATION PROFILE",
+    "title": "Organization Profile",
+    "subtitle": "This surface stores the canonical organization profile for the active workspace and keeps partner identity, contacts, and operating context aligned with backend truth.",
+    "status": {
+      "foundation": "Canonical Profile"
+    },
+    "summary": {
+      "profileCoverage": "Profile coverage",
+      "savedAt": "Last saved: {value}",
+      "notSaved": "No backend save has been recorded yet for this workspace profile.",
+      "reviewReady": "Application draft is currently marked ready for review.",
+      "reviewPending": "Application draft still needs more organization details before review."
+    },
+    "fields": {
+      "workspaceName": "Workspace / business name",
+      "website": "Website or storefront",
+      "country": "Country",
+      "operatingRegions": "Operating regions / top geos",
+      "languages": "Working languages",
+      "primaryLane": "Primary lane",
+      "contactName": "Primary contact",
+      "contactEmail": "Business email",
+      "supportContact": "Support contact",
+      "technicalContact": "Technical contact",
+      "financeContact": "Finance contact",
+      "businessDescription": "Business description",
+      "acquisitionChannels": "Acquisition channels"
+    },
+    "placeholders": {
+      "workspaceName": "North Star Growth Studio",
+      "website": "https://example.com",
+      "country": "Germany",
+      "operatingRegions": "DACH, Nordics, UK",
+      "languages": "English, German, Russian",
+      "primaryLane": "Choose a lane in the application surface first",
+      "contactName": "Alex Mercer",
+      "contactEmail": "partners@example.com",
+      "supportContact": "support@example.com",
+      "technicalContact": "tech@example.com",
+      "financeContact": "finance@example.com",
+      "businessDescription": "Describe the partner organization, audience, and market fit.",
+      "acquisitionChannels": "SEO content, Telegram channels, newsletters, communities, paid media..."
+    },
+    "laneSummary": {
+      "creator_affiliate": "Creator / Affiliate",
+      "performance_media": "Performance / Media",
+      "reseller_api": "Reseller / API"
+    },
+    "actions": {
+      "save": "Save Profile",
+      "reset": "Reset Changes"
+    },
+    "saveFeedback": {
+      "saved": "Workspace organization profile saved.",
+      "error": "We couldn't save the workspace organization profile."
+    },
+    "readOnlyMode": "This role can review the organization profile, but cannot edit it.",
+    "readiness": {
+      "title": "Why this matters",
+      "description": "The organization profile is now a backend-owned workspace surface used by review, routing, finance, and support flows.",
+      "items": {
+        "workspace": "Keep the active workspace identity aligned with its business-facing profile.",
+        "contacts": "Maintain named contacts for support, technical, and finance operations.",
+        "geo": "Keep regions and languages current for lane review and routing.",
+        "channels": "Preserve business and channel context for review, compliance, and analytics surfaces."
+      }
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "application": "Open application",
+      "settings": "Open settings",
+      "programs": "Open programs surface"
+    }
+  },
+  "settings": {
+    "metaTitle": "Settings - Ozoxy Partner Portal",
+    "metaDescription": "Manage workspace settings, delivery preferences, and operator-facing security posture for the active partner workspace.",
+    "eyebrow": "WORKSPACE SETTINGS AND SECURITY",
+    "title": "Workspace Settings",
+    "subtitle": "This surface is now backed by canonical workspace settings: identity summary, notification preferences, and workspace security posture all persist through backend contracts.",
+    "status": {
+      "foundation": "Security Profile"
+    },
+    "summary": {
+      "securityCoverage": "Security readiness",
+      "savedAt": "Last saved: {value}",
+      "notSaved": "No backend save has been recorded yet for these workspace settings.",
+      "cookieModel": "Auth uses cookie-backed partner sessions; deeper MFA and active-session controls remain follow-on backend milestones."
+    },
+    "identity": {
+      "title": "Account identity",
+      "description": "Use the authenticated partner session and workspace role as the current identity read model.",
+      "items": {
+        "email": "Email",
+        "role": "Role",
+        "emailVerified": "Email verified",
+        "sessionModel": "Session model"
+      },
+      "values": {
+        "yes": "Yes",
+        "no": "No",
+        "cookieBacked": "Cookie-backed session"
+      }
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Notification and delivery preferences are now saved through the workspace settings contract."
+    },
+    "security": {
+      "title": "Security posture",
+      "description": "These controls persist as workspace security posture, even where enforcement remains tied to later auth milestones."
+    },
+    "fields": {
+      "preferredLanguage": "Preferred language",
+      "preferredCurrency": "Preferred currency"
+    },
+    "placeholders": {
+      "preferredLanguage": "ru-RU",
+      "preferredCurrency": "USD"
+    },
+    "toggles": {
+      "workspaceSecurityAlerts": {
+        "label": "Security alerts",
+        "description": "Receive alerts when partner access or governance posture changes."
+      },
+      "payoutStatusEmails": {
+        "label": "Payout status emails",
+        "description": "Receive future finance and settlement state notifications in the workspace inbox and email."
+      },
+      "productAnnouncements": {
+        "label": "Program announcements",
+        "description": "Receive portal release notes, enablement updates, and program communications."
+      },
+      "requireMfaForWorkspace": {
+        "label": "Plan MFA enforcement",
+        "description": "Record that the workspace intends to require MFA when the backend enforcement hooks are available."
+      },
+      "preferPasskeys": {
+        "label": "Prefer passkeys",
+        "description": "Mark passkeys as the preferred future sign-in method for this workspace."
+      },
+      "reviewedActiveSessions": {
+        "label": "Review active sessions",
+        "description": "Confirm the workspace has reviewed current session hygiene before launch."
+      }
+    },
+    "actions": {
+      "save": "Save Settings",
+      "reset": "Reset Settings"
+    },
+    "saveFeedback": {
+      "saved": "Workspace settings saved.",
+      "error": "We couldn't save the workspace settings."
+    },
+    "nextSteps": {
+      "title": "What comes later",
+      "description": "The workspace settings contract is live, but some security and delivery capabilities still depend on later backend rollout.",
+      "items": {
+        "mfa": "Real MFA setup, enforcement, and audit hooks.",
+        "sessions": "Live active-session inspection and revocation.",
+        "notifications": "Server-backed delivery preferences and inbox routing."
+      }
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "application": "Open application",
+      "organization": "Open organization",
+      "team": "Open team & access",
+      "legal": "Open contracts & legal"
+    },
+    "workspaceContext": {
+      "role": "Workspace role",
+      "status": "Workspace status"
+    }
+  },
+  "portalState": {
+    "workspaceStatusLabel": "Workspace status",
+    "workspaceRoleLabel": "Workspace role",
+    "releaseRingLabel": "Release ring",
+    "visibilityBandLabel": "Visibility band",
+    "accessibleSectionsLabel": "Accessible sections",
+    "currentLaneLabel": "Primary lane",
+    "currentAccessLabel": "Current access",
+    "currentVisibilityLabel": "Current visibility",
+    "updatedAtLabel": "Last runtime refresh",
+    "notSaved": "No runtime snapshot available yet.",
+    "noLane": "No lane selected",
+    "workspaceRoles": {
+      "workspace_owner": "Workspace Owner",
+      "workspace_admin": "Workspace Admin",
+      "finance_manager": "Finance Manager",
+      "analyst": "Analyst",
+      "traffic_manager": "Traffic Manager",
+      "support_manager": "Support Manager",
+      "technical_manager": "Technical Manager",
+      "legal_compliance_manager": "Legal / Compliance Manager"
+    },
+    "workspaceStatuses": {
+      "draft": "Draft",
+      "email_verified": "Email verified",
+      "submitted": "Submitted",
+      "needs_info": "Needs info",
+      "under_review": "Under review",
+      "waitlisted": "Waitlisted",
+      "approved_probation": "Approved probation",
+      "active": "Active",
+      "restricted": "Restricted",
+      "suspended": "Suspended",
+      "rejected": "Rejected",
+      "terminated": "Terminated"
+    },
+    "visibilityBands": {
+      "pre_submit": "Pre-submit",
+      "review": "Review",
+      "probation": "Probation",
+      "active": "Active",
+      "constrained": "Constrained",
+      "terminal": "Terminal"
+    },
+    "releaseRings": {
+      "R0": "R0 Internal scaffold",
+      "R1": "R1 Applicant-safe launch",
+      "R2": "R2 Creator / Affiliate launch",
+      "R3": "R3 Performance rollout",
+      "R4": "R4 Reseller / API rollout"
+    },
+    "laneLabels": {
+      "creator_affiliate": "Creator / Affiliate",
+      "performance_media": "Performance / Media",
+      "reseller_api": "Reseller / API"
+    },
+    "laneStatuses": {
+      "not_applied": "Not applied",
+      "pending": "Pending review",
+      "approved_probation": "Approved probation",
+      "approved_active": "Approved active",
+      "declined": "Declined",
+      "paused": "Paused",
+      "suspended": "Suspended",
+      "terminated": "Terminated"
+    },
+    "readinessLabels": {
+      "finance": "Finance readiness",
+      "compliance": "Compliance readiness",
+      "technical": "Technical readiness",
+      "governance": "Governance state"
+    },
+    "financeStates": {
+      "not_started": "Not started",
+      "in_progress": "In progress",
+      "ready": "Ready",
+      "blocked": "Blocked"
+    },
+    "complianceStates": {
+      "not_started": "Not started",
+      "declarations_complete": "Declarations complete",
+      "evidence_requested": "Evidence requested",
+      "approved": "Approved",
+      "blocked": "Blocked"
+    },
+    "technicalStates": {
+      "not_required": "Not required",
+      "in_progress": "In progress",
+      "ready": "Ready",
+      "blocked": "Blocked"
+    },
+    "governanceStates": {
+      "clear": "Clear",
+      "watch": "Watch",
+      "warning": "Warning",
+      "limited": "Limited",
+      "frozen": "Frozen"
+    },
+    "routeVisibility": {
+      "hidden": "Hidden",
+      "read": "Read-only",
+      "task": "Task-driven",
+      "limited": "Limited",
+      "full": "Full"
+    },
+    "routeAccess": {
+      "none": "No access",
+      "read": "Read-only",
+      "write": "Write",
+      "admin": "Admin"
+    },
+    "tasks": {
+      "empty": "No pending tasks for the current scenario."
+    },
+    "reviewRequestKinds": {
+      "business_profile": {
+        "title": "Expand business profile",
+        "description": "Partner ops needs more detail about the workspace profile, website, and audience fit."
+      },
+      "owned_channels": {
+        "title": "Prove owned channels",
+        "description": "Add working owned properties, social links, or creator surfaces that can be reviewed."
+      },
+      "traffic_methods": {
+        "title": "Clarify traffic methods",
+        "description": "Explain traffic sources, acquisition methods, and any paid or declared distribution plans."
+      },
+      "support_ownership": {
+        "title": "Clarify support ownership",
+        "description": "Show who owns partner-side support and storefront operations for the workspace."
+      },
+      "finance_profile": {
+        "title": "Complete finance profile",
+        "description": "Finance onboarding still needs payout-profile and settlement-contact information."
+      }
+    },
+    "reviewRequestStatuses": {
+      "open": "Open",
+      "submitted": "Submitted to partner ops"
+    },
+    "blockedOutcomes": {
+      "finance": {
+        "title": "Blocked pending finance",
+        "description": "The workspace may remain visible, but payout actions and finance expansion stay blocked until payout onboarding is complete."
+      },
+      "compliance": {
+        "title": "Blocked pending compliance",
+        "description": "Evidence or declarations are still missing, so compliance-driven actions remain task-bound instead of becoming fully operational."
+      },
+      "technical": {
+        "title": "Blocked pending technical readiness",
+        "description": "Integrations and launch tooling stay limited until technical setup and validation are finished."
+      }
+    },
+    "caseKinds": {
+      "application_review": {
+        "title": "Application review thread",
+        "description": "Core review thread between the workspace and partner ops."
+      },
+      "requested_info": {
+        "title": "Requested info loop",
+        "description": "Ops requested more information before the application can continue."
+      },
+      "finance_onboarding": {
+        "title": "Finance onboarding",
+        "description": "Settlement profile, payout contact, or finance baseline still needs partner action."
+      },
+      "compliance_followup": {
+        "title": "Compliance follow-up",
+        "description": "Compliance and governance signals remain visible during probation and review."
+      },
+      "restriction_notice": {
+        "title": "Restriction notice",
+        "description": "A governance or finance issue is reducing what the workspace can do right now."
+      },
+      "attribution_dispute": {
+        "title": "Attribution dispute",
+        "description": "This case tracks attribution explainability questions, ownership disputes, and follow-up with partner ops."
+      },
+      "payout_dispute": {
+        "title": "Payout dispute",
+        "description": "This case keeps payout holds, release questions, and settlement disagreements inside the governed portal loop."
+      },
+      "technical_support": {
+        "title": "Technical support",
+        "description": "Use this case for postback, storefront, integration, or implementation issues that need partner-side action."
+      },
+      "statement_question": {
+        "title": "Statement question",
+        "description": "This case explains reserves, adjustments, or line-item settlement questions without exposing internal payout tools."
+      }
+    },
+    "caseStatuses": {
+      "open": "Open",
+      "waiting_on_partner": "Waiting on partner",
+      "waiting_on_ops": "Waiting on partner ops",
+      "resolved": "Resolved"
+    },
+    "workflowActionKinds": {
+      "partner_response_submitted": "Partner response submitted",
+      "partner_reply": "Partner reply",
+      "partner_ready_for_ops": "Marked ready for ops"
+    },
+    "notificationKinds": {
+      "workspace_draft": {
+        "title": "Workspace draft created",
+        "description": "The workspace exists, but the application has not entered governed review yet."
+      },
+      "application_submitted": {
+        "title": "Application staged for review",
+        "description": "The staged application is ready and the partner-facing review loop can begin."
+      },
+      "application_needs_info": {
+        "title": "Application needs information",
+        "description": "Partner ops requested more profile, traffic, or compliance context before review can continue."
+      },
+      "application_approved_probation": {
+        "title": "Probation approval issued",
+        "description": "The workspace may enter a limited governed launch path while remaining under review controls."
+      },
+      "application_waitlisted": {
+        "title": "Application waitlisted",
+        "description": "Activation is deferred for fit, timing, or capacity reasons, but the workspace is not declined."
+      },
+      "application_rejected": {
+        "title": "Application rejected",
+        "description": "The current application closed and the workspace remains outside the active partner surface."
+      },
+      "needs_info": {
+        "title": "More information requested",
+        "description": "Partner ops asked for additional profile, traffic, or compliance context."
+      },
+      "review_in_progress": {
+        "title": "Review in progress",
+        "description": "The application is back with partner ops and is currently being reviewed."
+      },
+      "waitlisted": {
+        "title": "Application waitlisted",
+        "description": "The workspace is not declined, but activation is deferred for fit, timing, or capacity reasons."
+      },
+      "probation_started": {
+        "title": "Probation started",
+        "description": "The workspace can enter a limited launch path while remaining governed."
+      },
+      "lane_membership_changed": {
+        "title": "Lane membership changed",
+        "description": "A lane approval or decline updated the governed commercial surface for this workspace."
+      },
+      "review_request_opened": {
+        "title": "Review request opened",
+        "description": "A requested-information task is open and now needs a partner response."
+      },
+      "case_created": {
+        "title": "Case opened",
+        "description": "A governed support or operational case is active for this workspace."
+      },
+      "case_reply_received": {
+        "title": "Case reply received",
+        "description": "A new reviewer or operations reply arrived in an active partner case."
+      },
+      "legal_acceptance_required": {
+        "title": "Legal acceptance required",
+        "description": "A current legal document version must be accepted before rollout can continue."
+      },
+      "statement_ready": {
+        "title": "Statement ready",
+        "description": "A settlement statement closed and is now available in finance."
+      },
+      "payout_blocked": {
+        "title": "Payout blocked",
+        "description": "Finance or governance posture is blocking payout execution until readiness is restored."
+      },
+      "integration_delivery_failed": {
+        "title": "Integration delivery failed",
+        "description": "A reporting or postback delivery path failed and needs partner-side follow-up."
+      },
+      "governance_action_applied": {
+        "title": "Governance action applied",
+        "description": "Workspace restrictions changed and the partner-facing surface is now constrained."
+      },
+      "finance_blocked": {
+        "title": "Finance actions blocked",
+        "description": "Payout actions remain blocked until finance readiness is restored."
+      },
+      "payout_profile_needed": {
+        "title": "Payout profile needed",
+        "description": "Finance onboarding is required before the workspace can fully settle earnings."
+      },
+      "workspace_restricted": {
+        "title": "Workspace restricted",
+        "description": "Governance and finance signals reduced the current operational surface."
+      },
+      "workspace_active": {
+        "title": "Workspace active",
+        "description": "The governed activation path completed and the workspace can operate with full active-surface visibility."
+      }
+    },
+    "legalDocumentKinds": {
+      "program_terms": "Program terms",
+      "payout_terms": "Payout terms",
+      "traffic_policy": "Traffic policy",
+      "disclosure_guidelines": "Disclosure guidelines",
+      "reseller_annex": "Reseller annex"
+    },
+    "legalDocumentStatuses": {
+      "read_only": "Read-only",
+      "pending_acceptance": "Pending acceptance",
+      "accepted": "Accepted"
+    },
+    "commercialModes": {
+      "review": "Review-bound",
+      "starter": "Starter launch",
+      "controlled": "Controlled launch",
+      "full": "Full lane scope",
+      "read_only": "Read-only remediation"
+    },
+    "capabilityAvailability": {
+      "enabled": "Enabled",
+      "conditional": "Conditional",
+      "blocked": "Blocked"
+    },
+    "analyticsModes": {
+      "review": "Review-only analytics",
+      "lite": "Lite analytics",
+      "full": "Full analytics",
+      "history_only": "History-only analytics"
+    },
+    "financeModes": {
+      "review": "Finance review only",
+      "onboarding": "Finance onboarding",
+      "full": "Full finance visibility",
+      "blocked": "Finance blocked",
+      "history_only": "History-only finance"
+    },
+    "casesModes": {
+      "applicant": "Applicant loop",
+      "operational": "Operational support",
+      "dispute": "Disputes and remediation",
+      "history_only": "History only"
+    },
+    "operationalCapabilityAvailability": {
+      "enabled": "Enabled",
+      "conditional": "Conditional",
+      "blocked": "Blocked"
+    },
+    "codeKinds": {
+      "starter_code": "Starter code",
+      "vanity_link": "Vanity link",
+      "qr_bundle": "QR bundle",
+      "sub_id_template": "Sub ID macro"
+    },
+    "codeStatuses": {
+      "draft": "Draft",
+      "pending_approval": "Pending approval",
+      "active": "Active",
+      "paused": "Paused",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
+    "campaignChannels": {
+      "content": "Content",
+      "telegram": "Telegram",
+      "paid_social": "Paid social",
+      "search": "Search",
+      "storefront": "Storefront"
+    },
+    "campaignStatuses": {
+      "available": "Available",
+      "approval_required": "Approval required",
+      "in_review": "In review",
+      "approved": "Approved",
+      "restricted": "Restricted"
+    },
+    "complianceTaskKinds": {
+      "disclosure_attestation": "Disclosure attestation",
+      "approved_sources": "Approved sources",
+      "creative_approval": "Creative approval",
+      "evidence_upload": "Evidence upload",
+      "postback_readiness": "Postback readiness",
+      "support_ownership": "Support ownership"
+    },
+    "complianceTaskStatuses": {
+      "complete": "Complete",
+      "action_required": "Action required",
+      "under_review": "Under review",
+      "blocked": "Blocked"
+    },
+    "analyticsMetricKeys": {
+      "clicks": "Clicks",
+      "registrations": "Registrations",
+      "first_paid": "First paid",
+      "repeat_paid": "Repeat paid",
+      "refund_rate": "Refund rate",
+      "chargeback_rate": "Chargeback rate",
+      "earnings_available": "Available earnings"
+    },
+    "analyticsMetricTrends": {
+      "up": "Trending up",
+      "steady": "Stable",
+      "down": "Trending down"
+    },
+    "reportExportKinds": {
+      "code_report": "Code report",
+      "geo_report": "Geo report",
+      "statement_export": "Statement export",
+      "payout_status_export": "Payout status export",
+      "explainability_report": "Explainability report"
+    },
+    "reportExportStatuses": {
+      "available": "Available",
+      "scheduled": "Scheduled",
+      "blocked": "Blocked"
+    },
+    "financeStatementStatuses": {
+      "draft": "Draft",
+      "on_hold": "On hold",
+      "ready": "Ready",
+      "paid": "Paid",
+      "blocked": "Blocked"
+    },
+    "payoutAccountKinds": {
+      "bank_account": "Bank account",
+      "crypto_wallet": "Crypto wallet",
+      "invoice_profile": "Invoice profile"
+    },
+    "payoutAccountStatuses": {
+      "missing": "Missing",
+      "pending_review": "Pending review",
+      "ready": "Ready",
+      "blocked": "Blocked"
+    },
+    "conversionsModes": {
+      "lite": "Lite conversions",
+      "full": "Full conversions",
+      "dispute": "Dispute and remediation view"
+    },
+    "integrationsModes": {
+      "selected": "Selected integrations",
+      "technical": "Technical integrations",
+      "blocked": "Constrained integrations"
+    },
+    "resellerModes": {
+      "operational": "Operational reseller console",
+      "constrained": "Constrained reseller console"
+    },
+    "conversionKinds": {
+      "registration": "Registration",
+      "first_paid": "First paid",
+      "repeat_paid": "Repeat paid",
+      "refund": "Refund",
+      "chargeback": "Chargeback"
+    },
+    "conversionStatuses": {
+      "commissionable": "Commissionable",
+      "on_hold": "On hold",
+      "rejected": "Rejected",
+      "reversed": "Reversed"
+    },
+    "customerScopes": {
+      "masked": "Masked customer scope",
+      "workspace_scoped": "Workspace-scoped customer view",
+      "storefront_scoped": "Storefront-scoped customer view"
+    },
+    "integrationCredentialKinds": {
+      "reporting_api_token": "Reporting API token",
+      "postback_secret": "Postback credential",
+      "webhook_secret": "Webhook secret",
+      "storefront_api_key": "Storefront API key"
+    },
+    "integrationCredentialStatuses": {
+      "ready": "Ready",
+      "pending_rotation": "Pending rotation",
+      "blocked": "Blocked"
+    },
+    "integrationDeliveryChannels": {
+      "webhook": "Webhook",
+      "postback": "Postback",
+      "reporting_export": "Reporting export"
+    },
+    "integrationDeliveryStatuses": {
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "paused": "Paused"
+    },
+    "resellerStorefrontStatuses": {
+      "in_review": "In review",
+      "ready": "Ready",
+      "restricted": "Restricted"
+    },
+    "sectionAccess": {
+      "blockedDescription": "{section} is not available for the current workspace state. Keep the applicant-safe loop in application, cases, and inbox until the status advances.",
+      "releaseRingBlockedDescription": "{section} is held back by the current portal release ring. The module opens after rollout advances from {currentRing} to {requiredRing}.",
+      "roleBlockedDescription": "{section} is not available for the current workspace role {role}. Switch to a role with access or continue in dashboard and settings.",
+      "currentStatusLabel": "Current workspace status",
+      "requiredAccessLabel": "Section opens at",
+      "currentAccessLabel": "Current route access",
+      "currentReleaseRingLabel": "Current release ring",
+      "requiredReleaseRingLabel": "Module release ring",
+      "dashboardLink": "Open dashboard",
+      "settingsLink": "Open settings",
+      "applicationLink": "Open application",
+      "casesLink": "Open support & cases",
+      "notificationsLink": "Open inbox",
+      "banner": "This section is currently {access} because the workspace is {status}."
+    }
+  },
+  "cases": {
+    "metaTitle": "Support & Cases - Ozoxy Partner Portal",
+    "metaDescription": "Review requested information, application cases, and the applicant-safe message loop for the partner workspace.",
+    "eyebrow": "PP2 SUPPORT AND REVIEW LOOP",
+    "title": "Support & Cases",
+    "subtitle": "Applicants and early-stage partners can now stay inside the portal while answering partner ops, review, finance, and compliance requests.",
+    "summary": {
+      "routeAccess": "Route access",
+      "surfaceMode": "Surface mode",
+      "openCases": "Open operational cases",
+      "reviewRequests": "Open review requests",
+      "governance": "Governance",
+      "restrictions": "Visible restrictions"
+    },
+    "restrictions": {
+      "title": "Restricted-operating posture",
+      "description": "Cases remain visible during restricted or governed states so the workspace can remediate finance, compliance, and launch issues without using internal ops tools.",
+      "fallbackNote": "This restriction remains backend-governed for the current workspace."
+    },
+  "requestedInfo": {
+    "title": "Requested information",
+    "description": "Open review requests stay visible here instead of being hidden in settings or external email threads.",
+    "respondAction": "Mark response prepared",
+    "responseLabel": "Response message",
+    "responsePlaceholder": "Summarize what was uploaded, clarified, or handed off for partner ops.",
+    "submitCanonicalAction": "Send response",
+    "sending": "Sending...",
+    "success": "Response added to the partner ops thread.",
+    "error": "Could not send the review response.",
+    "threadTitle": "Thread context",
+    "threadEmpty": "No partner responses have been recorded for this review request yet.",
+    "empty": "No open requested-info tasks are active for the current scenario.",
+    "dueDate": "Due: {value}"
+  },
+    "modes": {
+      "applicant": "The workspace is still in applicant-safe mode: requested information, application review, and early support questions stay grouped in one governed surface.",
+      "operational": "The workspace can use the broader support surface for live operational questions, attribution follow-up, and statement clarifications.",
+      "dispute": "The workspace is operating in a constrained dispute posture: remediation, payout disputes, and governance-sensitive cases remain visible while expansion is blocked.",
+      "history_only": "The workspace can inspect historical case records, but the live operational support loop is no longer active."
+    },
+    "capabilities": {
+      "title": "Case capability posture",
+      "items": {
+        "applicant_messages": "Applicant review messages",
+        "finance_cases": "Finance onboarding and settlement cases",
+        "attribution_disputes": "Attribution disputes",
+        "payout_disputes": "Payout disputes",
+        "technical_support": "Technical support threads",
+        "attachment_handoffs": "Attachment and evidence handoffs"
+      }
+    },
+    "guidance": {
+      "title": "How to use this surface",
+      "description": "PP2 keeps the applicant communication loop inside the portal even before the full backend case platform is live.",
+      "items": {
+        "application": "Update the staged application if partner ops asked for more context.",
+        "organization": "Use the organization surface to fill business profile, regions, and named contacts.",
+        "compliance": "Expect compliance and traffic questions to remain explicit rather than buried in terms.",
+        "notifications": "Keep the inbox open for status changes and reminders."
+      },
+      "links": {
+        "application": "Open application foundation",
+        "notifications": "Open inbox",
+        "analytics": "Open analytics & exports",
+        "finance": "Open finance",
+        "compliance": "Open traffic & compliance"
+      }
+    },
+  "caseList": {
+    "title": "Case timeline",
+    "description": "Each case stays attached to the workspace status instead of disappearing when the portal is not fully active yet.",
+    "updatedAt": "Updated: {value}",
+    "notesTitle": "Canonical context",
+    "threadTitle": "Thread context",
+    "threadEmpty": "No partner workflow messages have been recorded for this case yet.",
+    "responseLabel": "Case update",
+    "responsePlaceholder": "Add the next partner-side update for ops, finance, or compliance review.",
+    "replyAction": "Reply in thread",
+    "readyAction": "Mark ready for ops",
+    "replySuccess": "Case reply recorded.",
+    "readySuccess": "Case marked ready for partner ops.",
+    "responseError": "Could not update the case workflow."
+  },
+  "thread": {
+    "eventAt": "Partner update at {value}"
+  }
+  },
+  "notifications": {
+    "metaTitle": "Inbox - Ozoxy Partner Portal",
+    "metaDescription": "Review inbox events, workflow reminders, and blocked-state explanations for the partner workspace.",
+    "eyebrow": "PP2 INBOX AND STATUS SIGNALS",
+    "title": "Notifications & Inbox",
+    "subtitle": "The inbox is now a real partner surface: review changes, blocked-state reminders, finance signals, and probation notices are grouped in one feed.",
+    "summary": {
+      "unread": "Unread",
+      "total": "Total notifications",
+      "actionRequired": "Action required"
+    },
+    "feed": {
+      "title": "Inbox feed",
+      "description": "The inbox now reads canonical backend events for review, finance, compliance, and governed workspace changes.",
+      "unread": "Unread",
+      "actionRequired": "Action required",
+      "markRead": "Mark as read",
+      "archive": "Archive",
+      "open": "Open section",
+      "empty": "No active notifications are currently visible for this workspace and role."
+    },
+    "blockedStates": {
+      "title": "Blocked-state explanations",
+      "description": "Readiness overlays remain separate from the canonical status. Use these explanations to understand why a module is limited even when the workspace still exists.",
+      "links": {
+        "cases": "Open support & cases",
+        "application": "Open application"
+      }
+    }
+  },
+  "team": {
+    "metaTitle": "Team & Access - Ozoxy Partner Portal",
+    "metaDescription": "Review workspace members, launch roles, deferred roles, and role-aware access posture for the partner workspace.",
+    "eyebrow": "PP3 TEAM AND ACCESS",
+    "title": "Team & Access",
+    "subtitle": "PP3 introduces the external workspace RBAC layer: launch roles, deferred roles, member posture, and role-aware access for the operating portal.",
+    "summary": {
+      "currentRole": "Current role",
+      "routeAccess": "Route access",
+      "memberCount": "Members"
+    },
+    "members": {
+      "title": "Workspace members",
+      "description": "The team surface now reads canonical membership records, role assignments, and limited member posture from the backend workspace domain.",
+      "empty": "No workspace members are visible for the current workspace yet."
+    },
+    "memberStatuses": {
+      "active": "Active",
+      "invited": "Invited",
+      "limited": "Limited"
+    },
+    "launchSet": {
+      "title": "Launch role set",
+      "description": "These are the must-have external roles for the first delivery slice."
+    },
+    "deferredRoles": {
+      "title": "Deferred but modeled roles",
+      "description": "These roles stay modeled from day one even if some capabilities ship later."
+    },
+    "actions": {
+      "title": "Administration posture",
+      "manageAllowed": "This role can manage workspace team membership or delegated administration inside the launch surface.",
+      "manageBlocked": "This role can inspect team posture, but delegated administration stays with owner-level or admin roles.",
+      "settings": "Open settings",
+      "organization": "Open organization"
+    },
+    "editor": {
+      "lookupPlaceholder": "Enter partner operator email or login",
+      "addMember": "Add member",
+      "saved": "Workspace team changes recorded.",
+      "error": "Could not update workspace team membership."
+    }
+  },
+  "programs": {
+    "metaTitle": "Programs - Ozoxy Partner Portal",
+    "metaDescription": "Review canonical lane memberships, readiness posture, manager context, and rollout blockers for the partner workspace.",
+    "eyebrow": "PP3 PROGRAMS AND LANE MEMBERSHIPS",
+    "title": "Programs",
+    "subtitle": "Programs is the canonical lane-operations surface. It separates lane posture, rollout readiness, and owner context from generic workspace settings.",
+    "summary": {
+      "currentRole": "Current role",
+      "routeAccess": "Route access",
+      "workspaceStatus": "Workspace status",
+      "currentLane": "Current lane",
+      "canonicalSource": "Canonical source"
+    },
+    "lanes": {
+      "title": "Lane memberships",
+      "description": "Lane posture stays separate from workspace status so review, probation, activation, and restrictions remain explainable from backend-owned contracts.",
+      "ownerContext": "Owner context: {value}",
+      "cohortStatus": "Pilot cohort: {value}",
+      "restrictionsTitle": "Restriction posture",
+      "readinessTitle": "Readiness notes",
+      "readinessEmpty": "No extra readiness notes are attached to this lane yet.",
+      "blockingTitle": "Blocking reasons",
+      "warningsTitle": "Warnings",
+      "empty": "No canonical lane memberships are available for the current workspace posture."
+    },
+    "readiness": {
+      "title": "Workspace readiness",
+      "description": "Finance, compliance, and technical posture stay backend-owned so pilot and lane decisions do not collapse into local UI heuristics.",
+      "lastUpdated": "Last canonical update: {value}"
+    },
+    "actions": {
+      "title": "Program actions",
+      "writeAllowed": "This role can review backend-owned lane posture and use linked workspace surfaces to progress finance, compliance, and support tasks.",
+      "readOnly": "This role can inspect backend-owned lane posture, but write actions remain constrained to delegated owner, admin, or traffic workflows.",
+      "items": {
+        "status": "Track per-lane status without collapsing it into one workspace flag.",
+        "restrictions": "Keep blockers, probation, and rollout warnings visible beside each lane.",
+        "manager": "Show owner and manager context before deeper workflow actions are taken."
+      }
+    },
+    "laneApplications": {
+      "title": "Lane applications",
+      "description": "Request additional lane access through the canonical backend review flow instead of relying on local or email-only handoffs.",
+      "readOnly": "This role can inspect lane applications, but new requests remain limited to owner, admin, or delegated operator roles.",
+      "empty": "No lane applications have been recorded yet for this workspace.",
+      "placeholder": "Describe the business case, launch intent, traffic posture, and why this lane should be opened for the workspace.",
+      "submitAction": "Request lane review",
+      "submitting": "Submitting...",
+      "submitSuccess": "Lane application submitted for {lane}.",
+      "submitError": "The lane application could not be submitted.",
+      "workspaceRequired": "Select a workspace before requesting a lane.",
+      "updatedAt": "Updated: {value}"
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "legal": "Open contracts & legal",
+      "organization": "Open organization",
+      "cases": "Open support & cases",
+      "workspaceContext": "Workspace context: {value}"
+    }
+  },
+  "legal": {
+    "metaTitle": "Contracts & Legal - Ozoxy Partner Portal",
+    "metaDescription": "Review legal documents, policy acceptance state, and owner-level contract responsibilities for the partner workspace.",
+    "eyebrow": "PP3 CONTRACTS AND LEGAL",
+    "title": "Contracts & Legal",
+    "subtitle": "Contracts, payout terms, policy history, and owner-level responsibilities now live in one dedicated legal surface instead of leaking into generic settings.",
+    "summary": {
+      "currentRole": "Current role",
+      "routeAccess": "Route access",
+      "pending": "Pending documents"
+    },
+    "documents": {
+      "title": "Legal document set",
+      "description": "These document cards now come from the canonical workspace legal contract and reflect acceptance state recorded on the backend.",
+      "version": "Version: {value}",
+      "acceptedBy": "Accepted by: {role}",
+      "acceptancePending": "Acceptance pending",
+      "acceptAction": "Accept document"
+    },
+    "ownerActions": {
+      "title": "Owner-level actions",
+      "allowed": "This role can handle the narrow owner-level actions that stay sensitive even when the rest of the workspace is delegated.",
+      "blocked": "This role can review documents and policy history, but owner-level legal actions remain restricted.",
+      "items": {
+        "contracts": "Final contract acceptance where policy requires owner authority.",
+        "payoutDestination": "Settlement destination changes that alter payout ownership.",
+        "termination": "Workspace termination or relationship-ending requests."
+      }
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "programs": "Open programs",
+      "cases": "Open support & cases",
+      "settings": "Open settings"
+    }
+  },
+  "codes": {
+    "metaTitle": "Codes & Tracking - Ozoxy Partner Portal",
+    "metaDescription": "Review partner codes, starter tracking inventory, and lane-aware code capabilities for the workspace.",
+    "eyebrow": "PP4 CODES AND TRACKING",
+    "title": "Codes & Tracking",
+    "subtitle": "PP4 opens the first real commercial operating loop: starter codes, vanity links, QR packs, and attribution-ready macros now appear with lane-aware launch limits.",
+    "summary": {
+      "currentLane": "Current lane",
+      "routeAccess": "Route access",
+      "surfaceMode": "Surface mode",
+      "governance": "Governance"
+    },
+    "inventory": {
+      "title": "Code inventory",
+      "description": "The code list is now lane-aware. Creator gets the widest probation launch, Performance stays more controlled, and Reseller remains storefront-sensitive.",
+      "destination": "Destination: {value}",
+      "empty": "No codes are available for the current workspace state and lane."
+    },
+    "capabilities": {
+      "title": "Lane capability posture",
+      "items": {
+        "starter_code": "Starter launch code",
+        "additional_codes": "Additional code creation",
+        "deep_links": "Deep-link builder",
+        "qr_bundles": "QR bundle generation",
+        "vanity_links": "Vanity links",
+        "sub_id_macros": "Sub ID / click ID macros"
+      }
+    },
+    "modes": {
+      "starter": "This lane can use a starter launch path now, but expansion tools stay gated behind early quality checks and readiness overlays.",
+      "controlled": "This lane can operate, but code scale-out stays deliberately constrained by approval, governance, or storefront alignment.",
+      "full": "This lane can use the full PP4 code surface for standard growth operations.",
+      "read_only": "The workspace can inspect existing code posture, but new launch actions stay blocked until the restriction clears."
+    },
+    "actions": {
+      "title": "Action posture",
+      "starter": "This role can work with the starter launch inventory, but broader code scale-out remains gated.",
+      "controlled": "This role can manage the controlled launch set, but certain code types still require extra approval or lane readiness.",
+      "full": "This role can use the PP4 code surface as the current lane allows.",
+      "readOnly": "This role or workspace state can inspect code posture, but create or expansion actions remain blocked."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "campaigns": "Open campaigns & enablement",
+      "compliance": "Open traffic & compliance",
+      "programs": "Open programs"
+    }
+  },
+  "campaigns": {
+    "metaTitle": "Campaigns & Enablement - Ozoxy Partner Portal",
+    "metaDescription": "Review the campaign library, enablement kits, and lane-aware creative approval posture for the workspace.",
+    "eyebrow": "PP4 CAMPAIGNS AND ENABLEMENT",
+    "title": "Campaigns / Assets / Enablement",
+    "subtitle": "Assets, launch kits, and approval-sensitive campaigns now live in one dedicated partner surface instead of being implied by codes alone.",
+    "summary": {
+      "currentLane": "Current lane",
+      "routeAccess": "Route access",
+      "surfaceMode": "Surface mode",
+      "compliance": "Compliance readiness"
+    },
+    "library": {
+      "title": "Campaign library",
+      "description": "Campaign assets remain lane-aware. Performance requires the strictest review path, while Creator and Reseller use different enablement depth.",
+      "approvalOwner": "Approval owner: {value}",
+      "empty": "No campaign assets are available for the current workspace state and lane."
+    },
+    "capabilities": {
+      "title": "Enablement posture",
+      "items": {
+        "creative_library": "Creative library",
+        "promo_calendar": "Promo calendar",
+        "landing_pages": "Landing page bundles",
+        "creative_submission": "Creative submission",
+        "approval_comments": "Approval comments and review notes",
+        "disclosure_templates": "Disclosure templates"
+      }
+    },
+    "modes": {
+      "starter": "The lane can use starter enablement assets, but campaign expansion remains measured and review-aware.",
+      "controlled": "Campaign access exists, but submissions, approval, and library depth remain constrained by lane controls.",
+      "full": "The lane can use the full PP4 campaigns surface for standard launch and enablement work.",
+      "read_only": "The workspace can review current assets and approval posture, but cannot advance campaign operations right now."
+    },
+    "actions": {
+      "title": "Action posture",
+      "starter": "This role can use starter campaign kits and review notes, but broader campaign rollout stays gated.",
+      "controlled": "This role can work with controlled campaign assets while approval-sensitive paths remain explicit.",
+      "full": "This role can use the current campaign surface at full lane depth.",
+      "readOnly": "This role or workspace state can inspect assets, but new campaign actions remain blocked."
+    },
+    "submission": {
+      "title": "Request creative approval",
+      "description": "Submit a new creative or campaign scope into the canonical backend approval loop and keep its status visible in this surface.",
+      "readOnly": "This role can inspect current campaign posture, but new creative approval requests remain blocked.",
+      "scopePlaceholder": "Creative scope or campaign label",
+      "referencePlaceholder": "Creative reference, landing page, or asset ID",
+      "detailsPlaceholder": "Describe the asset, placement, messaging guardrails, and any disclosure-sensitive notes.",
+      "submitAction": "Submit creative review",
+      "submitting": "Submitting...",
+      "success": "Creative approval request submitted for workspace review.",
+      "error": "The creative approval request could not be submitted.",
+      "workspaceRequired": "Select a workspace before submitting a creative approval request."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "codes": "Open codes & tracking",
+      "compliance": "Open traffic & compliance",
+      "legal": "Open contracts & legal"
+    }
+  },
+  "compliance": {
+    "metaTitle": "Traffic & Compliance - Ozoxy Partner Portal",
+    "metaDescription": "Review lane-specific compliance tasks, traffic declarations, and governance-facing remediation posture for the workspace.",
+    "eyebrow": "PP4 TRAFFIC AND COMPLIANCE",
+    "title": "Traffic & Compliance",
+    "subtitle": "PP4 separates declarations, evidence, creative approvals, and governance-facing remediation into a dedicated partner-facing compliance center.",
+    "summary": {
+      "currentLane": "Current lane",
+      "routeAccess": "Route access",
+      "surfaceMode": "Surface mode",
+      "compliance": "Compliance readiness",
+      "governance": "Governance",
+      "restrictions": "Visible restrictions"
+    },
+    "restrictions": {
+      "title": "Partner-visible restrictions",
+      "description": "These restrictions come from the canonical bootstrap posture. They explain why compliance actions remain governed even when the workspace is still visible.",
+      "fallbackNote": "Restriction details remain governed by backend posture for this workspace."
+    },
+    "tasks": {
+      "title": "Compliance tasks",
+      "description": "The task set is lane-aware. Performance adds postback and creative controls, while Reseller exposes support ownership and storefront-sensitive obligations.",
+      "ownerRole": "Owner role: {value}",
+      "empty": "No compliance tasks are currently visible for this workspace state."
+    },
+    "declarations": {
+      "title": "Traffic declarations",
+      "description": "Backend-owned visibility keeps declared traffic sources, postback posture, and creative review scope attached to the active workspace instead of local portal-only assumptions.",
+      "scope": "Scope: {value}",
+      "empty": "No backend-owned traffic declarations are currently visible for this workspace and role."
+    },
+    "capabilities": {
+      "title": "Capability posture",
+      "items": {
+        "disclosure_attestations": "Disclosure attestations",
+        "approved_sources": "Approved traffic sources",
+        "creative_approvals": "Creative approvals",
+        "evidence_uploads": "Evidence uploads",
+        "postback_readiness": "Postback or click tracking readiness",
+        "support_ownership": "Support ownership confirmation"
+      }
+    },
+    "modes": {
+      "review": "The workspace is still in a review-bound posture, so compliance remains centered on declarations, clarifications, and evidence loops.",
+      "starter": "The lane can operate with a lighter compliance starter set, but evidence and escalation paths remain visible.",
+      "controlled": "The lane is governed by a controlled compliance posture with explicit declarations, approval steps, and readiness gates.",
+      "full": "The lane can use the full PP4 compliance surface for its current operational state.",
+      "read_only": "The workspace can review tasks and remediation context, but the current route posture remains read-only."
+    },
+    "actions": {
+      "title": "Action posture",
+      "review": "This role can review the compliance loop and respond to review-bound requests, but the launch surface remains governed.",
+      "starter": "This role can work through the lighter compliance starter set while escalation controls remain explicit.",
+      "controlled": "This role can manage active compliance tasks for the current lane, including approval-sensitive controls.",
+      "full": "This role can use the current compliance surface at full lane depth.",
+      "readOnly": "This role or workspace state can inspect remediation context, but direct compliance actions are currently limited.",
+      "workspaceRequired": "An active workspace is required before compliance actions can be submitted.",
+      "errorFallback": "The compliance action could not be submitted. Try again.",
+      "submitting": "Submitting...",
+      "traffic": {
+        "title": "Submit traffic declaration",
+        "description": "Declare approved sources or postback readiness directly from the portal on the canonical workspace object.",
+        "kindLabel": "Declaration kind",
+        "scopeLabel": "Scope label",
+        "detailsLabel": "Declaration details",
+        "submit": "Submit declaration",
+        "success": "Traffic declaration submitted for workspace review.",
+        "kinds": {
+          "approved_sources": "Approved sources",
+          "postback_readiness": "Postback readiness"
+        }
+      },
+      "creative": {
+        "title": "Request creative approval",
+        "description": "Route creative review through the workspace-safe approval flow without exposing internal moderation controls.",
+        "scopeLabel": "Creative scope",
+        "referenceLabel": "Creative reference",
+        "detailsLabel": "Creative details",
+        "submit": "Submit creative review",
+        "success": "Creative approval request submitted for workspace review."
+      }
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "legal": "Open contracts & legal",
+      "cases": "Open support & cases",
+      "codes": "Open codes & tracking"
+    }
+  },
+  "conversions": {
+    "metaTitle": "Conversions / Orders / Customers - Ozoxy Partner Portal",
+    "metaDescription": "Review attributed conversions, order visibility, dispute context, and row-scoped customer explainability for the partner workspace.",
+    "eyebrow": "PP6 CONVERSIONS AND ORDER VISIBILITY",
+    "title": "Conversions / Orders / Customers",
+    "subtitle": "PP6 adds the operational evidence layer: attributed conversions, order context, refund and dispute visibility, and row-scoped customer explainability by lane.",
+    "summary": {
+      "currentLane": "Current lane",
+      "routeAccess": "Route access",
+      "surfaceMode": "Surface mode",
+      "records": "Visible records"
+    },
+    "cards": {
+      "commissionable": "Commissionable",
+      "onHold": "On hold",
+      "disputes": "Open disputes",
+      "customerScope": "Customer scope"
+    },
+    "records": {
+      "title": "Attributed records",
+      "description": "Records stay partner-facing and row-scoped. The portal exposes explainability and dispute context without leaking internal moderation tools.",
+      "code": "Code: {value}"
+    },
+    "explainability": {
+      "title": "Explainability",
+      "description": "Explainability for {order} is loaded directly from the canonical backend order-resolution pipeline.",
+      "empty": "Select a conversion record to inspect explainability and commissionability posture.",
+      "loading": "Loading explainability from the canonical backend contract...",
+      "error": "The explainability snapshot could not be loaded.",
+      "reasonCodesTitle": "Reason codes",
+      "noReasonCodes": "No explicit reason codes were attached to this evaluation.",
+      "snapshotTitle": "Explainability snapshot",
+      "cards": {
+        "commissionability": "Commissionability",
+        "settlement": "Settlement",
+        "saleChannel": "Sale channel",
+        "commissionBase": "Commission base"
+      }
+    },
+    "capabilities": {
+      "title": "Conversions capability posture",
+      "items": {
+        "attribution_events": "Attribution events",
+        "order_visibility": "Order visibility",
+        "customer_scope": "Customer row scope",
+        "refund_context": "Refund and chargeback context",
+        "dispute_handoffs": "Dispute handoffs",
+        "explainability": "Explainability context"
+      }
+    },
+    "modes": {
+      "lite": "Probation opens a lighter conversions surface with attributed records and explainability, but broader order and customer workflows stay governed.",
+      "full": "The workspace can use the full conversions surface for order visibility, commissionability review, and row-scoped customer context.",
+      "dispute": "The workspace remains in a constrained operational state, so disputes, refunds, and explainability stay visible while expansion actions are blocked."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "analytics": "Open analytics & exports",
+      "finance": "Open finance",
+      "cases": "Open support & cases"
+    }
+  },
+  "analytics": {
+    "metaTitle": "Analytics & Exports - Ozoxy Partner Portal",
+    "metaDescription": "Review KPI reporting, export posture, and explainability scope for the partner workspace.",
+    "eyebrow": "PP5 ANALYTICS AND EXPORTS",
+    "title": "Analytics & Exports",
+    "subtitle": "PP5 turns reporting into a first-class partner surface: KPI visibility, explainability, export posture, and lane-aware reporting depth now live in one place.",
+    "summary": {
+      "currentLane": "Current lane",
+      "routeAccess": "Route access",
+      "surfaceMode": "Surface mode",
+      "exports": "Exports"
+    },
+    "metrics": {
+      "title": "Performance metrics",
+      "description": "Metrics stay explainable across probation, active, and constrained states without exposing internal moderation or fraud tooling."
+    },
+    "exports": {
+      "title": "Exports",
+      "cadence": "Cadence: {value}",
+      "requestAction": "Request export",
+      "requesting": "Requesting...",
+      "requestMessage": "Export request recorded for {kind}.",
+      "requestSuccess": "Export request recorded for {kind}.",
+      "requestErrorFallback": "The export request could not be recorded.",
+      "workspaceRequired": "Select a workspace before requesting exports.",
+      "lastRequested": "Last requested: {value}",
+      "lifecycleTitle": "Request lifecycle",
+      "noRequests": "No export requests have been recorded yet."
+    },
+    "capabilities": {
+      "title": "Reporting capability posture",
+      "items": {
+        "overview_dashboards": "Overview dashboards",
+        "code_level_reporting": "Code-level reporting",
+        "exports": "Scheduled and on-demand exports",
+        "statement_exports": "Statement exports",
+        "payout_status_exports": "Payout status exports",
+        "explainability": "Attribution explainability"
+      }
+    },
+    "modes": {
+      "review": "Analytics remains review-bound until the workspace reaches probation or active reporting depth.",
+      "lite": "Probation opens a lighter analytics surface with core KPIs and narrower export scope.",
+      "full": "The workspace can use the full analytics surface for standard reporting and export workflows.",
+      "history_only": "The workspace can inspect reporting history and explainability context, but expansion-oriented analytics actions remain constrained."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "finance": "Open finance",
+      "codes": "Open codes & tracking",
+      "cases": "Open support & cases"
+    }
+  },
+  "finance": {
+    "metaTitle": "Finance - Ozoxy Partner Portal",
+    "metaDescription": "Review statements, payout account posture, reserves, and settlement readiness for the partner workspace.",
+    "eyebrow": "PP5 FINANCE AND SETTLEMENT",
+    "title": "Finance",
+    "subtitle": "PP5 gives the workspace a real finance surface: statement visibility, payout-account posture, reserves, and explainable blocked finance states.",
+    "summary": {
+      "routeAccess": "Route access",
+      "financeReadiness": "Finance readiness",
+      "surfaceMode": "Surface mode",
+      "accounts": "Payout accounts",
+      "history": "Payout history entries"
+    },
+    "snapshot": {
+      "available": "Available earnings",
+      "onHold": "On hold",
+      "reserves": "Reserves",
+      "forecast": "Next payout forecast"
+    },
+    "statements": {
+      "title": "Statements",
+      "description": "Statement visibility remains partner-facing and explainable without exposing internal payout execution or reserve override controls.",
+      "gross": "Gross",
+      "net": "Net",
+      "available": "Available",
+      "onHold": "On hold",
+      "emptyState": "No statement history is visible for this workspace yet."
+    },
+    "accounts": {
+      "title": "Payout accounts",
+      "description": "Payout destinations, verification posture, and default selection now come from the canonical finance domain.",
+      "emptyState": "No payout account is configured yet. Finance onboarding stays blocked until at least one payout destination is submitted.",
+      "detail": {
+        "currency": "Settlement currency: {value}"
+      },
+      "review": {
+        "verification": "Verification status",
+        "approval": "Approval status",
+        "verifiedAt": "Verified at",
+        "approvedAt": "Approved at"
+      },
+      "actions": {
+        "makeDefault": "Set as default",
+        "settingDefault": "Setting default..."
+      }
+    },
+    "blocked": {
+      "title": "Finance blockers",
+      "description": "These blockers come from the canonical bootstrap and admin-driven finance controls."
+    },
+    "eligibility": {
+      "title": "Payout eligibility",
+      "description": "Eligibility is calculated from payout-account verification, workspace state, and reserve or risk blockers.",
+      "loading": "Checking payout eligibility...",
+      "error": "Eligibility could not be loaded right now.",
+      "eligible": "Eligible for payout execution",
+      "ineligible": "Blocked for payout execution",
+      "checkedAt": "Last checked: {value}",
+      "noBlockers": "No active eligibility blockers.",
+      "emptyState": "Select a payout account to inspect its eligibility posture."
+    },
+    "accountForm": {
+      "title": "Add payout account",
+      "description": "Finance onboarding is partner-facing: submit a payout destination and let finance ops verify it through the admin maker-checker flow.",
+      "fields": {
+        "payoutRail": "Payout rail",
+        "currency": "Currency",
+        "displayLabel": "Display label",
+        "destinationReference": "Destination reference",
+        "makeDefault": "Make this the default payout destination"
+      },
+      "rails": {
+        "bankWire": "Bank wire",
+        "cryptoUsdt": "Crypto USDT",
+        "manualInvoice": "Manual / invoice"
+      },
+      "placeholders": {
+        "currency": "USD",
+        "displayLabel": "Primary USD wire",
+        "destinationReference": "DE89370400440532013000 / wallet / payout handle"
+      },
+      "actions": {
+        "submit": "Submit payout account",
+        "submitting": "Submitting..."
+      },
+      "success": "Payout account submitted. Finance readiness will refresh after verification and bootstrap recompute.",
+      "error": "Payout account submission failed. Check the destination details and workspace state."
+    },
+    "history": {
+      "title": "Payout history",
+      "description": "This partner-facing history summarizes payout instructions and executions without exposing internal admin override tooling.",
+      "loading": "Loading payout history...",
+      "error": "Payout history could not be loaded right now.",
+      "emptyState": "No payout instruction or execution history is visible for this workspace yet.",
+      "lifecycle": {
+        "pending_review": "Pending review",
+        "queued": "Queued",
+        "in_flight": "In flight",
+        "paid": "Paid",
+        "blocked": "Blocked",
+        "failed": "Failed"
+      },
+      "labels": {
+        "instructionStatus": "Instruction status",
+        "executionStatus": "Execution status",
+        "createdAt": "Created at",
+        "updatedAt": "Updated at",
+        "executionMode": "Execution mode",
+        "externalReference": "External reference",
+        "noAccountLabel": "Payout account label unavailable"
+      }
+    },
+    "capabilities": {
+      "title": "Finance capability posture",
+      "items": {
+        "payout_accounts": "Payout account setup",
+        "statement_visibility": "Statement visibility",
+        "reserve_visibility": "Reserve visibility",
+        "payout_forecast": "Payout forecast",
+        "adjustment_history": "Adjustment history",
+        "payout_actions": "Payout-bearing actions"
+      }
+    },
+    "modes": {
+      "review": "Finance remains in a review-only posture until the workspace enters probation or active settlement flows.",
+      "onboarding": "Probation opens finance onboarding: payout profile setup, statement preview, and forecast posture become visible before execution.",
+      "full": "The workspace can use the full finance surface for statement review and payout-readiness visibility.",
+      "blocked": "Finance visibility remains available, but payout-bearing actions are blocked until readiness or governance issues are resolved.",
+      "history_only": "The workspace can inspect historical finance records, but active finance operations are no longer available."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "analytics": "Open analytics & exports",
+      "cases": "Open support & cases",
+      "legal": "Open contracts & legal"
+    }
+  },
+  "integrations": {
+    "metaTitle": "Integrations - Ozoxy Partner Portal",
+    "metaDescription": "Review partner-side tokens, postbacks, webhook delivery, and technical readiness posture for the workspace.",
+    "eyebrow": "PP6 INTEGRATIONS AND TECHNICAL CONTROLS",
+    "title": "Integrations",
+    "subtitle": "PP6 opens the technical operating surface: reporting tokens, postback credentials, webhook delivery logs, and constrained diagnostics by lane.",
+    "summary": {
+      "routeAccess": "Route access",
+      "technicalReadiness": "Technical readiness",
+      "surfaceMode": "Surface mode",
+      "credentials": "Credentials"
+    },
+    "credentials": {
+      "title": "Integration credentials",
+      "description": "Credential posture stays partner-facing and explainable without exposing secret material or internal override tooling.",
+      "rotatedAt": "Last rotation: {value}",
+      "notRotated": "Last rotation: not available"
+    },
+    "delivery": {
+      "title": "Delivery logs"
+    },
+    "capabilities": {
+      "title": "Integration capability posture",
+      "items": {
+        "reporting_tokens": "Reporting tokens",
+        "postback_credentials": "Postback credentials",
+        "webhook_secrets": "Webhook secrets",
+        "delivery_logs": "Delivery logs",
+        "replay_controls": "Replay controls",
+        "storefront_api_keys": "Storefront API keys"
+      }
+    },
+    "modes": {
+      "selected": "Selected creator use cases can inspect limited integrations, but broader technical operations remain gated.",
+      "technical": "The workspace can use the technical partner surface for diagnostics, token posture, and integration delivery visibility.",
+      "blocked": "Integration history remains visible, but launch-sensitive technical controls are constrained by readiness or governance."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "conversions": "Open conversions / orders",
+      "cases": "Open support & cases",
+      "reseller": "Open reseller console"
+    }
+  },
+  "reseller": {
+    "metaTitle": "Reseller Console - Ozoxy Partner Portal",
+    "metaDescription": "Review storefront-linked scope, domains, pricebook preview, support ownership, and reseller technical posture.",
+    "eyebrow": "PP6 RESELLER OPERATIONS CONSOLE",
+    "title": "Reseller Console",
+    "subtitle": "PP6 opens the reseller-only operating surface: storefronts, support ownership, pricebook preview, and customer scope without leaking admin-level controls.",
+    "summary": {
+      "routeAccess": "Route access",
+      "workspaceStatus": "Workspace status",
+      "surfaceMode": "Surface mode",
+      "storefronts": "Storefronts"
+    },
+    "snapshot": {
+      "pricebook": "Pricebook preview",
+      "supportOwnership": "Support ownership",
+      "customerScope": "Customer scope",
+      "technicalHealth": "Technical health",
+      "notAvailable": "Not available"
+    },
+    "storefronts": {
+      "title": "Assigned storefronts",
+      "description": "Storefront visibility stays bounded to the reseller scope defined by contracts, assigned domains, and support ownership.",
+      "supportOwner": "Support owner: {value}"
+    },
+    "capabilities": {
+      "title": "Reseller capability posture",
+      "items": {
+        "storefront_scope": "Storefront scope",
+        "linked_domains": "Linked domains",
+        "pricebook_preview": "Pricebook preview",
+        "support_ownership": "Support ownership",
+        "customer_scope": "Customer scope",
+        "technical_health": "Technical health"
+      }
+    },
+    "modes": {
+      "operational": "The reseller workspace can use its storefront-linked operational console within the assigned row-level scope.",
+      "constrained": "The reseller console remains visible for remediation, but expansion-oriented storefront actions stay constrained."
+    },
+    "links": {
+      "title": "Linked surfaces",
+      "conversions": "Open conversions / orders",
+      "integrations": "Open integrations",
+      "finance": "Open finance"
+    }
+  },
+  "workspaceSwitcher": {
+    "label": "Active workspace",
+    "description": "Switch the canonical workspace context for this portal session without relying on hidden query fallbacks.",
+    "inputLabel": "Select active workspace",
+    "canonicalSource": "Canonical runtime",
+    "sessionNote": "This selection stays scoped to the current partner host until you switch again."
+  }
+}

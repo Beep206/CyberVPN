@@ -1,0 +1,31 @@
+{
+  "common": {
+    "metaTitle": "{section} - Ozoxy Partner Portal",
+    "availableNow": "Available Now",
+    "nextModules": "Next Modules",
+    "currentState": "Current State",
+    "backendCoverage": "Delivery Posture",
+    "nextFocus": "Next Focus",
+    "returnToDashboard": "Return to dashboard",
+    "currentStateTemplate": "{section} is now registered as a canonical partner portal surface and already participates in the stable route map.",
+    "backendCoverageTemplate": "Phase target {phase}. Release ring {ring}. Access opens progressively by status, role, lane, and readiness overlays.",
+    "nextFocusTemplate": "Move {section} from scaffold to operational depth during {phase}, starting with {accessStage} visibility.",
+    "accessStages": {
+      "alwaysVisible": "always-visible access",
+      "applicantVisible": "applicant-safe access",
+      "probationVisible": "probation-safe access",
+      "activeVisible": "active-only access",
+      "resellerVisible": "reseller-only access"
+    },
+    "availableNowItems": {
+      "routeSlot": "The route, metadata, and section ownership are already fixed in the canonical IA.",
+      "metadata": "This section can now be linked, discovered, and gated without changing the route model.",
+      "menuPolicy": "Status-aware menu visibility can be attached without redesigning the navigation tree."
+    },
+    "nextModuleItems": {
+      "liveData": "Connect live read models, counters, and domain-specific API contracts.",
+      "roleActions": "Layer role-aware write actions, task flows, and operational explanations.",
+      "laneDepth": "Add lane-specific behavior and release-ring gating on top of the shared shell."
+    }
+  }
+}

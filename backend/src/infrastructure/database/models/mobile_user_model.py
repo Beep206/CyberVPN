@@ -33,6 +33,11 @@ class MobileUserModel(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
+    auth_realm_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("auth_realms.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     email: Mapped[str] = mapped_column(
         String(255),
         unique=True,
@@ -87,6 +92,11 @@ class MobileUserModel(Base):
     partner_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("mobile_users.id", ondelete="SET NULL"),
         nullable=True,
+    )
+    partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     is_partner: Mapped[bool] = mapped_column(
         Boolean,

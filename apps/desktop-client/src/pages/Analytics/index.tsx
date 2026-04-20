@@ -1,10 +1,21 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getUsageHistory, getGlobalFootprint, UsageRecord } from "../../shared/api/ipc";
+import {
+  CanonicalCurrentServiceState,
+  CanonicalEntitlementState,
+  CanonicalOrder,
+  getCanonicalCurrentEntitlements,
+  getCanonicalCurrentServiceState,
+  getCanonicalOrders,
+  getGlobalFootprint,
+  getUsageHistory,
+  UsageRecord,
+} from "../../shared/api/ipc";
 import { BarChart, Bar, ResponsiveContainer, XAxis, Tooltip, PieChart, Pie, Cell, Label } from "recharts";
-import { Globe, Shield, Activity, HardDrive } from "lucide-react";
+import { Globe, Shield, Activity, HardDrive, ShoppingCart, BadgeDollarSign, SatelliteDish } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 
 // High tech formatting tools
 const formatBytes = (bytes: number): string => {
@@ -17,15 +28,21 @@ const formatBytes = (bytes: number): string => {
 
 export function AnalyticsPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const [history, setHistory] = useState<UsageRecord[]>([]);
   const [footprint, setFootprint] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [canonicalOrders, setCanonicalOrders] = useState<CanonicalOrder[]>([]);
+  const [canonicalEntitlement, setCanonicalEntitlement] =
+    useState<CanonicalEntitlementState | null>(null);
+  const [canonicalServiceState, setCanonicalServiceState] =
+    useState<CanonicalCurrentServiceState | null>(null);
+  const [canonicalUnavailable, setCanonicalUnavailable] = useState(false);
 
   useEffect(() => {
     async function fetchTelemetry() {
       try {
-        const hist = await getUsageHistory("30d");
-        const foot = await getGlobalFootprint();
+        const [hist, foot] = await Promise.all([getUsageHistory("30d"), getGlobalFootprint()]);
         setHistory(hist);
         setFootprint(foot);
       } catch (err: any) {
@@ -34,7 +51,39 @@ export function AnalyticsPage() {
         setLoading(false);
       }
     }
+    async function fetchCanonicalCommerce() {
+      const [ordersResult, entitlementResult, serviceStateResult] =
+        await Promise.allSettled([
+          getCanonicalOrders(20),
+          getCanonicalCurrentEntitlements(),
+          getCanonicalCurrentServiceState(),
+        ]);
+
+      setCanonicalUnavailable(false);
+
+      if (ordersResult.status === "fulfilled") {
+        setCanonicalOrders(ordersResult.value);
+      } else {
+        setCanonicalOrders([]);
+        setCanonicalUnavailable(true);
+      }
+
+      if (entitlementResult.status === "fulfilled") {
+        setCanonicalEntitlement(entitlementResult.value);
+      } else {
+        setCanonicalEntitlement(null);
+        setCanonicalUnavailable(true);
+      }
+
+      if (serviceStateResult.status === "fulfilled") {
+        setCanonicalServiceState(serviceStateResult.value);
+      } else {
+        setCanonicalServiceState(null);
+        setCanonicalUnavailable(true);
+      }
+    }
     fetchTelemetry();
+    void fetchCanonicalCommerce();
   }, []);
 
   // Compute charts aggregations
@@ -59,11 +108,31 @@ export function AnalyticsPage() {
   const protocolData = aggregateProtocols();
 
   const totalBytes = history.reduce((acc, r) => acc + r.bytes_up + r.bytes_down, 0);
+  const paidOrders = canonicalOrders.filter((order) => order.settlement_status === "paid");
+  const grossDisplayed = paidOrders.reduce((acc, order) => acc + order.displayed_price, 0);
+  const renewalOrders = canonicalOrders.filter((order) => {
+    const sourceType = order.policy_snapshot?.renewal_source_type;
+    return typeof sourceType === "string" && sourceType.length > 0;
+  });
+
+  const formatMoney = (amount: number, currencyCode = "USD") => {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currencyCode,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch {
+      return `${amount.toFixed(2)} ${currencyCode}`;
+    }
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: offsets.page }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="max-w-6xl mx-auto space-y-6"
     >
       <header className="flex justify-between items-end border-b border-white/5 pb-4 mb-8">
@@ -76,6 +145,59 @@ export function AnalyticsPage() {
           </p>
         </div>
       </header>
+
+      <div className="rounded-xl border border-[var(--color-neon-cyan)]/15 bg-black/35 p-6 backdrop-blur">
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-lg font-bold font-mono tracking-wider text-[var(--color-neon-cyan)] uppercase">
+              Canonical Commerce Overview
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Desktop channel parity against backend-owned orders, entitlements, and service-state.
+            </p>
+          </div>
+          {canonicalUnavailable && (
+            <span className="text-xs font-mono text-muted-foreground">
+              awaiting live backend session
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="rounded-xl border border-[var(--color-neon-cyan)]/15 bg-black/30 p-4">
+            <ShoppingCart className="text-[var(--color-neon-cyan)] mb-3" size={18} />
+            <div className="text-xs uppercase font-mono text-muted-foreground">Orders</div>
+            <div className="text-2xl font-bold mt-1">{canonicalOrders.length}</div>
+          </div>
+          <div className="rounded-xl border border-[var(--color-neon-pink)]/15 bg-black/30 p-4">
+            <BadgeDollarSign className="text-[var(--color-neon-pink)] mb-3" size={18} />
+            <div className="text-xs uppercase font-mono text-muted-foreground">Paid volume</div>
+            <div className="text-2xl font-bold mt-1">
+              {formatMoney(grossDisplayed, paidOrders[0]?.currency_code ?? "USD")}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[var(--color-matrix-green)]/15 bg-black/30 p-4">
+            <SatelliteDish className="text-[var(--color-matrix-green)] mb-3" size={18} />
+            <div className="text-xs uppercase font-mono text-muted-foreground">Active access</div>
+            <div className="text-lg font-bold mt-1">
+              {canonicalServiceState?.consumption_context.channel_type ??
+                canonicalServiceState?.access_delivery_channel?.channel_type ??
+                "Not resolved"}
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+            <Shield className="text-white/80 mb-3" size={18} />
+            <div className="text-xs uppercase font-mono text-muted-foreground">Entitlement</div>
+            <div className="text-lg font-bold mt-1">
+              {canonicalEntitlement?.display_name ??
+                canonicalEntitlement?.plan_code ??
+                canonicalEntitlement?.status ??
+                "Unavailable"}
+            </div>
+            <div className="text-xs text-white/50 mt-2">{renewalOrders.length} renewal-linked orders</div>
+          </div>
+        </div>
+      </div>
 
       {/* Top Banner Stats */}
       <div className="grid grid-cols-3 gap-6">

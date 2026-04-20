@@ -8,6 +8,7 @@ import { CyberInput } from '@/features/auth/components/CyberInput';
 import { motion } from 'motion/react';
 import { Gift, Tag, Check, Copy, CheckCircle, Percent } from 'lucide-react';
 import { AxiosError } from 'axios';
+import { canOfficialWebSurfaceAccess } from '@/shared/lib/surface-policy';
 
 interface InviteCode {
   code: string;
@@ -22,6 +23,8 @@ interface PromoDiscount {
 }
 
 export function CodesSection() {
+  const inviteCodesEnabled = canOfficialWebSurfaceAccess('invite_codes');
+  const promoCodesEnabled = canOfficialWebSurfaceAccess('promo_codes');
   // Invite code state
   const [inviteCode, setInviteCode] = useState('');
   const [redeemingInvite, setRedeemingInvite] = useState(false);
@@ -126,7 +129,8 @@ export function CodesSection() {
   return (
     <div className="space-y-6">
       {/* Invite Code Redemption */}
-      <motion.div
+      {inviteCodesEnabled ? (
+        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="cyber-card p-6"
@@ -177,10 +181,11 @@ export function CodesSection() {
             {redeemingInvite ? 'Redeeming...' : 'Redeem Code'}
           </button>
         </div>
-      </motion.div>
+        </motion.div>
+      ) : null}
 
       {/* My Invite Codes */}
-      {myInvites && myInvites.length > 0 && (
+      {inviteCodesEnabled && myInvites && myInvites.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -230,7 +235,8 @@ export function CodesSection() {
       )}
 
       {/* Promo Code Validation */}
-      <motion.div
+      {promoCodesEnabled ? (
+        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="cyber-card p-6"
@@ -305,7 +311,8 @@ export function CodesSection() {
             {validatingPromo ? 'Validating...' : 'Validate Promo'}
           </button>
         </div>
-      </motion.div>
+        </motion.div>
+      ) : null}
     </div>
   );
 }

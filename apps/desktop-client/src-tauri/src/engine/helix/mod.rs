@@ -55,6 +55,23 @@ pub fn get_runtime_state(app: &AppHandle) -> Result<HelixRuntimeState, AppError>
     })
 }
 
+pub fn get_authenticated_backend_context(
+    app: &AppHandle,
+) -> Result<(String, String, HelixRuntimeState), AppError> {
+    let runtime_state = get_runtime_state(app)?;
+    let backend_url = runtime_state
+        .backend_url
+        .clone()
+        .ok_or(AppError::Actionable {
+            error: "Canonical backend URL is missing".to_string(),
+            resolution: "Resolve a Helix manifest from the authenticated backend first."
+                .to_string(),
+        })?;
+    let access_token = load_backend_access_token()?;
+
+    Ok((backend_url, access_token, runtime_state))
+}
+
 pub async fn resolve_manifest_for_desktop(
     app: &AppHandle,
     base_url: &str,

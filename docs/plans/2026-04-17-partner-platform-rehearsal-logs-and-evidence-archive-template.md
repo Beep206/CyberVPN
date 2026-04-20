@@ -22,6 +22,12 @@ It should be used together with:
 
 - [2026-04-17-partner-platform-operational-readiness-package.md](2026-04-17-partner-platform-operational-readiness-package.md)
 - [2026-04-17-partner-platform-environment-specific-cutover-runbooks.md](2026-04-17-partner-platform-environment-specific-cutover-runbooks.md)
+- [2026-04-19-partner-platform-environment-command-inventory-sheet.md](2026-04-19-partner-platform-environment-command-inventory-sheet.md)
+- [../testing/partner-platform-phase-0-and-phase-1-validation-pack.md](../testing/partner-platform-phase-0-and-phase-1-validation-pack.md)
+- [../testing/partner-platform-phase1-exit-evidence.md](../testing/partner-platform-phase1-exit-evidence.md)
+- [../testing/partner-platform-phase2-exit-evidence.md](../testing/partner-platform-phase2-exit-evidence.md)
+- [../testing/partner-platform-phase3-exit-evidence.md](../testing/partner-platform-phase3-exit-evidence.md)
+- [../testing/partner-platform-phase4-exit-evidence.md](../testing/partner-platform-phase4-exit-evidence.md)
 
 ---
 
@@ -75,7 +81,32 @@ Examples:
 | `reconciliation report` | finance, order, entitlement, or reporting diff | all financial and commercial changes |
 | `rollback evidence` | proof rollback worked or was not needed | every rehearsal with rollback path |
 | `approval record` | named human approvals and timestamps | every ring promotion and production cutover |
+| `pilot decision record` | explicit `approved`, `hold`, or `no_go` decision with owner acknowledgements and rollback scope | every pilot activation, widen, hold, or stop decision |
 | `issue register` | unresolved divergences and ownership | every non-clean rehearsal or pilot |
+
+Before any Phase 1 schema or API foundation work starts, the Phase 0 validation pack must already define the minimum evidence shape and required synthetic fixtures.
+
+Before any operational rehearsal assumes `Phase 1` foundations are frozen, the signed `Phase 1` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal assumes `Phase 2` order-domain foundations are frozen, the signed `Phase 2` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal assumes `Phase 3` attribution, growth-reward, and renewal foundations are frozen, the signed `Phase 3` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal assumes `Phase 4` settlement and payout foundations are frozen, the signed `Phase 4` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal simulates partner payout readiness on top of `Phase 4` settlement foundations, the archive must also include the dry-run settlement evidence spec in [../testing/partner-platform-phase4-dry-run-settlement-evidence.md](../testing/partner-platform-phase4-dry-run-settlement-evidence.md) and the reconciliation pack definition in [../testing/partner-platform-phase4-settlement-reconciliation-pack.md](../testing/partner-platform-phase4-settlement-reconciliation-pack.md).
+
+Before any operational rehearsal assumes `Phase 5` service identity, entitlement, provisioning, and access-delivery foundations are frozen, the signed `Phase 5` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal treats cross-channel service-access parity as ready for pilot consumption, the archive must also include the replay/parity pack definition in [../testing/partner-platform-phase5-service-access-replay-pack.md](../testing/partner-platform-phase5-service-access-replay-pack.md).
+
+Before any operational rehearsal assumes `Phase 6` official-web, partner-storefront, partner-portal, or admin surfaces are frozen enough for ring promotion, the signed `Phase 6` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal assumes `Phase 7` event/outbox, analytical marts, partner reporting, or channel parity are frozen enough for `Phase 8` shadow or pilot consumption, the signed `Phase 7` exit evidence pack must already exist in the archive.
+
+Before any operational rehearsal treats `Phase 7` reporting or parity as rollout-grade, the archive must also include the analytical marts pack definition in [../testing/partner-platform-phase7-analytical-marts-and-reconciliation-pack.md](../testing/partner-platform-phase7-analytical-marts-and-reconciliation-pack.md) and the parity evidence pack definition in [../testing/partner-platform-phase7-parity-and-evidence-pack.md](../testing/partner-platform-phase7-parity-and-evidence-pack.md).
+
+Before any `Phase 8` pilot posture is promoted into broad production activation, the archive must also include the signed readiness bundle in [../testing/partner-platform-phase8-production-readiness-bundle.md](../testing/partner-platform-phase8-production-readiness-bundle.md) together with the signed gate record in [../testing/partner-platform-phase8-exit-evidence.md](../testing/partner-platform-phase8-exit-evidence.md).
 
 ---
 
@@ -89,6 +120,7 @@ Use this header for every rehearsal record.
 **Run ID:** <run-id>
 **Date:** <YYYY-MM-DD>
 **Environment:** <local|staging|production>
+**Window ID:** <window-id or n/a>
 **Release Ring:** <R0|R1|R2|R3|R4>
 **Cutover Unit / Migration Wave:** <CUx / MWx>
 **Lane:** <invite|referral|creator|performance|reseller|mixed>
@@ -111,6 +143,8 @@ Use this header for every rehearsal record.
 - [ ] rollback owner online
 - [ ] baseline metrics captured
 - [ ] evidence archive path created
+- [ ] command inventory sheet linked
+- [ ] window registration record linked if environment = production
 - [ ] target commands reviewed
 - [ ] support/finance/risk notified if required
 - [ ] synthetic or pilot data prepared
@@ -226,6 +260,8 @@ No production readiness evidence package is complete without a sign-off block.
 ## Archive Manifest
 
 - runbook used: <doc path>
+- command inventory sheet: <doc path>
+- window registration record: <path or n/a>
 - screenshots: <path>
 - logs: <path>
 - shadow reports: <path>

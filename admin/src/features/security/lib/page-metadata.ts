@@ -7,6 +7,11 @@ const SECURITY_PAGE_CONFIG = {
     titleKey: 'overview.metaTitle',
     descriptionKey: 'overview.description',
   },
+  reviewQueue: {
+    canonicalPath: '/security/review-queue',
+    titleKey: 'reviewQueue.metaTitle',
+    descriptionKey: 'reviewQueue.description',
+  },
   sessions: {
     canonicalPath: '/security/sessions',
     titleKey: 'sessions.metaTitle',

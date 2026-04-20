@@ -82,6 +82,7 @@ async def _build_quote(
             user_id=user_id,
             plan_id=body.plan_id,
             promo_code=body.promo_code,
+            partner_code=body.partner_code,
             use_wallet=Decimal(str(body.use_wallet)),
             addons=[
                 CheckoutAddonInput(

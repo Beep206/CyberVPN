@@ -4,12 +4,21 @@ import { Plus, Trash2, Code, PlaySquare, Hexagon } from "lucide-react";
 import { toast } from "sonner";
 import { RoutingRule, getRoutingRules, addRoutingRule, updateRoutingRule, deleteRoutingRule } from "../../shared/api/ipc";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../../components/ui/select";
 import { Switch } from "../../components/ui/switch";
 import { Label } from "../../components/ui/label";
 import { useTranslation } from "react-i18next";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 
 export function RoutingPage() {
     const { t } = useTranslation();
+    const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
     const [rules, setRules] = useState<RoutingRule[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     
@@ -119,32 +128,36 @@ export function RoutingPage() {
     return (
         <motion.div 
             className="flex flex-col gap-6"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: offsets.page }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+            transition={{ duration: durations.page, ease: desktopMotionEase }}
         >
-            <div className="flex justify-between items-end border-b border-border/50 pb-6">
+            <div className="flex justify-between items-end border-b border-border/60 pb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-wider text-[var(--color-matrix-green)] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)] uppercase flex items-center gap-3">
+                    <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_26%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_8%,white)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-neon-cyan)]">
+                        <Hexagon size={12} />
+                        {t('routingEngine.title')}
+                    </div>
+                    <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-[-0.02em] text-foreground">
                         <RouteIcon /> {t('routingEngine.title')}
                     </h1>
-                    <p className="text-muted-foreground mt-2 text-sm tracking-wide">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                         {t('routingEngine.description')}
                     </p>
                 </div>
                 <button 
                     onClick={() => setIsAdding(!isAdding)}
-                    className="flex items-center gap-2 bg-[var(--color-neon-cyan)]/10 hover:bg-[var(--color-neon-cyan)]/20 text-[var(--color-neon-cyan)] border border-[var(--color-neon-cyan)]/50 px-4 py-2 rounded-md transition-all font-bold tracking-widest uppercase text-xs shadow-[0_0_15px_rgba(0,255,255,0.1)]"
+                    className="flex items-center gap-2 rounded-2xl border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_24%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_10%,white)] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-neon-cyan)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_14%,white)]"
                 >
                     <Plus size={16} /> {isAdding ? t('routingEngine.cancel') : t('routingEngine.addRule')}
                 </button>
             </div>
 
             {isAdding && (
-                <Card className="border-[var(--color-neon-cyan)]/30 bg-black/40 backdrop-blur shadow-[0_0_20px_rgba(0,255,255,0.05)]">
+                <Card className="border-[color:color-mix(in_oklab,var(--color-neon-cyan)_22%,var(--border))] bg-[color:var(--panel-surface)]/94 shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
                     <CardHeader>
-                        <CardTitle className="text-[var(--color-neon-cyan)] uppercase tracking-widest text-sm">{t('routingEngine.newRouteDirective')}</CardTitle>
+                        <CardTitle className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-neon-cyan)]">{t('routingEngine.newRouteDirective')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleAdd} className="flex flex-col gap-4">
@@ -173,18 +186,22 @@ export function RoutingPage() {
                             
                             <div className="space-y-2 w-1/3">
                                 <Label className="text-muted-foreground uppercase text-xs tracking-wider">{t('routingEngine.targetOutbound')}</Label>
-                                <select 
+                                <Select
                                     value={outbound}
-                                    onChange={e => setOutbound(e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-border/50 bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-matrix-green)]"
+                                    onValueChange={(value) => setOutbound(String(value ?? "proxy"))}
                                 >
-                                    <option value="proxy">{t('routingEngine.outboundProxy')}</option>
-                                    <option value="direct">{t('routingEngine.outboundDirect')}</option>
-                                    <option value="block">{t('routingEngine.outboundBlock')}</option>
-                                </select>
+                                    <SelectTrigger className="h-10 w-full border-border/50 bg-[color:var(--field-surface)] text-foreground">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="proxy">{t('routingEngine.outboundProxy')}</SelectItem>
+                                        <SelectItem value="direct">{t('routingEngine.outboundDirect')}</SelectItem>
+                                        <SelectItem value="block">{t('routingEngine.outboundBlock')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
-                            <button type="submit" className="mt-2 bg-[var(--color-matrix-green)]/20 hover:bg-[var(--color-matrix-green)]/30 text-[var(--color-matrix-green)] border border-[var(--color-matrix-green)]/50 px-4 py-2 rounded-md transition-all font-bold tracking-widest uppercase text-xs w-fit">
+                            <button type="submit" className="mt-2 w-fit rounded-2xl border border-[color:color-mix(in_oklab,var(--color-matrix-green)_24%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_10%,white)] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-matrix-green)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_14%,white)]">
                                 {t('routingEngine.injectRule')}
                             </button>
                         </form>
@@ -203,7 +220,7 @@ export function RoutingPage() {
                         whileHover={{ scale: 1.02, textShadow: "0 0 8px rgba(0,255,255,0.8)" }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => applyPresetPack("social")}
-                        className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-neon-cyan)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(0,255,255,0.05)] hover:border-[var(--color-neon-cyan)] hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] transition-all"
+                        className="p-5 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_24%,var(--border))] bg-[color:var(--panel-surface)]/96 text-center shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition-all hover:border-[color:color-mix(in_oklab,var(--color-neon-cyan)_38%,var(--border))] hover:bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_8%,white)] hover:shadow-[0_18px_40px_rgba(42,123,138,0.10)]"
                     >
                          <Hexagon size={28} className="text-[var(--color-neon-cyan)]" />
                      <div>
@@ -217,7 +234,7 @@ export function RoutingPage() {
                         whileHover={{ scale: 1.02, textShadow: "0 0 8px rgba(0,255,136,0.8)" }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => applyPresetPack("dev")}
-                        className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-matrix-green)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(0,255,136,0.05)] hover:border-[var(--color-matrix-green)] hover:shadow-[0_0_20px_rgba(0,255,136,0.2)] transition-all"
+                        className="p-5 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-[color:color-mix(in_oklab,var(--color-matrix-green)_24%,var(--border))] bg-[color:var(--panel-surface)]/96 text-center shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition-all hover:border-[color:color-mix(in_oklab,var(--color-matrix-green)_38%,var(--border))] hover:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_8%,white)] hover:shadow-[0_18px_40px_rgba(29,111,99,0.10)]"
                     >
                          <Code size={28} className="text-[var(--color-matrix-green)]" />
                          <div>
@@ -231,7 +248,7 @@ export function RoutingPage() {
                         whileHover={{ scale: 1.02, textShadow: "0 0 8px rgba(255,0,255,0.8)" }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => applyPresetPack("stream")}
-                        className="p-5 flex flex-col items-center justify-center text-center gap-3 rounded-2xl border border-[var(--color-neon-pink)]/30 bg-black/40 cursor-pointer shadow-[0_0_15px_rgba(255,0,255,0.05)] hover:border-[var(--color-neon-pink)] hover:shadow-[0_0_20px_rgba(255,0,255,0.2)] transition-all"
+                        className="p-5 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-[color:color-mix(in_oklab,var(--color-neon-pink)_24%,var(--border))] bg-[color:var(--panel-surface)]/96 text-center shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition-all hover:border-[color:color-mix(in_oklab,var(--color-neon-pink)_38%,var(--border))] hover:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_8%,white)] hover:shadow-[0_18px_40px_rgba(159,99,125,0.11)]"
                     >
                          <PlaySquare size={28} className="text-[var(--color-neon-pink)]" />
                          <div>
@@ -244,7 +261,7 @@ export function RoutingPage() {
 
             <div className="flex flex-col gap-3">
                 {rules.length === 0 && !isAdding && (
-                    <div className="text-center py-12 text-muted-foreground/50 border border-dashed border-border/30 rounded-xl bg-black/20">
+                    <div className="rounded-xl border border-dashed border-border/40 bg-[color:var(--panel-subtle)]/55 py-12 text-center text-muted-foreground/70">
                         {t('routingEngine.noRules')}
                     </div>
                 )}
@@ -252,7 +269,11 @@ export function RoutingPage() {
                 {rules.map((rule) => (
                     <div 
                         key={rule.id} 
-                        className={`flex items-center justify-between p-4 rounded-xl border backdrop-blur transition-all ${rule.enabled ? 'bg-black/40 border-[var(--color-matrix-green)]/20' : 'bg-black/20 border-border/30 opacity-70'}`}
+                        className={`flex items-center justify-between rounded-xl border p-4 backdrop-blur transition-all ${
+                            rule.enabled
+                                ? 'border-[color:color-mix(in_oklab,var(--color-matrix-green)_18%,var(--border))] bg-[color:var(--panel-surface)]/96 shadow-[0_8px_24px_rgba(15,23,42,0.04)]'
+                                : 'border-border/40 bg-[color:var(--panel-subtle)]/50 opacity-78'
+                        }`}
                     >
                         <div className="flex items-center gap-6">
                             <div className="flex flex-col items-center gap-1 min-w-[60px]">

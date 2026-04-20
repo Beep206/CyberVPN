@@ -1,7 +1,7 @@
 // OS router implementation logic
 // ARCHITECTURAL NOTES:
-// 1. **Privilege Escalation (User Friendly Approach)**: 
-//    Instead of a complex background daemon, the app will run self-contained. 
+// 1. **Privilege Escalation (User Friendly Approach)**:
+//    Instead of a complex background daemon, the app will run self-contained.
 //    If the user enables BGP / Routing, the UI will check for admin rights.
 //    If missing, it shows a "Restart as Administrator" button.
 //    Clicking it uses `runas` (Windows), `osascript` (macOS), or `pkexec` (Linux) to reboot the app elevated.

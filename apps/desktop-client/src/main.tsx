@@ -1,10 +1,13 @@
-import { StrictMode, Suspense, lazy } from "react";
+import { StrictMode, Suspense, lazy, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { HashRouter, Route, Routes } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 
 import { ThemeProvider } from "./app/theme-provider";
 import "./shared/i18n/i18n";
+import { ConnectionProvider } from "./shared/model/use-connection";
+import { desktopMotionEase } from "./shared/lib/motion";
+import { PageSkeleton } from "./widgets/PageSkeleton";
 import { Layout } from "./widgets/Layout";
 import "./index.css";
 
@@ -48,58 +51,115 @@ const OnboardingPage = lazy(() =>
   import("./pages/Onboarding").then((module) => ({ default: module.OnboardingPage })),
 );
 const RoutingPage = lazy(() =>
-  import("./pages/Routing").then((module) => ({ default: module.RoutingPage })),
+  import("./pages/Routing/index").then((module) => ({ default: module.RoutingPage })),
 );
 const SubscriptionsPage = lazy(() =>
   import("./pages/Subscriptions").then((module) => ({ default: module.SubscriptionsPage })),
 );
+const LogsPage = lazy(() =>
+  import("./pages/Logs").then((module) => ({ default: module.LogsPage })),
+);
 
-function RouteLoadingFallback() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#05070b] px-6 text-center">
-      <div className="rounded-xl border border-border/40 bg-black/40 px-5 py-4 text-sm text-muted-foreground">
-        Loading CyberVPN workspace...
-      </div>
-    </div>
-  );
+const routePreloaders = [
+  () => import("./pages/Dashboard"),
+  () => import("./pages/Profiles"),
+  () => import("./pages/Settings"),
+  () => import("./pages/Hotspot"),
+  () => import("./pages/SplitTunneling"),
+  () => import("./pages/PrivacyShield"),
+  () => import("./pages/Security"),
+  () => import("./pages/Analytics"),
+  () => import("./pages/Automation"),
+  () => import("./pages/StealthLab"),
+  () => import("./pages/Account"),
+  () => import("./pages/Remote"),
+  () => import("./pages/Routing/index"),
+  () => import("./pages/Subscriptions"),
+  () => import("./pages/Logs"),
+];
+
+function RouteWarmup() {
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId: number | null = null;
+    let idleId: number | null = null;
+
+    const preloadRoutes = () => {
+      if (cancelled) {
+        return;
+      }
+
+      for (const preload of routePreloaders) {
+        void preload();
+      }
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(preloadRoutes, { timeout: 1500 });
+    } else {
+      timeoutId = window.setTimeout(preloadRoutes, 350);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  return null;
 }
 
-function AnimatedRoutes() {
-  const location = useLocation();
-
+function AppRoutes() {
   return (
-    <Suspense fallback={<RouteLoadingFallback />}>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/" element={<Layout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="remote" element={<RemotePage />} />
-            <Route path="stealth-lab" element={<StealthLabPage />} />
-            <Route path="security" element={<SecurityPage />} />
-            <Route path="account" element={<AccountPage />} />
-            <Route path="automation" element={<AutomationPage />} />
-            <Route path="profiles" element={<ProfilesPage />} />
-            <Route path="routing" element={<RoutingPage />} />
-            <Route path="hotspot" element={<HotspotPage />} />
-            <Route path="split-tunneling" element={<SplitTunnelingPage />} />
-            <Route path="privacy-shield" element={<PrivacyShieldPage />} />
-            <Route path="subscriptions" element={<SubscriptionsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
-      </AnimatePresence>
-    </Suspense>
+    <Routes>
+      <Route
+        path="/onboarding"
+        element={
+          <Suspense fallback={<PageSkeleton fullscreen />}>
+            <OnboardingPage />
+          </Suspense>
+        }
+      />
+      <Route path="/" element={<Layout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="remote" element={<RemotePage />} />
+        <Route path="stealth-lab" element={<StealthLabPage />} />
+        <Route path="security" element={<SecurityPage />} />
+        <Route path="account" element={<AccountPage />} />
+        <Route path="automation" element={<AutomationPage />} />
+        <Route path="profiles" element={<ProfilesPage />} />
+        <Route path="routing" element={<RoutingPage />} />
+        <Route path="hotspot" element={<HotspotPage />} />
+        <Route path="split-tunneling" element={<SplitTunnelingPage />} />
+        <Route path="privacy-shield" element={<PrivacyShieldPage />} />
+        <Route path="subscriptions" element={<SubscriptionsPage />} />
+        <Route path="logs" element={<LogsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
+    </Routes>
   );
 }
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <BrowserRouter>
-        <AnimatedRoutes />
-      </BrowserRouter>
+      <ConnectionProvider>
+        <MotionConfig
+          reducedMotion="user"
+          transition={{ duration: 0.16, ease: desktopMotionEase }}
+        >
+          <HashRouter>
+            <RouteWarmup />
+            <AppRoutes />
+          </HashRouter>
+        </MotionConfig>
+      </ConnectionProvider>
     </ThemeProvider>
   </StrictMode>
 );

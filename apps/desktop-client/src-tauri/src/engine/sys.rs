@@ -11,6 +11,12 @@ pub mod stats;
 pub mod sync;
 
 #[cfg(target_os = "windows")]
+use std::fs;
+#[cfg(target_os = "windows")]
+use tauri::path::BaseDirectory;
+#[cfg(target_os = "windows")]
+use tauri::Manager;
+#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::HANDLE;
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY};
@@ -58,14 +64,38 @@ pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
     #[cfg(target_os = "windows")]
     {
         let app_dir = crate::engine::store::get_app_dir(app)?;
-        let dll_path = app_dir.join("wintun.dll");
+        let bin_dir = app_dir.join("bin");
+        if !bin_dir.exists() {
+            fs::create_dir_all(&bin_dir)?;
+        }
+        let dll_path = bin_dir.join("wintun.dll");
 
-        if !dll_path.exists() {
-            // In a full production setup, we would download or extract the correct architecture of wintun.dll
-            // from the bundled resources. For now, we simulate extraction.
+        let needs_copy = fs::metadata(&dll_path)
+            .map(|metadata| metadata.is_file() && metadata.len() > 0)
+            .unwrap_or(false)
+            == false;
+
+        if needs_copy {
+            let resource_path = app
+                .path()
+                .resolve(
+                    "resources/runtime/windows-amd64/wintun.dll",
+                    BaseDirectory::Resource,
+                )
+                .map_err(|error| {
+                    AppError::System(format!(
+                        "Failed to resolve bundled wintun.dll resource: {error}"
+                    ))
+                })?;
+
+            if !resource_path.exists() {
+                return Err(AppError::System(
+                    "Bundled wintun.dll resource is missing".to_string(),
+                ));
+            }
+
             println!("Wintun.dll not found. Extracting to {}", dll_path.display());
-
-            // Placeholder: std::fs::write(&dll_path, include_bytes!("../../resources/wintun-amd64.dll"))
+            fs::copy(resource_path, &dll_path)?;
         }
     }
 
@@ -78,10 +108,11 @@ pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
 pub fn elevate_and_run(
     bin_path: &std::path::Path,
     config_path: &std::path::Path,
-) -> Result<(), AppError> {
+) -> Result<usize, AppError> {
     use std::os::windows::ffi::OsStrExt;
     use windows::Win32::UI::Shell::{
-        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+        ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SEE_MASK_NO_CONSOLE,
+        SHELLEXECUTEINFOW,
     };
     use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
 
@@ -103,15 +134,21 @@ pub fn elevate_and_run(
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
+    let directory: Vec<u16> = bin_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
 
-    // We intentionally don't capture hProcess here since we can't easily integrate it with Tokio
-    // and we will rely on checking if the elevated binary is running via name later or closing it directly.
     let mut info = SHELLEXECUTEINFOW {
         cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
-        fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC,
+        fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC | SEE_MASK_NO_CONSOLE,
         lpVerb: windows::core::PCWSTR::from_raw(verb.as_ptr()),
         lpFile: windows::core::PCWSTR::from_raw(file.as_ptr()),
         lpParameters: windows::core::PCWSTR::from_raw(args.as_ptr()),
+        lpDirectory: windows::core::PCWSTR::from_raw(directory.as_ptr()),
         nShow: SW_HIDE.0,
         ..Default::default()
     };
@@ -125,5 +162,11 @@ pub fn elevate_and_run(
         ));
     }
 
-    Ok(())
+    if info.hProcess.0.is_null() {
+        return Err(AppError::System(
+            "UAC elevation succeeded but returned no process handle".to_string(),
+        ));
+    }
+
+    Ok(info.hProcess.0 as usize)
 }

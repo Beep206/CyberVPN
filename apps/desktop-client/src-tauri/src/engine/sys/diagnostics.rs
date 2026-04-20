@@ -54,10 +54,19 @@ pub async fn run_stealth_diagnostics(
             "stealth-probe-log",
             "Analyzing SNI Filtering (google.com)... [START]",
         );
-        let client = reqwest::Client::builder()
+        let client = match reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
             .build()
-            .unwrap();
+        {
+            Ok(client) => client,
+            Err(error) => {
+                let _ = app_sni.emit(
+                    "stealth-probe-log",
+                    format!("Analyzing SNI Filtering... [CLIENT INIT FAILED: {error}]"),
+                );
+                return true;
+            }
+        };
 
         let forbidden = client.get("https://google.com").send().await;
         if let Err(e) = forbidden {

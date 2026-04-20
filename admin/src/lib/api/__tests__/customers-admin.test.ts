@@ -16,6 +16,12 @@ const MATCH_ANY_API_ORIGIN = {
   mobileUserPasswordReset: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/credentials\/reset-password$/,
   mobileUserSubscriptionResync: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/subscription\/resync$/,
   mobileUserTimeline: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/timeline(?:\?.*)?$/,
+  mobileUserOperationsInsight: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/operations-insight$/,
+  mobileUserOperationsInsightActions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/operations-insight\/actions$/,
+  mobileUserWorkspaceEvidence: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/operations-insight\/exports\/workspaces\/[^/]+$/,
+  mobileUserStatementEvidence: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/operations-insight\/exports\/partner-statements\/[^/]+$/,
+  mobileUserPayoutInstructionEvidence: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/operations-insight\/exports\/payout-instructions\/[^/]+$/,
+  mobileUserPayoutExecutionEvidence: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/operations-insight\/exports\/payout-executions\/[^/]+$/,
 };
 
 beforeEach(() => {
@@ -220,7 +226,209 @@ describe('customersApi mobile user admin operations', () => {
     expect(response.data.exists).toBe(true);
     expect(response.data.days_left).toBe(29);
     expect(response.data.config_client_type).toBe('vless');
-    expect(response.data.links[0]).toBe('vless://config-string');
+    expect(response.data.links?.[0]).toBe('vless://config-string');
+  });
+
+  it('loads customer operations insight for support and finance overlays', async () => {
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.mobileUserOperationsInsight, () =>
+        HttpResponse.json({
+          user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+          section_access: {
+            explainability_visible: true,
+            finance_visible: true,
+            finance_actions_visible: true,
+            risk_visible: false,
+          },
+          order_insights: [
+            {
+              order_explainability: {
+                order: {
+                  id: '3f26804f-fc9c-4df1-b571-20f06fd3340d',
+                  settlement_status: 'paid',
+                  sale_channel: 'web',
+                  currency_code: 'USD',
+                  displayed_price: 99,
+                  commission_base_amount: 84,
+                  partner_code_id: '86cbb361-377e-4d3f-b6fd-319c52a74856',
+                  program_eligibility_policy_id: '9b1f69af-a8dd-4879-833f-7b7668b68f0c',
+                  created_at: '2026-04-18T12:00:00Z',
+                  updated_at: '2026-04-18T12:00:00Z',
+                },
+                commissionability_evaluation: {
+                  id: '9599d6f4-eaa6-4af7-b7df-363f75c53f4f',
+                  order_id: '3f26804f-fc9c-4df1-b571-20f06fd3340d',
+                  commissionability_status: 'eligible',
+                  reason_codes: ['phase6_admin_overlay'],
+                  partner_context_present: true,
+                  program_allows_commissionability: true,
+                  positive_commission_base: true,
+                  paid_status: true,
+                  fully_refunded: false,
+                  open_payment_dispute_present: false,
+                  risk_allowed: true,
+                  evaluation_snapshot: {},
+                  explainability_snapshot: {},
+                  evaluated_at: '2026-04-18T12:00:00Z',
+                  created_at: '2026-04-18T12:00:00Z',
+                  updated_at: '2026-04-18T12:00:00Z',
+                },
+                explainability: {
+                  commercial_resolution_summary: {
+                    resolved_partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+                  },
+                },
+              },
+              auth_realm_id: 'd6cc27a6-3560-4ca7-85f1-6c4f7ef39335',
+              storefront_id: 'c3f4a9f0-9a7b-4dd6-8b32-48fa66014d23',
+              attribution_result: null,
+              payment_disputes: [],
+              dispute_cases: [],
+              resolved_partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+            },
+          ],
+          settlement_workspaces: [
+            {
+              partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+              payout_accounts: [],
+              payout_account_actions: {},
+              partner_statements: [],
+              payout_instructions: [],
+              payout_instruction_actions: {},
+              payout_executions: [],
+            },
+          ],
+          service_access_insights: [],
+          risk_subject_insights: [],
+        }),
+      ),
+    );
+
+    const response = await customersApi.getOperationsInsight('9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0');
+
+    expect(response.status).toBe(200);
+    expect(response.data.section_access.finance_visible).toBe(true);
+    expect(response.data.order_insights[0]?.order_explainability.order.sale_channel).toBe('web');
+    expect(response.data.settlement_workspaces[0]?.partner_account_id).toBe('5d4c6d90-32aa-4a81-b430-b390f5684d7d');
+  });
+
+  it('submits customer operations actions through the consolidated admin rail', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.mobileUserOperationsInsightActions, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+
+        return HttpResponse.json({
+          action_kind: 'approve_payout_instruction',
+          target_kind: 'payout_instruction',
+          target_id: '4df8b78c-e5ee-43ba-b6c4-ac2818c353b7',
+          payout_account: null,
+          payout_instruction: {
+            id: '4df8b78c-e5ee-43ba-b6c4-ac2818c353b7',
+            partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+            partner_statement_id: '113bdbd9-8c12-46dd-a4d8-5fa54c9680cc',
+            partner_payout_account_id: 'fa8f6898-ebf5-47ea-9ec0-304f825d8b2e',
+            instruction_key: 'stmt_customer_ops:pending',
+            instruction_status: 'approved',
+            payout_amount: 20,
+            currency_code: 'USD',
+            instruction_snapshot: {},
+            created_by_admin_user_id: null,
+            approved_by_admin_user_id: '4a2bb6d0-e12f-4f51-9200-702edc8dbe22',
+            approved_at: '2026-04-18T12:10:00Z',
+            rejected_by_admin_user_id: null,
+            rejected_at: null,
+            rejection_reason_code: null,
+            completed_at: null,
+            created_at: '2026-04-18T12:00:00Z',
+            updated_at: '2026-04-18T12:10:00Z',
+          },
+        });
+      }),
+    );
+
+    const response = await customersApi.performOperationsAction(
+      '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+      {
+        action_kind: 'approve_payout_instruction',
+        payout_instruction_id: '4df8b78c-e5ee-43ba-b6c4-ac2818c353b7',
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.data.payout_instruction?.instruction_status).toBe('approved');
+    expect(capturedBody).toEqual({
+      action_kind: 'approve_payout_instruction',
+      payout_instruction_id: '4df8b78c-e5ee-43ba-b6c4-ac2818c353b7',
+    });
+  });
+
+  it('downloads canonical customer operations evidence packs', async () => {
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.mobileUserWorkspaceEvidence, () =>
+        HttpResponse.json(
+          {
+            export_kind: 'workspace_finance_evidence',
+            filename: 'workspace-evidence.json',
+            exported_at: '2026-04-19T10:00:00Z',
+            user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+            partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+            scope: {
+              statement_ids: ['113bdbd9-8c12-46dd-a4d8-5fa54c9680cc'],
+            },
+            evidence: {
+              workspace: {
+                partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+              },
+            },
+          },
+          {
+            headers: {
+              'Content-Disposition': 'attachment; filename="workspace-evidence.json"',
+            },
+          },
+        ),
+      ),
+      http.get(MATCH_ANY_API_ORIGIN.mobileUserPayoutExecutionEvidence, () =>
+        HttpResponse.json(
+          {
+            export_kind: 'payout_execution_evidence',
+            filename: 'execution-evidence.json',
+            exported_at: '2026-04-19T10:00:00Z',
+            user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+            partner_account_id: '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+            scope: {
+              payout_execution_id: '98aa0f0d-fc06-4087-bd6e-36bb63f4cf1e',
+            },
+            evidence: {
+              payout_execution: {
+                id: '98aa0f0d-fc06-4087-bd6e-36bb63f4cf1e',
+              },
+            },
+          },
+          {
+            headers: {
+              'Content-Disposition': 'attachment; filename="execution-evidence.json"',
+            },
+          },
+        ),
+      ),
+    );
+
+    const workspaceDownload = await customersApi.downloadWorkspaceFinanceEvidence(
+      '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+      '5d4c6d90-32aa-4a81-b430-b390f5684d7d',
+    );
+    const executionDownload = await customersApi.downloadPayoutExecutionEvidence(
+      '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+      '98aa0f0d-fc06-4087-bd6e-36bb63f4cf1e',
+    );
+
+    expect(workspaceDownload.filename).toBe('workspace-evidence.json');
+    expect(workspaceDownload.blob).toBeInstanceOf(Blob);
+    expect(executionDownload.filename).toBe('execution-evidence.json');
+    expect(executionDownload.blob).toBeInstanceOf(Blob);
   });
 
   it('lists and creates customer staff notes', async () => {
@@ -437,7 +645,7 @@ describe('customersApi mobile user admin operations', () => {
 
     expect(response.status).toBe(200);
     expect(response.data.revoked_count).toBe(2);
-    expect(response.data.revoked_devices[1]?.device_model).toBe('Pixel 9');
+    expect(response.data.revoked_devices?.[1]?.device_model).toBe('Pixel 9');
     expect(capturedBody).toMatchObject({
       reason: 'Containment after suspicious session activity',
     });

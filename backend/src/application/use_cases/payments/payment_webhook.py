@@ -1,10 +1,14 @@
 import logging
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.wallet_service import WalletService
+from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
+from src.infrastructure.database.repositories.order_repo import OrderRepository
+from src.infrastructure.database.repositories.payment_attempt_repo import PaymentAttemptRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
@@ -16,6 +20,8 @@ class ProcessPaymentWebhookUseCase:
     def __init__(self, session: AsyncSession, webhook_handler: CryptoBotWebhookHandler) -> None:
         self._session = session
         self._handler = webhook_handler
+        self._attempts = PaymentAttemptRepository(session)
+        self._orders = OrderRepository(session)
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
 
@@ -59,9 +65,29 @@ class ProcessPaymentWebhookUseCase:
         if payment.status == "completed":
             return {"status": "already_processed", "invoice_id": external_id}
 
+        payment_attempt = await self._attempts.get_by_payment_id(payment.id)
+        if payment_attempt is not None and payment_attempt.status in {
+            PaymentAttemptStatus.FAILED.value,
+            PaymentAttemptStatus.EXPIRED.value,
+            PaymentAttemptStatus.CANCELLED.value,
+        }:
+            return {
+                "status": "ignored_terminal_attempt",
+                "invoice_id": external_id,
+                "payment_attempt_id": str(payment_attempt.id),
+            }
+
         # Mark payment as completed
         payment.status = "completed"
         await payment_repo.update(payment)
+
+        if payment_attempt is not None:
+            payment_attempt.status = PaymentAttemptStatus.SUCCEEDED.value
+            payment_attempt.terminal_at = datetime.now(UTC)
+            if payment_attempt.order_id:
+                order = await self._orders.get_by_id(payment_attempt.order_id)
+                if order is not None:
+                    order.settlement_status = "paid"
 
         # Run post-payment processing (invites, commissions, wallet debit, promo)
         post_payment = PostPaymentProcessingUseCase(self._session)
@@ -87,6 +113,7 @@ class ProcessPaymentWebhookUseCase:
         if payment.status in {"completed", "failed"}:
             return {"status": "already_processed", "invoice_id": external_id}
 
+        payment_attempt = await self._attempts.get_by_payment_id(payment.id)
         wallet_used = Decimal(str(payment.wallet_amount_used or 0))
         if wallet_used > 0 and (payment.metadata_ or {}).get("wallet_frozen"):
             try:
@@ -99,9 +126,31 @@ class ProcessPaymentWebhookUseCase:
 
         payment.status = "failed"
         await payment_repo.update(payment)
+
+        if payment_attempt is not None and payment_attempt.status not in {
+            PaymentAttemptStatus.SUCCEEDED.value,
+            PaymentAttemptStatus.FAILED.value,
+            PaymentAttemptStatus.EXPIRED.value,
+            PaymentAttemptStatus.CANCELLED.value,
+        }:
+            payment_attempt.status = _map_attempt_failure_status(update_type)
+            payment_attempt.terminal_at = datetime.now(UTC)
+            if payment_attempt.order_id:
+                order = await self._orders.get_by_id(payment_attempt.order_id)
+                if order is not None and order.settlement_status != "paid":
+                    order.settlement_status = "failed"
+
         await self._session.commit()
         logger.info(
             "Webhook invoice failure processed",
             extra={"external_id": external_id, "payment_id": str(payment.id), "update_type": update_type},
         )
         return {"status": "processed", "invoice_id": external_id, "update_type": update_type}
+
+
+def _map_attempt_failure_status(update_type: str) -> str:
+    if update_type == "invoice_expired":
+        return PaymentAttemptStatus.EXPIRED.value
+    if update_type == "invoice_cancelled":
+        return PaymentAttemptStatus.CANCELLED.value
+    return PaymentAttemptStatus.FAILED.value

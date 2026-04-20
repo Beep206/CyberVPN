@@ -2,16 +2,16 @@
 
 import logging
 from datetime import UTC, datetime
-from hashlib import sha256
 from typing import Protocol
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.otp_service import OtpService, OtpVerificationResult
 from src.config.settings import settings
-from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,12 @@ class VerifyOtpUseCase:
         client_fingerprint: str | None = None,
         client_ip: str | None = None,
         user_agent: str | None = None,
+        auth_realm_id: UUID | None = None,
+        auth_realm_key: str | None = None,
+        audience: str | None = None,
+        principal_type: str = "admin",
+        scope_family: str = "admin",
+        include_legacy_default: bool = False,
     ) -> VerifyOtpResult:
         """
         Verify OTP code and activate user.
@@ -99,7 +105,11 @@ class VerifyOtpUseCase:
             VerifyOtpResult with tokens on success, error details on failure
         """
         # Find user by email
-        user = await self._user_repo.get_by_email(email)
+        user = await self._user_repo.get_by_email(
+            email,
+            realm_id=auth_realm_id,
+            include_legacy_default=include_legacy_default,
+        )
         if not user:
             # Don't reveal if email exists
             return VerifyOtpResult(
@@ -155,25 +165,36 @@ class VerifyOtpUseCase:
         access_token, _access_jti, _access_expire = self._auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
+            audience=audience,
+            principal_type=principal_type,
+            realm_id=str(auth_realm_id) if auth_realm_id else None,
+            realm_key=auth_realm_key,
+            scope_family=scope_family,
         )
         refresh_token, _refresh_jti, refresh_expire = self._auth_service.create_refresh_token(
             subject=str(user.id),
             fingerprint=client_fingerprint,
+            audience=audience,
+            principal_type=principal_type,
+            realm_id=str(auth_realm_id) if auth_realm_id else None,
+            realm_key=auth_realm_key,
+            scope_family=scope_family,
         )
 
-        # Store refresh token hash in database
-        token_hash = sha256(refresh_token.encode()).hexdigest()
-        expires_at = refresh_expire  # Use actual expiry from token creation
-
-        refresh_token_record = RefreshToken(
+        await store_refresh_token(
+            self._session,
             user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
+            refresh_token=refresh_token,
+            expires_at=refresh_expire,
             device_id=client_fingerprint,
             ip_address=client_ip,
             user_agent=user_agent,
+            auth_realm_id=auth_realm_id,
+            principal_class=principal_type,
+            principal_subject=str(user.id),
+            audience=audience,
+            scope_family=scope_family,
         )
-        self._session.add(refresh_token_record)
 
         # Update last login information
         user.last_login_at = datetime.now(UTC)

@@ -15,6 +15,7 @@ It must be used together with:
 - [2026-04-17-partner-platform-operational-readiness-package.md](2026-04-17-partner-platform-operational-readiness-package.md)
 - [2026-04-17-partner-platform-detailed-phased-implementation-plan.md](2026-04-17-partner-platform-detailed-phased-implementation-plan.md)
 - [2026-04-17-partner-platform-delivery-program.md](2026-04-17-partner-platform-delivery-program.md)
+- [2026-04-19-partner-platform-environment-command-inventory-sheet.md](2026-04-19-partner-platform-environment-command-inventory-sheet.md)
 
 This document does not replace per-service deployment docs. It defines how the partner-platform cutover is executed across environments.
 
@@ -33,7 +34,8 @@ Current repository evidence:
 - local development uses repo-root `npm` commands and `infra/docker compose`;
 - staging infrastructure exists under `infra/terraform/live/staging/*`;
 - some staging operational checklists already exist in [STAGING_REMNAWAVE_SMOKE_CHECKLIST.md](/home/beep/projects/VPNBussiness/docs/runbooks/STAGING_REMNAWAVE_SMOKE_CHECKLIST.md) and [CONTROL_PLANE_BACKUP_RESTORE_RUNBOOK.md](/home/beep/projects/VPNBussiness/docs/runbooks/CONTROL_PLANE_BACKUP_RESTORE_RUNBOOK.md);
-- production-specific command sources are not fully stored in this repository and must be filled by environment owners before live cutover.
+- concrete staging and production command families already exist in [2026-04-19-partner-platform-environment-command-inventory-sheet.md](2026-04-19-partner-platform-environment-command-inventory-sheet.md), `infra/Makefile`, and the infra runbooks;
+- live production windows still require exact runtime parameters, named human owners, and named window records before cutover may begin.
 
 ---
 
@@ -213,33 +215,35 @@ Before any production cutover window:
 
 1. confirm the exact cutover unit or units;
 2. confirm pilot evidence archive links;
-3. confirm production-only secrets and environment manifests;
-4. confirm communication channels for finance, risk, support, and engineering;
-5. confirm freeze window start and end;
-6. confirm rollback decision threshold and incident commander.
+3. confirm canonical owner acknowledgements, rollback drill, and approved go/no-go decision exist for the pilot cohort or cutover unit in scope;
+4. confirm production-only secrets and environment manifests;
+5. confirm communication channels for finance, risk, support, and engineering;
+6. confirm freeze window start and end;
+7. confirm rollback decision threshold and incident commander.
 
 ## 7.3 Production Command Discipline
 
-Production command lists must not live only in chat messages. Before first live use, each production environment must have:
+Production command lists must not live only in chat messages.
+
+The canonical base inventory now lives in [2026-04-19-partner-platform-environment-command-inventory-sheet.md](2026-04-19-partner-platform-environment-command-inventory-sheet.md).
+
+Before first live use, each production environment must have:
 
 - a named command owner;
 - an exact environment inventory;
-- explicit deploy, verify, and rollback commands;
+- explicit deploy, verify, and rollback commands selected from the canonical command inventory sheet;
 - secret locations and access approvers;
 - DNS or host routing actions if relevant;
 - smoke and reconciliation command references.
 
-Where the repository does not already store production commands, the runbook must keep placeholders in this format and replace them before the window:
+The only allowed unresolved production items are:
 
-```text
-<production-schema-apply-command>
-<production-config-promotion-command>
-<production-traffic-shift-command>
-<production-shadow-compare-command>
-<production-rollback-command>
-```
+- exact runtime parameters for the named window;
+- named human owners for the named window;
+- approved start and end timestamps for the named window;
+- exact archive and evidence paths for the named window.
 
-No production cutover may begin while these placeholders remain unresolved.
+These live values must be recorded in the production window registration record defined by the command inventory sheet before any production cutover may begin.
 
 ## 7.4 Production Cutover Procedure
 
@@ -321,5 +325,5 @@ This package is ready when:
 
 - every cutover unit can be mapped to at least one environment-specific procedure;
 - staging and production windows have explicit preconditions;
-- production placeholders are visible and must be resolved before live use;
+- production command inventory is explicit and only per-window runtime values remain to be filled before live use;
 - local, staging, and production evidence requirements are clear enough to support the rehearsal template and readiness archive.

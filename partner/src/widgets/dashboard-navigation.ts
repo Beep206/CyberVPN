@@ -1,0 +1,48 @@
+import { PARTNER_NAV_ITEMS } from '@/features/partner-shell/config/section-registry';
+
+export const DASHBOARD_NAV_ITEMS = PARTNER_NAV_ITEMS;
+
+export const dashboardNavigationItems = DASHBOARD_NAV_ITEMS;
+
+export const DASHBOARD_NAV_LABEL_FALLBACKS = {
+  adminConsole: 'PARTNER PORTAL',
+  analytics: 'ANALYTICS',
+  analyticsHint: 'Performance, exports, explainability',
+  application: 'APPLICATION',
+  applicationHint: 'Onboarding, review, requested info',
+  campaigns: 'CAMPAIGNS',
+  campaignsHint: 'Assets, enablement, approvals',
+  cases: 'SUPPORT & CASES',
+  casesHint: 'Messages, disputes, requests',
+  closeMenu: 'Close menu',
+  codes: 'CODES & TRACKING',
+  codesHint: 'Links, QR, attribution setup',
+  compliance: 'COMPLIANCE',
+  complianceHint: 'Declarations, policy, governance',
+  conversions: 'CONVERSIONS',
+  conversionsHint: 'Orders, leads, commission context',
+  dashboard: 'DASHBOARD',
+  dashboardHint: 'Status, tasks, portal readiness',
+  finance: 'FINANCE',
+  financeHint: 'Statements, payout readiness, holds',
+  integrations: 'INTEGRATIONS',
+  integrationsHint: 'Tokens, postbacks, delivery logs',
+  legal: 'CONTRACTS & LEGAL',
+  legalHint: 'Terms, policies, acceptance history',
+  mainNavigation: 'Main navigation',
+  notifications: 'INBOX',
+  notificationsHint: 'Status changes and alerts',
+  openMenu: 'Open menu',
+  organization: 'ORGANIZATION',
+  organizationHint: 'Business profile, domains, contacts',
+  programs: 'PROGRAMS',
+  programsHint: 'Lanes, restrictions, approvals',
+  reseller: 'RESELLER CONSOLE',
+  resellerHint: 'Storefront and distribution scope',
+  secureSession: 'SECURE SESSION',
+  settings: 'SETTINGS',
+  settingsHint: 'MFA, sessions, preferences',
+  sidebar: 'Sidebar',
+  team: 'TEAM & ACCESS',
+  teamHint: 'Members, roles, workspace security',
+} as const;

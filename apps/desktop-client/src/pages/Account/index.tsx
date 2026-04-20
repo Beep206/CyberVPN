@@ -2,21 +2,73 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { Cloud, CloudUpload, CloudDownload, RefreshCw, KeyRound, QrCode, Trash2, Smartphone } from "lucide-react";
+import {
+  Cloud,
+  CloudUpload,
+  CloudDownload,
+  RefreshCw,
+  KeyRound,
+  QrCode,
+  Trash2,
+  Smartphone,
+  UserRound,
+  Shield,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslation } from "react-i18next";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
+import {
+  CanonicalCurrentServiceState,
+  CanonicalCustomerProfile,
+  getCanonicalCurrentServiceState,
+  getCanonicalCustomerProfile,
+} from "../../shared/api/ipc";
 
 export function AccountPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const [syncPassword, setSyncPassword] = useState("");
   const [hasSavedPassword, setHasSavedPassword] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "unsynced">("unsynced");
   const [pairingToken, setPairingToken] = useState("");
+  const [canonicalProfile, setCanonicalProfile] = useState<CanonicalCustomerProfile | null>(null);
+  const [canonicalServiceState, setCanonicalServiceState] =
+    useState<CanonicalCurrentServiceState | null>(null);
+  const [canonicalUnavailable, setCanonicalUnavailable] = useState(false);
 
   useEffect(() => {
     checkSavedPassword();
+    void loadCanonicalOverview();
   }, []);
+
+  const formatCanonicalDate = (value?: string | null) => {
+    if (!value) return "Not available";
+    return new Date(value).toLocaleString();
+  };
+
+  const loadCanonicalOverview = async () => {
+    const [profileResult, serviceStateResult] = await Promise.allSettled([
+      getCanonicalCustomerProfile(),
+      getCanonicalCurrentServiceState(),
+    ]);
+
+    setCanonicalUnavailable(false);
+
+    if (profileResult.status === "fulfilled") {
+      setCanonicalProfile(profileResult.value);
+    } else {
+      setCanonicalProfile(null);
+      setCanonicalUnavailable(true);
+    }
+
+    if (serviceStateResult.status === "fulfilled") {
+      setCanonicalServiceState(serviceStateResult.value);
+    } else {
+      setCanonicalServiceState(null);
+      setCanonicalUnavailable(true);
+    }
+  };
 
   const checkSavedPassword = async () => {
     try {
@@ -99,10 +151,10 @@ export function AccountPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: offsets.page }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="max-w-4xl mx-auto space-y-8"
     >
       <div>
@@ -114,6 +166,105 @@ export function AccountPage() {
           {t('account.description')}
         </p>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-[var(--color-neon-cyan)]/20 bg-black/30 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <UserRound size={18} className="text-[var(--color-neon-cyan)]" />
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-neon-cyan)]">
+                Canonical Customer Identity
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Customer profile resolved from canonical backend contracts.
+              </p>
+            </div>
+          </div>
+
+          {canonicalProfile ? (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Email</span>
+                <span className="text-right font-medium">{canonicalProfile.email}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Username</span>
+                <span className="text-right">{canonicalProfile.username ?? "Not set"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Status</span>
+                <span className="font-mono uppercase text-[var(--color-matrix-green)]">
+                  {canonicalProfile.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-right">{formatCanonicalDate(canonicalProfile.created_at)}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Canonical customer identity is not available yet for this desktop session.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-[var(--color-matrix-green)]/20 bg-black/30 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Shield size={18} className="text-[var(--color-matrix-green)]" />
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-matrix-green)]">
+                Canonical Service Access
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Purchase context and consumption context for desktop parity.
+              </p>
+            </div>
+          </div>
+
+          {canonicalServiceState ? (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Provider</span>
+                <span>{canonicalServiceState.provider_name}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Channel</span>
+                <span className="text-right">
+                  {canonicalServiceState.consumption_context.channel_type ??
+                    canonicalServiceState.access_delivery_channel?.channel_type ??
+                    "Not resolved"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Entitlement</span>
+                <span className="text-right">
+                  {canonicalServiceState.entitlement_snapshot.display_name ??
+                    canonicalServiceState.entitlement_snapshot.plan_code ??
+                    canonicalServiceState.entitlement_snapshot.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Purchase source</span>
+                <span className="text-right">
+                  {canonicalServiceState.purchase_context.source_type ?? "Unspecified"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Canonical service access snapshot is not available yet for this desktop session.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {canonicalUnavailable && (
+        <div className="rounded-lg border border-dashed border-[var(--color-neon-cyan)]/20 px-4 py-3 text-sm text-muted-foreground">
+          Canonical desktop account parity appears only after this client is linked to a live
+          backend session and manifest context.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Left Column: Cloud Operations & Setup */}

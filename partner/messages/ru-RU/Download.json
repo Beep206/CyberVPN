@@ -1,0 +1,23 @@
+{
+  "title": "ЗАЩИЩЕННЫЙ ПАКЕТ",
+  "subtitle": "Получить клиент",
+  "platforms": {
+    "windows": "Windows x64",
+    "macos": "macOS (Apple M-series / Intel)",
+    "linux": "Linux (Debian / Ubuntu / RHEL)",
+    "ios": "iOS (App Store)",
+    "android": "Android (APK / Play Store)"
+  },
+  "terminal": {
+    "init": "[СИСТЕМА] ИНИЦИАЛИЗАЦИЯ ПРОТОКОЛА ЗАГРУЗКИ...",
+    "verify": "ПРОВЕРКА АРХИТЕКТУРЫ: ",
+    "compiling": "КОМПИЛЯЦИЯ БИНАРНЫХ ФАЙЛОВ...",
+    "ready": "ПАКЕТ СФОРМИРОВАН. ГОТОВ К ИЗВЛЕЧЕНИЮ.",
+    "button": "СКАЧАТЬ КЛИЕНТ",
+    "version": "ВЕРСИЯ:"
+  },
+  "changelog": {
+    "title": "ПОСЛЕДНИЕ ИЗМЕНЕНИЯ",
+    "empty": "Нет записей для выбранной архитектуры."
+  }
+}

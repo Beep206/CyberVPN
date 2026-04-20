@@ -4,11 +4,13 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
+from src.application.use_cases.growth_rewards import CreateGrowthRewardAllocationUseCase
 from src.domain.exceptions import (
     InviteCodeAlreadyUsedError,
     InviteCodeExpiredError,
     InviteCodeNotFoundError,
 )
+from src.domain.enums import GrowthRewardType
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 
@@ -22,8 +24,13 @@ class RedeemInviteUseCase:
     and provision the subscription accordingly.
     """
 
-    def __init__(self, invite_repo: InviteCodeRepository) -> None:
+    def __init__(
+        self,
+        invite_repo: InviteCodeRepository,
+        growth_rewards: CreateGrowthRewardAllocationUseCase | None = None,
+    ) -> None:
         self._invite_repo = invite_repo
+        self._growth_rewards = growth_rewards
 
     async def execute(self, code: str, user_id: UUID) -> InviteCodeModel:
         """Redeem *code* on behalf of *user_id*.
@@ -54,6 +61,23 @@ class RedeemInviteUseCase:
             raise InviteCodeExpiredError(code)
 
         result = await self._invite_repo.mark_used(invite.id, user_id)
+
+        if self._growth_rewards is not None:
+            await self._growth_rewards.execute(
+                reward_type=GrowthRewardType.BONUS_DAYS.value,
+                beneficiary_user_id=user_id,
+                invite_code_id=invite.id,
+                quantity=invite.free_days,
+                unit="days",
+                source_key=f"invite:{invite.id}:bonus_days:{user_id}",
+                reward_payload={
+                    "code": code,
+                    "free_days": invite.free_days,
+                    "source": invite.source,
+                    "owner_user_id": str(invite.owner_user_id),
+                },
+                commit=False,
+            )
 
         logger.info(
             "invite_redeemed",

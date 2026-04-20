@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
+from src.application.use_cases.growth_rewards import CreateGrowthRewardAllocationUseCase
 from src.application.use_cases.invites.admin_create_invite import AdminCreateInviteUseCase
 from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
 from src.domain.enums import AdminRole
@@ -53,7 +54,8 @@ async def redeem_invite(
 ) -> InviteCodeResponse:
     """Redeem an invite code for the authenticated mobile user."""
     repo = InviteCodeRepository(db)
-    use_case = RedeemInviteUseCase(repo)
+    growth_rewards = CreateGrowthRewardAllocationUseCase(db)
+    use_case = RedeemInviteUseCase(repo, growth_rewards=growth_rewards)
 
     try:
         result = await use_case.execute(code=body.code, user_id=user_id)

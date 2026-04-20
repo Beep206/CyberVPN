@@ -147,6 +147,11 @@ Representative responsibilities:
 - capture partner traffic declarations;
 - review or publish creative approval state.
 
+Canonical rule:
+
+- `/api/v1/traffic-declarations` is the first-class declaration submission and retrieval family for partner workspace posture;
+- `/api/v1/creative-approvals` is the operator-reviewed approval family that remains distinct from storefront content rendering or marketing CMS state.
+
 ## 4.6 Merchant, Billing, Tax, And Disputes
 
 - `/api/v1/merchant-profiles`
@@ -162,7 +167,10 @@ Representative responsibilities:
 
 ## 4.7 Finance And Settlement
 
+- `/api/v1/earning-events`
+- `/api/v1/earning-holds`
 - `/api/v1/partner-statements`
+- `/api/v1/partner-statements/{id}/adjustments`
 - `/api/v1/partner-payout-accounts`
 - `/api/v1/payouts`
 - `/api/v1/settlement-periods`
@@ -170,6 +178,8 @@ Representative responsibilities:
 
 Representative responsibilities:
 
+- earning accrual visibility and hold lifecycle inspection;
+- reserve creation, release, and visibility;
 - statement retrieval and reconciliation;
 - payout-account linking, verification, and lifecycle management;
 - payout execution workflows;
@@ -178,6 +188,11 @@ Representative responsibilities:
 
 Canonical rule:
 
+- `earning_event` is the canonical settlement accrual object linked to an order-level payout owner lineage;
+- `earning_hold` is a first-class finance constraint object and not only an implied timer on wallet availability;
+- `settlement_period` defines the explicit finance window against which statement generation runs;
+- `partner_statement` is the canonical closeable snapshot object for one partner account and one settlement window;
+- `statement_adjustment` remains typed and append-only inside statement lineage, even when a closed statement is reopened through a new statement version;
 - `partner_payout_account` is a first-class API resource and not only a nested field under payout execution;
 - payout instructions and payout executions must reference a `partner_payout_account_id`;
 - payout-account verification, suspension, archival, and default-selection are managed on `/api/v1/partner-payout-accounts`;
@@ -186,51 +201,154 @@ Canonical rule:
 Representative payout-account subresources may include:
 
 - `/api/v1/partner-payout-accounts/{id}`
+- `/api/v1/partner-payout-accounts/{id}/eligibility`
 - `/api/v1/partner-payout-accounts/{id}/verify`
 - `/api/v1/partner-payout-accounts/{id}/suspend`
 - `/api/v1/partner-payout-accounts/{id}/archive`
 - `/api/v1/partner-payout-accounts/{id}/make-default`
 
+Representative payout workflow subresources may include:
+
+- `/api/v1/payouts/instructions`
+- `/api/v1/payouts/instructions/{id}`
+- `/api/v1/payouts/instructions/{id}/approve`
+- `/api/v1/payouts/instructions/{id}/reject`
+- `/api/v1/payouts/executions`
+- `/api/v1/payouts/executions/{id}`
+- `/api/v1/payouts/executions/{id}/submit`
+- `/api/v1/payouts/executions/{id}/complete`
+- `/api/v1/payouts/executions/{id}/fail`
+- `/api/v1/payouts/executions/{id}/reconcile`
+
 ## 4.8 Service Identity And Entitlements
 
 - `/api/v1/service-identities`
+- `/api/v1/service-identities/legacy/shadow-parity`
+- `/api/v1/service-identities/legacy/migrate`
+- `/api/v1/service-identities/inspect/service-state`
+- `/api/v1/service-identities/{id}/service-state`
+- `/api/v1/provisioning-profiles`
 - `/api/v1/entitlements`
-- `/api/v1/provisioning`
+- `/api/v1/entitlements/current`
+- `/api/v1/device-credentials`
+- `/api/v1/access-delivery-channels`
+- `/api/v1/access-delivery-channels/current/service-state`
+- `/api/v1/access-delivery-channels/resolve/current`
 
 Representative responsibilities:
 
-- grant and revoke entitlements;
-- provision access profiles;
+- resolve and inspect realm-aware service identities;
+- run legacy subscription and provisioning shadow-parity checks before service-access cutover;
+- bridge legacy provider references into canonical service identity, provisioning profile, and delivery channel objects;
+- expose support/admin read models for purchase-channel versus service-consumption-channel state;
+- manage provisioning profiles by channel and provider;
+- create, activate, suspend, revoke, and expire entitlements;
+- expose a shared current entitlement snapshot for customer-realm channels;
+- manage access delivery and device credentials;
+- expose read-only channel-neutral service state without side effects;
+- resolve current customer-realm access delivery without assuming official-web account ownership;
 - query service-consumption state across channels.
+
+Representative channel-parity subresources may include:
+
+- `/api/v1/telegram/bot/user/{telegram_id}/entitlements`
+- `/api/v1/telegram/bot/user/{telegram_id}/subscriptions`
+- `/api/v1/telegram/bot/user/{telegram_id}/orders`
+- `/api/v1/telegram/bot/user/{telegram_id}/service-state`
+
+Canonical rule:
+
+- Telegram-facing reads remain channel adapters over the same canonical entitlement, order, and service-state contracts already used by official web and partner storefronts;
+- Telegram channels must not introduce alternate subscription semantics or provider-specific business truth outside the canonical order and entitlement layers.
 
 ## 4.9 Risk And Governance
 
 - `/api/v1/policy-acceptance`
-- `/api/v1/risk-reviews`
-- `/api/v1/risk-decisions`
-- `/api/v1/governance-actions`
-- `/api/v1/contracts`
+- `/api/v1/policy-acceptance/me`
+- `/api/v1/policy-acceptance/{id}`
+- `/api/v1/security/risk-subjects`
+- `/api/v1/security/risk-reviews`
+- `/api/v1/security/risk-reviews/queue`
+- `/api/v1/security/risk-reviews/{id}`
+- `/api/v1/security/risk-reviews/{id}/attachments`
+- `/api/v1/security/risk-reviews/{id}/resolve`
+- `/api/v1/security/governance-actions`
+- `/api/v1/security/eligibility/checks`
+- `/api/v1/traffic-declarations`
+- `/api/v1/creative-approvals`
 - `/api/v1/dispute-cases`
+- `/api/v1/partner-workspaces/{id}/traffic-declarations`
+- `/api/v1/partner-workspaces/{id}/cases`
 
 Representative responsibilities:
 
 - capture acceptance evidence;
-- start and resolve risk reviews;
-- trigger payout freezes, code suspension, reserve extension, or manual overrides;
-- expose contract and governance state where required;
+- create operational `risk_subject` records and linked review queues;
+- start, inspect, and resolve risk reviews;
+- attach review evidence and expose operator-grade review detail;
+- record payout freezes, code suspension, reserve extension, traffic probation, creative restriction, or manual overrides as canonical governance actions;
+- evaluate eligibility against canonical risk state;
+- expose traffic declaration, creative approval, and dispute-case overlays where required;
 - manage operational dispute cases linked to canonical payment disputes.
 
-## 4.10 Reporting
+Canonical rule:
+
+- `accepted_legal_documents` remain the compliance-evidence truth; `/api/v1/policy-acceptance/` and `/api/v1/policy-acceptance/{id}` are retrieval surfaces over that same evidence, not alternate audit objects;
+- `traffic_declarations`, `creative_approvals`, and `dispute_cases` are first-class operational resources;
+- partner workspace overlay routes consume those canonical resources and do not synthesize parallel partner-portal-only state for the same posture.
+
+## 4.10 Pilot Control
+
+- `/api/v1/pilot-cohorts`
+- `/api/v1/pilot-cohorts/{id}`
+- `/api/v1/pilot-cohorts/{id}/owner-acknowledgements`
+- `/api/v1/pilot-cohorts/{id}/rollback-drills`
+- `/api/v1/pilot-cohorts/{id}/go-no-go-decisions`
+- `/api/v1/pilot-cohorts/{id}/readiness`
+- `/api/v1/pilot-cohorts/{id}/activate`
+- `/api/v1/pilot-cohorts/{id}/pause`
+
+Representative responsibilities:
+
+- define named pilot cohorts by lane and surface;
+- attach explicit rollout windows for host, workspace, or channel exposure;
+- hold shadow-evidence references used for limited live traffic;
+- record owner-by-owner runbook acknowledgements;
+- record rollback drills with bounded cutover-unit scope and observed metrics;
+- record explicit `approved`, `hold`, or `no_go` governance decisions tied to live evidence;
+- compute activation readiness against canonical risk, governance, declaration, and approval posture;
+- pause live pilot exposure without mutating canonical order or settlement truth.
+
+Canonical rule:
+
+- `pilot_cohort` is the backend-owned rollout-control object for `R3` and limited real traffic;
+- `pilot_owner_acknowledgement`, `pilot_rollback_drill`, and `pilot_go_no_go_decision` are first-class pilot-governance resources, not spreadsheet-only operator artifacts;
+- pilot readiness must evaluate canonical `T8.1-T8.4` posture and may not rely on frontend-only flags;
+- no pilot activation is valid without current owner acknowledgements, a passed rollback drill, and an explicit approved go/no-go decision;
+- pausing a pilot cohort changes rollout state only and never rewrites order, payout, or statement truth.
+
+## 4.11 Reporting
 
 - `/api/v1/reporting`
 - `/api/v1/exports`
 - `/api/v1/postbacks`
+- `/api/v1/reporting/partner-workspaces/{id}/snapshot`
+- `/api/v1/partner-workspaces/{id}/conversion-records`
+- `/api/v1/partner-workspaces/{id}/conversion-records/{order_id}/explainability`
+- `/api/v1/partner-workspaces/{id}/analytics-metrics`
+- `/api/v1/partner-workspaces/{id}/report-exports`
+- `/api/v1/partner-workspaces/{id}/integration-credentials`
+- `/api/v1/partner-workspaces/{id}/integration-delivery-logs`
+- `/api/v1/partner-workspaces/{id}/postback-readiness`
 
 Representative responsibilities:
 
 - aggregated metrics;
-- partner export jobs;
-- postback delivery status;
+- outbox event inspection and publication-state control for internal replay and mart ingestion;
+- token-scoped partner reporting snapshots on canonical marts;
+- workspace-scoped partner dashboard metrics and explainability drilldowns on canonical marts;
+- partner export jobs, credential rotation, and export-health visibility;
+- postback readiness and delivery-status inspection;
 - audit and explainability reporting.
 
 ---

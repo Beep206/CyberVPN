@@ -11,6 +11,7 @@ from src.application.dto.mobile_auth import (
 )
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import InvalidTokenError
 from src.infrastructure.database.repositories.mobile_user_repo import (
     MobileDeviceRepository,
@@ -43,11 +44,15 @@ class MobileRefreshUseCase:
             InvalidTokenError: If refresh token is invalid, expired, or device mismatch.
         """
         # Decode and validate refresh token
+        customer_realm = DEFAULT_AUTH_REALMS["customer"]
         try:
-            payload = self.auth_service.decode_token(request.refresh_token)
+            payload = self.auth_service.decode_token(request.refresh_token, audience=str(customer_realm["audience"]))
         except Exception as e:
             logger.warning("Mobile refresh token decode failed: %s", e)
-            raise InvalidTokenError()
+            try:
+                payload = self.auth_service.decode_token(request.refresh_token, audience=None)
+            except Exception:
+                raise InvalidTokenError() from e
 
         # Verify token type
         if payload.get("type") != "refresh":
@@ -79,9 +84,19 @@ class MobileRefreshUseCase:
             subject=str(user.id),
             role="mobile_user",
             extra={"device_id": request.device_id},
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
         )
         refresh_token, _refresh_jti, _refresh_expire = self.auth_service.create_refresh_token(
             subject=str(user.id),
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
         )
 
         return TokenResponseDTO(

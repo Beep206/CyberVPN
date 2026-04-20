@@ -19,3 +19,19 @@ class PlanAddon:
     requires_location: bool
     sale_channels: list[str]
     is_active: bool
+
+    @property
+    def product_family_key(self) -> str:
+        """Stable add-on family identifier independent of pricebook overlays."""
+
+        return self.code
+
+    @property
+    def legacy_eligibility_overlay(self) -> dict[str, Any]:
+        """Eligibility-like overlay fields still attached to the base add-on row."""
+
+        return {
+            "sale_channels": list(self.sale_channels),
+            "requires_location": self.requires_location,
+            "max_quantity_by_plan": dict(self.max_quantity_by_plan),
+        }

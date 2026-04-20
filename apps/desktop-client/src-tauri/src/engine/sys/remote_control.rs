@@ -46,6 +46,7 @@ pub async fn start_remote_server(app: AppHandle) -> Result<String, AppError> {
         app: app.clone(),
         secret: secret.clone(),
     };
+    let diagnostics_app = app.clone();
 
     let app_router = Router::new()
         .route("/", get(serve_index))
@@ -65,11 +66,24 @@ pub async fn start_remote_server(app: AppHandle) -> Result<String, AppError> {
     println!("Axum LAN remote server listening on {}", addr);
 
     tokio::spawn(async move {
-        axum::serve(listener, app_router)
+        match axum::serve(listener, app_router)
             .with_graceful_shutdown(cancel_token.cancelled_owned())
             .await
-            .unwrap();
-        println!("Axum LAN remote server gracefully shut down.");
+        {
+            Ok(()) => {
+                println!("Axum LAN remote server gracefully shut down.");
+            }
+            Err(error) => {
+                let _ = crate::engine::diagnostics::record_event(
+                    &diagnostics_app,
+                    crate::engine::diagnostics::DiagnosticLevel::Error,
+                    "remote-control.server",
+                    "Axum LAN remote server exited with error",
+                    serde_json::json!({ "error": error.to_string() }),
+                );
+                eprintln!("Axum LAN remote server exited with error: {error}");
+            }
+        }
     });
 
     Ok(format!("http://{}:{}/?key={}", ip, port, secret))
@@ -159,9 +173,23 @@ async fn api_connect(
 
     tokio::spawn(async move {
         let app_state = app_clone1.state::<crate::ipc::AppState>();
-        // Using tun_mode=false, system_proxy=true by default for simplicity on remote,
-        // or we could extract these from user preferences. For Phase 31, sticking to system_proxy.
-        let _ = crate::ipc::connect_profile(profile_id, false, false, app_clone2, app_state).await;
+        let (tun_mode, system_proxy) = crate::engine::store::load_store(&app_clone1)
+            .map(|store| {
+                (
+                    store.last_connection_options.tun_mode,
+                    store.last_connection_options.system_proxy,
+                )
+            })
+            .unwrap_or((false, false));
+        let _ = crate::ipc::connect_profile_internal(
+            profile_id,
+            tun_mode,
+            system_proxy,
+            "remote-control",
+            app_clone2,
+            app_state,
+        )
+        .await;
     });
 
     Ok("Connecting...")
@@ -181,7 +209,7 @@ async fn api_disconnect(
     let app_state = app_clone1.state::<crate::ipc::AppState>();
 
     // This is safe because disconnect completes quickly
-    let _ = crate::ipc::disconnect(app_clone2, app_state).await;
+    let _ = crate::ipc::disconnect_internal("remote-control", app_clone2, app_state).await;
     Ok("Disconnected")
 }
 

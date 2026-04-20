@@ -6,6 +6,10 @@ import {
 
 const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
 
+export const CANONICAL_API_BASE_PATH = '/api/v1';
+export const CANONICAL_REQUEST_ID_HEADER = 'X-Request-ID';
+export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
+
 /**
  * Web auth relies on same-origin httpOnly cookies and Next.js rewrites.
  *
@@ -18,15 +22,15 @@ const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
  */
 export function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    return '/api/v1';
+    return CANONICAL_API_BASE_PATH;
   }
 
   const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!configuredBaseUrl) {
-    return '/api/v1';
+    return CANONICAL_API_BASE_PATH;
   }
 
-  return `${configuredBaseUrl.replace(/\/$/, '')}/api/v1`;
+  return `${configuredBaseUrl.replace(/\/$/, '')}${CANONICAL_API_BASE_PATH}`;
 }
 
 /**
@@ -145,7 +149,7 @@ apiClient.interceptors.request.use(
 
     // Add X-Request-ID for request correlation (DX-02)
     if (config.headers) {
-      config.headers['X-Request-ID'] = getRequestId();
+      config.headers[CANONICAL_REQUEST_ID_HEADER] = getRequestId();
     }
     return config;
   },

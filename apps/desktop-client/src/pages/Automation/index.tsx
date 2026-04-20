@@ -10,10 +10,12 @@ import {
   listenNetworkChanged,
   NetworkProfile
 } from "../../shared/api/ipc";
+import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { useTranslation } from "react-i18next";
 
 export function AutomationPage() {
   const { t } = useTranslation();
+  const { prefersReducedMotion, durations, offsets } = useDesktopMotionBudget();
   const [isSmartEnabled, setIsSmartEnabled] = useState(false);
   const [currentNetwork, setCurrentNetwork] = useState<string>(t('automation.scanning'));
   const [rules, setRules] = useState<Record<string, NetworkProfile>>({});
@@ -63,9 +65,10 @@ export function AutomationPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, y: offsets.page }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+      transition={{ duration: durations.page, ease: desktopMotionEase }}
       className="p-8 max-w-5xl mx-auto space-y-8 min-h-full"
     >
       {/* Header section */}
@@ -107,8 +110,16 @@ export function AutomationPage() {
           <div className="relative z-10 flex flex-col items-center gap-6">
             <div className="relative">
               <motion.div 
-                animate={isSmartEnabled ? { scale: [1, 1.5, 2], opacity: [0.8, 0.4, 0] } : {}}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                animate={
+                  isSmartEnabled && !prefersReducedMotion
+                    ? { scale: [1, 1.4, 1.8], opacity: [0.5, 0.22, 0] }
+                    : { scale: 1, opacity: isSmartEnabled ? 0.18 : 0 }
+                }
+                transition={
+                  isSmartEnabled && !prefersReducedMotion
+                    ? { duration: 1.8, repeat: Infinity, ease: desktopMotionEase }
+                    : { duration: durations.micro, ease: desktopMotionEase }
+                }
                 className="absolute inset-0 rounded-full bg-[var(--color-neon-cyan)] z-0"
               />
               <div className="w-24 h-24 rounded-full border border-[var(--color-neon-cyan)]/50 bg-black/80 flex items-center justify-center z-10 relative backdrop-blur shadow-[0_0_30px_rgba(0,255,255,0.2)]">

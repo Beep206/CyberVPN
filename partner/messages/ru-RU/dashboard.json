@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "title": "Дашборд - Ozoxy Partner Portal",
+    "description": "Status-aware операционная поверхность для onboarding, review, inbox, cases и readiness gating."
+  },
+  "eyebrow": "ПАРТНЁРСКАЯ ОПЕРАЦИОННАЯ ПОВЕРХНОСТЬ",
+  "title": "OZOXY PARTNER PORTAL",
+  "subtitle": "PP2 превращает shell в state-aware applicant workspace: review requests, inbox events, limited-access модули и объяснимые blocked states теперь двигаются вместе.",
+  "scenario": {
+    "label": "Локальный review scenario",
+    "description": "Пока backend review API ещё не пришли, этот симулятор управляет текущим workspace status, видимостью меню, inbox content и applicant-safe поведением поверхностей.",
+    "helper": "Используйте его, чтобы проверить draft, needs-info, review, waitlist, probation, active и restricted поведение в одном portal shell.",
+    "options": {
+      "draft": "Черновик workspace",
+      "needs_info": "Нужна информация",
+      "under_review": "На review",
+      "waitlisted": "Waitlisted",
+      "approved_probation": "Одобрен в probation",
+      "active": "Активный workspace",
+      "restricted": "Ограниченный workspace"
+    }
+  },
+  "role": {
+    "label": "Симулятор роли workspace",
+    "description": "PP3 добавляет role-aware gating. Переключайте текущую workspace role, чтобы проверить доступ в меню, доступ к разделам и поведение route для launch role set.",
+    "helper": "Выбранная роль обновляет sidebar, прямой доступ к route и новые team/programs/legal поверхности."
+  },
+  "releaseRing": {
+    "label": "Portal release ring",
+    "description": "PP7 добавляет rollout gating. Переключайте текущую release band, чтобы проверить, что модули остаются закрытыми до открытия нужного launch ring.",
+    "helper": "Используйте R1 для applicant/probation-safe launch, R2 для Creator / Affiliate launch, R3 для Performance rollout и R4 для Reseller / API rollout."
+  },
+  "cards": {
+    "workspaceStatus": {
+      "title": "СТАТУС WORKSPACE",
+      "description": "Home, видимость меню и прямые routes теперь следуют одной workspace band."
+    },
+    "pendingTasks": {
+      "title": "АКТИВНЫЕ ЗАДАЧИ",
+      "description": "Requested info и readiness blockers теперь вынесены как первичные partner tasks."
+    },
+    "notifications": {
+      "title": "СИГНАЛЫ INBOX",
+      "description": "Непрочитанные portal notifications показывают последние сигналы от ops, review и governance."
+    },
+    "cases": {
+      "title": "ОТКРЫТЫЕ CASES",
+      "description": "Support и review threads остаются видимыми ещё до полноценного operational launch."
+    }
+  },
+  "tasks": {
+    "title": "Активные задачи",
+    "description": "Работа со стороны applicant теперь явная: requested info, finance onboarding и объяснения blocked states живут здесь.",
+    "openCases": "Открыть support & cases"
+  },
+  "readiness": {
+    "title": "Readiness overlays",
+    "description": "Finance, compliance, technical posture и governance state остаются отдельными от canonical workspace status."
+  },
+  "sections": {
+    "title": "Видимые разделы",
+    "description": "Sidebar и прямые routes теперь следуют одной visibility matrix."
+  },
+  "rollout": {
+    "title": "Rollout readiness",
+    "description": "Release-ring gating не даёт модулям утечь раньше целевого launch band.",
+    "currentRing": "Текущий ring",
+    "blockedCount": "Удерживаемые модули",
+    "opensAt": "Откроется на {ring}",
+    "empty": "Текущий release ring больше не удерживает дополнительные модули."
+  },
+  "performanceSnapshot": {
+    "title": "Performance Snapshot",
+    "description": "PP5 подтягивает core reporting signals на дашборд, чтобы analytics и export posture были видны ещё до более глубоких conversion surfaces.",
+    "open": "Открыть analytics"
+  },
+  "financeSnapshot": {
+    "title": "Finance Snapshot",
+    "description": "Finance readiness, reserves и payout forecast теперь имеют отдельную dashboard summary, а не прячутся в поздних settlement screens.",
+    "open": "Открыть finance",
+    "available": "Доступный earnings",
+    "onHold": "На холде",
+    "reserves": "Резервы",
+    "forecast": "Прогноз следующего payout"
+  },
+  "notificationsPanel": {
+    "title": "Последние уведомления",
+    "open": "Открыть inbox"
+  },
+  "casesPanel": {
+    "title": "Последние cases",
+    "open": "Открыть cases"
+  },
+  "nextActions": {
+    "title": "Следующие действия",
+    "description": "Используйте applicant-safe поверхности, чтобы продолжить review loop: обновить заявку, ответить partner ops и проверить изменения во inbox.",
+    "application": "Открыть application",
+    "cases": "Открыть cases",
+    "notifications": "Открыть notifications"
+  }
+}

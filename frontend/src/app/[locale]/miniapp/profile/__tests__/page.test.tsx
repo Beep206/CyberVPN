@@ -69,7 +69,7 @@ describe('MiniAppProfilePage', () => {
       http.get(`${API_BASE}/twofa/status`, () => {
         return HttpResponse.json({ enabled: false });
       }),
-      http.get(`${API_BASE}/payments/history`, () => {
+      http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([]);
       }),
       http.get(`${API_BASE}/security/antiphishing`, () => {

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository, SubscriptionAddonRepository
+from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 
 
@@ -21,6 +22,15 @@ class EntitlementsService:
         self._addons = PlanAddonRepository(session)
         self._subscription_addons = SubscriptionAddonRepository(session)
         self._users = MobileUserRepository(session)
+        self._service_access = ServiceAccessRepository(session)
+
+    @staticmethod
+    def _to_utc_datetime(value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
     @staticmethod
     def build_snapshot(
@@ -137,22 +147,68 @@ class EntitlementsService:
             )
         return addon_lines
 
-    async def get_current_snapshot(self, user_id: UUID) -> dict:
+    def _normalize_grant_snapshot(self, *, grant_snapshot: dict, expires_at: datetime | None) -> dict:
+        snapshot = self.build_empty_snapshot()
+        provided = dict(grant_snapshot or {})
+        effective_entitlements = dict(snapshot["effective_entitlements"])
+        effective_entitlements.update(dict(provided.get("effective_entitlements") or {}))
+        invite_bundle = dict(snapshot["invite_bundle"])
+        invite_bundle.update(dict(provided.get("invite_bundle") or {}))
+
+        snapshot.update(
+            {
+                key: value
+                for key, value in provided.items()
+                if key not in {"effective_entitlements", "invite_bundle", "addons", "status", "expires_at"}
+            }
+        )
+        snapshot["effective_entitlements"] = effective_entitlements
+        snapshot["invite_bundle"] = invite_bundle
+        snapshot["addons"] = list(provided.get("addons") or [])
+        snapshot["status"] = "active"
+        snapshot["is_trial"] = bool(provided.get("is_trial", False))
+        snapshot["expires_at"] = expires_at.isoformat() if expires_at else provided.get("expires_at")
+        return snapshot
+
+    async def get_current_snapshot(self, user_id: UUID, *, auth_realm_id: UUID | None = None) -> dict:
+        now = datetime.now(UTC)
+
+        if auth_realm_id is not None:
+            has_canonical_grants = await self._service_access.has_any_entitlement_grants_for_customer_realm(
+                customer_account_id=user_id,
+                auth_realm_id=auth_realm_id,
+            )
+            if has_canonical_grants:
+                current_grant = await self._service_access.get_current_active_entitlement_grant(
+                    customer_account_id=user_id,
+                    auth_realm_id=auth_realm_id,
+                    now=now,
+                )
+                if current_grant is not None:
+                    return self._normalize_grant_snapshot(
+                        grant_snapshot=dict(current_grant.grant_snapshot or {}),
+                        expires_at=current_grant.expires_at,
+                    )
+                return self.build_empty_snapshot()
+
         payment = await self._payments.get_latest_active_plan_payment(user_id)
         if payment and payment.plan_id:
             plan = await self._plans.get_by_id(payment.plan_id)
             if plan is not None:
                 addon_lines = await self.list_active_addon_lines(user_id)
-                expires_at = (
-                    payment.created_at + timedelta(days=payment.subscription_days)
-                    if payment.subscription_days > 0
-                    else None
-                )
+                expires_at = self._to_utc_datetime(payment.created_at)
+                if expires_at is not None and payment.subscription_days > 0:
+                    expires_at = expires_at + timedelta(days=payment.subscription_days)
+                elif payment.subscription_days <= 0:
+                    expires_at = None
                 return self.build_snapshot(plan=plan, addon_lines=addon_lines, expires_at=expires_at)
 
         user = await self._users.get_by_id(user_id)
-        now = datetime.now(UTC)
-        if user and user.trial_expires_at and user.trial_expires_at > now:
-            return self.build_trial_snapshot(expires_at=user.trial_expires_at)
+        trial_expires_at = self._to_utc_datetime(user.trial_expires_at) if user else None
+        if user and trial_expires_at and trial_expires_at > now:
+            return self.build_trial_snapshot(expires_at=trial_expires_at)
 
         return self.build_empty_snapshot()
+
+    async def get_legacy_snapshot(self, user_id: UUID) -> dict:
+        return await self.get_current_snapshot(user_id, auth_realm_id=None)

@@ -2,7 +2,32 @@ use crate::engine::error::AppError;
 use reqwest::Client;
 use serde_json::json;
 use std::collections::HashSet;
+use std::path::PathBuf;
 use tauri::AppHandle;
+
+const ADBLOCK_RULESET_NAME: &str = "adblock-standard.json";
+
+fn ruleset_path(app_handle: &AppHandle) -> Result<PathBuf, AppError> {
+    let app_dir = crate::engine::store::get_app_dir(app_handle)?;
+    Ok(app_dir.join("bin").join(ADBLOCK_RULESET_NAME))
+}
+
+pub async fn ensure_blocklists(app_handle: &AppHandle, level: &str) -> Result<(), AppError> {
+    if level == "disabled" {
+        return Ok(());
+    }
+
+    let db_path = ruleset_path(app_handle)?;
+    if tokio::fs::metadata(&db_path)
+        .await
+        .map(|metadata| metadata.is_file() && metadata.len() > 0)
+        .unwrap_or(false)
+    {
+        return Ok(());
+    }
+
+    download_blocklists(app_handle, level).await
+}
 
 pub async fn download_blocklists(app_handle: &AppHandle, level: &str) -> Result<(), AppError> {
     if level == "disabled" {
@@ -62,7 +87,7 @@ pub async fn download_blocklists(app_handle: &AppHandle, level: &str) -> Result<
     }
 
     let ruleset_json = json!({
-        "version": 1,
+        "version": 4,
         "rules": [
             {
                 "domain_suffix": combined_domains,
@@ -79,7 +104,7 @@ pub async fn download_blocklists(app_handle: &AppHandle, level: &str) -> Result<
             .map_err(|e| AppError::System(e.to_string()))?;
     }
 
-    let db_path = bin_dir.join("adblock-standard.json");
+    let db_path = bin_dir.join(ADBLOCK_RULESET_NAME);
     let staging_path = bin_dir.join("adblock-standard.tmp");
 
     let json_bytes = serde_json::to_vec(&ruleset_json)?;

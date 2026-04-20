@@ -1,4 +1,4 @@
-"""PartnerCode and PartnerEarning ORM models for reseller system."""
+"""Partner workspace, code, and earning ORM models."""
 
 import uuid
 from datetime import datetime
@@ -7,6 +7,63 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
+
+
+class PartnerAccountModel(Base):
+    """Canonical partner workspace root."""
+
+    __tablename__ = "partner_accounts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    account_key: Mapped[str] = mapped_column(
+        String(50),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    display_name: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="active",
+    )
+
+    legacy_owner_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    created_by_admin_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<PartnerAccount(id={self.id}, account_key={self.account_key}, status={self.status})>"
 
 
 class PartnerCodeModel(Base):
@@ -23,6 +80,12 @@ class PartnerCodeModel(Base):
         String(30),
         unique=True,
         nullable=False,
+        index=True,
+    )
+
+    partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_accounts.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
 
@@ -69,6 +132,12 @@ class PartnerEarningModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
         default=uuid.uuid4,
+    )
+
+    partner_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("partner_accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     partner_user_id: Mapped[uuid.UUID] = mapped_column(

@@ -1,6 +1,7 @@
 """Reset password use case - validates OTP and updates password."""
 
 import logging
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,7 +44,15 @@ class ResetPasswordUseCase:
         self._otp_service = otp_service
         self._session = session
 
-    async def execute(self, email: str, code: str, new_password: str) -> ResetPasswordResult:
+    async def execute(
+        self,
+        email: str,
+        code: str,
+        new_password: str,
+        *,
+        auth_realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
+    ) -> ResetPasswordResult:
         """Validate OTP code and reset user's password.
 
         Args:
@@ -51,7 +60,11 @@ class ResetPasswordUseCase:
             code: 6-digit OTP code
             new_password: New password (already validated by schema)
         """
-        user = await self._user_repo.get_by_email(email.lower())
+        user = await self._user_repo.get_by_email(
+            email.lower(),
+            realm_id=auth_realm_id,
+            include_legacy_default=include_legacy_default,
+        )
         if not user:
             return ResetPasswordResult(
                 success=False,

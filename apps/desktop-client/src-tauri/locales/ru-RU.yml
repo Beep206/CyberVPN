@@ -1,6 +1,9 @@
 tray:
   quit: "Выход"
+  quitting: "Завершение..."
   show: "Показать приложение"
+  hide: "Скрыть в трей"
   connect: "Подключиться"
   disconnect: "Отключиться"
   connecting: "Подключение..."
+  disconnecting: "Отключение..."

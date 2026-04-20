@@ -104,3 +104,42 @@ async def test_checkout_quote_rejects_hidden_plan_on_public_channel() -> None:
             plan_id=hidden_plan.id,
             sale_channel="web",
         )
+
+
+@pytest.mark.asyncio
+async def test_checkout_quote_prefers_explicit_partner_code_over_legacy_bound_partner() -> None:
+    partner_user_id = uuid4()
+    session = SimpleNamespace(
+        get=AsyncMock(
+            return_value=SimpleNamespace(
+                id=uuid4(),
+                partner_user_id=partner_user_id,
+            )
+        )
+    )
+    use_case = CheckoutUseCase(session)
+    plan = _build_plan(price_usd=Decimal("100.00"))
+    explicit_code = SimpleNamespace(id=uuid4(), markup_pct=Decimal("20.00"), is_active=True)
+    legacy_code = SimpleNamespace(id=uuid4(), markup_pct=Decimal("5.00"), is_active=True)
+
+    use_case._plan_repo = SimpleNamespace(get_by_id=AsyncMock(return_value=plan))
+    use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[]))
+    use_case._promo_repo = SimpleNamespace(get_active_by_code=AsyncMock(return_value=None))
+    use_case._partner_repo = SimpleNamespace(
+        get_active_code_by_code=AsyncMock(return_value=explicit_code),
+        get_codes_by_partner=AsyncMock(return_value=[legacy_code]),
+    )
+    use_case._wallet = SimpleNamespace(
+        get_balance=AsyncMock(return_value=SimpleNamespace(balance=Decimal("0"), frozen=Decimal("0")))
+    )
+
+    result = await use_case.execute(
+        user_id=uuid4(),
+        plan_id=plan.id,
+        partner_code="NEBULA20",
+        sale_channel="web",
+    )
+
+    assert result.partner_code_id == explicit_code.id
+    assert result.partner_markup == Decimal("20.00")
+    assert result.displayed_price == Decimal("120.00")

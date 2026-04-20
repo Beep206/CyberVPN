@@ -15,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.auth_service import AuthService
 from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
+from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 
 logger = logging.getLogger("cybervpn")
 
@@ -37,12 +39,24 @@ class RefreshTokenUseCase:
         self._auth_service = auth_service
         self._session = session
 
+    @staticmethod
+    def _normalize_utc(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
+
     async def execute(
         self,
         refresh_token: str,
         client_fingerprint: str | None = None,
         client_ip: str | None = None,
         user_agent: str | None = None,
+        auth_realm_id: UUID | None = None,
+        auth_realm_key: str | None = None,
+        audience: str | None = None,
+        principal_type: str = "admin",
+        scope_family: str = "admin",
+        include_legacy_default: bool = False,
     ) -> dict:
         """
         Rotate refresh token and generate new token pair.
@@ -64,9 +78,17 @@ class RefreshTokenUseCase:
         """
         # Decode and validate refresh token
         try:
-            payload = self._auth_service.decode_token(refresh_token)
+            payload = self._auth_service.decode_token(refresh_token, audience=audience)
         except JWTError:
-            raise InvalidCredentialsError() from None
+            try:
+                payload = self._auth_service.decode_token(refresh_token, audience=None)
+            except JWTError:
+                raise InvalidCredentialsError() from None
+
+        if audience and payload.get("aud") and payload.get("aud") != audience:
+            raise InvalidCredentialsError()
+        if auth_realm_key and payload.get("realm_key") and payload.get("realm_key") != auth_realm_key:
+            raise InvalidCredentialsError()
 
         # Verify token type
         if payload.get("type") != "refresh":
@@ -112,7 +134,7 @@ class RefreshTokenUseCase:
             raise InvalidCredentialsError()
 
         # Verify token is not expired
-        if token_record.expires_at < datetime.now(UTC):
+        if self._normalize_utc(token_record.expires_at) < datetime.now(UTC):
             raise InvalidCredentialsError()
 
         # Get user to retrieve role
@@ -120,6 +142,9 @@ class RefreshTokenUseCase:
         user = await user_repo.get_by_id(user_id)
         if not user or not user.is_active:
             raise InvalidCredentialsError()
+        if auth_realm_id is not None and user.auth_realm_id != auth_realm_id:
+            if not (include_legacy_default and user.auth_realm_id is None):
+                raise InvalidCredentialsError()
 
         # Revoke old token
         token_record.revoked_at = datetime.now(UTC)
@@ -127,34 +152,58 @@ class RefreshTokenUseCase:
 
         # Create new token pair
         # MED-003: Properly unpack token tuple (token, jti, expires_at)
-        new_access_token, _access_jti, _access_expire = self._auth_service.create_access_token(
+        new_access_token, new_access_jti, _access_expire = self._auth_service.create_access_token(
             subject=str(user.id),
             role=user.role,
+            audience=audience,
+            principal_type=principal_type,
+            realm_id=str(auth_realm_id) if auth_realm_id else payload.get("realm_id"),
+            realm_key=auth_realm_key or payload.get("realm_key"),
+            scope_family=scope_family,
         )
         # MED-002: Include client fingerprint in new refresh token for device binding
         new_refresh_token, _refresh_jti, new_refresh_expire = self._auth_service.create_refresh_token(
             subject=str(user.id),
             fingerprint=client_fingerprint,
+            audience=audience,
+            principal_type=principal_type,
+            realm_id=str(auth_realm_id) if auth_realm_id else payload.get("realm_id"),
+            realm_key=auth_realm_key or payload.get("realm_key"),
+            scope_family=scope_family,
         )
-
-        # Store new refresh token hash in database
-        new_token_hash = sha256(new_refresh_token.encode()).hexdigest()
-        new_expires_at = new_refresh_expire  # Use actual expiry from token creation
-
-        new_token_record = RefreshToken(
+        await store_refresh_token(
+            self._session,
             user_id=user.id,
-            token_hash=new_token_hash,
-            expires_at=new_expires_at,
+            refresh_token=new_refresh_token,
+            expires_at=new_refresh_expire,
             device_id=client_fingerprint or token_record.device_id,
             ip_address=client_ip or token_record.ip_address,
             user_agent=user_agent or token_record.user_agent,
+            auth_realm_id=auth_realm_id or user.auth_realm_id,
+            principal_class=principal_type,
+            principal_subject=str(user.id),
+            audience=audience or payload.get("aud"),
+            scope_family=scope_family,
+            access_token_jti=new_access_jti,
         )
-        self._session.add(new_token_record)
-        await self._session.flush()
+
+        result = await self._session.execute(
+            select(PrincipalSessionModel).where(PrincipalSessionModel.refresh_token_id == token_record.id)
+        )
+        principal_session = result.scalar_one_or_none()
+        if principal_session:
+            principal_session.revoked_at = datetime.now(UTC)
+            principal_session.status = "revoked"
+            await self._session.flush()
 
         return {
             "access_token": new_access_token,
             "refresh_token": new_refresh_token,
             "token_type": "bearer",
             "expires_in": settings.access_token_expire_minutes * 60,
+            "auth_realm_id": (
+                str(auth_realm_id or user.auth_realm_id) if (auth_realm_id or user.auth_realm_id) else None
+            ),
+            "auth_realm_key": auth_realm_key or payload.get("realm_key"),
+            "audience": audience or payload.get("aud"),
         }
