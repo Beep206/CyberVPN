@@ -62,7 +62,7 @@ dependencies:
   purchases_flutter: ^9.10.8
 
   # Firebase
-  firebase_core: ^4.4.0
+  firebase_core: ^4.7.0
   firebase_analytics: ^12.1.1
   firebase_messaging: ^16.1.1
 
