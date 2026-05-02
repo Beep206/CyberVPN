@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Orbitron, JetBrains_Mono, Share_Tech_Mono } from 'next/font/google';
 import Script from 'next/script';
 import type { Organization, WebSite } from 'schema-dts';
 import { AnalyticsReporters } from '@/app/providers/analytics-reporters';
@@ -17,25 +16,6 @@ import {
 } from '@/shared/lib/site-metadata';
 import { SkipNavLink } from '@/shared/ui/atoms/skip-nav-link';
 import '../globals.css';
-
-const orbitron = Orbitron({
-  variable: '--font-display',
-  subsets: ['latin'],
-  display: 'swap',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: '--font-mono',
-  subsets: ['latin'],
-  display: 'swap',
-});
-
-const shareTechMono = Share_Tech_Mono({
-  weight: '400',
-  variable: '--font-cyber',
-  subsets: ['latin'],
-  display: 'swap',
-});
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -81,12 +61,7 @@ export default async function RootLayout({
     <html lang={htmlAttributes.lang} dir={htmlAttributes.dir} suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`
-          ${orbitron.variable}
-          ${jetbrainsMono.variable}
-          ${shareTechMono.variable}
-          antialiased bg-terminal-bg text-foreground min-h-screen selection:bg-neon-cyan/30
-        `}
+        className="antialiased bg-terminal-bg text-foreground min-h-screen selection:bg-neon-cyan/30"
       >
         <ThemeProvider
           attribute="class"

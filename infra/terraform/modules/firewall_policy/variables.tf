@@ -15,6 +15,12 @@ variable "ssh_port" {
   default     = 22
 }
 
+variable "enable_ssh" {
+  type        = bool
+  description = "Allow the built-in SSH ingress rule."
+  default     = true
+}
+
 variable "admin_ipv4_cidrs" {
   type        = list(string)
   description = "IPv4 CIDRs allowed to reach SSH."
@@ -54,5 +60,16 @@ variable "metrics_ipv4_cidrs" {
 variable "metrics_ipv6_cidrs" {
   type        = list(string)
   description = "IPv6 CIDRs allowed to reach node metrics."
+  default     = []
+}
+
+variable "extra_inbound_rules" {
+  type = list(object({
+    description = string
+    protocol    = string
+    port        = string
+    source_ips  = list(string)
+  }))
+  description = "Additional inbound firewall rules appended after the built-in SSH, VPN, and metrics rules."
   default     = []
 }

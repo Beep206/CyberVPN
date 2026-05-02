@@ -1,6 +1,7 @@
 """Pydantic schemas for invite code endpoints."""
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,6 +24,8 @@ class InviteCodeResponse(BaseModel):
     is_used: bool
     expires_at: datetime | None
     created_at: datetime
+    entitlement_grant_id: UUID | None = None
+    entitlement_snapshot: dict[str, Any] | None = None
 
 
 class AdminCreateInviteRequest(BaseModel):

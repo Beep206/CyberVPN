@@ -44,7 +44,7 @@ ansible-galaxy collection install -r requirements.yml
 2. Populate inventory:
 
 - for a quick manual check, edit `ansible/inventories/staging/hosts.yml`;
-- for the normal staging flow, generate a snapshot from Terraform outputs:
+- for the normal staging flow, generate a snapshot from OpenTofu outputs:
 
 ```bash
 cd infra
@@ -56,7 +56,7 @@ Equivalent direct command:
 ```bash
 cd infra/ansible
 python scripts/generate_inventory.py \
-  --terraform-dir ../terraform/live/staging/edge \
+  --stack-dir ../terraform/live/staging/edge \
   --output inventories/staging/generated.hosts.json \
   --environment staging
 ```
@@ -77,7 +77,7 @@ make ansible-phase2-staging
 
 This runs:
 
-- inventory snapshot generation from Terraform outputs;
+- inventory snapshot generation from OpenTofu outputs;
 - edge bootstrap (`base` + `docker`);
 - post-bootstrap verification checks.
 
@@ -358,8 +358,8 @@ Phase 7 stays repo-level until you have a real control-plane inventory and real 
 
 ```bash
 cd /home/beep/projects/VPNBussiness/infra
-terraform -chdir=terraform/live/staging/control-plane init -backend-config=backend.hcl
-terraform -chdir=terraform/live/staging/control-plane plan -var-file=terraform.tfvars
+tofu -chdir=terraform/live/staging/control-plane init -backend-config=backend.hcl
+tofu -chdir=terraform/live/staging/control-plane plan -var-file=terraform.tfvars
 ```
 
 2. Populate control-plane vars and vault:

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # External Services
     remnawave_url: str = "http://localhost:3000"
     remnawave_api_token: SecretStr
+    backend_api_url: str | None = None
+    backend_internal_secret: SecretStr | None = None
     helix_enabled: bool = False
     helix_adapter_url: str = "http://localhost:8090"
     helix_adapter_token: SecretStr = SecretStr("")
@@ -98,6 +100,7 @@ class Settings(BaseSettings):
 
     # Sentry (Observability)
     sentry_dsn: str = ""  # Sentry DSN for error tracking (optional, empty = disabled)
+    sentry_release: str = ""  # Canonical Sentry release name (optional, empty = auto/disabled)
 
     # Email Provider Configuration (OTP)
     # Primary: Resend.com (initial OTP)
@@ -162,6 +165,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_metrics_settings(self) -> "Settings":
+        has_backend_url = self.backend_api_url is not None and bool(str(self.backend_api_url).strip())
+        has_backend_secret = (
+            self.backend_internal_secret is not None
+            and bool(self.backend_internal_secret.get_secret_value().strip())
+        )
+        if has_backend_url != has_backend_secret:
+            msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"
+            raise ValueError(msg)
         if (
             self.metrics_basic_auth_user is None
             and self.metrics_basic_auth_password is not None

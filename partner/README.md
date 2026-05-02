@@ -26,6 +26,31 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3002
 NEXT_PUBLIC_SITE_URL=https://partner.ozoxy.ru
 ```
 
+## Product Intelligence Environment
+
+`P3.6` introduces the first governed PostHog server-side bridge and typed feature-flag wrapper path.
+`P3.7` extends that baseline with dashboard-event contracts for checkout, onboarding,
+partner workspace usage, and retention lifecycle reporting.
+
+Minimal non-live configuration:
+
+```bash
+POSTHOG_HOST=https://posthog.internal
+POSTHOG_PROJECT_API_KEY=<project_token>
+```
+
+Optional server-side feature-flag evaluation:
+
+```bash
+POSTHOG_PERSONAL_API_KEY=<personal_api_key>
+```
+
+Rules:
+
+- browser UX events go through the internal same-origin route `/api/analytics/product-events`;
+- critical commercial events stay server-side or `nats_bridge` only;
+- product flags stay deterministic default-off until the server-side wrapper can evaluate them safely.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

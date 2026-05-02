@@ -10,6 +10,8 @@ export function Titlebar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
+  // Detect macOS (Darwin)
+  const isMac = navigator.userAgent.toLowerCase().includes('mac');
 
   useEffect(() => {
     const handleResize = async () => {
@@ -51,7 +53,14 @@ export function Titlebar() {
       data-tauri-drag-region="true" 
       className="titlebar-shell fixed top-0 left-0 right-0 z-50 flex h-12 select-none items-center justify-between border-b border-border/70 bg-[color:var(--chrome-surface)]/82 px-2 text-muted-foreground shadow-[var(--chrome-shadow)] backdrop-blur-2xl"
     >
-        <div className="pointer-events-none relative z-10 px-2">
+        {isMac && (
+          <div data-tauri-drag-region="false" className="flex items-center gap-2 px-3 pointer-events-auto">
+            <button onClick={close} className="h-3 w-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 flex items-center justify-center group"><X size={8} className="opacity-0 group-hover:opacity-100 text-black/60" /></button>
+            <button onClick={minimize} className="h-3 w-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 flex items-center justify-center group"><Minus size={8} className="opacity-0 group-hover:opacity-100 text-black/60" /></button>
+            <button onClick={toggleMaximize} className="h-3 w-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 flex items-center justify-center group"><Square size={6} className="opacity-0 group-hover:opacity-100 text-black/60" /></button>
+          </div>
+        )}
+        <div className={`pointer-events-none relative z-10 px-2 ${isMac ? 'ml-2' : ''}`}>
           <div className="titlebar-brand flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--color-matrix-green)_20%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_9%,white)] px-3 py-1.5 text-[var(--color-matrix-green)] shadow-[var(--panel-shadow)] dark:border-[color:color-mix(in_oklab,var(--color-matrix-green)_34%,var(--border))] dark:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_14%,black)] dark:shadow-[0_12px_28px_rgba(56,240,160,0.12)]">
             <span className="relative inline-flex h-2.5 w-2.5 items-center justify-center">
               <span className="absolute inset-0 rounded-full bg-[var(--color-matrix-green)] opacity-35 blur-[1px] animate-ping motion-reduce:animate-none" />
@@ -61,7 +70,7 @@ export function Titlebar() {
             <span className="text-[10px] font-mono font-semibold tracking-[0.28em] opacity-90">CYBERVPN</span>
           </div>
         </div>
-      <div data-tauri-drag-region="false" className="titlebar-controls relative z-10 flex h-full pointer-events-auto items-center gap-1 rounded-full border border-border/65 bg-[color:var(--chrome-elevated)]/82 px-1 shadow-[var(--panel-shadow)]">
+      <div data-tauri-drag-region="false" className={`titlebar-controls relative z-10 flex h-full pointer-events-auto items-center gap-1 rounded-full border border-border/65 bg-[color:var(--chrome-elevated)]/82 px-1 shadow-[var(--panel-shadow)] ${isMac ? 'pr-2' : ''}`}>
         <button
           type="button"
           className="inline-flex h-9 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
@@ -72,31 +81,36 @@ export function Titlebar() {
           {resolvedTheme === "dark" ? <SunMedium size={15} /> : <Moon size={15} />}
         </button>
         <LanguageSelector />
-        <div className="mx-1 h-4 w-px bg-border/80"></div>
-        <div 
-          className="inline-flex h-9 w-10 cursor-default items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
-          onClick={minimize}
-          title={t("titlebar.minimize")}
-          aria-label={t("titlebar.minimize")}
-        >
-          <Minus size={14} />
-        </div>
-        <div 
-          className="inline-flex h-9 w-10 cursor-default items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
-          onClick={toggleMaximize}
-          title={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
-          aria-label={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
-        >
-          {isMaximized ? <Square size={12} className="opacity-80" /> : <Square size={12} />}
-        </div>
-        <div 
-          className="inline-flex h-9 w-10 cursor-default items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
-          onClick={close}
-          title={t("titlebar.hideToTray")}
-          aria-label={t("titlebar.hideToTray")}
-        >
-          <X size={14} />
-        </div>
+
+        {!isMac && (
+          <>
+            <div className="mx-1 h-4 w-px bg-border/80"></div>
+            <div
+              className="inline-flex h-9 w-10 cursor-default items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
+              onClick={minimize}
+              title={t("titlebar.minimize")}
+              aria-label={t("titlebar.minimize")}
+            >
+              <Minus size={14} />
+            </div>
+            <div
+              className="inline-flex h-9 w-10 cursor-default items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground"
+              onClick={toggleMaximize}
+              title={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
+              aria-label={isMaximized ? t("titlebar.restore") : t("titlebar.maximize")}
+            >
+              {isMaximized ? <Square size={12} className="opacity-80" /> : <Square size={12} />}
+            </div>
+            <div
+              className="inline-flex h-9 w-10 cursor-default items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
+              onClick={close}
+              title={t("titlebar.hideToTray")}
+              aria-label={t("titlebar.hideToTray")}
+            >
+              <X size={14} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

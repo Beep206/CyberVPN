@@ -1,0 +1,97 @@
+groups:
+  - name: customer_growth_notification_recording_rules
+    interval: 30s
+    rules:
+      - record: customer_growth:notification_customer_recovery_requests:increase24h
+        expr: |
+          sum by (delivery_channel, surface) (
+            increase(cybervpn_growth_notification_customer_recovery_requests_total[24h])
+          )
+
+      - record: customer_growth:notification_support_escalations:increase24h
+        expr: |
+          sum by (delivery_channel, surface) (
+            increase(cybervpn_growth_notification_support_escalations_total[24h])
+          )
+
+      - record: customer_growth:notification_repairs_completed:increase24h
+        expr: |
+          sum by (delivery_channel, surface) (
+            increase(cybervpn_growth_notification_repairs_completed_total[24h])
+          )
+
+      - record: customer_growth:notification_support_resolutions:increase24h
+        expr: |
+          sum by (delivery_channel, surface) (
+            increase(cybervpn_growth_notification_support_resolutions_total[24h])
+          )
+
+      - record: customer_growth:notification_deliveries_recovered:increase24h
+        expr: |
+          sum by (delivery_channel, surface) (
+            increase(cybervpn_growth_notification_deliveries_recovered_total[24h])
+          )
+
+      - record: customer_growth:notification_unresolved_backlog_delta:24h
+        expr: |
+          clamp_min(
+            customer_growth:notification_support_escalations:increase24h
+            - customer_growth:notification_support_resolutions:increase24h
+            - customer_growth:notification_deliveries_recovered:increase24h,
+            0
+          )
+
+      - record: customer_growth:notification_recovery_ratio:24h
+        expr: |
+          (
+            customer_growth:notification_deliveries_recovered:increase24h
+            + customer_growth:notification_support_resolutions:increase24h
+          )
+          /
+          clamp_min(customer_growth:notification_support_escalations:increase24h, 1e-9)
+
+  - name: customer_growth_notification_alerts
+    interval: 30s
+    rules:
+      - alert: CustomerGrowthNotificationUnresolvedBacklogHigh
+        expr: |
+          sum(customer_growth:notification_unresolved_backlog_delta:24h) > 5
+        for: 15m
+        keep_firing_for: 15m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-notifications
+        annotations:
+          summary: "Customer growth notification unresolved backlog is growing"
+          description: "Customer growth notification escalations are outpacing repaired or resolved deliveries over the last 24 hours. Review blocked channels, support workload, and recovery automation."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_DELIVERY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_DELIVERY_RUNBOOK.md"
+          dashboard_uid: "customer-growth-notification-delivery"
+          dashboard_path: "/d/customer-growth-notification-delivery/customer-growth-notification-delivery"
+
+      - alert: CustomerGrowthNotificationRecoveryRatioLow
+        expr: |
+          sum(customer_growth:notification_support_escalations:increase24h) > 3
+          and
+          (
+            (
+              sum(customer_growth:notification_deliveries_recovered:increase24h)
+              + sum(customer_growth:notification_support_resolutions:increase24h)
+            )
+            /
+            clamp_min(sum(customer_growth:notification_support_escalations:increase24h), 1e-9)
+          ) < 0.60
+        for: 30m
+        keep_firing_for: 15m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-notifications
+        annotations:
+          summary: "Customer growth notification recovery ratio fell below 60%"
+          description: "Growth notification escalations are not closing cleanly. Check repair triggers, support resolution flow, and blocked channel classes before enabling wider rollout."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_DELIVERY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_NOTIFICATION_DELIVERY_RUNBOOK.md"
+          dashboard_uid: "customer-growth-notification-delivery"
+          dashboard_path: "/d/customer-growth-notification-delivery/customer-growth-notification-delivery"

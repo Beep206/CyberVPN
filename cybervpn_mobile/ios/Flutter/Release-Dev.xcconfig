@@ -4,4 +4,7 @@
 // Dev flavor configuration for Release builds
 PRODUCT_BUNDLE_IDENTIFIER = com.cybervpn.app.dev
 PRODUCT_NAME = CyberVPN Dev
+// Telegram Native Login iOS callback domain.
+// Replace with the BotFather-generated host, e.g. app123456-login.tg.dev.
+TELEGRAM_IOS_ASSOCIATED_DOMAIN = cybervpn.app
 // DART_DEFINES are passed via --dart-define in flutter build command

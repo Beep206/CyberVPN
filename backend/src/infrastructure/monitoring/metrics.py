@@ -104,6 +104,59 @@ auth_attempts_total = Counter(
     ["method", "status"],  # method: password/oauth/telegram, status: success/failure
 )
 
+telegram_native_login_started_total = Counter(
+    "telegram_native_login_started_total",
+    "Total Telegram native login attempts started",
+    ["platform"],
+)
+
+telegram_native_login_completed_total = Counter(
+    "telegram_native_login_completed_total",
+    "Total Telegram native login attempts completed successfully",
+    ["platform"],
+)
+
+telegram_native_login_failed_total = Counter(
+    "telegram_native_login_failed_total",
+    "Total Telegram native login attempts failed",
+    ["platform", "reason"],
+)
+
+telegram_oidc_token_validation_failed_total = Counter(
+    "telegram_oidc_token_validation_failed_total",
+    "Total Telegram OIDC token validation failures",
+    ["reason"],
+)
+
+telegram_oidc_user_created_total = Counter(
+    "telegram_oidc_user_created_total",
+    "Total mobile users created from Telegram OIDC login",
+)
+
+telegram_oidc_user_resolved_total = Counter(
+    "telegram_oidc_user_resolved_total",
+    "Total Telegram OIDC identity resolutions by path",
+    ["path"],
+)
+
+telegram_oidc_user_link_conflict_total = Counter(
+    "telegram_oidc_user_link_conflict_total",
+    "Total Telegram OIDC link conflicts where identity is already linked to another account",
+    ["reason"],
+)
+
+telegram_oidc_requires_2fa_total = Counter(
+    "telegram_oidc_requires_2fa_total",
+    "Total Telegram OIDC login attempts that require a pending TOTP challenge",
+    ["platform"],
+)
+
+telegram_oidc_device_registered_total = Counter(
+    "telegram_oidc_device_registered_total",
+    "Total device registrations or updates from Telegram OIDC login",
+    ["platform", "action"],
+)
+
 auth_password_identifier_events_total = Counter(
     "auth_password_identifier_events_total",
     "Password auth and registration events split by identifier type",
@@ -380,4 +433,64 @@ monitoring_operations_total = Counter(
     "monitoring_operations_total",
     "Total monitoring operations",
     ["operation"],  # operation: health_check/stats/bandwidth
+)
+
+# Mini App runtime metrics
+miniapp_runtime_requests_total = Counter(
+    "miniapp_runtime_requests_total",
+    "Total Mini App API requests by endpoint and normalized outcome",
+    ["endpoint", "status"],
+)
+
+miniapp_runtime_request_duration_seconds = Histogram(
+    "miniapp_runtime_request_duration_seconds",
+    "Mini App API request latency in seconds by endpoint",
+    ["endpoint"],
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
+)
+
+miniapp_checkout_commits_total = Counter(
+    "miniapp_checkout_commits_total",
+    "Mini App checkout commit attempts by flow, payment rail, and resulting status",
+    ["flow", "payment_rail", "status"],
+)
+
+miniapp_payment_status_checks_total = Counter(
+    "miniapp_payment_status_checks_total",
+    "Mini App payment status lookups by provider and resolved payment status",
+    ["provider", "payment_status"],
+)
+
+miniapp_config_delivery_total = Counter(
+    "miniapp_config_delivery_total",
+    "Mini App VPN config delivery attempts by source and status",
+    ["source", "status"],
+)
+
+miniapp_launch_state_current = Gauge(
+    "miniapp_launch_state_current",
+    "Current server-derived Mini App launch state as a one-hot gauge",
+    ["launch_state"],
+)
+
+miniapp_runtime_rollout_mode_current = Gauge(
+    "miniapp_runtime_rollout_mode_current",
+    "Current Mini App rollout mode as a one-hot gauge",
+    ["mode"],
+)
+
+miniapp_launch_live_switch_allowed = Gauge(
+    "miniapp_launch_live_switch_allowed",
+    "Whether Mini App is currently eligible to switch into live mode",
+)
+
+miniapp_launch_blockers_current = Gauge(
+    "miniapp_launch_blockers_current",
+    "Current number of Mini App launch blockers from the server-derived summary",
+)
+
+miniapp_launch_actions_total = Counter(
+    "miniapp_launch_actions_total",
+    "Mini App launch actions attempted through the admin control plane",
+    ["action", "status"],
 )

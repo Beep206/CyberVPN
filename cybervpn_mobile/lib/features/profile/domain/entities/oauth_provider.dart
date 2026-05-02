@@ -12,12 +12,24 @@ enum OAuthProvider {
 
 /// Providers that stay in code but are hidden from active mobile auth entry points.
 const Set<OAuthProvider> kDisabledMobileAuthEntryProviders = {
+  OAuthProvider.github,
+  OAuthProvider.google,
+  OAuthProvider.facebook,
   OAuthProvider.apple,
+  OAuthProvider.discord,
+  OAuthProvider.microsoft,
+  OAuthProvider.twitter,
 };
 
 /// Providers that should not appear as new mobile social-link options.
 const Set<OAuthProvider> kDisabledMobileLinkEntryProviders = {
+  OAuthProvider.github,
+  OAuthProvider.google,
+  OAuthProvider.facebook,
   OAuthProvider.apple,
+  OAuthProvider.discord,
+  OAuthProvider.microsoft,
+  OAuthProvider.twitter,
 };
 
 extension OAuthProviderMobileVisibility on OAuthProvider {

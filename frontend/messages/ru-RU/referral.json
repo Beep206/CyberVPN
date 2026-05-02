@@ -1,0 +1,110 @@
+{
+  "cabinet": {
+    "title": "РЕФЕРАЛЬНЫЕ НАГРАДЫ",
+    "subtitle": "Делитесь кодом, отслеживайте canonical lifecycle наград и отделяйте customer growth от partner-механик.",
+    "hero": {
+      "eyebrow": "Customer growth cockpit",
+      "wallet": "Открыть кошелек",
+      "payments": "История платежей",
+      "health": "Состояние программы",
+      "enabledHint": "Текущая ставка backend: {rate}. Eligibility и stacking наград всегда решаются на сервере.",
+      "disabledHint": "Программа приостановлена backend-политикой. Существующие награды остаются видимыми для трассируемости."
+    },
+    "health": {
+      "active": "Готово к шерингу",
+      "disabled": "Пауза",
+      "earning": "Награды активны",
+      "review": "Hold review"
+    },
+    "errors": {
+      "partialTitle": "Реферальные данные частично недоступны",
+      "partialDescription": "Cockpit оставляет доступные секции видимыми, пока недоступный growth endpoint восстанавливается."
+    },
+    "summary": {
+      "ariaLabel": "Сводка реферальных наград",
+      "referrals": "Рефералы",
+      "available": "Доступные награды",
+      "pending": "Награды в ожидании",
+      "qualifyingOrders": "Квалифицирующие заказы"
+    },
+    "share": {
+      "eyebrow": "Ссылка для приглашения",
+      "title": "Ваш реферальный код",
+      "description": "Делитесь ссылкой или кодом с друзьями. Frontend не решает discount eligibility: checkout и redeem flows запрашивают backend.",
+      "codeLabel": "Реферальный код",
+      "active": "Активно",
+      "paused": "Пауза",
+      "copyCode": "Копировать код",
+      "copyLink": "Копировать ссылку",
+      "copyShareText": "Копировать текст",
+      "copied": "Скопировано",
+      "message": "Подключайся к CyberVPN с моим реферальным кодом {code}: {link}"
+    },
+    "rules": {
+      "eyebrow": "Policy guardrails",
+      "title": "Что эта страница не угадывает",
+      "items": {
+        "backendTruth": {
+          "title": "Backend — источник истины",
+          "description": "UI показывает решения из backend contracts и не рассчитывает eligibility или stacking наград локально."
+        },
+        "nonWithdrawable": {
+          "title": "Реферальные награды — growth credits",
+          "description": "Реферальные награды показываются как customer growth rewards, а не partner payouts или withdrawable earnings."
+        },
+        "partnerHidden": {
+          "title": "Partner-механики скрыты",
+          "description": "Partner commissions, reseller tools, payout statements и traffic controls намеренно не раскрываются здесь."
+        },
+        "holdWindow": {
+          "title": "Hold window явный",
+          "description": "Backend сообщает текущее окно удержания наград: {days} дней. Pending rewards все еще могут быть отменены политикой."
+        }
+      }
+    },
+    "caps": {
+      "eyebrow": "Risk и cap-сигналы",
+      "title": "Использование лимитов",
+      "description": "Soft progress bars помогают понять скорость начислений без раскрытия fraud/risk engine internals.",
+      "monthly": "Месячное использование",
+      "lifetime": "Общее использование"
+    },
+    "lifecycle": {
+      "eyebrow": "Lifecycle наград",
+      "title": "Canonical reward states",
+      "description": "Награды проходят backend-owned states. Pending rewards находятся на hold; available rewards доступны согласно account policy.",
+      "blocked": "{count} заблокировано",
+      "status": {
+        "pending": "Ожидает",
+        "available": "Доступно",
+        "blocked_by_risk": "Заблокировано",
+        "reversed": "Отменено",
+        "expired": "Истекло"
+      }
+    },
+    "activity": {
+      "eyebrow": "Недавняя активность",
+      "title": "Хронология наград",
+      "empty": "Реферальной активности пока нет.",
+      "reward": "Reward allocation",
+      "commission": "Referral commission",
+      "holdUntil": "Hold до {date}"
+    },
+    "notifications": {
+      "eyebrow": "Delivery health",
+      "title": "Growth notifications",
+      "description": "Реферальные награды и invite updates отображаются через durable growth notifications.",
+      "actionRequired": "{count} требуют действия",
+      "empty": "Реферальных уведомлений сейчас нет.",
+      "required": "Действие",
+      "unread": "Новое",
+      "read": "Прочитано"
+    },
+    "actions": {
+      "refresh": "Обновить"
+    },
+    "labels": {
+      "notAvailable": "Недоступно"
+    }
+  }
+}

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService, OutboxActorContext
 from src.application.use_cases.attribution.order_resolution import ResolveOrderAttributionUseCase
+from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
 from src.application.use_cases.orders.snapshot_builder import build_order_item_payloads, build_order_snapshots
 from src.infrastructure.database.models.order_model import OrderItemModel, OrderModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
@@ -20,6 +21,7 @@ class CreateOrderFromCheckoutSessionUseCase:
         self._checkout_repo = CommerceSessionRepository(session)
         self._orders = OrderRepository(session)
         self._outbox = EventOutboxService(session)
+        self._reservations = GrowthCodeReservationService(session)
 
     @staticmethod
     def _normalize_utc(value: datetime) -> datetime:
@@ -163,9 +165,23 @@ class CreateOrderFromCheckoutSessionUseCase:
             )
         resolver = ResolveOrderAttributionUseCase(self._session)
         await resolver.execute(order_id=created_order.id, commit=False)
+        reservation_id = _extract_reservation_id(quote_snapshot)
+        if reservation_id is not None:
+            await self._reservations.consume_for_order(
+                reservation_id=reservation_id,
+                order_id=created_order.id,
+            )
         checkout_session.checkout_status = "committed"
         await self._session.commit()
         refreshed = await self._orders.get_by_id(created_order.id)
         if refreshed is None:
             raise ValueError("Order was created but could not be reloaded")
         return refreshed
+
+
+def _extract_reservation_id(quote_snapshot: dict) -> UUID | None:
+    code_resolution = dict(quote_snapshot.get("code_resolution") or {})
+    raw_value = code_resolution.get("reservation_id")
+    if not raw_value:
+        return None
+    return UUID(str(raw_value))

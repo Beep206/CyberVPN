@@ -35,6 +35,10 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    val telegramLoginPathPrefix = "/tglogin"
+    val telegramLoginHostDev = System.getenv("TELEGRAM_ANDROID_LOGIN_HOST_DEV") ?: "cybervpn.app"
+    val telegramLoginHostStaging = System.getenv("TELEGRAM_ANDROID_LOGIN_HOST_STAGING") ?: "cybervpn.app"
+    val telegramLoginHostProd = System.getenv("TELEGRAM_ANDROID_LOGIN_HOST_PROD") ?: "cybervpn.app"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -75,6 +79,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["telegramLoginPathPrefix"] = telegramLoginPathPrefix
     }
 
     flavorDimensions += "environment"
@@ -88,6 +93,8 @@ android {
             buildConfigField("String", "API_ENV", "\"dev\"")
             buildConfigField("String", "SENTRY_DSN", "\"\"")
             manifestPlaceholders["appNameSuffix"] = " (Dev)"
+            // Replace with the BotFather-generated host, e.g. app123456-login.tg.dev.
+            manifestPlaceholders["telegramLoginHost"] = telegramLoginHostDev
         }
 
         create("staging") {
@@ -101,6 +108,8 @@ android {
             val stagingSentryDsn = System.getenv("STAGING_SENTRY_DSN") ?: ""
             buildConfigField("String", "SENTRY_DSN", "\"$stagingSentryDsn\"")
             manifestPlaceholders["appNameSuffix"] = " (Staging)"
+            // Replace with the BotFather-generated host, e.g. app123456-login.tg.dev.
+            manifestPlaceholders["telegramLoginHost"] = telegramLoginHostStaging
         }
 
         create("prod") {
@@ -112,6 +121,8 @@ android {
             val prodSentryDsn = System.getenv("PROD_SENTRY_DSN") ?: ""
             buildConfigField("String", "SENTRY_DSN", "\"$prodSentryDsn\"")
             manifestPlaceholders["appNameSuffix"] = ""
+            // Replace with the BotFather-generated host, e.g. app123456-login.tg.dev.
+            manifestPlaceholders["telegramLoginHost"] = telegramLoginHostProd
         }
     }
 
@@ -148,6 +159,8 @@ kotlin {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("androidx.browser:browser:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
 
 flutter {

@@ -10,3 +10,11 @@ Before first use:
 4. Export `TF_VAR_cloudflare_api_token`.
 
 Keep production DNS changes narrow while the canary window is still open.
+
+Typical operator path:
+
+```bash
+tofu -chdir=infra/terraform/live/production/dns init -backend-config=backend.hcl
+tofu -chdir=infra/terraform/live/production/dns plan -var-file=terraform.tfvars
+tofu -chdir=infra/terraform/live/production/dns apply -var-file=terraform.tfvars
+```

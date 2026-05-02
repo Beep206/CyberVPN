@@ -1,0 +1,167 @@
+name: Desktop Client CI
+
+on:
+  push:
+    paths:
+      - 'apps/desktop-client/**'
+      - '.github/workflows/desktop-client-ci.yml'
+      - '.github/workflows/desktop-release.yml'
+      - 'scripts/validate-sentry-contract.py'
+      - 'docs/observability/sentry/**'
+      - 'docs/plans/2026-04-24-sentry-implementation-roadmap.md'
+      - 'docs/plans/2026-04-24-sentry-rollout-tracker.md'
+  pull_request:
+    paths:
+      - 'apps/desktop-client/**'
+      - '.github/workflows/desktop-client-ci.yml'
+      - '.github/workflows/desktop-release.yml'
+      - 'scripts/validate-sentry-contract.py'
+
+jobs:
+  desktop_client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xvfb
+
+      - name: Resolve desktop release metadata
+        id: release_meta
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('apps/desktop-client/package.json', 'utf8')).version)")
+          RELEASE_NAME="desktop@${VERSION}+${GITHUB_RUN_NUMBER}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate desktop renderer contract
+        env:
+          VITE_SENTRY_DSN: https://desktop-renderer@example.com/1
+          VITE_SENTRY_ENVIRONMENT: staging
+          VITE_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          python3 scripts/validate-sentry-contract.py \
+            --surface desktop-renderer \
+            --environment-var VITE_SENTRY_ENVIRONMENT \
+            --release-var VITE_SENTRY_RELEASE \
+            --dsn-var VITE_SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release "${VITE_SENTRY_RELEASE}" \
+            --require-dsn \
+            --summary-label "Desktop renderer Sentry contract"
+
+      - name: Validate desktop native contract
+        env:
+          DESKTOP_SENTRY_DSN: https://desktop-native@example.com/1
+          DESKTOP_SENTRY_ENVIRONMENT: staging
+          DESKTOP_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          python3 scripts/validate-sentry-contract.py \
+            --surface desktop-native \
+            --environment-var DESKTOP_SENTRY_ENVIRONMENT \
+            --release-var DESKTOP_SENTRY_RELEASE \
+            --dsn-var DESKTOP_SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release "${DESKTOP_SENTRY_RELEASE}" \
+            --require-dsn \
+            --summary-label "Desktop native Sentry contract"
+
+      - name: Install frontend dependencies
+        working-directory: ./apps/desktop-client
+        run: npm ci
+
+      - name: Run desktop renderer unit tests
+        working-directory: ./apps/desktop-client
+        run: npm run test:unit
+
+      - name: Run desktop native lint and tests
+        working-directory: ./apps/desktop-client/src-tauri
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets --all-features --locked -- -D warnings
+          cargo test
+
+      - name: Build desktop Tauri app
+        working-directory: ./apps/desktop-client
+        env:
+          VITE_SENTRY_DSN: https://desktop-renderer@example.com/1
+          VITE_SENTRY_ENVIRONMENT: staging
+          VITE_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          DESKTOP_SENTRY_DSN: https://desktop-native@example.com/1
+          DESKTOP_SENTRY_ENVIRONMENT: staging
+          DESKTOP_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          DESKTOP_SENTRY_RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: npm run tauri build
+
+      - name: Run desktop packaged smoke
+        env:
+          VITE_SENTRY_DSN: https://desktop-renderer@example.com/1
+          VITE_SENTRY_ENVIRONMENT: staging
+          VITE_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          DESKTOP_SENTRY_DSN: https://desktop-native@example.com/1
+          DESKTOP_SENTRY_ENVIRONMENT: staging
+          DESKTOP_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          chmod +x apps/desktop-client/scripts/run-desktop-sentry-smoke.sh
+          apps/desktop-client/scripts/run-desktop-sentry-smoke.sh
+
+      - name: Upload desktop native debug files to Sentry
+        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        shell: bash
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli debug-files upload --wait apps/desktop-client/src-tauri/target/release/desktop-client
+
+      - name: Summarize desktop Sentry metadata
+        env:
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
+          NATIVE_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
+          RENDERER_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_RENDERER_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          NATIVE_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+        run: |
+          {
+            echo "### Desktop client Sentry CI metadata"
+            echo "- Environment: \`staging\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Renderer project: \`${RENDERER_PROJECT:-unconfigured}\`"
+            echo "- Native project: \`${NATIVE_PROJECT:-unconfigured}\`"
+            echo "- Renderer sourcemap upload enabled: \`${RENDERER_UPLOAD_ENABLED}\`"
+            echo "- Native debug-file upload enabled: \`${NATIVE_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload desktop build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-client-linux-build
+          path: |
+            apps/desktop-client/src-tauri/target/release/desktop-client
+            apps/desktop-client/src-tauri/target/release/bundle/
+          retention-days: 14
+          if-no-files-found: error

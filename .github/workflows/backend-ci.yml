@@ -111,6 +111,39 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
         run: pytest tests/ -v --tb=short --cov=src --cov-report=xml --cov-report=term-missing
 
+      - name: Validate Sentry contract
+        env:
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://backend@example.com/1
+          SENTRY_RELEASE: backend@${{ github.sha }}
+        run: |
+          python3 ../scripts/validate-sentry-contract.py \
+            --surface backend \
+            --environment-var ENVIRONMENT \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release backend@${{ github.sha }} \
+            --require-dsn \
+            --summary-label "Backend Sentry contract"
+
+      - name: Run backend Sentry smoke tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/cybervpn_test
+          REDIS_URL: redis://localhost:6379/0
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://backend@example.com/1
+          SENTRY_RELEASE: backend@${{ github.sha }}
+          SENTRY_SMOKE_EXPECT_ENV: staging
+          SENTRY_SMOKE_EXPECT_DSN: https://backend@example.com/1
+          SENTRY_SMOKE_EXPECT_RELEASE: backend@${{ github.sha }}
+        run: |
+          pytest \
+            tests/e2e/test_critical_flows.py \
+            tests/integration/test_observability.py \
+            -k "health_check_flow or sentry_runtime_contract_smoke" \
+            -v --tb=short
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: always()

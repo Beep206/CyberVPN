@@ -6,4 +6,4 @@ use_lockfile = true
 
 # If you use S3-compatible storage instead of AWS S3, consult the official
 # Terraform S3 backend documentation and add the provider-specific endpoint
-# settings here before running `terraform init`.
+# settings here before running `tofu init`.

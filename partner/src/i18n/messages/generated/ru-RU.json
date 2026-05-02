@@ -3340,10 +3340,17 @@
       },
       "eyebrow": "PP4 CAMPAIGNS И ENABLEMENT",
       "library": {
+        "allowedClaims": "Allowed claims",
+        "allowedGeographies": "Allowed geographies: {value}",
         "approvalOwner": "Approval owner: {value}",
+        "bannedClaims": "Banned claims",
         "description": "Campaign assets остаются lane-aware. Performance требует самый строгий review path, а Creator и Reseller получают разную глубину enablement.",
+        "destinationUrls": "Destination URLs: {value}",
+        "disclosureText": "Disclosure text: {value}",
         "empty": "Для текущего статуса workspace и lane campaign assets пока недоступны.",
-        "title": "Campaign library"
+        "promoReference": "Promo reference: {value}",
+        "title": "Campaign library",
+        "validUntil": "Valid until: {value}"
       },
       "links": {
         "codes": "Открыть codes & tracking",
@@ -3806,6 +3813,56 @@
       "title": "Finance"
     },
     "integrations": {
+      "bots": {
+        "actionReferenceManagedPlaceholder": "Заметка для managed-bot или operator handoff reference",
+        "actionReferenceManualPlaceholder": "Ссылка на handoff из BotFather или operator note",
+        "actions": {
+          "provision": "Поставить provisioning в очередь",
+          "restore": "Восстановить бота",
+          "rotateToken": "Ротировать токен",
+          "suspend": "Приостановить бота"
+        },
+        "binding": "Telegram binding: {value}",
+        "bindingPending": "ещё не привязан",
+        "createBotKeyPlaceholder": "bot key",
+        "createDescriptionPlaceholder": "Короткое branded-описание для профиля бота и launch surfaces.",
+        "createDisplayNamePlaceholder": "display name",
+        "createError": "Не удалось создать draft partner bot.",
+        "createHelp": "Сначала создайте branded bot record, затем поставьте provisioning или manual-token onboarding в очередь.",
+        "createLocalePlaceholder": "default locale",
+        "createProvisioningPathManaged": "Managed bot",
+        "createProvisioningPathManual": "Manual token fallback",
+        "createRuntimeHint": "Shared runtime",
+        "createSubmit": "Создать draft bot",
+        "createSubmitting": "Создание...",
+        "createSuccess": "Draft partner bot создан.",
+        "createTitle": "Создать draft bot",
+        "defaultLocale": "Локаль по умолчанию: {value}",
+        "description": "Это первый inventory slice для white-label runtime: записи брендированных Telegram-ботов, путь provisioning и текущий launch status активного workspace.",
+        "empty": "Для этого workspace пока не создано ни одного partner bot.",
+        "lastError": "Последняя ошибка provisioning: {value}",
+        "lastReasonCode": "Последний reason code job: {value}",
+        "latestJob": "Последний provisioning job: {value}",
+        "loading": "Загружаем inventory partner bots...",
+        "noJobs": "Последний provisioning job: ещё не запрашивался",
+        "provisionError": "Не удалось поставить provisioning request в очередь.",
+        "provisioningPath": "Путь provisioning: {value}",
+        "provisionSuccess": "Provisioning request поставлен в очередь.",
+        "readOnlyMode": "Эта роль может только просматривать posture partner bots без provisioning и launch actions.",
+        "releaseChannel": "Release channel: {value}",
+        "restoreError": "Не удалось восстановить partner bot.",
+        "restoreSuccess": "Partner bot восстановлен.",
+        "rotateError": "Не удалось поставить запрос на rotation токена в очередь.",
+        "rotateSuccess": "Запрос на rotation токена поставлен в очередь.",
+        "routeHint": "Provisioning foundation уже готов; создание и launch branded bots пойдут в следующих slices Phase 4.",
+        "suspendError": "Не удалось перевести partner bot в suspended.",
+        "suspendReasonPlaceholder": "Код причины suspend",
+        "suspendSuccess": "Partner bot переведён в suspended.",
+        "title": "Partner bots",
+        "tokenStatus": "Статус токена: {value}",
+        "updatedAt": "Обновлено: {value}",
+        "workspaceRequired": "Выберите workspace перед созданием partner bot."
+      },
       "capabilities": {
         "items": {
           "delivery_logs": "Delivery logs",
@@ -3840,14 +3897,68 @@
         "selected": "Выбранные creator use cases могут видеть ограниченные integrations, но более широкие technical operations остаются gated.",
         "technical": "Workspace может использовать technical partner surface для diagnostics, token posture и visibility integration delivery."
       },
+      "readiness": {
+        "cards": {
+          "deliveryStatus": "Delivery: {value}",
+          "intervention": "Требует вмешательства",
+          "managedPath": "Managed path",
+          "managedPathCount": "Ботов на managed path: {value}",
+          "manualFallback": "Manual fallback",
+          "manualFallbackCount": "Ботов на manual path: {value}",
+          "notAvailable": "Недоступно",
+          "pendingCount": "В очереди или в работе: {value}",
+          "postback": "Postback"
+        },
+        "description": "Phase 5 делает posture white-label launch явной: readiness managed-bot, manual token fallback и delivery postback теперь видны прямо на partner surface, а не только во внутренних operator workflows.",
+        "error": "Контракт postback readiness сейчас недоступен.",
+        "loading": "Загружаем readiness для postback и provisioning...",
+        "noNotes": "Для текущего readiness posture дополнительных operator notes нет.",
+        "notes": {
+          "managed_path_operator_handoff": "Создание managed-bot всё ещё требует operator-mediated Telegram binding, прежде чем этот путь можно считать полностью live.",
+          "manual_path_available": "Manual token onboarding остаётся доступным fallback launch path для партнёров, которым нужен более быстрый handoff.",
+          "operator_attention_required": "Как минимум один бот всё ещё требует operator follow-up, прежде чем launch posture станет чистой.",
+          "postback_blocked": "Postback readiness заблокирован, поэтому launch-sensitive automation остаётся ограниченной.",
+          "postback_under_review": "Postback readiness всё ещё на review, поэтому click-tracking и promotion delivery остаются conditional."
+        },
+        "notesTitle": "Заметки для операторов",
+        "postbackCredential": "Статус credential",
+        "postbackDelivery": "Статус delivery",
+        "postbackStatus": "Статус readiness",
+        "postbackTitle": "Postback posture",
+        "snapshot": {
+          "activeBots": "Активные боты",
+          "readyManagedBindings": "Готовые managed bindings",
+          "scope": "Tracking scope",
+          "suspendedBots": "Приостановленные боты"
+        },
+        "title": "Provisioning readiness"
+      },
       "subtitle": "PP6 открывает техническую operating surface: reporting tokens, postback credentials, webhook delivery logs и ограниченные diagnostics по lane.",
       "summary": {
+        "bots": "Боты",
         "credentials": "Credentials",
         "routeAccess": "Доступ к route",
         "surfaceMode": "Режим surface",
         "technicalReadiness": "Technical readiness"
       },
-      "title": "Integrations"
+      "title": "Integrations",
+      "widgets": {
+        "description": "Phase 5 открывает первый partner-facing slice для trust widgets: approved public network card на основе sanitized snapshot data, готовый для iframe embeds.",
+        "embedCodeTitle": "Код для вставки",
+        "error": "Контракт preview виджета сейчас недоступен.",
+        "loading": "Загружаем posture preview виджета...",
+        "openLivePreview": "Открыть standalone виджет",
+        "previewTitle": "Live preview виджета",
+        "runtimeHint": "Санитизированный public proof",
+        "snapshot": {
+          "availability": "Доступность",
+          "monthlyTraffic": "Трафик за месяц",
+          "onlineServers": "Серверы онлайн",
+          "status": "Статус snapshot",
+          "updatedAt": "Обновлено: {value}"
+        },
+        "title": "Public network widget kit"
+      }
     },
     "legal": {
       "documents": {
@@ -4601,9 +4712,34 @@
         "routeAccess": "Доступ к route",
         "storefronts": "Storefronts",
         "surfaceMode": "Режим surface",
+        "voucherBatches": "Voucher batches",
         "workspaceStatus": "Статус workspace"
       },
-      "title": "Reseller Console"
+      "title": "Reseller Console",
+      "voucherBatches": {
+        "batchStats": "Issued: {issued} · Redeemed: {redeemed} · Available: {available}",
+        "batchTitle": "{plan} / {duration} days",
+        "description": "Approved reseller workspace может отслеживать batch-issued gift vouchers без переноса consumer invite или referral mechanics в partner portal.",
+        "empty": "Для этого reseller workspace пока не было выпущено voucher batches.",
+        "expiresAt": "Expires at: {value}",
+        "title": "Voucher batches"
+      },
+      "voucherRequest": {
+        "countPlaceholder": "Количество voucher codes",
+        "description": "Выпускайте reseller-scoped voucher batch прямо из partner surface. Raw codes показываются один раз сразу после issuance.",
+        "error": "Не удалось выпустить reseller voucher batch.",
+        "issuedCodesTitle": "Выпущенные коды",
+        "messagePlaceholder": "Необязательная заметка или сообщение для этого voucher pack.",
+        "planPlaceholder": "Выберите subscription plan",
+        "planRequired": "Выберите subscription plan перед запросом vouchers.",
+        "readOnly": "Эта роль может просматривать voucher posture, но новые reseller voucher requests заблокированы.",
+        "recipientHintPlaceholder": "Recipient hint или campaign label",
+        "submit": "Выпустить voucher batch",
+        "submitting": "Выпуск...",
+        "success": "Voucher batch выпущен с {count} codes.",
+        "title": "Request voucher batch",
+        "workspaceRequired": "Выберите workspace перед запросом voucher batch."
+      }
     },
     "settings": {
       "actions": {

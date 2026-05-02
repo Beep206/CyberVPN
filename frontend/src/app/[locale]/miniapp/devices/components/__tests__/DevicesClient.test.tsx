@@ -628,7 +628,7 @@ describe('DevicesClient', () => {
       await user.click(logoutButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Device not found')).toBeInTheDocument();
+        expect(screen.getByText('Failed to logout device')).toBeInTheDocument();
       });
     });
 

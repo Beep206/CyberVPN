@@ -14,7 +14,7 @@ import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 abstract class ProfileRemoteDataSource {
   // -- Profile --
 
-  /// Fetches the current user's profile from `GET /auth/me`.
+  /// Fetches the current user's profile from `GET /mobile/auth/me`.
   Future<Profile> getProfile();
 
   // -- Two-Factor Authentication --
@@ -51,17 +51,17 @@ abstract class ProfileRemoteDataSource {
 
   // -- Device / Session Management --
 
-  /// Fetches active device sessions via `GET /auth/me/devices`.
+  /// Fetches active device sessions via `GET /mobile/auth/devices`.
   Future<List<Device>> getDevices();
 
-  /// Registers the current device via `POST /auth/me/devices`.
+  /// Registers or updates the current device via `POST /mobile/auth/device`.
   Future<Device> registerDevice({
     required String deviceName,
     required String platform,
     required String deviceId,
   });
 
-  /// Removes a device session via `DELETE /auth/me/devices/{id}`.
+  /// Removes a device session via `DELETE /mobile/auth/devices/{id}`.
   Future<void> removeDevice(String id);
 
   // -- Account Deletion --
@@ -171,9 +171,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<List<Device>> getDevices() async {
-    final response = await _apiClient.get<dynamic>(
-      '${ApiConstants.me}/devices',
-    );
+    final response = await _apiClient.get<dynamic>(ApiConstants.mobileDevices);
     final data = response.data as List<dynamic>;
     return data
         .map((json) => _mapToDevice(json as Map<String, dynamic>))
@@ -186,18 +184,39 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     required String platform,
     required String deviceId,
   }) async {
+    final normalizedPlatform = platform.toLowerCase();
     final response = await _apiClient.post<Map<String, dynamic>>(
-      '${ApiConstants.me}/devices',
-      data: {'device_name': deviceName, 'os': platform, 'device_id': deviceId},
+      ApiConstants.mobileDeviceRegistration,
+      data: {
+        'device': {
+          'device_id': deviceId,
+          'platform': normalizedPlatform,
+          'platform_id': deviceId,
+          'os_version': 'unknown',
+          'app_version': 'unknown',
+          'device_model': deviceName,
+        },
+      },
     );
     final data = response.data as Map<String, dynamic>;
-    return _mapToDevice(data);
+    return Device(
+      id: (data['device_id'] as String?) ?? deviceId,
+      name: deviceName,
+      platform: normalizedPlatform,
+      lastActiveAt: data['last_active_at'] != null
+          ? DateTime.parse(data['last_active_at'] as String)
+          : null,
+      createdAt: data['registered_at'] != null
+          ? DateTime.parse(data['registered_at'] as String)
+          : null,
+      isCurrent: true,
+    );
   }
 
   @override
   Future<void> removeDevice(String id) async {
     await _apiClient.delete<Map<String, dynamic>>(
-      '${ApiConstants.me}/devices/$id',
+      '${ApiConstants.mobileDevices}/$id',
     );
   }
 
@@ -234,7 +253,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       email: json['email'] as String,
       username: json['username'] as String?,
       avatarUrl: json['avatar_url'] as String?,
-      telegramId: json['telegram_id'] as String?,
+      telegramId: json['telegram_id']?.toString(),
       isEmailVerified: json['is_email_verified'] as bool? ?? false,
       is2FAEnabled: json['is_2fa_enabled'] as bool? ?? false,
       linkedProviders: linkedProviders,

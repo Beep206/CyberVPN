@@ -50,7 +50,19 @@ jobs:
       - name: Run backend partner/admin conformance
         env:
           SKIP_TEST_DB_BOOTSTRAP: '1'
-        run: bash scripts/run-partner-admin-conformance.sh --backend
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-admin-conformance.sh --backend |& tee .ci-artifacts/backend-conformance.log
+
+      - name: Upload backend conformance log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-admin-backend-${{ github.run_id }}
+          path: .ci-artifacts/backend-conformance.log
+          if-no-files-found: error
 
   admin-surface:
     name: Admin Surface Readiness
@@ -74,7 +86,19 @@ jobs:
       - name: Run admin conformance surface checks
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-        run: bash scripts/run-partner-admin-conformance.sh --admin
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-admin-conformance.sh --admin |& tee .ci-artifacts/admin-surface.log
+
+      - name: Upload admin surface log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-admin-surface-${{ github.run_id }}
+          path: .ci-artifacts/admin-surface.log
+          if-no-files-found: error
 
   partner-surface:
     name: Partner Surface Readiness
@@ -98,7 +122,19 @@ jobs:
       - name: Run partner conformance surface checks
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-        run: bash scripts/run-partner-admin-conformance.sh --partner
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-admin-conformance.sh --partner |& tee .ci-artifacts/partner-surface.log
+
+      - name: Upload partner surface log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-admin-partner-${{ github.run_id }}
+          path: .ci-artifacts/partner-surface.log
+          if-no-files-found: error
 
   all-checks:
     name: All Partner/Admin Checks Passed
@@ -128,3 +164,15 @@ jobs:
             exit 1
           fi
           echo "All partner/admin conformance checks passed"
+
+      - name: Write branch protection handoff summary
+        run: |
+          {
+            echo "## Partner/Admin Required Check"
+            echo
+            echo "- Workflow: \`Partner Admin Conformance\`"
+            echo "- Required status check: \`All Partner/Admin Checks Passed\`"
+            echo "- Backend log artifact: \`partner-admin-backend-${{ github.run_id }}\`"
+            echo "- Admin log artifact: \`partner-admin-surface-${{ github.run_id }}\`"
+            echo "- Partner log artifact: \`partner-admin-partner-${{ github.run_id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

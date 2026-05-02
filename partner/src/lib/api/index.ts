@@ -40,6 +40,7 @@ export { entitlementsApi, serviceAccessApi } from './service-access';
 // Infrastructure
 export { serversApi } from './servers';
 export { monitoringApi } from './monitoring';
+export { publicNetworkApi } from './public-network';
 export {
   hostsApi,
   configProfilesApi,

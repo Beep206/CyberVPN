@@ -1,6 +1,6 @@
 {
   "title": "Глобальная Инфраструктура",
-  "description": "Более 5000 RAM-only узлов, развернутых в безопасных юрисдикциях. Телеметрия в реальном времени для нулевой задержки.",
+  "description": "Публичный обзор сети с текущим охватом, утилизацией и состоянием сервиса на основе санитизированной телеметрии.",
   "regions": {
     "namerica": "Сев. Америка",
     "europe": "Европа",
@@ -13,12 +13,109 @@
     "threats": "14.2М/с"
   },
   "labels": {
-    "totalBandwidth": "Пропускная Способность",
-    "activeNodes": "Активные Узлы",
-    "threatsIntercepted": "Заблокировано Угроз",
+    "totalBandwidth": "Трафик За Месяц",
+    "activeNodes": "Серверы Онлайн",
+    "threatsIntercepted": "Пользователи Онлайн",
     "status": "СТАТУС: ОНЛАЙН",
     "latency": "СР. ПИНГ: 12мс",
     "encryption": "AES-256-GCM"
+  },
+  "widget": {
+    "eyebrow": "CYBERVPN PUBLIC NETWORK PROOF",
+    "title": "Виджет Сети",
+    "description": "Санитизированное live-доказательство сети для partner embeds, sales pages и trust surfaces.",
+    "loading": "Загружаем публичный network widget...",
+    "error": "Виджет не смог загрузить публичный network snapshot.",
+    "freshness": "Обновлено {value}",
+    "focusRegion": "Фокусный регион",
+    "topRegions": "Топ регионов",
+    "incidents": "Инциденты: {value}",
+    "regionServers": "Серверы онлайн: {value}",
+    "regionUsers": "Пользователи онлайн: {value}",
+    "metrics": {
+      "availability": "Доступность",
+      "onlineServers": "Серверы онлайн",
+      "liveUsers": "Пользователи онлайн",
+      "monthlyTraffic": "Трафик за месяц"
+    },
+    "statusValues": {
+      "online": "ОНЛАЙН",
+      "degraded": "ДЕГРАДАЦИЯ",
+      "major_outage": "КРУПНЫЙ СБОЙ"
+    },
+    "actions": {
+      "fullMap": "Открыть полную карту",
+      "statusPage": "Статус-страница"
+    }
+  },
+  "dpi": {
+    "eyebrow": "CYBERVPN DPI RESISTANCE",
+    "title": "DPI Resistance Score",
+    "description": "Осторожная публичная поверхность для устойчивости в restrictive networks. Эта страница публикует score только тогда, когда есть достаточно свежего probe signal.",
+    "loading": "Загружаем readiness DPI resistance...",
+    "error": "Контракт DPI resistance сейчас недоступен.",
+    "enabledState": "Свежего probe coverage достаточно, поэтому можно публиковать country-level DPI score.",
+    "disabledState": "Публичный DPI score остаётся gated, пока не накопится достаточно реального probe signal по свежим measurement windows.",
+    "lastUpdated": "Последнее обновление {value}",
+    "windowValue": "Окно {hours}ч",
+    "cards": {
+      "methodology": "Методология",
+      "confidence": "Уверенность",
+      "countriesTracked": "Стран под наблюдением",
+      "measurementWindow": "Окно измерения"
+    },
+    "confidenceValues": {
+      "low": "НИЗКАЯ",
+      "medium": "СРЕДНЯЯ",
+      "high": "ВЫСОКАЯ"
+    },
+    "gating": {
+      "eyebrow": "PUBLIC RELEASE GATE"
+    },
+    "publishedCountries": {
+      "title": "Опубликованные country scores",
+      "updated": "Обновлено {value}",
+      "score": "Connect",
+      "baseline": "Baseline",
+      "handshake": "Handshake"
+    },
+    "reasonCodes": {
+      "public_dpi_not_enabled": "Ожидаем достаточный свежий probe signal",
+      "public_dpi_probe_pipeline_not_enabled": "Публичный DPI pipeline уже собран, но публикация probe snapshots ещё не активна.",
+      "public_dpi_probe_dimensions_insufficient": "Реальные probes уже идут, но измерений пока недостаточно для честного публичного score.",
+      "public_dpi_probe_targets_unavailable": "Сейчас недоступны probe targets для надёжного country-level snapshot.",
+      "public_dpi_probe_source_unavailable": "Сбор probes временно degraded, поэтому публичный DPI surface остаётся gated.",
+      "public_network_regions_unavailable": "Региональные network data для DPI surface временно недоступны."
+    },
+    "methodology": {
+      "eyebrow": "SIGNAL MODEL",
+      "title": "Что в будущем должен отражать публичный score",
+      "items": {
+        "connection": "Успешность подключения в restrictive conditions.",
+        "handshake": "Медианная latency рукопожатия для поддерживаемых протоколов.",
+        "baseline": "HTTPS/SNI application baseline там, где доступны TLS-capable surfaces.",
+        "survival": "Устойчивость сессии и reconnect после установления соединения.",
+        "freshness": "Свежесть, объём выборки и directional confidence перед публикацией."
+      }
+    },
+    "guardrails": {
+      "eyebrow": "TRUTHFULNESS POLICY",
+      "title": "Что эта страница не будет фейковать",
+      "items": {
+        "noMagic": "Никакого декоративного public score без достаточного числа реальных probes.",
+        "noInternals": "Никаких anti-blocking internals, identities probe sources или чувствительной topology.",
+        "directional": "Любой опубликованный score является directional evidence, а не гарантией.",
+        "conditionsChange": "Условия в restrictive countries могут быстро меняться, и confidence обязан это отражать."
+      }
+    },
+    "links": {
+      "eyebrow": "NEXT SURFACES",
+      "network": "Открыть полную карту сети",
+      "guide": "Открыть гайд по обходу DPI"
+    }
+  },
+  "actions": {
+    "dpiResistance": "Сводка по DPI resistance"
   },
   "servers": {
     "1": "Нью-Йорк, США",

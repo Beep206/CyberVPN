@@ -81,7 +81,7 @@ These values must match the actual approved live window. Chat-only substitutions
 
 | Command family | Canonical source for this window |
 |---|---|
-| terraform and inventory | [environment command inventory sheet, section 6.1](../../../../plans/2026-04-19-partner-platform-environment-command-inventory-sheet.md#61-terraform-and-inventory) |
+| OpenTofu and inventory | [environment command inventory sheet, section 5.1](../../../../plans/2026-04-19-partner-platform-environment-command-inventory-sheet.md#51-opentofu-and-inventory) |
 | control-plane promotion | [environment command inventory sheet, section 6.2](../../../../plans/2026-04-19-partner-platform-environment-command-inventory-sheet.md#62-production-control-plane-promotion) |
 | production edge rollout family | [environment command inventory sheet, section 6.3](../../../../plans/2026-04-19-partner-platform-environment-command-inventory-sheet.md#63-production-edge-rollouts) |
 | production canary rollout family | [environment command inventory sheet, section 6.4](../../../../plans/2026-04-19-partner-platform-environment-command-inventory-sheet.md#64-production-canary-rollouts) |

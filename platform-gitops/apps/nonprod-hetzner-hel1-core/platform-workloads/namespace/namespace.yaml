@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-apps
+  labels:
+    cybervpn.io/runtime-surface: platform-control-plane
+    cybervpn.io/openbao-secret-delivery: "required"

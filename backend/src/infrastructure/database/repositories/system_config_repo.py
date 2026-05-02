@@ -22,15 +22,28 @@ class SystemConfigRepository:
             return default
         return model.value
 
-    async def set(self, key: str, value: dict[str, Any], updated_by: UUID | None = None) -> SystemConfigModel:
+    async def set(
+        self,
+        key: str,
+        value: dict[str, Any],
+        updated_by: UUID | None = None,
+        description: str | None = None,
+    ) -> SystemConfigModel:
         model = await self._session.get(SystemConfigModel, key)
         if model is None:
-            model = SystemConfigModel(key=key, value=value, updated_by=updated_by)
+            model = SystemConfigModel(
+                key=key,
+                value=value,
+                updated_by=updated_by,
+                description=description,
+            )
             self._session.add(model)
         else:
             model.value = value
             if updated_by is not None:
                 model.updated_by = updated_by
+            if description is not None:
+                model.description = description
         await self._session.flush()
         return model
 

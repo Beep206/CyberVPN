@@ -245,6 +245,22 @@ class TelegramClient:
         )
         return result
 
+    async def get_star_transactions(self, *, offset: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Fetch recent Telegram Stars transactions for reconciliation and analytics."""
+        payload = {
+            "offset": max(0, int(offset)),
+            "limit": max(1, min(int(limit), 100)),
+        }
+        logger.debug("telegram_get_star_transactions_called", offset=payload["offset"], limit=payload["limit"])
+        result = await self._make_request("POST", "getStarTransactions", payload)
+        logger.info(
+            "telegram_star_transactions_retrieved",
+            count=len(result.get("transactions", [])),
+            offset=payload["offset"],
+            limit=payload["limit"],
+        )
+        return result
+
     async def health_check(self) -> bool:
         """Perform a health check by calling getMe.
 

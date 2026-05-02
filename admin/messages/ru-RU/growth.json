@@ -6,6 +6,7 @@
     "overview": "Обзор",
     "promoCodes": "Промокоды",
     "inviteCodes": "Invite-коды",
+    "giftCodes": "Gift-коды",
     "partners": "Партнёры",
     "referrals": "Рефералы"
   },
@@ -32,35 +33,218 @@
     "metaTitle": "Рост - Ozoxy Admin",
     "eyebrow": "Привлечение / Удержание",
     "title": "Контроль Роста",
-    "description": "Операторская поверхность для промо-инвентаря, генерации invite-кодов, партнёрских операций и живой referral-аналитики.",
+    "description": "Операторская поверхность для lifecycle growth-кодов, abuse-сигналов, referral reward-позы и связанных promo/gift операций.",
     "metrics": {
-      "promos": "Промо-инвентарь",
-      "promosHint": "Уже есть admin-read список промокодов.",
-      "activePromos": "Активные Кампании",
-      "activePromosHint": "Коды, которые сейчас можно погасить.",
-      "expiring": "Скоро Истекут",
-      "expiringHint": "Промокоды, истекающие в ближайшие 7 дней.",
-      "plans": "Каталог Планов",
-      "plansHint": "Планы, которые можно таргетировать через invite или promo."
+      "totalCodes": "Всего Кодов",
+      "totalCodesHint": "Канонические записи growth-кодов по invite, referral, promo и gift lifecycle.",
+      "redemptions": "Redemption'ы",
+      "redemptionsHint": "Финальные использования кода, уже превратившиеся в скидку, entitlement или reward.",
+      "blockedSignals": "Заблокированные Сигналы",
+      "blockedSignalsHint": "Rewards или abuse-элементы, уже помеченные как требующие risk-внимания.",
+      "availableCredit": "Доступный Кредит",
+      "availableCreditHint": "Referral credit, который уже доступен в невыводимом growth-ledger."
     },
     "routesTitle": "Инвентарь Маршрутов",
     "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
     "routes": {
       "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
       "inviteCodes": "Генерация batch invite-кодов для конкретного пользователя с optional plan-targeting.",
+      "giftCodes": "Выдача одиночных или batch gift-кодов, просмотр live-инвентаря и контроль redemption-состояния.",
       "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
       "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям."
     },
-    "liveInventoryTitle": "Живой Промо-Инвентарь",
-    "liveInventoryDescription": "Текущее состояние промо, полученное из admin promo endpoint.",
+    "liveSignalsTitle": "Живой Lifecycle-Поток",
+    "liveSignalsDescription": "Последние outbox-backed growth lifecycle events от выдачи кода до reward или redemption.",
+    "liveSignalsEmpty": "Пока нет недавних lifecycle-событий.",
     "partialCoverage": "Операционное покрытие",
     "usesLabel": "{current} / {max} использований",
+    "breakdownTitle": "Разбивка По Статусам",
+    "breakdownDescription": "Компактный срез текущих code-status и lifecycle-позы.",
+    "topRejectionsTitle": "Топ Причин Отклонения",
+    "topRejectionsEmpty": "Давление по отклонениям пока не видно.",
+    "reporting": {
+      "title": "Reporting Rollups",
+      "description": "Persisted daily growth rollups поверх канонических lifecycle-таблиц кодов. Это reporting truth, а не live debug-поверхность resolver'а.",
+      "window": "Окно {days} дней",
+      "notRefreshed": "Rollups ещё не обновлялись",
+      "refreshedAt": "Обновлено {value}",
+      "refresh": "Обновить rollups",
+      "refreshing": "Обновляем...",
+      "export": "Экспорт rollups",
+      "exporting": "Экспортируем...",
+      "empty": "Для этого окна пока нет reporting-rollups. Сначала обновите reporting layer.",
+      "trendTitle": "Daily Trend Cut",
+      "rows": "{count} дневных строк",
+      "coverageTitle": "Примечания По Покрытию",
+      "health": {
+        "title": "Состояние Refresh",
+        "description": "Freshness, лаг и состояние последнего запуска scheduled reporting pipeline.",
+        "refreshAge": "Возраст {value}",
+        "latestAttempt": "Последняя Попытка",
+        "latestSuccess": "Последний Успех",
+        "expectedInterval": "Ожидаемый Интервал",
+        "lastRun": "Последний Запуск",
+        "unavailable": "Недоступно",
+        "statuses": {
+          "fresh": "Свежо",
+          "stale": "Устарело",
+          "failed": "Ошибка",
+          "never_refreshed": "Ни разу не обновлялось"
+        }
+      },
+      "executive": {
+        "title": "Executive Highlights",
+        "issued": "Выдано",
+        "redemptions": "Погашено",
+        "acceptanceRate": "Acceptance Rate",
+        "dominantFamily": "Доминирующее Семейство"
+      },
+      "cards": {
+        "accepted": "Принято",
+        "redeemed": "Погашено",
+        "reserved": "Зарезервировано",
+        "availableCredit": "Доступный Кредит"
+      },
+      "table": {
+        "date": "Дата",
+        "inviteIssued": "Выдано Invite",
+        "promoAccepted": "Принято Promo",
+        "giftRedeemed": "Погашено Gift",
+        "referralAvailable": "Доступно Referral"
+      },
+      "governance": {
+        "title": "Governance Покрытие",
+        "description": "Audit timeline и решения delivery-governance по тихим пробелам в покрытии reporting.",
+        "export": "Экспорт governance snapshot",
+        "exporting": "Экспортируем snapshot...",
+        "metrics": {
+          "gaps": "{count} активных gap",
+          "active": "Активные подписки",
+          "paused": "Подписки на паузе",
+          "followups": "Открытые follow-up",
+          "overdue": "Просроченные follow-up"
+        },
+        "followupTitle": "Очередь Recovery Follow-up",
+        "followupEmpty": "Сейчас нет открытой governance follow-up работы.",
+        "followupDue": "Срок {value}",
+        "followupLastNotified": "Последний reminder {value}",
+        "actions": {
+          "resolve": "Закрыть",
+          "dismiss": "Скрыть"
+        },
+        "decisionsTitle": "Последние Governance Решения",
+        "auditTitle": "Последний Audit Политик",
+        "auditLink": "Открыть audit log",
+        "emptyDecisions": "Пока не записано недавних suppressed или domain-blocked решений по reporting.",
+        "emptyAudit": "Пока не записано недавних governance audit entries.",
+        "noFieldDiff": "Только смена snapshot"
+      },
+      "distribution": {
+        "title": "Регулярная Дистрибуция",
+        "description": "Управляемые reporting-подписки для получателей из finance, product, risk и ops.",
+        "metrics": {
+          "active": "{count} активных подписок"
+        },
+        "fields": {
+          "email": "Email Получателя",
+          "name": "Имя Получателя",
+          "namePlaceholder": "Необязательное отображаемое имя",
+          "audience": "Аудитория",
+          "cadence": "Каденс",
+          "windowDays": "Окно в Днях",
+          "template": "Шаблон",
+          "locale": "Локаль",
+          "subjectPrefix": "Префикс Темы",
+          "titleOverride": "Заголовок Письма",
+          "titleOverridePlaceholder": "Необязательный кастомный заголовок",
+          "domainPolicy": "Политика Доменов",
+          "allowedDomains": "Разрешённые Домены",
+          "suppressedUntil": "Подавлять До",
+          "suppressionReason": "Причина Подавления"
+        },
+        "nextDelivery": "Следующая {value}",
+        "suppressedUntil": "Подавлено до {value}",
+        "allowedDomainsValue": "Разрешённые домены: {value}",
+        "create": "Создать подписку",
+        "creating": "Создаём...",
+        "createHint": "Подписки забирают только свежие reporting-снимки и публикуют их через worker delivery pipeline.",
+        "createFailed": "Не удалось создать подписку. Проверьте cadence, audience и backend validation.",
+        "actions": {
+          "pause": "Пауза",
+          "resume": "Возобновить",
+          "update": "Обновить",
+          "cancelEdit": "Отменить редактирование"
+        },
+        "empty": "Регулярные reporting-подписки пока не настроены."
+      },
+      "deliveries": {
+        "title": "Последние Reporting Delivery",
+        "description": "Последние публикации регулярной отчётности со статусом доставки, freshness-позой и экспортируемыми артефактами.",
+        "failed": "{count} failed deliveries",
+        "actions": {
+          "export": "Экспорт артефакта"
+        },
+        "empty": "По регулярной отчётности пока не записано delivery-событий."
+      }
+    },
+    "deliveryOpsTitle": "Операции Доставки",
+    "deliveryOpsDescription": "Отправляйте клиентам операторские уведомления и управляйте live-состоянием growth-delivery из той же консоли.",
+    "deliveryOpsLive": "Live delivery control",
+    "deliveryFeedTitle": "Лента Доставки",
+    "deliveryFeedDescription": "Последние per-channel growth-доставки с действиями resend, pause, revoke и resolve.",
+    "deliveryFeedEmpty": "По текущему фильтру growth-доставки не найдены.",
+    "deliveryOps": {
+      "fields": {
+        "userId": "Customer User ID",
+        "filterUserId": "Фильтр по UUID клиента",
+        "routeSlug": "Route Slug",
+        "title": "Заголовок",
+        "message": "Сообщение",
+        "notes": "Операторские Заметки"
+      },
+      "notesPlaceholder": "Одна заметка на строку",
+      "channels": {
+        "inApp": "In-app",
+        "email": "Email",
+        "telegram": "Telegram"
+      },
+      "actions": {
+        "inspect": "Inspect",
+        "resend": "Resend",
+        "pause": "Pause",
+        "revoke": "Revoke",
+        "resolve": "Resolve"
+      },
+      "queueStatus": "Очередь",
+      "send": "Отправить notice",
+      "sending": "Отправляем...",
+      "manualHint": "Ручные notice'ы уважают customer growth delivery preferences и ложатся в канонический delivery-ledger.",
+      "manualFailed": "Не удалось отправить manual notification. Проверьте payload и ответ backend."
+    },
+    "deliveryForensics": {
+      "title": "Delivery Forensics",
+      "empty": "Выберите delivery, чтобы открыть support timeline.",
+      "export": "Экспорт JSON",
+      "exporting": "Экспортируем...",
+      "supportSummary": "Support Summary",
+      "siblingTitle": "Соседние Каналы",
+      "siblingEmpty": "Для этого уведомления не найдено sibling-delivery по другим каналам.",
+      "queueTitle": "Снимок Очереди",
+      "queueAttempts": "{count} попыток очереди",
+      "queueEmpty": "У этого delivery сейчас нет связанного async queue item.",
+      "sourceTitle": "Сводка По Источнику",
+      "sourceEmpty": "Для этого delivery нет source summary.",
+      "timelineTitle": "Timeline Доставки",
+      "timelineEmpty": "Для delivery пока не записано timeline-событий."
+    },
     "operatorNotesTitle": "Операторские Замечания",
     "operatorNotes": {
       "invitesTitle": "Invite-коды пока только на создание",
       "invitesDescription": "Backend уже умеет admin invite generation, но пока не даёт admin list/detail inventory. Поэтому модуль делает упор на детерминированную генерацию batch и локальный readback результата.",
       "partnersTitle": "Партнёрский inventory уже живой",
       "partnersDescription": "Админка уже умеет повышать, искать и смотреть partner-level performance, а payout-модерация остаётся следующим слоем.",
+      "giftsTitle": "Gift-инвентарь уже живой",
+      "giftsDescription": "Админка уже умеет выдавать одиночные и batch gift-коды и видеть активный или redeemed inventory, не выходя из growth console.",
       "referralsTitle": "Referral-аналитика уже operator-safe",
       "referralsDescription": "Admin-safe overview и per-user drill-down уже работают. Дальше нужны abuse-review и более глубокая attribution-аналитика."
     },
@@ -70,7 +254,7 @@
     "quickSignals": {
       "exhausted": "Исчерпанные Промо",
       "coverage": "Покрытие",
-      "coverageValue": "5 live-surface"
+      "coverageValue": "6 live-surface"
     }
   },
   "promoCodes": {
@@ -171,6 +355,53 @@
       "freeDays": "Бесплатные Дни",
       "used": "Использован",
       "expires": "Истекает",
+      "created": "Создан"
+    }
+  },
+  "giftCodes": {
+    "metaTitle": "Gift-коды - Ozoxy Admin",
+    "eyebrow": "Рост / Gift-коды",
+    "title": "Gift-Инвентарь",
+    "description": "Admin-консоль для выдачи одиночных или batch клиентских gift-кодов, просмотра redemption-статуса и единого операторского gift-инвентаря.",
+    "issueAction": "Выдать gift",
+    "issuing": "Выдаём...",
+    "issuePanelTitle": "Выдача Gift-кода",
+    "issuePanelDescription": "Создайте один или несколько gift-кодов, привязанных к пользователю, на основе живого каталога планов и сохраните recipient-контекст в каноническом lifecycle.",
+    "filtersTitle": "Фильтры Инвентаря",
+    "filtersDescription": "Фильтруйте live gift inventory по owner user и проверяйте redemptions, не выходя из growth console.",
+    "inventoryTitle": "Gift-Инвентарь",
+    "inventoryDescription": "Живой admin inventory для active, redeemed и operator-issued gift-кодов.",
+    "syncing": "Синхронизация",
+    "liveInventory": "Живой инвентарь",
+    "empty": "По текущему фильтру gift-коды не найдены.",
+    "metrics": {
+      "total": "Gift-коды",
+      "totalHint": "Канонические записи gift-кодов, вернувшиеся из admin inventory.",
+      "active": "Активные Gift",
+      "activeHint": "Gift-коды, которые ещё можно redeem’нуть.",
+      "redeemed": "Redeemed Gift",
+      "redeemedHint": "Gift-коды, уже превращённые в entitlement grants.",
+      "lastIssued": "Последний Выданный",
+      "lastIssuedHint": "Самый свежий batch или code из текущей admin-сессии."
+    },
+    "fields": {
+      "ownerUserId": "Owner User ID",
+      "ownerFilter": "Фильтр owner",
+      "planId": "План",
+      "planPlaceholder": "Выберите gift-план",
+      "count": "Количество",
+      "recipientHint": "Подсказка получателя",
+      "giftMessage": "Gift-сообщение",
+      "reasonCode": "Код причины",
+      "adminNote": "Заметка администратора"
+    },
+    "table": {
+      "code": "Код",
+      "owner": "Owner",
+      "plan": "План",
+      "recipient": "Получатель",
+      "status": "Статус",
+      "redeemed": "Redeemed",
       "created": "Создан"
     }
   },
@@ -297,30 +528,29 @@
   "referrals": {
     "metaTitle": "Рефералы - Ozoxy Admin",
     "eyebrow": "Рост / Рефералы",
-    "title": "Referral-Аналитика",
-    "description": "Admin-safe обзор referral earnings, топ-referrer'ов и недавней commission-активности.",
-    "currentStateTitle": "Топ Referrer'ы",
-    "currentStateDescription": "Живой leaderboard, построенный на admin-safe referral analytics endpoints.",
-    "recentTitle": "Последние Комиссии",
+    "title": "Referral-Сигналы",
+    "description": "Операционный срез abuse-pressure, blocked rewards и referral lifecycle events после cutover growth-codes.",
+    "abuseQueueTitle": "Сигналы Для Abuse-Review",
+    "abuseQueueDescription": "Повторяющиеся rejection-кластеры и blocked rewards, которые нужно triage’ить до того, как они станут support или fraud-инцидентом.",
+    "abuseQueueEmpty": "Открытых growth abuse-сигналов сейчас нет.",
+    "breakdownTitle": "Разбивка По Статусам Reward",
+    "breakdownDescription": "Текущая referral reward-поза после hold, risk-block и availability transition.",
+    "lifecycleTitle": "Referral Lifecycle",
+    "lifecycleEmpty": "Referral lifecycle events пока не эмитились.",
     "liveOverview": "Живой обзор",
-    "topReferrersEmpty": "Referral-активность пока отсутствует.",
-    "recentEmpty": "Недавние referral-комиссии не найдены.",
-    "nextFocusTitle": "Следующий Фокус",
-    "nextFocusDescription": "Основной gap здесь уже не в базовой видимости. Следующий слой — abuse-review, payout-операции и более глубокая attribution-диагностика.",
-    "openCustomer": "Открыть карточку клиента",
     "metrics": {
-      "adminSurface": "Комиссии",
-      "adminSurfaceHint": "общее число commission-record, видимых админу",
-      "uniqueReferrers": "Referrer'ы",
-      "uniqueReferrersHint": "пользователи, заработавшие хотя бы одну referral-комиссию",
-      "uniqueReferred": "Приведённые Пользователи",
-      "uniqueReferredHint": "уникальные пользователи, привлечённые через referral-механику",
-      "totalEarned": "Всего Заработано",
-      "totalEarnedHint": "совокупный payout-объём по referral"
+      "availableCredit": "Доступный Кредит",
+      "availableCreditHint": "Сумма referral reward, уже доступная в каноническом невыводимом балансе.",
+      "blockedRewards": "Заблокированные Reward",
+      "blockedRewardsHint": "Reward allocations, которые сейчас удерживаются risk-решениями.",
+      "totalRedemptions": "Всего Redemption'ов",
+      "totalRedemptionsHint": "Объём redemption, уже привязанный к lifecycle growth-кодов.",
+      "activeReservations": "Активные Reservation",
+      "activeReservationsHint": "Quote reservation, которые всё ещё удерживают claim на growth-code."
     },
     "badges": {
-      "commissions": "{count} комиссий",
-      "referredUsers": "{count} приведено"
+      "count": "{count} сигналов",
+      "users": "{count} пользователей"
     }
   }
 }

@@ -74,9 +74,33 @@ jobs:
 
       - name: Build
         env:
+          APP_ENV: staging
           NEXT_PUBLIC_API_URL: ${{ vars.STAGING_API_URL }}
+          NEXT_PUBLIC_APP_ENV: staging
           NEXT_PUBLIC_SENTRY_DSN: ${{ vars.STAGING_SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_RELEASE: frontend@${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ vars.SENTRY_ORG != '' && vars.FRONTEND_SENTRY_PROJECT != '' && secrets.SENTRY_AUTH_TOKEN || '' }}
+          SENTRY_DSN: ${{ vars.STAGING_SENTRY_DSN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.FRONTEND_SENTRY_PROJECT }}
+          SENTRY_RELEASE: frontend@${{ github.sha }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
         run: npm run build
+
+      - name: Summarize Sentry release metadata
+        env:
+          SENTRY_RELEASE: frontend@${{ github.sha }}
+          SENTRY_PROJECT: ${{ vars.FRONTEND_SENTRY_PROJECT }}
+          SENTRY_UPLOAD_ENABLED: ${{ vars.SENTRY_ORG != '' && vars.FRONTEND_SENTRY_PROJECT != '' && secrets.SENTRY_AUTH_TOKEN != '' && 'true' || 'false' }}
+        run: |
+          {
+            echo "### Frontend Sentry build metadata"
+            echo "- Surface: \`frontend\`"
+            echo "- Environment: \`staging\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Project: \`${SENTRY_PROJECT:-unconfigured}\`"
+            echo "- Source map upload enabled: \`${SENTRY_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

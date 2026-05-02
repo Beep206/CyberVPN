@@ -1,15 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { partnerPortalApi } from '../partner-portal';
 
 const API_BASE = 'http://portal.localhost:3002/api/v1';
+const ORIGINAL_SEND_BEACON = navigator.sendBeacon;
+const sendBeacon = vi.fn();
 
 beforeEach(() => {
+  sendBeacon.mockClear();
+  Object.defineProperty(window.navigator, 'sendBeacon', {
+    configurable: true,
+    value: sendBeacon,
+  });
   window.location.href = 'http://portal.localhost:3002/en-EN/dashboard';
 });
 
 afterEach(() => {
+  Object.defineProperty(window.navigator, 'sendBeacon', {
+    configurable: true,
+    value: ORIGINAL_SEND_BEACON,
+  });
   window.location.href = 'http://portal.localhost:3002/en-EN/dashboard';
 });
 
@@ -124,6 +135,62 @@ describe('partnerPortalApi', () => {
     expect(response.data[0]?.code).toBe('NEBULA42');
   });
 
+  it('lists workspace campaign assets and reseller voucher batches from canonical workspace subresources', async () => {
+    server.use(
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/campaign-assets`, () =>
+        HttpResponse.json([
+          {
+            id: 'asset_001',
+            name: 'Spring creative bundle',
+            channel: 'telegram',
+            status: 'approved',
+            approval_owner: 'Partner Ops',
+            updated_at: '2026-04-18T09:15:00Z',
+            promo_reference: 'SPRING-TELEGRAM-2026',
+            disclosure_text: '#ad · CyberVPN seasonal launch copy only',
+            allowed_claims: ['Seasonal onboarding bonus'],
+            banned_claims: ['Guaranteed earnings'],
+            allowed_geographies: ['DE', 'PL'],
+            destination_urls: ['https://offers.cybervpn.example/spring'],
+            valid_from: '2026-04-18T00:00:00Z',
+            valid_until: '2026-05-01T00:00:00Z',
+            notes: ['Creative ref: tg-pack-2026'],
+          },
+        ]),
+      ),
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/reseller-voucher-batches`, () =>
+        HttpResponse.json([
+          {
+            batch_id: 'batch_001',
+            gift_type: 'subscription_entitlement',
+            plan_family: 'max',
+            duration_days: 365,
+            status: 'active',
+            issued_count: 5,
+            redeemed_count: 1,
+            available_count: 4,
+            expires_at: '2027-04-18T09:00:00Z',
+            created_at: '2026-04-18T09:00:00Z',
+            updated_at: '2026-04-19T10:20:00Z',
+            notes: ['Plan: Max 365'],
+          },
+        ]),
+      ),
+    );
+
+    const [assetsResponse, voucherBatchesResponse] = await Promise.all([
+      partnerPortalApi.listWorkspaceCampaignAssets('workspace_001'),
+      partnerPortalApi.listWorkspaceResellerVoucherBatches('workspace_001'),
+    ]);
+
+    expect(assetsResponse.status).toBe(200);
+    expect(assetsResponse.data[0]?.promo_reference).toBe('SPRING-TELEGRAM-2026');
+    expect(assetsResponse.data[0]?.allowed_geographies).toEqual(['DE', 'PL']);
+    expect(voucherBatchesResponse.status).toBe(200);
+    expect(voucherBatchesResponse.data[0]?.batch_id).toBe('batch_001');
+    expect(voucherBatchesResponse.data[0]?.available_count).toBe(4);
+  });
+
   it('loads canonical workspace programs from the dedicated programs subresource', async () => {
     server.use(
       http.get(`${API_BASE}/partner-workspaces/workspace_001/programs`, () =>
@@ -178,6 +245,191 @@ describe('partnerPortalApi', () => {
 
     expect(response.status).toBe(200);
     expect(capturedUrl).toBe('/api/v1/partner-workspaces/workspace_001/payout-accounts');
+  });
+
+  it('lists partner bots from the canonical partner-bots family with workspace params', async () => {
+    let capturedQuery: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/partner-bots`, ({ request }) => {
+        const url = new URL(request.url);
+        capturedQuery = url.search;
+        return HttpResponse.json([
+          {
+            id: 'bot_001',
+            partner_account_id: 'workspace_001',
+            storefront_id: null,
+            bot_key: 'alpha-bot',
+            display_name: 'Alpha Bot',
+            short_description: 'Partner launch bot',
+            long_description: null,
+            telegram_bot_id: null,
+            telegram_username: null,
+            managed_by_bot_id: null,
+            default_locale: 'en-EN',
+            primary_color: '#00ffaa',
+            provisioning_path: 'managed_bot',
+            token_status: 'missing',
+            status: 'draft',
+            release_channel: 'stable',
+            provisioning_last_error: null,
+            provisioning_requested_at: null,
+            provisioned_at: null,
+            suspended_at: null,
+            suspension_reason_code: null,
+            created_by_admin_user_id: null,
+            updated_by_admin_user_id: null,
+            created_at: '2026-04-22T10:00:00Z',
+            updated_at: '2026-04-22T10:00:00Z',
+            latest_provisioning_job: null,
+          },
+        ]);
+      }),
+    );
+
+    const response = await partnerPortalApi.listPartnerBots({
+      partner_account_id: 'workspace_001',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.data[0]?.bot_key).toBe('alpha-bot');
+    expect(capturedQuery).toContain('partner_account_id=workspace_001');
+  });
+
+  it('creates and mutates partner bots through the canonical partner-bots family', async () => {
+    const captured: {
+      createBody?: unknown;
+      provisionBody?: unknown;
+      rotateBody?: unknown;
+      suspendBody?: unknown;
+      restorePath?: string;
+    } = {};
+
+    server.use(
+      http.post(`${API_BASE}/partner-bots`, async ({ request }) => {
+        captured.createBody = await request.json();
+        return HttpResponse.json(
+          {
+            id: 'bot_001',
+            partner_account_id: 'workspace_001',
+            storefront_id: null,
+            bot_key: 'alpha-bot',
+            display_name: 'Alpha Bot',
+            short_description: 'Partner launch bot',
+            long_description: null,
+            telegram_bot_id: null,
+            telegram_username: null,
+            managed_by_bot_id: null,
+            default_locale: 'en-EN',
+            primary_color: null,
+            provisioning_path: 'manual_token',
+            token_status: 'missing',
+            status: 'draft',
+            release_channel: 'stable',
+            provisioning_last_error: null,
+            provisioning_requested_at: null,
+            provisioned_at: null,
+            suspended_at: null,
+            suspension_reason_code: null,
+            created_by_admin_user_id: null,
+            updated_by_admin_user_id: null,
+            created_at: '2026-04-22T10:00:00Z',
+            updated_at: '2026-04-22T10:00:00Z',
+            latest_provisioning_job: null,
+          },
+          { status: 201 },
+        );
+      }),
+      http.post(`${API_BASE}/partner-bots/bot_001/provision`, async ({ request }) => {
+        captured.provisionBody = await request.json();
+        return HttpResponse.json({
+          id: 'bot_001',
+          partner_account_id: 'workspace_001',
+          storefront_id: null,
+          bot_key: 'alpha-bot',
+          display_name: 'Alpha Bot',
+          short_description: 'Partner launch bot',
+          long_description: null,
+          telegram_bot_id: null,
+          telegram_username: null,
+          managed_by_bot_id: null,
+          default_locale: 'en-EN',
+          primary_color: null,
+          provisioning_path: 'manual_token',
+          token_status: 'missing',
+          status: 'provisioning_requested',
+          release_channel: 'stable',
+          provisioning_last_error: null,
+          provisioning_requested_at: '2026-04-22T10:10:00Z',
+          provisioned_at: null,
+          suspended_at: null,
+          suspension_reason_code: null,
+          created_by_admin_user_id: null,
+          updated_by_admin_user_id: null,
+          created_at: '2026-04-22T10:00:00Z',
+          updated_at: '2026-04-22T10:10:00Z',
+          latest_provisioning_job: {
+            id: 'job_001',
+            partner_bot_id: 'bot_001',
+            partner_account_id: 'workspace_001',
+            requested_by_admin_user_id: null,
+            provisioning_path: 'manual_token',
+            job_status: 'queued',
+            attempt_count: 0,
+            request_payload: {},
+            result_payload: {},
+            last_error: null,
+            queued_at: '2026-04-22T10:10:00Z',
+            started_at: null,
+            completed_at: null,
+            created_at: '2026-04-22T10:10:00Z',
+            updated_at: '2026-04-22T10:10:00Z',
+          },
+        });
+      }),
+      http.post(`${API_BASE}/partner-bots/bot_001/rotate-token`, async ({ request }) => {
+        captured.rotateBody = await request.json();
+        return HttpResponse.json({ status: 'provisioning_requested', token_status: 'rotating' });
+      }),
+      http.post(`${API_BASE}/partner-bots/bot_001/suspend`, async ({ request }) => {
+        captured.suspendBody = await request.json();
+        return HttpResponse.json({ status: 'suspended', suspension_reason_code: 'policy_hold' });
+      }),
+      http.post(`${API_BASE}/partner-bots/bot_001/restore`, ({ request }) => {
+        captured.restorePath = new URL(request.url).pathname;
+        return HttpResponse.json({ status: 'active' });
+      }),
+    );
+
+    const createResponse = await partnerPortalApi.createPartnerBot({
+      partner_account_id: 'workspace_001',
+      bot_key: 'alpha-bot',
+      display_name: 'Alpha Bot',
+      provisioning_path: 'manual_token',
+    });
+    const provisionResponse = await partnerPortalApi.requestPartnerBotProvisioning('bot_001', {
+      provisioning_path: 'manual_token',
+      request_payload: { handoff_reference: 'bf-001' },
+    });
+    const rotateResponse = await partnerPortalApi.rotatePartnerBotToken('bot_001', {
+      request_payload: { handoff_reference: 'bf-rotate-001' },
+    });
+    const suspendResponse = await partnerPortalApi.suspendPartnerBot('bot_001', {
+      reason_code: 'policy_hold',
+    });
+    const restoreResponse = await partnerPortalApi.restorePartnerBot('bot_001');
+
+    expect(createResponse.status).toBe(201);
+    expect(provisionResponse.status).toBe(200);
+    expect(rotateResponse.status).toBe(200);
+    expect(suspendResponse.status).toBe(200);
+    expect(restoreResponse.status).toBe(200);
+    expect(captured.createBody).toMatchObject({ bot_key: 'alpha-bot', provisioning_path: 'manual_token' });
+    expect(captured.provisionBody).toMatchObject({ request_payload: { handoff_reference: 'bf-001' } });
+    expect(captured.rotateBody).toMatchObject({ request_payload: { handoff_reference: 'bf-rotate-001' } });
+    expect(captured.suspendBody).toMatchObject({ reason_code: 'policy_hold' });
+    expect(captured.restorePath).toBe('/api/v1/partner-bots/bot_001/restore');
   });
 
   it('loads payout history from the workspace-scoped finance history route', async () => {
@@ -577,6 +829,59 @@ describe('partnerPortalApi', () => {
       approval_payload: { summary: 'Creative requires claims validation.' },
       notes: ['Creative requires claims validation.'],
     });
+  });
+
+  it('requests reseller voucher batches through canonical workspace subresources', async () => {
+    let voucherBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(
+        `${API_BASE}/partner-workspaces/workspace_001/reseller-voucher-batches/request`,
+        async ({ request }) => {
+          voucherBody = await request.json();
+          return HttpResponse.json(
+            {
+              batch: {
+                batch_id: 'batch_001',
+                gift_type: 'subscription_entitlement',
+                plan_family: 'max',
+                duration_days: 365,
+                status: 'active',
+                issued_count: 3,
+                redeemed_count: 0,
+                available_count: 3,
+                expires_at: '2027-04-18T09:00:00Z',
+                created_at: '2026-04-18T09:00:00Z',
+                updated_at: '2026-04-18T09:00:00Z',
+                notes: ['Plan: Max 365'],
+              },
+              issued_codes: ['GFTMAX001', 'GFTMAX002', 'GFTMAX003'],
+            },
+            { status: 201 },
+          );
+        },
+      ),
+    );
+
+    const response = await partnerPortalApi.requestWorkspaceResellerVoucherBatch(
+      'workspace_001',
+      {
+        plan_id: 'plan_001',
+        count: 3,
+        recipient_hint: 'Spring reseller pack',
+        gift_message: 'Priority storefront batch',
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(voucherBody).toEqual({
+      plan_id: 'plan_001',
+      count: 3,
+      recipient_hint: 'Spring reseller pack',
+      gift_message: 'Priority storefront batch',
+    });
+    expect(response.data.batch.issued_count).toBe(3);
+    expect(response.data.issued_codes).toEqual(['GFTMAX001', 'GFTMAX002', 'GFTMAX003']);
   });
 
   it('loads workspace-scoped conversion explainability from the canonical drilldown endpoint', async () => {

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import type {
   AdminCreatePromoRequest,
+  AdminGrowthCodeLookupResponse,
   AdminListPromosResponse,
   AdminUpdatePromoRequest,
 } from '@/lib/api/growth';
@@ -35,6 +36,7 @@ import {
 import { AdminActionDialog } from '@/shared/ui/admin-action-dialog';
 
 type PromoRecord = AdminListPromosResponse[number];
+type LookupRecord = AdminGrowthCodeLookupResponse;
 
 const initialCreateForm = {
   code: '',
@@ -56,6 +58,29 @@ const initialUpdateForm = {
   description: '',
   is_active: true,
 };
+
+const initialLookupForm = {
+  code: '',
+  action_context: 'checkout',
+  lookup_user_id: '',
+  storefront_key: '',
+  plan_id: '',
+  amount: '',
+  channel: 'web',
+};
+
+function getLookupTone(result: LookupRecord['result']): 'success' | 'warning' | 'danger' | 'info' {
+  if (result === 'accepted') {
+    return 'success';
+  }
+  if (result === 'conflicted') {
+    return 'warning';
+  }
+  if (result === 'blocked_by_risk') {
+    return 'danger';
+  }
+  return 'info';
+}
 
 function buildCreatePayload(
   form: typeof initialCreateForm,
@@ -97,6 +122,8 @@ export function PromoCodesConsole() {
   const [editingPromo, setEditingPromo] = useState<PromoRecord | null>(null);
   const [promoToDeactivate, setPromoToDeactivate] = useState<PromoRecord | null>(null);
   const [updateForm, setUpdateForm] = useState(initialUpdateForm);
+  const [lookupForm, setLookupForm] = useState(initialLookupForm);
+  const [lookupResult, setLookupResult] = useState<LookupRecord | null>(null);
 
   const promosQuery = useQuery({
     queryKey: ['growth', 'promo-codes'],
@@ -182,6 +209,18 @@ export function PromoCodesConsole() {
     },
   });
 
+  const lookupMutation = useMutation({
+    mutationFn: growthApi.lookupGrowthCode,
+    onSuccess: (response) => {
+      setLookupResult(response.data);
+      setErrorMessage(null);
+    },
+    onError: (error) => {
+      setLookupResult(null);
+      setErrorMessage(getErrorMessage(error, t('common.actionFailed')));
+    },
+  });
+
   const promos = promosQuery.data ?? [];
   const plans = plansQuery.data ?? [];
   const referenceNow = promosQuery.dataUpdatedAt || 0;
@@ -235,6 +274,19 @@ export function PromoCodesConsole() {
     await updateMutation.mutateAsync({
       promoId: editingPromo.id,
       payload: buildUpdatePayload(updateForm),
+    });
+  }
+
+  async function handleLookupSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await lookupMutation.mutateAsync({
+      code: lookupForm.code.trim(),
+      action_context: lookupForm.action_context as 'checkout' | 'redeem' | 'signup' | 'admin_lookup',
+      lookup_user_id: lookupForm.lookup_user_id.trim() || null,
+      storefront_key: lookupForm.storefront_key.trim() || null,
+      plan_id: lookupForm.plan_id.trim() || null,
+      amount: lookupForm.amount ? Number(lookupForm.amount) : null,
+      channel: lookupForm.channel.trim() || 'web',
     });
   }
 
@@ -502,6 +554,182 @@ export function PromoCodesConsole() {
             </div>
           </form>
         ) : null}
+
+        <form
+          onSubmit={handleLookupSubmit}
+          className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-grid-line/20 bg-terminal-bg/60 text-neon-cyan">
+              <Search className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
+                {t('promoCodes.lookup.title')}
+              </h2>
+              <p className="mt-1 text-sm font-mono text-muted-foreground">
+                {t('promoCodes.lookup.description')}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            <label className="space-y-2 xl:col-span-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.code')}
+              </span>
+              <input
+                required
+                value={lookupForm.code}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.context')}
+              </span>
+              <select
+                value={lookupForm.action_context}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, action_context: event.target.value }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              >
+                <option value="checkout">checkout</option>
+                <option value="redeem">redeem</option>
+                <option value="signup">signup</option>
+              </select>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.channel')}
+              </span>
+              <input
+                value={lookupForm.channel}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, channel: event.target.value }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.userId')}
+              </span>
+              <input
+                value={lookupForm.lookup_user_id}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, lookup_user_id: event.target.value }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.storefront')}
+              </span>
+              <input
+                value={lookupForm.storefront_key}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, storefront_key: event.target.value }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.planId')}
+              </span>
+              <input
+                value={lookupForm.plan_id}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, plan_id: event.target.value }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('promoCodes.lookup.fields.amount')}
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={lookupForm.amount}
+                onChange={(event) =>
+                  setLookupForm((current) => ({ ...current, amount: event.target.value }))
+                }
+                className="w-full rounded-xl border border-grid-line/20 bg-terminal-bg/50 px-4 py-3 font-mono text-sm text-white outline-none transition-colors focus:border-neon-cyan/40"
+              />
+            </label>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button type="submit" magnetic={false} disabled={lookupMutation.isPending}>
+              <Search className="mr-2 h-4 w-4" />
+              {t('promoCodes.lookup.action')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              magnetic={false}
+              onClick={() => {
+                setLookupForm(initialLookupForm);
+                setLookupResult(null);
+              }}
+            >
+              {t('common.reset')}
+            </Button>
+          </div>
+
+          <div className="mt-5">
+            {!lookupResult ? (
+              <GrowthEmptyState label={t('promoCodes.lookup.empty')} />
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+                {[
+                  [t('promoCodes.lookup.resultType'), lookupResult.code_type ?? 'unknown'],
+                  [t('promoCodes.lookup.resultStatus'), lookupResult.result],
+                  [t('promoCodes.lookup.resultReason'), lookupResult.reject_reason ?? 'none'],
+                  [t('promoCodes.lookup.resultConflict'), lookupResult.conflict_code ?? 'none'],
+                  [t('promoCodes.lookup.resultTarget'), lookupResult.wrong_context_target ?? 'none'],
+                  [t('promoCodes.lookup.resultIssuer'), lookupResult.issuer_type ?? 'unknown'],
+                  [t('promoCodes.lookup.resultOwner'), lookupResult.owner_type ?? 'unknown'],
+                  [t('promoCodes.lookup.resultMessageKey'), lookupResult.user_message_key],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-grid-line/20 bg-terminal-bg/45 px-4 py-3"
+                  >
+                    <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-sm font-mono text-white break-all">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {lookupResult ? (
+              <div className="mt-4">
+                <GrowthStatusChip
+                  label={`${lookupResult.result}:${lookupResult.code_type ?? 'unknown'}`}
+                  tone={getLookupTone(lookupResult.result)}
+                />
+              </div>
+            ) : null}
+          </div>
+        </form>
 
         <div className="grid gap-6 xl:grid-cols-12">
           <div className="xl:col-span-8">

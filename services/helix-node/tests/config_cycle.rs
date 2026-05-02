@@ -109,7 +109,10 @@ async fn runtime_state_restores_after_restart() {
         .sync_assignment(&assignment, &metrics, 1)
         .await
         .expect("re-apply restored assignment to supervisor");
-    assert_eq!(reapplied.active_bundle_version.as_deref(), Some("bundle-good"));
+    assert_eq!(
+        reapplied.active_bundle_version.as_deref(),
+        Some("bundle-good")
+    );
     assert_eq!(
         restored.supervisor().current_bundle().await.as_deref(),
         Some("bundle-good")
@@ -133,8 +136,7 @@ async fn repeated_semantically_identical_assignment_does_not_reapply_runtime() {
 
     runtime.restore_state().await.expect("restore bootstrap");
 
-    let first_assignment =
-        sample_assignment("bundle-good", "bundle-bootstrap", [16443, 19443]);
+    let first_assignment = sample_assignment("bundle-good", "bundle-bootstrap", [16443, 19443]);
     runtime
         .sync_assignment(&first_assignment, &metrics, 1)
         .await

@@ -8,12 +8,14 @@ from src.presentation.api.v1.admin.growth import router as admin_growth_router
 from src.presentation.api.v1.admin.invites import router as invites_router
 from src.presentation.api.v1.admin.mobile_users import router as admin_mobile_users_router
 from src.presentation.api.v1.admin.routes import router as admin_router
+from src.presentation.api.v1.admin.system_config import router as admin_system_config_router
 from src.presentation.api.v1.attribution.routes import router as attribution_router
 from src.presentation.api.v1.auth.registration import router as registration_router
 from src.presentation.api.v1.auth.routes import router as auth_router
 from src.presentation.api.v1.billing.routes import router as billing_router
 from src.presentation.api.v1.billing_descriptors.routes import router as billing_descriptors_router
 from src.presentation.api.v1.checkout_sessions.routes import router as checkout_sessions_router
+from src.presentation.api.v1.codes.routes import router as codes_router
 from src.presentation.api.v1.commercial_bindings.routes import router as commercial_bindings_router
 from src.presentation.api.v1.config_profiles.routes import router as config_profiles_router
 from src.presentation.api.v1.creative_approvals.routes import router as creative_approvals_router
@@ -23,6 +25,8 @@ from src.presentation.api.v1.earning_events.routes import router as earning_even
 from src.presentation.api.v1.earning_holds.routes import router as earning_holds_router
 from src.presentation.api.v1.entitlements.routes import router as entitlements_router
 from src.presentation.api.v1.fcm.routes import router as fcm_router
+from src.presentation.api.v1.gifts.routes import router as gifts_router
+from src.presentation.api.v1.growth_notifications.routes import router as growth_notifications_router
 from src.presentation.api.v1.growth_rewards.routes import router as growth_rewards_router
 from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.hosts.routes import router as hosts_router
@@ -33,6 +37,7 @@ from src.presentation.api.v1.invoice_profiles.routes import router as invoice_pr
 from src.presentation.api.v1.keygen.routes import router as keygen_router
 from src.presentation.api.v1.legal_documents.routes import router as legal_documents_router
 from src.presentation.api.v1.merchant_profiles.routes import router as merchant_profiles_router
+from src.presentation.api.v1.miniapp.routes import router as miniapp_router
 from src.presentation.api.v1.mobile_auth.routes import router as mobile_auth_router
 from src.presentation.api.v1.monitoring.routes import router as monitoring_router
 from src.presentation.api.v1.node_plugins.routes import router as node_plugins_router
@@ -40,7 +45,9 @@ from src.presentation.api.v1.notifications.routes import router as notifications
 from src.presentation.api.v1.oauth.routes import router as oauth_router
 from src.presentation.api.v1.offers.routes import router as offers_router
 from src.presentation.api.v1.orders.routes import router as orders_router
+from src.presentation.api.v1.partner_bots.routes import router as partner_bots_router
 from src.presentation.api.v1.partner_payout_accounts.routes import router as partner_payout_accounts_router
+from src.presentation.api.v1.partner_realtime.routes import router as partner_realtime_router
 from src.presentation.api.v1.partner_statements.routes import router as partner_statements_router
 from src.presentation.api.v1.partners.routes import router as partners_router
 from src.presentation.api.v1.payment_attempts.routes import router as payment_attempts_router
@@ -57,6 +64,7 @@ from src.presentation.api.v1.profile.routes import router as profile_router
 from src.presentation.api.v1.program_eligibility.routes import router as program_eligibility_router
 from src.presentation.api.v1.promo_codes.routes import router as promo_codes_router
 from src.presentation.api.v1.provisioning_profiles.routes import router as provisioning_profiles_router
+from src.presentation.api.v1.public_network.routes import router as public_network_router
 from src.presentation.api.v1.quotes.routes import router as quotes_router
 from src.presentation.api.v1.realms.routes import router as realms_router
 from src.presentation.api.v1.referral.routes import router as referral_router
@@ -126,6 +134,7 @@ PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS = (
     "payment-disputes",
     "earning-events",
     "earning-holds",
+    "partner-bots",
     "partner-statements",
     "partner-payout-accounts",
     "payouts",
@@ -180,6 +189,8 @@ api_router.include_router(billing_descriptors_router)
 api_router.include_router(attribution_router)
 api_router.include_router(commercial_bindings_router)
 api_router.include_router(growth_rewards_router)
+api_router.include_router(growth_notifications_router)
+api_router.include_router(gifts_router)
 api_router.include_router(renewal_orders_router)
 api_router.include_router(policy_evaluation_router)
 api_router.include_router(reporting_router)
@@ -195,6 +206,7 @@ api_router.include_router(dispute_cases_router)
 api_router.include_router(pilot_cohorts_router)
 api_router.include_router(earning_events_router)
 api_router.include_router(earning_holds_router)
+api_router.include_router(partner_bots_router)
 api_router.include_router(partner_statements_router)
 api_router.include_router(partner_payout_accounts_router)
 api_router.include_router(payouts_router)
@@ -216,15 +228,20 @@ api_router.include_router(billing_router)
 # Codes & wallet
 api_router.include_router(invite_codes_router)
 api_router.include_router(invite_admin_router)
+api_router.include_router(codes_router)
 api_router.include_router(promo_codes_router)
 api_router.include_router(referral_router)
 api_router.include_router(partners_router)
+api_router.include_router(partner_realtime_router)
 api_router.include_router(wallet_router)
+api_router.include_router(miniapp_router)
 
 # Monitoring & admin
 api_router.include_router(status_router)
 api_router.include_router(monitoring_router)
+api_router.include_router(public_network_router)
 api_router.include_router(admin_router)
+api_router.include_router(admin_system_config_router)
 api_router.include_router(invites_router)
 api_router.include_router(admin_growth_router)
 api_router.include_router(admin_mobile_users_router)

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-04-25",
+  "surfaces": [
+    {
+      "surface": "cybervpn-mobile",
+      "workflow": ".github/workflows/mobile-release.yml",
+      "release_projects": [
+        "cybervpn-mobile"
+      ],
+      "deploy_marker_mode": "external_deployer",
+      "required_evidence_labels": [
+        "android-appbundle",
+        "android-apk",
+        "android-debug-info",
+        "ios-build",
+        "ios-debug-info",
+        "ios-ipa",
+        "ios-ipa-debug-info"
+      ],
+      "code_expectations": [
+        {
+          "path": ".github/workflows/mobile-release.yml",
+          "must_contain": [
+            "collect-sentry-release-evidence.py",
+            "mobile-sentry-proof-android",
+            "mobile-sentry-proof-ios",
+            "mobile-sentry-proof-ipa",
+            "deploy-marker-mode external_deployer"
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "desktop-client",
+      "workflow": ".github/workflows/desktop-release.yml",
+      "release_projects": [
+        "desktop-renderer",
+        "desktop-native"
+      ],
+      "deploy_marker_mode": "release_workflow",
+      "required_evidence_labels": [
+        "renderer-dist",
+        "native-release"
+      ],
+      "code_expectations": [
+        {
+          "path": ".github/workflows/desktop-release.yml",
+          "must_contain": [
+            "collect-sentry-release-evidence.py",
+            "record-sentry-release-deploy.py",
+            "desktop-sentry-proof-",
+            "Record desktop Sentry release proof",
+            "Desktop Sentry deploy marker",
+            "slug:"
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "android-tv",
+      "workflow": ".github/workflows/android-tv-release.yml",
+      "release_projects": [
+        "android-tv"
+      ],
+      "deploy_marker_mode": "release_workflow",
+      "required_evidence_labels": [
+        "android-tv-apk",
+        "android-tv-aab",
+        "android-tv-mapping"
+      ],
+      "code_expectations": [
+        {
+          "path": ".github/workflows/android-tv-release.yml",
+          "must_contain": [
+            "collect-sentry-release-evidence.py",
+            "record-sentry-release-deploy.py",
+            "android-tv-sentry-proof",
+            "Android TV Sentry deploy marker",
+            "app-release-unsigned.apk"
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "helix-adapter",
+      "workflow": ".github/workflows/helix-adapter-ci.yml",
+      "release_projects": [
+        "helix-adapter"
+      ],
+      "deploy_marker_mode": "external_deployer",
+      "required_evidence_labels": [
+        "native-release"
+      ],
+      "code_expectations": [
+        {
+          "path": ".github/workflows/helix-adapter-ci.yml",
+          "must_contain": [
+            "cargo build --locked --release",
+            "collect-sentry-release-evidence.py",
+            "helix-adapter-release-proof"
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "helix-node",
+      "workflow": ".github/workflows/helix-node-ci.yml",
+      "release_projects": [
+        "helix-node"
+      ],
+      "deploy_marker_mode": "external_deployer",
+      "required_evidence_labels": [
+        "native-release"
+      ],
+      "code_expectations": [
+        {
+          "path": ".github/workflows/helix-node-ci.yml",
+          "must_contain": [
+            "cargo build --locked --release",
+            "collect-sentry-release-evidence.py",
+            "helix-node-release-proof"
+          ]
+        }
+      ]
+    }
+  ]
+}

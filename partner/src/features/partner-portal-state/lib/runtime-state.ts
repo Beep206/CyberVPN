@@ -12,6 +12,7 @@ import type {
   ListPartnerWorkspaceConversionRecordsResponse,
   ListPartnerWorkspaceCodesResponse,
   ListPartnerWorkspacePayoutAccountsResponse,
+  ListPartnerWorkspaceResellerVoucherBatchesResponse,
   ListPartnerWorkspaceReportExportsResponse,
   ListPartnerWorkspaceReviewRequestsResponse,
   ListPartnerWorkspaceTrafficDeclarationsResponse,
@@ -39,6 +40,7 @@ import type {
   PartnerPayoutAccountStatus,
   PartnerPortalNotification,
   PartnerPortalState,
+  PartnerResellerVoucherBatch,
   PartnerReportExport,
   PartnerReviewRequest,
   PartnerTeamMember,
@@ -105,6 +107,7 @@ export interface BuildPartnerPortalRuntimeStateOptions {
   workspaceCampaignAssets?: ListPartnerWorkspaceCampaignAssetsResponse | null;
   workspaceStatements?: ListPartnerWorkspaceStatementsResponse | null;
   workspacePayoutAccounts?: ListPartnerWorkspacePayoutAccountsResponse | null;
+  workspaceResellerVoucherBatches?: ListPartnerWorkspaceResellerVoucherBatchesResponse | null;
   workspaceConversionRecords?: ListPartnerWorkspaceConversionRecordsResponse | null;
   workspaceAnalyticsMetrics?: ListPartnerWorkspaceAnalyticsMetricsResponse | null;
   workspaceReportExports?: ListPartnerWorkspaceReportExportsResponse | null;
@@ -297,7 +300,48 @@ function mapWorkspaceCampaignAssets(
     channel: mapWorkspaceCampaignChannel(asset.channel),
     status: mapWorkspaceCampaignStatus(asset.status),
     approvalOwner: asset.approval_owner,
-    notes: asset.notes ?? [],
+    promoReference: asset.promo_reference ?? null,
+    disclosureText: asset.disclosure_text ?? null,
+    allowedClaims: asset.allowed_claims ?? [],
+    bannedClaims: asset.banned_claims ?? [],
+    allowedGeographies: asset.allowed_geographies ?? [],
+    destinationUrls: asset.destination_urls ?? [],
+    validFrom: asset.valid_from ?? null,
+    validUntil: asset.valid_until ?? null,
+    notes: [
+      ...(asset.notes ?? []),
+      ...(asset.promo_reference ? [`Promo reference: ${asset.promo_reference}`] : []),
+      ...(asset.disclosure_text ? [`Disclosure: ${asset.disclosure_text}`] : []),
+      ...((asset.allowed_claims ?? []).map((claim) => `Allowed claim: ${claim}`)),
+      ...((asset.banned_claims ?? []).map((claim) => `Banned claim: ${claim}`)),
+      ...((asset.allowed_geographies ?? []).map((geo) => `Allowed geo: ${geo}`)),
+      ...((asset.destination_urls ?? []).map((url) => `Destination: ${url}`)),
+      ...(asset.valid_from ? [`Valid from: ${asset.valid_from}`] : []),
+      ...(asset.valid_until ? [`Valid until: ${asset.valid_until}`] : []),
+    ],
+  }));
+}
+
+function mapWorkspaceResellerVoucherBatches(
+  workspaceResellerVoucherBatches: ListPartnerWorkspaceResellerVoucherBatchesResponse | null | undefined,
+): PartnerResellerVoucherBatch[] | null {
+  if (!workspaceResellerVoucherBatches) {
+    return null;
+  }
+
+  return workspaceResellerVoucherBatches.map((batch) => ({
+    batchId: batch.batch_id,
+    giftType: batch.gift_type,
+    planFamily: batch.plan_family,
+    durationDays: batch.duration_days,
+    status: batch.status as PartnerResellerVoucherBatch['status'],
+    issuedCount: batch.issued_count,
+    redeemedCount: batch.redeemed_count,
+    availableCount: batch.available_count,
+    expiresAt: batch.expires_at ?? null,
+    createdAt: batch.created_at,
+    updatedAt: batch.updated_at,
+    notes: batch.notes ?? [],
   }));
 }
 
@@ -855,6 +899,7 @@ export function buildPartnerPortalRuntimeState({
   workspaceCampaignAssets,
   workspaceStatements,
   workspacePayoutAccounts,
+  workspaceResellerVoucherBatches,
   workspaceConversionRecords,
   workspaceAnalyticsMetrics,
   workspaceReportExports,
@@ -893,6 +938,9 @@ export function buildPartnerPortalRuntimeState({
   );
   const mappedPayoutAccounts = mapWorkspacePayoutAccounts(
     hasPayoutsRead ? workspacePayoutAccounts : [],
+  );
+  const mappedResellerVoucherBatches = mapWorkspaceResellerVoucherBatches(
+    hasCodeRead ? workspaceResellerVoucherBatches : [],
   );
   const mappedConversionRecords = mapWorkspaceConversionRecords(
     hasEarningsRead ? workspaceConversionRecords : [],
@@ -945,6 +993,7 @@ export function buildPartnerPortalRuntimeState({
     integrationCredentials: mappedIntegrationCredentials ?? [],
     integrationDeliveryLogs: mappedIntegrationDeliveryLogs ?? [],
     reviewRequests: mappedReviewRequests ?? [],
+    resellerVoucherBatches: mappedResellerVoucherBatches ?? [],
     cases: mappedCases ?? [],
     notifications: mappedNotifications ?? [],
     updatedAt: deriveUpdatedAt(

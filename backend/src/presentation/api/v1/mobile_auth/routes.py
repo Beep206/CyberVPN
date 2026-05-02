@@ -3,6 +3,7 @@
 Endpoints for mobile app authentication: register, login, refresh, logout, me, device.
 """
 
+import logging
 from time import perf_counter
 from uuid import UUID
 
@@ -17,6 +18,8 @@ from src.application.dto.mobile_auth import (
     RefreshTokenRequestDTO,
     RegisterRequestDTO,
     TelegramAuthRequestDTO,
+    TelegramOIDCAuthRequestDTO,
+    TelegramOIDCLinkRequestDTO,
 )
 from src.application.services.auth_service import AuthService
 from src.application.services.cache_service import CacheService
@@ -25,18 +28,32 @@ from src.application.services.telegram_auth import (
     TelegramAuthExpiredError,
     TelegramAuthService,
 )
+from src.application.services.telegram_oidc_auth import (
+    InvalidTelegramOIDCTokenError,
+    TelegramOIDCAuthService,
+)
+from src.application.use_cases.growth_notifications.automation import (
+    AutomateCustomerGrowthNotificationRepairUseCase,
+)
+from src.application.use_cases.mobile_auth.complete_two_factor import MobileCompleteTwoFactorUseCase
 from src.application.use_cases.mobile_auth.device import MobileDeviceRegistrationUseCase
+from src.application.use_cases.mobile_auth.list_devices import MobileListDevicesUseCase
 from src.application.use_cases.mobile_auth.login import MobileLoginUseCase
 from src.application.use_cases.mobile_auth.logout import MobileLogoutUseCase
 from src.application.use_cases.mobile_auth.me import MobileGetProfileUseCase
 from src.application.use_cases.mobile_auth.refresh import MobileRefreshUseCase
 from src.application.use_cases.mobile_auth.register import MobileRegisterUseCase
+from src.application.use_cases.mobile_auth.remove_device import MobileRemoveDeviceUseCase
 from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
+from src.application.use_cases.mobile_auth.telegram_oidc_auth import MobileTelegramOIDCAuthUseCase
+from src.application.use_cases.mobile_auth.telegram_oidc_link import MobileTelegramOIDCLinkUseCase
+from src.application.use_cases.mobile_auth.telegram_oidc_unlink import MobileTelegramOIDCUnlinkUseCase
 from src.domain.exceptions import (
     DuplicateUsernameError,
     InvalidCredentialsError,
     InvalidTokenError,
     UserNotFoundError,
+    ValidationError,
 )
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.repositories.mobile_user_repo import (
@@ -48,6 +65,7 @@ from src.infrastructure.monitoring.instrumentation.routes import (
     observe_auth_activation_duration,
     observe_auth_request_duration,
     sync_auth_security_posture,
+    track_2fa_operation,
     track_auth_attempt,
     track_auth_error,
     track_auth_flow_event,
@@ -55,29 +73,46 @@ from src.infrastructure.monitoring.instrumentation.routes import (
     track_auth_session_detail,
     track_auth_session_operation,
     track_registration,
+    track_telegram_native_login_completed,
+    track_telegram_native_login_failed,
+    track_telegram_native_login_started,
+    track_telegram_oidc_requires_2fa,
+    track_telegram_oidc_token_validation_failure,
+    track_telegram_oidc_user_link_conflict,
 )
 from src.infrastructure.monitoring.metrics import route_operations_total
+from src.infrastructure.oauth.errors import OAuthProviderUnavailableError
 from src.infrastructure.remnawave.client import remnawave_client
 from src.infrastructure.remnawave.subscription_client import (
     CachedSubscriptionClient,
     RemnawaveSubscriptionClient,
 )
+from src.infrastructure.totp.totp_service import TOTPService
 from src.presentation.api.v1.mobile_auth.schemas import (
     AuthResponse,
     DeviceRegistrationRequest,
     DeviceResponse,
+    DeviceSessionResponse,
     LoginRequest,
     LogoutRequest,
     MobileAuthError,
+    MobileTwoFactorCompleteRequest,
     RefreshTokenRequest,
     RegisterRequest,
     SubscriptionInfo,
     SubscriptionStatus,
     TelegramAuthRequest,
+    TelegramLinkResponse,
+    TelegramOIDCAuthRequest,
+    TelegramOIDCLinkRequest,
     TokenResponse,
     UserResponse,
 )
-from src.presentation.dependencies.auth import get_current_mobile_user_id
+from src.presentation.dependencies.auth import (
+    PendingMobile2FAContext,
+    get_current_mobile_user_id,
+    get_current_pending_mobile_2fa_context,
+)
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.mobile_rate_limit import (
     LoginRateLimit,
@@ -95,6 +130,7 @@ async def _get_subscription_client(
 
 
 router = APIRouter(prefix="/mobile/auth", tags=["mobile-auth"])
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -154,7 +190,11 @@ def _user_response_from_dto(dto) -> UserResponse:
         status=dto.status,
         telegram_id=dto.telegram_id,
         telegram_username=dto.telegram_username,
+        is_email_verified=dto.is_email_verified,
+        is_2fa_enabled=dto.is_2fa_enabled,
+        linked_providers=dto.linked_providers or [],
         created_at=dto.created_at,
+        last_login_at=dto.last_login_at,
         subscription=subscription,
     )
 
@@ -167,9 +207,14 @@ def _auth_response_from_dto(dto) -> AuthResponse:
             refresh_token=dto.tokens.refresh_token,
             token_type=dto.tokens.token_type,
             expires_in=dto.tokens.expires_in,
-        ),
-        user=_user_response_from_dto(dto.user),
+        )
+        if dto.tokens
+        else None,
+        user=_user_response_from_dto(dto.user) if dto.user else None,
         is_new_user=dto.is_new_user,
+        requires_2fa=dto.requires_2fa,
+        tfa_token=dto.tfa_token,
+        method=dto.method,
     )
 
 
@@ -551,6 +596,89 @@ async def get_me(
         )
 
 
+@router.get(
+    "/devices",
+    response_model=list[DeviceSessionResponse],
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Not authenticated",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": MobileAuthError,
+            "description": "User not found",
+        },
+    },
+)
+async def list_devices(
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> list[DeviceSessionResponse]:
+    """List active mobile device registrations for the current user."""
+    user_repo = MobileUserRepository(db)
+    use_case = MobileListDevicesUseCase(user_repo=user_repo)
+
+    try:
+        devices = await use_case.execute(user_id)
+        return [
+            DeviceSessionResponse(
+                id=device.id,
+                name=device.name,
+                platform=device.platform,
+                ip_address=device.ip_address,
+                last_active_at=device.last_active_at,
+                created_at=device.created_at,
+                is_current=device.is_current,
+            )
+            for device in devices
+        ]
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+
+
+@router.delete(
+    "/devices/{device_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Not authenticated",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": MobileAuthError,
+            "description": "User not found",
+        },
+    },
+)
+async def remove_device(
+    device_id: str,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Remove a mobile device registration owned by the current user."""
+    user_repo = MobileUserRepository(db)
+    device_repo = MobileDeviceRepository(db)
+    use_case = MobileRemoveDeviceUseCase(user_repo=user_repo, device_repo=device_repo)
+
+    try:
+        await use_case.execute(user_id=user_id, device_id=device_id)
+        await db.commit()
+        await sync_auth_security_posture(db)
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+    except ValidationError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "DEVICE_NOT_FOUND", "message": "Device not found"},
+        )
+
+
 @router.post(
     "/device",
     response_model=DeviceResponse,
@@ -601,6 +729,85 @@ async def register_device(
 
 
 @router.post(
+    "/2fa/complete",
+    response_model=AuthResponse,
+    responses={
+        status.HTTP_200_OK: {
+            "model": AuthResponse,
+            "description": "Pending mobile login completed after TOTP verification",
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": MobileAuthError,
+            "description": "Invalid TOTP verification code",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Invalid or expired pending 2FA session",
+        },
+    },
+)
+async def complete_mobile_2fa(
+    request: MobileTwoFactorCompleteRequest,
+    context: PendingMobile2FAContext = Depends(get_current_pending_mobile_2fa_context),
+    db: AsyncSession = Depends(get_db),
+    sub_client: CachedSubscriptionClient = Depends(_get_subscription_client),
+) -> AuthResponse:
+    """Finish a mobile login paused behind a pending TOTP challenge."""
+    auth_service = AuthService()
+    user_repo = MobileUserRepository(db)
+    device_repo = MobileDeviceRepository(db)
+    use_case = MobileCompleteTwoFactorUseCase(
+        user_repo=user_repo,
+        device_repo=device_repo,
+        auth_service=auth_service,
+        totp_service=TOTPService(),
+        subscription_client=sub_client,
+    )
+
+    try:
+        result = await use_case.execute(
+            user=context.user,
+            code=request.code,
+            device=context.device,
+        )
+        await db.commit()
+        track_2fa_operation(operation="complete_login", success=True)
+
+        if context.auth_method == "telegram_oidc":
+            track_telegram_native_login_completed(platform=context.device.platform.value)
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=resolve_mobile_client_context(context.device.platform.value),
+                step="mfa_completed",
+                status="success",
+            )
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=resolve_mobile_client_context(context.device.platform.value),
+                step="session_started",
+                status="success",
+            )
+
+        await sync_auth_security_posture(db)
+        return _auth_response_from_dto(result)
+
+    except ValidationError:
+        track_2fa_operation(operation="complete_login", success=False)
+        if context.auth_method == "telegram_oidc":
+            track_telegram_native_login_failed(platform=context.device.platform.value, reason="invalid_2fa_code")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_2FA_CODE", "message": "Invalid verification code"},
+        )
+
+
+@router.post(
     "/telegram/callback",
     response_model=AuthResponse,
     responses={
@@ -624,6 +831,7 @@ async def register_device(
 )
 async def telegram_callback(
     request: TelegramAuthRequest,
+    _rate_limit: LoginRateLimit,
     db: AsyncSession = Depends(get_db),
     sub_client: CachedSubscriptionClient = Depends(_get_subscription_client),
 ) -> AuthResponse:
@@ -677,7 +885,7 @@ async def telegram_callback(
             provider="telegram",
             locale="unknown",
             client_context=client_context,
-            step="session_started",
+            step="mfa_required" if result.requires_2fa else "session_started",
             status="success",
         )
         if result.is_new_user:
@@ -764,4 +972,399 @@ async def telegram_callback(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "TELEGRAM_AUTH_EXPIRED", "message": str(e.message)},
+        )
+
+
+@router.post(
+    "/telegram/oidc",
+    response_model=AuthResponse,
+    responses={
+        status.HTTP_200_OK: {
+            "model": AuthResponse,
+            "description": "Existing user authenticated via Telegram OIDC",
+        },
+        status.HTTP_201_CREATED: {
+            "model": AuthResponse,
+            "description": "New user created and authenticated via Telegram OIDC",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Telegram OIDC token is invalid or expired",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": MobileAuthError,
+            "description": "Telegram OIDC provider is temporarily unavailable",
+        },
+    },
+)
+async def telegram_oidc(
+    request: TelegramOIDCAuthRequest,
+    _rate_limit: LoginRateLimit,
+    db: AsyncSession = Depends(get_db),
+    sub_client: CachedSubscriptionClient = Depends(_get_subscription_client),
+) -> AuthResponse:
+    """Authenticate via Telegram OIDC ID token returned by the native SDK."""
+    started_at = perf_counter()
+    platform = request.device.platform.value
+    client_context = resolve_mobile_client_context(platform)
+    user_repo = MobileUserRepository(db)
+    device_repo = MobileDeviceRepository(db)
+    auth_service = AuthService()
+    telegram_oidc_service = TelegramOIDCAuthService()
+
+    use_case = MobileTelegramOIDCAuthUseCase(
+        user_repo=user_repo,
+        device_repo=device_repo,
+        auth_service=auth_service,
+        telegram_oidc_service=telegram_oidc_service,
+        subscription_client=sub_client,
+    )
+
+    track_telegram_native_login_started(platform=platform)
+    logger.info(
+        "telegram_oidc_validation_started",
+        extra={"platform": platform},
+    )
+
+    try:
+        dto_request = TelegramOIDCAuthRequestDTO(
+            id_token=request.id_token,
+            device=_device_dto(request.device),
+        )
+        result, _ = await use_case.execute(dto_request)
+        await db.commit()
+
+        track_auth_attempt(method="telegram_oidc", success=True)
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="success",
+        )
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="mfa_required" if result.requires_2fa else "session_started",
+            status="success",
+        )
+        if result.is_new_user:
+            track_registration(method="telegram")
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=client_context,
+                step="registered",
+            )
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=client_context,
+                step="activated",
+            )
+            track_auth_flow_event(
+                channel="mobile",
+                method="telegram",
+                provider="telegram",
+                locale="unknown",
+                client_context=client_context,
+                step="first_successful_login",
+            )
+            observe_auth_activation_duration(
+                channel="mobile",
+                method="telegram",
+                locale="unknown",
+                stage="first_login",
+                started_at=result.user.created_at,
+            )
+        if not result.requires_2fa:
+            track_telegram_native_login_completed(platform=platform)
+        else:
+            track_telegram_oidc_requires_2fa(platform=platform)
+            logger.info(
+                "telegram_oidc_requires_2fa",
+                extra={"platform": platform, "is_new_user": result.is_new_user},
+            )
+        logger.info(
+            "telegram_oidc_validation_succeeded",
+            extra={
+                "platform": platform,
+                "is_new_user": result.is_new_user,
+                "requires_2fa": result.requires_2fa,
+            },
+        )
+        await sync_auth_security_posture(db)
+        observe_auth_request_duration("telegram_oidc", started_at)
+        return _auth_response_from_dto(result)
+
+    except InvalidTelegramOIDCTokenError as exc:
+        track_telegram_native_login_failed(platform=platform, reason=exc.reason)
+        track_telegram_oidc_token_validation_failure(reason=exc.reason)
+        track_auth_attempt(method="telegram_oidc", success=False)
+        track_auth_error(exc.reason)
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type=exc.reason,
+        )
+        logger.warning(
+            "telegram_oidc_validation_failed",
+            extra={"platform": platform, "reason": exc.reason},
+        )
+        observe_auth_request_duration("telegram_oidc", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TELEGRAM_ID_TOKEN", "message": exc.message, "details": {"reason": exc.reason}},
+        )
+
+    except OAuthProviderUnavailableError as exc:
+        track_telegram_native_login_failed(platform=platform, reason="provider_unavailable")
+        track_auth_attempt(method="telegram_oidc", success=False)
+        track_auth_error("provider_unavailable")
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        logger.warning(
+            "telegram_oidc_provider_unavailable",
+            extra={"platform": platform},
+        )
+        observe_auth_request_duration("telegram_oidc", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "TELEGRAM_OIDC_UNAVAILABLE", "message": str(exc)},
+        )
+
+
+@router.post(
+    "/telegram/link",
+    response_model=TelegramLinkResponse,
+    responses={
+        status.HTTP_200_OK: {
+            "model": TelegramLinkResponse,
+            "description": "Telegram identity linked to the current mobile user",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Not authenticated or Telegram ID token is invalid",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": MobileAuthError,
+            "description": "Current mobile user not found",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": MobileAuthError,
+            "description": "Telegram identity is already linked to another account",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": MobileAuthError,
+            "description": "Telegram OIDC provider is temporarily unavailable",
+        },
+    },
+)
+async def telegram_oidc_link(
+    request: TelegramOIDCLinkRequest,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramLinkResponse:
+    """Link a Telegram OIDC identity to the current authenticated mobile user."""
+    user_repo = MobileUserRepository(db)
+    use_case = MobileTelegramOIDCLinkUseCase(
+        user_repo=user_repo,
+        telegram_oidc_service=TelegramOIDCAuthService(),
+    )
+
+    try:
+        result = await use_case.execute(
+            user_id=user_id,
+            request=TelegramOIDCLinkRequestDTO(id_token=request.id_token),
+        )
+        await AutomateCustomerGrowthNotificationRepairUseCase(db).execute(
+            mobile_user_id=user_id,
+            repair_trigger="telegram_linked",
+        )
+        await db.commit()
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            step="linked",
+            status="success",
+        )
+        logger.info(
+            "telegram_oidc_link_succeeded",
+            extra={"user_id": str(user_id)},
+        )
+        await sync_auth_security_posture(db)
+        return TelegramLinkResponse(
+            linked=result.linked,
+            provider=result.provider,
+            telegram_username=result.telegram_username,
+        )
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        )
+    except InvalidTelegramOIDCTokenError as exc:
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            step="linked",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type=exc.reason,
+        )
+        logger.warning(
+            "telegram_oidc_link_failed_invalid_token",
+            extra={"user_id": str(user_id), "reason": exc.reason},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "INVALID_TELEGRAM_ID_TOKEN", "message": exc.message, "details": {"reason": exc.reason}},
+        )
+    except ValidationError as exc:
+        reason = str(exc.details.get("reason", "identity_already_linked"))
+        track_telegram_oidc_user_link_conflict(reason=reason)
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            step="linked",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="identity_already_linked",
+        )
+        logger.warning(
+            "telegram_oidc_link_conflict",
+            extra={"user_id": str(user_id), "reason": reason},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "TELEGRAM_IDENTITY_ALREADY_LINKED", "message": "Telegram identity is already linked"},
+        )
+    except OAuthProviderUnavailableError as exc:
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            step="linked",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="provider_unavailable",
+        )
+        logger.warning(
+            "telegram_oidc_link_provider_unavailable",
+            extra={"user_id": str(user_id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "TELEGRAM_OIDC_UNAVAILABLE", "message": str(exc)},
+        )
+
+
+@router.delete(
+    "/telegram/link",
+    response_model=TelegramLinkResponse,
+    responses={
+        status.HTTP_200_OK: {
+            "model": TelegramLinkResponse,
+            "description": "Telegram identity unlinked from the current mobile user",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Not authenticated",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": MobileAuthError,
+            "description": "Current mobile user not found",
+        },
+    },
+)
+async def telegram_oidc_unlink(
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramLinkResponse:
+    """Unlink Telegram OIDC identity from the current authenticated mobile user."""
+    user_repo = MobileUserRepository(db)
+    use_case = MobileTelegramOIDCUnlinkUseCase(user_repo=user_repo)
+
+    try:
+        result = await use_case.execute(user_id=user_id)
+        await db.commit()
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            step="unlinked",
+            status="success",
+        )
+        logger.info(
+            "telegram_oidc_unlink_succeeded",
+            extra={"user_id": str(user_id)},
+        )
+        await sync_auth_security_posture(db)
+        return TelegramLinkResponse(
+            linked=result.linked,
+            provider=result.provider,
+            telegram_username=result.telegram_username,
+        )
+    except UserNotFoundError:
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            step="unlinked",
+            status="failure",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
         )

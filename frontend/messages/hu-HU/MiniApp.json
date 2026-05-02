@@ -231,6 +231,38 @@
     "step2": "Friends sign up with your code",
     "step3": "Earn commission on their purchases",
     "copied": "Code copied to clipboard!",
-    "shareText": "Join CyberVPN with my referral code: {code} and get started today!"
+    "shareText": "Join CyberVPN with my referral code: {code} and get started today!",
+    "notifications": {
+      "title": "Growth notifications",
+      "subtitle": "Durable updates for invites, referral rewards, and gift codes.",
+      "loading": "Loading growth notifications...",
+      "empty": "No growth notifications are visible right now.",
+      "unread": "Unread",
+      "actionRequired": "Action required",
+      "markRead": "Mark read",
+      "archive": "Archive",
+      "counters": {
+        "total": "Total {count}",
+        "unread": "Unread {count}",
+        "actionRequired": "Action {count}"
+      }
+    },
+    "preferences": {
+      "title": "Delivery preferences",
+      "subtitle": "Choose which growth events stay in-app, email, or Telegram.",
+      "saving": "Saving...",
+      "note": "In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.",
+      "categories": {
+        "invites": "Invites",
+        "referralRewards": "Referral rewards",
+        "gifts": "Gift codes",
+        "adminUpdates": "Admin updates"
+      },
+      "channels": {
+        "inApp": "In-app",
+        "email": "Email",
+        "telegram": "Telegram"
+      }
+    }
   }
 }

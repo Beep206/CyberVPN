@@ -1,4 +1,180 @@
 {
+  "cabinet": {
+    "title": "SETTINGS CONTROL ROOM",
+    "subtitle": "Profile, security, notification routing, active sessions, and privacy controls backed by live account APIs.",
+    "hero": {
+      "eyebrow": "Identity / Security / Notifications",
+      "securityPosture": "Security posture",
+      "securityScore": "{score}% account hardening score"
+    },
+    "posture": {
+      "hardened": "Hardened",
+      "attention": "Needs attention",
+      "exposed": "Exposed"
+    },
+    "errors": {
+      "partialTitle": "Some settings failed to load",
+      "partialDescription": "The page stays usable, but refresh before making sensitive changes."
+    },
+    "summary": {
+      "ariaLabel": "Settings summary metrics",
+      "twoFactor": "2FA",
+      "antiphishing": "Anti-phishing",
+      "notifications": "Channels on",
+      "devices": "Sessions"
+    },
+    "profile": {
+      "eyebrow": "Profile nucleus",
+      "title": "Account profile",
+      "description": "Keep editable profile fields aligned with the backend profile record. Email and account ID remain immutable here.",
+      "email": "Email",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "Operator name",
+      "language": "Language",
+      "timezone": "Timezone",
+      "accountId": "Account ID",
+      "updatedAt": "Updated {date}"
+    },
+    "security": {
+      "eyebrow": "Sensitive controls",
+      "title": "Security console",
+      "description": "Password, TOTP, and anti-phishing flows stay backend-owned and rate-limited.",
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "enabled": "TOTP is active for this account.",
+        "disabled": "Enable TOTP before increasing payment or device trust."
+      },
+      "password": {
+        "title": "Password",
+        "description": "Change the password with current-password verification."
+      },
+      "antiphishing": {
+        "title": "Anti-phishing code",
+        "enabled": "Email authenticity code is set: {code}",
+        "disabled": "Set a private code that appears in legitimate emails."
+      }
+    },
+    "notifications": {
+      "eyebrow": "Routing matrix",
+      "title": "Notification preferences",
+      "description": "Core account notifications and growth notifications are separate backend preference sets.",
+      "core": {
+        "title": "Core account",
+        "emailSecurity": {
+          "title": "Email security alerts",
+          "description": "Login, password, and account risk alerts."
+        },
+        "emailMarketing": {
+          "title": "Email marketing",
+          "description": "Optional product and promotion messages."
+        },
+        "pushConnection": {
+          "title": "VPN connection push",
+          "description": "Connection, disconnect, and service state notices."
+        },
+        "pushPayment": {
+          "title": "Payment push",
+          "description": "Payment lifecycle and invoice confirmations."
+        },
+        "pushSubscription": {
+          "title": "Subscription push",
+          "description": "Renewal, expiry, and entitlement reminders."
+        }
+      },
+      "growth": {
+        "title": "Growth events",
+        "inAppInvites": {
+          "title": "Invite in-app feed",
+          "description": "Invite and code events inside the cabinet."
+        },
+        "emailRewards": {
+          "title": "Referral reward email",
+          "description": "Reward lifecycle changes by email."
+        },
+        "telegramRewards": {
+          "title": "Referral reward Telegram",
+          "description": "Reward lifecycle changes in Telegram."
+        },
+        "emailGifts": {
+          "title": "Gift code email",
+          "description": "Gift redemption and delivery status by email."
+        },
+        "adminUpdates": {
+          "title": "Telegram admin updates",
+          "description": "Operational growth announcements in Telegram."
+        }
+      }
+    },
+    "devices": {
+      "eyebrow": "Session perimeter",
+      "title": "Active devices",
+      "description": "Review sessions and revoke stale devices without touching the current one.",
+      "empty": "No active devices found.",
+      "current": "Current",
+      "currentHint": "This session is protected from remote revoke controls.",
+      "meta": "IP {ip} / last active {date} / id {id}",
+      "revoke": "Revoke",
+      "revokeDevice": "Revoke device",
+      "revokeOthers": "Revoke others"
+    },
+    "identity": {
+      "eyebrow": "Linked identity",
+      "title": "External accounts",
+      "description": "Telegram remains the primary support and commerce identity where available.",
+      "telegramLinked": "Telegram linked: {id}",
+      "telegramMissing": "Telegram is not linked to this account."
+    },
+    "privacy": {
+      "eyebrow": "Privacy guardrails",
+      "title": "Data handling rules",
+      "items": {
+        "serverTruth": {
+          "title": "Backend is source of truth",
+          "description": "The page reflects API state and does not persist sensitive settings locally."
+        },
+        "noSecretTelemetry": {
+          "title": "No secret telemetry",
+          "description": "Metrics mark actions only, never passwords, TOTP codes, IPs, or anti-phishing values."
+        },
+        "sessionRevocation": {
+          "title": "Session revocation",
+          "description": "Device removal calls authenticated backend session revoke endpoints."
+        },
+        "accountDeletion": {
+          "title": "Deletion path",
+          "description": "Account deletion remains isolated in the dedicated privacy flow."
+        }
+      }
+    },
+    "actions": {
+      "copied": "Copied",
+      "copyId": "Copy ID",
+      "manage": "Manage",
+      "privacy": "Privacy flow",
+      "refresh": "Refresh",
+      "revoking": "Revoking...",
+      "saveProfile": "Save profile",
+      "saving": "Saving..."
+    },
+    "feedback": {
+      "copyFailed": "Clipboard is unavailable.",
+      "deviceFailed": "Device revoke failed.",
+      "deviceRevoked": "Device revoked.",
+      "devicesRevoked": "{count} devices revoked.",
+      "notificationsFailed": "Notification preferences failed to update.",
+      "profileFailed": "Profile update failed.",
+      "profileSaved": "Profile saved.",
+      "securityUpdated": "Security settings updated."
+    },
+    "labels": {
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "loading": "Loading",
+      "notAvailable": "n/a",
+      "notSet": "Not set",
+      "synced": "Synced"
+    }
+  },
   "title": "SETTINGS",
   "subtitle": "Manage your account preferences and security",
   "linkedAccounts": "Linked Accounts",

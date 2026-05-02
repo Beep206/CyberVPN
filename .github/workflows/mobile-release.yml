@@ -22,6 +22,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Resolve release metadata
+        id: release_meta
+        run: |
+          APP_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          BUILD_NUMBER="${{ inputs.build_number || github.run_number }}"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "release=cybervpn-mobile@${APP_VERSION}+${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize Android release metadata
+        env:
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+        run: |
+          {
+            echo "### Android release metadata"
+            echo "- Environment: \`production\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Project: \`${SENTRY_PROJECT:-unconfigured}\`"
+            echo "- Debug symbol upload enabled: \`${SENTRY_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -59,17 +85,21 @@ jobs:
 
       - name: Build AAB
         env:
-          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+          BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
           CERT_FINGERPRINTS: ${{ secrets.CERT_FINGERPRINTS }}
           SENTRY_DSN: ${{ secrets.MOBILE_SENTRY_DSN }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
         run: |
           flutter build appbundle \
             --release \
             --build-number="$BUILD_NUMBER" \
+            --obfuscate \
+            --split-debug-info=build/debug-info/android-release \
             --dart-define=API_ENV=prod \
             --dart-define=API_BASE_URL=https://api.cybervpn.com \
             --dart-define=CERT_FINGERPRINTS="$CERT_FINGERPRINTS" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=SENTRY_RELEASE="$SENTRY_RELEASE"
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
@@ -80,17 +110,35 @@ jobs:
 
       - name: Build APK
         env:
-          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+          BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
           CERT_FINGERPRINTS: ${{ secrets.CERT_FINGERPRINTS }}
           SENTRY_DSN: ${{ secrets.MOBILE_SENTRY_DSN }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
         run: |
           flutter build apk \
             --release \
             --build-number="$BUILD_NUMBER" \
+            --obfuscate \
+            --split-debug-info=build/debug-info/android-release \
             --dart-define=API_ENV=prod \
             --dart-define=API_BASE_URL=https://api.cybervpn.com \
             --dart-define=CERT_FINGERPRINTS="$CERT_FINGERPRINTS" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=SENTRY_RELEASE="$SENTRY_RELEASE"
+
+      - name: Upload Android debug symbols to Sentry
+        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli upload-dif \
+            --org "${SENTRY_ORG}" \
+            --project "${SENTRY_PROJECT}" \
+            build/debug-info/android-release/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -99,11 +147,71 @@ jobs:
           path: cybervpn_mobile/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
 
+      - name: Upload Android debug symbols artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-debug-symbols
+          path: cybervpn_mobile/build/debug-info/android-release/
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Collect Android Sentry release evidence
+        env:
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          python ../scripts/collect-sentry-release-evidence.py \
+            --surface cybervpn-mobile \
+            --release "${SENTRY_RELEASE}" \
+            --environment production \
+            --project "${SENTRY_PROJECT:-unconfigured}" \
+            --proof-scope release_workflow \
+            --deploy-marker-mode external_deployer \
+            --artifact "android-appbundle=build/app/outputs/bundle/release/app-release.aab" \
+            --artifact "android-apk=build/app/outputs/flutter-apk/app-release.apk" \
+            --artifact "android-debug-info=build/debug-info/android-release" \
+            --output build/sentry-proof/android-release.json \
+            --summary-label "Mobile Android Sentry proof"
+
+      - name: Upload Android Sentry proof manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-sentry-proof-android
+          path: cybervpn_mobile/build/sentry-proof/android-release.json
+          retention-days: 90
+          if-no-files-found: error
+
   build-ios-release:
     name: Build iOS Release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Resolve release metadata
+        id: release_meta
+        run: |
+          APP_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          BUILD_NUMBER="${{ inputs.build_number || github.run_number }}"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "release=cybervpn-mobile@${APP_VERSION}+${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize iOS release metadata
+        env:
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+        run: |
+          {
+            echo "### iOS release metadata"
+            echo "- Environment: \`production\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Project: \`${SENTRY_PROJECT:-unconfigured}\`"
+            echo "- Debug symbol upload enabled: \`${SENTRY_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -118,18 +226,36 @@ jobs:
 
       - name: Build iOS (no codesign)
         env:
-          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+          BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
           CERT_FINGERPRINTS: ${{ secrets.CERT_FINGERPRINTS }}
           SENTRY_DSN: ${{ secrets.MOBILE_SENTRY_DSN }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
         run: |
           flutter build ios \
             --release \
             --no-codesign \
             --build-number="$BUILD_NUMBER" \
+            --obfuscate \
+            --split-debug-info=build/debug-info/ios-release \
             --dart-define=API_ENV=prod \
             --dart-define=API_BASE_URL=https://api.cybervpn.com \
             --dart-define=CERT_FINGERPRINTS="$CERT_FINGERPRINTS" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=SENTRY_RELEASE="$SENTRY_RELEASE"
+
+      - name: Upload iOS debug symbols to Sentry
+        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli upload-dif \
+            --org "${SENTRY_ORG}" \
+            --project "${SENTRY_PROJECT}" \
+            build/debug-info/ios-release/
 
       - name: Upload iOS build
         uses: actions/upload-artifact@v4
@@ -137,6 +263,39 @@ jobs:
           name: ios-release-build
           path: cybervpn_mobile/build/ios/iphoneos/
           retention-days: 90
+
+      - name: Upload iOS debug symbols artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-debug-symbols
+          path: cybervpn_mobile/build/debug-info/ios-release/
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Collect iOS Sentry release evidence
+        env:
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          python ../scripts/collect-sentry-release-evidence.py \
+            --surface cybervpn-mobile \
+            --release "${SENTRY_RELEASE}" \
+            --environment production \
+            --project "${SENTRY_PROJECT:-unconfigured}" \
+            --proof-scope release_workflow \
+            --deploy-marker-mode external_deployer \
+            --artifact "ios-build=build/ios/iphoneos" \
+            --artifact "ios-debug-info=build/debug-info/ios-release" \
+            --output build/sentry-proof/ios-release.json \
+            --summary-label "Mobile iOS Sentry proof"
+
+      - name: Upload iOS Sentry proof manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-sentry-proof-ios
+          path: cybervpn_mobile/build/sentry-proof/ios-release.json
+          retention-days: 90
+          if-no-files-found: error
 
   test-ios-simulator:
     name: iOS Simulator Tests
@@ -162,6 +321,32 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/mobile-v')
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Resolve release metadata
+        id: release_meta
+        run: |
+          APP_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          BUILD_NUMBER="${{ inputs.build_number || github.run_number }}"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "release=cybervpn-mobile@${APP_VERSION}+${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize TestFlight release metadata
+        env:
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+        run: |
+          {
+            echo "### TestFlight release metadata"
+            echo "- Environment: \`production\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Project: \`${SENTRY_PROJECT:-unconfigured}\`"
+            echo "- Debug symbol upload enabled: \`${SENTRY_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -199,18 +384,42 @@ jobs:
 
       - name: Build IPA
         env:
-          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+          BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
           CERT_FINGERPRINTS: ${{ secrets.CERT_FINGERPRINTS }}
           SENTRY_DSN: ${{ secrets.MOBILE_SENTRY_DSN }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
         run: |
           flutter build ipa \
             --release \
             --build-number="$BUILD_NUMBER" \
+            --obfuscate \
+            --split-debug-info=build/debug-info/ios-ipa \
             --dart-define=API_ENV=prod \
             --dart-define=API_BASE_URL=https://api.cybervpn.com \
             --dart-define=CERT_FINGERPRINTS="$CERT_FINGERPRINTS" \
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
+            --dart-define=SENTRY_RELEASE="$SENTRY_RELEASE" \
             --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload IPA debug symbols to Sentry
+        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli upload-dif \
+            --org "${SENTRY_ORG}" \
+            --project "${SENTRY_PROJECT}" \
+            build/debug-info/ios-ipa/
+          if [ -d build/ios/archive ]; then
+            sentry-cli upload-dif \
+              --org "${SENTRY_ORG}" \
+              --project "${SENTRY_PROJECT}" \
+              build/ios/archive/
+          fi
 
       - name: Upload to TestFlight
         env:
@@ -226,3 +435,28 @@ jobs:
             --file build/ios/ipa/*.ipa \
             --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
             --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Collect IPA Sentry release evidence
+        env:
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          python ../scripts/collect-sentry-release-evidence.py \
+            --surface cybervpn-mobile \
+            --release "${SENTRY_RELEASE}" \
+            --environment production \
+            --project "${SENTRY_PROJECT:-unconfigured}" \
+            --proof-scope release_workflow \
+            --deploy-marker-mode external_deployer \
+            --artifact "ios-ipa=build/ios/ipa" \
+            --artifact "ios-ipa-debug-info=build/debug-info/ios-ipa" \
+            --output build/sentry-proof/ios-ipa-release.json \
+            --summary-label "Mobile IPA Sentry proof"
+
+      - name: Upload IPA Sentry proof manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-sentry-proof-ipa
+          path: cybervpn_mobile/build/sentry-proof/ios-ipa-release.json
+          retention-days: 90
+          if-no-files-found: error

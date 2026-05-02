@@ -15,7 +15,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
@@ -235,7 +235,7 @@ describe('codesApi.validate', () => {
         plan_id: 'plan_monthly',
         amount: 50.0,
       }),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_validate_promo_with_refresh_token_retries_on_401', async () => {

@@ -15,7 +15,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {

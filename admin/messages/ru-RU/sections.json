@@ -115,8 +115,8 @@
     "metaTitle": "Контроль - Ozoxy Admin",
     "title": "Governance И Аудит",
     "description": "Операционная поверхность для привилегированных действий, вебхуков, onboarding сотрудников и будущего policy control.",
-    "currentState": "Audit logs, webhook logs и admin invites уже доступны. Не хватает staff directory management и system configuration governance.",
-    "backendCoverage": "Частичное покрытие. Видимость аудита сильная, но system configuration и богатые staff-management API пока отсутствуют.",
+    "currentState": "Audit logs, webhook logs и admin invites уже доступны. Первый выделенный system configuration governance API уже работает для `miniapp.runtime`; основной remaining gap теперь в более широком staff directory management и покрытии остальных `system_config` семейств.",
+    "backendCoverage": "Частичное покрытие. Видимость аудита сильная, а `miniapp.runtime` уже под операторским контролем, но более широкие system configuration семейства и богатые staff-management API пока отсутствуют.",
     "nextFocus": "Сначала выпустить workspace вокруг аудита, инвайтов и webhook-forensics, потом добавить admin directory и policy controls.",
     "availableNow": {
       "auditLog": "Трасса привилегированных действий из backend audit log.",

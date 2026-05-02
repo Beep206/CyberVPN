@@ -1,5 +1,9 @@
 # Plan: Invite / Referral / Promo / Partner Codes + Wallet System
 
+> Legacy / historical reference only.
+> This document is not canonical for target-state customer growth codes implementation.
+> Known conflicts with target-state package include indefinite referral commission, simultaneous partner + promo + referral stacking, and mixed withdrawable wallet semantics.
+
 ## Context
 
 CyberVPN needs 4 code systems (invite, referral, promo, partner) plus a user wallet to support monetization, growth, and reseller channels. Currently the backend has no referral/promo/partner logic. The Flutter mobile app already has referral UI waiting for backend API. All systems can be combined simultaneously during a single payment. The wallet supports payments for VPN and crypto withdrawals.

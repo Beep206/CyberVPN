@@ -21,7 +21,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError to safely inspect response data in catch blocks. */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
@@ -96,7 +96,7 @@ describe('vpnApi.getUsage', () => {
     );
 
     // Act & Assert - 401 interceptor tries to refresh, finds no token
-    await expect(vpnApi.getUsage()).rejects.toThrow('No refresh token');
+    await expect(vpnApi.getUsage()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_usage_with_refresh_token_retries_on_401', async () => {
@@ -184,8 +184,8 @@ describe('vpnApi.getUsage', () => {
     await expect(vpnApi.getUsage()).rejects.toBeDefined();
   });
 
-  it('test_get_usage_includes_authorization_header', async () => {
-    // Arrange - store token so interceptor injects it
+  it('test_get_usage_does_not_use_legacy_authorization_header', async () => {
+    // Arrange - legacy tokens must not be sent after httpOnly cookie migration
     localStorage.setItem('access_token', 'my_jwt_token');
 
     let capturedAuthHeader: string | undefined;
@@ -200,6 +200,6 @@ describe('vpnApi.getUsage', () => {
     await vpnApi.getUsage();
 
     // Assert
-    expect(capturedAuthHeader).toBe('Bearer my_jwt_token');
+    expect(capturedAuthHeader).toBeUndefined();
   });
 });

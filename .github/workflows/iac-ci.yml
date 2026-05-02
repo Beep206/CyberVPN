@@ -41,10 +41,11 @@ jobs:
         with:
           python-version: '3.13.13'
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@v1
         with:
-          terraform_version: 1.14.0
+          tofu_version_file: .opentofu-version
+          tofu_wrapper: false
 
       - name: Install Ansible and test helpers
         run: pip install "ansible>=13.0.0,<14.0.0" pyyaml
@@ -52,35 +53,35 @@ jobs:
       - name: Install Ansible collections
         run: ansible-galaxy collection install -r ansible/requirements.yml
 
-      - name: Check Terraform formatting
+      - name: Check OpenTofu formatting
         run: |
-          terraform -chdir=terraform/live/staging/foundation fmt -check -recursive
-          terraform -chdir=terraform/live/staging/edge fmt -check -recursive
-          terraform -chdir=terraform/live/staging/dns fmt -check -recursive
-          terraform -chdir=terraform/live/staging/control-plane fmt -check -recursive
-          terraform -chdir=terraform/live/production/foundation fmt -check -recursive
-          terraform -chdir=terraform/live/production/edge fmt -check -recursive
-          terraform -chdir=terraform/live/production/dns fmt -check -recursive
-          terraform -chdir=terraform/live/production/control-plane fmt -check -recursive
+          tofu -chdir=terraform/live/staging/foundation fmt -check -recursive
+          tofu -chdir=terraform/live/staging/edge fmt -check -recursive
+          tofu -chdir=terraform/live/staging/dns fmt -check -recursive
+          tofu -chdir=terraform/live/staging/control-plane fmt -check -recursive
+          tofu -chdir=terraform/live/production/foundation fmt -check -recursive
+          tofu -chdir=terraform/live/production/edge fmt -check -recursive
+          tofu -chdir=terraform/live/production/dns fmt -check -recursive
+          tofu -chdir=terraform/live/production/control-plane fmt -check -recursive
 
-      - name: Validate Terraform staging and production stacks
+      - name: Validate OpenTofu staging and production stacks
         run: |
-          terraform -chdir=terraform/live/staging/foundation init -backend=false
-          terraform -chdir=terraform/live/staging/foundation validate
-          terraform -chdir=terraform/live/staging/edge init -backend=false
-          terraform -chdir=terraform/live/staging/edge validate
-          terraform -chdir=terraform/live/staging/dns init -backend=false
-          terraform -chdir=terraform/live/staging/dns validate
-          terraform -chdir=terraform/live/staging/control-plane init -backend=false
-          terraform -chdir=terraform/live/staging/control-plane validate
-          terraform -chdir=terraform/live/production/foundation init -backend=false
-          terraform -chdir=terraform/live/production/foundation validate
-          terraform -chdir=terraform/live/production/edge init -backend=false
-          terraform -chdir=terraform/live/production/edge validate
-          terraform -chdir=terraform/live/production/dns init -backend=false
-          terraform -chdir=terraform/live/production/dns validate
-          terraform -chdir=terraform/live/production/control-plane init -backend=false
-          terraform -chdir=terraform/live/production/control-plane validate
+          tofu -chdir=terraform/live/staging/foundation init -backend=false
+          tofu -chdir=terraform/live/staging/foundation validate
+          tofu -chdir=terraform/live/staging/edge init -backend=false
+          tofu -chdir=terraform/live/staging/edge validate
+          tofu -chdir=terraform/live/staging/dns init -backend=false
+          tofu -chdir=terraform/live/staging/dns validate
+          tofu -chdir=terraform/live/staging/control-plane init -backend=false
+          tofu -chdir=terraform/live/staging/control-plane validate
+          tofu -chdir=terraform/live/production/foundation init -backend=false
+          tofu -chdir=terraform/live/production/foundation validate
+          tofu -chdir=terraform/live/production/edge init -backend=false
+          tofu -chdir=terraform/live/production/edge validate
+          tofu -chdir=terraform/live/production/dns init -backend=false
+          tofu -chdir=terraform/live/production/dns validate
+          tofu -chdir=terraform/live/production/control-plane init -backend=false
+          tofu -chdir=terraform/live/production/control-plane validate
 
       - name: Run inventory generator tests
         run: make inventory-test
@@ -110,7 +111,7 @@ jobs:
           {
             echo "## IaC validation summary"
             echo ""
-            echo "- Terraform fmt/validate completed for staging and production foundation, edge, dns, and control-plane stacks."
+            echo "- OpenTofu fmt/validate completed for staging and production foundation, edge, dns, and control-plane stacks."
             echo "- Ansible syntax checks completed through Phase 8 control-plane promotion tooling and playbooks."
             echo "- Fixture-backed inventory and Prometheus target snapshots uploaded for review."
             echo "- Manual approval policy remains in force for real apply/rollout steps."

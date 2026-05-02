@@ -2,6 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { reportFrontendRenderError } from '@/shared/lib/frontend-observability';
 
 interface Props {
     children: ReactNode;
@@ -27,6 +28,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
+        reportFrontendRenderError('partner_portal', {
+            errorCode: error.name || this.props.label || 'component_error',
+            path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        });
     }
 
     private handleRetry = () => {

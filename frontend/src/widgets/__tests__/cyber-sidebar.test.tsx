@@ -71,11 +71,11 @@ describe('CyberSidebar', () => {
   });
 
   it('marks the active route with aria-current', () => {
-    mockUsePathname.mockReturnValue('/analytics');
+    mockUsePathname.mockReturnValue('/wallet');
 
     render(<CyberSidebar />);
 
-    expect(screen.getByRole('link', { name: 'analytics' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'wallet' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -98,7 +98,7 @@ describe('CyberSidebar', () => {
     render(<CyberSidebar />);
 
     expect(screen.getByText('NEXUS')).toBeInTheDocument();
-    expect(screen.getByText('ADMIN_01')).toBeInTheDocument();
-    expect(screen.getByText('ROOT ACCESS')).toBeInTheDocument();
+    expect(screen.getByText('USER NODE')).toBeInTheDocument();
+    expect(screen.getByText('PRIVATE ACCESS')).toBeInTheDocument();
   });
 });

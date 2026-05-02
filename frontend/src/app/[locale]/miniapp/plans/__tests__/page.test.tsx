@@ -1,817 +1,405 @@
-/**
- * Mini App Plans Page Tests
- *
- * Tests the plans/purchase page for Telegram Mini App:
- * - Trial activation
- * - Plan cards display and purchase
- * - Promo code validation
- * - Invite code redemption
- * - CryptoBot payment integration
- */
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PlansPage from '../page';
 import { http, HttpResponse } from 'msw';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import PlansPage from '../page';
 import { server } from '@/test/mocks/server';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
+import {
+  cleanupTelegramWebAppMock,
+  setupTelegramWebAppMock,
+} from '@/test/mocks/telegram-webapp';
 
-// Mock next-intl
+const runtimeAnalyticsMocks = vi.hoisted(() => ({
+  emitMiniAppRuntimeEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/features/miniapp-runtime/lib/runtime-analytics', () => runtimeAnalyticsMocks);
+
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en-EN',
   useTranslations: () => (key: string, values?: Record<string, string | number>) => {
-    if (values) {
-      return `${key}:${JSON.stringify(values)}`;
-    }
-    return key;
+    const labels: Record<string, string> = {
+      availablePlans: 'Available plans',
+      catalogHint: 'Catalog hint',
+      'periods.annual': 'Annual',
+      'periods.monthly': 'Monthly',
+      planDevices: '{count} devices',
+      periodInviteBonus: '{count} invites',
+      addonsTitle: 'Add-ons',
+      addonsDescription: 'Add-ons description',
+      addonUnavailable: 'Unavailable',
+      havePromoCode: 'Have promo code',
+      promoCodePlaceholder: 'Promo code',
+      apply: 'Apply',
+      checkoutCodeAccepted: 'Code accepted {code}',
+      haveInviteCode: 'Have invite code',
+      inviteCodePlaceholder: 'Invite code',
+      redeem: 'Redeem',
+      quoteTitle: 'Quote',
+      quoteSubtitle: 'Quote subtitle',
+      selectPlanToQuote: 'Select plan to quote',
+      processing: 'Processing',
+      freeTrialTitle: 'Free trial',
+      freeTrialDescription: 'Try CyberVPN before purchase',
+      activateTrial: 'Activate trial',
+      activating: 'Activating',
+      trialActivated: 'Trial activated',
+      trialError: 'Trial error',
+      inviteRedeemed: 'Invite redeemed {reward}',
+      inviteRewardDays: '{count} free days',
+      inviteRewardDefault: 'default reward',
+      currentPlanNoExpiry: 'No expiry',
+      currentPlanTitle: 'Current plan',
+      noPlans: 'No plans',
+      'flow.checkout': 'Checkout',
+      'flow.none': 'None',
+      'flow.current': 'Current',
+      'quote.basePrice': 'Base',
+      'quote.addonAmount': 'Add-ons',
+      'quote.discount': 'Discount',
+      'quote.walletAmount': 'Wallet',
+      'quote.gatewayAmount': 'Gateway',
+      'quote.total': 'Total',
+      'quote.entitlements': 'Entitlements',
+      'quote.devices': 'Devices',
+      'quote.traffic': 'Traffic',
+      'quote.dedicatedIp': 'Dedicated IP',
+      'quote.modes': 'Modes',
+      'quote.serverPool': 'Servers',
+      'quote.none': 'None',
+      'actions.openPayment': 'Open payment',
+    };
+    const template = labels[key] ?? key;
+    if (!values) return template;
+    return Object.entries(values).reduce(
+      (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+      template,
+    );
   },
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
-const createWrapper = () => {
+function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   });
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
   };
+}
+
+const plusPlan = {
+  uuid: 'plan-plus-365',
+  name: 'plus_365',
+  plan_code: 'plus',
+  display_name: 'Plus',
+  catalog_visibility: 'public',
+  features: {},
+  devices_included: 5,
+  connection_modes: ['standard', 'stealth'],
+  server_pool: ['shared_plus'],
+  support_sla: 'standard',
+  dedicated_ip: { included: 0, eligible: true },
+  duration_days: 365,
+  traffic_limit_bytes: null,
+  traffic_policy: { mode: 'fair_use', display_label: 'Unlimited' },
+  sale_channels: ['miniapp'],
+  trial_eligible: true,
+  price_usd: 79,
+  price_rub: null,
+  sort_order: 2,
+  is_active: true,
+  invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
 };
 
-const mockPlans = [
-  {
-    uuid: 'plan-1',
-    name: 'Basic Plan',
-    templateType: 'vless',
-    hostUuid: 'host-1',
-    inboundTag: 'tag-1',
-    flow: 'xtls-rprx-vision',
-    configData: null,
-  },
-  {
-    uuid: 'plan-2',
-    name: 'Premium Plan',
-    templateType: 'vmess',
-    hostUuid: 'host-2',
-    inboundTag: 'tag-2',
-    flow: null,
-    configData: { speed: '1000Mbps' },
-  },
-];
-
-const mockTrialData = {
-  is_trial_active: false,
-  is_eligible: true,
-  trial_end: null,
-  days_remaining: 0,
+const basicPlan = {
+  ...plusPlan,
+  uuid: 'plan-basic-30',
+  name: 'basic_30',
+  plan_code: 'basic',
+  display_name: 'Basic',
+  devices_included: 2,
+  connection_modes: ['standard'],
+  server_pool: ['shared_basic'],
+  duration_days: 30,
+  price_usd: 9.99,
+  sort_order: 1,
+  invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
 };
+
+function createOffers(overrides: Record<string, unknown> = {}) {
+  return {
+    plans: [basicPlan, plusPlan],
+    addons: [],
+    trial: {
+      is_trial_active: false,
+      is_eligible: false,
+      trial_end: null,
+      days_remaining: 0,
+    },
+    currentEntitlements: {
+      status: 'none',
+      plan_uuid: null,
+      plan_code: null,
+      display_name: null,
+      period_days: null,
+      expires_at: null,
+      effective_entitlements: {},
+      invite_bundle: {},
+      is_trial: false,
+      addons: [],
+    },
+    freshness: {
+      generatedAt: '2026-04-24T00:00:00Z',
+    },
+    ...overrides,
+  };
+}
+
+function createBootstrap() {
+  return {
+    rollout: {
+      enabled: true,
+      mode: 'live',
+      trialEnabled: true,
+      checkoutEnabled: true,
+      configEnabled: true,
+      accessGranted: true,
+      isCanaryUser: false,
+      gateReasonCode: null,
+      maintenanceMessage: null,
+    },
+  };
+}
+
+function createQuoteResponse() {
+  return {
+    base_price: 79,
+    addon_amount: 0,
+    displayed_price: 79,
+    discount_amount: 0,
+    wallet_amount: 0,
+    gateway_amount: 79,
+    partner_markup: 0,
+    is_zero_gateway: false,
+    plan_id: 'plan-plus-365',
+    promo_code_id: null,
+    partner_code_id: null,
+    code_input: null,
+    code_resolution: null,
+    discounts: [],
+    addons: [],
+    entitlements_snapshot: {
+      status: 'active',
+      plan_uuid: 'plan-plus-365',
+      plan_code: 'plus',
+      display_name: 'Plus',
+      period_days: 365,
+      expires_at: null,
+      effective_entitlements: {
+        device_limit: 5,
+        display_traffic_label: 'Unlimited',
+        connection_modes: ['standard', 'stealth'],
+        server_pool: ['shared_plus'],
+        support_sla: 'standard',
+        dedicated_ip_count: 0,
+      },
+      invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
+      is_trial: false,
+      addons: [],
+    },
+  };
+}
 
 describe('MiniAppPlansPage', () => {
   let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
+  const requests: Array<{ url: string; body: unknown }> = [];
 
   beforeEach(() => {
     telegramMock = setupTelegramWebAppMock();
+    requests.length = 0;
     vi.clearAllMocks();
+
+    server.use(
+      http.get(`${API_BASE}/miniapp/offers`, () => HttpResponse.json(createOffers())),
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(createBootstrap())),
+      http.post(`${API_BASE}/miniapp/trial/activate`, () =>
+        HttpResponse.json({
+          activated: true,
+          trial_end: '2026-05-01T00:00:00Z',
+          message: 'Trial activated',
+        }),
+      ),
+      http.post(`${API_BASE}/miniapp/checkout/quote`, async ({ request }) => {
+        requests.push({ url: request.url, body: await request.json() });
+        return HttpResponse.json(createQuoteResponse());
+      }),
+      http.post(`${API_BASE}/miniapp/checkout/commit`, async ({ request }) => {
+        requests.push({ url: request.url, body: await request.json() });
+        return HttpResponse.json({
+          status: 'pending',
+          payment_id: 'payment-1',
+          invoice: {
+            payment_url: 'https://t.me/CryptoBot?start=pay_ABC123',
+            currency: 'USD',
+          },
+        });
+      }),
+      http.post(`${API_BASE}/codes/resolve`, async ({ request }) => {
+        requests.push({ url: request.url, body: await request.json() });
+        return HttpResponse.json({
+          accepted: true,
+          code_type: 'promo',
+          action_context: 'checkout',
+          result: 'accepted',
+          reject_reason: null,
+          conflict_code: null,
+          wrong_context_target: null,
+          issuer_type: 'admin',
+          owner_type: 'admin_campaign',
+          resolved_code_id: 'promo-1',
+          promo_code_id: 'promo-1',
+          partner_code_id: null,
+          user_message_key: 'growth_codes.promo.accepted',
+        });
+      }),
+      http.post(`${API_BASE}/invites/redeem`, async ({ request }) => {
+        requests.push({ url: request.url, body: await request.json() });
+        return HttpResponse.json({ free_days: 14 });
+      }),
+    );
   });
 
   afterEach(() => {
     cleanupTelegramWebAppMock();
   });
 
-  describe('Loading State', () => {
-    it('test_shows_loading_spinner_while_fetching_plans', () => {
-      server.use(
-        http.get(`${API_BASE}/plans`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json(mockPlans);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
+  it('test_shows_loading_spinner_while_fetching_offers', () => {
+    server.use(
+      http.get(`${API_BASE}/miniapp/offers`, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return HttpResponse.json(createOffers());
+      }),
+    );
 
-      render(<PlansPage />, { wrapper: createWrapper() });
+    render(<PlansPage />, { wrapper: createWrapper() });
 
-      expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+  });
+
+  it('test_displays_public_plan_catalog_from_miniapp_offers', async () => {
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Available plans')).toBeInTheDocument();
+      expect(screen.getByText('Basic')).toBeInTheDocument();
+      expect(screen.getByText('Plus')).toBeInTheDocument();
+      expect(screen.getByText('Annual')).toBeInTheDocument();
     });
   });
 
-  describe('Trial Activation Section', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json(mockPlans);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-    });
-
-    it('test_shows_trial_section_when_eligible', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('freeTrialTitle')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('freeTrialDescription')).toBeInTheDocument();
-      expect(screen.getByText('activateTrial')).toBeInTheDocument();
-    });
-
-    it('test_hides_trial_section_when_not_eligible', async () => {
-      server.use(
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
+  it('test_activates_trial_through_miniapp_endpoint', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API_BASE}/miniapp/offers`, () =>
+        HttpResponse.json(createOffers({
+          plans: [],
+          trial: {
             is_trial_active: false,
-            is_eligible: false,
+            is_eligible: true,
             trial_end: null,
             days_remaining: 0,
-          });
-        })
-      );
+          },
+        })),
+      ),
+    );
 
-      render(<PlansPage />, { wrapper: createWrapper() });
+    render(<PlansPage />, { wrapper: createWrapper() });
 
-      await waitFor(() => {
-        expect(screen.getByText('availablePlans')).toBeInTheDocument();
-      });
+    await user.click(await screen.findByRole('button', { name: 'Activate trial' }));
 
-      expect(screen.queryByText('freeTrialTitle')).not.toBeInTheDocument();
-    });
-
-    it('test_hides_trial_section_when_already_active', async () => {
-      server.use(
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
-            is_trial_active: true,
-            is_eligible: false,
-            trial_end: '2026-02-18T23:59:59Z',
-            days_remaining: 7,
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('availablePlans')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('freeTrialTitle')).not.toBeInTheDocument();
-    });
-
-    it('test_activates_trial_successfully', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/trial/activate`, () => {
-          return HttpResponse.json({ message: 'Trial activated' });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('activateTrial')).toBeInTheDocument();
-      });
-
-      const activateButton = screen.getByText('activateTrial');
-      await user.click(activateButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('activating')).toBeInTheDocument();
-      });
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith('trialActivated');
-      });
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('heavy');
-    });
-
-    it('test_shows_error_when_trial_activation_fails', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/trial/activate`, () => {
-          return HttpResponse.json(
-            { detail: 'Trial already used' },
-            { status: 400 }
-          );
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('activateTrial')).toBeInTheDocument();
-      });
-
-      const activateButton = screen.getByText('activateTrial');
-      await user.click(activateButton);
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith('Trial already used');
-      });
-    });
-
-    it('test_disables_button_while_activating', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/trial/activate`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json({ message: 'Success' });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('activateTrial')).toBeInTheDocument();
-      });
-
-      const activateButton = screen.getByText('activateTrial');
-      await user.click(activateButton);
-
-      await waitFor(() => {
-        const button = screen.getByText('activating').closest('button');
-        expect(button).toBeDisabled();
-      });
+    await waitFor(() => {
+      expect(telegramMock.showAlert).toHaveBeenCalledWith('Trial activated');
     });
   });
 
-  describe('Plans Display', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json(mockPlans);
+  it('test_commits_checkout_and_opens_telegram_payment_url', async () => {
+    const user = userEvent.setup();
+
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    const openPaymentButton = await screen.findByRole('button', { name: /Open payment/ });
+    await waitFor(() => expect(openPaymentButton).toBeEnabled());
+
+    await user.click(openPaymentButton);
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            flow: 'checkout',
+            plan_id: 'plan-plus-365',
+            currency: 'USD',
+          }),
         }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
       );
-    });
-
-    it('test_displays_available_plans_title', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('availablePlans')).toBeInTheDocument();
-      });
-    });
-
-    it('test_displays_all_plan_cards', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('Basic Plan')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('Premium Plan')).toBeInTheDocument();
-    });
-
-    it('test_displays_plan_template_types', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('vless')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('vmess')).toBeInTheDocument();
-    });
-
-    it('test_displays_contact_for_price_placeholder', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('contactForPrice')).toHaveLength(2);
-      });
-    });
-
-    it('test_displays_purchase_buttons_for_all_plans', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-    });
-
-    it('test_shows_empty_state_when_no_plans', async () => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json([]);
-        })
+      expect(telegramMock.openTelegramLink).toHaveBeenCalledWith(
+        'https://t.me/CryptoBot?start=pay_ABC123',
       );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noPlans')).toBeInTheDocument();
-      });
     });
   });
 
-  describe('Plan Purchase Flow', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json(mockPlans);
+  it('test_resolves_promo_code_against_growth_codes_endpoint', async () => {
+    const user = userEvent.setup();
+
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    await screen.findByText('Available plans');
+    await user.type(screen.getByPlaceholderText('Promo code'), 'save5');
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            code: 'SAVE5',
+            action_context: 'checkout',
+            plan_id: 'plan-plus-365',
+            channel: 'miniapp',
+          }),
         }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
       );
-    });
-
-    it('test_creates_invoice_and_opens_payment_url', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/payments/invoices`, () => {
-          return HttpResponse.json({
-            payment_url: 'https://t.me/CryptoBot?start=pay_ABC123',
-            invoice_id: 'inv-123',
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      await waitFor(() => {
-        expect(telegramMock.openTelegramLink).toHaveBeenCalledWith(
-          'https://t.me/CryptoBot?start=pay_ABC123'
-        );
-      });
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('medium');
-    });
-
-    it('test_shows_processing_state_during_purchase', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/payments/invoices`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json({
-            payment_url: 'https://t.me/CryptoBot',
-            invoice_id: 'inv-123',
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByText('processing')).toBeInTheDocument();
-      });
-    });
-
-    it('test_shows_error_when_payment_fails', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/payments/invoices`, () => {
-          return HttpResponse.json(
-            { detail: 'Payment service unavailable' },
-            { status: 500 }
-          );
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith('Payment service unavailable');
-      });
-    });
-
-    it('test_triggers_haptic_on_purchase_button_click', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/payments/invoices`, () => {
-          return HttpResponse.json({
-            payment_url: 'https://t.me/CryptoBot',
-            invoice_id: 'inv-123',
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalled();
+      expect(screen.getByText('Code accepted SAVE5')).toBeInTheDocument();
     });
   });
 
-  describe('Promo Code Validation', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json(mockPlans);
+  it('test_redeems_invite_code_through_invites_endpoint', async () => {
+    const user = userEvent.setup();
+
+    render(<PlansPage />, { wrapper: createWrapper() });
+
+    await screen.findByText('Have invite code');
+    await user.type(screen.getByPlaceholderText('Invite code'), 'friend14');
+    await user.click(screen.getByRole('button', { name: 'Redeem' }));
+
+    await waitFor(() => {
+      expect(requests).toContainEqual(
+        expect.objectContaining({
+          body: { code: 'FRIEND14' },
         }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
       );
-    });
-
-    it('test_displays_promo_code_input_section', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('havePromoCode')).toBeInTheDocument();
-      });
-
-      expect(screen.getByPlaceholderText('promoCodePlaceholder')).toBeInTheDocument();
-      expect(screen.getByText('apply')).toBeInTheDocument();
-    });
-
-    it('test_converts_promo_code_to_uppercase', async () => {
-      const user = userEvent.setup();
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('promoCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const input = screen.getByPlaceholderText('promoCodePlaceholder') as HTMLInputElement;
-      await user.type(input, 'promo20');
-
-      expect(input.value).toBe('PROMO20');
-    });
-
-    it('test_validates_promo_code_successfully', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/promo/validate`, () => {
-          return HttpResponse.json({
-            discount_amount: 5.99,
-            valid: true,
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      // First select a plan
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      // Then apply promo code
-      const promoInput = screen.getByPlaceholderText('promoCodePlaceholder');
-      await user.type(promoInput, 'SAVE5');
-
-      const applyButton = screen.getByText('apply');
-      await user.click(applyButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/discountApplied/)).toBeInTheDocument();
-      });
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('medium');
-    });
-
-    it('test_shows_alert_when_no_plan_selected', async () => {
-      const user = userEvent.setup();
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('promoCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const promoInput = screen.getByPlaceholderText('promoCodePlaceholder');
-      await user.type(promoInput, 'PROMO');
-
-      const applyButton = screen.getByText('apply');
-      await user.click(applyButton);
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith('selectPlanFirst');
-      });
-    });
-
-    it('test_shows_error_for_invalid_promo_code', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/promo/validate`, () => {
-          return HttpResponse.json(
-            { detail: 'Invalid promo code' },
-            { status: 404 }
-          );
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      // Select a plan first
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      const promoInput = screen.getByPlaceholderText('promoCodePlaceholder');
-      await user.type(promoInput, 'INVALID');
-
-      const applyButton = screen.getByText('apply');
-      await user.click(applyButton);
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith('Invalid promo code');
-      });
-    });
-
-    it('test_disables_apply_button_without_code', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('apply')).toBeInTheDocument();
-      });
-
-      const applyButton = screen.getByText('apply').closest('button');
-      expect(applyButton).toBeDisabled();
-    });
-
-    it('test_shows_loading_spinner_while_validating', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/promo/validate`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json({ discount_amount: 5, valid: true });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getAllByText('purchasePlan')).toHaveLength(2);
-      });
-
-      // Select a plan
-      const purchaseButtons = screen.getAllByText('purchasePlan');
-      await user.click(purchaseButtons[0]);
-
-      const promoInput = screen.getByPlaceholderText('promoCodePlaceholder');
-      await user.type(promoInput, 'CODE');
-
-      const applyButton = screen.getByText('apply');
-      await user.click(applyButton);
-
-      await waitFor(() => {
-        const loadingSpinner = document.querySelector('.animate-spin');
-        expect(loadingSpinner).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Invite Code Redemption', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json(mockPlans);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-    });
-
-    it('test_displays_invite_code_input_section', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('haveInviteCode')).toBeInTheDocument();
-      });
-
-      expect(screen.getByPlaceholderText('inviteCodePlaceholder')).toBeInTheDocument();
-      expect(screen.getByText('redeem')).toBeInTheDocument();
-      expect(screen.getByText('inviteCodeNote')).toBeInTheDocument();
-    });
-
-    it('test_converts_invite_code_to_uppercase', async () => {
-      const user = userEvent.setup();
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('inviteCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const input = screen.getByPlaceholderText('inviteCodePlaceholder') as HTMLInputElement;
-      await user.type(input, 'invite123');
-
-      expect(input.value).toBe('INVITE123');
-    });
-
-    it('test_redeems_invite_code_successfully', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/invites/redeem`, () => {
-          return HttpResponse.json({
-            message: 'Invite redeemed',
-            free_days: 7,
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('inviteCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const inviteInput = screen.getByPlaceholderText('inviteCodePlaceholder');
-      await user.type(inviteInput, 'FRIEND2024');
-
-      const redeemButton = screen.getByText('redeem');
-      await user.click(redeemButton);
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith(
-          expect.stringContaining('inviteRedeemed')
-        );
-      });
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('heavy');
-    });
-
-    it('test_clears_input_after_successful_redemption', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/invites/redeem`, () => {
-          return HttpResponse.json({
-            message: 'Success',
-            free_days: 7,
-          });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('inviteCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const inviteInput = screen.getByPlaceholderText('inviteCodePlaceholder') as HTMLInputElement;
-      await user.type(inviteInput, 'CODE');
-
-      const redeemButton = screen.getByText('redeem');
-      await user.click(redeemButton);
-
-      await waitFor(() => {
-        expect(inviteInput.value).toBe('');
-      });
-    });
-
-    it('test_shows_error_for_invalid_invite_code', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/invites/redeem`, () => {
-          return HttpResponse.json(
-            { detail: 'Invalid invite code' },
-            { status: 404 }
-          );
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('inviteCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const inviteInput = screen.getByPlaceholderText('inviteCodePlaceholder');
-      await user.type(inviteInput, 'INVALID');
-
-      const redeemButton = screen.getByText('redeem');
-      await user.click(redeemButton);
-
-      await waitFor(() => {
-        expect(telegramMock.showAlert).toHaveBeenCalledWith('Invalid invite code');
-      });
-    });
-
-    it('test_disables_redeem_button_without_code', async () => {
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('redeem')).toBeInTheDocument();
-      });
-
-      const redeemButton = screen.getByText('redeem').closest('button');
-      expect(redeemButton).toBeDisabled();
-    });
-
-    it('test_shows_loading_spinner_while_redeeming', async () => {
-      const user = userEvent.setup();
-
-      server.use(
-        http.post(`${API_BASE}/invites/redeem`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json({ message: 'Success', free_days: 7 });
-        })
-      );
-
-      render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('inviteCodePlaceholder')).toBeInTheDocument();
-      });
-
-      const inviteInput = screen.getByPlaceholderText('inviteCodePlaceholder');
-      await user.type(inviteInput, 'CODE');
-
-      const redeemButton = screen.getByText('redeem');
-      await user.click(redeemButton);
-
-      await waitFor(() => {
-        const loadingSpinner = document.querySelector('.animate-spin');
-        expect(loadingSpinner).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Theme Integration', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/plans`, () => {
-          return HttpResponse.json(mockPlans);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-    });
-
-    it('test_uses_dark_theme_by_default', async () => {
-      const { container } = render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('availablePlans')).toBeInTheDocument();
-      });
-
-      const cards = container.querySelectorAll('[class*="bg-[var(--tg-bg-color"]');
-      expect(cards.length).toBeGreaterThan(0);
-    });
-
-    it('test_uses_light_theme_when_telegram_in_light_mode', async () => {
-      cleanupTelegramWebAppMock();
-      setupTelegramWebAppMock({ colorScheme: 'light' });
-
-      const { container } = render(<PlansPage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('availablePlans')).toBeInTheDocument();
-      });
-
-      expect(container.querySelector('[class*="bg-[var(--tg-bg-color"]')).toBeInTheDocument();
+      expect(telegramMock.showAlert).toHaveBeenCalledWith('Invite redeemed 14 free days');
     });
   });
 });

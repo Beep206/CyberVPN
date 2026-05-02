@@ -139,6 +139,14 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: [generated-artifacts, lint, typecheck, test]
+    env:
+      APP_ENV: staging
+      NEXT_PUBLIC_APP_ENV: staging
+      SENTRY_DSN: https://frontend-server@example.com/1
+      NEXT_PUBLIC_SENTRY_DSN: https://frontend-public@example.com/1
+      SENTRY_RELEASE: frontend@${{ github.sha }}
+      NEXT_PUBLIC_SENTRY_RELEASE: frontend@${{ github.sha }}
+      FRONTEND_OBSERVABILITY_INTERNAL_SECRET: frontend-smoke-secret
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -155,6 +163,48 @@ jobs:
 
       - name: Build Next.js
         run: npm run build
+
+      - name: Validate Sentry contract
+        run: |
+          python3 ../scripts/validate-sentry-contract.py \
+            --surface frontend \
+            --environment-var APP_ENV \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release frontend@${{ github.sha }} \
+            --require-dsn \
+            --summary-label "Frontend Sentry contract"
+
+      - name: Start Next.js for smoke validation
+        run: |
+          nohup npm run start -- --hostname 127.0.0.1 --port 3000 \
+            > /tmp/frontend-sentry-smoke.log 2>&1 &
+          echo $! > /tmp/frontend-sentry-smoke.pid
+
+      - name: Run HTTP smoke validation
+        run: |
+          python3 ../scripts/http-smoke-check.py \
+            --url http://127.0.0.1:3000/en-EN \
+            --expect-status 200 \
+            --summary-label "Frontend page smoke"
+          python3 ../scripts/http-smoke-check.py \
+            --url http://127.0.0.1:3000/api/observability/sentry-contract \
+            --header "x-observability-secret: ${FRONTEND_OBSERVABILITY_INTERNAL_SECRET}" \
+            --expect-status 200 \
+            --expect-json-field runtimeSurface=frontend \
+            --expect-json-field environment=staging \
+            --expect-json-field release=frontend@${{ github.sha }} \
+            --expect-json-field dsnConfigured=true \
+            --expect-json-field publicDsnConfigured=true \
+            --summary-label "Frontend Sentry runtime smoke"
+
+      - name: Stop Next.js smoke server
+        if: always()
+        run: |
+          if [ -f /tmp/frontend-sentry-smoke.pid ]; then
+            kill "$(cat /tmp/frontend-sentry-smoke.pid)" || true
+          fi
 
   all-checks:
     name: All Frontend Checks Passed

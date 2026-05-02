@@ -187,12 +187,12 @@ export function MobileSidebar() {
                             <div className="border-t border-grid-line/30 p-4">
                                 <div className="rounded-lg bg-sidebar-accent/50 p-3 border border-grid-line/20">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded bg-neon-purple/20 flex items-center justify-center text-neon-purple border border-neon-purple/50">
-                                            AD
+                                        <div className="h-8 w-8 rounded bg-neon-cyan/20 flex items-center justify-center text-neon-cyan border border-neon-cyan/50">
+                                            CV
                                         </div>
                                         <div className="text-xs font-mono">
-                                            <div className="text-foreground">ADMIN_01</div>
-                                            <div className="text-muted-foreground">ROOT ACCESS</div>
+                                            <div className="text-foreground">USER NODE</div>
+                                            <div className="text-muted-foreground">PRIVATE ACCESS</div>
                                         </div>
                                     </div>
                                 </div>

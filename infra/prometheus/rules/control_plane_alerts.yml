@@ -1,0 +1,23 @@
+groups:
+  - name: cybervpn_control_plane_alerts
+    interval: 30s
+    rules:
+      - alert: AlloyControlPlaneDown
+        expr: up{job="alloy-control-plane"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: control-plane-observability
+        annotations:
+          summary: "Control-plane Alloy target is down"
+          description: "Prometheus cannot scrape the control-plane Alloy target {{ $labels.instance }} for more than 5 minutes."
+
+      - alert: OpenBaoMetricsDown
+        expr: up{job="openbao"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: openbao
+        annotations:
+          summary: "OpenBao metrics target is down"
+          description: "Prometheus cannot scrape the OpenBao metrics target {{ $labels.instance }} for more than 5 minutes."

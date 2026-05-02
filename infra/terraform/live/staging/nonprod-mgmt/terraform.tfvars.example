@@ -1,0 +1,39 @@
+project_name          = "cybervpn"
+environment           = "nonprod"
+management_cluster_id = "nonprod-mgmt"
+
+admin_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+control_plane_nodes = {
+  nonprod-mgmt-cp-01 = {
+    location    = "fsn1"
+    server_type = "cpx31"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+}
+
+worker_nodes = {
+  nonprod-mgmt-worker-01 = {
+    location    = "nbg1"
+    server_type = "cpx21"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+  nonprod-mgmt-worker-02 = {
+    location    = "hel1"
+    server_type = "cpx21"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+}
+
+# Set image to the Talos Hetzner snapshot or image id validated for your project.

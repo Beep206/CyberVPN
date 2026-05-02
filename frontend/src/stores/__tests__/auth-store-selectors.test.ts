@@ -113,6 +113,10 @@ function resetStoreState() {
   });
 }
 
+function setWindowLocation(overrides: Partial<Location>) {
+  Object.assign(window.location, overrides);
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -285,9 +289,11 @@ describe('Auth Store - oauthLogin analytics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetStoreState();
-    window.location.origin = 'http://localhost:3000';
-    window.location.pathname = '/ru-RU/login';
-    window.location.search = '';
+    setWindowLocation({
+      origin: 'http://localhost:3000',
+      pathname: '/ru-RU/login',
+      search: '',
+    });
   });
 
   afterEach(() => {

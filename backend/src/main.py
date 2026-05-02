@@ -31,6 +31,7 @@ from src.domain.exceptions.domain_errors import (
 from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
+from src.infrastructure.messaging.nats_partner_runtime import NatsPartnerRuntime
 from src.infrastructure.monitoring.http_metrics import add_http_metrics_middleware, build_metrics_response
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
 from src.presentation.api.v1.router import api_router
@@ -57,6 +58,7 @@ from src.presentation.middleware.logging import LoggingMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
 from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
+from src.shared.observability import before_send, before_send_transaction
 from src.version import __version__
 
 logger = logging.getLogger(__name__)
@@ -104,11 +106,21 @@ async def lifespan(app: FastAPI):
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
             environment=settings.environment,
+            release=settings.sentry_release or None,
             traces_sample_rate=1.0 if settings.environment == "development" else 0.1,
             profiles_sample_rate=1.0 if settings.environment == "development" else 0.1,
+            send_default_pii=False,
+            max_request_body_size="never",
+            include_local_variables=False,
             integrations=[StarletteIntegration(), FastApiIntegration()],
+            before_send=before_send,
+            before_send_transaction=before_send_transaction,
         )
-        logger.info("Sentry SDK initialized", environment=settings.environment)
+        logger.info(
+            "Sentry SDK initialized",
+            environment=settings.environment,
+            release=settings.sentry_release or None,
+        )
 
     # Initialize OpenTelemetry tracing if enabled
     if settings.otel_enabled:
@@ -166,6 +178,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Redis check skipped: {e}")
 
+    try:
+        await app.state.partner_event_runtime.start()
+    except Exception as e:
+        logger.warning("Partner event backbone startup failed: %s", e, exc_info=True)
+        raise
+
     yield
 
     # Shutdown
@@ -215,6 +233,11 @@ async def lifespan(app: FastAPI):
         await close_redis_pool()
     except Exception as e:
         logger.warning("Shutdown error in redis_pool: %s", e, exc_info=True)
+
+    try:
+        await app.state.partner_event_runtime.stop()
+    except Exception as e:
+        logger.warning("Shutdown error in partner_event_runtime: %s", e, exc_info=True)
 
     from src.infrastructure.messaging.websocket_manager import ws_manager
 
@@ -277,6 +300,8 @@ app = FastAPI(
     docs_url=docs_url,
     redoc_url=redoc_url,
 )
+
+app.state.partner_event_runtime = NatsPartnerRuntime()
 
 # Auto-instrument with OpenTelemetry if enabled (must be done after app creation)
 if settings.otel_enabled:

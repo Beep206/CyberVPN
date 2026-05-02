@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { subscriptionsApi } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
+import { useLocale, useTranslations } from 'next-intl';
+import { miniappApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import {
   Download,
@@ -17,33 +16,62 @@ import {
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from './MiniAppBottomSheet';
 import dynamic from 'next/dynamic';
+import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
 
 const QRCodeComponent = dynamic(() => import('react-qr-code'), { ssr: false });
 
 interface VpnConfigCardProps {
   colorScheme?: 'light' | 'dark';
+  page?: 'home' | 'profile';
 }
 
 /**
  * VPN Config card component
  * Displays VPN configuration with copy, QR code, and deep link actions
  */
-export function VpnConfigCard({ colorScheme = 'dark' }: VpnConfigCardProps) {
+export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfigCardProps) {
   const t = useTranslations('MiniApp.home');
+  const locale = useLocale();
   const { haptic, webApp } = useTelegramWebApp();
-  const user = useAuthStore((s) => s.user);
   const [qrSheetOpen, setQrSheetOpen] = useState(false);
+  const loadedTracked = useRef(false);
+  const failedTracked = useRef(false);
 
-  // Fetch VPN config
-  const { data: configData, isLoading, isError } = useQuery({
-    queryKey: ['vpn-config', user?.id],
+  const { data: configData, error, isLoading, isError } = useQuery({
+    queryKey: ['miniapp-config'],
     queryFn: async () => {
-      if (!user?.id) return null;
-      const { data } = await subscriptionsApi.getConfig(user.id);
+      const { data } = await miniappApi.getConfig();
       return data;
     },
-    enabled: !!user?.id,
   });
+  const errorDetail = (error as { response?: { data?: { detail?: string } } } | null)?.response?.data?.detail;
+
+  useEffect(() => {
+    if (!configData || loadedTracked.current) return;
+    loadedTracked.current = true;
+    failedTracked.current = false;
+    void emitMiniAppRuntimeEvent({
+      event: 'miniapp_config_loaded',
+      page,
+      locale,
+      path: `/${locale}/miniapp/${page}`,
+      configSource: configData.source,
+      subscriptionStatus: configData.isFound ? 'config_available' : 'none',
+    });
+  }, [configData, locale, page]);
+
+  useEffect(() => {
+    if (!isError || failedTracked.current) return;
+    failedTracked.current = true;
+    loadedTracked.current = false;
+    void emitMiniAppRuntimeEvent({
+      event: 'miniapp_config_failed',
+      page,
+      locale,
+      path: `/${locale}/miniapp/${page}`,
+      errorCode: 'config_fetch_failed',
+    });
+  }, [isError, locale, page]);
 
   const isDark = colorScheme === 'dark';
   const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
@@ -63,10 +91,8 @@ export function VpnConfigCard({ colorScheme = 'dark' }: VpnConfigCardProps) {
 
   const openInApp = () => {
     haptic('medium');
-    // Use subscriptionUrl if available, otherwise use config
     const linkUrl = configData?.subscriptionUrl || configData?.config;
     if (linkUrl) {
-      // Try to open in mobile VPN app via deep link
       webApp?.openLink(linkUrl);
     }
   };
@@ -101,7 +127,7 @@ export function VpnConfigCard({ colorScheme = 'dark' }: VpnConfigCardProps) {
           <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-display text-sm mb-1">{t('noConfigAvailable')}</h3>
-            <p className="text-xs text-muted-foreground font-mono">{t('noConfigDescription')}</p>
+            <p className="text-xs text-muted-foreground font-mono">{errorDetail || t('noConfigDescription')}</p>
           </div>
         </div>
       </motion.div>

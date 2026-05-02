@@ -117,8 +117,16 @@ def addons_keyboard(
 def payment_methods_keyboard(
     i18n: Callable[..., str],
     settings: BotSettings,
+    *,
+    has_telegram_stars: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+
+    if settings.telegram_stars.enabled and has_telegram_stars:
+        builder.button(
+            text="⭐ Telegram Stars",
+            callback_data="pay:telegram_stars",
+        )
 
     if settings.cryptobot.enabled:
         builder.button(

@@ -38,8 +38,11 @@ void main() {
       // We verify the code path exists: kReleaseMode is checked at line 106
       // of environment_config.dart. Since tests run in debug mode, we confirm
       // the guard is in place by checking the constant.
-      expect(kReleaseMode, isFalse,
-          reason: 'Tests run in debug mode, not release');
+      expect(
+        kReleaseMode,
+        isFalse,
+        reason: 'Tests run in debug mode, not release',
+      );
 
       // Calling init() in debug mode is safe -- it attempts to load .env
       // (which may or may not exist) but will never crash.
@@ -58,12 +61,30 @@ void main() {
       expect(EnvironmentConfig.sentryDsn, isEmpty);
     });
 
+    test('sentryRelease returns empty string by default', () {
+      expect(EnvironmentConfig.sentryRelease, isEmpty);
+    });
+
     test('certificateFingerprints returns empty list by default', () {
       expect(EnvironmentConfig.certificateFingerprints, isEmpty);
     });
 
     test('telegramBotUsername returns empty string by default', () {
       expect(EnvironmentConfig.telegramBotUsername, isEmpty);
+    });
+
+    test('telegram native config defaults to disabled', () {
+      expect(EnvironmentConfig.telegramOidcClientId, isEmpty);
+      expect(EnvironmentConfig.telegramNativeRedirectUri, isEmpty);
+      expect(EnvironmentConfig.telegramNativeLoginEnabledFlag, isFalse);
+      expect(EnvironmentConfig.telegramNativeLoginIosEnabledFlag, isTrue);
+      expect(EnvironmentConfig.telegramNativeLoginAndroidEnabledFlag, isTrue);
+      expect(EnvironmentConfig.telegramNativePhoneScopeEnabled, isFalse);
+      expect(EnvironmentConfig.isTelegramNativeLoginEnabled, isFalse);
+      expect(
+        EnvironmentConfig.isTelegramNativeLoginEnabledForCurrentPlatform,
+        isFalse,
+      );
     });
   });
 }

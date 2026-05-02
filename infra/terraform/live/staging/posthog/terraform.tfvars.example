@@ -1,0 +1,21 @@
+posthog_domain = "posthog.staging.example.com"
+
+foundation_state = {
+  bucket       = "cybervpn-terraform-state"
+  key          = "staging/foundation/tofu.tfstate"
+  region       = "eu-central-1"
+  use_lockfile = true
+}
+
+admin_ipv4_cidrs = ["203.0.113.10/32"]
+
+posthog_nodes = {
+  "posthog-nonprod-01" = {
+    location     = "fsn1"
+    server_type  = "cpx41"
+    enable_backups = true
+    labels = {
+      tier = "analytics"
+    }
+  }
+}

@@ -10,9 +10,9 @@ Typical flow:
 4. Initialize and apply:
 
 ```bash
-terraform -chdir=infra/terraform/live/staging/control-plane init -backend-config=backend.hcl
-terraform -chdir=infra/terraform/live/staging/control-plane plan -var-file=terraform.tfvars
-terraform -chdir=infra/terraform/live/staging/control-plane apply -var-file=terraform.tfvars
+tofu -chdir=infra/terraform/live/staging/control-plane init -backend-config=backend.hcl
+tofu -chdir=infra/terraform/live/staging/control-plane plan -var-file=terraform.tfvars
+tofu -chdir=infra/terraform/live/staging/control-plane apply -var-file=terraform.tfvars
 ```
 
 `control_plane_nodes` is intentionally thin: the stack creates host(s), SSH

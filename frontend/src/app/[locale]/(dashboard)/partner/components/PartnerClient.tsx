@@ -7,7 +7,7 @@ import { CyberInput } from '@/features/auth/components/CyberInput';
 import { MobileDataList, type MobileDataListItem } from '@/shared/ui/mobile-data-list';
 import { motion } from 'motion/react';
 import { Handshake, DollarSign, Users, Code, Plus, CheckCircle } from 'lucide-react';
-import { AxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 
 interface PartnerCode {
   id: string;
@@ -29,8 +29,9 @@ interface PartnerEarning {
 
 export function PartnerClient() {
   const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } = usePartnerDashboard();
-  const { data: codes, isLoading: codesLoading, refetch: refetchCodes } = usePartnerCodes();
-  const { data: earnings } = usePartnerEarnings();
+  const canLoadPartnerDetails = Boolean(dashboard) && !dashboardError;
+  const { data: codes, isLoading: codesLoading, refetch: refetchCodes } = usePartnerCodes(canLoadPartnerDetails);
+  const { data: earnings } = usePartnerEarnings(canLoadPartnerDetails);
 
   const [bindCode, setBindCode] = useState('');
   const [bindLoading, setBindLoading] = useState(false);
@@ -89,7 +90,7 @@ export function PartnerClient() {
       setBindCode('');
       setTimeout(() => window.location.reload(), 2000);
     } catch (err) {
-      if (err instanceof AxiosError) {
+      if (isAxiosError(err)) {
         setBindError(err.response?.data?.detail || 'Failed to bind to partner');
       } else {
         setBindError('An error occurred');
@@ -120,7 +121,7 @@ export function PartnerClient() {
       setNewCodeMarkup('');
       await refetchCodes();
     } catch (err) {
-      if (err instanceof AxiosError) {
+      if (isAxiosError(err)) {
         setCreateError(err.response?.data?.detail || 'Failed to create code');
       } else {
         setCreateError('An error occurred');
@@ -131,7 +132,7 @@ export function PartnerClient() {
   };
 
   // Non-partner view - bind form
-  if (dashboardError && (dashboardError as AxiosError)?.response?.status === 403) {
+  if (dashboardError && isAxiosError(dashboardError) && dashboardError.response?.status === 403) {
     return (
       <div className="space-y-6">
         <motion.div
@@ -173,7 +174,7 @@ export function PartnerClient() {
 
             <button
               onClick={handleBind}
-              disabled={bindLoading || !bindCode.trim()}
+              disabled={bindLoading}
               className="w-full px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {bindLoading ? 'Binding...' : 'Bind Partner Code'}
@@ -289,7 +290,7 @@ export function PartnerClient() {
             <div className="flex items-end">
               <button
                 onClick={handleCreateCode}
-                disabled={creatingCode || !newCodeName || !newCodeMarkup}
+                disabled={creatingCode}
                 className="w-full px-4 py-3 bg-matrix-green/20 hover:bg-matrix-green/30 border border-matrix-green/50 text-matrix-green font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creatingCode ? 'Creating...' : 'Create'}

@@ -25,7 +25,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError to safely inspect response data in catch blocks. */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
@@ -188,7 +188,12 @@ describe('authApi.login', () => {
 describe('authApi.register', () => {
   it('test_register_success_returns_unverified_user', async () => {
     // Arrange
-    const data = { login: 'newuser', email: 'new@cybervpn.io', password: 'S3cure!Pass' };
+    const data = {
+      login: 'newuser',
+      email: 'new@cybervpn.io',
+      password: 'S3cure!Pass',
+      tos_accepted: true,
+    };
 
     // Act
     const response = await authApi.register(data);
@@ -205,7 +210,12 @@ describe('authApi.register', () => {
 
   it('test_register_duplicate_email_rejects_with_409', async () => {
     // Arrange
-    const data = { login: 'taken', email: 'taken@cybervpn.io', password: 'AnyPass1!' };
+    const data = {
+      login: 'taken',
+      email: 'taken@cybervpn.io',
+      password: 'AnyPass1!',
+      tos_accepted: true,
+    };
 
     // Act & Assert
     try {
@@ -222,7 +232,7 @@ describe('authApi.register', () => {
 
   it('test_register_missing_fields_rejects_with_422', async () => {
     // Arrange -- empty login triggers 422
-    const data = { login: '', password: 'abc123' };
+    const data = { login: '', password: 'abc123', tos_accepted: false };
 
     // Act & Assert
     try {
@@ -237,7 +247,11 @@ describe('authApi.register', () => {
   });
 
   it('test_register_username_only_success_returns_active_user_without_email', async () => {
-    const data = { login: 'cyberpunk_hacker', password: 'S3cure!Pass' };
+    const data = {
+      login: 'cyberpunk_hacker',
+      password: 'S3cure!Pass',
+      tos_accepted: true,
+    };
 
     const response = await authApi.register(data);
 

@@ -1,0 +1,238 @@
+name: Partner Observability Conformance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'admin/**'
+      - 'partner/**'
+      - 'infra/**'
+      - 'scripts/run-partner-observability-conformance.sh'
+      - 'scripts/run-partner-observability-staging-smoke.sh'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md'
+      - 'docs/plans/2026-04-20-partner-observability-staging-rollout-technical-debt.md'
+      - '.github/workflows/partner-observability-conformance.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'admin/**'
+      - 'partner/**'
+      - 'infra/**'
+      - 'scripts/run-partner-observability-conformance.sh'
+      - 'scripts/run-partner-observability-staging-smoke.sh'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md'
+      - 'docs/plans/2026-04-20-partner-observability-staging-rollout-technical-debt.md'
+      - '.github/workflows/partner-observability-conformance.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-observability:
+    name: Backend Observability Pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.13'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e ".[dev]"
+
+      - name: Run backend observability conformance
+        env:
+          SKIP_TEST_DB_BOOTSTRAP: '1'
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-observability-conformance.sh --backend |& tee .ci-artifacts/backend-observability.log
+
+      - name: Upload backend observability log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-observability-backend-${{ github.run_id }}
+          path: .ci-artifacts/backend-observability.log
+          if-no-files-found: error
+
+  partner-observability:
+    name: Partner Frontend Observability
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Run partner observability conformance
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-observability-conformance.sh --partner |& tee .ci-artifacts/partner-observability.log
+
+      - name: Upload partner observability log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-observability-partner-${{ github.run_id }}
+          path: .ci-artifacts/partner-observability.log
+          if-no-files-found: error
+
+  admin-observability:
+    name: Admin Frontend Observability
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Run admin observability conformance
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-observability-conformance.sh --admin |& tee .ci-artifacts/admin-observability.log
+
+      - name: Upload admin observability log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-observability-admin-${{ github.run_id }}
+          path: .ci-artifacts/admin-observability.log
+          if-no-files-found: error
+
+  observability-assets:
+    name: Observability Assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.13'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e ".[dev]"
+
+      - name: Run observability asset checks
+        shell: bash
+        run: |
+          mkdir -p .ci-artifacts
+          set -o pipefail
+          bash scripts/run-partner-observability-conformance.sh --assets |& tee .ci-artifacts/observability-assets.log
+
+      - name: Upload observability assets log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-observability-assets-${{ github.run_id }}
+          path: .ci-artifacts/observability-assets.log
+          if-no-files-found: error
+
+  all-checks:
+    name: All Partner Observability Checks Passed
+    runs-on: ubuntu-latest
+    needs:
+      - backend-observability
+      - partner-observability
+      - admin-observability
+      - observability-assets
+    if: always()
+    steps:
+      - name: Check all jobs
+        env:
+          BACKEND_RESULT: ${{ needs.backend-observability.result }}
+          PARTNER_RESULT: ${{ needs.partner-observability.result }}
+          ADMIN_RESULT: ${{ needs.admin-observability.result }}
+          ASSETS_RESULT: ${{ needs.observability-assets.result }}
+        run: |
+          if [[ "$BACKEND_RESULT" != "success" ]]; then
+            echo "Backend observability failed"
+            exit 1
+          fi
+          if [[ "$PARTNER_RESULT" != "success" ]]; then
+            echo "Partner frontend observability failed"
+            exit 1
+          fi
+          if [[ "$ADMIN_RESULT" != "success" ]]; then
+            echo "Admin frontend observability failed"
+            exit 1
+          fi
+          if [[ "$ASSETS_RESULT" != "success" ]]; then
+            echo "Observability assets failed"
+            exit 1
+          fi
+          echo "All partner observability checks passed"
+
+      - name: Write branch protection handoff summary
+        run: |
+          {
+            echo "## Partner Observability Required Check"
+            echo
+            echo "- Workflow: \`Partner Observability Conformance\`"
+            echo "- Required status check: \`All Partner Observability Checks Passed\`"
+            echo "- Backend log artifact: \`partner-observability-backend-${{ github.run_id }}\`"
+            echo "- Partner log artifact: \`partner-observability-partner-${{ github.run_id }}\`"
+            echo "- Admin log artifact: \`partner-observability-admin-${{ github.run_id }}\`"
+            echo "- Assets log artifact: \`partner-observability-assets-${{ github.run_id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -210,12 +210,23 @@ jobs:
           KEYSTORE_DATA: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           WORKSPACE: ${{ github.workspace }}
 
+      - name: Resolve Android release metadata
+        if: matrix.build-type == 'release'
+        id: release_meta
+        run: |
+          APP_VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "release=cybervpn-mobile@${APP_VERSION}+${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+
       - name: Build Android ${{ matrix.build-command }} (${{ matrix.flavor }})
         run: |
           if [ "${{ matrix.build-type }}" = "release" ]; then
             flutter build ${{ matrix.build-command }} --flavor ${{ matrix.flavor }} --${{ matrix.build-type }} \
+              --build-number="${SENTRY_BUILD_NUMBER}" \
               --obfuscate \
-              --split-debug-info=build/debug-info/
+              --split-debug-info=build/debug-info/ \
+              --dart-define=SENTRY_RELEASE="${SENTRY_RELEASE}"
           else
             flutter build ${{ matrix.build-command }} --flavor ${{ matrix.flavor }} --${{ matrix.build-type }}
           fi
@@ -224,19 +235,37 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SENTRY_BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
 
       - name: Upload Dart debug symbols to Sentry (release builds only)
-        if: matrix.build-type == 'release' && secrets.SENTRY_AUTH_TOKEN != ''
+        if: matrix.build-type == 'release' && secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
         run: |
           curl -sL https://sentry.io/get-cli/ | bash
           sentry-cli upload-dif \
             --org "${SENTRY_ORG}" \
             --project "${SENTRY_PROJECT}" \
             build/debug-info/
+
+      - name: Summarize Android Sentry release metadata
+        if: matrix.build-type == 'release'
+        env:
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+        run: |
+          {
+            echo "### Mobile Android Sentry build metadata"
+            echo "- Flavor: \`${{ matrix.flavor }}\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Project: \`${SENTRY_PROJECT:-unconfigured}\`"
+            echo "- Debug symbol upload enabled: \`${SENTRY_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -292,6 +321,20 @@ jobs:
           flutter build ios --no-codesign \
             --obfuscate \
             --split-debug-info=build/debug-info/
+
+      - name: Upload iOS debug symbols to Sentry
+        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.MOBILE_SENTRY_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.MOBILE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli upload-dif \
+            --org "${SENTRY_ORG}" \
+            --project "${SENTRY_PROJECT}" \
+            build/debug-info/
 
       - name: Upload debug symbols artifact
         uses: actions/upload-artifact@v4

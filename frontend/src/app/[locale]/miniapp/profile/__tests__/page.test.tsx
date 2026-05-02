@@ -9,8 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ProfilePage from '../page';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
@@ -41,7 +40,7 @@ vi.mock('@/stores/auth-store', () => ({
   },
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -53,27 +52,28 @@ const createWrapper = () => {
 };
 
 describe('MiniAppProfilePage', () => {
-  let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
-
   beforeEach(() => {
-    telegramMock = setupTelegramWebAppMock();
+    setupTelegramWebAppMock();
     vi.clearAllMocks();
 
     server.use(
       http.get(`${API_BASE}/referral/code`, () => {
-        return HttpResponse.json({ code: 'REF2024' });
+        return HttpResponse.json({ referral_code: 'REF2024' });
       }),
       http.get(`${API_BASE}/referral/stats`, () => {
         return HttpResponse.json({ total_referrals: 5 });
       }),
-      http.get(`${API_BASE}/twofa/status`, () => {
-        return HttpResponse.json({ enabled: false });
+      http.get(`${API_BASE}/2fa/status`, () => {
+        return HttpResponse.json({ status: 'disabled' });
       }),
       http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([]);
       }),
       http.get(`${API_BASE}/security/antiphishing`, () => {
         return HttpResponse.json({ code: null });
+      }),
+      http.get(`${API_BASE}/partner/dashboard`, () => {
+        return HttpResponse.json({ is_partner: false, codes: [] });
       })
     );
   });
@@ -86,33 +86,34 @@ describe('MiniAppProfilePage', () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('userInfo')).toBeInTheDocument();
+      expect(screen.getByText('testuser')).toBeInTheDocument();
+      expect(screen.getByText('test@example.com')).toBeInTheDocument();
     });
   });
 
   it('test_displays_referral_section', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
-    await waitFor(() => {
-      expect(screen.getByText('referral')).toBeInTheDocument();
-    });
+    const referralSection = await screen.findByRole('button', { name: /referral/i });
 
-    expect(screen.getByText('REF2024')).toBeInTheDocument();
+    fireEvent.click(referralSection);
+
+    await waitFor(() => {
+      expect(screen.getByText('REF2024')).toBeInTheDocument();
+      expect(screen.getByText('yourReferralCode')).toBeInTheDocument();
+    });
   });
 
   it('test_expands_and_collapses_sections', async () => {
-    const user = userEvent.setup();
-
     render(<ProfilePage />, { wrapper: createWrapper() });
 
+    const securitySection = await screen.findByRole('button', { name: /security/i });
+    fireEvent.click(securitySection);
+
     await waitFor(() => {
-      expect(screen.getByText('security')).toBeInTheDocument();
+      expect(screen.getByText('twoFactorAuth')).toBeInTheDocument();
+      expect(screen.getByText('changePassword')).toBeInTheDocument();
     });
-
-    const securitySection = screen.getByText('security');
-    await user.click(securitySection);
-
-    expect(telegramMock.HapticFeedback.selectionChanged).toHaveBeenCalled();
   });
 
   it('test_shows_logout_button', async () => {

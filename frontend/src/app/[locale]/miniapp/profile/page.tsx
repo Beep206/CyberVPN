@@ -315,6 +315,7 @@ export default function MiniAppProfilePage() {
     <div className="max-w-screen-sm mx-auto space-y-4">
       {/* User Header */}
       <motion.div
+        id="profile-contact"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className={`${cardBg} ${borderColor} border rounded-lg p-6`}
@@ -331,7 +332,7 @@ export default function MiniAppProfilePage() {
       </motion.div>
 
       {/* VPN Config Card */}
-      <VpnConfigCard colorScheme={colorScheme} />
+      <VpnConfigCard colorScheme={colorScheme} page="profile" />
 
       {/* Referral Section */}
       <CollapsibleSection

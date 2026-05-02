@@ -1,5 +1,7 @@
 'use client';
 
+import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
@@ -10,6 +12,11 @@ import {
   type OrderResponse,
   type PaymentAttemptResponse,
 } from '@/lib/api/commerce';
+import { sendProductAnalyticsEvent } from '@/lib/product-intelligence/client';
+import {
+  buildCheckoutPaymentSubmittedCapture,
+  buildCheckoutStepCompletedCapture,
+} from '@/lib/product-intelligence/event-builders';
 import {
   createStorefrontServiceStateRequest,
   entitlementsApi,
@@ -17,6 +24,8 @@ import {
 } from '@/lib/api/service-access';
 import { storefrontApi } from '@/lib/api/storefront';
 import type { StorefrontSurfaceContext } from '@/features/storefront-shell/lib/runtime';
+import { StorefrontCheckoutAnalyticsReporter } from '@/features/storefront-shell/components/storefront-checkout-analytics-reporter';
+import { useUser } from '@/stores/auth-store';
 
 type StorefrontCheckoutLabels = {
   title: string;
@@ -71,7 +80,10 @@ export function StorefrontCheckoutShell({
   surfaceContext: StorefrontSurfaceContext;
   labels: StorefrontCheckoutLabels;
 }) {
+  const locale = useLocale();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
+  const user = useUser();
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [checkoutResult, setCheckoutResult] = useState<{
     order: OrderResponse;
@@ -187,6 +199,15 @@ export function StorefrontCheckoutShell({
     },
     onSuccess: async (result) => {
       setCheckoutResult(result);
+      if (user?.id) {
+        sendProductAnalyticsEvent(buildCheckoutStepCompletedCapture({
+          distinctId: user.id,
+          locale,
+          path: pathname,
+          step: 'order_ready',
+          storefrontKey: surfaceContext.storefrontKey,
+        }));
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['storefront', surfaceContext.storefrontKey, 'current-entitlements'] }),
         queryClient.invalidateQueries({ queryKey: ['storefront', surfaceContext.storefrontKey, 'current-service-state'] }),
@@ -201,6 +222,13 @@ export function StorefrontCheckoutShell({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-6 md:py-10">
+      <StorefrontCheckoutAnalyticsReporter
+        distinctId={user?.id ?? null}
+        pricebookKey={primaryPricebook?.pricebook_key ?? null}
+        saleChannel={surfaceContext.saleChannel}
+        storefrontKey={surfaceContext.storefrontKey}
+      />
+
       <section className="rounded-[2rem] border border-grid-line/20 bg-terminal-surface/45 p-6 shadow-[0_0_32px_rgba(0,255,255,0.06)] backdrop-blur md:p-8">
         <div className="space-y-3">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-neon-cyan">{surfaceContext.brandLabel}</p>
@@ -305,6 +333,19 @@ export function StorefrontCheckoutShell({
               type="button"
               onClick={() => {
                 if (selectedItem) {
+                  if (user?.id) {
+                    sendProductAnalyticsEvent(buildCheckoutPaymentSubmittedCapture({
+                      currencyCode: surfaceContext.defaultCurrency,
+                      distinctId: user.id,
+                      flow: 'new_purchase',
+                      locale,
+                      offerKey: selectedItem.offerKey,
+                      path: pathname,
+                      pricebookKey: selectedItem.pricebookKey,
+                      saleChannel: surfaceContext.saleChannel,
+                      storefrontKey: surfaceContext.storefrontKey,
+                    }));
+                  }
                   checkoutMutation.mutate(selectedItem);
                 }
               }}

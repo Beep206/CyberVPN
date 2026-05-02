@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate an Ansible inventory snapshot from Terraform edge outputs."""
+"""Generate an Ansible inventory snapshot from OpenTofu edge outputs."""
 
 from __future__ import annotations
 
@@ -12,12 +12,14 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate an Ansible inventory snapshot from Terraform edge outputs."
+        description="Generate an Ansible inventory snapshot from OpenTofu edge outputs."
     )
     parser.add_argument(
+        "--stack-dir",
         "--terraform-dir",
+        dest="stack_dir",
         required=True,
-        help="Path to the Terraform stack that exposes the edge_nodes output.",
+        help="Path to the OpenTofu stack that exposes the edge_nodes output.",
     )
     parser.add_argument(
         "--output",
@@ -30,13 +32,17 @@ def parse_args() -> argparse.Namespace:
         help="Environment suffix used in generated group names, for example staging.",
     )
     parser.add_argument(
+        "--tofu-bin",
         "--terraform-bin",
-        default="terraform",
-        help="Terraform binary to execute.",
+        dest="tofu_bin",
+        default="tofu",
+        help="OpenTofu binary to execute. Terraform may be passed explicitly for rollback workflows.",
     )
     parser.add_argument(
+        "--stack-output-file",
         "--terraform-output-file",
-        help="Optional JSON file with the edge_nodes payload, used instead of calling terraform output.",
+        dest="stack_output_file",
+        help="Optional JSON file with the edge_nodes payload, used instead of calling OpenTofu output.",
     )
     parser.add_argument(
         "--ansible-user",
@@ -60,7 +66,7 @@ def parse_edge_nodes_payload(raw_payload: str) -> dict[str, dict[str, object]]:
     try:
         payload = json.loads(raw_payload)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Terraform output was not valid JSON: {exc}") from exc
+        raise RuntimeError(f"OpenTofu output was not valid JSON: {exc}") from exc
 
     if not isinstance(payload, dict):
         raise RuntimeError("Expected edge_nodes output to be a JSON object keyed by hostname.")
@@ -68,10 +74,10 @@ def parse_edge_nodes_payload(raw_payload: str) -> dict[str, dict[str, object]]:
     return payload
 
 
-def load_edge_nodes(terraform_bin: str, terraform_dir: Path) -> dict[str, dict[str, object]]:
+def load_edge_nodes(tofu_bin: str, stack_dir: Path) -> dict[str, dict[str, object]]:
     result = subprocess.run(
-        [terraform_bin, "output", "-json", "edge_nodes"],
-        cwd=terraform_dir,
+        [tofu_bin, "output", "-json", "edge_nodes"],
+        cwd=stack_dir,
         check=True,
         capture_output=True,
         text=True,
@@ -152,21 +158,21 @@ def build_prometheus_targets(
 
 def main() -> int:
     args = parse_args()
-    terraform_dir = Path(args.terraform_dir).resolve()
+    stack_dir = Path(args.stack_dir).resolve()
     output_path = Path(args.output).resolve()
     prometheus_output_path = (
         Path(args.prometheus_output).resolve() if args.prometheus_output else None
     )
 
-    if not terraform_dir.exists():
-        print(f"Terraform directory does not exist: {terraform_dir}", file=sys.stderr)
+    if not stack_dir.exists():
+        print(f"OpenTofu stack directory does not exist: {stack_dir}", file=sys.stderr)
         return 1
 
     try:
-        if args.terraform_output_file:
-            edge_nodes = parse_edge_nodes_payload(Path(args.terraform_output_file).read_text())
+        if args.stack_output_file:
+            edge_nodes = parse_edge_nodes_payload(Path(args.stack_output_file).read_text())
         else:
-            edge_nodes = load_edge_nodes(args.terraform_bin, terraform_dir)
+            edge_nodes = load_edge_nodes(args.tofu_bin, stack_dir)
         inventory = build_inventory(edge_nodes, args.environment, args.ansible_user)
         prometheus_targets = build_prometheus_targets(
             edge_nodes=edge_nodes,
@@ -175,7 +181,7 @@ def main() -> int:
         )
     except subprocess.CalledProcessError as exc:
         stderr = exc.stderr.strip() if exc.stderr else str(exc)
-        print(f"Failed to read Terraform outputs: {stderr}", file=sys.stderr)
+        print(f"Failed to read OpenTofu outputs: {stderr}", file=sys.stderr)
         return exc.returncode or 1
     except (OSError, RuntimeError) as exc:
         print(str(exc), file=sys.stderr)

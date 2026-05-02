@@ -122,6 +122,90 @@ class RecapResponse(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
+FrontendRuntimeEventName = Literal[
+    "route_load",
+    "api_call",
+    "route_guard_block",
+    "form_validation_error",
+    "submit_attempt",
+    "submit_failure",
+    "unhandled_error",
+    "render_error",
+]
+
+FrontendRuntimeSurface = Literal["partner_portal", "admin_portal"]
+FrontendRuntimeRouteGroup = Literal["auth", "dashboard", "marketing", "miniapp"]
+FrontendWebVitalMetric = Literal["cls", "fcp", "inp", "lcp", "ttfb"]
+
+
+class FrontendRuntimeEventRequest(BaseModel):
+    """Frontend runtime telemetry event forwarded from partner/admin apps."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    event: FrontendRuntimeEventName = Field(..., description="Frontend runtime event type")
+    surface: FrontendRuntimeSurface = Field(..., description="Frontend surface that emitted the event")
+    connection_type: str = Field(..., alias="connectionType", description="Browser connection type bucket")
+    device_bucket: str = Field(..., alias="deviceBucket", description="Device bucket")
+    locale: str | None = Field(None, description="Resolved locale")
+    path: str = Field(..., description="Current route pathname")
+    reduced_motion: str = Field(..., alias="reducedMotion", description="Reduced motion preference bucket")
+    route_group: FrontendRuntimeRouteGroup = Field(..., alias="routeGroup", description="Frontend route group")
+    save_data: str = Field(..., alias="saveData", description="Save-Data preference bucket")
+    viewport_bucket: str = Field(..., alias="viewportBucket", description="Viewport bucket")
+    blocked_reason: str | None = Field(None, alias="blockedReason", description="Route guard blocked reason")
+    duration_ms: float | None = Field(None, alias="durationMs", description="Observed duration in milliseconds")
+    endpoint_template: str | None = Field(
+        None,
+        alias="endpointTemplate",
+        description="Normalized API endpoint template",
+    )
+    error_code: str | None = Field(None, alias="errorCode", description="Frontend error code bucket")
+    form_name: str | None = Field(None, alias="formName", description="Form name bucket")
+    lane: str | None = Field(None, description="Partner lane bucket")
+    method: str | None = Field(None, description="HTTP method bucket")
+    release_ring: str | None = Field(None, alias="releaseRing", description="Release ring bucket")
+    request_id: str | None = Field(None, alias="requestId", description="Browser request correlation id")
+    result: str | None = Field(None, description="Frontend result bucket")
+    workspace_status: str | None = Field(
+        None,
+        alias="workspaceStatus",
+        description="Workspace status bucket",
+    )
+
+
+class FrontendRuntimeEventAck(BaseModel):
+    """Ack for accepted frontend runtime telemetry."""
+
+    status: Literal["accepted"] = Field(..., description="Ingest status")
+
+
+class FrontendWebVitalEventRequest(BaseModel):
+    """Frontend web-vitals event forwarded from partner/admin apps."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    surface: FrontendRuntimeSurface = Field(..., description="Frontend surface that emitted the metric")
+    connection_type: str = Field(..., alias="connectionType", description="Browser connection type bucket")
+    device_bucket: str = Field(..., alias="deviceBucket", description="Device bucket")
+    locale: str | None = Field(None, description="Resolved locale")
+    metric: FrontendWebVitalMetric = Field(..., description="Web vital metric name")
+    path: str = Field(..., description="Current route pathname")
+    rating: str = Field(..., description="Web vital rating bucket")
+    reduced_motion: str = Field(..., alias="reducedMotion", description="Reduced motion preference bucket")
+    route_group: FrontendRuntimeRouteGroup = Field(..., alias="routeGroup", description="Frontend route group")
+    save_data: str = Field(..., alias="saveData", description="Save-Data preference bucket")
+    value: float = Field(..., description="Observed web vital value")
+    viewport_bucket: str = Field(..., alias="viewportBucket", description="Viewport bucket")
+    request_id: str | None = Field(None, alias="requestId", description="Browser request correlation id")
+
+
+class FrontendWebVitalEventAck(BaseModel):
+    """Ack for accepted frontend web-vitals telemetry."""
+
+    status: Literal["accepted"] = Field(..., description="Ingest status")
+
+
 class TopUserResponse(BaseModel):
     """Top user by traffic response."""
 

@@ -299,6 +299,16 @@ class RemnawaveClient:
         nodes = response if isinstance(response, list) else response.get("nodes", [])
         return normalize_nodes(nodes)
 
+    async def get_inbounds(self) -> list[dict]:
+        """Get list of all inbounds from Remnawave."""
+        response = await self.get("/api/inbounds")
+        return response if isinstance(response, list) else response.get("inbounds", [])
+
+    async def get_hosts(self) -> list[dict]:
+        """Get list of all hosts from Remnawave."""
+        response = await self.get("/api/hosts")
+        return response if isinstance(response, list) else response.get("hosts", [])
+
     async def get_users(self) -> list[dict]:
         """Get list of all users.
 

@@ -14,6 +14,7 @@ from src.application.dto.mobile_auth import (
     SubscriptionStatus,
     UserResponseDTO,
 )
+from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.domain.exceptions import UserNotFoundError
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 
@@ -56,13 +57,4 @@ class MobileGetProfileUseCase:
         else:
             subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 
-        return UserResponseDTO(
-            id=user.id,
-            email=user.email,
-            username=user.username,
-            status=user.status,
-            telegram_id=user.telegram_id,
-            telegram_username=user.telegram_username,
-            created_at=user.created_at,
-            subscription=subscription,
-        )
+        return build_mobile_user_response(user, subscription=subscription)

@@ -27,6 +27,7 @@ from src.middleware import (
     MetricsMiddleware,
     RetryMiddleware,
 )
+from src.observability import before_send
 
 # Configure structured JSON logging before anything else
 configure_logging()
@@ -88,10 +89,19 @@ async def startup_event(state) -> None:
             sentry_sdk.init(
                 dsn=settings.sentry_dsn,
                 environment=settings.environment,
+                release=settings.sentry_release or None,
                 traces_sample_rate=1.0 if settings.environment == "development" else 0.1,
                 profiles_sample_rate=1.0 if settings.environment == "development" else 0.1,
+                send_default_pii=False,
+                max_request_body_size="never",
+                include_local_variables=False,
+                before_send=before_send,
             )
-            logger.info("sentry_initialized", environment=settings.environment)
+            logger.info(
+                "sentry_initialized",
+                environment=settings.environment,
+                release=settings.sentry_release or None,
+            )
 
         # Start Prometheus metrics HTTP server
         if settings.metrics_enabled:

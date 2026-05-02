@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { AlertCircle, Copy, Check, RotateCcw, Home, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { reportFrontendRenderError } from '@/shared/lib/frontend-observability';
 
 interface RouteErrorBoundaryProps {
   error: Error & { digest?: string };
@@ -18,6 +19,10 @@ export function RouteErrorBoundary({ error, reset }: RouteErrorBoundaryProps) {
 
   useEffect(() => {
     Sentry.captureException(error);
+    reportFrontendRenderError('partner_portal', {
+      errorCode: error.name || error.digest || 'route_error',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
   }, [error]);
 
   const handleCopy = async () => {

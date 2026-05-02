@@ -20,6 +20,23 @@ function readSetCookieHeaders(response: Response): string[] {
   return setCookie ? [setCookie] : [];
 }
 
+function responseWithSetCookie(
+  body: unknown,
+  setCookie: string,
+): Response {
+  const response = new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+
+  Object.defineProperty(response.headers, 'getSetCookie', {
+    configurable: true,
+    value: () => [setCookie],
+  });
+
+  return response;
+}
+
 describe('POST /api/auth/2fa/complete', () => {
   const originalFetch = global.fetch;
 
@@ -33,20 +50,14 @@ describe('POST /api/auth/2fa/complete', () => {
 
   it('completes pending 2FA, forwards backend cookies, and returns redirect target', async () => {
     global.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
+      responseWithSetCookie(
+        {
           access_token: 'access_token_value',
           refresh_token: 'refresh_token_value',
           token_type: 'bearer',
           expires_in: 3600,
-        }),
-        {
-          status: 200,
-          headers: {
-            'content-type': 'application/json',
-            'set-cookie': 'access_token=abc; Path=/; HttpOnly',
-          },
         },
+        'access_token=abc; Path=/; HttpOnly',
       ),
     ) as typeof fetch;
 

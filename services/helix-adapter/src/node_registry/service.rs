@@ -1,5 +1,5 @@
 use chrono::Utc;
-use tracing::warn;
+use tracing::{instrument, warn};
 
 use crate::{
     config::AdapterConfig,
@@ -31,6 +31,13 @@ impl NodeRegistryService {
         }
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.sync_from_remnawave",
+            sentry.op = "helix.registry.sync"
+        )
+    )]
     pub async fn sync_from_remnawave(&self) -> Result<(), AppError> {
         let nodes = self.remnawave_client.list_nodes().await?;
         let upserts = nodes
@@ -41,6 +48,13 @@ impl NodeRegistryService {
         self.repository.upsert_nodes(&upserts).await
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.list_nodes",
+            sentry.op = "helix.registry.list"
+        )
+    )]
     pub async fn list_nodes(
         &self,
         sync_from_source: bool,
@@ -57,6 +71,13 @@ impl NodeRegistryService {
         self.repository.list_nodes().await
     }
 
+    #[instrument(
+        skip(self, request),
+        fields(
+            sentry.name = "helix.publish_rollout",
+            sentry.op = "helix.rollout.publish"
+        )
+    )]
     pub async fn publish_rollout(
         &self,
         request: PublishRolloutBatchRequest,
@@ -65,6 +86,13 @@ impl NodeRegistryService {
         self.repository.publish_rollout(&request).await
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.pause_rollout",
+            sentry.op = "helix.rollout.pause"
+        )
+    )]
     pub async fn pause_rollout(&self, rollout_id: &str) -> Result<RolloutBatchRecord, AppError> {
         validate_rollout_id(rollout_id)?;
         self.repository
@@ -72,11 +100,25 @@ impl NodeRegistryService {
             .await
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.rollout_state",
+            sentry.op = "helix.rollout.status"
+        )
+    )]
     pub async fn rollout_state(&self, rollout_id: &str) -> Result<RolloutStateResponse, AppError> {
         validate_rollout_id(rollout_id)?;
         self.repository.fetch_rollout_state(rollout_id).await
     }
 
+    #[instrument(
+        skip(self, config),
+        fields(
+            sentry.name = "helix.rollout_canary_evidence",
+            sentry.op = "helix.rollout.canary_evidence"
+        )
+    )]
     pub async fn rollout_canary_evidence(
         &self,
         rollout_id: &str,
@@ -87,6 +129,13 @@ impl NodeRegistryService {
         Ok(build_rollout_canary_evidence(&rollout, config))
     }
 
+    #[instrument(
+        skip(self, heartbeat),
+        fields(
+            sentry.name = "helix.record_heartbeat",
+            sentry.op = "helix.node.heartbeat"
+        )
+    )]
     pub async fn record_heartbeat(&self, heartbeat: NodeHeartbeatRequest) -> Result<(), AppError> {
         validate_rollout_id(&heartbeat.rollout_id)?;
 
@@ -137,6 +186,13 @@ impl NodeRegistryService {
         self.repository.record_heartbeat(&heartbeat).await
     }
 
+    #[instrument(
+        skip(self, event),
+        fields(
+            sentry.name = "helix.record_desktop_runtime_event",
+            sentry.op = "helix.desktop.runtime_event"
+        )
+    )]
     pub async fn record_desktop_runtime_event(
         &self,
         event: DesktopRuntimeEventRequest,

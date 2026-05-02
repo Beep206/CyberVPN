@@ -1,11 +1,73 @@
 {
   "title": "WALLET",
-  "subtitle": "Manage your balance and transactions",
-  "balance": "Available Balance",
-  "withdraw": "Withdraw",
-  "transactions": "Transaction History",
-  "noTransactions": "No transactions yet",
-  "previous": "Previous",
-  "page": "Page",
-  "next": "Next"
+  "subtitle": "Balance, frozen funds, reward ledger and withdrawal requests in one customer-safe billing surface.",
+  "hero": {
+    "eyebrow": "Wallet ledger",
+    "paymentHistory": "Payment history",
+    "managePlan": "Manage plan",
+    "available": "Available balance",
+    "fundsFrozen": "Funds reserved",
+    "fundsReady": "Funds ready",
+    "currency": "{currency} account"
+  },
+  "errors": {
+    "partialTitle": "Wallet data is partially unavailable",
+    "partialDescription": "The page keeps usable sections visible while the unavailable backend resource recovers."
+  },
+  "summary": {
+    "ariaLabel": "Wallet balance summary",
+    "balance": "Available",
+    "frozen": "Frozen",
+    "liability": "Total wallet value",
+    "pendingWithdrawals": "Pending withdrawals"
+  },
+  "withdrawForm": {
+    "eyebrow": "Withdrawal request",
+    "title": "Request payout",
+    "description": "Create a withdrawal request for operations review. Provider limits and compliance checks may apply before funds move.",
+    "amount": "Amount",
+    "method": "Method",
+    "methods": {
+      "cryptobot": "CryptoBot",
+      "manual": "Manual review"
+    },
+    "notice": "Do not send wallet addresses or payment credentials here unless the backend explicitly requests them. Sensitive payout details are handled in the approved support channel.",
+    "errors": {
+      "amount": "Enter a valid withdrawal amount.",
+      "balance": "The withdrawal amount cannot exceed the available balance.",
+      "submit": "Withdrawal request failed. Try again or contact support if the balance changed unexpectedly."
+    },
+    "success": "Withdrawal request submitted. The wallet ledger will refresh automatically.",
+    "submitting": "Submitting",
+    "submit": "Request withdrawal"
+  },
+  "withdrawals": {
+    "eyebrow": "Payout queue",
+    "title": "Withdrawal status",
+    "description": "No wallet movements have been created yet.",
+    "lastLedger": "Latest ledger entry: {id}",
+    "empty": "No withdrawal requests yet."
+  },
+  "transactions": {
+    "eyebrow": "Ledger stream",
+    "title": "Wallet transactions",
+    "filters": {
+      "ariaLabel": "Wallet transaction filters",
+      "all": "All",
+      "credit": "Credits",
+      "debit": "Debits"
+    },
+    "empty": "No wallet transactions match this filter.",
+    "balanceAfter": "Balance after: {amount}",
+    "page": "Ledger page {page}"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "labels": {
+    "notAvailable": "Not available",
+    "transaction": "Wallet transaction"
+  }
 }

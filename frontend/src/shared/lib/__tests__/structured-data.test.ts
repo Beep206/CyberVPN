@@ -30,7 +30,9 @@ describe('structured-data helpers', () => {
     expect(data.url).toBe('https://vpn.ozoxy.ru/ru-RU/help');
     expect(data.inLanguage).toBe('ru-RU');
     expect(data.mainEntity).toHaveLength(2);
-    expect(data.mainEntity?.[0]).toMatchObject({
+    expect(Array.isArray(data.mainEntity)).toBe(true);
+    const [firstQuestion] = data.mainEntity as readonly unknown[];
+    expect(firstQuestion).toMatchObject({
       '@type': 'Question',
       name: 'How do I connect?',
     });

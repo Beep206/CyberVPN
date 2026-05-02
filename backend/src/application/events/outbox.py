@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.domain.enums import OutboxEventStatus, OutboxPublicationStatus
 from src.infrastructure.database.models.outbox_event_model import OutboxEventModel, OutboxPublicationModel
 from src.infrastructure.database.repositories.outbox_repo import OutboxRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    log_partner_runtime_event,
+    observe_partner_outbox_event_created,
+)
 
 from .partner_platform_events import PARTNER_PLATFORM_EVENT_FAMILIES
 
@@ -79,7 +83,23 @@ class EventOutboxService:
             )
             for consumer_key in normalized_consumers
         ]
-        return await self._repo.create_event(event, publications)
+        created = await self._repo.create_event(event, publications)
+        observe_partner_outbox_event_created(
+            event_type=normalized_name,
+            aggregate_type=aggregate_type,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_outbox.event_created",
+            surface="partner_backend",
+            route_group="outbox",
+            event_type=normalized_name,
+            aggregate_type=aggregate_type,
+            aggregate_id=aggregate_id,
+            consumer_count=len(normalized_consumers),
+            result="success",
+        )
+        return created
 
 
 def _serialize_actor_context(actor_context: OutboxActorContext | None) -> dict[str, Any]:

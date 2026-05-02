@@ -1,0 +1,235 @@
+groups:
+  - name: customer_growth_reporting_recording_rules
+    interval: 30s
+    rules:
+      - record: customer_growth:reporting_refresh_last_success_age_seconds
+        expr: |
+          clamp_min(
+            time() - max(cybervpn_growth_reporting_refresh_worker_last_success_unixtime),
+            0
+          )
+
+      - record: customer_growth:reporting_refresh_consecutive_failures
+        expr: |
+          max(cybervpn_growth_reporting_refresh_worker_consecutive_failures)
+
+      - record: customer_growth:reporting_delivery_last_success_age_seconds
+        expr: |
+          clamp_min(
+            time() - max(cybervpn_growth_reporting_delivery_worker_last_success_unixtime),
+            0
+          )
+
+      - record: customer_growth:reporting_delivery_consecutive_failures
+        expr: |
+          max(cybervpn_growth_reporting_delivery_worker_consecutive_failures)
+
+      - record: customer_growth:reporting_cleanup_last_success_age_seconds
+        expr: |
+          clamp_min(
+            time() - max(cybervpn_growth_reporting_cleanup_worker_last_success_unixtime),
+            0
+          )
+
+      - record: customer_growth:reporting_cleanup_consecutive_failures
+        expr: |
+          max(cybervpn_growth_reporting_cleanup_worker_consecutive_failures)
+
+      - record: customer_growth:reporting_governance_gap_subscriptions
+        expr: |
+          max(cybervpn_growth_reporting_governance_gap_subscriptions)
+
+      - record: customer_growth:reporting_recipient_domain_blocked_subscriptions
+        expr: |
+          max(
+            cybervpn_growth_reporting_governance_subscription_coverage{
+              coverage_state="recipient_domain_blocked"
+            }
+          )
+
+      - record: customer_growth:reporting_governance_followup_last_success_age_seconds
+        expr: |
+          clamp_min(
+            time() - max(cybervpn_growth_reporting_governance_followup_worker_last_success_unixtime),
+            0
+          )
+
+      - record: customer_growth:reporting_governance_followup_consecutive_failures
+        expr: |
+          max(cybervpn_growth_reporting_governance_followup_worker_consecutive_failures)
+
+      - record: customer_growth:reporting_governance_followup_overdue_subscriptions
+        expr: |
+          max(cybervpn_growth_reporting_governance_followup_overdue_subscriptions)
+
+  - name: customer_growth_reporting_alerts
+    interval: 30s
+    rules:
+      - alert: CustomerGrowthReportingRefreshStale
+        expr: |
+          max(cybervpn_growth_reporting_refresh_worker_last_success_unixtime) > 0
+          and customer_growth:reporting_refresh_last_success_age_seconds > 10800
+        for: 15m
+        keep_firing_for: 15m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting
+        annotations:
+          summary: "Customer growth reporting refresh is stale"
+          description: "Scheduled customer growth reporting rollups have not refreshed successfully for more than 3 hours. Check worker scheduling, internal backend refresh path, and rollup refresh run ledger."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingRefreshFailing
+        expr: |
+          customer_growth:reporting_refresh_consecutive_failures >= 2
+        for: 10m
+        keep_firing_for: 15m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting
+        annotations:
+          summary: "Customer growth reporting refresh is failing repeatedly"
+          description: "The scheduled growth reporting refresh worker has recorded at least two consecutive failures. Inspect the latest refresh run errors and internal backend refresh response."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingDeliveryStale
+        expr: |
+          max(cybervpn_growth_reporting_delivery_worker_last_success_unixtime) > 0
+          and customer_growth:reporting_delivery_last_success_age_seconds > 21600
+        for: 20m
+        keep_firing_for: 20m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-delivery
+        annotations:
+          summary: "Customer growth reporting delivery is stale"
+          description: "Recurring growth reporting distribution has not completed successfully for more than 6 hours. Check delivery subscriptions, worker email path, and backend internal claim/complete flow."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingDeliveryFailing
+        expr: |
+          customer_growth:reporting_delivery_consecutive_failures >= 2
+        for: 10m
+        keep_firing_for: 20m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-delivery
+        annotations:
+          summary: "Customer growth reporting delivery is failing repeatedly"
+          description: "The scheduled growth reporting distribution worker has recorded at least two consecutive failures. Inspect worker email provider posture and backend delivery completion responses."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingCleanupStale
+        expr: |
+          max(cybervpn_growth_reporting_cleanup_worker_last_success_unixtime) > 0
+          and customer_growth:reporting_cleanup_last_success_age_seconds > 172800
+        for: 30m
+        keep_firing_for: 30m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-cleanup
+        annotations:
+          summary: "Customer growth reporting cleanup is stale"
+          description: "Retention cleanup for growth reporting artifacts has not completed successfully for more than 48 hours. Inspect cleanup scheduling and backend retention execution."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingCleanupFailing
+        expr: |
+          customer_growth:reporting_cleanup_consecutive_failures >= 2
+        for: 20m
+        keep_firing_for: 30m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-cleanup
+        annotations:
+          summary: "Customer growth reporting cleanup is failing repeatedly"
+          description: "The scheduled growth reporting cleanup worker has recorded at least two consecutive failures. Inspect retention configuration and backend cleanup responses."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingGovernanceCoverageGap
+        expr: |
+          customer_growth:reporting_governance_gap_subscriptions > 0
+        for: 30m
+        keep_firing_for: 30m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-governance
+        annotations:
+          summary: "Customer growth reporting has active governance coverage gaps"
+          description: "One or more active reporting subscriptions are currently suppressed or blocked by recipient domain policy. Inspect the governance overview, recent audit timeline, and exportable governance snapshot."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingRecipientDomainBlocked
+        expr: |
+          customer_growth:reporting_recipient_domain_blocked_subscriptions > 0
+        for: 15m
+        keep_firing_for: 30m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-governance
+        annotations:
+          summary: "Customer growth reporting recipients are blocked by domain policy"
+          description: "At least one active reporting subscription is blocked by recipient domain policy. Review recipient allowlists, recent governance decisions, and the reporting governance export."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingGovernanceFollowupStale
+        expr: |
+          max(cybervpn_growth_reporting_governance_followup_worker_last_success_unixtime) > 0
+          and customer_growth:reporting_governance_followup_last_success_age_seconds > 7200
+        for: 15m
+        keep_firing_for: 20m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-governance
+        annotations:
+          summary: "Customer growth reporting governance follow-up automation is stale"
+          description: "The scheduled governance follow-up processor has not completed successfully for more than 2 hours. Inspect worker scheduling, internal backend follow-up processing, and overdue governance recovery items."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingGovernanceFollowupFailing
+        expr: |
+          customer_growth:reporting_governance_followup_consecutive_failures >= 2
+        for: 10m
+        keep_firing_for: 20m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-governance
+        annotations:
+          summary: "Customer growth reporting governance follow-up automation is failing repeatedly"
+          description: "The governance follow-up processor has recorded at least two consecutive failures. Inspect the worker task, internal backend follow-up processing route, and audit trail for stuck recovery items."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+
+      - alert: CustomerGrowthReportingGovernanceFollowupOverdue
+        expr: |
+          customer_growth:reporting_governance_followup_overdue_subscriptions > 0
+        for: 20m
+        keep_firing_for: 30m
+        labels:
+          severity: warning
+          service: customer-growth
+          component: growth-reporting-governance
+        annotations:
+          summary: "Customer growth reporting governance follow-up items are overdue"
+          description: "One or more governance recovery items remain overdue. Review the admin follow-up queue, reminder history, and resolution audit trail before silent coverage gaps persist."
+          runbook_path: "docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/CUSTOMER_GROWTH_REPORTING_RUNBOOK.md"

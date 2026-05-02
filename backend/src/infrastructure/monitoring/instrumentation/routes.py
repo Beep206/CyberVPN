@@ -51,6 +51,16 @@ from src.infrastructure.monitoring.metrics import (
     first_login_after_activation_total,
     invite_operations_total,
     magic_link_requests_total,
+    miniapp_checkout_commits_total,
+    miniapp_config_delivery_total,
+    miniapp_launch_actions_total,
+    miniapp_launch_blockers_current,
+    miniapp_launch_live_switch_allowed,
+    miniapp_launch_state_current,
+    miniapp_payment_status_checks_total,
+    miniapp_runtime_request_duration_seconds,
+    miniapp_runtime_requests_total,
+    miniapp_runtime_rollout_mode_current,
     oauth_attempts_total,
     oauth_callback_failures_total,
     partner_operations_total,
@@ -64,6 +74,15 @@ from src.infrastructure.monitoring.metrics import (
     registrations_total,
     server_queries_total,
     subscriptions_activated_total,
+    telegram_native_login_completed_total,
+    telegram_native_login_failed_total,
+    telegram_native_login_started_total,
+    telegram_oidc_device_registered_total,
+    telegram_oidc_requires_2fa_total,
+    telegram_oidc_token_validation_failed_total,
+    telegram_oidc_user_created_total,
+    telegram_oidc_user_link_conflict_total,
+    telegram_oidc_user_resolved_total,
     trials_activated_total,
     two_factor_operations_total,
     wallet_operations_total,
@@ -96,6 +115,51 @@ def track_auth_attempt(method: str, success: bool) -> None:
     """
     status = "success" if success else "failure"
     auth_attempts_total.labels(method=method, status=status).inc()
+
+
+def track_telegram_native_login_started(*, platform: str) -> None:
+    """Track the start of a Telegram native login attempt."""
+    telegram_native_login_started_total.labels(platform=platform).inc()
+
+
+def track_telegram_native_login_completed(*, platform: str) -> None:
+    """Track the successful completion of a Telegram native login attempt."""
+    telegram_native_login_completed_total.labels(platform=platform).inc()
+
+
+def track_telegram_native_login_failed(*, platform: str, reason: str) -> None:
+    """Track a failed Telegram native login attempt."""
+    telegram_native_login_failed_total.labels(platform=platform, reason=reason).inc()
+
+
+def track_telegram_oidc_token_validation_failure(*, reason: str) -> None:
+    """Track a Telegram OIDC token validation failure."""
+    telegram_oidc_token_validation_failed_total.labels(reason=reason).inc()
+
+
+def track_telegram_oidc_user_created() -> None:
+    """Track creation of a new mobile user from Telegram OIDC login."""
+    telegram_oidc_user_created_total.inc()
+
+
+def track_telegram_oidc_user_resolved(*, path: str) -> None:
+    """Track how a Telegram OIDC identity resolved to an internal user."""
+    telegram_oidc_user_resolved_total.labels(path=path).inc()
+
+
+def track_telegram_oidc_user_link_conflict(*, reason: str) -> None:
+    """Track Telegram OIDC link conflicts for already-linked identities."""
+    telegram_oidc_user_link_conflict_total.labels(reason=reason).inc()
+
+
+def track_telegram_oidc_requires_2fa(*, platform: str) -> None:
+    """Track Telegram OIDC logins paused behind a pending TOTP challenge."""
+    telegram_oidc_requires_2fa_total.labels(platform=platform).inc()
+
+
+def track_telegram_oidc_device_registered(*, platform: str, action: str) -> None:
+    """Track device creation or update during Telegram OIDC login."""
+    telegram_oidc_device_registered_total.labels(platform=platform, action=action).inc()
 
 
 def track_auth_flow_event(
@@ -219,6 +283,65 @@ def track_trial_activation() -> None:
         track_trial_activation()
     """
     trials_activated_total.inc()
+
+
+def track_miniapp_runtime_request(*, endpoint: str, status: str) -> None:
+    """Track Mini App API requests by endpoint and normalized outcome."""
+    miniapp_runtime_requests_total.labels(endpoint=endpoint, status=status).inc()
+
+
+def observe_miniapp_runtime_duration(*, endpoint: str, duration_seconds: float) -> None:
+    """Observe Mini App API request latency."""
+    miniapp_runtime_request_duration_seconds.labels(endpoint=endpoint).observe(duration_seconds)
+
+
+def track_miniapp_checkout_commit(*, flow: str, payment_rail: str, status: str) -> None:
+    """Track Mini App checkout commit outcomes."""
+    miniapp_checkout_commits_total.labels(flow=flow, payment_rail=payment_rail, status=status).inc()
+
+
+def track_miniapp_payment_status_check(*, provider: str, payment_status: str) -> None:
+    """Track Mini App payment status lookups."""
+    miniapp_payment_status_checks_total.labels(provider=provider, payment_status=payment_status).inc()
+
+
+def track_miniapp_config_delivery(*, source: str, status: str) -> None:
+    """Track Mini App config delivery outcomes."""
+    miniapp_config_delivery_total.labels(source=source, status=status).inc()
+
+
+def sync_miniapp_launch_control_metrics(
+    *,
+    launch_state: str,
+    runtime_mode: str,
+    live_switch_allowed: bool,
+    blockers_count: int,
+) -> None:
+    """Synchronize current Mini App launch-control gauges from the derived summary."""
+    for candidate in (
+        "live",
+        "ready_for_live",
+        "canary_in_progress",
+        "rollback_in_progress",
+        "maintenance",
+        "blocked",
+    ):
+        miniapp_launch_state_current.labels(launch_state=candidate).set(
+            1 if candidate == launch_state else 0
+        )
+
+    for candidate in ("live", "canary", "maintenance", "rollback"):
+        miniapp_runtime_rollout_mode_current.labels(mode=candidate).set(
+            1 if candidate == runtime_mode else 0
+        )
+
+    miniapp_launch_live_switch_allowed.set(1 if live_switch_allowed else 0)
+    miniapp_launch_blockers_current.set(max(blockers_count, 0))
+
+
+def track_miniapp_launch_action(*, action: str, status: str) -> None:
+    """Track Mini App launch-control actions executed or blocked by the admin plane."""
+    miniapp_launch_actions_total.labels(action=action, status=status).inc()
 
 
 def track_wallet_operation(operation: str, success: bool) -> None:

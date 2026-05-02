@@ -1,0 +1,94 @@
+name: Customer Growth Reporting Governance Staging Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_date:
+        description: Evidence date in YYYY-MM-DD format
+        required: true
+        default: '2026-04-22'
+      environment_name:
+        description: Evidence environment label
+        required: true
+        default: 'staging'
+      run_id:
+        description: Evidence run identifier
+        required: true
+        default: 'growth-reporting-governance-run01'
+      release_ring:
+        description: Release ring under validation
+        required: true
+        default: 'R2'
+      owner:
+        description: Named rollout owner for the evidence pack
+        required: true
+        default: 'growth governance ops'
+      allowed_domain:
+        description: Allowed recipient domain for the healthy subscription path
+        required: false
+        default: ''
+
+jobs:
+  staging-smoke:
+    name: Run Growth Reporting Governance Staging Smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize evidence pack
+        shell: bash
+        run: |
+          bash scripts/bootstrap-customer-growth-reporting-governance-evidence.sh \
+            "${{ inputs.evidence_date }}" \
+            "${{ inputs.environment_name }}" \
+            "${{ inputs.run_id }}" \
+            "${{ inputs.release_ring }}" \
+            "${{ inputs.owner }}"
+
+      - name: Run staging smoke
+        env:
+          CYBERVPN_API_BASE: ${{ secrets.CYBERVPN_API_BASE }}
+          CYBERVPN_ADMIN_SMOKE_EMAIL: ${{ secrets.CYBERVPN_ADMIN_SMOKE_EMAIL }}
+          CYBERVPN_ADMIN_SMOKE_PASSWORD: ${{ secrets.CYBERVPN_ADMIN_SMOKE_PASSWORD }}
+          CYBERVPN_GROWTH_REPORTING_INTERNAL_SECRET: ${{ secrets.CYBERVPN_GROWTH_REPORTING_INTERNAL_SECRET }}
+          CYBERVPN_GROWTH_REPORTING_ALLOWED_DOMAIN: ${{ inputs.allowed_domain }}
+          CYBERVPN_PROMETHEUS_BASE: ${{ secrets.CYBERVPN_PROMETHEUS_BASE }}
+          CYBERVPN_PROMETHEUS_BEARER_TOKEN: ${{ secrets.CYBERVPN_PROMETHEUS_BEARER_TOKEN }}
+          EVIDENCE_DIR: docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}
+        shell: bash
+        run: |
+          bash scripts/run-customer-growth-reporting-governance-staging-smoke.sh
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-growth-reporting-governance-staging-${{ inputs.run_id }}
+          path: docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}
+          if-no-files-found: error
+
+      - name: Write summary
+        if: always()
+        run: |
+          decision="pending"
+          ready="unknown"
+          summary="gate readiness artifact missing"
+          if [[ -f "docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}/approvals/gate-readiness.json" ]]; then
+            decision="$(jq -r '.decision' "docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}/approvals/gate-readiness.json")"
+            ready="$(jq -r '.protected_gate_ready' "docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}/approvals/gate-readiness.json")"
+            summary="$(jq -r '.summary' "docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}/approvals/gate-readiness.json")"
+          fi
+          {
+            echo "## Customer Growth Reporting Governance Staging Smoke"
+            echo
+            echo "- Workflow: \`Customer Growth Reporting Governance Staging Smoke\`"
+            echo "- Evidence artifact: \`customer-growth-reporting-governance-staging-${{ inputs.run_id }}\`"
+            echo "- Evidence path: \`docs/evidence/customer-growth/${{ inputs.evidence_date }}/${{ inputs.environment_name }}/growth-reporting-governance/${{ inputs.run_id }}\`"
+            echo "- Required gate paired with this workflow: \`All Customer Growth Reporting Governance Checks Passed\`"
+            echo "- Gate readiness decision: \`${decision}\`"
+            echo "- Protected gate ready: \`${ready}\`"
+            echo "- Summary: ${summary}"
+          } >> "$GITHUB_STEP_SUMMARY"

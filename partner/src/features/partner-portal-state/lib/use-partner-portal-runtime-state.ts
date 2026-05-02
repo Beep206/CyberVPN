@@ -1,14 +1,32 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { startTransition, useEffect, useEffectEvent, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { useProductFeatureFlag } from '@/app/providers/product-intelligence-provider';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import {
   buildPartnerPortalRuntimeState,
   mapWorkspaceProgramsSnapshot,
 } from '@/features/partner-portal-state/lib/runtime-state';
 import { usePartnerPortalBootstrapState } from '@/features/partner-portal-state/lib/use-partner-portal-bootstrap-state';
+
+const WORKSPACE_QUERY_PREFIXES = [
+  ['partner-portal', 'workspace-codes'],
+  ['partner-portal', 'workspace-campaign-assets'],
+  ['partner-portal', 'workspace-statements'],
+  ['partner-portal', 'workspace-payout-accounts'],
+  ['partner-portal', 'workspace-reseller-voucher-batches'],
+  ['partner-portal', 'workspace-conversion-records'],
+  ['partner-portal', 'workspace-analytics-metrics'],
+  ['partner-portal', 'workspace-report-exports'],
+  ['partner-portal', 'workspace-review-requests'],
+  ['partner-portal', 'workspace-integration-credentials'],
+  ['partner-portal', 'workspace-integration-delivery-logs'],
+  ['partner-portal', 'workspace-traffic-declarations'],
+  ['partner-portal', 'workspace-cases'],
+  ['partner-portal', 'workspace-notifications'],
+] as const;
 
 function isOptionalPortalAccessError(error: unknown): boolean {
   if (!(error instanceof AxiosError)) {
@@ -31,6 +49,8 @@ async function resolveOptionalPortalResource<T>(loader: () => Promise<{ data: T 
 
 export function usePartnerPortalRuntimeState() {
   const bootstrapState = usePartnerPortalBootstrapState();
+  const queryClient = useQueryClient();
+  const realtimeWorkspaceFeedFlag = useProductFeatureFlag('partner_portal_realtime_workspace_feed_v1');
   const {
     state: baseState,
     bootstrap,
@@ -42,6 +62,51 @@ export function usePartnerPortalRuntimeState() {
       workspacesQuery,
     },
   } = bootstrapState;
+
+  const invalidateRealtimeWorkspaceSlices = useEffectEvent((workspaceId: string) => {
+    startTransition(() => {
+      for (const prefix of WORKSPACE_QUERY_PREFIXES) {
+        void queryClient.invalidateQueries({ queryKey: [...prefix, workspaceId] });
+      }
+      void queryClient.invalidateQueries({ queryKey: ['partner-portal', 'session-bootstrap', workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ['partner-portal', 'workspaces'] });
+    });
+  });
+
+  const handleRealtimeWorkspaceFeedEvent = useEffectEvent((rawEvent: MessageEvent<string>) => {
+    try {
+      const parsed = JSON.parse(rawEvent.data) as {
+        workspace_id?: unknown;
+      };
+      const workspaceId = typeof parsed.workspace_id === 'string' ? parsed.workspace_id : null;
+      if (!workspaceId || workspaceId !== activeWorkspace?.id) {
+        return;
+      }
+      invalidateRealtimeWorkspaceSlices(workspaceId);
+    } catch {
+      // Ignore malformed realtime events and keep the feed connection alive.
+    }
+  });
+
+  useEffect(() => {
+    if (!activeWorkspace?.id || !realtimeWorkspaceFeedFlag.value) {
+      return;
+    }
+
+    const eventSource = new EventSource(
+      `/api/v1/partner-workspaces/${activeWorkspace.id}/realtime/feed`,
+    );
+    const eventHandler = (event: Event) => {
+      handleRealtimeWorkspaceFeedEvent(event as MessageEvent<string>);
+    };
+
+    eventSource.addEventListener('partner.workspace.feed', eventHandler);
+
+    return () => {
+      eventSource.removeEventListener('partner.workspace.feed', eventHandler);
+      eventSource.close();
+    };
+  }, [activeWorkspace?.id, realtimeWorkspaceFeedFlag.value]);
 
   const workspaceCodesQuery = useQuery({
     queryKey: ['partner-portal', 'workspace-codes', activeWorkspace?.id ?? null],
@@ -102,6 +167,21 @@ export function usePartnerPortalRuntimeState() {
           limit: 20,
           offset: 0,
         }),
+      );
+    },
+    enabled: Boolean(activeWorkspace?.id),
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  const workspaceResellerVoucherBatchesQuery = useQuery({
+    queryKey: ['partner-portal', 'workspace-reseller-voucher-batches', activeWorkspace?.id ?? null],
+    queryFn: async () => {
+      if (!activeWorkspace) {
+        return null;
+      }
+      return resolveOptionalPortalResource(() =>
+        partnerPortalApi.listWorkspaceResellerVoucherBatches(activeWorkspace.id),
       );
     },
     enabled: Boolean(activeWorkspace?.id),
@@ -269,6 +349,7 @@ export function usePartnerPortalRuntimeState() {
       workspaceCampaignAssets: workspaceCampaignAssetsQuery.data ?? null,
       workspaceStatements: workspaceStatementsQuery.data ?? null,
       workspacePayoutAccounts: payoutAccountsQuery.data ?? null,
+      workspaceResellerVoucherBatches: workspaceResellerVoucherBatchesQuery.data ?? null,
       workspaceConversionRecords: workspaceConversionRecordsQuery.data ?? null,
       workspaceAnalyticsMetrics: workspaceAnalyticsMetricsQuery.data ?? null,
       workspaceReportExports: workspaceReportExportsQuery.data ?? null,
@@ -291,6 +372,7 @@ export function usePartnerPortalRuntimeState() {
       workspaceConversionRecordsQuery.data,
       workspaceIntegrationCredentialsQuery.data,
       workspaceIntegrationDeliveryLogsQuery.data,
+      workspaceResellerVoucherBatchesQuery.data,
       workspaceReportExportsQuery.data,
       workspaceReviewRequestsQuery.data,
       workspaceTrafficDeclarationsQuery.data,
@@ -319,6 +401,7 @@ export function usePartnerPortalRuntimeState() {
       workspaceCampaignAssetsQuery,
       workspaceStatementsQuery,
       payoutAccountsQuery,
+      workspaceResellerVoucherBatchesQuery,
       workspaceConversionRecordsQuery,
       workspaceAnalyticsMetricsQuery,
       workspaceReportExportsQuery,

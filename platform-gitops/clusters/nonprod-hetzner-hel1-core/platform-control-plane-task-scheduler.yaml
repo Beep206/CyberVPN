@@ -1,0 +1,16 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform-control-plane-task-scheduler
+  namespace: flux-system
+spec:
+  interval: 10m
+  prune: true
+  wait: true
+  timeout: 10m
+  dependsOn:
+    - name: platform-control-plane-task-worker
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/nonprod-hetzner-hel1-core/platform-workloads/task-scheduler

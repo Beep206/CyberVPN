@@ -103,6 +103,21 @@ else
 fi
 echo ""
 
+# Check 6: Control-plane observability dashboard
+echo "🔍 Checking Control Plane Observability dashboard..."
+CONTROL_PLANE_DASHBOARD="${DASHBOARD_DIR}/control-plane-observability-dashboard.json"
+
+if [ ! -f "${CONTROL_PLANE_DASHBOARD}" ]; then
+    echo -e "${RED}✗ FAIL: control-plane-observability-dashboard.json not found${NC}"
+    ERRORS=$((ERRORS + 1))
+elif ! grep -q 'alloy-control-plane' "${CONTROL_PLANE_DASHBOARD}"; then
+    echo -e "${RED}✗ FAIL: control-plane-observability-dashboard.json does not reference alloy-control-plane telemetry${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}✓ PASS: Control Plane Observability dashboard is present and references alloy-control-plane telemetry${NC}"
+fi
+echo ""
+
 # Summary
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [ "${ERRORS}" -eq 0 ]; then

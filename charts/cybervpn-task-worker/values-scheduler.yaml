@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/REPLACE_ME_IMAGE_REPOSITORY/task-worker
+  digest: sha256:REPLACE_ME_TASK_SCHEDULER_IMAGE_DIGEST
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: ghcr-platform-workloads
+
+serviceAccount:
+  create: true
+  name: ""
+
+externalSecret:
+  enabled: true
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao-apps
+  targetName: task-scheduler-runtime
+  extractKey: kv-apps/data/nonprod/platform/task-worker
+
+workload:
+  mode: scheduler
+  command:
+    - taskiq
+    - scheduler
+    - src.broker:scheduler
+  args: []
+
+metrics:
+  enabled: true
+  servicePort: 9091
+  containerPort: 9091
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+prometheusMultiproc:
+  enabled: false
+  dir: /tmp/prometheus-multiproc
+
+pdb:
+  enabled: false
+  minAvailable: 1
+
+resources: {}

@@ -43,6 +43,7 @@ def test_reserved_resource_groups_cover_phase_foundations_and_payout_account_fam
     assert "payment-disputes" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
     assert "earning-events" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
     assert "earning-holds" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
+    assert "partner-bots" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
     assert "partner-payout-accounts" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
     assert "partner-statements" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
     assert "payouts" in PARTNER_PLATFORM_RESERVED_RESOURCE_GROUPS
@@ -72,4 +73,5 @@ def test_openapi_still_exposes_existing_api_v1_paths() -> None:
 
     assert f"{API_V1_PREFIX}/auth/login" in paths
     assert f"{API_V1_PREFIX}/plans/" in paths
+    assert f"{API_V1_PREFIX}/partner-bots/" in paths
     assert f"{API_V1_PREFIX}/payments/checkout/quote" in paths

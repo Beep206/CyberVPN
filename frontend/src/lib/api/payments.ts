@@ -17,6 +17,16 @@ export type CheckoutQuoteResponse =
   operations['quote_checkout_api_v1_payments_checkout_quote_post']['responses'][200]['content']['application/json'];
 export type CheckoutCommitResponse =
   operations['commit_checkout_api_v1_payments_checkout_commit_post']['responses'][200]['content']['application/json'];
+export interface PaymentStatusResponse {
+  payment_id: string;
+  status: string;
+  provider: string;
+  external_id: string | null;
+  amount: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Payments API client
@@ -67,11 +77,25 @@ export const paymentsApi = {
     apiClient.post<CheckoutCommitResponse>('/payments/checkout/commit', data),
 
   /**
+   * Commit a Mini App Telegram Stars checkout for a base plan.
+   * POST /api/v1/payments/checkout/telegram-stars
+   */
+  commitTelegramStarsCheckout: (data: CheckoutQuoteRequest) =>
+    apiClient.post<CheckoutCommitResponse>('/payments/checkout/telegram-stars', data),
+
+  /**
    * Backwards-compatible alias for canonical checkout commit.
    * POST /api/v1/payments/checkout
    */
   checkout: (data: CheckoutQuoteRequest) =>
     apiClient.post<CheckoutCommitResponse>('/payments/checkout', data),
+
+  /**
+   * Get authenticated user's payment status.
+   * GET /api/v1/payments/{payment_id}
+   */
+  getPayment: (paymentId: string) =>
+    apiClient.get<PaymentStatusResponse>(`/payments/${paymentId}`),
 
   /**
    * Get authenticated user's payment history

@@ -63,6 +63,7 @@ INTERVAL_NOTIFICATION_QUEUE_SECONDS: Final[int] = 30  # Every 30 seconds
 SCHEDULE_HEALTH_CHECK: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_SERVICES_HEALTH: Final[str] = "*/1 * * * *"  # Every 1 minute
 SCHEDULE_BANDWIDTH: Final[str] = "*/5 * * * *"  # Every 5 minutes
+SCHEDULE_PUBLIC_NETWORK_DPI_SCORE: Final[str] = "*/30 * * * *"  # Every 30 minutes
 SCHEDULE_SUBSCRIPTION_CHECK: Final[str] = "0 */1 * * *"  # Every hour
 SCHEDULE_DISABLE_EXPIRED: Final[str] = "*/15 * * * *"  # Every 15 minutes
 SCHEDULE_AUTO_RENEW: Final[str] = "*/30 * * * *"  # Every 30 minutes
@@ -70,6 +71,8 @@ SCHEDULE_DAILY_STATS: Final[str] = "5 0 * * *"  # Daily at 00:05 UTC
 SCHEDULE_HOURLY_BANDWIDTH: Final[str] = "5 * * * *"  # At :05 every hour
 INTERVAL_REALTIME_METRICS_SECONDS: Final[int] = 30  # Every 30 seconds
 SCHEDULE_PAYMENT_VERIFY: Final[str] = "*/5 * * * *"  # Every 5 minutes
+SCHEDULE_TELEGRAM_STARS_RECONCILIATION: Final[str] = "*/10 * * * *"  # Every 10 minutes
+SCHEDULE_PARTNER_BOT_PROVISIONING: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_WEBHOOK_RETRY: Final[str] = "*/30 * * * *"  # Every 30 minutes
 SCHEDULE_CLEANUP: Final[str] = "0 2 * * *"  # Daily at 2 AM UTC
 SCHEDULE_CLEANUP_NOTIFICATIONS: Final[str] = "0 1 * * *"  # Daily at 1 AM UTC
@@ -84,6 +87,10 @@ SCHEDULE_SYNC_GEOLOCATIONS: Final[str] = "0 */6 * * *"  # Every 6 hours
 SCHEDULE_SYNC_USER_STATS: Final[str] = "*/10 * * * *"  # Every 10 minutes
 SCHEDULE_SYNC_NODE_CONFIGS: Final[str] = "*/30 * * * *"  # Every 30 minutes
 SCHEDULE_FINANCIAL_STATS: Final[str] = "30 0 * * *"  # Daily at 00:30 UTC
+SCHEDULE_GROWTH_REPORTING_REFRESH: Final[str] = "20 * * * *"  # Hourly at :20 UTC
+SCHEDULE_GROWTH_REPORTING_DELIVERY: Final[str] = "*/15 * * * *"  # Every 15 minutes
+SCHEDULE_GROWTH_REPORTING_GOVERNANCE_FOLLOWUP: Final[str] = "*/30 * * * *"  # Every 30 minutes
+SCHEDULE_GROWTH_REPORTING_CLEANUP: Final[str] = "40 2 * * *"  # Daily at 02:40 UTC
 SCHEDULE_TRAFFIC_RESET: Final[str] = "0 0 1 * *"  # 1st of month at 00:00 UTC
 SCHEDULE_QUEUE_DEPTH: Final[str] = "*/1 * * * *"  # Every 1 minute
 SCHEDULE_HELIX_ROLLOUTS: Final[str] = "*/3 * * * *"  # Every 3 minutes
@@ -222,7 +229,7 @@ STATUS_CANCELLED: Final[str] = "cancelled"
 # Public API
 # ============================================================================
 
-__all__ = [
+__all__ = [  # noqa: RUF022
     # Redis
     "REDIS_PREFIX",
     "HEALTH_KEY",
@@ -250,6 +257,7 @@ __all__ = [
     "SCHEDULE_HEALTH_CHECK",
     "SCHEDULE_SERVICES_HEALTH",
     "SCHEDULE_BANDWIDTH",
+    "SCHEDULE_PUBLIC_NETWORK_DPI_SCORE",
     "SCHEDULE_SUBSCRIPTION_CHECK",
     "SCHEDULE_DISABLE_EXPIRED",
     "SCHEDULE_AUTO_RENEW",
@@ -258,6 +266,7 @@ __all__ = [
     "INTERVAL_REALTIME_METRICS_SECONDS",
     "SCHEDULE_REALTIME_METRICS",
     "SCHEDULE_PAYMENT_VERIFY",
+    "SCHEDULE_TELEGRAM_STARS_RECONCILIATION",
     "SCHEDULE_WEBHOOK_RETRY",
     "SCHEDULE_CLEANUP",
     "SCHEDULE_CLEANUP_NOTIFICATIONS",
@@ -272,6 +281,10 @@ __all__ = [
     "SCHEDULE_SYNC_USER_STATS",
     "SCHEDULE_SYNC_NODE_CONFIGS",
     "SCHEDULE_FINANCIAL_STATS",
+    "SCHEDULE_GROWTH_REPORTING_REFRESH",
+    "SCHEDULE_GROWTH_REPORTING_DELIVERY",
+    "SCHEDULE_GROWTH_REPORTING_GOVERNANCE_FOLLOWUP",
+    "SCHEDULE_GROWTH_REPORTING_CLEANUP",
     "SCHEDULE_TRAFFIC_RESET",
     "SCHEDULE_QUEUE_DEPTH",
     "SCHEDULE_HELIX_ROLLOUTS",

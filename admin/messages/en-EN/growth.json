@@ -6,6 +6,7 @@
     "overview": "Overview",
     "promoCodes": "Promo Codes",
     "inviteCodes": "Invite Codes",
+    "giftCodes": "Gift Codes",
     "partners": "Partners",
     "referrals": "Referrals"
   },
@@ -32,35 +33,218 @@
     "metaTitle": "Growth - Ozoxy Admin",
     "eyebrow": "Acquisition / Retention",
     "title": "Growth Control",
-    "description": "Operator surface for promo inventory, invite generation, partner operations, and live referral analytics.",
+    "description": "Operator surface for growth code lifecycle, abuse signals, referral reward posture, and linked promo or gift operations.",
     "metrics": {
-      "promos": "Promo Inventory",
-      "promosHint": "Admin-readable promo list already exists.",
-      "activePromos": "Active Campaigns",
-      "activePromosHint": "Codes currently allowed to redeem.",
-      "expiring": "Expiring Soon",
-      "expiringHint": "Promo codes expiring in the next 7 days.",
-      "plans": "Plan Catalog",
-      "plansHint": "Plans that can be targeted by invite or promo setup."
+      "totalCodes": "Total Codes",
+      "totalCodesHint": "Canonical growth code records across invite, referral, promo, and gift lifecycles.",
+      "redemptions": "Redemptions",
+      "redemptionsHint": "Final code uses already converted into discount, entitlement, or reward outcomes.",
+      "blockedSignals": "Blocked Signals",
+      "blockedSignalsHint": "Rewards or abuse items already marked for risk attention.",
+      "availableCredit": "Available Credit",
+      "availableCreditHint": "Referral credit currently available in the non-withdrawable growth ledger."
     },
     "routesTitle": "Route Inventory",
     "routesDescription": "Growth is implemented only where backend admin coverage is real. Each route below maps to an existing operator-safe surface.",
     "routes": {
       "promoCodes": "Create, inspect, update, and deactivate campaign promo codes.",
       "inviteCodes": "Generate invite batches for a specific user with optional plan targeting.",
+      "giftCodes": "Issue single or batch customer gift codes, inspect live inventory, and track redemption posture.",
       "partners": "Promote users, review the live partner directory, and jump into customer operations.",
       "referrals": "Monitor referral commissions, top referrers, and recent conversion-linked earnings."
     },
-    "liveInventoryTitle": "Live Promo Inventory",
-    "liveInventoryDescription": "Current promo state pulled from the admin promo endpoint.",
+    "liveSignalsTitle": "Live Lifecycle Stream",
+    "liveSignalsDescription": "Recent outbox-backed growth lifecycle events from code issue through reward or redemption.",
+    "liveSignalsEmpty": "No recent lifecycle events were emitted yet.",
     "partialCoverage": "Operational coverage",
     "usesLabel": "{current} / {max} uses",
+    "breakdownTitle": "Status Breakdown",
+    "breakdownDescription": "Compact readout of current code statuses and lifecycle posture.",
+    "topRejectionsTitle": "Top Rejection Reasons",
+    "topRejectionsEmpty": "No rejection pressure is visible yet.",
+    "reporting": {
+      "title": "Reporting Rollups",
+      "description": "Persisted daily growth rollups over canonical code lifecycle tables. This is reporting truth, not a live resolver debug view.",
+      "window": "{days}-day window",
+      "notRefreshed": "Rollups not refreshed yet",
+      "refreshedAt": "Refreshed {value}",
+      "refresh": "Refresh rollups",
+      "refreshing": "Refreshing...",
+      "export": "Export rollups",
+      "exporting": "Exporting...",
+      "empty": "No reporting rollups are available for this window yet. Refresh the reporting layer first.",
+      "trendTitle": "Daily Trend Cut",
+      "rows": "{count} daily rows",
+      "coverageTitle": "Coverage Notes",
+      "health": {
+        "title": "Refresh Health",
+        "description": "Freshness, lag, and last-run posture for the scheduled reporting pipeline.",
+        "refreshAge": "Age {value}",
+        "latestAttempt": "Latest Attempt",
+        "latestSuccess": "Latest Success",
+        "expectedInterval": "Expected Interval",
+        "lastRun": "Last Run",
+        "unavailable": "Unavailable",
+        "statuses": {
+          "fresh": "Fresh",
+          "stale": "Stale",
+          "failed": "Failed",
+          "never_refreshed": "Never refreshed"
+        }
+      },
+      "executive": {
+        "title": "Executive Highlights",
+        "issued": "Issued",
+        "redemptions": "Redemptions",
+        "acceptanceRate": "Acceptance Rate",
+        "dominantFamily": "Dominant Family"
+      },
+      "cards": {
+        "accepted": "Accepted",
+        "redeemed": "Redeemed",
+        "reserved": "Reserved",
+        "availableCredit": "Available Credit"
+      },
+      "table": {
+        "date": "Date",
+        "inviteIssued": "Invite Issued",
+        "promoAccepted": "Promo Accepted",
+        "giftRedeemed": "Gift Redeemed",
+        "referralAvailable": "Referral Available"
+      },
+      "governance": {
+        "title": "Governance Coverage",
+        "description": "Audit timeline and delivery-governance decisions for silent reporting coverage gaps.",
+        "export": "Export governance snapshot",
+        "exporting": "Exporting snapshot...",
+        "metrics": {
+          "gaps": "{count} active gaps",
+          "active": "Active subscriptions",
+          "paused": "Paused subscriptions",
+          "followups": "Open follow-ups",
+          "overdue": "Overdue follow-ups"
+        },
+        "followupTitle": "Recovery Follow-up Queue",
+        "followupEmpty": "No governance follow-up work is open right now.",
+        "followupDue": "Due {value}",
+        "followupLastNotified": "Last reminder {value}",
+        "actions": {
+          "resolve": "Resolve",
+          "dismiss": "Dismiss"
+        },
+        "decisionsTitle": "Recent Governance Decisions",
+        "auditTitle": "Recent Policy Audit",
+        "auditLink": "Open audit log",
+        "emptyDecisions": "No recent suppressed or domain-blocked reporting decisions were recorded.",
+        "emptyAudit": "No recent governance audit entries were recorded.",
+        "noFieldDiff": "Snapshot change only"
+      },
+      "distribution": {
+        "title": "Recurring Distribution",
+        "description": "Managed reporting subscriptions for finance, product, risk, and ops recipients.",
+        "metrics": {
+          "active": "{count} active subscriptions"
+        },
+        "fields": {
+          "email": "Recipient Email",
+          "name": "Recipient Name",
+          "namePlaceholder": "Optional display name",
+          "audience": "Audience",
+          "cadence": "Cadence",
+          "windowDays": "Window Days",
+          "template": "Template",
+          "locale": "Locale",
+          "subjectPrefix": "Subject Prefix",
+          "titleOverride": "Title Override",
+          "titleOverridePlaceholder": "Optional custom email title",
+          "domainPolicy": "Domain Policy",
+          "allowedDomains": "Allowed Domains",
+          "suppressedUntil": "Suppress Until",
+          "suppressionReason": "Suppression Reason"
+        },
+        "nextDelivery": "Next {value}",
+        "suppressedUntil": "Suppressed until {value}",
+        "allowedDomainsValue": "Allowed domains: {value}",
+        "create": "Create subscription",
+        "creating": "Creating...",
+        "createHint": "Subscriptions claim fresh reporting snapshots and publish them through the worker delivery pipeline.",
+        "createFailed": "Subscription creation failed. Check cadence, audience, and backend validation.",
+        "actions": {
+          "pause": "Pause",
+          "resume": "Resume",
+          "update": "Update",
+          "cancelEdit": "Cancel edit"
+        },
+        "empty": "No recurring reporting subscriptions are configured yet."
+      },
+      "deliveries": {
+        "title": "Recent Reporting Deliveries",
+        "description": "Latest recurring reporting publications with delivery status, freshness posture, and exportable artifacts.",
+        "failed": "{count} failed deliveries",
+        "actions": {
+          "export": "Export artifact"
+        },
+        "empty": "No recurring reporting deliveries have been recorded yet."
+      }
+    },
+    "deliveryOpsTitle": "Delivery Operations",
+    "deliveryOpsDescription": "Send operator-authored customer notices and control live growth notification delivery state from the same console.",
+    "deliveryOpsLive": "Live delivery control",
+    "deliveryFeedTitle": "Delivery Feed",
+    "deliveryFeedDescription": "Recent per-channel growth deliveries with resend, pause, revoke, and resolve controls.",
+    "deliveryFeedEmpty": "No growth notification deliveries matched the current filter.",
+    "deliveryOps": {
+      "fields": {
+        "userId": "Customer User ID",
+        "filterUserId": "Filter by customer UUID",
+        "routeSlug": "Route Slug",
+        "title": "Title",
+        "message": "Message",
+        "notes": "Operator Notes"
+      },
+      "notesPlaceholder": "One note per line",
+      "channels": {
+        "inApp": "In-app",
+        "email": "Email",
+        "telegram": "Telegram"
+      },
+      "actions": {
+        "inspect": "Inspect",
+        "resend": "Resend",
+        "pause": "Pause",
+        "revoke": "Revoke",
+        "resolve": "Resolve"
+      },
+      "queueStatus": "Queue",
+      "send": "Send notice",
+      "sending": "Sending...",
+      "manualHint": "Manual notices respect customer growth delivery preferences and land in the canonical delivery ledger.",
+      "manualFailed": "Manual notification failed. Check the payload and backend response."
+    },
+    "deliveryForensics": {
+      "title": "Delivery Forensics",
+      "empty": "Select a delivery to inspect its support timeline.",
+      "export": "Export JSON",
+      "exporting": "Exporting...",
+      "supportSummary": "Support Summary",
+      "siblingTitle": "Sibling Channels",
+      "siblingEmpty": "No sibling channel deliveries were recorded for this notification.",
+      "queueTitle": "Queue Snapshot",
+      "queueAttempts": "{count} queue attempts",
+      "queueEmpty": "This delivery is not currently linked to an async queue item.",
+      "sourceTitle": "Source Summary",
+      "sourceEmpty": "No source summary is available for this delivery.",
+      "timelineTitle": "Delivery Timeline",
+      "timelineEmpty": "No delivery timeline events were recorded yet."
+    },
     "operatorNotesTitle": "Operator Notes",
     "operatorNotes": {
       "invitesTitle": "Invite codes are create-only",
       "invitesDescription": "Backend exposes admin invite generation but no admin list/detail inventory yet. This module keeps deterministic batch generation and local result readback.",
       "partnersTitle": "Partner inventory is now live",
       "partnersDescription": "Admin can promote, search, and inspect partner-level performance, but payout moderation is still the next workflow.",
+      "giftsTitle": "Gift inventory is now live",
+      "giftsDescription": "Admin can issue single or batch gift codes and inspect active or redeemed inventory without leaving the growth console.",
       "referralsTitle": "Referral analytics are now operator-safe",
       "referralsDescription": "Admin-safe overview and per-user drill-down are live. The remaining work is abuse review and deeper attribution analytics."
     },
@@ -70,7 +254,7 @@
     "quickSignals": {
       "exhausted": "Exhausted Promos",
       "coverage": "Coverage",
-      "coverageValue": "5 live surfaces"
+      "coverageValue": "6 live surfaces"
     }
   },
   "promoCodes": {
@@ -82,6 +266,29 @@
     "createPanelTitle": "Create Promo Code",
     "createPanelDescription": "Expose the full admin create surface, including advanced targeting fields that are currently write-only in the API contract.",
     "editPanelTitle": "Update Promo",
+    "lookup": {
+      "title": "Growth Code Lookup",
+      "description": "Resolve any growth code with an operator-supplied context before touching live checkout state.",
+      "action": "Run lookup",
+      "empty": "Enter a code to inspect its current lifecycle and eligibility state.",
+      "fields": {
+        "code": "Code",
+        "context": "Action Context",
+        "channel": "Channel",
+        "userId": "Lookup User UUID",
+        "storefront": "Storefront Key",
+        "planId": "Plan UUID",
+        "amount": "Amount"
+      },
+      "resultType": "Resolved Type",
+      "resultStatus": "Result",
+      "resultReason": "Reject Reason",
+      "resultConflict": "Conflict Code",
+      "resultTarget": "Wrong Context Target",
+      "resultIssuer": "Issuer Type",
+      "resultOwner": "Owner Type",
+      "resultMessageKey": "Message Key"
+    },
     "inspectPanelTitle": "Promo Detail",
     "inspectPanelDescription": "Detail route is wired to the dedicated promo endpoint, not only the list response.",
     "inspectEmpty": "Select a promo row to inspect it.",
@@ -171,6 +378,53 @@
       "freeDays": "Free Days",
       "used": "Used",
       "expires": "Expires",
+      "created": "Created"
+    }
+  },
+  "giftCodes": {
+    "metaTitle": "Gift Codes - Ozoxy Admin",
+    "eyebrow": "Growth / Gift Codes",
+    "title": "Gift Inventory",
+    "description": "Issue single or batch customer gift codes, inspect redemption status, and keep operator-visible gift inventory under one admin surface.",
+    "issueAction": "Issue gift",
+    "issuing": "Issuing...",
+    "issuePanelTitle": "Issue Gift Code",
+    "issuePanelDescription": "Create one or more customer-owned gift codes from the live plan catalog and keep recipient context in the canonical lifecycle.",
+    "filtersTitle": "Inventory Filters",
+    "filtersDescription": "Filter the live gift inventory by owner user and audit the resulting redemptions without leaving the growth console.",
+    "inventoryTitle": "Gift Inventory",
+    "inventoryDescription": "Live admin inventory for active, redeemed, and operator-issued gift codes.",
+    "syncing": "Syncing",
+    "liveInventory": "Live inventory",
+    "empty": "No gift codes matched the current filter.",
+    "metrics": {
+      "total": "Gift Codes",
+      "totalHint": "Canonical gift code records returned by the admin inventory.",
+      "active": "Active Gifts",
+      "activeHint": "Gift codes still available for redemption.",
+      "redeemed": "Redeemed Gifts",
+      "redeemedHint": "Gift codes already converted into entitlement grants.",
+      "lastIssued": "Last Issued",
+      "lastIssuedHint": "Most recent batch or code emitted from this admin session."
+    },
+    "fields": {
+      "ownerUserId": "Owner User ID",
+      "ownerFilter": "Owner filter",
+      "planId": "Plan",
+      "planPlaceholder": "Select a gift plan",
+      "count": "Count",
+      "recipientHint": "Recipient hint",
+      "giftMessage": "Gift message",
+      "reasonCode": "Reason code",
+      "adminNote": "Admin note"
+    },
+    "table": {
+      "code": "Code",
+      "owner": "Owner",
+      "plan": "Plan",
+      "recipient": "Recipient",
+      "status": "Status",
+      "redeemed": "Redeemed",
       "created": "Created"
     }
   },
@@ -297,30 +551,29 @@
   "referrals": {
     "metaTitle": "Referrals - Ozoxy Admin",
     "eyebrow": "Growth / Referrals",
-    "title": "Referral Analytics",
-    "description": "Admin-safe overview of referral earnings, top referrers, and recent commission activity.",
-    "currentStateTitle": "Top Referrers",
-    "currentStateDescription": "Live leaderboard pulled from admin-safe referral analytics endpoints.",
-    "recentTitle": "Recent Commissions",
+    "title": "Referral Signals",
+    "description": "Operational view of abuse pressure, blocked rewards, and referral lifecycle events after the growth-codes cutover.",
+    "abuseQueueTitle": "Abuse Review Signals",
+    "abuseQueueDescription": "Repeated rejection clusters and blocked rewards that need operator triage before they become support or fraud incidents.",
+    "abuseQueueEmpty": "No growth abuse signals are open right now.",
+    "breakdownTitle": "Reward Status Breakdown",
+    "breakdownDescription": "Current referral reward posture after holds, risk blocks, and availability transitions.",
+    "lifecycleTitle": "Referral Lifecycle",
+    "lifecycleEmpty": "No referral lifecycle events have been emitted yet.",
     "liveOverview": "Live overview",
-    "topReferrersEmpty": "No referral activity is available yet.",
-    "recentEmpty": "No recent referral commissions were returned.",
-    "nextFocusTitle": "Next Focus",
-    "nextFocusDescription": "The remaining growth gap is not raw visibility anymore. The next layer is abuse review, payout operations, and deeper attribution diagnostics.",
-    "openCustomer": "Open customer card",
     "metrics": {
-      "adminSurface": "Commissions",
-      "adminSurfaceHint": "total commission records visible to admin",
-      "uniqueReferrers": "Referrers",
-      "uniqueReferrersHint": "users who have earned at least one referral commission",
-      "uniqueReferred": "Referred Users",
-      "uniqueReferredHint": "unique users brought in through referral flows",
-      "totalEarned": "Total Earned",
-      "totalEarnedHint": "aggregate referral payout volume"
+      "availableCredit": "Available Credit",
+      "availableCreditHint": "Referral reward amount currently available in the canonical non-withdrawable balance.",
+      "blockedRewards": "Blocked Rewards",
+      "blockedRewardsHint": "Reward allocations currently held back by risk decisions.",
+      "totalRedemptions": "Total Redemptions",
+      "totalRedemptionsHint": "Redemption volume already linked to the growth code lifecycle.",
+      "activeReservations": "Active Reservations",
+      "activeReservationsHint": "Quote reservations that still hold a growth-code claim."
     },
     "badges": {
-      "commissions": "{count} commissions",
-      "referredUsers": "{count} referred"
+      "count": "{count} signals",
+      "users": "{count} users"
     }
   }
 }

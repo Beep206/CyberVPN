@@ -4,10 +4,93 @@ Local Docker Compose stack that mirrors the launch plan in `docs/plans/legacy/vp
 
 The directory now also contains the first staging-first IaC scaffold:
 
-- `infra/terraform/` for cloud resources;
+- `infra/terraform/` for cloud resources, managed via `OpenTofu` during the migration window;
 - `infra/ansible/` for host bootstrap and later workload deployment.
+- `infra/openbao/` for canonical OpenBao policy assets and example auth specs.
 
 The Docker Compose files remain the reference for local development and service topology. The new IaC layout is intentionally separate so we can automate staging edge infrastructure without forcing an immediate control-plane migration.
+
+Current Phase `P1` control-plane additions in this repo:
+
+- `infra/terraform/live/staging/openbao` provisions the first canonical `OpenBao` non-prod foundation on a dedicated Hetzner VM with AWS KMS auto-unseal.
+- `infra/scripts/openbao_bootstrap.py` is the canonical helper for:
+  - rendering `/etc/openbao/openbao.env` from current AWS env
+  - initializing the cluster
+  - applying the baseline namespace, auth mounts, secrets engines, and policies
+- `infra/openbao/policies` and `infra/openbao/examples` are the source-controlled baseline for the frozen `P1.2` mount and policy posture.
+- `infra/terraform/live/staging/nats` provisions the first canonical shared `nats-nonprod` JetStream foundation on dedicated Hetzner VMs with local JetStream storage and a restricted route/exporter firewall.
+- `infra/scripts/nats_bootstrap.py` is the canonical helper for:
+  - rendering per-node TLS and `nats-server.conf` bundles
+  - rendering a Prometheus `file_sd` target artifact for `nats-exporter`
+  - producing per-node install scripts for the out-of-band config/TLS cut-in
+- `infra/nats/examples/accounts.json.example` is the source-controlled baseline for the frozen `P1.3` account and subject-permission posture.
+- `infra/terraform/live/staging/posthog` provisions the first canonical `posthog-nonprod` product-intelligence foundation on a dedicated Hetzner VM with Docker, host-level `NGINX`, and a baseline local backup timer.
+- `infra/scripts/posthog_bootstrap.py` is the canonical helper for:
+  - rendering deployment env and Docker Compose override files;
+  - rendering host-level `NGINX` configs for public ingestion paths and protected UI catch-all;
+  - rendering install and baseline backup scripts for out-of-band host cut-in.
+- `infra/terraform/live/staging/nonprod-mgmt` provisions the first canonical `nonprod-mgmt` Talos management cluster on dedicated Hetzner VMs with a reserved Kubernetes API endpoint IP and Talos provider bootstrap resources.
+- `infra/scripts/nonprod_mgmt_bootstrap.py` is the canonical helper for:
+  - rendering a pinned `clusterctl` config for Cluster API core plus Talos providers;
+  - rendering the guarded CAPH install step that requires an explicit validated `CAPH_COMPONENTS_URL`;
+  - freezing the operator bootstrap bundle for the management-cluster control substrate.
+- `infra/terraform/live/production/prod-mgmt` provisions the first canonical `prod-mgmt` Talos management cluster on dedicated Hetzner VMs with a provider-native L4 Kubernetes API endpoint and Talos provider bootstrap resources.
+- `infra/scripts/prod_mgmt_bootstrap.py` is the canonical helper for:
+  - rendering a pinned `clusterctl` config for Cluster API core plus Talos providers;
+  - rendering the guarded CAPH install step that requires an explicit validated `CAPH_COMPONENTS_URL`;
+  - freezing the production operator bootstrap bundle for the management-cluster control substrate.
+- `infra/scripts/platform_gitops_bootstrap.py` is the canonical helper for:
+  - rendering the standalone `platform-gitops` repository scaffold;
+  - freezing the initial `clusters/nonprod-mgmt` / `infrastructure/nonprod-mgmt` / `apps/nonprod-mgmt` repository layout;
+  - rendering the guarded Flux bootstrap helper that uses GitHub SSH deploy-key auth instead of PAT-in-cluster auth.
+- `infra/scripts/control_plane_observability.py` is the canonical helper for:
+  - rendering per-host Alloy bundles for `openbao-nonprod`, `nats-nonprod`, and `posthog-nonprod`;
+  - rendering Prometheus `file_sd` target artifacts for `alloy-control-plane` and `openbao`;
+  - freezing the rule that new external control-plane VMs use `Alloy`, not `promtail` or standalone long-lived `otel-collector` paths.
+- `infra/scripts/control_plane_recovery.py` is the canonical helper for:
+  - rendering the non-prod operator bundle for `OpenBao`, `NATS`, `PostHog`, and `nonprod-mgmt` backup and restore flows;
+  - freezing the baseline artifact layout and restore notes before live DR evidence exists;
+  - keeping `P1.8` recovery work explicit and separate from later Kubernetes-native backup orchestration.
+- `infra/scripts/workload_cluster_bootstrap.py` is the canonical helper for:
+  - rendering the first `P2.1` workload-cluster scaffold for `platform-gitops`;
+  - freezing the management-cluster-side CAPI contract for `nonprod-hetzner-hel1-core`;
+  - freezing the initial network baseline intent for `Cloudflare`, provider-native `LoadBalancer`, `Cilium Gateway API`, `cert-manager`, and `trust-manager`.
+- `infra/scripts/platform_services_bootstrap.py` is the canonical helper for:
+  - rendering the first `P2.2` base platform-services scaffold for `platform-gitops`;
+  - freezing ordered Flux reconciliation for `cert-manager`, `trust-manager`, `External Secrets Operator`, `kube-prometheus-stack`, `Loki`, `Tempo`, and `Alloy`;
+  - freezing the current maintained `OpenBao -> operator -> Kubernetes Secret` implementation path without introducing a second ingress controller beyond the already chosen `Cilium Gateway API` substrate.
+- `infra/scripts/collector_convergence.py` is the canonical helper for:
+  - auditing repo-side `promtail` and standalone `otel-collector` references against the frozen Alloy-only target state;
+  - rendering a tracked-legacy vs unexpected-reference report for `P2.3`;
+  - failing validation if new collector drift appears outside the explicitly tracked migration surfaces.
+- `infra/scripts/cluster_backup_bootstrap.py` is the canonical helper for:
+  - rendering the first `P2.4` non-prod workload-cluster data-protection scaffold for `CloudNativePG`, the `Barman Cloud Plugin`, and `Velero`;
+  - freezing the split between PostgreSQL durable recovery via object-store plus WAL archive and fast same-provider recovery via CSI volume snapshots;
+  - freezing the rule that `Velero` file-system backup stays exception-only while `Velero` CSI snapshot data movement remains the portability path.
+- `infra/scripts/workload_delivery_bootstrap.py` is the canonical helper for:
+  - rendering the first `P2.5` source-repo and `platform-gitops` scaffold for `backend` and `task-worker`;
+  - freezing the `GitHub Actions -> OCI Helm -> GitOps PR -> Flux` delivery contract for first-party workloads;
+  - freezing `OCIRepository + HelmRelease` app delivery and the rule that Ansible release-manifest mutation is no longer the target promotion model.
+- `infra/scripts/event_backbone_bootstrap.py` is the canonical helper for:
+  - rendering the first `P2.6` repo-side dispatcher, stream, consumer, and replay scaffold around the current persisted outbox;
+  - validating that the current backend still exposes the frozen default durable consumers `analytics_mart` and `operational_replay`;
+  - freezing service-side `notification_delivery` and `realtime_gateway_projection` as reserved-next consumers for `P2.7`, not silently active cut-in paths.
+- `infra/scripts/realtime_delivery_bootstrap.py` is the canonical helper for:
+  - rendering the first `P2.7` realtime-gateway scaffold and browser-delivery contract downstream of `PARTNER_EVENTS`;
+  - freezing `partner.workspace.feed` as the first canonical business/browser channel;
+  - freezing `SSE` as the primary browser delivery protocol while keeping monitoring WebSocket paths explicitly operational-only and the legacy notifications socket explicitly temporary.
+- `infra/scripts/control_plane_workload_migration.py` is the canonical helper for:
+  - rendering the first `P2.8` Kubernetes runtime scaffold for `backend`, `task-worker`, and `task-scheduler`;
+  - freezing OpenBao-backed secret delivery and rollout ordering for the initial control-plane workload migration set;
+  - freezing `helix-adapter` and `telegram-bot` as explicit exclusions from the first migration wave.
+- `infra/scripts/prod_control_plane_cutover.py` is the canonical helper for:
+  - rendering the first `P3.8` production cutover scaffold for `prod-hetzner-fsn1-core`;
+  - freezing `Flagger + Gateway API` as the production backend progressive-delivery baseline;
+  - freezing production `CloudNativePG`, scheduled backup, alerting, and workload rollout ordering before any live production workload evidence exists.
+- `infra/scripts/production_conformance_bundle.py` is the canonical helper for:
+  - rendering the final `P3.9` production drill and Gate `D` conformance bundle;
+  - freezing the run order and evidence domains for `OpenBao`, `NATS`, `CloudNativePG`, `GitOps`, `PostHog`, and `Node Fleet Controller`;
+  - freezing the final scorecard snapshot and gate-evidence assembly surface before any live production drill evidence exists.
 
 Current Ansible rollout phases in this repo:
 
@@ -246,6 +329,9 @@ If you need durable queues in the future, enable AOF: `--appendonly yes --append
 - `make inventory-production` emits the production equivalents without touching the local dev Prometheus target directory.
 - `make inventory-production` requires a real initialized `infra/terraform/live/production/edge` backend and state.
 - `terraform/live/staging/control-plane` and `terraform/live/production/control-plane` provision Phase 7 host scaffolding for backend, worker, Helix adapter, and backup flows.
+- `terraform/live/staging/openbao` provisions the `openbao-nonprod` baseline and must be applied before later secrets-plane dependent packets claim readiness.
+- `terraform/live/staging/nats` provisions the `nats-nonprod` baseline and must be applied before later event-backbone dependent packets claim readiness.
+- `terraform/live/staging/posthog` provisions the `posthog-nonprod` baseline and must be applied before later product-intelligence dependent packets claim readiness.
 - Control-plane rollout is handled by `make ansible-control-plane-rollout-staging` / `make ansible-control-plane-rollout-production` once the corresponding inventory and vault files exist.
 - Control-plane backup evidence is handled by `make ansible-control-plane-backup-staging` and documented in `docs/runbooks/CONTROL_PLANE_BACKUP_RESTORE_RUNBOOK.md`.
 - Phase 8 promotes control-plane images through `infra/ansible/inventories/*/group_vars/control_plane_*/release.yml` with digest-pinned refs, not mutable tags.
@@ -253,7 +339,7 @@ If you need durable queues in the future, enable AOF: `--appendonly yes --append
 - Use `docs/runbooks/CONTROL_PLANE_RELEASE_PROMOTION_RUNBOOK.md` for the release and vault bootstrap procedure.
 - Use `docs/runbooks/CONTROL_PLANE_DR_DRILL.md` before running a destructive restore drill.
 - Run `make monitoring-validate` from `infra/` to verify the dashboard set expected by Phase 5.
-- Keep IaC rollout manual; `terraform apply` and Ansible rollout remain operator-approved steps, not auto-apply CI hooks.
+- Keep IaC rollout manual; `tofu apply` and Ansible rollout remain operator-approved steps, not auto-apply CI hooks.
 - Use `docs/runbooks/EDGE_POST_DEPLOY_VERIFICATION_CHECKLIST.md` as the post-deploy evidence checklist.
 - Use `docs/runbooks/PRODUCTION_EDGE_CANARY_RUNBOOK.md` for the Phase 6 production canary procedure.
 - Run `bash infra/tests/test_helix_stack.sh` after profile changes to verify the lab wiring.

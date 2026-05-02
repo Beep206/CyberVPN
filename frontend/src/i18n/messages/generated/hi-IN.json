@@ -731,6 +731,38 @@
       "copied": "Code copied to clipboard!",
       "howItWorks": "How It Works",
       "noCommissions": "No commissions yet",
+      "notifications": {
+        "actionRequired": "Action required",
+        "archive": "Archive",
+        "counters": {
+          "actionRequired": "Action {count}",
+          "total": "Total {count}",
+          "unread": "Unread {count}"
+        },
+        "empty": "No growth notifications are visible right now.",
+        "loading": "Loading growth notifications...",
+        "markRead": "Mark read",
+        "subtitle": "Durable updates for invites, referral rewards, and gift codes.",
+        "title": "Growth notifications",
+        "unread": "Unread"
+      },
+      "preferences": {
+        "categories": {
+          "adminUpdates": "Admin updates",
+          "gifts": "Gift codes",
+          "invites": "Invites",
+          "referralRewards": "Referral rewards"
+        },
+        "channels": {
+          "email": "Email",
+          "inApp": "In-app",
+          "telegram": "Telegram"
+        },
+        "note": "In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.",
+        "saving": "Saving...",
+        "subtitle": "Choose which growth events stay in-app, email, or Telegram.",
+        "title": "Delivery preferences"
+      },
       "qrCodeTitle": "QR Code",
       "recentCommissions": "Recent Commissions",
       "referralRate": "Commission Rate",

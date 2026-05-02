@@ -81,6 +81,8 @@ class TestTelegramMiniAppUseCase:
 
         assert isinstance(result, TelegramMiniAppResult)
         assert result.is_new_user is False
+        assert result.requires_2fa is False
+        assert result.tfa_token is None
         assert result.access_token == "access_tok"
         assert result.user == existing
         mock_user_repo.create.assert_not_called()

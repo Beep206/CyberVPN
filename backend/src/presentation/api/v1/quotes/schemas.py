@@ -15,6 +15,7 @@ class CreateQuoteSessionRequest(BaseModel):
     offer_key: str | None = Field(None, min_length=1, max_length=60)
     plan_id: UUID
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
+    code_input: str | None = Field(None, max_length=64)
     promo_code: str | None = Field(None, max_length=50)
     partner_code: str | None = Field(None, max_length=30)
     use_wallet: float = Field(0, ge=0)

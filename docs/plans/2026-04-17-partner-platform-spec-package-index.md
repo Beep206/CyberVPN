@@ -36,6 +36,7 @@ Portal-specific product documentation package, to be read after the core platfor
 9. [2026-04-18-partner-app-bootstrap-plan.md](2026-04-18-partner-app-bootstrap-plan.md)
 10. [2026-04-18-partner-portal-traceability-matrix.md](2026-04-18-partner-portal-traceability-matrix.md)
 11. [2026-04-20-partner-portal-operating-model-and-workflows.md](2026-04-20-partner-portal-operating-model-and-workflows.md)
+12. [2026-04-21-partner-portal-full-overview-general-and-technical.md](2026-04-21-partner-portal-full-overview-general-and-technical.md)
 
 These documents do not replace the canonical platform specifications. They translate the canonical package into an implementation-ready portal product layer for the separate `partner` application.
 
@@ -99,6 +100,8 @@ Partner-platform observability package to be read after final integration closur
 5. [2026-04-20-partner-portal-otel-tracing-and-log-correlation-spec.md](2026-04-20-partner-portal-otel-tracing-and-log-correlation-spec.md)
 6. [2026-04-20-partner-portal-observability-implementation-plan.md](2026-04-20-partner-portal-observability-implementation-plan.md)
 7. [2026-04-20-partner-portal-observability-conformance-test-plan.md](2026-04-20-partner-portal-observability-conformance-test-plan.md)
+8. [partner portal observability runbook](../runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md)
+9. [2026-04-20-partner-observability-staging-rollout-technical-debt.md](2026-04-20-partner-observability-staging-rollout-technical-debt.md)
 
 ---
 

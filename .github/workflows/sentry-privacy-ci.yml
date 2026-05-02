@@ -1,0 +1,56 @@
+name: Sentry Privacy CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'scripts/validate-sentry-privacy.py'
+      - '.github/workflows/sentry-privacy-ci.yml'
+      - 'frontend/**'
+      - 'admin/**'
+      - 'partner/**'
+      - 'backend/**'
+      - 'services/task-worker/**'
+      - 'services/node-fleet-controller/**'
+      - 'services/telegram-bot/**'
+      - 'cybervpn_mobile/**'
+      - 'apps/desktop-client/**'
+      - 'apps/android-tv/**'
+      - 'services/helix-adapter/**'
+      - 'services/helix-node/**'
+  pull_request:
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'scripts/validate-sentry-privacy.py'
+      - '.github/workflows/sentry-privacy-ci.yml'
+      - 'frontend/**'
+      - 'admin/**'
+      - 'partner/**'
+      - 'backend/**'
+      - 'services/task-worker/**'
+      - 'services/node-fleet-controller/**'
+      - 'services/telegram-bot/**'
+      - 'cybervpn_mobile/**'
+      - 'apps/desktop-client/**'
+      - 'apps/android-tv/**'
+      - 'services/helix-adapter/**'
+      - 'services/helix-node/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate privacy baseline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Sentry privacy baseline
+        run: python3 scripts/validate-sentry-privacy.py

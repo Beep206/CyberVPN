@@ -737,6 +737,10 @@ class CyberVPNAPIClient:
         plan_id: str,
         duration_days: int,
         amount: int,
+        *,
+        addons: list[dict[str, Any]] | None = None,
+        promo_code: str | None = None,
+        use_wallet: float = 0,
     ) -> dict[str, Any]:
         """Create a Telegram Stars invoice.
 
@@ -749,14 +753,18 @@ class CyberVPNAPIClient:
         Returns:
             Invoice data for Telegram Stars payment.
         """
-        return await self._request_dict(
+        return await self._request_auth_backend_dict(
             "POST",
             "/telegram/payments/stars",
             json={
                 "telegram_id": telegram_id,
                 "plan_id": plan_id,
-                "duration_days": duration_days,
-                "amount": amount,
+                "addons": addons or [],
+                "promo_code": promo_code,
+                "use_wallet": use_wallet,
+                "currency": "XTR",
+                "payment_method": "telegram_stars",
+                "telegram_stars_amount": amount,
             },
         )
 
@@ -782,7 +790,7 @@ class CyberVPNAPIClient:
         Returns:
             Invoice status data.
         """
-        return await self._request_dict("GET", f"/telegram/payments/{invoice_id}")
+        return await self._request_auth_backend_dict("GET", f"/telegram/payments/{invoice_id}")
 
     async def get_subscription_qr(self, subscription_id: str) -> bytes:
         response = await self._client.get(f"/telegram/subscriptions/{subscription_id}/qr")
@@ -803,12 +811,58 @@ class CyberVPNAPIClient:
         payment_id: str,
         telegram_payment_charge_id: str,
     ) -> dict[str, Any]:
-        result = await self._request_dict(
+        result = await self._request_auth_backend_dict(
             "POST",
             f"/telegram/payments/{payment_id}/confirm",
             json={"telegram_payment_charge_id": telegram_payment_charge_id},
         )
         return result if isinstance(result, dict) else {}
+
+    async def validate_stars_pre_checkout(
+        self,
+        *,
+        payment_id: str,
+        telegram_id: int,
+        currency: str,
+        total_amount: int,
+        invoice_payload: str,
+    ) -> dict[str, Any]:
+        return await self._request_auth_backend_dict(
+            "POST",
+            f"/telegram/payments/{payment_id}/pre-checkout",
+            json={
+                "telegram_id": telegram_id,
+                "currency": currency,
+                "total_amount": total_amount,
+                "invoice_payload": invoice_payload,
+            },
+        )
+
+    async def confirm_stars_payment(
+        self,
+        *,
+        payment_id: str,
+        telegram_id: int,
+        currency: str,
+        total_amount: int,
+        invoice_payload: str,
+        telegram_payment_charge_id: str,
+        provider_payment_charge_id: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "telegram_id": telegram_id,
+            "currency": currency,
+            "total_amount": total_amount,
+            "invoice_payload": invoice_payload,
+            "telegram_payment_charge_id": telegram_payment_charge_id,
+        }
+        if provider_payment_charge_id:
+            payload["provider_payment_charge_id"] = provider_payment_charge_id
+        return await self._request_auth_backend_dict(
+            "POST",
+            f"/telegram/payments/{payment_id}/confirm",
+            json=payload,
+        )
 
     # ── Referrals ────────────────────────────────────────────────────
 

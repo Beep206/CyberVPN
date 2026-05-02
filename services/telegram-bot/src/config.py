@@ -7,17 +7,19 @@ with nested model support, validators, and a cached singleton accessor.
 from __future__ import annotations
 
 import ipaddress
+import json
 from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import (
+    AliasChoices,
     AnyHttpUrl,
     Field,
     SecretStr,
     field_validator,
     model_validator,
 )
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # ── Nested sub-models ────────────────────────────────────────────────────────
 
@@ -164,9 +166,9 @@ class PrometheusSettings(BaseSettings):
     protect: bool = True
     port: Annotated[int, Field(ge=1024, le=65535)] = 9090
     path: str = "/metrics"
-    allowed_ips: list[str] = Field(default_factory=list)
+    allowed_ips: Annotated[list[str], NoDecode] = Field(default_factory=list)
     trust_proxy: bool = False
-    trusted_proxy_ips: list[str] = Field(default_factory=list)
+    trusted_proxy_ips: Annotated[list[str], NoDecode] = Field(default_factory=list)
     basic_auth_user: str | None = None
     basic_auth_password: SecretStr | None = None
     require_tls: bool = False
@@ -175,6 +177,8 @@ class PrometheusSettings(BaseSettings):
     @classmethod
     def parse_allowed_ips(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
+            if v.strip().startswith("["):
+                return [str(ip).strip() for ip in json.loads(v)]
             return [ip.strip() for ip in v.split(",") if ip.strip()]
         return v
 
@@ -182,6 +186,8 @@ class PrometheusSettings(BaseSettings):
     @classmethod
     def parse_trusted_proxy_ips(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
+            if v.strip().startswith("["):
+                return [str(ip).strip() for ip in json.loads(v)]
             return [ip.strip() for ip in v.split(",") if ip.strip()]
         return v
 
@@ -231,20 +237,71 @@ class BotSettings(BaseSettings):
     bot_token: SecretStr
     bot_username: str | None = None
     bot_mode: Literal["webhook", "polling"] = "polling"
+    skip_telegram_network_calls: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "skip_telegram_network_calls",
+            "TELEGRAM_BOT_SKIP_NETWORK_CALLS",
+        ),
+    )
     environment: Literal["development", "staging", "production"] = "production"
+    sentry_dsn: str = ""
+    sentry_release: str = ""
+    observability_internal_secret: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "observability_internal_secret",
+            "TELEGRAM_BOT_OBSERVABILITY_INTERNAL_SECRET",
+        ),
+    )
 
     # ── Admin ────────────────────────────────────────────────────────────
-    admin_ids: list[int] = Field(default_factory=list)
+    admin_ids: Annotated[list[int], NoDecode] = Field(default_factory=list)
     support_username: str = "CyberVPNSupport"
 
     # ── i18n ─────────────────────────────────────────────────────────────
     default_language: str = "ru"
-    available_languages: list[str] = Field(
+    available_languages: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: [
-            "am", "ar", "be", "bn", "cs", "de", "en", "es", "fa", "fil",
-            "fr", "ha", "he", "hi", "hu", "id", "it", "ja", "kk", "ko",
-            "ku", "ms", "my", "nl", "pl", "pt", "ro", "ru", "sv", "th",
-            "tk", "tr", "uk", "ur", "uz", "vi", "yo", "zh", "zh-Hant",
+            "am",
+            "ar",
+            "be",
+            "bn",
+            "cs",
+            "de",
+            "en",
+            "es",
+            "fa",
+            "fil",
+            "fr",
+            "ha",
+            "he",
+            "hi",
+            "hu",
+            "id",
+            "it",
+            "ja",
+            "kk",
+            "ko",
+            "ku",
+            "ms",
+            "my",
+            "nl",
+            "pl",
+            "pt",
+            "ro",
+            "ru",
+            "sv",
+            "th",
+            "tk",
+            "tr",
+            "uk",
+            "ur",
+            "uz",
+            "vi",
+            "yo",
+            "zh",
+            "zh-Hant",
         ]
     )
 
@@ -271,6 +328,8 @@ class BotSettings(BaseSettings):
         Accepts: "123,456,789" or [123, 456, 789]
         """
         if isinstance(v, str):
+            if v.strip().startswith("["):
+                return [int(id_) for id_ in json.loads(v)]
             if not v.strip():
                 return []
             return [int(id_.strip()) for id_ in v.split(",") if id_.strip()]
@@ -283,6 +342,8 @@ class BotSettings(BaseSettings):
     def parse_available_languages(cls, v: str | list[str]) -> list[str]:
         """Parse comma-separated languages or pass list through."""
         if isinstance(v, str):
+            if v.strip().startswith("["):
+                return [str(lang).strip() for lang in json.loads(v)]
             return [lang.strip() for lang in v.split(",") if lang.strip()]
         return v
 

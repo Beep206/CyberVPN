@@ -119,6 +119,11 @@ class SyncSessionAdapter:
     async def refresh(self, instance) -> None:
         self._session.refresh(instance)
 
+    @asynccontextmanager
+    async def begin_nested(self):
+        with self._session.begin_nested():
+            yield self
+
 
 def create_realm_test_sessionmaker() -> tuple[sessionmaker[Session], object, Path]:
     temp_file = NamedTemporaryFile(prefix="cybervpn-realm-auth-", suffix=".sqlite3", delete=False)
@@ -495,6 +500,27 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_admin_users_auth_realm_id ON admin_users(auth_realm_id)")
         conn.exec_driver_sql(
             """
+            CREATE TABLE audit_logs (
+                id TEXT PRIMARY KEY,
+                admin_id TEXT,
+                action TEXT NOT NULL,
+                entity_type TEXT,
+                entity_id TEXT,
+                old_value TEXT,
+                new_value TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_audit_logs_admin_id ON audit_logs(admin_id)")
+        conn.exec_driver_sql("CREATE INDEX ix_audit_logs_action ON audit_logs(action)")
+        conn.exec_driver_sql("CREATE INDEX ix_audit_logs_entity_type ON audit_logs(entity_type)")
+        conn.exec_driver_sql("CREATE INDEX ix_audit_logs_created_at ON audit_logs(created_at)")
+        conn.exec_driver_sql(
+            """
             CREATE TABLE refresh_tokens (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
@@ -531,8 +557,12 @@ async def initialize_realm_test_database(engine) -> None:
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 username TEXT UNIQUE,
+                telegram_subject TEXT UNIQUE,
                 telegram_id INTEGER UNIQUE,
                 telegram_username TEXT,
+                notification_prefs TEXT NOT NULL DEFAULT '{}',
+                totp_secret TEXT,
+                totp_enabled INTEGER NOT NULL DEFAULT 0,
                 remnawave_uuid TEXT UNIQUE,
                 subscription_url TEXT,
                 referral_code TEXT UNIQUE,
@@ -592,6 +622,26 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_wallet_transactions_wallet_id ON wallet_transactions(wallet_id)")
         conn.exec_driver_sql("CREATE INDEX ix_wallet_transactions_user_id ON wallet_transactions(user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_wallet_transactions_created_at ON wallet_transactions(created_at)")
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE notification_queue (
+                id TEXT PRIMARY KEY,
+                telegram_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                notification_type TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                attempts INTEGER NOT NULL DEFAULT 0,
+                scheduled_at TEXT NOT NULL,
+                sent_at TEXT,
+                error_message TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_notification_queue_status_scheduled "
+            "ON notification_queue(status, scheduled_at)"
+        )
         conn.exec_driver_sql(
             """
             CREATE TABLE invite_codes (
@@ -685,6 +735,443 @@ async def initialize_realm_test_database(engine) -> None:
         conn.exec_driver_sql("CREATE INDEX ix_policy_versions_approval_state ON policy_versions(approval_state)")
         conn.exec_driver_sql("CREATE INDEX ix_policy_versions_version_status ON policy_versions(version_status)")
         conn.exec_driver_sql("CREATE INDEX ix_policy_versions_effective_from ON policy_versions(effective_from)")
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_codes (
+                id TEXT PRIMARY KEY,
+                code_hash TEXT NOT NULL,
+                code_prefix TEXT NOT NULL,
+                code_type TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                issuer_type TEXT NOT NULL,
+                issuer_admin_id TEXT,
+                owner_user_id TEXT,
+                owner_partner_account_id TEXT,
+                campaign_id TEXT,
+                batch_id TEXT,
+                storefront_id TEXT,
+                auth_realm_id TEXT,
+                policy_version_id TEXT,
+                starts_at TEXT,
+                expires_at TEXT,
+                max_uses INTEGER,
+                uses_count INTEGER NOT NULL DEFAULT 0,
+                revoked_at TEXT,
+                revoked_by_admin_id TEXT,
+                revoked_reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (issuer_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (owner_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (owner_partner_account_id) REFERENCES partner_accounts(id) ON DELETE SET NULL,
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id) ON DELETE SET NULL,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id) ON DELETE SET NULL,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL,
+                FOREIGN KEY (revoked_by_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL,
+                UNIQUE (code_hash, code_type)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_codes_code_hash ON growth_codes(code_hash)",
+            "CREATE INDEX ix_growth_codes_code_prefix ON growth_codes(code_prefix)",
+            "CREATE INDEX ix_growth_codes_code_type ON growth_codes(code_type)",
+            "CREATE INDEX ix_growth_codes_status ON growth_codes(status)",
+            "CREATE INDEX ix_growth_codes_issuer_type ON growth_codes(issuer_type)",
+            "CREATE INDEX ix_growth_codes_issuer_admin_id ON growth_codes(issuer_admin_id)",
+            "CREATE INDEX ix_growth_codes_owner_user_id ON growth_codes(owner_user_id)",
+            "CREATE INDEX ix_growth_codes_owner_partner_account_id ON growth_codes(owner_partner_account_id)",
+            "CREATE INDEX ix_growth_codes_campaign_id ON growth_codes(campaign_id)",
+            "CREATE INDEX ix_growth_codes_batch_id ON growth_codes(batch_id)",
+            "CREATE INDEX ix_growth_codes_storefront_id ON growth_codes(storefront_id)",
+            "CREATE INDEX ix_growth_codes_auth_realm_id ON growth_codes(auth_realm_id)",
+            "CREATE INDEX ix_growth_codes_policy_version_id ON growth_codes(policy_version_id)",
+            "CREATE INDEX ix_growth_codes_starts_at ON growth_codes(starts_at)",
+            "CREATE INDEX ix_growth_codes_expires_at ON growth_codes(expires_at)",
+            "CREATE INDEX ix_growth_codes_revoked_at ON growth_codes(revoked_at)",
+            "CREATE INDEX ix_growth_codes_revoked_by_admin_id ON growth_codes(revoked_by_admin_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_code_issuances (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL,
+                issuance_type TEXT NOT NULL,
+                issued_to_user_id TEXT,
+                issued_to_partner_account_id TEXT,
+                issued_by_admin_id TEXT,
+                source_order_id TEXT,
+                source_payment_id TEXT,
+                source_plan_sku TEXT,
+                raw_code_encrypted TEXT,
+                source_bundle_snapshot TEXT NOT NULL DEFAULT '{}',
+                reason_code TEXT,
+                admin_note TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (issued_to_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (issued_to_partner_account_id) REFERENCES partner_accounts(id) ON DELETE SET NULL,
+                FOREIGN KEY (issued_by_admin_id) REFERENCES admin_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_payment_id) REFERENCES payments(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_code_issuances_growth_code_id ON growth_code_issuances(growth_code_id)",
+            "CREATE INDEX ix_growth_code_issuances_issuance_type ON growth_code_issuances(issuance_type)",
+            "CREATE INDEX ix_growth_code_issuances_issued_to_user_id ON growth_code_issuances(issued_to_user_id)",
+            "CREATE INDEX ix_growth_code_issuances_issued_to_partner_account_id "
+            "ON growth_code_issuances(issued_to_partner_account_id)",
+            "CREATE INDEX ix_growth_code_issuances_issued_by_admin_id ON growth_code_issuances(issued_by_admin_id)",
+            "CREATE INDEX ix_growth_code_issuances_source_order_id ON growth_code_issuances(source_order_id)",
+            "CREATE INDEX ix_growth_code_issuances_source_payment_id ON growth_code_issuances(source_payment_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_code_touchpoints (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL,
+                code_type TEXT NOT NULL,
+                anonymous_session_id TEXT,
+                registered_user_id TEXT,
+                risk_subject_id TEXT,
+                storefront_id TEXT,
+                auth_realm_id TEXT,
+                surface TEXT,
+                channel TEXT,
+                utm_source TEXT,
+                utm_medium TEXT,
+                utm_campaign TEXT,
+                click_id TEXT,
+                sub_id TEXT,
+                ip_hash TEXT,
+                user_agent_hash TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                converted_to_signup_at TEXT,
+                converted_to_order_id TEXT,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (registered_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (risk_subject_id) REFERENCES risk_subjects(id) ON DELETE SET NULL,
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id) ON DELETE SET NULL,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id) ON DELETE SET NULL,
+                FOREIGN KEY (converted_to_order_id) REFERENCES orders(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_code_touchpoints_growth_code_id ON growth_code_touchpoints(growth_code_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_code_type ON growth_code_touchpoints(code_type)",
+            "CREATE INDEX ix_growth_code_touchpoints_anonymous_session_id "
+            "ON growth_code_touchpoints(anonymous_session_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_registered_user_id "
+            "ON growth_code_touchpoints(registered_user_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_risk_subject_id ON growth_code_touchpoints(risk_subject_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_storefront_id ON growth_code_touchpoints(storefront_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_auth_realm_id ON growth_code_touchpoints(auth_realm_id)",
+            "CREATE INDEX ix_growth_code_touchpoints_surface ON growth_code_touchpoints(surface)",
+            "CREATE INDEX ix_growth_code_touchpoints_channel ON growth_code_touchpoints(channel)",
+            "CREATE INDEX ix_growth_code_touchpoints_converted_to_signup_at "
+            "ON growth_code_touchpoints(converted_to_signup_at)",
+            "CREATE INDEX ix_growth_code_touchpoints_converted_to_order_id "
+            "ON growth_code_touchpoints(converted_to_order_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_signup_attributions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                growth_code_id TEXT NOT NULL,
+                code_type TEXT NOT NULL,
+                touchpoint_id TEXT NOT NULL,
+                attribution_source TEXT NOT NULL,
+                storefront_id TEXT,
+                auth_realm_id TEXT,
+                risk_subject_id TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (touchpoint_id) REFERENCES growth_code_touchpoints(id) ON DELETE CASCADE,
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id) ON DELETE SET NULL,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id) ON DELETE SET NULL,
+                FOREIGN KEY (risk_subject_id) REFERENCES risk_subjects(id) ON DELETE SET NULL,
+                UNIQUE (user_id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_signup_attributions_user_id ON growth_signup_attributions(user_id)",
+            "CREATE INDEX ix_growth_signup_attributions_growth_code_id "
+            "ON growth_signup_attributions(growth_code_id)",
+            "CREATE INDEX ix_growth_signup_attributions_code_type ON growth_signup_attributions(code_type)",
+            "CREATE INDEX ix_growth_signup_attributions_touchpoint_id ON growth_signup_attributions(touchpoint_id)",
+            "CREATE INDEX ix_growth_signup_attributions_attribution_source "
+            "ON growth_signup_attributions(attribution_source)",
+            "CREATE INDEX ix_growth_signup_attributions_storefront_id ON growth_signup_attributions(storefront_id)",
+            "CREATE INDEX ix_growth_signup_attributions_auth_realm_id ON growth_signup_attributions(auth_realm_id)",
+            "CREATE INDEX ix_growth_signup_attributions_risk_subject_id "
+            "ON growth_signup_attributions(risk_subject_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE invite_code_policies (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL UNIQUE,
+                friend_days INTEGER NOT NULL,
+                entitlement_profile_key TEXT,
+                conversion_reward_policy_id TEXT,
+                self_redemption_block INTEGER NOT NULL DEFAULT 1,
+                risk_ruleset_id TEXT,
+                policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (conversion_reward_policy_id) REFERENCES policy_versions(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_invite_code_policies_growth_code_id ON invite_code_policies(growth_code_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_invite_code_policies_conversion_reward_policy_id "
+            "ON invite_code_policies(conversion_reward_policy_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_invite_code_policies_risk_ruleset_id ON invite_code_policies(risk_ruleset_id)"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE referral_program_policies (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT UNIQUE,
+                program_key TEXT UNIQUE,
+                friend_discount_type TEXT,
+                friend_discount_value NUMERIC,
+                eligible_durations TEXT NOT NULL DEFAULT '[]',
+                eligible_plan_families TEXT NOT NULL DEFAULT '[]',
+                reward_type TEXT,
+                reward_value NUMERIC,
+                hold_days INTEGER,
+                monthly_cap NUMERIC,
+                lifetime_cap NUMERIC,
+                anti_abuse_policy_id TEXT,
+                policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (anti_abuse_policy_id) REFERENCES policy_versions(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_referral_program_policies_growth_code_id ON referral_program_policies(growth_code_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_referral_program_policies_program_key ON referral_program_policies(program_key)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_referral_program_policies_anti_abuse_policy_id "
+            "ON referral_program_policies(anti_abuse_policy_id)"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE promo_code_policies (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL UNIQUE,
+                discount_type TEXT NOT NULL,
+                discount_value NUMERIC NOT NULL,
+                max_discount_amount NUMERIC,
+                eligible_plan_ids TEXT NOT NULL DEFAULT '[]',
+                eligible_plan_families TEXT NOT NULL DEFAULT '[]',
+                eligible_durations TEXT NOT NULL DEFAULT '[]',
+                eligible_addons TEXT NOT NULL DEFAULT '[]',
+                allowed_checkout_modes TEXT NOT NULL DEFAULT '[]',
+                allowed_channels TEXT NOT NULL DEFAULT '[]',
+                allowed_geos TEXT NOT NULL DEFAULT '[]',
+                min_net_paid_amount NUMERIC,
+                usage_cap_per_user INTEGER,
+                global_usage_cap INTEGER,
+                policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_promo_code_policies_growth_code_id ON promo_code_policies(growth_code_id)"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE gift_code_policies (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL UNIQUE,
+                grant_type TEXT NOT NULL,
+                plan_family TEXT,
+                duration_days INTEGER,
+                entitlement_snapshot TEXT NOT NULL DEFAULT '{}',
+                redemption_mode TEXT,
+                transferable INTEGER NOT NULL DEFAULT 0,
+                batch_id TEXT,
+                policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_gift_code_policies_growth_code_id ON gift_code_policies(growth_code_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_gift_code_policies_batch_id ON gift_code_policies(batch_id)"
+        )
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_code_resolution_events (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT,
+                raw_code_hash TEXT NOT NULL,
+                code_type TEXT,
+                user_id TEXT,
+                anonymous_session_id TEXT,
+                checkout_session_id TEXT,
+                order_id TEXT,
+                surface TEXT NOT NULL DEFAULT 'api',
+                action_context TEXT NOT NULL,
+                result TEXT NOT NULL,
+                reject_reason TEXT,
+                conflict_code TEXT,
+                policy_version_id TEXT,
+                risk_decision_id TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE SET NULL,
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_code_resolution_events_growth_code_id "
+            "ON growth_code_resolution_events(growth_code_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_raw_code_hash "
+            "ON growth_code_resolution_events(raw_code_hash)",
+            "CREATE INDEX ix_growth_code_resolution_events_code_type ON growth_code_resolution_events(code_type)",
+            "CREATE INDEX ix_growth_code_resolution_events_user_id ON growth_code_resolution_events(user_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_anonymous_session_id "
+            "ON growth_code_resolution_events(anonymous_session_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_checkout_session_id "
+            "ON growth_code_resolution_events(checkout_session_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_order_id ON growth_code_resolution_events(order_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_surface ON growth_code_resolution_events(surface)",
+            "CREATE INDEX ix_growth_code_resolution_events_action_context "
+            "ON growth_code_resolution_events(action_context)",
+            "CREATE INDEX ix_growth_code_resolution_events_result ON growth_code_resolution_events(result)",
+            "CREATE INDEX ix_growth_code_resolution_events_reject_reason "
+            "ON growth_code_resolution_events(reject_reason)",
+            "CREATE INDEX ix_growth_code_resolution_events_policy_version_id "
+            "ON growth_code_resolution_events(policy_version_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_risk_decision_id "
+            "ON growth_code_resolution_events(risk_decision_id)",
+            "CREATE INDEX ix_growth_code_resolution_events_created_at ON growth_code_resolution_events(created_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_code_reservations (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL,
+                quote_session_id TEXT,
+                checkout_session_id TEXT,
+                user_id TEXT,
+                reserved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'reserved',
+                consumed_order_id TEXT,
+                released_at TEXT,
+                release_reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (quote_session_id) REFERENCES quote_sessions(id) ON DELETE SET NULL,
+                FOREIGN KEY (user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (consumed_order_id) REFERENCES orders(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_code_reservations_growth_code_id ON growth_code_reservations(growth_code_id)",
+            "CREATE INDEX ix_growth_code_reservations_quote_session_id "
+            "ON growth_code_reservations(quote_session_id)",
+            "CREATE INDEX ix_growth_code_reservations_checkout_session_id "
+            "ON growth_code_reservations(checkout_session_id)",
+            "CREATE INDEX ix_growth_code_reservations_user_id ON growth_code_reservations(user_id)",
+            "CREATE INDEX ix_growth_code_reservations_reserved_at ON growth_code_reservations(reserved_at)",
+            "CREATE INDEX ix_growth_code_reservations_expires_at ON growth_code_reservations(expires_at)",
+            "CREATE INDEX ix_growth_code_reservations_status ON growth_code_reservations(status)",
+            "CREATE INDEX ix_growth_code_reservations_consumed_order_id "
+            "ON growth_code_reservations(consumed_order_id)",
+            "CREATE INDEX ix_growth_code_reservations_released_at ON growth_code_reservations(released_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_code_redemptions (
+                id TEXT PRIMARY KEY,
+                growth_code_id TEXT NOT NULL,
+                code_type TEXT NOT NULL,
+                redeemer_user_id TEXT,
+                beneficiary_user_id TEXT,
+                order_id TEXT,
+                entitlement_grant_id TEXT,
+                wallet_transaction_id TEXT,
+                reward_allocation_id TEXT,
+                policy_version_id TEXT,
+                risk_decision_id TEXT,
+                status TEXT NOT NULL DEFAULT 'redeemed',
+                redeemed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                reversed_at TEXT,
+                reversal_reason TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (growth_code_id) REFERENCES growth_codes(id) ON DELETE CASCADE,
+                FOREIGN KEY (redeemer_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (beneficiary_user_id) REFERENCES mobile_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (entitlement_grant_id) REFERENCES entitlement_grants(id) ON DELETE SET NULL,
+                FOREIGN KEY (wallet_transaction_id) REFERENCES wallet_transactions(id) ON DELETE SET NULL,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_code_redemptions_growth_code_id ON growth_code_redemptions(growth_code_id)",
+            "CREATE INDEX ix_growth_code_redemptions_code_type ON growth_code_redemptions(code_type)",
+            "CREATE INDEX ix_growth_code_redemptions_redeemer_user_id ON growth_code_redemptions(redeemer_user_id)",
+            "CREATE INDEX ix_growth_code_redemptions_beneficiary_user_id "
+            "ON growth_code_redemptions(beneficiary_user_id)",
+            "CREATE INDEX ix_growth_code_redemptions_order_id ON growth_code_redemptions(order_id)",
+            "CREATE INDEX ix_growth_code_redemptions_entitlement_grant_id "
+            "ON growth_code_redemptions(entitlement_grant_id)",
+            "CREATE INDEX ix_growth_code_redemptions_wallet_transaction_id "
+            "ON growth_code_redemptions(wallet_transaction_id)",
+            "CREATE INDEX ix_growth_code_redemptions_reward_allocation_id "
+            "ON growth_code_redemptions(reward_allocation_id)",
+            "CREATE INDEX ix_growth_code_redemptions_policy_version_id "
+            "ON growth_code_redemptions(policy_version_id)",
+            "CREATE INDEX ix_growth_code_redemptions_risk_decision_id "
+            "ON growth_code_redemptions(risk_decision_id)",
+            "CREATE INDEX ix_growth_code_redemptions_status ON growth_code_redemptions(status)",
+            "CREATE INDEX ix_growth_code_redemptions_redeemed_at ON growth_code_redemptions(redeemed_at)",
+            "CREATE INDEX ix_growth_code_redemptions_reversed_at ON growth_code_redemptions(reversed_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
             """
             CREATE TABLE legal_documents (
@@ -782,6 +1269,7 @@ async def initialize_realm_test_database(engine) -> None:
                 app_version TEXT,
                 device_model TEXT,
                 push_token TEXT,
+                registered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 last_active_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -2711,6 +3199,108 @@ async def initialize_realm_test_database(engine) -> None:
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(
             """
+            CREATE TABLE customer_growth_notification_read_states (
+                id TEXT PRIMARY KEY,
+                mobile_user_id TEXT NOT NULL,
+                notification_key TEXT NOT NULL,
+                read_at TEXT,
+                archived_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (mobile_user_id) REFERENCES mobile_users(id) ON DELETE CASCADE,
+                UNIQUE (mobile_user_id, notification_key)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_customer_growth_notification_read_states_mobile_user_id "
+            "ON customer_growth_notification_read_states(mobile_user_id)",
+            "CREATE INDEX ix_customer_growth_notification_read_states_notification_key "
+            "ON customer_growth_notification_read_states(notification_key)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE customer_growth_notification_deliveries (
+                id TEXT PRIMARY KEY,
+                mobile_user_id TEXT NOT NULL,
+                notification_key TEXT NOT NULL,
+                notification_kind TEXT NOT NULL,
+                delivery_channel TEXT NOT NULL,
+                delivery_status TEXT NOT NULL,
+                status_reason TEXT,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                delivery_payload TEXT NOT NULL DEFAULT '{}',
+                source_kind TEXT,
+                source_id TEXT,
+                notification_queue_id TEXT,
+                created_by_admin_user_id TEXT,
+                planned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                delivered_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (mobile_user_id) REFERENCES mobile_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (notification_queue_id) REFERENCES notification_queue(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id) ON DELETE SET NULL,
+                UNIQUE (mobile_user_id, notification_key, delivery_channel)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_customer_growth_notification_deliveries_mobile_user_id "
+            "ON customer_growth_notification_deliveries(mobile_user_id)",
+            "CREATE INDEX ix_customer_growth_notification_deliveries_notification_key "
+            "ON customer_growth_notification_deliveries(notification_key)",
+            "CREATE INDEX ix_customer_growth_notification_deliveries_notification_kind "
+            "ON customer_growth_notification_deliveries(notification_kind)",
+            "CREATE INDEX ix_customer_growth_notification_deliveries_delivery_channel "
+            "ON customer_growth_notification_deliveries(delivery_channel)",
+            "CREATE INDEX ix_customer_growth_notification_deliveries_delivery_status "
+            "ON customer_growth_notification_deliveries(delivery_status)",
+            "CREATE INDEX ix_customer_growth_notification_deliveries_notification_queue_id "
+            "ON customer_growth_notification_deliveries(notification_queue_id)",
+            "CREATE INDEX ix_customer_growth_notification_deliveries_created_by_admin_user_id "
+            "ON customer_growth_notification_deliveries(created_by_admin_user_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE customer_growth_notification_delivery_events (
+                id TEXT PRIMARY KEY,
+                delivery_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                delivery_status TEXT NOT NULL,
+                reason_code TEXT,
+                event_payload TEXT NOT NULL DEFAULT '{}',
+                event_note TEXT,
+                notification_queue_id TEXT,
+                created_by_admin_user_id TEXT,
+                occurred_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (delivery_id) REFERENCES customer_growth_notification_deliveries(id) ON DELETE CASCADE,
+                FOREIGN KEY (notification_queue_id) REFERENCES notification_queue(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_customer_growth_notification_delivery_events_delivery_id "
+            "ON customer_growth_notification_delivery_events(delivery_id)",
+            "CREATE INDEX ix_customer_growth_notification_delivery_events_event_type "
+            "ON customer_growth_notification_delivery_events(event_type)",
+            "CREATE INDEX ix_customer_growth_notification_delivery_events_delivery_status "
+            "ON customer_growth_notification_delivery_events(delivery_status)",
+            "CREATE INDEX ix_customer_growth_notification_delivery_events_notification_queue_id "
+            "ON customer_growth_notification_delivery_events(notification_queue_id)",
+            "CREATE INDEX ix_customer_growth_notification_delivery_events_created_by_admin_user_id "
+            "ON customer_growth_notification_delivery_events(created_by_admin_user_id)",
+            "CREATE INDEX ix_customer_growth_notification_delivery_events_occurred_at "
+            "ON customer_growth_notification_delivery_events(occurred_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
             CREATE TABLE pilot_cohorts (
                 id TEXT PRIMARY KEY,
                 cohort_key TEXT NOT NULL UNIQUE,
@@ -2936,6 +3526,9 @@ async def initialize_realm_test_database(engine) -> None:
                 beneficiary_user_id TEXT NOT NULL,
                 auth_realm_id TEXT NOT NULL,
                 storefront_id TEXT,
+                source_code_id TEXT,
+                source_redemption_id TEXT UNIQUE,
+                policy_version_id TEXT,
                 order_id TEXT,
                 invite_code_id TEXT,
                 referral_commission_id TEXT,
@@ -2944,11 +3537,26 @@ async def initialize_realm_test_database(engine) -> None:
                 unit TEXT NOT NULL,
                 currency_code TEXT,
                 reward_payload TEXT NOT NULL DEFAULT '{}',
+                hold_until TEXT,
+                available_at TEXT,
+                reversal_reason TEXT,
+                wallet_transaction_id TEXT,
                 created_by_admin_user_id TEXT,
                 allocated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 reversed_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (beneficiary_user_id) REFERENCES mobile_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id) ON DELETE CASCADE,
+                FOREIGN KEY (storefront_id) REFERENCES storefronts(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_code_id) REFERENCES growth_codes(id) ON DELETE SET NULL,
+                FOREIGN KEY (source_redemption_id) REFERENCES growth_code_redemptions(id) ON DELETE SET NULL,
+                FOREIGN KEY (policy_version_id) REFERENCES policy_versions(id) ON DELETE SET NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (invite_code_id) REFERENCES invite_codes(id) ON DELETE SET NULL,
+                FOREIGN KEY (referral_commission_id) REFERENCES referral_commissions(id) ON DELETE SET NULL,
+                FOREIGN KEY (wallet_transaction_id) REFERENCES wallet_transactions(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id) ON DELETE SET NULL
             )
             """
         )
@@ -2960,14 +3568,226 @@ async def initialize_realm_test_database(engine) -> None:
             "ON growth_reward_allocations(beneficiary_user_id)",
             "CREATE INDEX ix_growth_reward_allocations_auth_realm_id ON growth_reward_allocations(auth_realm_id)",
             "CREATE INDEX ix_growth_reward_allocations_storefront_id ON growth_reward_allocations(storefront_id)",
+            "CREATE INDEX ix_growth_reward_allocations_source_code_id ON growth_reward_allocations(source_code_id)",
+            "CREATE INDEX ix_growth_reward_allocations_source_redemption_id "
+            "ON growth_reward_allocations(source_redemption_id)",
+            "CREATE INDEX ix_growth_reward_allocations_policy_version_id "
+            "ON growth_reward_allocations(policy_version_id)",
             "CREATE INDEX ix_growth_reward_allocations_order_id ON growth_reward_allocations(order_id)",
             "CREATE INDEX ix_growth_reward_allocations_invite_code_id ON growth_reward_allocations(invite_code_id)",
             "CREATE INDEX ix_growth_reward_allocations_referral_commission_id "
             "ON growth_reward_allocations(referral_commission_id)",
+            "CREATE INDEX ix_growth_reward_allocations_hold_until ON growth_reward_allocations(hold_until)",
+            "CREATE INDEX ix_growth_reward_allocations_available_at ON growth_reward_allocations(available_at)",
+            "CREATE INDEX ix_growth_reward_allocations_wallet_transaction_id "
+            "ON growth_reward_allocations(wallet_transaction_id)",
             "CREATE INDEX ix_growth_reward_allocations_created_by_admin_user_id "
             "ON growth_reward_allocations(created_by_admin_user_id)",
             "CREATE INDEX ix_growth_reward_allocations_allocated_at ON growth_reward_allocations(allocated_at)",
             "CREATE INDEX ix_growth_reward_allocations_reversed_at ON growth_reward_allocations(reversed_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_reporting_daily_rollups (
+                id TEXT PRIMARY KEY,
+                report_date TEXT NOT NULL,
+                report_family TEXT NOT NULL,
+                metric_key TEXT NOT NULL,
+                metric_unit TEXT NOT NULL DEFAULT 'count',
+                dimension_key TEXT NOT NULL DEFAULT '',
+                dimension_value TEXT NOT NULL DEFAULT '',
+                metric_value NUMERIC NOT NULL,
+                currency_code TEXT NOT NULL DEFAULT '',
+                source_watermark_at TEXT,
+                refreshed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (
+                    report_date,
+                    report_family,
+                    metric_key,
+                    dimension_key,
+                    dimension_value,
+                    currency_code
+                )
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_reporting_daily_rollups_report_date "
+            "ON growth_reporting_daily_rollups(report_date)",
+            "CREATE INDEX ix_growth_reporting_daily_rollups_report_family "
+            "ON growth_reporting_daily_rollups(report_family)",
+            "CREATE INDEX ix_growth_reporting_daily_rollups_metric_key "
+            "ON growth_reporting_daily_rollups(metric_key)",
+            "CREATE INDEX ix_growth_reporting_daily_rollups_source_watermark_at "
+            "ON growth_reporting_daily_rollups(source_watermark_at)",
+            "CREATE INDEX ix_growth_reporting_daily_rollups_refreshed_at "
+            "ON growth_reporting_daily_rollups(refreshed_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_reporting_refresh_runs (
+                id TEXT PRIMARY KEY,
+                trigger_kind TEXT NOT NULL,
+                refresh_status TEXT NOT NULL,
+                requested_window_days INTEGER NOT NULL,
+                window_start TEXT NOT NULL,
+                window_end TEXT NOT NULL,
+                latest_rollup_date TEXT,
+                rows_written INTEGER NOT NULL DEFAULT 0,
+                families_updated TEXT NOT NULL DEFAULT '[]',
+                error_message TEXT,
+                started_at TEXT NOT NULL,
+                finished_at TEXT NOT NULL,
+                refreshed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_reporting_refresh_runs_trigger_kind "
+            "ON growth_reporting_refresh_runs(trigger_kind)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_refresh_status "
+            "ON growth_reporting_refresh_runs(refresh_status)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_window_start "
+            "ON growth_reporting_refresh_runs(window_start)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_window_end "
+            "ON growth_reporting_refresh_runs(window_end)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_refreshed_at "
+            "ON growth_reporting_refresh_runs(refreshed_at)",
+            "CREATE INDEX ix_growth_reporting_refresh_runs_created_at "
+            "ON growth_reporting_refresh_runs(created_at)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_reporting_subscriptions (
+                id TEXT PRIMARY KEY,
+                recipient_email TEXT NOT NULL,
+                recipient_name TEXT,
+                audience_key TEXT NOT NULL,
+                delivery_channel TEXT NOT NULL DEFAULT 'email',
+                cadence TEXT NOT NULL,
+                report_window_days INTEGER NOT NULL DEFAULT 30,
+                template_key TEXT NOT NULL DEFAULT 'cross_function_exec',
+                template_locale TEXT NOT NULL DEFAULT 'en-EN',
+                email_subject_prefix TEXT,
+                title_override TEXT,
+                recipient_domain_policy TEXT NOT NULL DEFAULT 'allow_any',
+                allowed_recipient_domains TEXT NOT NULL DEFAULT '[]',
+                suppressed_until TEXT,
+                suppression_reason_code TEXT,
+                governance_followup_status TEXT NOT NULL DEFAULT 'none',
+                governance_followup_reason_code TEXT,
+                governance_followup_opened_at TEXT,
+                governance_followup_due_at TEXT,
+                governance_followup_last_notified_at TEXT,
+                governance_followup_resolved_at TEXT,
+                governance_followup_resolution_code TEXT,
+                subscription_status TEXT NOT NULL DEFAULT 'active',
+                next_delivery_at TEXT NOT NULL,
+                last_delivery_attempt_at TEXT,
+                last_success_at TEXT,
+                latest_delivery_status TEXT,
+                latest_delivery_reason TEXT,
+                created_by_admin_user_id TEXT,
+                updated_by_admin_user_id TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by_admin_user_id) REFERENCES admin_users(id),
+                FOREIGN KEY (updated_by_admin_user_id) REFERENCES admin_users(id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_reporting_subscriptions_recipient_email "
+            "ON growth_reporting_subscriptions(recipient_email)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_audience_key "
+            "ON growth_reporting_subscriptions(audience_key)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_delivery_channel "
+            "ON growth_reporting_subscriptions(delivery_channel)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_cadence "
+            "ON growth_reporting_subscriptions(cadence)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_subscription_status "
+            "ON growth_reporting_subscriptions(subscription_status)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_next_delivery_at "
+            "ON growth_reporting_subscriptions(next_delivery_at)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_suppressed_until "
+            "ON growth_reporting_subscriptions(suppressed_until)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_governance_followup_status "
+            "ON growth_reporting_subscriptions(governance_followup_status)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_governance_followup_reason_code "
+            "ON growth_reporting_subscriptions(governance_followup_reason_code)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_governance_followup_due_at "
+            "ON growth_reporting_subscriptions(governance_followup_due_at)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_latest_delivery_status "
+            "ON growth_reporting_subscriptions(latest_delivery_status)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_created_by_admin_user_id "
+            "ON growth_reporting_subscriptions(created_by_admin_user_id)",
+            "CREATE INDEX ix_growth_reporting_subscriptions_updated_by_admin_user_id "
+            "ON growth_reporting_subscriptions(updated_by_admin_user_id)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE growth_reporting_deliveries (
+                id TEXT PRIMARY KEY,
+                subscription_id TEXT NOT NULL,
+                recipient_email TEXT NOT NULL,
+                recipient_name TEXT,
+                audience_key TEXT NOT NULL,
+                delivery_channel TEXT NOT NULL DEFAULT 'email',
+                cadence TEXT NOT NULL,
+                report_window_days INTEGER NOT NULL,
+                template_key TEXT NOT NULL DEFAULT 'cross_function_exec',
+                template_locale TEXT NOT NULL DEFAULT 'en-EN',
+                subject_line TEXT NOT NULL DEFAULT 'Growth reporting digest',
+                title_line TEXT NOT NULL DEFAULT 'Growth reporting digest',
+                recipient_domain_policy TEXT NOT NULL DEFAULT 'allow_any',
+                allowed_recipient_domains TEXT NOT NULL DEFAULT '[]',
+                delivery_status TEXT NOT NULL,
+                status_reason TEXT,
+                window_start TEXT NOT NULL,
+                window_end TEXT NOT NULL,
+                freshness_status TEXT NOT NULL DEFAULT 'fresh',
+                artifact_checksum TEXT,
+                artifact_payload TEXT NOT NULL DEFAULT '{}',
+                provider_name TEXT,
+                provider_message_id TEXT,
+                failure_message TEXT,
+                planned_at TEXT NOT NULL,
+                started_at TEXT,
+                delivered_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subscription_id) REFERENCES growth_reporting_subscriptions(id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_growth_reporting_deliveries_subscription_id "
+            "ON growth_reporting_deliveries(subscription_id)",
+            "CREATE INDEX ix_growth_reporting_deliveries_recipient_email "
+            "ON growth_reporting_deliveries(recipient_email)",
+            "CREATE INDEX ix_growth_reporting_deliveries_audience_key "
+            "ON growth_reporting_deliveries(audience_key)",
+            "CREATE INDEX ix_growth_reporting_deliveries_template_key "
+            "ON growth_reporting_deliveries(template_key)",
+            "CREATE INDEX ix_growth_reporting_deliveries_delivery_channel "
+            "ON growth_reporting_deliveries(delivery_channel)",
+            "CREATE INDEX ix_growth_reporting_deliveries_cadence "
+            "ON growth_reporting_deliveries(cadence)",
+            "CREATE INDEX ix_growth_reporting_deliveries_delivery_status "
+            "ON growth_reporting_deliveries(delivery_status)",
+            "CREATE INDEX ix_growth_reporting_deliveries_window_start "
+            "ON growth_reporting_deliveries(window_start)",
+            "CREATE INDEX ix_growth_reporting_deliveries_window_end "
+            "ON growth_reporting_deliveries(window_end)",
+            "CREATE INDEX ix_growth_reporting_deliveries_planned_at "
+            "ON growth_reporting_deliveries(planned_at)",
+            "CREATE INDEX ix_growth_reporting_deliveries_delivered_at "
+            "ON growth_reporting_deliveries(delivered_at)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(

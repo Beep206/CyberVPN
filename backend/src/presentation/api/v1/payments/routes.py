@@ -17,20 +17,25 @@ from src.application.use_cases.payments.commit_checkout import CommitCheckoutUse
 from src.application.use_cases.payments.crypto_payment import CreateCryptoInvoiceUseCase
 from src.application.use_cases.payments.payment_history import PaymentHistoryUseCase
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_payment
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
+    CheckoutCodeResolutionResponse,
     CheckoutCommitResponse,
+    CheckoutDiscountResponse,
     CheckoutQuoteRequest,
     CheckoutQuoteResponse,
     CreateInvoiceRequest,
     EntitlementsSnapshotResponse,
     InvoiceResponse,
+    PaymentStatusResponse,
     PaymentHistoryResponse,
 )
+from src.presentation.api.v1.payments.telegram_stars import create_telegram_stars_checkout
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_permission
@@ -54,6 +59,37 @@ def _serialize_quote(result) -> CheckoutQuoteResponse:
         plan_id=result.plan_id,
         promo_code_id=result.promo_code_id,
         partner_code_id=result.partner_code_id,
+        code_input=result.code_input,
+        code_resolution=(
+            CheckoutCodeResolutionResponse(
+                accepted=result.code_resolution.accepted,
+                code_type=result.code_resolution.code_type,
+                action_context=result.code_resolution.action_context,
+                result=result.code_resolution.result,
+                reject_reason=result.code_resolution.reject_reason,
+                conflict_code=result.code_resolution.conflict_code,
+                wrong_context_target=result.code_resolution.wrong_context_target,
+                issuer_type=result.code_resolution.issuer_type,
+                owner_type=result.code_resolution.owner_type,
+                resolved_code_id=result.code_resolution.resolved_code_id,
+                growth_code_id=result.code_resolution.growth_code_id,
+                promo_code_id=result.code_resolution.promo_code_id,
+                partner_code_id=result.code_resolution.partner_code_id,
+                user_message_key=result.code_resolution.user_message_key,
+                reservation_id=result.reservation_id,
+            )
+            if result.code_resolution is not None
+            else None
+        ),
+        discounts=[
+            CheckoutDiscountResponse(
+                type=discount.discount_type,
+                code=discount.code,
+                amount=float(discount.amount),
+                policy_version_id=discount.policy_version_id,
+            )
+            for discount in result.discounts
+        ],
         addons=[
             CheckoutAddonResponse(
                 addon_id=line.addon_id,
@@ -81,6 +117,7 @@ async def _build_quote(
         return await use_case.execute(
             user_id=user_id,
             plan_id=body.plan_id,
+            code_input=body.code_input,
             promo_code=body.promo_code,
             partner_code=body.partner_code,
             use_wallet=Decimal(str(body.use_wallet)),
@@ -241,6 +278,57 @@ async def commit_checkout(
     )
 
 
+@router.post("/checkout/telegram-stars", response_model=CheckoutCommitResponse)
+async def commit_telegram_stars_checkout(
+    body: CheckoutQuoteRequest,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(get_current_mobile_user_id),
+) -> CheckoutCommitResponse:
+    """Create a Telegram Stars invoice link for Mini App base-plan checkout."""
+    if body.channel != "miniapp":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars checkout is Mini App only")
+    if body.currency.upper() != "XTR":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars checkout requires XTR")
+    if body.use_wallet > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wallet is not supported for Telegram Stars")
+    if body.addons:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telegram Stars checkout is currently available for base plans only",
+        )
+
+    result = await _build_quote(body=body, db=db, user_id=user_id)
+    quote_response = _serialize_quote(result)
+    mobile_user = await db.get(MobileUserModel, user_id)
+    if mobile_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    stars_result = await create_telegram_stars_checkout(
+        db,
+        user=mobile_user,
+        quote_result=result,
+        channel=body.channel,
+        checkout_mode="new_purchase",
+        description=f"CyberVPN {result.plan_name or 'plan'} - {result.duration_days or 0} days",
+    )
+    await db.commit()
+
+    invoice = InvoiceResponse(
+        invoice_id=str(stars_result.payment.id),
+        payment_url=stars_result.invoice_url,
+        amount=float(stars_result.stars_amount),
+        currency="XTR",
+        status="pending",
+        expires_at=stars_result.expires_at,
+    )
+    return CheckoutCommitResponse(
+        **quote_response.model_dump(),
+        payment_id=stars_result.payment.id,
+        status="pending",
+        invoice=invoice,
+    )
+
+
 @router.post("/checkout", response_model=CheckoutCommitResponse, deprecated=True)
 async def checkout_alias(
     body: CheckoutQuoteRequest,
@@ -250,6 +338,29 @@ async def checkout_alias(
 ) -> CheckoutCommitResponse:
     """Backward-compatible alias for commit checkout."""
     return await commit_checkout(body=body, db=db, crypto_client=crypto_client, user_id=user_id)
+
+
+@router.get("/{payment_id}", response_model=PaymentStatusResponse)
+async def get_payment_status(
+    payment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(get_current_mobile_user_id),
+) -> PaymentStatusResponse:
+    """Get the authenticated user's payment status."""
+    payment = await PaymentRepository(db).get_by_id(payment_id)
+    if payment is None or payment.user_uuid != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+
+    return PaymentStatusResponse(
+        payment_id=payment.id,
+        status=payment.status,
+        provider=payment.provider,
+        external_id=payment.external_id,
+        amount=float(payment.amount),
+        currency=payment.currency,
+        created_at=payment.created_at,
+        updated_at=payment.updated_at,
+    )
 
 
 # ── Backward Compatibility Aliases ───────────────────────────────────────────

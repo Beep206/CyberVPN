@@ -225,6 +225,13 @@ export type PartnerResellerStorefrontStatus =
   | 'ready'
   | 'restricted';
 
+export type PartnerResellerVoucherBatchStatus =
+  | 'active'
+  | 'partially_redeemed'
+  | 'redeemed_out'
+  | 'expired'
+  | 'revoked';
+
 export type PartnerReviewRequestKind =
   | 'business_profile'
   | 'owned_channels'
@@ -358,6 +365,14 @@ export interface PartnerCampaignAsset {
   channel: PartnerCampaignChannel;
   status: PartnerCampaignStatus;
   approvalOwner: string;
+  promoReference?: string | null;
+  disclosureText?: string | null;
+  allowedClaims?: string[];
+  bannedClaims?: string[];
+  allowedGeographies?: string[];
+  destinationUrls?: string[];
+  validFrom?: string | null;
+  validUntil?: string | null;
   notes: string[];
 }
 
@@ -466,6 +481,21 @@ export interface PartnerResellerConsoleSnapshot {
   technicalHealth: string;
 }
 
+export interface PartnerResellerVoucherBatch {
+  batchId: string;
+  giftType: string;
+  planFamily: string;
+  durationDays: number;
+  status: PartnerResellerVoucherBatchStatus;
+  issuedCount: number;
+  redeemedCount: number;
+  availableCount: number;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  notes: string[];
+}
+
 export interface PartnerPortalState {
   scenario: PartnerPortalScenario;
   workspaceRole: PartnerWorkspaceRole;
@@ -492,6 +522,7 @@ export interface PartnerPortalState {
   integrationDeliveryLogs: PartnerIntegrationDeliveryLog[];
   resellerStorefronts: PartnerResellerStorefront[];
   resellerSnapshot: PartnerResellerConsoleSnapshot;
+  resellerVoucherBatches: PartnerResellerVoucherBatch[];
   reviewRequests: PartnerReviewRequest[];
   cases: PartnerPortalCase[];
   notifications: PartnerPortalNotification[];
@@ -541,6 +572,7 @@ const DEFAULT_PORTAL_STATE: PartnerPortalState = {
     customerScope: '',
     technicalHealth: '',
   },
+  resellerVoucherBatches: [],
   reviewRequests: [],
   cases: [],
   notifications: [],
@@ -554,6 +586,14 @@ let hasInitializedStore = false;
 
 function readStringField(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
+}
+
+function readNullableStringField(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function readNumberField(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 function readBooleanField(value: unknown, fallback = false): boolean {
@@ -2656,6 +2696,7 @@ export function createPartnerPortalScenarioState(
       integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
       resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
       resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+      resellerVoucherBatches: [],
       reviewRequests: [],
       cases: buildScenarioCases(scenario, primaryLane),
       notifications: buildScenarioNotifications(scenario),
@@ -2690,6 +2731,7 @@ export function createPartnerPortalScenarioState(
       integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
       resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
       resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+      resellerVoucherBatches: [],
       reviewRequests: buildScenarioReviewRequests(scenario, primaryLane),
       cases: buildScenarioCases(scenario, primaryLane),
       notifications: buildScenarioNotifications(scenario),
@@ -2724,6 +2766,7 @@ export function createPartnerPortalScenarioState(
       integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
       resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
       resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+      resellerVoucherBatches: [],
       reviewRequests: buildScenarioReviewRequests(scenario, primaryLane),
       cases: buildScenarioCases(scenario, primaryLane),
       notifications: buildScenarioNotifications(scenario),
@@ -2758,6 +2801,7 @@ export function createPartnerPortalScenarioState(
       integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
       resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
       resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+      resellerVoucherBatches: [],
       reviewRequests: buildScenarioReviewRequests(scenario, primaryLane),
       cases: buildScenarioCases(scenario, primaryLane),
       notifications: buildScenarioNotifications(scenario),
@@ -2792,6 +2836,7 @@ export function createPartnerPortalScenarioState(
       integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
       resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
       resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+      resellerVoucherBatches: [],
       reviewRequests: buildScenarioReviewRequests(scenario, primaryLane),
       cases: buildScenarioCases(scenario, primaryLane),
       notifications: buildScenarioNotifications(scenario),
@@ -2829,6 +2874,7 @@ export function createPartnerPortalScenarioState(
       integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
       resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
       resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+      resellerVoucherBatches: [],
       reviewRequests: [],
       cases: buildScenarioCases(scenario, primaryLane),
       notifications: buildScenarioNotifications(scenario),
@@ -2865,6 +2911,7 @@ export function createPartnerPortalScenarioState(
     integrationDeliveryLogs: buildScenarioIntegrationDeliveryLogs(scenario, primaryLane),
     resellerStorefronts: buildScenarioResellerStorefronts(scenario, primaryLane),
     resellerSnapshot: buildScenarioResellerSnapshot(scenario, primaryLane),
+    resellerVoucherBatches: [],
     reviewRequests: [],
     cases: buildScenarioCases(scenario, primaryLane),
     notifications: buildScenarioNotifications(scenario),
@@ -3136,7 +3183,7 @@ function readStoredPartnerPortalState(
 
   const campaignAssets = Array.isArray(parsed.campaignAssets)
     ? parsed.campaignAssets
-        .map((item) => {
+        .map((item): PartnerCampaignAsset | null => {
           if (!item || typeof item !== 'object') {
             return null;
           }
@@ -3155,6 +3202,30 @@ function readStoredPartnerPortalState(
             channel,
             status,
             approvalOwner: readStringField(candidate.approvalOwner),
+            promoReference: readNullableStringField(candidate.promoReference),
+            disclosureText: readNullableStringField(candidate.disclosureText),
+            allowedClaims: Array.isArray(candidate.allowedClaims)
+              ? candidate.allowedClaims.filter(
+                  (claim): claim is string => typeof claim === 'string',
+                )
+              : [],
+            bannedClaims: Array.isArray(candidate.bannedClaims)
+              ? candidate.bannedClaims.filter(
+                  (claim): claim is string => typeof claim === 'string',
+                )
+              : [],
+            allowedGeographies: Array.isArray(candidate.allowedGeographies)
+              ? candidate.allowedGeographies.filter(
+                  (geo): geo is string => typeof geo === 'string',
+                )
+              : [],
+            destinationUrls: Array.isArray(candidate.destinationUrls)
+              ? candidate.destinationUrls.filter(
+                  (url): url is string => typeof url === 'string',
+                )
+              : [],
+            validFrom: readNullableStringField(candidate.validFrom),
+            validUntil: readNullableStringField(candidate.validUntil),
             notes: Array.isArray(candidate.notes)
               ? candidate.notes.filter(
                   (note): note is string => typeof note === 'string',
@@ -3516,6 +3587,48 @@ function readStoredPartnerPortalState(
       } satisfies PartnerResellerConsoleSnapshot
     : buildScenarioResellerSnapshot(scenario, primaryLane);
 
+  const resellerVoucherBatches = Array.isArray(parsed.resellerVoucherBatches)
+    ? parsed.resellerVoucherBatches
+        .map((item) => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+
+          const candidate = item as Record<string, unknown>;
+          const status = readStringField(candidate.status);
+
+          if (![
+            'active',
+            'partially_redeemed',
+            'redeemed_out',
+            'expired',
+            'revoked',
+          ].includes(status)) {
+            return null;
+          }
+
+          return {
+            batchId: readStringField(candidate.batchId),
+            giftType: readStringField(candidate.giftType),
+            planFamily: readStringField(candidate.planFamily),
+            durationDays: readNumberField(candidate.durationDays, 0),
+            status: status as PartnerResellerVoucherBatchStatus,
+            issuedCount: readNumberField(candidate.issuedCount, 0),
+            redeemedCount: readNumberField(candidate.redeemedCount, 0),
+            availableCount: readNumberField(candidate.availableCount, 0),
+            expiresAt: readNullableStringField(candidate.expiresAt),
+            createdAt: readStringField(candidate.createdAt, DEFAULT_DATE),
+            updatedAt: readStringField(candidate.updatedAt, DEFAULT_DATE),
+            notes: Array.isArray(candidate.notes)
+              ? candidate.notes.filter(
+                  (note): note is string => typeof note === 'string',
+                )
+              : [],
+          } satisfies PartnerResellerVoucherBatch;
+        })
+        .filter((item): item is PartnerResellerVoucherBatch => item !== null)
+    : [];
+
   return {
     scenario,
     workspaceRole,
@@ -3542,6 +3655,7 @@ function readStoredPartnerPortalState(
     integrationDeliveryLogs,
     resellerStorefronts,
     resellerSnapshot,
+    resellerVoucherBatches,
     reviewRequests,
     cases,
     notifications,

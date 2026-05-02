@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
+import 'package:cybervpn_mobile/core/platform/telegram_native_auth_client.dart';
+import 'package:cybervpn_mobile/core/platform/telegram_native_auth_method_channel.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/services/telegram_auth_service.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
@@ -106,7 +109,7 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
                       ? l10n.cantUnlinkOnlyMethod
                       : null,
                   linkedUsername: _getLinkedUsername(profile, provider),
-                  onLinkTap: () => _handleLinkProvider(context, provider),
+                  onLinkTap: () => _handleLinkProvider(provider),
                   onUnlinkTap: canUnlink
                       ? () => _showUnlinkDialog(context, provider)
                       : null,
@@ -207,10 +210,12 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
   ///
   /// For all providers, the generic [ProfileNotifier.getAuthUrl] method is used
   /// which delegates to the backend to obtain the provider-specific authorization URL.
-  Future<void> _handleLinkProvider(
-    BuildContext ctx,
-    OAuthProvider provider,
-  ) async {
+  Future<void> _handleLinkProvider(OAuthProvider provider) async {
+    if (provider == OAuthProvider.telegram) {
+      await _handleTelegramLink();
+      return;
+    }
+
     try {
       unawaited(HapticFeedback.lightImpact());
 
@@ -301,6 +306,11 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
 
   /// Unlinks the provider after user confirmation.
   Future<void> _handleUnlinkProvider(OAuthProvider provider) async {
+    if (provider == OAuthProvider.telegram) {
+      await _handleTelegramUnlink();
+      return;
+    }
+
     try {
       unawaited(HapticFeedback.lightImpact());
 
@@ -325,6 +335,114 @@ class _SocialAccountsScreenState extends ConsumerState<SocialAccountsScreen> {
             AppLocalizations.of(
               context,
             ).profileSocialUnlinkFailed(providerDisplayName, e.toString()),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleTelegramLink() async {
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      unawaited(HapticFeedback.lightImpact());
+
+      final nativeClient = ref.read(telegramNativeAuthClientProvider);
+      final nativeResult = await nativeClient.login(requestPhone: false);
+      final telegramService = ref.read(telegramAuthServiceProvider);
+      await telegramService.linkCurrentUserWithIdToken(
+        idToken: nativeResult.idToken,
+      );
+      await ref.read(profileProvider.notifier).refreshProfile();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Telegram account linked successfully'),
+          backgroundColor: CyberColors.matrixGreen,
+        ),
+      );
+    } on TelegramNativeAuthCancelled {
+      AppLogger.info(
+        'Telegram profile linking cancelled by user',
+        category: 'oauth',
+      );
+    } on TelegramNativeAuthFailure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.profileSocialLinkFailed('Telegram', e.message),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } on TelegramAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.profileSocialLinkFailed('Telegram', e.message),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'Failed to link Telegram account from profile screen',
+        error: e,
+        stackTrace: st,
+        category: 'oauth',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.profileSocialLinkFailed('Telegram', e.toString()),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleTelegramUnlink() async {
+    final l10n = AppLocalizations.of(context);
+
+    try {
+      unawaited(HapticFeedback.lightImpact());
+
+      final telegramService = ref.read(telegramAuthServiceProvider);
+      await telegramService.unlinkCurrentUserTelegram();
+      await ref.read(profileProvider.notifier).refreshProfile();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Telegram account unlinked')),
+      );
+    } on TelegramAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.profileSocialUnlinkFailed('Telegram', e.message),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'Failed to unlink Telegram account from profile screen',
+        error: e,
+        stackTrace: st,
+        category: 'oauth',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.profileSocialUnlinkFailed('Telegram', e.toString()),
           ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),

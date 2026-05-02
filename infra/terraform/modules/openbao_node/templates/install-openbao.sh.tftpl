@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+OPENBAO_VERSION="${openbao_version}"
+OPENBAO_BASE_URL="https://github.com/openbao/openbao/releases/download/v${openbao_version}"
+OPENBAO_RELEASE="bao_${openbao_version}_linux_amd64.tar.gz"
+CHECKSUM_FILE="checksums-linux.txt"
+
+apt-get update
+apt-get install -y --no-install-recommends ca-certificates curl jq openssl tar unzip
+
+if ! id -u openbao >/dev/null 2>&1; then
+  useradd --system --home /var/lib/openbao --shell /usr/sbin/nologin openbao
+fi
+
+install -d -o openbao -g openbao -m 0750 /var/lib/openbao/raft
+install -d -o root -g openbao -m 0750 /etc/openbao
+install -d -o root -g openbao -m 0750 /etc/openbao/tls
+install -d -o root -g root -m 0755 /usr/local/share/openbao
+install -d -o openbao -g openbao -m 0750 /var/log/openbao
+chown root:openbao /etc/openbao/openbao.hcl
+chmod 0640 /etc/openbao/openbao.hcl
+
+cd /usr/local/share/openbao
+curl -fsSLo "$${OPENBAO_RELEASE}" "$${OPENBAO_BASE_URL}/$${OPENBAO_RELEASE}"
+curl -fsSLo "$${CHECKSUM_FILE}" "$${OPENBAO_BASE_URL}/$${CHECKSUM_FILE}"
+grep " $${OPENBAO_RELEASE}\$" "$${CHECKSUM_FILE}" | sha256sum --check --
+tar -xzf "$${OPENBAO_RELEASE}" bao
+install -o root -g root -m 0755 bao /usr/local/bin/bao
+
+if [ ! -f /etc/openbao/tls/ca.pem ] || [ ! -f /etc/openbao/tls/server.pem ] || [ ! -f /etc/openbao/tls/server-key.pem ]; then
+  install -d -o root -g openbao -m 0750 /etc/openbao/tls
+  cat >/etc/openbao/tls/openssl.cnf <<'EOF_OPENSSL'
+[req]
+default_bits = 4096
+distinguished_name = req_distinguished_name
+x509_extensions = v3_ca
+prompt = no
+
+[req_distinguished_name]
+CN = OpenBao Local CA
+
+[v3_ca]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, keyCertSign, cRLSign
+EOF_OPENSSL
+  openssl req -x509 -new -nodes -config /etc/openbao/tls/openssl.cnf -days 3650 \
+    -keyout /etc/openbao/tls/ca-key.pem \
+    -out /etc/openbao/tls/ca.pem
+
+  cat >/etc/openbao/tls/server.cnf <<EOF_SERVER
+[req]
+default_bits = 4096
+distinguished_name = req_distinguished_name
+req_extensions = req_ext
+prompt = no
+
+[req_distinguished_name]
+CN = ${tls_common_name}
+
+[req_ext]
+subjectAltName = @alt_names
+extendedKeyUsage = serverAuth
+
+[alt_names]
+DNS.1 = localhost
+DNS.2 = ${tls_common_name}
+DNS.3 = $(hostname -f)
+IP.1 = 127.0.0.1
+IP.2 = ${advertise_address}
+EOF_SERVER
+  openssl req -new -nodes -config /etc/openbao/tls/server.cnf \
+    -keyout /etc/openbao/tls/server-key.pem \
+    -out /etc/openbao/tls/server.csr
+  openssl x509 -req -days 825 \
+    -in /etc/openbao/tls/server.csr \
+    -CA /etc/openbao/tls/ca.pem \
+    -CAkey /etc/openbao/tls/ca-key.pem \
+    -CAcreateserial \
+    -extensions req_ext \
+    -extfile /etc/openbao/tls/server.cnf \
+    -out /etc/openbao/tls/server.pem
+  rm -f /etc/openbao/tls/server.csr /etc/openbao/tls/server.cnf /etc/openbao/tls/openssl.cnf
+  chmod 0640 /etc/openbao/tls/server.pem /etc/openbao/tls/ca.pem
+  chmod 0640 /etc/openbao/tls/server-key.pem /etc/openbao/tls/ca-key.pem
+  chown root:openbao /etc/openbao/tls/server.pem /etc/openbao/tls/server-key.pem /etc/openbao/tls/ca.pem /etc/openbao/tls/ca-key.pem
+fi
+
+cat >/etc/openbao/openbao.env.example <<'EOF_ENV'
+VAULT_ADDR=https://127.0.0.1:${api_port}
+VAULT_CACERT=/etc/openbao/tls/ca.pem
+VAULT_SEAL_TYPE=awskms
+VAULT_AWSKMS_SEAL_KEY_ID=${kms_key_alias}
+AWS_REGION=${aws_region}
+AWS_ACCESS_KEY_ID=replace-me
+AWS_SECRET_ACCESS_KEY=replace-me
+# AWS_SESSION_TOKEN=
+EOF_ENV
+chmod 0640 /etc/openbao/openbao.env.example
+chown root:openbao /etc/openbao/openbao.env.example
+
+systemctl daemon-reload
+systemctl enable openbao.service

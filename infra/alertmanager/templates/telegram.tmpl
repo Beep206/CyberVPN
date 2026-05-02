@@ -19,6 +19,13 @@
 🖥 Instance: `{{ .Labels.instance }}`{{ end }}
 {{ if .DashboardURL }}
 📊 [Dashboard]({{ .DashboardURL }}){{ end }}
+{{ if .Annotations.dashboard_url }}
+📊 [Dashboard]({{ .Annotations.dashboard_url }}){{ end }}
+{{ if .Annotations.dashboard_path }}
+📊 Dashboard: `{{ .Annotations.dashboard_path }}`{{ end }}
+{{ if .Annotations.runbook_url }}
+📘 [Runbook]({{ .Annotations.runbook_url }}){{ else if .Annotations.runbook_path }}
+📘 Runbook: `{{ .Annotations.runbook_path }}`{{ end }}
 {{ if .SilenceURL }}
 🔇 [Silence]({{ .SilenceURL }}){{ end }}
 {{ end }}
@@ -37,6 +44,11 @@
 {{ if .Annotations.summary }}📝 {{ .Annotations.summary }}{{ end }}
 {{ if .Labels.instance }}
 🖥 Instance: `{{ .Labels.instance }}`{{ end }}
+{{ if .Annotations.dashboard_path }}
+📊 Dashboard: `{{ .Annotations.dashboard_path }}`{{ end }}
+{{ if .Annotations.runbook_url }}
+📘 [Runbook]({{ .Annotations.runbook_url }}){{ else if .Annotations.runbook_path }}
+📘 Runbook: `{{ .Annotations.runbook_path }}`{{ end }}
 {{ end }}
 {{- end }}
 

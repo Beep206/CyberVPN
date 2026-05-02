@@ -31,6 +31,8 @@ class TelegramMiniAppResult:
         expires_in: int,
         user: AdminUserModel,
         is_new_user: bool,
+        requires_2fa: bool = False,
+        tfa_token: str | None = None,
     ) -> None:
         self.access_token = access_token
         self.refresh_token = refresh_token
@@ -38,6 +40,8 @@ class TelegramMiniAppResult:
         self.expires_in = expires_in
         self.user = user
         self.is_new_user = is_new_user
+        self.requires_2fa = requires_2fa
+        self.tfa_token = tfa_token
 
 
 class TelegramMiniAppUseCase:

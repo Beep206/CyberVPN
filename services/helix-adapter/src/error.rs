@@ -26,6 +26,31 @@ pub enum AppError {
     Internal(String),
 }
 
+impl AppError {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            AppError::Unauthorized => "unauthorized",
+            AppError::BadRequest(_) => "bad_request",
+            AppError::Config(_) => "config",
+            AppError::NotFound(_) => "not_found",
+            AppError::Database(_) => "database",
+            AppError::Upstream(_) => "upstream",
+            AppError::Serialization(_) => "serialization",
+            AppError::Internal(_) => "internal",
+        }
+    }
+
+    pub fn should_capture(&self) -> bool {
+        matches!(
+            self,
+            AppError::Database(_)
+                | AppError::Upstream(_)
+                | AppError::Serialization(_)
+                | AppError::Internal(_)
+        )
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct ErrorBody {
     error: String,
@@ -42,6 +67,8 @@ impl IntoResponse for AppError {
             AppError::Serialization(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
+
+        crate::observability::capture_app_error(&self, status.as_u16());
 
         let body = Json(ErrorBody {
             error: self.to_string(),

@@ -41,6 +41,33 @@ def _is_telegram_sellable(plan: dict[str, Any]) -> bool:
     return "telegram_bot" in {str(channel) for channel in sale_channels}
 
 
+def _extract_telegram_stars_amount(features: dict[str, Any] | None) -> int:
+    if not isinstance(features, dict):
+        return 0
+
+    direct = features.get("telegram_stars_amount")
+    nested = features.get("telegram_stars")
+    prices = features.get("prices")
+
+    candidates = [
+        direct,
+        nested.get("amount") if isinstance(nested, dict) else None,
+        prices.get("XTR") if isinstance(prices, dict) else None,
+    ]
+
+    for candidate in candidates:
+        if candidate in (None, ""):
+            continue
+        try:
+            value = int(candidate)
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+
+    return 0
+
+
 def _group_plan_catalog(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[str, dict[str, Any]] = {}
 
@@ -67,6 +94,7 @@ def _group_plan_catalog(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "duration_days": int(plan.get("duration_days") or 0),
                 "price_usd": plan.get("price_usd"),
                 "price_rub": plan.get("price_rub"),
+                "telegram_stars_amount": _extract_telegram_stars_amount(plan.get("features")),
             }
         )
 
@@ -154,6 +182,9 @@ async def _render_payment_step(
         raise ValueError("Missing checkout context")
 
     payload = _build_checkout_payload(plan_id, extra_device_qty)
+    telegram_stars_amount = int(data.get("telegram_stars_amount") or 0)
+    if telegram_stars_amount > 0:
+        payload["telegram_stars_amount"] = telegram_stars_amount
     quote = await api_client.quote_checkout(user_id, payload)
     amount = quote.get("gateway_amount", quote.get("displayed_price", 0))
 
@@ -169,7 +200,11 @@ async def _render_payment_step(
     await state.update_data(checkout_payload=payload, checkout_quote=quote)
     await callback.message.edit_text(
         text=text,
-        reply_markup=payment_methods_keyboard(i18n, settings),
+        reply_markup=payment_methods_keyboard(
+            i18n,
+            settings,
+            has_telegram_stars=telegram_stars_amount > 0,
+        ),
     )
     await state.set_state(SubscriptionState.selecting_payment)
 
@@ -330,6 +365,7 @@ async def duration_selected_handler(
         plan_id=duration.get("plan_id"),
         duration_days=duration_days,
         plan_name=plan_group.get("display_name"),
+        telegram_stars_amount=int(duration.get("telegram_stars_amount") or 0),
         supported_addons=supported_addons,
         extra_device_qty=0,
     )

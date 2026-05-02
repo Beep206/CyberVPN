@@ -58,6 +58,7 @@ class StarsPaymentService:
             plan_id=plan_id,
             duration_days=duration_days,
             amount=stars_amount,
+            addons=[],
         )
 
         logger.info(

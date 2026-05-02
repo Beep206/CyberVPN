@@ -1,0 +1,25 @@
+{
+  "name": "partner-admin-main-gate",
+  "target": "branch",
+  "enforcement": "disabled",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/main"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "do_not_enforce_on_create": true,
+        "required_status_checks": [
+          {
+            "context": "All Partner/Admin Checks Passed"
+          }
+        ],
+        "strict_required_status_checks_policy": true
+      }
+    }
+  ]
+}

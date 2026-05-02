@@ -6,9 +6,9 @@ import { useEnhancementReady } from '@/shared/hooks/use-enhancement-ready';
 import { useVisualTier } from '@/shared/hooks/use-visual-tier';
 import { ResponsiveSplitShell } from '@/shared/ui/layout/responsive-split-shell';
 import type { UptimeDay } from './uptime-history';
+import { IncidentLog } from './incident-log';
 import { MetricsHUD } from './metrics-hud';
 import { UptimeMatrix } from './uptime-matrix';
-import { IncidentLog } from './incident-log';
 
 const NetworkCore3D = dynamic(
   () => import('@/3d/scenes/StatusNetworkCore3D').then((mod) => mod.NetworkCore3D),
@@ -63,18 +63,24 @@ export function StatusDashboard({ historyData }: { historyData: UptimeDay[] }) {
     <div className="grid grid-cols-1 gap-6 pb-12 lg:grid-cols-12 lg:gap-8 lg:pb-20">
       <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
         <MetricsHUD />
-        <IncidentLog />
+        <IncidentLog incidents={[]} />
       </div>
 
       <div className="flex min-w-0 flex-col gap-6 lg:col-span-8 lg:justify-end lg:pb-8">
-        <UptimeMatrix data={historyData} />
+        <UptimeMatrix history={historyData} />
       </div>
     </div>
   );
 
   const visual = (
     <div data-visual-tier={visualTier} className="absolute inset-0">
-      {showScene ? <NetworkCore3D /> : <StatusVisualFallback visualTier={visualTier === 'full' ? 'reduced' : visualTier} />}
+      {showScene ? (
+        <NetworkCore3D />
+      ) : (
+        <StatusVisualFallback
+          visualTier={visualTier === 'full' ? 'reduced' : visualTier}
+        />
+      )}
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/80" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/80 md:hidden" />

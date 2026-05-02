@@ -51,6 +51,28 @@ class ResponseCache:
 
         return result
 
+    async def get(self, key: str) -> Any | None:
+        """Return a cached JSON value or ``None`` when the key is absent/unreadable."""
+        full_key = f"{self._PREFIX}{key}"
+        client = self._get_redis()
+        try:
+            cached = await client.get(full_key)
+            if cached is None:
+                return None
+            return json.loads(cached)
+        except Exception:
+            logger.warning("Cache direct read failed for %s", full_key)
+            return None
+
+    async def set(self, key: str, value: Any, ttl: int) -> None:
+        """Store a JSON-serializable value with TTL."""
+        full_key = f"{self._PREFIX}{key}"
+        client = self._get_redis()
+        try:
+            await client.setex(full_key, ttl, json.dumps(value, default=str))
+        except Exception:
+            logger.warning("Cache direct write failed for %s", full_key)
+
     async def invalidate(self, *keys: str) -> None:
         """Delete one or more cache keys."""
         client = self._get_redis()

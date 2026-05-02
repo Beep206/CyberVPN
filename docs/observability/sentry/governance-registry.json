@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-04-25",
+  "logical_teams": [
+    "web",
+    "core",
+    "client-apps",
+    "platform"
+  ],
+  "allowed_channels": [
+    "github",
+    "email",
+    "production-ops"
+  ],
+  "projects": [
+    {
+      "project": "web-frontend",
+      "surface": "frontend",
+      "owner_team": "web",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Customer auth, checkout and provisioning regressions are incident-grade."
+    },
+    {
+      "project": "web-admin",
+      "surface": "admin",
+      "owner_team": "web",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_standard",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Admin mutations are important, but baseline paging stays behind production-only spikes or regressions."
+    },
+    {
+      "project": "web-partner",
+      "surface": "partner",
+      "owner_team": "web",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_standard",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Partner workspace and product-intelligence routes stay on standard production routing."
+    },
+    {
+      "project": "backend-api",
+      "surface": "backend",
+      "owner_team": "core",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Auth, payment, webhook and subscription regressions are incident-grade."
+    },
+    {
+      "project": "task-worker",
+      "surface": "services/task-worker",
+      "owner_team": "core",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Retry storms and task failures that impact payments or reconciliation escalate as critical."
+    },
+    {
+      "project": "cybervpn-mobile",
+      "surface": "cybervpn_mobile",
+      "owner_team": "client-apps",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Crash spikes and release-health regressions are incident-grade."
+    },
+    {
+      "project": "telegram-bot",
+      "surface": "services/telegram-bot",
+      "owner_team": "core",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_standard",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Payment and lifecycle issues route to core, but baseline paging stays off until real thresholds are approved."
+    },
+    {
+      "project": "desktop-renderer",
+      "surface": "apps/desktop-client",
+      "owner_team": "client-apps",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_standard",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Renderer issues stay separate from native crashes, but share the same logical team."
+    },
+    {
+      "project": "desktop-native",
+      "surface": "apps/desktop-client",
+      "owner_team": "client-apps",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Native crashes and updater failures are treated as critical packaged-client signals."
+    },
+    {
+      "project": "android-tv",
+      "surface": "apps/android-tv",
+      "owner_team": "client-apps",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_standard",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "TV baseline uses standard production routing until release-health and ANR thresholds are approved."
+    },
+    {
+      "project": "node-fleet-controller",
+      "surface": "services/node-fleet-controller",
+      "owner_team": "platform",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Workflow and reconcile failures on live control-plane paths are critical."
+    },
+    {
+      "project": "helix-adapter",
+      "surface": "services/helix-adapter",
+      "owner_team": "platform",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Manifest, registry and rollout-path failures are incident-grade."
+    },
+    {
+      "project": "helix-node",
+      "surface": "services/helix-node",
+      "owner_team": "platform",
+      "routing_basis": "project-first",
+      "production_alert_tier": "prod_critical",
+      "staging_alert_tier": "staging_release_blocker",
+      "production_channels": ["github", "email", "production-ops"],
+      "staging_channels": ["github"],
+      "apply_status": "planned_in_sentry",
+      "notes": "Node daemon lifecycle failures, crash loops and rollout regressions are critical."
+    }
+  ]
+}

@@ -11,6 +11,13 @@ from src.domain.enums import PartnerStatementStatus, SettlementPeriodStatus
 from src.infrastructure.database.models.partner_statement_model import PartnerStatementModel
 from src.infrastructure.database.models.statement_adjustment_model import StatementAdjustmentModel
 from src.infrastructure.database.repositories.settlement_repo import SettlementRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_ADMIN_SURFACE,
+    log_partner_runtime_event,
+    observe_partner_notification_generated,
+    observe_partner_statement_closed,
+    observe_partner_statement_reopened,
+)
 
 
 class GeneratePartnerStatementUseCase:
@@ -81,6 +88,16 @@ class GeneratePartnerStatementUseCase:
         )
         await self._session.commit()
         await self._session.refresh(created)
+        log_partner_runtime_event(
+            "partner_statement.generated",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            settlement_state=created.statement_status,
+            partner_account_id=str(created.partner_account_id),
+            partner_statement_id=str(created.id),
+            settlement_period_id=str(created.settlement_period_id),
+            result="success",
+        )
         return created
 
 
@@ -159,6 +176,28 @@ class ClosePartnerStatementUseCase:
         )
         await self._session.commit()
         await self._session.refresh(statement)
+        observe_partner_statement_closed(
+            surface=PARTNER_ADMIN_SURFACE,
+            settlement_state=statement.statement_status,
+            result="success",
+            opened_at=period.window_start,
+            closed_at=statement.closed_at,
+        )
+        observe_partner_notification_generated(
+            surface=PARTNER_ADMIN_SURFACE,
+            notification_type="statement_ready",
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_statement.closed",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            settlement_state=statement.statement_status,
+            partner_account_id=str(statement.partner_account_id),
+            partner_statement_id=str(statement.id),
+            settlement_period_id=str(statement.settlement_period_id),
+            result="success",
+        )
         return statement
 
 
@@ -238,6 +277,20 @@ class ReopenPartnerStatementUseCase:
         )
         await self._session.commit()
         await self._session.refresh(created)
+        observe_partner_statement_reopened(
+            surface=PARTNER_ADMIN_SURFACE,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_statement.reopened",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            settlement_state=created.statement_status,
+            partner_account_id=str(created.partner_account_id),
+            partner_statement_id=str(created.id),
+            reopened_from_statement_id=str(statement.id),
+            result="success",
+        )
         return created
 
 

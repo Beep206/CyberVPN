@@ -63,7 +63,7 @@ describe('mobile touch target contract', () => {
 
   it('routes high-risk forms through mobile-safe input sizing', async () => {
     const contact = await readSource('widgets/contact-form.tsx');
-    const login = await readSource('app/[locale]/(auth)/login/page.tsx');
+    const login = await readSource('app/[locale]/(auth)/login/login-client.tsx');
     const register = await readSource('app/[locale]/(auth)/register/page.tsx');
     const forgotPassword = await readSource('app/[locale]/(auth)/forgot-password/page.tsx');
 

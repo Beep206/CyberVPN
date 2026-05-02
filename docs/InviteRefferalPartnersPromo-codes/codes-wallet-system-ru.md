@@ -1,5 +1,9 @@
 # Система кодов и кошелька CyberVPN
 
+> Legacy / historical reference only.
+> This document is not canonical for target-state customer growth codes implementation.
+> Known conflicts with target-state package include indefinite referral commission, simultaneous partner + promo + referral stacking, and mixed withdrawable wallet semantics.
+
 Полное описание механизмов: инвайт-коды, реферальные коды, промокоды, партнёрские коды и кошелёк пользователя.
 
 ---

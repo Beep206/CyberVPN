@@ -16,6 +16,10 @@ export function getDefaultPostLoginPath(locale: string): string {
   return `/${normalizeAuthLocale(locale)}/dashboard`;
 }
 
+export function getDefaultMiniAppPath(locale: string): string {
+  return `/${normalizeAuthLocale(locale)}/miniapp/home`;
+}
+
 function stripLocalePrefix(pathname: string): string {
   const match = pathname.match(LOCALE_PREFIX_RE);
   if (!match) {

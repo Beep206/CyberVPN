@@ -51,6 +51,7 @@ describe('sitemap', () => {
       `${SITE_URL}/ja-JP/devices/android-vpn-setup`,
       `${SITE_URL}/en-EN/trust`,
       `${SITE_URL}/en-EN/audits`,
+      `${SITE_URL}/en-EN/network/dpi-resistance`,
     ];
 
     for (const expectedUrl of expectedPublicUrls) {

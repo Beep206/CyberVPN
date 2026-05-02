@@ -1,0 +1,48 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/REPLACE_ME_IMAGE_REPOSITORY/task-worker
+  digest: sha256:REPLACE_ME_TASK_WORKER_IMAGE_DIGEST
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: ghcr-platform-workloads
+
+serviceAccount:
+  create: true
+  name: ""
+
+externalSecret:
+  enabled: true
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: openbao-apps
+  targetName: task-worker-runtime
+  extractKey: kv-apps/data/nonprod/platform/task-worker
+
+workload:
+  mode: worker
+  command:
+    - sh
+    - -c
+  args:
+    - mkdir -p "$PROMETHEUS_MULTIPROC_DIR" && rm -f "$PROMETHEUS_MULTIPROC_DIR"/* && exec taskiq worker src.broker:broker --workers "${WORKER_CONCURRENCY:-2}" --fs-discover
+
+metrics:
+  enabled: true
+  servicePort: 9091
+  containerPort: 9091
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+prometheusMultiproc:
+  enabled: true
+  dir: /tmp/prometheus-multiproc
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+resources: {}

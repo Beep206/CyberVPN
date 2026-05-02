@@ -1,0 +1,43 @@
+name: Sentry Release Proof CI
+
+on:
+  push:
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'scripts/validate-sentry-release-proof.py'
+      - 'scripts/collect-sentry-release-evidence.py'
+      - 'scripts/record-sentry-release-deploy.py'
+      - '.github/workflows/sentry-release-proof-ci.yml'
+      - '.github/workflows/mobile-release.yml'
+      - '.github/workflows/desktop-release.yml'
+      - '.github/workflows/android-tv-release.yml'
+      - '.github/workflows/helix-adapter-ci.yml'
+      - '.github/workflows/helix-node-ci.yml'
+  pull_request:
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'scripts/validate-sentry-release-proof.py'
+      - 'scripts/collect-sentry-release-evidence.py'
+      - 'scripts/record-sentry-release-deploy.py'
+      - '.github/workflows/sentry-release-proof-ci.yml'
+      - '.github/workflows/mobile-release.yml'
+      - '.github/workflows/desktop-release.yml'
+      - '.github/workflows/android-tv-release.yml'
+      - '.github/workflows/helix-adapter-ci.yml'
+      - '.github/workflows/helix-node-ci.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release proof registry
+        run: python3 scripts/validate-sentry-release-proof.py
+
+      - name: Validate Python syntax
+        run: |
+          python3 -m py_compile \
+            scripts/validate-sentry-release-proof.py \
+            scripts/collect-sentry-release-evidence.py \
+            scripts/record-sentry-release-deploy.py

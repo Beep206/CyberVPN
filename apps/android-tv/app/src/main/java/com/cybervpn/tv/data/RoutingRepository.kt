@@ -14,7 +14,7 @@ private val Context.dataStore by preferencesDataStore(name = "bypass_packages")
 
 @Singleton
 class RoutingRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) {
     private val bypassedPackagesKey = stringSetPreferencesKey("bypassed_packages")
 
@@ -25,7 +25,7 @@ class RoutingRepository @Inject constructor(
 
     suspend fun togglePackageBypass(
         packageName: String,
-        bypass: Boolean
+        bypass: Boolean,
     ) {
         context.dataStore.edit { preferences ->
             val currentSet = preferences[bypassedPackagesKey] ?: emptySet()

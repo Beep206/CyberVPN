@@ -1,29 +1,17 @@
-/**
- * Mini App Home Page Tests
- *
- * Tests the home/dashboard page for Telegram Mini App:
- * - Subscription status card (active/trial/none)
- * - Usage stats display
- * - Trial eligibility and activation link
- * - Quick actions grid
- * - VPN config card integration
- */
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import HomePage from '../page';
-import { http, HttpResponse } from 'msw';
-import { server } from '@/test/mocks/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
+import { http, HttpResponse } from 'msw';
+import HomePage from '../page';
+import { server } from '@/test/mocks/server';
+import { cleanupTelegramWebAppMock, setupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
 
-// Mock next-intl
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en-EN',
   useTranslations: () => (key: string) => key,
 }));
 
-// Mock next/navigation
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ href, onClick, children, className }: React.ComponentProps<'a'>) => (
     <a href={href} onClick={onClick} className={className}>
@@ -32,7 +20,10 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 
-// Mock VpnConfigCard to simplify testing
+vi.mock('@/features/miniapp-runtime/lib/runtime-analytics', () => ({
+  emitMiniAppRuntimeEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../components/VpnConfigCard', () => ({
   VpnConfigCard: ({ colorScheme }: { colorScheme?: string }) => (
     <div data-testid="vpn-config-card" data-colorscheme={colorScheme}>
@@ -41,578 +32,375 @@ vi.mock('../../components/VpnConfigCard', () => ({
   ),
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
-const createWrapper = () => {
+function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   });
+
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
-};
+}
 
-const mockUsageData = {
-  bandwidth_used_bytes: 5368709120, // 5 GB
-  bandwidth_limit_bytes: 107374182400, // 100 GB
-  connections_active: 2,
-  connections_limit: 5,
-  last_connection_at: '2026-02-11T10:00:00Z',
-};
-
-const mockTrialData = {
-  is_trial_active: false,
-  is_eligible: true,
-  trial_end: null,
-  days_remaining: 0,
-};
+function createBootstrap(overrides: Record<string, unknown> = {}) {
+  return {
+    session: {
+      authenticated: true,
+      userId: 'user-1',
+      telegramUserId: '123456789',
+      authRealm: 'customer',
+    },
+    runtime: {
+      surface: 'telegram_miniapp',
+      tenant: { kind: 'platform' },
+      brand: {
+        name: 'CyberVPN',
+        primaryColor: '#00ffff',
+        supportUrl: 'https://t.me/cybervpn_bot?start=support',
+        legalName: 'CyberVPN',
+      },
+      commercialPolicy: {
+        pricingPolicyId: 'cybervpn-miniapp-default',
+        currencyPolicy: 'telegram_stars_xtr',
+        trialPolicyId: 'cybervpn-default-trial',
+      },
+      attribution: {
+        source: 'telegram',
+        surface: 'miniapp',
+      },
+    },
+    user: {
+      firstName: 'cyber',
+      username: 'cyber',
+      locale: 'en-EN',
+      rtl: false,
+    },
+    subscription: {
+      status: 'none',
+      planId: null,
+      planName: null,
+      expiresAt: null,
+      autoRenew: false,
+    },
+    trial: {
+      eligible: true,
+      reason: null,
+      durationDays: 7,
+      trialStart: null,
+      trialEnd: null,
+      daysRemaining: 0,
+    },
+    wallet: {
+      balance: 0,
+      currency: 'USD',
+      bonusesAvailable: 0,
+    },
+    devices: {
+      activeCount: 0,
+      limit: 0,
+      hasConfig: false,
+    },
+    usage: {
+      bandwidthUsedBytes: 5368709120,
+      bandwidthLimitBytes: 107374182400,
+      connectionsActive: 2,
+      connectionsLimit: 5,
+      periodStart: '2026-02-01T00:00:00Z',
+      periodEnd: '2026-03-01T00:00:00Z',
+      lastConnectionAt: '2026-02-11T10:00:00Z',
+    },
+    serviceState: {
+      providerName: null,
+      channelType: null,
+    },
+    recommendedServer: null,
+    primaryCta: {
+      kind: 'start_trial',
+      label: 'Start trial',
+    },
+    referral: {
+      code: 'REF12345',
+      inviteUrl: 'https://t.me/cybervpn_bot?startapp=ref_REF12345',
+      shareText: 'Try CyberVPN',
+    },
+    payment: {
+      unresolvedPaymentId: null,
+      lastStatus: null,
+    },
+    support: {
+      url: 'https://t.me/cybervpn_bot?start=support',
+      paysupportCommandAvailable: true,
+    },
+    rollout: {
+      enabled: true,
+      mode: 'live',
+      trialEnabled: true,
+      checkoutEnabled: true,
+      configEnabled: true,
+      accessGranted: true,
+      isCanaryUser: false,
+      gateReasonCode: null,
+      maintenanceMessage: null,
+    },
+    featureFlags: {
+      miniapp_bootstrap_v1: true,
+    },
+    freshness: {
+      generatedAt: '2026-04-22T12:00:00Z',
+    },
+    ...overrides,
+  };
+}
 
 describe('MiniAppHomePage', () => {
   let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
+  let currentBootstrap: ReturnType<typeof createBootstrap>;
 
   beforeEach(() => {
     telegramMock = setupTelegramWebAppMock();
-    vi.clearAllMocks();
+    currentBootstrap = createBootstrap();
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+    );
   });
 
   afterEach(() => {
     cleanupTelegramWebAppMock();
   });
 
-  describe('Loading State', () => {
-    it('test_shows_loading_spinner_while_fetching_data', () => {
-      server.use(
-        http.get(`${API_BASE}/usage`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json(mockTrialData);
-        })
-      );
+  it('shows loading spinner while bootstrap is pending', () => {
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return HttpResponse.json(currentBootstrap);
+      }),
+    );
 
-      render(<HomePage />, { wrapper: createWrapper() });
+    render(<HomePage />, { wrapper: createWrapper() });
 
-      expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
-    });
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  describe('Subscription Status Card - No Subscription', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-    });
+  it('renders no-subscription state from bootstrap', async () => {
+    render(<HomePage />, { wrapper: createWrapper() });
 
-    it('test_displays_no_subscription_message', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('noSubscriptionDescription')).toBeInTheDocument();
-    });
-
-    it('test_does_not_show_trial_badge_when_not_on_trial', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('trial')).not.toBeInTheDocument();
-    });
-
-    it('test_does_not_show_usage_stats_without_subscription', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('usage')).not.toBeInTheDocument();
-      expect(screen.queryByText('dataUsed')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Subscription Status Card - On Trial', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
-            is_trial_active: true,
-            is_eligible: false,
-            trial_end: '2026-02-18T23:59:59Z',
-            days_remaining: 7,
-          });
-        })
-      );
-    });
-
-    it('test_displays_subscription_active_when_on_trial', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('subscriptionActive')).toBeInTheDocument();
-      });
-    });
-
-    it('test_shows_trial_badge', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('trial')).toBeInTheDocument();
-      });
-    });
-
-    it('test_displays_trial_plan_info', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('plan:')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('trialPlan')).toBeInTheDocument();
-    });
-
-    it('test_displays_trial_expiry_date', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('expires:')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText(/2\/18\/2026/)).toBeInTheDocument();
-    });
-
-    it('test_displays_days_remaining', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('daysRemaining:')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('7')).toBeInTheDocument();
-    });
-
-    it('test_shows_usage_stats_when_on_trial', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('usage')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('dataUsed')).toBeInTheDocument();
-    });
-  });
-
-  describe('Usage Stats Display', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
-            is_trial_active: true,
-            is_eligible: false,
-            trial_end: '2026-02-18T23:59:59Z',
-            days_remaining: 7,
-          });
-        })
-      );
-    });
-
-    it('test_displays_data_usage_with_formatted_bytes', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('dataUsed')).toBeInTheDocument();
-      });
-
-      // 5 GB / 100 GB
-      expect(screen.getByText(/5\.00 GB/)).toBeInTheDocument();
-      expect(screen.getByText(/100\.00 GB/)).toBeInTheDocument();
-    });
-
-    it('test_displays_usage_percentage_progress_bar', async () => {
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('dataUsed')).toBeInTheDocument();
-      });
-
-      // Progress bar should exist
-      const progressBar = container.querySelector('.h-2.bg-muted');
-      expect(progressBar).toBeInTheDocument();
-    });
-
-    it('test_displays_active_connections_count', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('connections')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('2 / 5')).toBeInTheDocument();
-    });
-
-    it('test_displays_last_connection_time', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('lastConnected')).toBeInTheDocument();
-      });
-
-      // Date formatting varies by locale, just check it exists
-      const lastConnectionText = screen.getByText(/2\/11\/2026/);
-      expect(lastConnectionText).toBeInTheDocument();
-    });
-
-    it('test_shows_red_progress_bar_when_usage_over_80_percent', async () => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json({
-            ...mockUsageData,
-            bandwidth_used_bytes: 85899345920, // 80 GB (80%)
-          });
-        })
-      );
-
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('dataUsed')).toBeInTheDocument();
-      });
-
-      // Should show destructive color for high usage
-      const progressBarFill = container.querySelector('.bg-destructive');
-      expect(progressBarFill).toBeInTheDocument();
-    });
-
-    it('test_shows_cyan_progress_bar_when_usage_under_80_percent', async () => {
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('dataUsed')).toBeInTheDocument();
-      });
-
-      // Should show cyan color for normal usage
-      const progressBarFill = container.querySelector('.bg-neon-cyan');
-      expect(progressBarFill).toBeInTheDocument();
-    });
-  });
-
-  describe('Trial Eligibility Section', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
-            is_trial_active: false,
-            is_eligible: true,
-            trial_end: null,
-            days_remaining: 0,
-          });
-        })
-      );
-    });
-
-    it('test_shows_trial_available_card_when_eligible', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('trialAvailable')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('trialDescription')).toBeInTheDocument();
-    });
-
-    it('test_shows_activate_trial_link', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('activateTrial')).toBeInTheDocument();
-      });
-
-      const link = screen.getByText('activateTrial').closest('a');
-      expect(link).toHaveAttribute('href', '/miniapp/plans');
-    });
-
-    it('test_triggers_haptic_feedback_on_activate_trial_click', async () => {
-      const user = userEvent.setup();
-
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('activateTrial')).toBeInTheDocument();
-      });
-
-      const link = screen.getByText('activateTrial');
-      await user.click(link);
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('medium');
-    });
-
-    it('test_hides_trial_section_when_not_eligible', async () => {
-      server.use(
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
-            is_trial_active: false,
-            is_eligible: false,
-            trial_end: null,
-            days_remaining: 0,
-          });
-        })
-      );
-
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('trialAvailable')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('VPN Config Card', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-    });
-
-    it('test_renders_vpn_config_card', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('vpn-config-card')).toBeInTheDocument();
-      });
-    });
-
-    it('test_passes_color_scheme_to_vpn_config_card', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        const configCard = screen.getByTestId('vpn-config-card');
-        expect(configCard).toHaveAttribute('data-colorscheme', 'dark');
-      });
-    });
-  });
-
-  describe('Quick Actions Grid', () => {
-    beforeEach(() => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-    });
-
-    it('test_displays_quick_actions_title', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('quickActions')).toBeInTheDocument();
-      });
-    });
-
-    it('test_displays_view_plans_action', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('viewPlans')).toBeInTheDocument();
-      });
-
-      const link = screen.getByText('viewPlans').closest('a');
-      expect(link).toHaveAttribute('href', '/miniapp/plans');
-    });
-
-    it('test_displays_wallet_action', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('wallet')).toBeInTheDocument();
-      });
-
-      const link = screen.getByText('wallet').closest('a');
-      expect(link).toHaveAttribute('href', '/miniapp/wallet');
-    });
-
-    it('test_displays_settings_action', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('settings')).toBeInTheDocument();
-      });
-
-      const link = screen.getByText('settings').closest('a');
-      expect(link).toHaveAttribute('href', '/miniapp/profile');
-    });
-
-    it('test_shows_vpn_config_action_when_on_trial', async () => {
-      server.use(
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json({
-            is_trial_active: true,
-            is_eligible: false,
-            trial_end: '2026-02-18T23:59:59Z',
-            days_remaining: 7,
-          });
-        })
-      );
-
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('vpnConfig')).toBeInTheDocument();
-      });
-
-      const link = screen.getByText('vpnConfig').closest('a');
-      expect(link).toHaveAttribute('href', '/miniapp/profile#vpn-config');
-    });
-
-    it('test_hides_vpn_config_action_without_subscription', async () => {
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('quickActions')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('vpnConfig')).not.toBeInTheDocument();
-    });
-
-    it('test_triggers_haptic_on_quick_action_click', async () => {
-      const user = userEvent.setup();
-
-      render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('viewPlans')).toBeInTheDocument();
-      });
-
-      const plansLink = screen.getByText('viewPlans');
-      await user.click(plansLink);
-
-      expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('medium');
-    });
-  });
-
-  describe('Theme Integration', () => {
-    it('test_uses_dark_theme_by_default', async () => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      // Should use dark theme classes
-      const cards = container.querySelectorAll('[class*="bg-[var(--tg-bg-color"]');
-      expect(cards.length).toBeGreaterThan(0);
-    });
-
-    it('test_uses_light_theme_when_telegram_in_light_mode', async () => {
-      cleanupTelegramWebAppMock();
-      setupTelegramWebAppMock({ colorScheme: 'light' });
-
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      // Color scheme should be light
-      expect(container.querySelector('[class*="bg-[var(--tg-bg-color"]')).toBeInTheDocument();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('test_handles_usage_api_error_gracefully', async () => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(
-            { detail: 'Internal server error' },
-            { status: 500 }
-          );
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(mockTrialData);
-        })
-      );
-
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
-      });
-
-      // Should still render page without usage stats
+    await waitFor(() => {
       expect(screen.getByText('noSubscription')).toBeInTheDocument();
     });
 
-    it('test_handles_trial_api_error_gracefully', async () => {
-      server.use(
-        http.get(`${API_BASE}/usage`, () => {
-          return HttpResponse.json(mockUsageData);
-        }),
-        http.get(`${API_BASE}/trial/status`, () => {
-          return HttpResponse.json(
-            { detail: 'Internal server error' },
-            { status: 500 }
-          );
-        })
-      );
+    expect(screen.getByText('noSubscriptionDescription')).toBeInTheDocument();
+    expect(screen.getByText('trialAvailable')).toBeInTheDocument();
+  });
 
-      const { container } = render(<HomePage />, { wrapper: createWrapper() });
-
-      await waitFor(() => {
-        expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
-      });
-
-      // Should still render page
-      expect(screen.queryByText('quickActions')).toBeInTheDocument();
+  it('renders active subscription, provider, channel, and usage stats', async () => {
+    currentBootstrap = createBootstrap({
+      subscription: {
+        status: 'active',
+        planId: 'plan-pro',
+        planName: 'Pro',
+        expiresAt: '2026-06-01T00:00:00Z',
+        autoRenew: false,
+      },
+      trial: {
+        eligible: false,
+        reason: 'already_used',
+        durationDays: 7,
+        trialStart: null,
+        trialEnd: null,
+        daysRemaining: 0,
+      },
+      devices: {
+        activeCount: 1,
+        limit: 5,
+        hasConfig: true,
+      },
+      serviceState: {
+        providerName: 'remnawave',
+        channelType: 'telegram_bot',
+      },
+      primaryCta: {
+        kind: 'select_server',
+        label: 'Select server',
+      },
     });
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('subscriptionActive')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Pro')).toBeInTheDocument();
+    expect(screen.getByText('remnawave')).toBeInTheDocument();
+    expect(screen.getByText('telegram_bot')).toBeInTheDocument();
+    expect(screen.getByText('usage')).toBeInTheDocument();
+    expect(screen.getByText(/5\.00 GB/)).toBeInTheDocument();
+    expect(screen.getByText('2 / 5')).toBeInTheDocument();
+  });
+
+  it('renders trial state from bootstrap', async () => {
+    currentBootstrap = createBootstrap({
+      subscription: {
+        status: 'trial',
+        planId: null,
+        planName: null,
+        expiresAt: null,
+        autoRenew: false,
+      },
+      trial: {
+        eligible: false,
+        reason: 'already_used',
+        durationDays: 7,
+        trialStart: '2026-02-11T00:00:00Z',
+        trialEnd: '2026-02-18T23:59:59Z',
+        daysRemaining: 7,
+      },
+      devices: {
+        activeCount: 1,
+        limit: 1,
+        hasConfig: true,
+      },
+      primaryCta: {
+        kind: 'get_config',
+        label: 'Get config',
+      },
+    });
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('trial')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('trialPlan')).toBeInTheDocument();
+    expect(screen.getByText('7')).toBeInTheDocument();
+  });
+
+  it('renders quick actions with miniapp-safe links', async () => {
+    currentBootstrap = createBootstrap({
+      subscription: {
+        status: 'active',
+        planId: 'plan-pro',
+        planName: 'Pro',
+        expiresAt: '2026-06-01T00:00:00Z',
+        autoRenew: false,
+      },
+      trial: {
+        eligible: false,
+        reason: 'already_used',
+        durationDays: 7,
+        trialStart: null,
+        trialEnd: null,
+        daysRemaining: 0,
+      },
+      devices: {
+        activeCount: 1,
+        limit: 5,
+        hasConfig: true,
+      },
+      primaryCta: {
+        kind: 'select_server',
+        label: 'Select server',
+      },
+    });
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('subscriptionActive')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('viewPlans').closest('a')).toHaveAttribute('href', '/miniapp/plans');
+    expect(screen.getByText('wallet').closest('a')).toHaveAttribute('href', '/miniapp/wallet');
+    expect(screen.getByText('settings').closest('a')).toHaveAttribute('href', '/miniapp/profile');
+    expect(screen.getByText('vpnConfig').closest('a')).toHaveAttribute('href', '/miniapp/profile#vpn-config');
+  });
+
+  it('triggers haptic feedback when tapping quick actions', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('viewPlans'));
+    expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalledWith('medium');
+  });
+
+  it('passes telegram color scheme through to config card', async () => {
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('vpn-config-card')).toHaveAttribute('data-colorscheme', 'dark');
+    });
+  });
+
+  it('renders maintenance banner from rollout policy', async () => {
+    currentBootstrap = createBootstrap({
+      rollout: {
+        enabled: false,
+        mode: 'maintenance',
+        trialEnabled: false,
+        checkoutEnabled: false,
+        configEnabled: false,
+        accessGranted: false,
+        isCanaryUser: false,
+        gateReasonCode: 'maintenance',
+        maintenanceMessage: 'Mini App maintenance window',
+      },
+    });
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('serviceMaintenanceTitle')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Mini App maintenance window')).toBeInTheDocument();
+  });
+
+  it('renders limited rollout banner for canary-restricted users', async () => {
+    currentBootstrap = createBootstrap({
+      rollout: {
+        enabled: true,
+        mode: 'canary',
+        trialEnabled: true,
+        checkoutEnabled: true,
+        configEnabled: true,
+        accessGranted: false,
+        isCanaryUser: false,
+        gateReasonCode: 'canary_not_allowed',
+        maintenanceMessage: null,
+      },
+    });
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('serviceMaintenanceTitle')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('limitedRolloutDescription')).toBeInTheDocument();
   });
 });

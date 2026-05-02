@@ -4,6 +4,9 @@ import android.net.Uri
 import android.util.Base64
 import com.cybervpn.tv.core.model.ProxyNode
 import com.cybervpn.tv.core.model.VpnProtocol
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.URLDecoder
 import java.util.UUID
 
@@ -27,6 +30,18 @@ object VpnParser {
                 else -> null
             }
         }.getOrNull()
+
+    fun parseSubscriptionPayload(payload: String): List<ProxyNode> {
+        val rawPayload = payload.trim()
+        val normalizedPayload = decodeBase64Safe(rawPayload) ?: rawPayload
+
+        return normalizedPayload
+            .lineSequence()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .mapNotNull(::parse)
+            .toList()
+    }
 
     private fun parseVless(uri: Uri): ProxyNode? {
         val server = uri.host ?: return null
@@ -157,19 +172,19 @@ object VpnParser {
         // For simplicity and to avoid importing new libs like org.json.JSONObject (which throws), we'll parse it simply or using Kotlinx JSON.
 
         return runCatching {
-            val jsonElement = kotlinx.serialization.json.Json.parseToJsonElement(jsonPayload)
-            val obj = jsonElement.kotlinx.serialization.json.jsonObject
+            val jsonElement = Json.parseToJsonElement(jsonPayload)
+            val obj = jsonElement.jsonObject
 
-            val ps = obj["ps"]?.kotlinx.serialization.json.jsonPrimitive?.content ?: "VMess Node"
-            val add = obj["add"]?.kotlinx.serialization.json.jsonPrimitive?.content ?: return@runCatching null
-            val port = obj["port"]?.kotlinx.serialization.json.jsonPrimitive?.content?.toIntOrNull() ?: return@runCatching null
-            val id = obj["id"]?.kotlinx.serialization.json.jsonPrimitive?.content ?: return@runCatching null
-            val net = obj["net"]?.kotlinx.serialization.json.jsonPrimitive?.content
-            val type = obj["type"]?.kotlinx.serialization.json.jsonPrimitive?.content
-            val tls = obj["tls"]?.kotlinx.serialization.json.jsonPrimitive?.content
-            val sni = obj["sni"]?.kotlinx.serialization.json.jsonPrimitive?.content
-            val path = obj["path"]?.kotlinx.serialization.json.jsonPrimitive?.content
-            val host = obj["host"]?.kotlinx.serialization.json.jsonPrimitive?.content
+            val ps = obj["ps"]?.jsonPrimitive?.content ?: "VMess Node"
+            val add = obj["add"]?.jsonPrimitive?.content ?: return@runCatching null
+            val port = obj["port"]?.jsonPrimitive?.content?.toIntOrNull() ?: return@runCatching null
+            val id = obj["id"]?.jsonPrimitive?.content ?: return@runCatching null
+            val net = obj["net"]?.jsonPrimitive?.content
+            val type = obj["type"]?.jsonPrimitive?.content
+            val tls = obj["tls"]?.jsonPrimitive?.content
+            val sni = obj["sni"]?.jsonPrimitive?.content
+            val path = obj["path"]?.jsonPrimitive?.content
+            val host = obj["host"]?.jsonPrimitive?.content
 
             ProxyNode(
                 id = UUID.randomUUID().toString(),

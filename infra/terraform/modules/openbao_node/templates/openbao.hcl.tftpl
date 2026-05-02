@@ -1,0 +1,57 @@
+ui = true
+
+api_addr     = "${api_addr}"
+cluster_addr = "${cluster_addr}"
+
+listener "tcp" {
+  address              = "0.0.0.0:${api_port}"
+  cluster_address      = "0.0.0.0:${cluster_port}"
+  tls_cert_file        = "/etc/openbao/tls/server.pem"
+  tls_key_file         = "/etc/openbao/tls/server-key.pem"
+  tls_client_ca_file   = "/etc/openbao/tls/ca.pem"
+  tls_min_version      = "tls12"
+  telemetry {
+    unauthenticated_metrics_access = false
+  }
+}
+
+listener "tcp" {
+  address              = "0.0.0.0:${metrics_port}"
+  tls_cert_file        = "/etc/openbao/tls/server.pem"
+  tls_key_file         = "/etc/openbao/tls/server-key.pem"
+  tls_client_ca_file   = "/etc/openbao/tls/ca.pem"
+  tls_min_version      = "tls12"
+  telemetry {
+    unauthenticated_metrics_access = true
+  }
+}
+
+storage "raft" {
+  path            = "/var/lib/openbao/raft"
+  node_id         = "${node_id}"
+  performance_multiplier = 1
+%{ for addr in retry_join_api_addrs ~}
+
+  retry_join {
+    leader_api_addr = "${addr}"
+  }
+%{ endfor ~}
+}
+
+seal "awskms" {
+  region     = "${aws_region}"
+  kms_key_id = "${kms_key_alias}"
+}
+
+audit "file" "main" {
+  description = "Canonical file audit device"
+  options {
+    file_path = "/var/log/openbao/audit.log"
+    mode      = "0600"
+  }
+}
+
+telemetry {
+  prometheus_retention_time = "24h"
+  disable_hostname          = true
+}

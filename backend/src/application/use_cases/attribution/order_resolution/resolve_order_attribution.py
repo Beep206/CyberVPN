@@ -24,6 +24,12 @@ from src.infrastructure.database.repositories.order_attribution_result_repo impo
 )
 from src.infrastructure.database.repositories.order_repo import OrderRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    CUSTOMER_COMMERCE_SURFACE,
+    log_partner_runtime_event,
+    observe_partner_attribution_resolution,
+    partner_runtime_timer,
+)
 
 
 @dataclass(frozen=True)
@@ -53,8 +59,17 @@ class ResolveOrderAttributionUseCase:
         order_id: UUID,
         commit: bool = True,
     ) -> OrderAttributionResultModel:
+        started_at = partner_runtime_timer()
         existing = await self._results.get_by_order_id(order_id)
         if existing is not None:
+            observe_partner_attribution_resolution(
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                owner_type=existing.owner_type or "none",
+                owner_source=existing.owner_source or "none",
+                result="cached",
+                reason="already_resolved",
+                duration_seconds=0.0,
+            )
             return existing
 
         order = await self._orders.get_by_id(order_id)
@@ -130,6 +145,24 @@ class ResolveOrderAttributionUseCase:
         if commit:
             await self._session.commit()
             await self._session.refresh(created)
+        duration_seconds = max(partner_runtime_timer() - started_at, 0.0)
+        observe_partner_attribution_resolution(
+            surface=CUSTOMER_COMMERCE_SURFACE,
+            owner_type=created.owner_type or "none",
+            owner_source=created.owner_source or "none",
+            result="success",
+            reason="resolved" if created.owner_type != CommercialOwnerType.NONE.value else "no_owner_resolved",
+            duration_seconds=duration_seconds,
+        )
+        log_partner_runtime_event(
+            "partner_attribution.resolved",
+            surface=CUSTOMER_COMMERCE_SURFACE,
+            route_group="attribution",
+            owner_type=created.owner_type,
+            owner_source=created.owner_source,
+            order_id=str(order.id),
+            result="success",
+        )
         return created
 
     async def _resolve_candidate(

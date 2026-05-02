@@ -12,6 +12,7 @@ from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.billing_descriptor_model import BillingDescriptorModel
 from src.infrastructure.database.models.brand_model import BrandModel
 from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
+from src.infrastructure.database.models.growth_code_model import GrowthCodeReservationModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
 from src.infrastructure.database.models.legal_document_set_model import (
@@ -25,6 +26,7 @@ from src.infrastructure.database.models.order_model import OrderModel
 from src.infrastructure.database.models.policy_version_model import PolicyVersionModel
 from src.infrastructure.database.models.pricebook_model import PricebookEntryModel, PricebookModel
 from src.infrastructure.database.models.program_eligibility_policy_model import ProgramEligibilityPolicyModel
+from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.main import app
@@ -482,6 +484,99 @@ async def test_order_snapshot_stays_stable_after_catalog_mutation(async_client: 
                 assert checkout_session.checkout_status == "committed"
                 order = db.get(OrderModel, uuid.UUID(order_id))
                 assert order is not None
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_order_commit_consumes_reserved_promo(async_client: AsyncClient) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_order_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            with sessionmaker() as db:
+                promo = PromoCodeModel(
+                    id=uuid.uuid4(),
+                    code="PROMOCOMMIT10",
+                    discount_type="percent",
+                    discount_value=10,
+                    is_active=True,
+                )
+                db.add(promo)
+                db.commit()
+
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "code_input": "PROMOCOMMIT10",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            quote_payload = quote_response.json()
+            reservation_id = quote_payload["quote"]["code_resolution"]["reservation_id"]
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "order-checkout-promo-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 201
+
+            order_response = await async_client.post(
+                "/api/v1/orders/commit",
+                headers=headers,
+                json={"checkout_session_id": checkout_response.json()["id"]},
+            )
+            assert order_response.status_code == 201
+            order_payload = order_response.json()
+
+            with sessionmaker() as db:
+                reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
+                assert reservation is not None
+                assert reservation.status == "consumed"
+                assert reservation.checkout_session_id == uuid.UUID(checkout_response.json()["id"])
+                assert reservation.consumed_order_id == uuid.UUID(order_payload["id"])
+                assert reservation.release_reason == "order_commit"
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

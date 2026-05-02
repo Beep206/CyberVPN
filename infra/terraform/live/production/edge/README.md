@@ -14,3 +14,11 @@ Before first use:
 3. Copy `terraform.tfvars.example` to `terraform.tfvars`.
 4. Keep `edge_nodes` limited to the intended canary hosts until the 24-hour observation window is complete.
 5. Export `TF_VAR_hcloud_token`.
+
+Typical operator path:
+
+```bash
+tofu -chdir=infra/terraform/live/production/edge init -backend-config=backend.hcl
+tofu -chdir=infra/terraform/live/production/edge plan -var-file=terraform.tfvars
+tofu -chdir=infra/terraform/live/production/edge apply -var-file=terraform.tfvars
+```

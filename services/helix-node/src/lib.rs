@@ -3,6 +3,7 @@ pub mod control_plane;
 pub mod error;
 pub mod http;
 pub mod metrics;
+pub mod observability;
 pub mod runtime;
 pub mod state;
 
@@ -30,6 +31,11 @@ pub async fn build_state(config: NodeConfig) -> Result<AppState, AppError> {
     runtime.restore_state().await?;
 
     Ok(AppState::new(config, metrics, client, runtime))
+}
+
+pub async fn build_test_state() -> Result<AppState, AppError> {
+    let state_dir = std::env::temp_dir().join(format!("helix-node-test-{}", uuid::Uuid::new_v4()));
+    build_state(NodeConfig::test_default(state_dir)).await
 }
 
 pub fn build_app(state: AppState) -> axum::Router {
@@ -63,13 +69,23 @@ pub fn spawn_control_loop(state: AppState) {
                             );
                         }
                         Err(error) => {
-                            error!(?error, "failed to synchronize Helix assignment");
+                            error!(
+                                error = &error as &dyn std::error::Error,
+                                tags.runtime_phase = "assignment_sync",
+                                tags.node_id = %state.config.node_id,
+                                "failed to synchronize Helix assignment"
+                            );
                             if let Err(record_error) = state
                                 .runtime
                                 .record_runtime_error(format!("assignment sync failed: {error}"))
                                 .await
                             {
-                                error!(?record_error, "failed to persist assignment sync error");
+                                error!(
+                                    error = &record_error as &dyn std::error::Error,
+                                    tags.runtime_phase = "assignment_sync.persist_error",
+                                    tags.node_id = %state.config.node_id,
+                                    "failed to persist assignment sync error"
+                                );
                             }
                             state.metrics.set_runtime_healthy(false);
                             state.set_ready(false);
@@ -83,23 +99,40 @@ pub fn spawn_control_loop(state: AppState) {
                             if let Err(error) =
                                 state.control_plane_client.send_heartbeat(&heartbeat).await
                             {
-                                warn!(?error, "failed to send node heartbeat");
+                                warn!(
+                                    error = &error as &dyn std::error::Error,
+                                    node_id = %state.config.node_id,
+                                    "failed to send node heartbeat"
+                                );
                             }
                         }
                         Ok(None) => {}
                         Err(error) => {
-                            warn!(?error, "failed to build node heartbeat");
+                            warn!(
+                                error = &error as &dyn std::error::Error,
+                                node_id = %state.config.node_id,
+                                "failed to build node heartbeat"
+                            );
                         }
                     }
                 }
                 Err(error) => {
-                    warn!(?error, "control-plane assignment fetch failed");
+                    warn!(
+                        error = &error as &dyn std::error::Error,
+                        node_id = %state.config.node_id,
+                        "control-plane assignment fetch failed"
+                    );
                     if let Err(record_error) = state
                         .runtime
                         .record_runtime_error(format!("control-plane fetch failed: {error}"))
                         .await
                     {
-                        error!(?record_error, "failed to persist control-plane error");
+                        error!(
+                            error = &record_error as &dyn std::error::Error,
+                            tags.runtime_phase = "control_plane.fetch.persist_error",
+                            tags.node_id = %state.config.node_id,
+                            "failed to persist control-plane error"
+                        );
                     }
                     state.metrics.set_runtime_healthy(false);
                     state.set_ready(false);

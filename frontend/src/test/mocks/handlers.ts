@@ -15,7 +15,7 @@ import { http, HttpResponse } from 'msw';
 // Helpers & Constants
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Reusable mock user returned by /auth/me and embedded in token responses. */
 export const MOCK_USER = {
@@ -760,11 +760,57 @@ export const userManagementHandlers = [
   }),
 ];
 
+export const analyticsHandlers = [
+  http.get('*/api/analytics/reporting', () => {
+    return HttpResponse.json({
+      acquisition: {
+        aiReferralSessions: 0,
+        aiToCtaRate: 0,
+        ctaClicks: 0,
+        pageViews: 0,
+      },
+      ctas: [],
+      routes: [],
+      sources: [],
+      webVitals: {
+        metrics: [],
+        routes: [],
+      },
+    });
+  }),
+  http.post('*/api/analytics/miniapp-runtime', () => {
+    return HttpResponse.json({ ok: true });
+  }),
+  http.post('*/api/analytics/web-vitals', () => {
+    return HttpResponse.json({ ok: true });
+  }),
+  http.post('*/api/analytics/traffic', () => {
+    return HttpResponse.json({ ok: true });
+  }),
+  http.post('*/api/analytics/reporting', () => {
+    return HttpResponse.json({ ok: true });
+  }),
+];
+
+export const staticAssetHandlers = [
+  http.head('*/favicon.ico', () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.get('*/favicon.ico', () => {
+    return new HttpResponse(null, {
+      status: 204,
+      headers: { 'content-type': 'image/x-icon' },
+    });
+  }),
+];
+
 // ---------------------------------------------------------------------------
 // Combined Handlers (default export for MSW server setup)
 // ---------------------------------------------------------------------------
 
 export const handlers = [
+  ...staticAssetHandlers,
+  ...analyticsHandlers,
   ...authHandlers,
   ...serverHandlers,
   ...userManagementHandlers,

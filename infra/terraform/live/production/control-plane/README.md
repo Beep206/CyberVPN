@@ -10,8 +10,8 @@ Typical flow:
 4. Initialize and plan:
 
 ```bash
-terraform -chdir=infra/terraform/live/production/control-plane init -backend-config=backend.hcl
-terraform -chdir=infra/terraform/live/production/control-plane plan -var-file=terraform.tfvars
+tofu -chdir=infra/terraform/live/production/control-plane init -backend-config=backend.hcl
+tofu -chdir=infra/terraform/live/production/control-plane plan -var-file=terraform.tfvars
 ```
 
 The stack keeps its scope narrow:

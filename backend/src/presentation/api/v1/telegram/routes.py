@@ -4,7 +4,7 @@ import hmac
 import logging
 import secrets
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -21,6 +21,7 @@ from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.orders import ListOrdersUseCase
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.refunds import ReconcileTelegramStarsRefundUseCase
 from src.application.use_cases.service_access import GetCurrentServiceStateUseCase
 from src.application.use_cases.subscriptions import GenerateConfigUseCase
 from src.application.use_cases.subscriptions.get_current_entitlements import GetCurrentEntitlementsUseCase
@@ -30,6 +31,7 @@ from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_real
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
@@ -80,6 +82,14 @@ from src.presentation.api.v1.telegram.schemas import (
     TelegramBotUserCreateRequest,
     TelegramBotUserResponse,
     TelegramBotUserUpdateRequest,
+    TelegramStarsConfirmRequest,
+    TelegramStarsConfirmResponse,
+    TelegramStarsInvoiceCreateRequest,
+    TelegramStarsInvoiceResponse,
+    TelegramStarsPreCheckoutRequest,
+    TelegramStarsPreCheckoutResponse,
+    TelegramStarsRefundReconciliationRequest,
+    TelegramStarsRefundReconciliationResponse,
     TelegramUserResponse,
 )
 from src.presentation.dependencies.database import get_db
@@ -102,6 +112,48 @@ def _require_telegram_bot_secret(secret: str | None) -> None:
     if _is_valid_telegram_bot_secret(secret):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _build_telegram_stars_invoice_payload(*, payment_id: UUID, telegram_id: int) -> str:
+    return f"stars:{payment_id}:{telegram_id}"
+
+
+def _parse_telegram_stars_invoice_payload(invoice_payload: str) -> tuple[UUID, int] | None:
+    parts = invoice_payload.split(":")
+    if len(parts) != 3 or parts[0] != "stars":
+        return None
+
+    try:
+        return UUID(parts[1]), int(parts[2])
+    except (ValueError, TypeError):
+        return None
+
+
+def _extract_telegram_stars_amount(features: dict | None) -> int | None:
+    if not isinstance(features, dict):
+        return None
+
+    direct = features.get("telegram_stars_amount")
+    nested = features.get("telegram_stars")
+    prices = features.get("prices")
+
+    candidates = [
+        direct,
+        nested.get("amount") if isinstance(nested, dict) else None,
+        prices.get("XTR") if isinstance(prices, dict) else None,
+    ]
+
+    for candidate in candidates:
+        if candidate in (None, ""):
+            continue
+        try:
+            value = int(candidate)
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+
+    return None
 
 
 def _serialize_plan(plan) -> PlanResponse:
@@ -280,6 +332,45 @@ async def _build_checkout_result(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+
+async def _validate_telegram_stars_payment(
+    *,
+    db: AsyncSession,
+    payment_id: UUID,
+    telegram_id: int,
+    currency: str,
+    total_amount: int,
+    invoice_payload: str,
+) -> tuple[object, MobileUserModel]:
+    mobile_user = await _get_mobile_user_or_404(db, telegram_id)
+    payment = await PaymentRepository(db).get_by_id(payment_id)
+    if payment is None or payment.user_uuid != mobile_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+
+    if payment.provider != "telegram_stars":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment is not a Telegram Stars payment")
+
+    if payment.status not in {"pending", "completed"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment is not available for confirmation")
+
+    if currency.upper() != "XTR" or payment.currency.upper() != "XTR":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars payments must use XTR")
+
+    expected_payload = str((payment.metadata_ or {}).get("invoice_payload") or "")
+    expected_total_amount = int((payment.metadata_ or {}).get("telegram_stars_amount") or 0)
+
+    if not expected_payload or invoice_payload != expected_payload:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice payload mismatch")
+
+    if expected_total_amount <= 0 or total_amount != expected_total_amount:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars amount mismatch")
+
+    parsed_payload = _parse_telegram_stars_invoice_payload(invoice_payload)
+    if parsed_payload is None or parsed_payload[0] != payment.id or parsed_payload[1] != telegram_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice payload is invalid")
+
+    return payment, mobile_user
 
 
 async def _build_mobile_trial_status(
@@ -943,6 +1034,265 @@ async def commit_bot_user_checkout(
         payment_id=commit_result.payment.id,
         status=commit_result.status,
         invoice=invoice,
+    )
+
+
+@router.post("/payments/stars", response_model=TelegramStarsInvoiceResponse)
+async def create_telegram_stars_invoice(
+    body: TelegramStarsInvoiceCreateRequest,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramStarsInvoiceResponse:
+    """Create a pending Telegram Stars payment and return invoice parameters for the bot."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    if body.payment_method != "telegram_stars":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payment method for Telegram Stars")
+    if body.currency.upper() != "XTR":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars payments must use XTR")
+    if body.use_wallet > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Wallet is not supported for Telegram Stars",
+        )
+
+    mobile_user = await _get_mobile_user_or_404(db, body.telegram_id)
+    quote_result = await _build_checkout_result(db=db, user_id=mobile_user.id, body=body)
+    plan = await SubscriptionPlanRepository(db).get_by_id(quote_result.plan_id)
+    expected_stars_amount = _extract_telegram_stars_amount(plan.features if plan is not None else None)
+    if expected_stars_amount is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telegram Stars pricing is not configured for this plan",
+        )
+    if body.telegram_stars_amount != expected_stars_amount:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars amount mismatch")
+
+    payment_repo = PaymentRepository(db)
+    payment = await payment_repo.create(
+        PaymentModel(
+            external_id=None,
+            user_uuid=mobile_user.id,
+            amount=float(body.telegram_stars_amount),
+            currency="XTR",
+            status="pending",
+            provider="telegram_stars",
+            subscription_days=quote_result.duration_days or 0,
+            plan_id=quote_result.plan_id,
+            promo_code_id=quote_result.promo_code_id,
+            partner_code_id=quote_result.partner_code_id,
+            discount_amount=float(quote_result.discount_amount),
+            wallet_amount_used=0,
+            final_amount=float(body.telegram_stars_amount),
+            addons_snapshot=[
+                {
+                    "addon_id": str(line.addon_id),
+                    "code": line.code,
+                    "qty": line.qty,
+                    "unit_price": float(line.unit_price),
+                    "total_price": float(line.total_price),
+                    "location_code": line.location_code,
+                    "delta_entitlements": line.delta_entitlements,
+                }
+                for line in quote_result.addons
+            ],
+            entitlements_snapshot=quote_result.entitlements_snapshot,
+            metadata_={
+                "commission_base_amount": str(quote_result.commission_base_amount),
+                "addon_amount": str(quote_result.addon_amount),
+                "channel": "telegram_bot",
+                "plan_name": quote_result.plan_name,
+                "checkout_mode": "new_purchase",
+                "telegram_stars_amount": body.telegram_stars_amount,
+                "displayed_price_usd": str(quote_result.displayed_price),
+                "quote_currency": str(body.currency).upper(),
+            },
+        )
+    )
+    invoice_payload = _build_telegram_stars_invoice_payload(payment_id=payment.id, telegram_id=body.telegram_id)
+    payment.metadata_ = {
+        **(payment.metadata_ or {}),
+        "invoice_payload": invoice_payload,
+    }
+    await payment_repo.update(payment)
+    await db.commit()
+
+    title = quote_result.plan_name or "CyberVPN subscription"
+    description = f"CyberVPN access for {quote_result.duration_days or 0} days"
+    expires_at = datetime.now(UTC) + timedelta(minutes=15)
+
+    route_operations_total.labels(route="telegram_payments", action="stars_create", status="pending").inc()
+    return TelegramStarsInvoiceResponse(
+        payment_id=payment.id,
+        title=title,
+        description=description,
+        invoice_payload=invoice_payload,
+        amount=body.telegram_stars_amount,
+        currency="XTR",
+        status="pending",
+        expires_at=expires_at,
+    )
+
+
+@router.post("/payments/{payment_id}/pre-checkout", response_model=TelegramStarsPreCheckoutResponse)
+async def validate_telegram_stars_pre_checkout(
+    payment_id: UUID,
+    body: TelegramStarsPreCheckoutRequest,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramStarsPreCheckoutResponse:
+    """Validate pre_checkout_query before the bot answers Telegram."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    payment, _mobile_user = await _validate_telegram_stars_payment(
+        db=db,
+        payment_id=payment_id,
+        telegram_id=body.telegram_id,
+        currency=body.currency,
+        total_amount=body.total_amount,
+        invoice_payload=body.invoice_payload,
+    )
+    route_operations_total.labels(route="telegram_payments", action="stars_pre_checkout", status=payment.status).inc()
+    return TelegramStarsPreCheckoutResponse(
+        ok=True,
+        payment_id=payment.id,
+        status=payment.status,
+        error_message=None,
+    )
+
+
+@router.post("/payments/{payment_id}/confirm", response_model=TelegramStarsConfirmResponse)
+async def confirm_telegram_stars_payment(
+    payment_id: UUID,
+    body: TelegramStarsConfirmRequest,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramStarsConfirmResponse:
+    """Confirm a Telegram Stars payment after successful_payment is received."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    payment, _mobile_user = await _validate_telegram_stars_payment(
+        db=db,
+        payment_id=payment_id,
+        telegram_id=body.telegram_id,
+        currency=body.currency,
+        total_amount=body.total_amount,
+        invoice_payload=body.invoice_payload,
+    )
+
+    already_processed = payment.status == "completed"
+    if already_processed:
+        if payment.external_id and payment.external_id != body.telegram_payment_charge_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Payment was already confirmed with another charge",
+            )
+
+        route_operations_total.labels(route="telegram_payments", action="stars_confirm", status="completed").inc()
+        return TelegramStarsConfirmResponse(
+            payment_id=payment.id,
+            status=payment.status,
+            provider=payment.provider,
+            external_id=payment.external_id,
+            amount=float(payment.amount),
+            currency=payment.currency,
+            already_processed=True,
+            created_at=payment.created_at,
+            updated_at=payment.updated_at,
+        )
+
+    payment.external_id = body.telegram_payment_charge_id
+    payment.status = "completed"
+    payment.metadata_ = {
+        **(payment.metadata_ or {}),
+        "telegram_payment_charge_id": body.telegram_payment_charge_id,
+        "provider_payment_charge_id": body.provider_payment_charge_id,
+        "confirmed_currency": body.currency.upper(),
+        "confirmed_total_amount": body.total_amount,
+    }
+    await PaymentRepository(db).update(payment)
+
+    from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+
+    await PostPaymentProcessingUseCase(db).execute(payment.id)
+    await db.commit()
+
+    route_operations_total.labels(route="telegram_payments", action="stars_confirm", status="completed").inc()
+    return TelegramStarsConfirmResponse(
+        payment_id=payment.id,
+        status=payment.status,
+        provider=payment.provider,
+        external_id=payment.external_id,
+        amount=float(payment.amount),
+        currency=payment.currency,
+        already_processed=False,
+        created_at=payment.created_at,
+        updated_at=payment.updated_at,
+    )
+
+
+@router.post("/payments/stars/reconcile-refund", response_model=TelegramStarsRefundReconciliationResponse)
+async def reconcile_telegram_stars_refund(
+    body: TelegramStarsRefundReconciliationRequest,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramStarsRefundReconciliationResponse:
+    """Synchronize Telegram Stars refund state detected from provider transactions."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    use_case = ReconcileTelegramStarsRefundUseCase(db)
+    try:
+        result = await use_case.execute(
+            telegram_id=body.telegram_id,
+            telegram_payment_charge_id=body.telegram_payment_charge_id,
+            amount=body.amount,
+            transaction_id=body.transaction_id,
+            refunded_at=body.refunded_at,
+            invoice_payload=body.invoice_payload,
+            raw_transaction=body.raw_transaction,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = status.HTTP_409_CONFLICT if "mismatch" in detail else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    route_operations_total.labels(
+        route="telegram_payments",
+        action="stars_reconcile_refund",
+        status=result.action,
+    ).inc()
+    return TelegramStarsRefundReconciliationResponse(
+        action=result.action,
+        payment_id=result.payment_id,
+        refund_id=result.refund_id,
+        refund_status=result.refund_status,
+        already_reconciled=result.already_reconciled,
+    )
+
+
+@router.get("/payments/{payment_id}", response_model=TelegramBotPaymentStatusResponse)
+async def get_telegram_payment_status(
+    payment_id: UUID,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramBotPaymentStatusResponse:
+    """Return payment status for Telegram bot payment flows."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    payment = await PaymentRepository(db).get_by_id(payment_id)
+    if payment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
+
+    route_operations_total.labels(route="telegram_payments", action="payment_status", status=payment.status).inc()
+    return TelegramBotPaymentStatusResponse(
+        payment_id=payment.id,
+        status=payment.status,
+        provider=payment.provider,
+        external_id=payment.external_id,
+        amount=float(payment.amount),
+        currency=payment.currency,
+        created_at=payment.created_at,
+        updated_at=payment.updated_at,
     )
 
 

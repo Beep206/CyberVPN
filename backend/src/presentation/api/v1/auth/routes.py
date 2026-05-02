@@ -41,6 +41,17 @@ from src.infrastructure.database.models.principal_session_model import Principal
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
 from src.infrastructure.monitoring.client_context import resolve_web_client_context
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_PRINCIPAL_CLASS,
+    bind_partner_context_from_realm,
+    log_partner_runtime_event,
+    observe_partner_auth_login,
+    observe_partner_auth_logout,
+    observe_partner_auth_refresh,
+    observe_partner_email_verification,
+    observe_partner_mfa_challenge,
+    observe_partner_password_reset_requested,
+)
 from src.infrastructure.monitoring.instrumentation.routes import (
     observe_auth_activation_duration,
     observe_auth_request_duration,
@@ -225,11 +236,30 @@ async def login(
         http_request.headers.get("sec-ch-ua-mobile"),
     )
     protection = LoginProtectionService(redis_client)
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_login",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
 
     # Check if account is locked (HIGH-1)
     try:
         await protection.check_and_raise_if_locked(identifier)
     except AccountLockedException as e:
+        observe_partner_auth_login(result="failure", reason="account_locked")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_login",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code="account_locked",
+        )
+        log_partner_runtime_event(
+            "partner_auth.login_failed",
+            level="warning",
+            reason="account_locked",
+            lockout_tier=_lockout_tier_from_remaining(e.remaining_seconds, e.permanent),
+        )
         track_auth_attempt(method="password", success=False)
         track_auth_error("account_locked")
         track_auth_password_identifier_event(
@@ -265,7 +295,7 @@ async def login(
         observe_auth_request_duration("password", started_at)
         logger.warning(
             "Login attempt on locked account",
-            extra={"identifier": identifier, "permanent": e.permanent},
+            extra={"identifier_type": password_identifier_type, "permanent": e.permanent},
         )
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
@@ -306,6 +336,21 @@ async def login(
         logger.warning("Login attempt failed: %s", e)
         protection_result = await protection.record_failed_attempt(identifier)
         await db.commit()
+        observe_partner_auth_login(result="failure", reason="invalid_credentials")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_login",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code="invalid_credentials",
+        )
+        log_partner_runtime_event(
+            "partner_auth.login_failed",
+            level="warning",
+            reason="invalid_credentials",
+            attempts=protection_result.attempts,
+            lockout_tier=protection_result.lockout_tier,
+        )
 
         # Track failed auth attempt metric
         track_auth_attempt(method="password", success=False)
@@ -358,7 +403,7 @@ async def login(
         observe_auth_request_duration("password", started_at)
         logger.warning(
             "Failed login attempt",
-            extra={"identifier": identifier, "attempts": protection_result.attempts},
+            extra={"identifier_type": password_identifier_type, "attempts": protection_result.attempts},
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -419,6 +464,7 @@ async def login(
         )
 
     if result["requires_2fa"]:
+        observe_partner_mfa_challenge(result="required", reason="login_requires_2fa")
         track_auth_flow_event(
             channel="web",
             method="password",
@@ -455,6 +501,18 @@ async def login(
 
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("password", started_at)
+    observe_partner_auth_login(result="success", reason="none")
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_login",
+        principal_class=principal_type or PARTNER_PRINCIPAL_CLASS,
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_auth.login_succeeded",
+        auth_realm_key=current_realm.realm_key,
+        requires_2fa=result["requires_2fa"],
+    )
 
     return LoginResponse(
         access_token=result["access_token"],
@@ -490,11 +548,29 @@ async def refresh_token(
     MED-002: Validates device fingerprint when ENFORCE_TOKEN_BINDING is enabled.
     """
     started_at = perf_counter()
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_refresh",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     # SEC-01: Resolve refresh token from body or cookie
     token = request.refresh_token
     if not token:
         token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
     if not token:
+        observe_partner_auth_refresh(result="failure", reason="missing_token")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_refresh",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code="missing_token",
+        )
+        log_partner_runtime_event(
+            "partner_auth.refresh_failed",
+            level="warning",
+            reason="missing_token",
+        )
         track_auth_error("expired_token")
         track_auth_session_operation("refresh", "missing_token")
         track_auth_session_detail(
@@ -541,6 +617,19 @@ async def refresh_token(
             include_legacy_default=current_realm.realm_key == "admin",
         )
     except InvalidCredentialsError as exc:
+        observe_partner_auth_refresh(result="failure", reason="expired_token")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_refresh",
+            principal_class=principal_type or PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code="expired_token",
+        )
+        log_partner_runtime_event(
+            "partner_auth.refresh_failed",
+            level="warning",
+            reason="expired_token",
+        )
         track_auth_error("expired_token")
         track_auth_session_operation("refresh", "failure")
         track_auth_session_detail(
@@ -579,6 +668,17 @@ async def refresh_token(
         reason="none",
     )
     observe_auth_request_duration("refresh_token", started_at)
+    observe_partner_auth_refresh(result="success", reason="none")
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_refresh",
+        principal_class=principal_type or PARTNER_PRINCIPAL_CLASS,
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_auth.refresh_succeeded",
+        auth_realm_key=current_realm.realm_key,
+    )
 
     return TokenResponse(
         access_token=result["access_token"],
@@ -606,6 +706,11 @@ async def logout(
     SEC-01: Accepts refresh_token from request body (mobile) or httpOnly cookie (web).
     """
     # SEC-01: Resolve refresh token from body or cookie
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_logout",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     token = request.refresh_token
     if not token:
         token = get_refresh_token_cookie(http_request.cookies, current_realm.cookie_namespace)
@@ -614,6 +719,14 @@ async def logout(
         use_case = LogoutUseCase(session=db)
         await use_case.execute(refresh_token=token)
         await sync_active_sessions(db)
+        observe_partner_auth_logout(result="success", reason="none")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_logout",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="success",
+        )
+        log_partner_runtime_event("partner_auth.logout_succeeded")
         track_auth_session_operation("logout", "success")
         track_auth_session_detail(
             channel="web",
@@ -623,6 +736,19 @@ async def logout(
             reason="none",
         )
     else:
+        observe_partner_auth_logout(result="failure", reason="missing_token")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_logout",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code="missing_token",
+        )
+        log_partner_runtime_event(
+            "partner_auth.logout_failed",
+            level="warning",
+            reason="missing_token",
+        )
         track_auth_session_operation("logout", "missing_token")
         track_auth_session_detail(
             channel="web",
@@ -653,6 +779,11 @@ async def logout_all_devices(
     Revokes all access and refresh tokens for the current user.
     """
     logout_use_case = LogoutUseCase(session=db)
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_logout_all",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     refresh_sessions_revoked = await logout_use_case.execute_all(current_user.id)
 
     revocation_service = JWTRevocationService(redis_client)
@@ -696,6 +827,17 @@ async def logout_all_devices(
             "refresh_sessions_revoked": refresh_sessions_revoked,
             "jwt_tokens_revoked": revoked_count,
         },
+    )
+    observe_partner_auth_logout(result="success", reason="logout_all")
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_logout_all",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_auth.logout_all_succeeded",
+        sessions_revoked=sessions_revoked,
     )
 
     return LogoutAllResponse(
@@ -811,6 +953,11 @@ async def verify_otp(
     - POST /auth/verify-email (mobile compatibility)
     """
     started_at = perf_counter()
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_email_verification",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     client_context = resolve_web_client_context(
         http_request.headers.get("User-Agent"),
         http_request.headers.get("sec-ch-ua-mobile"),
@@ -842,6 +989,22 @@ async def verify_otp(
     )
 
     if not result.success:
+        verify_reason = "expired" if result.error_code == "OTP_EXPIRED" else (
+            "rate_limited" if result.error_code == "OTP_EXHAUSTED" else "invalid_otp"
+        )
+        observe_partner_email_verification(result="failure", reason=verify_reason)
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_email_verification",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code=verify_reason,
+        )
+        log_partner_runtime_event(
+            "partner_auth.email_verification_failed",
+            level="warning",
+            reason=verify_reason,
+        )
         expired = result.error_code == "OTP_EXPIRED"
         track_email_verification(success=False, expired=expired)
         track_auth_flow_event(
@@ -886,6 +1049,7 @@ async def verify_otp(
         )
 
     track_email_verification(success=True)
+    observe_partner_email_verification(result="success", reason="none")
     track_registration_funnel_step("email_verified")
     track_registration_funnel_step("activated")
     track_first_login_after_activation("email_verification")
@@ -961,6 +1125,16 @@ async def verify_otp(
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
     observe_auth_request_duration("email_verification", started_at)
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_email_verification",
+        principal_class=get_principal_type_for_realm(current_realm),
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_auth.email_verification_succeeded",
+        auth_realm_key=current_realm.realm_key,
+    )
 
     return VerifyOtpResponse(
         access_token=result.access_token or "",
@@ -1964,6 +2138,11 @@ async def forgot_password(
 
     Always returns success to prevent email enumeration.
     """
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_password_reset_request",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     user_repo = AdminUserRepository(db)
     otp_repo = OtpCodeRepository(db)
     otp_service = OtpService(otp_repo)
@@ -1982,6 +2161,14 @@ async def forgot_password(
         include_legacy_default=current_realm.realm_key == "admin",
     )
     track_password_reset(operation="request", success=True)
+    observe_partner_password_reset_requested(result="success")
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_password_reset_request",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+        result="success",
+    )
+    log_partner_runtime_event("partner_auth.password_reset_requested")
 
     return ForgotPasswordResponse()
 
@@ -2002,6 +2189,11 @@ async def reset_password(
 ) -> ResetPasswordResponse:
     """Reset password using OTP code from forgot-password email."""
     started_at = perf_counter()
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_password_reset_complete",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     user_repo = AdminUserRepository(db)
     otp_repo = OtpCodeRepository(db)
     otp_service = OtpService(otp_repo)
@@ -2022,6 +2214,19 @@ async def reset_password(
     )
 
     if not result.success:
+        reset_reason = "rate_limited" if result.error_code == "OTP_EXHAUSTED" else "invalid_otp"
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_password_reset_complete",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code=reset_reason,
+        )
+        log_partner_runtime_event(
+            "partner_auth.password_reset_failed",
+            level="warning",
+            reason=reset_reason,
+        )
         track_password_reset(operation="complete", success=False)
         if result.error_code == "OTP_EXHAUSTED":
             track_auth_error("rate_limited")
@@ -2056,6 +2261,13 @@ async def reset_password(
 
     track_password_reset(operation="complete", success=True)
     observe_auth_request_duration("password_reset", started_at)
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_password_reset_complete",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+        result="success",
+    )
+    log_partner_runtime_event("partner_auth.password_reset_succeeded")
     return ResetPasswordResponse()
 
 

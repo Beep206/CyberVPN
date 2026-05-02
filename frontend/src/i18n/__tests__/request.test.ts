@@ -20,15 +20,21 @@ describe('i18n request config', () => {
     });
 
     expect(config.locale).toBe('ru-RU');
-    expect(config.messages.Header).toMatchObject({
+    const messages = config.messages;
+    expect(messages).toBeDefined();
+    if (!messages) {
+      throw new Error('Expected localized messages to be loaded');
+    }
+
+    expect(messages.Header).toMatchObject({
       netUplink: 'СЕТЬ_АПЛИНК',
     });
-    expect(config.messages.Footer).toMatchObject({
+    expect(messages.Footer).toMatchObject({
       links: {
         privacy: 'Политика конфиденциальности',
       },
     });
-    expect(config.messages.Auth).toMatchObject({
+    expect(messages.Auth).toMatchObject({
       login: {
         submitButton: 'Войти',
       },
@@ -43,7 +49,13 @@ describe('i18n request config', () => {
     });
 
     expect(config.locale).toBe('en-EN');
-    expect(config.messages.Header).toMatchObject({
+    const messages = config.messages;
+    expect(messages).toBeDefined();
+    if (!messages) {
+      throw new Error('Expected fallback messages to be loaded');
+    }
+
+    expect(messages.Header).toMatchObject({
       netUplink: 'NET_UPLINK',
     });
   });

@@ -1,6 +1,7 @@
 pub mod bgp;
 pub mod engine;
 pub mod ipc;
+pub mod observability;
 pub mod tray;
 
 rust_i18n::i18n!("locales", fallback = "en-EN");
@@ -40,6 +41,8 @@ pub fn run() {
         let _ = crate::engine::lifecycle::mark_panic(format!("{info:?}"));
         eprintln!("Panic occurred: {:?}", info);
     }));
+    // Install Sentry after the local panic hook so the default panic integration forwards to it.
+    let _sentry = crate::observability::init_native_sentry();
 
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
@@ -94,6 +97,8 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let lifecycle_state =
                 crate::engine::lifecycle::initialize(&app_handle, &setup_launch_options)?;
+            let smoke_mode = setup_launch_options.smoke_exit_after_ms.is_some()
+                || setup_launch_options.smoke_crash_after_ms.is_some();
 
             if let Ok(reconciliation) = crate::engine::store::reconcile_connection_metadata(&app_handle)
             {
@@ -187,28 +192,39 @@ pub fn run() {
                 });
             }
 
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = engine::provision::ensure_sing_box_binary(&app_handle).await {
-                    eprintln!("Failed to provision sing-box: {}", e);
-                }
-                if let Err(e) = engine::provision::ensure_xray_binary(&app_handle).await {
-                    eprintln!("Failed to provision xray-core: {}", e);
-                }
-                match engine::store::load_store(&app_handle) {
-                    Ok(store) if store.privacy_shield_level != "disabled" => {
-                        if let Err(e) = engine::sys::adblock::ensure_blocklists(
-                            &app_handle,
-                            &store.privacy_shield_level,
-                        )
-                        .await
-                        {
-                            eprintln!("Failed to provision Privacy Shield blocklists: {}", e);
-                        }
+            if smoke_mode {
+                let _ = crate::engine::diagnostics::record_event(
+                    &app_handle,
+                    crate::engine::diagnostics::DiagnosticLevel::Info,
+                    "app.lifecycle",
+                    "Desktop smoke mode skips background provisioning and monitors",
+                    serde_json::json!({}),
+                );
+            } else {
+                let provisioning_app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = engine::provision::ensure_sing_box_binary(&provisioning_app_handle).await {
+                        eprintln!("Failed to provision sing-box: {}", e);
                     }
-                    Ok(_) => {}
-                    Err(e) => eprintln!("Failed to load store while provisioning assets: {}", e),
-                }
-            });
+                    if let Err(e) = engine::provision::ensure_xray_binary(&provisioning_app_handle).await {
+                        eprintln!("Failed to provision xray-core: {}", e);
+                    }
+                    match engine::store::load_store(&provisioning_app_handle) {
+                        Ok(store) if store.privacy_shield_level != "disabled" => {
+                            if let Err(e) = engine::sys::adblock::ensure_blocklists(
+                                &provisioning_app_handle,
+                                &store.privacy_shield_level,
+                            )
+                            .await
+                            {
+                                eprintln!("Failed to provision Privacy Shield blocklists: {}", e);
+                            }
+                        }
+                        Ok(_) => {}
+                        Err(e) => eprintln!("Failed to load store while provisioning assets: {}", e),
+                    }
+                });
+            }
 
             #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
             {
@@ -245,26 +261,30 @@ pub fn run() {
                 });
             }
 
-            use std::str::FromStr;
-            use tauri_plugin_global_shortcut::GlobalShortcutExt;
-            if let Ok(shortcut) =
-                tauri_plugin_global_shortcut::Shortcut::from_str("CommandOrControl+Shift+C")
-            {
-                if let Err(e) = app.global_shortcut().register(shortcut) {
-                    eprintln!("Failed to register global hotkey: {}", e);
+            if !smoke_mode {
+                use std::str::FromStr;
+                use tauri_plugin_global_shortcut::GlobalShortcutExt;
+                if let Ok(shortcut) =
+                    tauri_plugin_global_shortcut::Shortcut::from_str("CommandOrControl+Shift+C")
+                {
+                    if let Err(e) = app.global_shortcut().register(shortcut) {
+                        eprintln!("Failed to register global hotkey: {}", e);
+                    }
                 }
             }
 
             crate::tray::setup(app.handle())?;
 
-            // Start Network Monitor Phase 28
-            crate::engine::sys::net_monitor::start_network_monitor(
-                app.handle().clone(),
-                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            );
+            if !smoke_mode {
+                // Start Network Monitor Phase 28
+                crate::engine::sys::net_monitor::start_network_monitor(
+                    app.handle().clone(),
+                    std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+                );
 
-            // Start Telemetry Histogram Flusher Phase 30
-            crate::engine::sys::stats::spawn_flush_interval(app.handle().clone());
+                // Start Telemetry Histogram Flusher Phase 30
+                crate::engine::sys::stats::spawn_flush_interval(app.handle().clone());
+            }
 
             Ok(())
         })
@@ -371,10 +391,15 @@ pub fn run() {
             ipc::audit_quantum_readiness,
             ipc::get_smart_connect_status,
             ipc::set_smart_connect_status,
+            ipc::get_stealth_auto_pilot_mode,
+            ipc::set_stealth_auto_pilot_mode,
             ipc::get_network_rules,
             ipc::update_network_rule,
             ipc::run_stealth_diagnostics,
             ipc::apply_stealth_fix,
+            ipc::compare_stealth_strategies,
+            ipc::rollback_last_stealth_fix,
+            ipc::clear_network_stealth_policy,
             crate::engine::sys::stats::get_usage_history, // Mapped natively on stats
             crate::engine::sys::stats::get_global_footprint,
             ipc::start_remote_server,
@@ -392,6 +417,7 @@ pub fn run() {
         Err(error) => {
             let message = format!("failed to build tauri application: {error}");
             let _ = crate::engine::lifecycle::mark_panic(message.clone());
+            crate::observability::capture_bootstrap_message(&message, sentry::Level::Fatal);
             eprintln!("{message}");
             return;
         }

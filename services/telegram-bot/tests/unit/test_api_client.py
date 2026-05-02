@@ -24,6 +24,9 @@ from src.services.api_client import (
 )
 
 if TYPE_CHECKING:
+    from pydantic import SecretStr
+
+    from src.config import AuthBackendSettings
     from src.config import BotSettings
 
 
@@ -178,6 +181,78 @@ class TestTelegramChannelParityReads:
             assert route.called
             assert route.calls[0].request.url.params["limit"] == "10"
             assert route.calls[0].request.url.params["offset"] == "5"
+
+        await client.close()
+
+
+@pytest.mark.asyncio
+class TestTelegramStarsAPIClient:
+    async def test_create_stars_invoice_uses_auth_backend(self, mock_settings: BotSettings) -> None:
+        from pydantic import SecretStr
+
+        from src.config import AuthBackendSettings
+
+        auth_backend = AuthBackendSettings(
+            api_url="https://auth.test.cybervpn.local",
+            internal_secret=SecretStr("bot-secret"),
+        )
+        client = CyberVPNAPIClient(settings=mock_settings.backend, auth_backend=auth_backend)
+
+        with respx.mock:
+            route = respx.post("https://auth.test.cybervpn.local/telegram/payments/stars").mock(
+                return_value=httpx.Response(200, json={"payment_id": "payment-123"})
+            )
+
+            result = await client.create_stars_invoice(
+                telegram_id=123456,
+                plan_id="plan-123",
+                duration_days=30,
+                amount=500,
+                addons=[{"code": "extra_device", "qty": 1}],
+                promo_code="SPRING",
+            )
+
+            assert result == {"payment_id": "payment-123"}
+            assert route.called
+            assert route.calls[0].request.headers["X-Telegram-Bot-Secret"] == "bot-secret"
+            payload = json.loads(route.calls[0].request.content.decode())
+            assert payload["currency"] == "XTR"
+            assert payload["payment_method"] == "telegram_stars"
+            assert payload["telegram_stars_amount"] == 500
+
+        await client.close()
+
+    async def test_confirm_stars_payment_uses_auth_backend(self, mock_settings: BotSettings) -> None:
+        from pydantic import SecretStr
+
+        from src.config import AuthBackendSettings
+
+        auth_backend = AuthBackendSettings(
+            api_url="https://auth.test.cybervpn.local",
+            internal_secret=SecretStr("bot-secret"),
+        )
+        client = CyberVPNAPIClient(settings=mock_settings.backend, auth_backend=auth_backend)
+
+        with respx.mock:
+            route = respx.post("https://auth.test.cybervpn.local/telegram/payments/payment-123/confirm").mock(
+                return_value=httpx.Response(200, json={"status": "completed"})
+            )
+
+            result = await client.confirm_stars_payment(
+                payment_id="payment-123",
+                telegram_id=123456,
+                currency="XTR",
+                total_amount=500,
+                invoice_payload="stars:payment-123:123456",
+                telegram_payment_charge_id="tg-charge-1",
+                provider_payment_charge_id="provider-charge-1",
+            )
+
+            assert result == {"status": "completed"}
+            assert route.called
+            payload = json.loads(route.calls[0].request.content.decode())
+            assert payload["telegram_id"] == 123456
+            assert payload["provider_payment_charge_id"] == "provider-charge-1"
 
         await client.close()
 

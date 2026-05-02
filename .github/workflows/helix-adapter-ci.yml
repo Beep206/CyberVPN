@@ -61,3 +61,86 @@ jobs:
 
       - name: Run test suite
         run: cargo test --locked
+
+      - name: Build release binary
+        run: cargo build --locked --release
+
+      - name: Collect release proof manifest
+        env:
+          SENTRY_RELEASE: helix-adapter@${{ github.sha }}
+          SENTRY_PROJECT: ${{ vars.HELIX_ADAPTER_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+        run: |
+          python3 ../../scripts/collect-sentry-release-evidence.py \
+            --surface helix-adapter \
+            --release "${SENTRY_RELEASE}" \
+            --environment staging \
+            --project "${SENTRY_PROJECT:-unconfigured}" \
+            --proof-scope ci_release_build \
+            --deploy-marker-mode external_deployer \
+            --artifact "native-release=target/release/helix-adapter" \
+            --output target/sentry-proof/helix-adapter.json \
+            --summary-label "Helix adapter release proof"
+
+      - name: Upload release proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helix-adapter-release-proof
+          path: |
+            services/helix-adapter/target/sentry-proof/helix-adapter.json
+            services/helix-adapter/target/release/helix-adapter
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Validate Sentry contract
+        env:
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://helix-adapter@example.com/1
+          SENTRY_RELEASE: helix-adapter@${{ github.sha }}
+        run: |
+          python3 ../../scripts/validate-sentry-contract.py \
+            --surface helix-adapter \
+            --environment-var ENVIRONMENT \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release helix-adapter@${{ github.sha }} \
+            --require-dsn \
+            --summary-label "Helix adapter Sentry contract"
+
+      - name: Start Helix adapter for Sentry smoke validation
+        env:
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://helix-adapter@example.com/1
+          SENTRY_RELEASE: helix-adapter@${{ github.sha }}
+          HELIX_ADAPTER_OBSERVABILITY_INTERNAL_SECRET: helix-adapter-smoke-secret
+          HELIX_ADAPTER_SMOKE_MODE: 'true'
+        run: |
+          nohup cargo run --locked > /tmp/helix-adapter-sentry-smoke.log 2>&1 &
+          echo $! > /tmp/helix-adapter-sentry-smoke.pid
+
+      - name: Run HTTP smoke validation
+        run: |
+          python3 ../../scripts/http-smoke-check.py \
+            --url http://127.0.0.1:8088/healthz \
+            --expect-status 200 \
+            --expect-json-field status=ok \
+            --expect-json-field service=helix-adapter \
+            --expect-json-field environment=staging \
+            --summary-label "Helix adapter health smoke"
+          python3 ../../scripts/http-smoke-check.py \
+            --url http://127.0.0.1:8088/observability/sentry-contract \
+            --header "x-observability-secret: helix-adapter-smoke-secret" \
+            --expect-status 200 \
+            --expect-json-field runtime_surface=helix-adapter \
+            --expect-json-field service=helix-adapter \
+            --expect-json-field environment=staging \
+            --expect-json-field release=helix-adapter@${{ github.sha }} \
+            --expect-json-field dsn_configured=true \
+            --summary-label "Helix adapter Sentry runtime smoke"
+
+      - name: Stop Helix adapter smoke server
+        if: always()
+        run: |
+          if [ -f /tmp/helix-adapter-sentry-smoke.pid ]; then
+            kill "$(cat /tmp/helix-adapter-sentry-smoke.pid)" || true
+          fi

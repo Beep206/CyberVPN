@@ -1,0 +1,45 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cybervpn-task-scheduler
+  namespace: platform-apps
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: cybervpn-task-worker-chart
+    namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    replicaCount: 1
+    image:
+      repository: ghcr.io/REPLACE_ME_IMAGE_REPOSITORY/task-worker
+      digest: sha256:REPLACE_ME_TASK_SCHEDULER_IMAGE_DIGEST
+    externalSecret:
+      targetName: task-scheduler-runtime
+      extractKey: kv-apps/data/nonprod/platform/task-worker
+    workload:
+      mode: scheduler
+      command:
+        - taskiq
+        - scheduler
+        - src.broker:scheduler
+      args: []
+    metrics:
+      enabled: true
+      servicePort: 9091
+      containerPort: 9091
+      serviceMonitor:
+        enabled: true
+        interval: 30s
+    prometheusMultiproc:
+      enabled: false
+      dir: /tmp/prometheus-multiproc
+    pdb:
+      enabled: false
+      minAvailable: 1

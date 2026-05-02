@@ -3372,10 +3372,17 @@
       },
       "eyebrow": "PP4 CAMPAIGNS AND ENABLEMENT",
       "library": {
+        "allowedClaims": "Allowed claims",
+        "allowedGeographies": "Allowed geographies: {value}",
         "approvalOwner": "Approval owner: {value}",
+        "bannedClaims": "Banned claims",
         "description": "Campaign assets remain lane-aware. Performance requires the strictest review path, while Creator and Reseller use different enablement depth.",
+        "destinationUrls": "Destination URLs: {value}",
+        "disclosureText": "Disclosure text: {value}",
         "empty": "No campaign assets are available for the current workspace state and lane.",
-        "title": "Campaign library"
+        "promoReference": "Promo reference: {value}",
+        "title": "Campaign library",
+        "validUntil": "Valid until: {value}"
       },
       "links": {
         "codes": "Open codes & tracking",
@@ -3838,6 +3845,56 @@
       "title": "Finance"
     },
     "integrations": {
+      "bots": {
+        "actionReferenceManagedPlaceholder": "Managed-bot note or operator handoff reference",
+        "actionReferenceManualPlaceholder": "BotFather handoff reference or operator note",
+        "actions": {
+          "provision": "Queue provisioning",
+          "restore": "Restore bot",
+          "rotateToken": "Rotate token",
+          "suspend": "Suspend bot"
+        },
+        "binding": "Telegram binding: {value}",
+        "bindingPending": "not bound yet",
+        "createBotKeyPlaceholder": "bot key",
+        "createDescriptionPlaceholder": "Short branded description for the bot profile and launch surfaces.",
+        "createDisplayNamePlaceholder": "display name",
+        "createError": "The partner bot draft could not be created.",
+        "createHelp": "Create the branded bot record first, then queue provisioning or manual-token onboarding.",
+        "createLocalePlaceholder": "default locale",
+        "createProvisioningPathManaged": "Managed bot",
+        "createProvisioningPathManual": "Manual token fallback",
+        "createRuntimeHint": "Shared runtime",
+        "createSubmit": "Create draft bot",
+        "createSubmitting": "Creating...",
+        "createSuccess": "Draft partner bot created.",
+        "createTitle": "Create draft bot",
+        "defaultLocale": "Default locale: {value}",
+        "description": "This is the first white-label runtime inventory slice: branded Telegram bot records, provisioning path, and current launch status for the active workspace.",
+        "empty": "No partner bots have been created for this workspace yet.",
+        "lastError": "Last provisioning error: {value}",
+        "lastReasonCode": "Latest job reason code: {value}",
+        "latestJob": "Latest provisioning job: {value}",
+        "loading": "Loading partner bot inventory...",
+        "noJobs": "Latest provisioning job: not requested yet",
+        "provisionError": "The provisioning request could not be queued.",
+        "provisioningPath": "Provisioning path: {value}",
+        "provisionSuccess": "Provisioning request queued.",
+        "readOnlyMode": "This role can review partner bot posture, but provisioning and launch actions are blocked.",
+        "releaseChannel": "Release channel: {value}",
+        "restoreError": "The partner bot could not be restored.",
+        "restoreSuccess": "Partner bot restored.",
+        "rotateError": "The token rotation request could not be queued.",
+        "rotateSuccess": "Token rotation request queued.",
+        "routeHint": "Provisioning foundation is ready; branded bot creation and launch actions land in the next phase 4 slices.",
+        "suspendError": "The partner bot could not be suspended.",
+        "suspendReasonPlaceholder": "Suspension reason code",
+        "suspendSuccess": "Partner bot suspended.",
+        "title": "Partner bots",
+        "tokenStatus": "Token status: {value}",
+        "updatedAt": "Updated at: {value}",
+        "workspaceRequired": "Select a workspace before creating a partner bot."
+      },
       "capabilities": {
         "items": {
           "delivery_logs": "Delivery logs",
@@ -3872,14 +3929,68 @@
         "selected": "Selected creator use cases can inspect limited integrations, but broader technical operations remain gated.",
         "technical": "The workspace can use the technical partner surface for diagnostics, token posture, and integration delivery visibility."
       },
+      "readiness": {
+        "cards": {
+          "deliveryStatus": "Delivery: {value}",
+          "intervention": "Needs intervention",
+          "managedPath": "Managed path",
+          "managedPathCount": "Bots on managed path: {value}",
+          "manualFallback": "Manual fallback",
+          "manualFallbackCount": "Bots on manual path: {value}",
+          "notAvailable": "Not available",
+          "pendingCount": "Queued or running: {value}",
+          "postback": "Postback"
+        },
+        "description": "Phase 5 makes the white-label launch posture explicit: managed-bot readiness, manual token fallback, and postback delivery now stay visible from the partner surface instead of living only in operator workflows.",
+        "error": "The postback readiness contract is currently unavailable.",
+        "loading": "Loading postback and provisioning readiness...",
+        "noNotes": "No additional operator notes are attached to the current readiness posture.",
+        "notes": {
+          "managed_path_operator_handoff": "Managed-bot creation still requires operator-mediated Telegram binding before it can be treated as fully live.",
+          "manual_path_available": "Manual token onboarding remains available as the fallback launch path for partners who need a faster handoff.",
+          "operator_attention_required": "At least one bot still needs operator follow-up before launch posture is clean.",
+          "postback_blocked": "Postback readiness is blocked, so launch-sensitive automation stays constrained.",
+          "postback_under_review": "Postback readiness is still under review, so click-tracking and delivery promotion remain conditional."
+        },
+        "notesTitle": "Operator notes",
+        "postbackCredential": "Credential status",
+        "postbackDelivery": "Delivery status",
+        "postbackStatus": "Readiness status",
+        "postbackTitle": "Postback posture",
+        "snapshot": {
+          "activeBots": "Active bots",
+          "readyManagedBindings": "Ready managed bindings",
+          "scope": "Tracking scope",
+          "suspendedBots": "Suspended bots"
+        },
+        "title": "Provisioning readiness"
+      },
       "subtitle": "PP6 opens the technical operating surface: reporting tokens, postback credentials, webhook delivery logs, and constrained diagnostics by lane.",
       "summary": {
+        "bots": "Bots",
         "credentials": "Credentials",
         "routeAccess": "Route access",
         "surfaceMode": "Surface mode",
         "technicalReadiness": "Technical readiness"
       },
-      "title": "Integrations"
+      "title": "Integrations",
+      "widgets": {
+        "description": "Phase 5 opens the first partner-facing trust widget slice: an approved public network card backed by sanitized snapshot data and ready for iframe embeds.",
+        "embedCodeTitle": "Embed code",
+        "error": "The widget preview contract is currently unavailable.",
+        "loading": "Loading widget preview posture...",
+        "openLivePreview": "Open standalone widget",
+        "previewTitle": "Live widget preview",
+        "runtimeHint": "Sanitized public proof",
+        "snapshot": {
+          "availability": "Availability",
+          "monthlyTraffic": "Monthly traffic",
+          "onlineServers": "Online servers",
+          "status": "Snapshot status",
+          "updatedAt": "Updated at: {value}"
+        },
+        "title": "Public network widget kit"
+      }
     },
     "legal": {
       "documents": {
@@ -4635,9 +4746,34 @@
         "routeAccess": "Route access",
         "storefronts": "Storefronts",
         "surfaceMode": "Surface mode",
+        "voucherBatches": "Voucher batches",
         "workspaceStatus": "Workspace status"
       },
-      "title": "Reseller Console"
+      "title": "Reseller Console",
+      "voucherBatches": {
+        "batchStats": "Issued: {issued} · Redeemed: {redeemed} · Available: {available}",
+        "batchTitle": "{plan} / {duration} days",
+        "description": "Approved reseller workspaces can track batch-issued gift vouchers without exposing consumer invite or referral mechanics.",
+        "empty": "No voucher batches have been issued for this reseller workspace yet.",
+        "expiresAt": "Expires at: {value}",
+        "title": "Voucher batches"
+      },
+      "voucherRequest": {
+        "countPlaceholder": "Voucher count",
+        "description": "Issue a reseller-scoped voucher batch directly from the partner surface. The raw codes are shown once after issuance.",
+        "error": "The reseller voucher batch could not be issued.",
+        "issuedCodesTitle": "Issued codes",
+        "messagePlaceholder": "Optional batch note or message for the voucher pack.",
+        "planPlaceholder": "Select subscription plan",
+        "planRequired": "Select a subscription plan before requesting vouchers.",
+        "readOnly": "This role can review voucher posture, but new reseller voucher requests are blocked.",
+        "recipientHintPlaceholder": "Recipient hint or campaign label",
+        "submit": "Issue voucher batch",
+        "submitting": "Issuing...",
+        "success": "Voucher batch issued with {count} codes.",
+        "title": "Request voucher batch",
+        "workspaceRequired": "Select a workspace before requesting a voucher batch."
+      }
     },
     "settings": {
       "actions": {

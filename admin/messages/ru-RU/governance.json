@@ -195,7 +195,7 @@
     "roleMatrixTitle": "Матрица ролей",
     "roleMatrixDescription": "Frontend mirror текущего backend mapping permissions по staff-ролям.",
     "gapTitle": "Известный gap",
-    "gapDescription": "Сейчас этот workspace отражает только `/settings` и статическую policy permissions. Выделенных `system_config` governance API и настоящего admin directory на backend пока нет.",
+    "gapDescription": "Первый выделенный `system_config` governance API уже появился для `miniapp.runtime`. Более широкие семейства системной конфигурации и настоящий admin directory всё ещё нужно вынести с общего слоя `/settings`.",
     "keyPlaceholder": "registration_mode",
     "descriptionPlaceholder": "Короткое операторское пояснение",
     "valuePlaceholder": "{\"enabled\": true}",
@@ -214,6 +214,149 @@
       "describedHint": "настройки с операторскими пояснениями",
       "families": "Семейства",
       "familiesHint": "верхнеуровневые группы настроек"
+    },
+    "runtimeControl": {
+      "title": "Управление Mini App Runtime",
+      "description": "Операторская политика rollout для Telegram Mini App: триал, checkout, выдача конфига и maintenance-сообщение.",
+      "enabled": "Runtime включён",
+      "mode": "Режим rollout",
+      "trial": "Активация триала",
+      "checkout": "Checkout commit",
+      "config": "Выдача конфига",
+      "maintenanceMessage": "Maintenance message",
+      "maintenancePlaceholder": "Необязательное сообщение для maintenance или rollback",
+      "canaryAllowlist": "Telegram user ID для canary",
+      "canaryAllowlistPlaceholder": "123456789, 987654321",
+      "canaryAllowlistHint": "Укажите Telegram user ID через запятую или с новой строки. Только эти пользователи получат доступ к Mini App в режиме canary.",
+      "canaryAllowlistInvalid": "Введите корректные Telegram user ID для canary allowlist.",
+      "canaryAllowlistRequired": "Для режима canary нужен хотя бы один Telegram user ID.",
+      "liveGateBlocked": "Launch gate'ы не завершены",
+      "liveGateHint": "Mini App нельзя перевести в live mode, пока все launch readiness gate'ы не отмечены как завершённые.",
+      "changeReason": "Причина изменения",
+      "changeReasonPlaceholder": "Почему меняется rollout policy?",
+      "updatedBy": "Обновил",
+      "lastUpdated": "Последнее обновление",
+      "apply": "Применить runtime policy",
+      "updateSuccess": "Политика Mini App runtime обновлена.",
+      "status": {
+        "live": "Runtime активен",
+        "canary": "Canary rollout",
+        "maintenance": "Режим maintenance",
+        "rollback": "Rollback mode"
+      }
+    },
+    "launchReadiness": {
+      "title": "Готовность Mini App к запуску",
+      "description": "Операторские launch gate'ы, которые должны быть завершены до перевода Mini App runtime в live mode.",
+      "incidentChannel": "Канал инцидента",
+      "incidentChannelPlaceholder": "Например: #miniapp-war-room",
+      "rollbackCommander": "Rollback commander",
+      "rollbackCommanderPlaceholder": "Имя или handle ответственного за rollback-решение",
+      "primaryOncall": "Primary on-call",
+      "primaryOncallPlaceholder": "Имя, алиас или pager target",
+      "releaseWindowNote": "Примечание к release window",
+      "releaseWindowNotePlaceholder": "Например: 24 апреля, 18:00 UTC, дежурят support и backend on-call",
+      "changeReason": "Причина изменения",
+      "changeReasonPlaceholder": "Почему обновляется launch readiness?",
+      "updatedBy": "Обновил",
+      "lastUpdated": "Последнее обновление",
+      "apply": "Применить launch readiness",
+      "updateSuccess": "Готовность Mini App к запуску обновлена.",
+      "status": {
+        "ready": "К запуску готово",
+        "blocked": "Запуск заблокирован"
+      },
+      "items": {
+        "observability": "Подтверждены observability dashboard'ы и alerts",
+        "incidentRunbook": "Изучен incident response runbook",
+        "checkoutCanary": "Checkout canary пройден",
+        "configDeliveryCanary": "Canary по выдаче конфига пройден",
+        "rollbackDrill": "Rollback drill подтверждён",
+        "supportWindow": "Подтверждено окно support/on-call",
+        "customerComms": "Шаблон коммуникации с пользователями готов",
+        "statusPageTemplate": "Шаблон status page готов"
+      }
+    },
+    "launchSummary": {
+      "title": "Сводка запуска Mini App",
+      "description": "Server-derived состояние запуска Mini App runtime, readiness gate'ов и incident-response ownership.",
+      "nextAction": "Следующее действие",
+      "liveSwitchAllowed": "Перевод в live разрешён",
+      "liveSwitchBlocked": "Перевод в live заблокирован",
+      "incidentChannel": "Канал инцидента",
+      "rollbackCommander": "Rollback commander",
+      "primaryOncall": "Primary on-call",
+      "blockers": "Текущие блокеры",
+      "noBlockers": "Блокеров нет. По текущему состоянию Mini App можно двигать дальше.",
+      "states": {
+        "live": "Live",
+        "ready_for_live": "Готово к live",
+        "canary_in_progress": "Canary в процессе",
+        "rollback_in_progress": "Rollback в процессе",
+        "maintenance": "Maintenance",
+        "blocked": "Заблокировано"
+      },
+      "actions": {
+        "promote_to_live": "Перевести в live",
+        "complete_launch_gates": "Закрыть launch gate'ы",
+        "keep_canary": "Оставить текущее состояние",
+        "finish_rollback": "Завершить rollback",
+        "hold_maintenance": "Оставить maintenance",
+        "stabilize_runtime": "Стабилизировать runtime"
+      },
+      "blockerLabels": {
+        "runtime_disabled": "Runtime выключен",
+        "maintenance_mode_active": "Активен maintenance mode",
+        "rollback_mode_active": "Активен rollback mode",
+        "observability_unacknowledged": "Observability не подтверждён",
+        "incident_runbook_unacknowledged": "Incident runbook не подтверждён",
+        "checkout_canary_not_passed": "Checkout canary не пройден",
+        "config_delivery_canary_not_passed": "Canary выдачи конфига не пройден",
+        "rollback_drill_unacknowledged": "Rollback drill не подтверждён",
+        "support_window_unconfirmed": "Окно support не подтверждено",
+        "customer_comms_not_ready": "Коммуникация с пользователями не готова",
+        "status_page_template_not_ready": "Шаблон status page не готов",
+        "incident_channel_missing": "Не указан incident channel",
+        "rollback_commander_missing": "Не указан rollback commander",
+        "primary_oncall_contact_missing": "Не указан primary on-call contact"
+      }
+    },
+    "launchActions": {
+      "title": "Действия запуска Mini App",
+      "description": "Server-authoritative переходы состояния для запуска, maintenance и rollback-решений.",
+      "reason": "Причина действия",
+      "reasonPlaceholder": "Почему выполняется это launch-действие?",
+      "noActions": "Для текущего состояния launch-действия недоступны.",
+      "currentStateHint": "Текущее состояние запуска: {state}",
+      "items": {
+        "promote_to_live": "Перевести в live",
+        "enter_maintenance": "Перевести в maintenance",
+        "start_rollback": "Запустить rollback",
+        "return_to_canary": "Вернуть в canary"
+      },
+      "success": {
+        "promote_to_live": "Mini App переведён в live mode.",
+        "enter_maintenance": "Mini App переведён в maintenance mode.",
+        "start_rollback": "Для Mini App запущен rollback.",
+        "return_to_canary": "Mini App возвращён в canary mode."
+      }
+    },
+    "launchChecklist": {
+      "title": "Чеклист запуска Mini App",
+      "description": "Операторский чеклист, собранный из текущей launch summary и ownership readiness перед переводом в live.",
+      "releaseWindow": "Окно релиза",
+      "missingValue": "Не указано"
+    },
+    "launchTimeline": {
+      "title": "Таймлайн запуска Mini App",
+      "description": "Последние решения по runtime, readiness и launch actions для review перед production cutover.",
+      "empty": "События запуска Mini App пока не зафиксированы.",
+      "noReason": "Причина изменения не указана.",
+      "eventTypes": {
+        "runtime_update": "Обновление runtime",
+        "launch_readiness_update": "Обновление launch readiness",
+        "launch_action": "Launch action"
+      }
     }
   }
 }

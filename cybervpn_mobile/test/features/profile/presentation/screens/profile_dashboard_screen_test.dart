@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/profile_dashboard_screen.dart';
@@ -115,6 +116,8 @@ Widget _buildTestWidget({
       subscriptionProvider.overrideWith(() => sNotifier),
     ],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: ProfileDashboardScreen(),
     ),
   );
@@ -220,7 +223,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Active'), findsOneWidget);
+      expect(find.text('plan-pro'), findsOneWidget);
+      expect(find.text('Auto-Renew'), findsOneWidget);
     });
 
     testWidgets('displays device count', (tester) async {
@@ -240,9 +244,9 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('no_subscription_card')), findsOneWidget);
       expect(find.text('No Plan'), findsOneWidget);
-      // Days and devices show dashes when no subscription.
-      expect(find.text('--'), findsAtLeast(1));
+      expect(find.text('Upgrade Plan'), findsAtLeast(1));
     });
   });
 
@@ -251,7 +255,7 @@ void main() {
   // =========================================================================
 
   group('ProfileDashboardScreen - quick actions', () {
-    testWidgets('renders all 3 quick action buttons', (tester) async {
+    testWidgets('renders mobile-safe quick action buttons', (tester) async {
       await tester.pumpWidget(_buildTestWidget(
         profileState: ProfileState(profile: _testProfile),
         subState: _testSubState,
@@ -260,7 +264,7 @@ void main() {
 
       expect(find.byKey(const Key('action_upgrade')), findsOneWidget);
       expect(find.byKey(const Key('action_invite')), findsOneWidget);
-      expect(find.byKey(const Key('action_security')), findsOneWidget);
+      expect(find.byKey(const Key('action_security')), findsNothing);
     });
 
     testWidgets('renders quick action labels', (tester) async {
@@ -272,7 +276,7 @@ void main() {
 
       expect(find.text('Upgrade Plan'), findsOneWidget);
       expect(find.text('Invite Friends'), findsOneWidget);
-      expect(find.text('Security Settings'), findsOneWidget);
+      expect(find.text('Security Settings'), findsNothing);
     });
 
     testWidgets('renders Quick Actions section title', (tester) async {
@@ -334,6 +338,8 @@ void main() {
             ),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ProfileDashboardScreen(),
           ),
         ),

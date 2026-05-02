@@ -5,7 +5,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from src.domain.enums import PaymentProvider, PaymentStatus
+from src.domain.enums import (
+    GrowthCodeActionContext,
+    GrowthCodeRejectReason,
+    GrowthCodeResolutionStatus,
+    GrowthCodeType,
+    GrowthCodeWrongContextTarget,
+    PaymentProvider,
+    PaymentStatus,
+)
 
 
 class CreateInvoiceRequest(BaseModel):
@@ -124,6 +132,7 @@ class CheckoutQuoteRequest(BaseModel):
 
     plan_id: UUID = Field(..., description="Subscription plan to purchase")
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
+    code_input: str | None = Field(None, max_length=64, description="Optional promo or referral code")
     promo_code: str | None = Field(None, max_length=50, description="Optional promo code")
     partner_code: str | None = Field(None, max_length=30, description="Optional partner code")
     use_wallet: float = Field(0, ge=0, description="Requested wallet amount in USD")
@@ -136,6 +145,31 @@ class CheckoutQuoteRequest(BaseModel):
         if not value.isupper():
             raise ValueError("Currency code must be uppercase")
         return value
+
+
+class CheckoutCodeResolutionResponse(BaseModel):
+    accepted: bool
+    code_type: GrowthCodeType | None = None
+    action_context: GrowthCodeActionContext
+    result: GrowthCodeResolutionStatus
+    reject_reason: GrowthCodeRejectReason | None = None
+    conflict_code: str | None = None
+    wrong_context_target: GrowthCodeWrongContextTarget | None = None
+    issuer_type: str | None = None
+    owner_type: str | None = None
+    resolved_code_id: UUID | None = None
+    growth_code_id: UUID | None = None
+    promo_code_id: UUID | None = None
+    partner_code_id: UUID | None = None
+    user_message_key: str
+    reservation_id: UUID | None = None
+
+
+class CheckoutDiscountResponse(BaseModel):
+    type: str
+    code: str
+    amount: float
+    policy_version_id: UUID | None = None
 
 
 class CheckoutQuoteResponse(BaseModel):
@@ -152,6 +186,9 @@ class CheckoutQuoteResponse(BaseModel):
     plan_id: UUID | None = None
     promo_code_id: UUID | None = None
     partner_code_id: UUID | None = None
+    code_input: str | None = None
+    code_resolution: CheckoutCodeResolutionResponse | None = None
+    discounts: list[CheckoutDiscountResponse] = Field(default_factory=list)
     addons: list[CheckoutAddonResponse] = Field(default_factory=list)
     entitlements_snapshot: EntitlementsSnapshotResponse
 
@@ -162,6 +199,19 @@ class CheckoutCommitResponse(CheckoutQuoteResponse):
     payment_id: UUID | None = Field(None, description="Local payment identifier")
     status: str = Field(..., description="completed or pending")
     invoice: InvoiceResponse | None = None
+
+
+class PaymentStatusResponse(BaseModel):
+    """Authenticated payment status payload."""
+
+    payment_id: UUID
+    status: PaymentStatus = Field(..., description="Current payment status")
+    provider: PaymentProvider = Field(..., description="Payment provider")
+    external_id: str | None = Field(None, description="Provider-side charge identifier")
+    amount: float = Field(..., ge=0)
+    currency: str
+    created_at: datetime
+    updated_at: datetime
 
 
 # Backward-compatible aliases for older imports/routes.

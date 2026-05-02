@@ -26,6 +26,7 @@ dependencies = [
     "pydantic-settings>=2.12",
     "httpx>=0.28.1",
     "redis[hiredis]>=7.1",
+    "sentry-sdk>=2.54.0",
     "structlog>=25.5",
     "qrcode[pil]>=8.0",
     "fluent.runtime>=0.4",

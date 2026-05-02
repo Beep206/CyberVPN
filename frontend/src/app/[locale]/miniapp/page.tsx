@@ -1,5 +1,5 @@
-import { connection } from 'next/server';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 
 /**
  * Mini App root - redirects to /home
@@ -12,5 +12,5 @@ export default async function MiniAppRootPage({
 }) {
   await connection();
   const { locale } = await params;
-  redirect(`/${locale}/home`);
+  redirect(`/${locale}/miniapp/home`);
 }

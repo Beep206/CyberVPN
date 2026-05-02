@@ -2,6 +2,7 @@ import type { AcquisitionCtaId, AcquisitionPayload, AcquisitionSourceName } from
 
 const MAX_ACQUISITION_EVENTS = 500;
 const MAX_WEB_VITAL_EVENTS = 500;
+const MAX_FRONTEND_RUNTIME_EVENTS = 1000;
 
 type StoredAcquisitionEvent = AcquisitionPayload & {
   timestamp: number;
@@ -24,6 +25,44 @@ export type WebVitalPayload = {
 };
 
 type StoredWebVitalEvent = WebVitalPayload & {
+  timestamp: number;
+};
+
+export type FrontendRuntimeEventName =
+  | 'route_load'
+  | 'api_call'
+  | 'route_guard_block'
+  | 'form_validation_error'
+  | 'submit_attempt'
+  | 'submit_failure'
+  | 'unhandled_error'
+  | 'render_error';
+
+export type FrontendRuntimePayload = {
+  blockedReason?: string;
+  connectionType: string;
+  deviceBucket: string;
+  durationMs?: number;
+  endpointTemplate?: string;
+  errorCode?: string;
+  event: FrontendRuntimeEventName;
+  formName?: string;
+  lane?: string;
+  locale?: string;
+  method?: string;
+  path: string;
+  reducedMotion: string;
+  releaseRing?: string;
+  requestId?: string;
+  result?: string;
+  routeGroup: string;
+  saveData: string;
+  surface: 'partner_portal' | 'admin_portal';
+  viewportBucket: string;
+  workspaceStatus?: string;
+};
+
+type StoredFrontendRuntimeEvent = FrontendRuntimePayload & {
   timestamp: number;
 };
 
@@ -69,6 +108,7 @@ export type SeoDashboardSummary = {
 
 type AnalyticsReportingStore = {
   acquisitionEvents: StoredAcquisitionEvent[];
+  frontendRuntimeEvents: StoredFrontendRuntimeEvent[];
   webVitalEvents: StoredWebVitalEvent[];
 };
 
@@ -82,6 +122,7 @@ function getStore(): AnalyticsReportingStore {
   if (!globalStore[STORE_KEY]) {
     globalStore[STORE_KEY] = {
       acquisitionEvents: [],
+      frontendRuntimeEvents: [],
       webVitalEvents: [],
     };
   }
@@ -306,6 +347,26 @@ export function recordWebVitalEvent(payload: WebVitalPayload): void {
   );
 }
 
+export function recordFrontendRuntimeEvent(payload: FrontendRuntimePayload): void {
+  const store = getStore();
+
+  store.frontendRuntimeEvents = trimStore(
+    [
+      ...store.frontendRuntimeEvents,
+      {
+        ...payload,
+        path: normalizePath(payload.path),
+        timestamp: Date.now(),
+      },
+    ],
+    MAX_FRONTEND_RUNTIME_EVENTS,
+  );
+}
+
+export function getFrontendRuntimeEvents(): StoredFrontendRuntimeEvent[] {
+  return [...getStore().frontendRuntimeEvents];
+}
+
 export function getSeoDashboardSummary(): SeoDashboardSummary {
   const acquisitionEvents = getRecentAcquisitionEvents();
   const webVitalEvents = getRecentWebVitalEvents();
@@ -333,5 +394,6 @@ export function getSeoDashboardSummary(): SeoDashboardSummary {
 export function resetAnalyticsReportingStore(): void {
   const store = getStore();
   store.acquisitionEvents = [];
+  store.frontendRuntimeEvents = [];
   store.webVitalEvents = [];
 }

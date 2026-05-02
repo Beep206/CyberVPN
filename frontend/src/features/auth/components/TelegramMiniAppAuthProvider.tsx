@@ -5,6 +5,7 @@ import { useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
+import { getDefaultMiniAppPath } from '@/features/auth/lib/redirect-path';
 import { Loader2, AlertCircle, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -30,19 +31,20 @@ export function TelegramMiniAppAuthProvider({
         hasAttempted.current = true;
 
         const doAuth = async () => {
+            const miniAppHomePath = getDefaultMiniAppPath(locale);
             try {
                 const result = await telegramMiniAppAuth();
                 if (result.requires_2fa && result.tfa_token) {
                     await stagePendingTwoFactorSession({
                         token: result.tfa_token,
                         locale,
-                        returnTo: `/${locale}/dashboard`,
+                        returnTo: miniAppHomePath,
                         isNewUser: result.is_new_user,
                     });
-                    router.push('/login?2fa=true');
+                    router.push(`/login?2fa=true&redirect=${encodeURIComponent(miniAppHomePath)}`);
                     return;
                 }
-                router.push('/dashboard');
+                router.push('/miniapp/home');
             } catch {
                 setAuthError(t('miniAppAutoAuth'));
             }

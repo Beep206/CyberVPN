@@ -23,7 +23,7 @@ vi.mock('next-intl', () => ({
 
 // Mock next/navigation
 vi.mock('@/i18n/navigation', () => ({
-  usePathname: vi.fn(() => '/home'),
+  usePathname: vi.fn(() => '/miniapp/home'),
   Link: ({ href, onClick, children, className, 'aria-label': ariaLabel, 'aria-current': ariaCurrent }: { href: string; onClick?: React.MouseEventHandler<HTMLAnchorElement>; children: React.ReactNode; className?: string; 'aria-label'?: string; 'aria-current'?: 'page' | 'step' | 'location' | 'date' | 'time' | boolean }) => (
     <a
       href={href}
@@ -87,7 +87,7 @@ describe('MiniAppBottomNav', () => {
 
   describe('Active State', () => {
     it('test_marks_home_as_active_when_on_home_route', () => {
-      vi.mocked(usePathname).mockReturnValue('/home');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/home');
 
       render(<MiniAppBottomNav />);
 
@@ -96,7 +96,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_marks_root_as_home_route', () => {
-      vi.mocked(usePathname).mockReturnValue('/');
+      vi.mocked(usePathname).mockReturnValue('/miniapp');
 
       render(<MiniAppBottomNav />);
 
@@ -105,7 +105,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_marks_plans_as_active_when_on_plans_route', () => {
-      vi.mocked(usePathname).mockReturnValue('/plans');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/plans');
 
       render(<MiniAppBottomNav />);
 
@@ -153,7 +153,7 @@ describe('MiniAppBottomNav', () => {
     });
 
     it('test_matches_subroutes_for_profile', () => {
-      vi.mocked(usePathname).mockReturnValue('/profile/settings');
+      vi.mocked(usePathname).mockReturnValue('/miniapp/profile/settings');
 
       render(<MiniAppBottomNav />);
 
@@ -233,7 +233,7 @@ describe('MiniAppBottomNav', () => {
       render(<MiniAppBottomNav />);
 
       const homeLink = screen.getByLabelText('home');
-      expect(homeLink).toHaveAttribute('href', '/home');
+      expect(homeLink).toHaveAttribute('href', '/miniapp/home');
     });
 
     it('test_plans_link_points_to_plans_route', () => {

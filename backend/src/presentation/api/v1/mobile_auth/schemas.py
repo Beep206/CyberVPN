@@ -217,9 +217,25 @@ class UserResponse(BaseModel):
         default=None,
         description="Linked Telegram username (if connected)",
     )
+    is_email_verified: bool = Field(
+        default=False,
+        description="Whether the current email credential is considered verified in mobile auth",
+    )
+    is_2fa_enabled: bool = Field(
+        default=False,
+        description="Whether mobile TOTP protection is enabled",
+    )
+    linked_providers: list[str] = Field(
+        default_factory=list,
+        description="Linked external identity providers exposed to the mobile app",
+    )
     created_at: datetime | None = Field(
         default=None,
         description="Account creation timestamp",
+    )
+    last_login_at: datetime | None = Field(
+        default=None,
+        description="Last successful login timestamp",
     )
     subscription: SubscriptionInfo | None = Field(
         default=None,
@@ -262,17 +278,29 @@ class AuthResponse(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    tokens: TokenResponse = Field(
-        ...,
+    tokens: TokenResponse | None = Field(
+        default=None,
         description="Authentication tokens",
     )
-    user: UserResponse = Field(
-        ...,
+    user: UserResponse | None = Field(
+        default=None,
         description="User profile data",
     )
     is_new_user: bool = Field(
         default=False,
         description="True if this is a new registration",
+    )
+    requires_2fa: bool = Field(
+        default=False,
+        description="Whether the login is paused behind a pending 2FA challenge",
+    )
+    tfa_token: str | None = Field(
+        default=None,
+        description="Short-lived pending 2FA token returned when requires_2fa is true",
+    )
+    method: str | None = Field(
+        default=None,
+        description="2FA method identifier, currently `totp`",
     )
 
 
@@ -354,6 +382,20 @@ class DeviceResponse(BaseModel):
     )
 
 
+class DeviceSessionResponse(BaseModel):
+    """Response schema for mobile device/session listing."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Stable device/session identifier")
+    name: str = Field(..., description="Human-readable device name")
+    platform: str = Field(..., description="Platform identifier shown in the mobile UI")
+    ip_address: str | None = Field(default=None, description="Last known IP address, if available")
+    last_active_at: datetime | None = Field(default=None, description="Last activity timestamp")
+    created_at: datetime | None = Field(default=None, description="Device registration timestamp")
+    is_current: bool = Field(default=False, description="Whether this is the current device")
+
+
 class MobileAuthError(BaseModel):
     """Error response schema for mobile authentication.
 
@@ -394,4 +436,62 @@ class TelegramAuthRequest(BaseModel):
     device: DeviceInfo = Field(
         ...,
         description="Device information for registration",
+    )
+
+
+class TelegramOIDCAuthRequest(BaseModel):
+    """Request schema for Telegram OIDC ID token exchange.
+
+    Used by POST /api/v1/mobile/auth/telegram/oidc endpoint.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id_token: str = Field(
+        ...,
+        min_length=1,
+        description="Telegram OIDC ID token returned by the native SDK",
+    )
+    device: DeviceInfo = Field(
+        ...,
+        description="Device information for registration",
+    )
+
+
+class MobileTwoFactorCompleteRequest(BaseModel):
+    """Request schema for completing a mobile login paused behind TOTP."""
+
+    model_config = ConfigDict(frozen=True)
+
+    code: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        pattern=r"^\d{6}$",
+        description="Six-digit TOTP verification code",
+    )
+
+
+class TelegramOIDCLinkRequest(BaseModel):
+    """Request schema for authenticated Telegram account linking."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id_token: str = Field(
+        ...,
+        min_length=1,
+        description="Telegram OIDC ID token returned by the native SDK",
+    )
+
+
+class TelegramLinkResponse(BaseModel):
+    """Response schema for authenticated Telegram account linking."""
+
+    model_config = ConfigDict(frozen=True)
+
+    linked: bool = Field(..., description="Whether the Telegram account is linked")
+    provider: str = Field(..., description="External identity provider name")
+    telegram_username: str | None = Field(
+        default=None,
+        description="Telegram username, if available",
     )

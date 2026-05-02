@@ -12,9 +12,9 @@ from src.application.dto.mobile_auth import (
     SubscriptionInfoDTO,
     SubscriptionStatus,
     TokenResponseDTO,
-    UserResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import DuplicateUsernameError
@@ -116,16 +116,7 @@ class MobileRegisterUseCase:
             status=SubscriptionStatus.NONE,
         )
 
-        user_response = UserResponseDTO(
-            id=created_user.id,
-            email=created_user.email,
-            username=created_user.username,
-            status=created_user.status,
-            telegram_id=created_user.telegram_id,
-            telegram_username=created_user.telegram_username,
-            created_at=created_user.created_at,
-            subscription=subscription,
-        )
+        user_response = build_mobile_user_response(created_user, subscription=subscription)
 
         return AuthResponseDTO(
             tokens=tokens,

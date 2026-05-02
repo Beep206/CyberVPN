@@ -10,8 +10,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,13 +21,13 @@ data class AppUiModel(
     val packageName: String,
     val name: String,
     val icon: Drawable,
-    val isBypassed: Boolean
+    val isBypassed: Boolean,
 )
 
 @HiltViewModel
 class PerAppViewModel @Inject constructor(
     private val appManager: AppManager,
-    private val routingRepository: RoutingRepository
+    private val routingRepository: RoutingRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<List<AppUiModel>>>(UiState.Loading)
@@ -38,28 +40,33 @@ class PerAppViewModel @Inject constructor(
     private fun loadApps() {
         viewModelScope.launch {
             val installedAppsFlow =
-                kotlinx.coroutines.flow.flow {
+                flow {
                     emit(appManager.getInstalledApps())
                 }
 
-            installedAppsFlow.combine(routingRepository.bypassedPackages) { apps, bypassedSet ->
-                val models =
-                    apps.map { app ->
-                        AppUiModel(
-                            packageName = app.packageName,
-                            name = app.name,
-                            icon = app.icon,
-                            isBypassed = bypassedSet.contains(app.packageName)
-                        )
-                    }
-                UiState.Success(models)
-            }.launchIn(viewModelScope)
+            installedAppsFlow
+                .combine(routingRepository.bypassedPackages) { apps, bypassedSet ->
+                    val models =
+                        apps.map { app ->
+                            AppUiModel(
+                                packageName = app.packageName,
+                                name = app.name,
+                                icon = app.icon,
+                                isBypassed = bypassedSet.contains(app.packageName),
+                            )
+                        }
+                    UiState.Success(models) as UiState<List<AppUiModel>>
+                }.catch { error ->
+                    _uiState.value = UiState.Error("Failed to load apps", error)
+                }.collect { state ->
+                    _uiState.value = state
+                }
         }
     }
 
     fun toggleBypass(
         packageName: String,
-        bypass: Boolean
+        bypass: Boolean,
     ) {
         viewModelScope.launch {
             routingRepository.togglePackageBypass(packageName, bypass)

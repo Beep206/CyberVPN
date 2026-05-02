@@ -1,7 +1,9 @@
 package com.cybervpn.tv.core.network
 
 import com.cybervpn.tv.core.parser.VpnParser
-import com.cybervpn.tv.data.db.VpnDao
+import com.cybervpn.tv.data.local.dao.VpnDao
+import com.cybervpn.tv.data.local.entities.SubscriptionEntity
+import com.cybervpn.tv.data.local.entities.toEntity
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -25,8 +27,12 @@ import javax.inject.Singleton
 @Suppress("LongMethod", "MaxLineLength", "MagicNumber")
 @Singleton
 class LocalServerManager @Inject constructor(
-    private val vpnDao: VpnDao
+    private val vpnDao: VpnDao,
 ) {
+    private companion object {
+        const val MANUAL_IMPORT_SUBSCRIPTION_ID = "manual-import"
+    }
+
     private val scope = CoroutineScope(Dispatchers.IO)
     private var server: io.ktor.server.engine.ApplicationEngine? = null
 
@@ -82,11 +88,19 @@ class LocalServerManager @Inject constructor(
 
                         post("/api/import") {
                             val payload = call.receiveText()
-                            val nodes = VpnParser.parse(payload)
+                            val nodes = VpnParser.parseSubscriptionPayload(payload)
                             if (nodes.isEmpty()) {
                                 call.respondText("Invalid Link or Parsing Failed", status = HttpStatusCode.BadRequest)
                             } else {
-                                vpnDao.insertNodes(nodes)
+                                vpnDao.insertSubscription(
+                                    SubscriptionEntity(
+                                        id = MANUAL_IMPORT_SUBSCRIPTION_ID,
+                                        name = "Manual Import",
+                                        url = "",
+                                        lastUpdated = System.currentTimeMillis(),
+                                    ),
+                                )
+                                vpnDao.insertNodes(nodes.map { it.toEntity(MANUAL_IMPORT_SUBSCRIPTION_ID) })
                                 call.respondText("Successfully imported ${nodes.size} nodes", status = HttpStatusCode.OK)
                             }
                         }

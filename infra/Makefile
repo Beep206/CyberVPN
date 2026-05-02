@@ -1,4 +1,5 @@
-TERRAFORM ?= terraform
+TOFU ?= tofu
+TERRAFORM ?= $(TOFU)
 
 .PHONY: terraform-fmt terraform-validate-staging-foundation terraform-init-staging-foundation \
 	terraform-plan-staging-foundation terraform-validate-staging-edge terraform-init-staging-edge \
@@ -9,6 +10,16 @@ TERRAFORM ?= terraform
 	terraform-plan-production-dns terraform-init-staging-control-plane terraform-validate-staging-control-plane \
 	terraform-plan-staging-control-plane terraform-init-production-control-plane \
 	terraform-validate-production-control-plane terraform-plan-production-control-plane \
+	tofu-fmt tofu-validate-staging-foundation tofu-init-staging-foundation \
+	tofu-plan-staging-foundation tofu-validate-staging-edge tofu-init-staging-edge \
+	tofu-plan-staging-edge tofu-validate-staging-dns tofu-init-staging-dns \
+	tofu-plan-staging-dns tofu-validate-production-foundation tofu-init-production-foundation \
+	tofu-plan-production-foundation tofu-validate-production-edge tofu-init-production-edge \
+	tofu-plan-production-edge tofu-validate-production-dns tofu-init-production-dns \
+	tofu-plan-production-dns tofu-init-staging-control-plane tofu-validate-staging-control-plane \
+	tofu-plan-staging-control-plane tofu-init-production-control-plane \
+	tofu-validate-production-control-plane tofu-plan-production-control-plane \
+	tofu-capture-cutover-evidence \
 	inventory-staging inventory-production inventory-fixture-staging inventory-test \
 	control-plane-release-staging control-plane-release-production \
 	control-plane-vault-bootstrap-staging control-plane-vault-bootstrap-production \
@@ -33,108 +44,170 @@ TERRAFORM ?= terraform
 	ansible-phase7-control-plane-staging
 
 terraform-fmt:
-	$(TERRAFORM) -chdir=terraform/live/staging/foundation fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/staging/edge fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/staging/dns fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/staging/control-plane fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/production/foundation fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/production/edge fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/production/dns fmt -recursive
-	$(TERRAFORM) -chdir=terraform/live/production/control-plane fmt -recursive
+	$(TOFU) -chdir=terraform/live/staging/foundation fmt -recursive
+	$(TOFU) -chdir=terraform/live/staging/edge fmt -recursive
+	$(TOFU) -chdir=terraform/live/staging/dns fmt -recursive
+	$(TOFU) -chdir=terraform/live/staging/control-plane fmt -recursive
+	$(TOFU) -chdir=terraform/live/production/foundation fmt -recursive
+	$(TOFU) -chdir=terraform/live/production/edge fmt -recursive
+	$(TOFU) -chdir=terraform/live/production/dns fmt -recursive
+	$(TOFU) -chdir=terraform/live/production/control-plane fmt -recursive
 
 terraform-init-staging-foundation:
-	$(TERRAFORM) -chdir=terraform/live/staging/foundation init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/staging/foundation init -backend-config=backend.hcl
 
 terraform-validate-staging-foundation:
-	$(TERRAFORM) -chdir=terraform/live/staging/foundation validate
+	$(TOFU) -chdir=terraform/live/staging/foundation validate
 
 terraform-plan-staging-foundation:
-	$(TERRAFORM) -chdir=terraform/live/staging/foundation plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/staging/foundation plan -var-file=terraform.tfvars
 
 terraform-init-staging-edge:
-	$(TERRAFORM) -chdir=terraform/live/staging/edge init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/staging/edge init -backend-config=backend.hcl
 
 terraform-validate-staging-edge:
-	$(TERRAFORM) -chdir=terraform/live/staging/edge validate
+	$(TOFU) -chdir=terraform/live/staging/edge validate
 
 terraform-plan-staging-edge:
-	$(TERRAFORM) -chdir=terraform/live/staging/edge plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/staging/edge plan -var-file=terraform.tfvars
 
 terraform-init-staging-dns:
-	$(TERRAFORM) -chdir=terraform/live/staging/dns init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/staging/dns init -backend-config=backend.hcl
 
 terraform-validate-staging-dns:
-	$(TERRAFORM) -chdir=terraform/live/staging/dns validate
+	$(TOFU) -chdir=terraform/live/staging/dns validate
 
 terraform-plan-staging-dns:
-	$(TERRAFORM) -chdir=terraform/live/staging/dns plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/staging/dns plan -var-file=terraform.tfvars
 
 terraform-init-staging-control-plane:
-	$(TERRAFORM) -chdir=terraform/live/staging/control-plane init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/staging/control-plane init -backend-config=backend.hcl
 
 terraform-validate-staging-control-plane:
-	$(TERRAFORM) -chdir=terraform/live/staging/control-plane validate
+	$(TOFU) -chdir=terraform/live/staging/control-plane validate
 
 terraform-plan-staging-control-plane:
-	$(TERRAFORM) -chdir=terraform/live/staging/control-plane plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/staging/control-plane plan -var-file=terraform.tfvars
 
 terraform-init-production-foundation:
-	$(TERRAFORM) -chdir=terraform/live/production/foundation init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/production/foundation init -backend-config=backend.hcl
 
 terraform-validate-production-foundation:
-	$(TERRAFORM) -chdir=terraform/live/production/foundation validate
+	$(TOFU) -chdir=terraform/live/production/foundation validate
 
 terraform-plan-production-foundation:
-	$(TERRAFORM) -chdir=terraform/live/production/foundation plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/production/foundation plan -var-file=terraform.tfvars
 
 terraform-init-production-edge:
-	$(TERRAFORM) -chdir=terraform/live/production/edge init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/production/edge init -backend-config=backend.hcl
 
 terraform-validate-production-edge:
-	$(TERRAFORM) -chdir=terraform/live/production/edge validate
+	$(TOFU) -chdir=terraform/live/production/edge validate
 
 terraform-plan-production-edge:
-	$(TERRAFORM) -chdir=terraform/live/production/edge plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/production/edge plan -var-file=terraform.tfvars
 
 terraform-init-production-dns:
-	$(TERRAFORM) -chdir=terraform/live/production/dns init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/production/dns init -backend-config=backend.hcl
 
 terraform-validate-production-dns:
-	$(TERRAFORM) -chdir=terraform/live/production/dns validate
+	$(TOFU) -chdir=terraform/live/production/dns validate
 
 terraform-plan-production-dns:
-	$(TERRAFORM) -chdir=terraform/live/production/dns plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/production/dns plan -var-file=terraform.tfvars
 
 terraform-init-production-control-plane:
-	$(TERRAFORM) -chdir=terraform/live/production/control-plane init -backend-config=backend.hcl
+	$(TOFU) -chdir=terraform/live/production/control-plane init -backend-config=backend.hcl
 
 terraform-validate-production-control-plane:
-	$(TERRAFORM) -chdir=terraform/live/production/control-plane validate
+	$(TOFU) -chdir=terraform/live/production/control-plane validate
 
 terraform-plan-production-control-plane:
-	$(TERRAFORM) -chdir=terraform/live/production/control-plane plan -var-file=terraform.tfvars
+	$(TOFU) -chdir=terraform/live/production/control-plane plan -var-file=terraform.tfvars
+
+tofu-fmt: terraform-fmt
+
+tofu-init-staging-foundation: terraform-init-staging-foundation
+
+tofu-validate-staging-foundation: terraform-validate-staging-foundation
+
+tofu-plan-staging-foundation: terraform-plan-staging-foundation
+
+tofu-init-staging-edge: terraform-init-staging-edge
+
+tofu-validate-staging-edge: terraform-validate-staging-edge
+
+tofu-plan-staging-edge: terraform-plan-staging-edge
+
+tofu-init-staging-dns: terraform-init-staging-dns
+
+tofu-validate-staging-dns: terraform-validate-staging-dns
+
+tofu-plan-staging-dns: terraform-plan-staging-dns
+
+tofu-init-staging-control-plane: terraform-init-staging-control-plane
+
+tofu-validate-staging-control-plane: terraform-validate-staging-control-plane
+
+tofu-plan-staging-control-plane: terraform-plan-staging-control-plane
+
+tofu-init-production-foundation: terraform-init-production-foundation
+
+tofu-validate-production-foundation: terraform-validate-production-foundation
+
+tofu-plan-production-foundation: terraform-plan-production-foundation
+
+tofu-init-production-edge: terraform-init-production-edge
+
+tofu-validate-production-edge: terraform-validate-production-edge
+
+tofu-plan-production-edge: terraform-plan-production-edge
+
+tofu-init-production-dns: terraform-init-production-dns
+
+tofu-validate-production-dns: terraform-validate-production-dns
+
+tofu-plan-production-dns: terraform-plan-production-dns
+
+tofu-init-production-control-plane: terraform-init-production-control-plane
+
+tofu-validate-production-control-plane: terraform-validate-production-control-plane
+
+tofu-plan-production-control-plane: terraform-plan-production-control-plane
+
+tofu-capture-cutover-evidence:
+	test -n "$(STACK_DIR)"
+	test -n "$(BACKEND_CONFIG)"
+	./scripts/capture_opentofu_cutover_evidence.sh \
+		--stack-dir "$(STACK_DIR)" \
+		--backend-config "$(BACKEND_CONFIG)" \
+		$(if $(VAR_FILE),--var-file "$(VAR_FILE)",) \
+		$(if $(EVIDENCE_DIR),--evidence-dir "$(EVIDENCE_DIR)",) \
+		$(if $(LOCK_TIMEOUT),--lock-timeout "$(LOCK_TIMEOUT)",) \
+		$(if $(WRITE_PLAN_JSON),--write-plan-json,) \
+		--tofu-bin "$(TOFU)"
 
 inventory-staging:
 	python ansible/scripts/generate_inventory.py \
-		--terraform-bin $(TERRAFORM) \
-		--terraform-dir terraform/live/staging/edge \
+		--tofu-bin $(TOFU) \
+		--stack-dir terraform/live/staging/edge \
 		--output ansible/inventories/staging/generated.hosts.json \
 		--prometheus-output artifacts/prometheus/staging/alloy-edge.json \
 		--environment staging
 
 inventory-production:
 	python ansible/scripts/generate_inventory.py \
-		--terraform-bin $(TERRAFORM) \
-		--terraform-dir terraform/live/production/edge \
+		--tofu-bin $(TOFU) \
+		--stack-dir terraform/live/production/edge \
 		--output ansible/inventories/production/generated.hosts.json \
 		--prometheus-output artifacts/prometheus/production/alloy-edge.json \
 		--environment production
 
 inventory-fixture-staging:
 	python ansible/scripts/generate_inventory.py \
-		--terraform-bin $(TERRAFORM) \
-		--terraform-dir terraform/live/staging/edge \
-		--terraform-output-file ansible/tests/fixtures/edge_nodes.sample.json \
+		--tofu-bin $(TOFU) \
+		--stack-dir terraform/live/staging/edge \
+		--stack-output-file ansible/tests/fixtures/edge_nodes.sample.json \
 		--output artifacts/iac-ci/generated.hosts.json \
 		--prometheus-output artifacts/iac-ci/alloy-edge.json \
 		--environment staging

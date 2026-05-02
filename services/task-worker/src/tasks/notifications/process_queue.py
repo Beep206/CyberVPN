@@ -1,6 +1,6 @@
-"""Process notification queue — picks up pending notifications and sends via Telegram."""
+"""Process notification queue - picks up pending notifications and sends via Telegram."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import func, select, update
@@ -8,11 +8,40 @@ from sqlalchemy import func, select, update
 from src.broker import broker
 from src.config import get_settings
 from src.database.session import get_session_factory
+from src.models.customer_growth_notification_delivery import (
+    CustomerGrowthNotificationDeliveryModel,
+)
+from src.models.customer_growth_notification_delivery_event import (
+    CustomerGrowthNotificationDeliveryEventModel,
+)
 from src.models.notification_queue import NotificationQueueModel
 from src.services.telegram_client import TelegramAPIError, TelegramClient
 from src.utils.constants import STATUS_FAILED, STATUS_PENDING, STATUS_PROCESSING, STATUS_SENT
 
 logger = structlog.get_logger(__name__)
+
+
+def _record_delivery_event(
+    session,
+    *,
+    delivery_id,
+    notification_queue_id,
+    delivery_status: str,
+    event_type: str,
+    reason_code: str | None = None,
+    event_payload: dict | None = None,
+) -> None:
+    session.add(
+        CustomerGrowthNotificationDeliveryEventModel(
+            delivery_id=delivery_id,
+            event_type=event_type,
+            delivery_status=delivery_status,
+            reason_code=reason_code,
+            event_payload=dict(event_payload or {}),
+            notification_queue_id=notification_queue_id,
+            occurred_at=datetime.now(UTC),
+        )
+    )
 
 
 @broker.task(task_name="process_notification_queue", queue="notifications")
@@ -62,19 +91,107 @@ async def process_notification_queue() -> dict:
     async with TelegramClient() as tg:
         for notification in notifications:
             async with factory() as session:
+                delivery = None
                 try:
+                    delivery_result = await session.execute(
+                        select(CustomerGrowthNotificationDeliveryModel).where(
+                            CustomerGrowthNotificationDeliveryModel.notification_queue_id == notification.id
+                        )
+                    )
+                    delivery = delivery_result.scalars().first()
+                    if delivery is not None:
+                        _record_delivery_event(
+                            session,
+                            delivery_id=delivery.id,
+                            notification_queue_id=notification.id,
+                            delivery_status="processing",
+                            event_type="telegram_processing_started",
+                            event_payload={"channel": "telegram"},
+                        )
                     await tg.send_message(
                         chat_id=notification.telegram_id,
                         text=notification.message,
                     )
                     notification.status = STATUS_SENT
-                    notification.sent_at = datetime.now(timezone.utc)
+                    notification.sent_at = datetime.now(UTC)
+                    if delivery is not None:
+                        delivery.delivery_status = "delivered"
+                        delivery.delivered_at = notification.sent_at
+                        delivery.status_reason = None
+                        _record_delivery_event(
+                            session,
+                            delivery_id=delivery.id,
+                            notification_queue_id=notification.id,
+                            delivery_status="delivered",
+                            event_type="telegram_delivered",
+                            event_payload={"channel": "telegram"},
+                        )
+                    else:
+                        await session.execute(
+                            update(CustomerGrowthNotificationDeliveryModel)
+                            .where(
+                                CustomerGrowthNotificationDeliveryModel.notification_queue_id
+                                == notification.id
+                            )
+                            .values(
+                                delivery_status="delivered",
+                                delivered_at=notification.sent_at,
+                                status_reason=None,
+                            )
+                        )
                     sent_count += 1
                 except TelegramAPIError as e:
                     next_attempts = notification.attempts + 1
                     notification.attempts = next_attempts
                     notification.error_message = str(e)[:500]
                     notification.status = STATUS_FAILED if next_attempts >= max_retries else STATUS_PENDING
+                    delivery_status = "failed" if next_attempts >= max_retries else "queued"
+                    delivery_reason = (
+                        "telegram_delivery_failed"
+                        if next_attempts >= max_retries
+                        else "telegram_retry_pending"
+                    )
+                    if delivery is None:
+                        delivery_result = await session.execute(
+                            select(CustomerGrowthNotificationDeliveryModel).where(
+                                CustomerGrowthNotificationDeliveryModel.notification_queue_id == notification.id
+                            )
+                        )
+                        delivery = delivery_result.scalars().first()
+                    if delivery is not None:
+                        delivery.delivery_status = delivery_status
+                        delivery.delivered_at = None
+                        delivery.status_reason = delivery_reason
+                        _record_delivery_event(
+                            session,
+                            delivery_id=delivery.id,
+                            notification_queue_id=notification.id,
+                            delivery_status=delivery_status,
+                            event_type=(
+                                "telegram_failed"
+                                if next_attempts >= max_retries
+                                else "telegram_retry_scheduled"
+                            ),
+                            reason_code=delivery_reason,
+                            event_payload={
+                                "channel": "telegram",
+                                "attempts": next_attempts,
+                                "queue_error_message": notification.error_message,
+                            },
+                        )
+                    else:
+                        await session.execute(
+                            update(CustomerGrowthNotificationDeliveryModel)
+                            .where(
+                                CustomerGrowthNotificationDeliveryModel.notification_queue_id
+                                == notification.id
+                            )
+                            .values(
+                                delivery_status=delivery_status,
+                                delivered_at=None,
+                                status_reason=delivery_reason,
+                            )
+                        )
                     failed_count += 1
                     logger.warning(
                         "notification_send_failed",

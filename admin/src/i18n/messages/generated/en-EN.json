@@ -1864,9 +1864,122 @@
       "editorTitle": "Setting Editor",
       "empty": "No settings match the current view.",
       "eyebrow": "POLICY VISIBILITY",
-      "gapDescription": "This workspace currently reflects `/settings` and static permission policy only. Dedicated `system_config` governance APIs and a true admin directory are still missing on the backend.",
+      "gapDescription": "The first dedicated `system_config` governance API is now live for `miniapp.runtime`. Broader system configuration families and a true admin directory still need to move off the generic `/settings` surface.",
       "gapTitle": "Known Gap",
       "keyPlaceholder": "registration_mode",
+      "launchActions": {
+        "currentStateHint": "Current launch state: {state}",
+        "description": "Server-authoritative transitions for launch, maintenance, and rollback decisions.",
+        "items": {
+          "enter_maintenance": "Enter maintenance",
+          "promote_to_live": "Promote to live",
+          "return_to_canary": "Return to canary",
+          "start_rollback": "Start rollback"
+        },
+        "noActions": "No launch actions are currently available for this state.",
+        "reason": "Action reason",
+        "reasonPlaceholder": "Why are you executing this launch action?",
+        "success": {
+          "enter_maintenance": "Mini App placed into maintenance mode.",
+          "promote_to_live": "Mini App promoted to live mode.",
+          "return_to_canary": "Mini App returned to canary mode.",
+          "start_rollback": "Mini App rollback started."
+        },
+        "title": "Mini App Launch Actions"
+      },
+      "launchChecklist": {
+        "description": "Operator-facing checklist derived from current launch summary and readiness ownership before live cutover.",
+        "missingValue": "Not recorded",
+        "releaseWindow": "Release window",
+        "title": "Mini App Launch Checklist"
+      },
+      "launchReadiness": {
+        "apply": "Apply launch readiness",
+        "changeReason": "Change reason",
+        "changeReasonPlaceholder": "Why are you updating launch readiness?",
+        "description": "Operator-owned launch gates that must be completed before Mini App runtime may switch into live mode.",
+        "incidentChannel": "Incident channel",
+        "incidentChannelPlaceholder": "Example: #miniapp-war-room",
+        "items": {
+          "checkoutCanary": "Checkout canary passed",
+          "configDeliveryCanary": "Config delivery canary passed",
+          "customerComms": "Customer communication template ready",
+          "incidentRunbook": "Incident response runbook reviewed",
+          "observability": "Observability dashboards and alerts acknowledged",
+          "rollbackDrill": "Rollback drill acknowledged",
+          "statusPageTemplate": "Status page template ready",
+          "supportWindow": "Support/on-call window confirmed"
+        },
+        "lastUpdated": "Last updated",
+        "primaryOncall": "Primary on-call",
+        "primaryOncallPlaceholder": "Name, alias, or pager target",
+        "releaseWindowNote": "Release window note",
+        "releaseWindowNotePlaceholder": "Example: April 24, 18:00 UTC, staffed by support + backend on-call",
+        "rollbackCommander": "Rollback commander",
+        "rollbackCommanderPlaceholder": "Name or handle responsible for rollback decisions",
+        "status": {
+          "blocked": "Launch blocked",
+          "ready": "Launch ready"
+        },
+        "title": "Mini App Launch Readiness",
+        "updatedBy": "Updated by",
+        "updateSuccess": "Mini App launch readiness updated."
+      },
+      "launchSummary": {
+        "actions": {
+          "complete_launch_gates": "Complete launch gates",
+          "finish_rollback": "Finish rollback",
+          "hold_maintenance": "Hold maintenance",
+          "keep_canary": "Keep current state",
+          "promote_to_live": "Promote to live",
+          "stabilize_runtime": "Stabilize runtime"
+        },
+        "blockerLabels": {
+          "checkout_canary_not_passed": "Checkout canary not passed",
+          "config_delivery_canary_not_passed": "Config delivery canary not passed",
+          "customer_comms_not_ready": "Customer communication not ready",
+          "incident_channel_missing": "Incident channel missing",
+          "incident_runbook_unacknowledged": "Incident runbook not acknowledged",
+          "maintenance_mode_active": "Maintenance mode active",
+          "observability_unacknowledged": "Observability not acknowledged",
+          "primary_oncall_contact_missing": "Primary on-call contact missing",
+          "rollback_commander_missing": "Rollback commander missing",
+          "rollback_drill_unacknowledged": "Rollback drill not acknowledged",
+          "rollback_mode_active": "Rollback mode active",
+          "runtime_disabled": "Runtime disabled",
+          "status_page_template_not_ready": "Status page template not ready",
+          "support_window_unconfirmed": "Support window not confirmed"
+        },
+        "blockers": "Current blockers",
+        "description": "Server-derived launch state for Mini App runtime, readiness gates, and incident-response ownership.",
+        "incidentChannel": "Incident channel",
+        "liveSwitchAllowed": "Live switch allowed",
+        "liveSwitchBlocked": "Live switch blocked",
+        "nextAction": "Next action",
+        "noBlockers": "No blockers. Mini App is clear to advance based on current state.",
+        "primaryOncall": "Primary on-call",
+        "rollbackCommander": "Rollback commander",
+        "states": {
+          "blocked": "Blocked",
+          "canary_in_progress": "Canary in progress",
+          "live": "Live",
+          "maintenance": "Maintenance",
+          "ready_for_live": "Ready for live",
+          "rollback_in_progress": "Rollback in progress"
+        },
+        "title": "Mini App Launch Summary"
+      },
+      "launchTimeline": {
+        "description": "Recent runtime, readiness, and launch-action decisions for production cutover review.",
+        "empty": "No Mini App launch events recorded yet.",
+        "eventTypes": {
+          "launch_action": "Launch action",
+          "launch_readiness_update": "Launch readiness update",
+          "runtime_update": "Runtime update"
+        },
+        "noReason": "No change reason recorded.",
+        "title": "Mini App Launch Timeline"
+      },
       "metaTitle": "Policy Surface - Ozoxy Admin",
       "metrics": {
         "described": "Described",
@@ -1884,6 +1997,36 @@
       "resetEditor": "Reset editor",
       "roleMatrixDescription": "Frontend mirror of the current backend permission mapping by staff role.",
       "roleMatrixTitle": "Role Matrix",
+      "runtimeControl": {
+        "apply": "Apply runtime policy",
+        "canaryAllowlist": "Canary Telegram user IDs",
+        "canaryAllowlistHint": "Comma or newline separated Telegram user IDs. Only these users may access Mini App when mode is set to canary.",
+        "canaryAllowlistInvalid": "Enter valid Telegram user IDs in the canary allowlist.",
+        "canaryAllowlistPlaceholder": "123456789, 987654321",
+        "canaryAllowlistRequired": "Canary mode requires at least one Telegram user ID.",
+        "changeReason": "Change reason",
+        "changeReasonPlaceholder": "Why are you changing rollout policy?",
+        "checkout": "Checkout commit",
+        "config": "Config delivery",
+        "description": "Operator-managed rollout policy for Telegram Mini App trial, checkout, config delivery, and maintenance messaging.",
+        "enabled": "Runtime enabled",
+        "lastUpdated": "Last updated",
+        "liveGateBlocked": "Launch gates incomplete",
+        "liveGateHint": "Mini App cannot be switched to live mode until all launch readiness gates are marked complete.",
+        "maintenanceMessage": "Maintenance message",
+        "maintenancePlaceholder": "Optional message shown during maintenance or rollback",
+        "mode": "Rollout mode",
+        "status": {
+          "canary": "Canary rollout",
+          "live": "Runtime live",
+          "maintenance": "Maintenance mode",
+          "rollback": "Rollback mode"
+        },
+        "title": "Mini App Runtime Control",
+        "trial": "Trial activation",
+        "updatedBy": "Updated by",
+        "updateSuccess": "Mini App runtime policy updated."
+      },
       "searchPlaceholder": "Search setting key, description, value...",
       "selectionRequired": "Select a setting before updating it.",
       "title": "Policy Surface",
@@ -1940,6 +2083,53 @@
       "unused": "Unused",
       "used": "Used"
     },
+    "giftCodes": {
+      "description": "Issue single or batch customer gift codes, inspect redemption status, and keep operator-visible gift inventory under one admin surface.",
+      "empty": "No gift codes matched the current filter.",
+      "eyebrow": "Growth / Gift Codes",
+      "fields": {
+        "adminNote": "Admin note",
+        "count": "Count",
+        "giftMessage": "Gift message",
+        "ownerFilter": "Owner filter",
+        "ownerUserId": "Owner User ID",
+        "planId": "Plan",
+        "planPlaceholder": "Select a gift plan",
+        "reasonCode": "Reason code",
+        "recipientHint": "Recipient hint"
+      },
+      "filtersDescription": "Filter the live gift inventory by owner user and audit the resulting redemptions without leaving the growth console.",
+      "filtersTitle": "Inventory Filters",
+      "inventoryDescription": "Live admin inventory for active, redeemed, and operator-issued gift codes.",
+      "inventoryTitle": "Gift Inventory",
+      "issueAction": "Issue gift",
+      "issuePanelDescription": "Create one or more customer-owned gift codes from the live plan catalog and keep recipient context in the canonical lifecycle.",
+      "issuePanelTitle": "Issue Gift Code",
+      "issuing": "Issuing...",
+      "liveInventory": "Live inventory",
+      "metaTitle": "Gift Codes - Ozoxy Admin",
+      "metrics": {
+        "active": "Active Gifts",
+        "activeHint": "Gift codes still available for redemption.",
+        "lastIssued": "Last Issued",
+        "lastIssuedHint": "Most recent batch or code emitted from this admin session.",
+        "redeemed": "Redeemed Gifts",
+        "redeemedHint": "Gift codes already converted into entitlement grants.",
+        "total": "Gift Codes",
+        "totalHint": "Canonical gift code records returned by the admin inventory."
+      },
+      "syncing": "Syncing",
+      "table": {
+        "code": "Code",
+        "created": "Created",
+        "owner": "Owner",
+        "plan": "Plan",
+        "recipient": "Recipient",
+        "redeemed": "Redeemed",
+        "status": "Status"
+      },
+      "title": "Gift Inventory"
+    },
     "inviteCodes": {
       "backendNote": "Admin coverage here is real but narrow: create batches now, add inventory and redemption analytics later when backend routes exist.",
       "createAction": "Generate batch",
@@ -1984,6 +2174,7 @@
       "subnavLabel": "Growth navigation"
     },
     "nav": {
+      "giftCodes": "Gift Codes",
       "inviteCodes": "Invite Codes",
       "overview": "Overview",
       "partners": "Partners",
@@ -1991,23 +2182,78 @@
       "referrals": "Referrals"
     },
     "overview": {
-      "description": "Operator surface for promo inventory, invite generation, partner operations, and live referral analytics.",
+      "breakdownDescription": "Compact readout of current code statuses and lifecycle posture.",
+      "breakdownTitle": "Status Breakdown",
+      "deliveryFeedDescription": "Recent per-channel growth deliveries with resend, pause, revoke, and resolve controls.",
+      "deliveryFeedEmpty": "No growth notification deliveries matched the current filter.",
+      "deliveryFeedTitle": "Delivery Feed",
+      "deliveryForensics": {
+        "empty": "Select a delivery to inspect its support timeline.",
+        "export": "Export JSON",
+        "exporting": "Exporting...",
+        "queueAttempts": "{count} queue attempts",
+        "queueEmpty": "This delivery is not currently linked to an async queue item.",
+        "queueTitle": "Queue Snapshot",
+        "siblingEmpty": "No sibling channel deliveries were recorded for this notification.",
+        "siblingTitle": "Sibling Channels",
+        "sourceEmpty": "No source summary is available for this delivery.",
+        "sourceTitle": "Source Summary",
+        "supportSummary": "Support Summary",
+        "timelineEmpty": "No delivery timeline events were recorded yet.",
+        "timelineTitle": "Delivery Timeline",
+        "title": "Delivery Forensics"
+      },
+      "deliveryOps": {
+        "actions": {
+          "inspect": "Inspect",
+          "pause": "Pause",
+          "resend": "Resend",
+          "resolve": "Resolve",
+          "revoke": "Revoke"
+        },
+        "channels": {
+          "email": "Email",
+          "inApp": "In-app",
+          "telegram": "Telegram"
+        },
+        "fields": {
+          "filterUserId": "Filter by customer UUID",
+          "message": "Message",
+          "notes": "Operator Notes",
+          "routeSlug": "Route Slug",
+          "title": "Title",
+          "userId": "Customer User ID"
+        },
+        "manualFailed": "Manual notification failed. Check the payload and backend response.",
+        "manualHint": "Manual notices respect customer growth delivery preferences and land in the canonical delivery ledger.",
+        "notesPlaceholder": "One note per line",
+        "queueStatus": "Queue",
+        "send": "Send notice",
+        "sending": "Sending..."
+      },
+      "deliveryOpsDescription": "Send operator-authored customer notices and control live growth notification delivery state from the same console.",
+      "deliveryOpsLive": "Live delivery control",
+      "deliveryOpsTitle": "Delivery Operations",
+      "description": "Operator surface for growth code lifecycle, abuse signals, referral reward posture, and linked promo or gift operations.",
       "eyebrow": "Acquisition / Retention",
-      "liveInventoryDescription": "Current promo state pulled from the admin promo endpoint.",
-      "liveInventoryTitle": "Live Promo Inventory",
+      "liveSignalsDescription": "Recent outbox-backed growth lifecycle events from code issue through reward or redemption.",
+      "liveSignalsEmpty": "No recent lifecycle events were emitted yet.",
+      "liveSignalsTitle": "Live Lifecycle Stream",
       "metaTitle": "Growth - Ozoxy Admin",
       "metrics": {
-        "activePromos": "Active Campaigns",
-        "activePromosHint": "Codes currently allowed to redeem.",
-        "expiring": "Expiring Soon",
-        "expiringHint": "Promo codes expiring in the next 7 days.",
-        "plans": "Plan Catalog",
-        "plansHint": "Plans that can be targeted by invite or promo setup.",
-        "promos": "Promo Inventory",
-        "promosHint": "Admin-readable promo list already exists."
+        "availableCredit": "Available Credit",
+        "availableCreditHint": "Referral credit currently available in the non-withdrawable growth ledger.",
+        "blockedSignals": "Blocked Signals",
+        "blockedSignalsHint": "Rewards or abuse items already marked for risk attention.",
+        "redemptions": "Redemptions",
+        "redemptionsHint": "Final code uses already converted into discount, entitlement, or reward outcomes.",
+        "totalCodes": "Total Codes",
+        "totalCodesHint": "Canonical growth code records across invite, referral, promo, and gift lifecycles."
       },
       "noPlans": "No plans available for targeting.",
       "operatorNotes": {
+        "giftsDescription": "Admin can issue single or batch gift codes and inspect active or redeemed inventory without leaving the growth console.",
+        "giftsTitle": "Gift inventory is now live",
         "invitesDescription": "Backend exposes admin invite generation but no admin list/detail inventory yet. This module keeps deterministic batch generation and local result readback.",
         "invitesTitle": "Invite codes are create-only",
         "partnersDescription": "Admin can promote, search, and inspect partner-level performance, but payout moderation is still the next workflow.",
@@ -2021,10 +2267,136 @@
       "planTargetingTitle": "Plan Targeting Context",
       "quickSignals": {
         "coverage": "Coverage",
-        "coverageValue": "5 live surfaces",
+        "coverageValue": "6 live surfaces",
         "exhausted": "Exhausted Promos"
       },
+      "reporting": {
+        "cards": {
+          "accepted": "Accepted",
+          "availableCredit": "Available Credit",
+          "redeemed": "Redeemed",
+          "reserved": "Reserved"
+        },
+        "coverageTitle": "Coverage Notes",
+        "deliveries": {
+          "actions": {
+            "export": "Export artifact"
+          },
+          "description": "Latest recurring reporting publications with delivery status, freshness posture, and exportable artifacts.",
+          "empty": "No recurring reporting deliveries have been recorded yet.",
+          "failed": "{count} failed deliveries",
+          "title": "Recent Reporting Deliveries"
+        },
+        "description": "Persisted daily growth rollups over canonical code lifecycle tables. This is reporting truth, not a live resolver debug view.",
+        "distribution": {
+          "actions": {
+            "cancelEdit": "Cancel edit",
+            "pause": "Pause",
+            "resume": "Resume",
+            "update": "Update"
+          },
+          "allowedDomainsValue": "Allowed domains: {value}",
+          "create": "Create subscription",
+          "createFailed": "Subscription creation failed. Check cadence, audience, and backend validation.",
+          "createHint": "Subscriptions claim fresh reporting snapshots and publish them through the worker delivery pipeline.",
+          "creating": "Creating...",
+          "description": "Managed reporting subscriptions for finance, product, risk, and ops recipients.",
+          "empty": "No recurring reporting subscriptions are configured yet.",
+          "fields": {
+            "allowedDomains": "Allowed Domains",
+            "audience": "Audience",
+            "cadence": "Cadence",
+            "domainPolicy": "Domain Policy",
+            "email": "Recipient Email",
+            "locale": "Locale",
+            "name": "Recipient Name",
+            "namePlaceholder": "Optional display name",
+            "subjectPrefix": "Subject Prefix",
+            "suppressedUntil": "Suppress Until",
+            "suppressionReason": "Suppression Reason",
+            "template": "Template",
+            "titleOverride": "Title Override",
+            "titleOverridePlaceholder": "Optional custom email title",
+            "windowDays": "Window Days"
+          },
+          "metrics": {
+            "active": "{count} active subscriptions"
+          },
+          "nextDelivery": "Next {value}",
+          "suppressedUntil": "Suppressed until {value}",
+          "title": "Recurring Distribution"
+        },
+        "empty": "No reporting rollups are available for this window yet. Refresh the reporting layer first.",
+        "executive": {
+          "acceptanceRate": "Acceptance Rate",
+          "dominantFamily": "Dominant Family",
+          "issued": "Issued",
+          "redemptions": "Redemptions",
+          "title": "Executive Highlights"
+        },
+        "export": "Export rollups",
+        "exporting": "Exporting...",
+        "governance": {
+          "actions": {
+            "dismiss": "Dismiss",
+            "resolve": "Resolve"
+          },
+          "auditLink": "Open audit log",
+          "auditTitle": "Recent Policy Audit",
+          "decisionsTitle": "Recent Governance Decisions",
+          "description": "Audit timeline and delivery-governance decisions for silent reporting coverage gaps.",
+          "emptyAudit": "No recent governance audit entries were recorded.",
+          "emptyDecisions": "No recent suppressed or domain-blocked reporting decisions were recorded.",
+          "export": "Export governance snapshot",
+          "exporting": "Exporting snapshot...",
+          "followupDue": "Due {value}",
+          "followupEmpty": "No governance follow-up work is open right now.",
+          "followupLastNotified": "Last reminder {value}",
+          "followupTitle": "Recovery Follow-up Queue",
+          "metrics": {
+            "active": "Active subscriptions",
+            "followups": "Open follow-ups",
+            "gaps": "{count} active gaps",
+            "overdue": "Overdue follow-ups",
+            "paused": "Paused subscriptions"
+          },
+          "noFieldDiff": "Snapshot change only",
+          "title": "Governance Coverage"
+        },
+        "health": {
+          "description": "Freshness, lag, and last-run posture for the scheduled reporting pipeline.",
+          "expectedInterval": "Expected Interval",
+          "lastRun": "Last Run",
+          "latestAttempt": "Latest Attempt",
+          "latestSuccess": "Latest Success",
+          "refreshAge": "Age {value}",
+          "statuses": {
+            "failed": "Failed",
+            "fresh": "Fresh",
+            "never_refreshed": "Never refreshed",
+            "stale": "Stale"
+          },
+          "title": "Refresh Health",
+          "unavailable": "Unavailable"
+        },
+        "notRefreshed": "Rollups not refreshed yet",
+        "refresh": "Refresh rollups",
+        "refreshedAt": "Refreshed {value}",
+        "refreshing": "Refreshing...",
+        "rows": "{count} daily rows",
+        "table": {
+          "date": "Date",
+          "giftRedeemed": "Gift Redeemed",
+          "inviteIssued": "Invite Issued",
+          "promoAccepted": "Promo Accepted",
+          "referralAvailable": "Referral Available"
+        },
+        "title": "Reporting Rollups",
+        "trendTitle": "Daily Trend Cut",
+        "window": "{days}-day window"
+      },
       "routes": {
+        "giftCodes": "Issue single or batch customer gift codes, inspect live inventory, and track redemption posture.",
         "inviteCodes": "Generate invite batches for a specific user with optional plan targeting.",
         "partners": "Promote users, review the live partner directory, and jump into customer operations.",
         "promoCodes": "Create, inspect, update, and deactivate campaign promo codes.",
@@ -2033,6 +2405,8 @@
       "routesDescription": "Growth is implemented only where backend admin coverage is real. Each route below maps to an existing operator-safe surface.",
       "routesTitle": "Route Inventory",
       "title": "Growth Control",
+      "topRejectionsEmpty": "No rejection pressure is visible yet.",
+      "topRejectionsTitle": "Top Rejection Reasons",
       "usesLabel": "{current} / {max} uses"
     },
     "partners": {
@@ -2193,6 +2567,29 @@
       "inspectPanelDescription": "Detail route is wired to the dedicated promo endpoint, not only the list response.",
       "inspectPanelTitle": "Promo Detail",
       "inspectUnavailable": "Promo detail is unavailable.",
+      "lookup": {
+        "action": "Run lookup",
+        "description": "Resolve any growth code with an operator-supplied context before touching live checkout state.",
+        "empty": "Enter a code to inspect its current lifecycle and eligibility state.",
+        "fields": {
+          "amount": "Amount",
+          "channel": "Channel",
+          "code": "Code",
+          "context": "Action Context",
+          "planId": "Plan UUID",
+          "storefront": "Storefront Key",
+          "userId": "Lookup User UUID"
+        },
+        "resultConflict": "Conflict Code",
+        "resultIssuer": "Issuer Type",
+        "resultMessageKey": "Message Key",
+        "resultOwner": "Owner Type",
+        "resultReason": "Reject Reason",
+        "resultStatus": "Result",
+        "resultTarget": "Wrong Context Target",
+        "resultType": "Resolved Type",
+        "title": "Growth Code Lookup"
+      },
       "metaTitle": "Promo Codes - Ozoxy Admin",
       "metrics": {
         "active": "Active Promos",
@@ -2217,33 +2614,32 @@
       "writeOnlyHint": "Write-only fields"
     },
     "referrals": {
+      "abuseQueueDescription": "Repeated rejection clusters and blocked rewards that need operator triage before they become support or fraud incidents.",
+      "abuseQueueEmpty": "No growth abuse signals are open right now.",
+      "abuseQueueTitle": "Abuse Review Signals",
       "badges": {
-        "commissions": "{count} commissions",
-        "referredUsers": "{count} referred"
+        "count": "{count} signals",
+        "users": "{count} users"
       },
-      "currentStateDescription": "Live leaderboard pulled from admin-safe referral analytics endpoints.",
-      "currentStateTitle": "Top Referrers",
-      "description": "Admin-safe overview of referral earnings, top referrers, and recent commission activity.",
+      "breakdownDescription": "Current referral reward posture after holds, risk blocks, and availability transitions.",
+      "breakdownTitle": "Reward Status Breakdown",
+      "description": "Operational view of abuse pressure, blocked rewards, and referral lifecycle events after the growth-codes cutover.",
       "eyebrow": "Growth / Referrals",
+      "lifecycleEmpty": "No referral lifecycle events have been emitted yet.",
+      "lifecycleTitle": "Referral Lifecycle",
       "liveOverview": "Live overview",
       "metaTitle": "Referrals - Ozoxy Admin",
       "metrics": {
-        "adminSurface": "Commissions",
-        "adminSurfaceHint": "total commission records visible to admin",
-        "totalEarned": "Total Earned",
-        "totalEarnedHint": "aggregate referral payout volume",
-        "uniqueReferred": "Referred Users",
-        "uniqueReferredHint": "unique users brought in through referral flows",
-        "uniqueReferrers": "Referrers",
-        "uniqueReferrersHint": "users who have earned at least one referral commission"
+        "activeReservations": "Active Reservations",
+        "activeReservationsHint": "Quote reservations that still hold a growth-code claim.",
+        "availableCredit": "Available Credit",
+        "availableCreditHint": "Referral reward amount currently available in the canonical non-withdrawable balance.",
+        "blockedRewards": "Blocked Rewards",
+        "blockedRewardsHint": "Reward allocations currently held back by risk decisions.",
+        "totalRedemptions": "Total Redemptions",
+        "totalRedemptionsHint": "Redemption volume already linked to the growth code lifecycle."
       },
-      "nextFocusDescription": "The remaining growth gap is not raw visibility anymore. The next layer is abuse review, payout operations, and deeper attribution diagnostics.",
-      "nextFocusTitle": "Next Focus",
-      "openCustomer": "Open customer card",
-      "recentEmpty": "No recent referral commissions were returned.",
-      "recentTitle": "Recent Commissions",
-      "title": "Referral Analytics",
-      "topReferrersEmpty": "No referral activity is available yet."
+      "title": "Referral Signals"
     }
   },
   "Header": {
@@ -3641,8 +4037,8 @@
         "policyVisibility": "Baseline visibility into current governance surfaces.",
         "webhookLog": "Webhook processing visibility and failure context."
       },
-      "backendCoverage": "Partial coverage. Strong audit visibility exists, but system configuration and richer staff-management APIs are still missing.",
-      "currentState": "Audit logs, webhook logs, and admin invites are already exposed. The missing layer is staff directory management and system configuration governance.",
+      "backendCoverage": "Partial coverage. Strong audit visibility exists and `miniapp.runtime` is now operator-controlled, but broader system configuration families and richer staff-management APIs are still missing.",
+      "currentState": "Audit logs, webhook logs, and admin invites are already exposed. The first dedicated system configuration governance API is now live for `miniapp.runtime`; the remaining gap is broader staff directory management and wider `system_config` coverage.",
       "description": "Operational governance surface for privileged actions, webhooks, staff onboarding, and future policy control.",
       "metaTitle": "Governance - Ozoxy Admin",
       "nextFocus": "Ship the first governance workspace around audit, invites, and webhook forensics, then add admin directory and policy controls.",

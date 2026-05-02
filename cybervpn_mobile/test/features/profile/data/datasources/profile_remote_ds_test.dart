@@ -23,7 +23,7 @@ void main() {
   // getProfile
   // ---------------------------------------------------------------------------
   group('getProfile', () {
-    test('calls GET /auth/me and maps response to Profile', () async {
+    test('calls GET /mobile/auth/me and maps response to Profile', () async {
       when(
         () => mockApiClient.get<Map<String, dynamic>>(
           ApiConstants.me,
@@ -37,7 +37,7 @@ void main() {
             'email': 'test@example.com',
             'username': 'testuser',
             'avatar_url': null,
-            'telegram_id': null,
+            'telegram_id': 123456789,
             'is_email_verified': true,
             'is_2fa_enabled': false,
             'linked_providers': ['github', 'google'],
@@ -54,6 +54,7 @@ void main() {
       expect(profile.id, 'user-1');
       expect(profile.email, 'test@example.com');
       expect(profile.username, 'testuser');
+      expect(profile.telegramId, '123456789');
       expect(profile.isEmailVerified, isTrue);
       expect(profile.is2FAEnabled, isFalse);
       expect(profile.linkedProviders, [
@@ -338,11 +339,11 @@ void main() {
   // ---------------------------------------------------------------------------
   group('getDevices', () {
     test(
-      'calls GET /auth/me/devices and maps response to Device list',
+      'calls GET /mobile/auth/devices and maps response to Device list',
       () async {
         when(
           () => mockApiClient.get<dynamic>(
-            '${ApiConstants.me}/devices',
+            ApiConstants.mobileDevices,
             queryParameters: any<Map<String, dynamic>?>(
               named: 'queryParameters',
             ),
@@ -387,10 +388,10 @@ void main() {
   // removeDevice
   // ---------------------------------------------------------------------------
   group('removeDevice', () {
-    test('calls DELETE /auth/me/devices/{id}', () async {
+    test('calls DELETE /mobile/auth/devices/{id}', () async {
       when(
         () => mockApiClient.delete<Map<String, dynamic>>(
-          '${ApiConstants.me}/devices/dev-1',
+          '${ApiConstants.mobileDevices}/dev-1',
           options: any<Options?>(named: 'options'),
         ),
       ).thenAnswer(
@@ -405,7 +406,7 @@ void main() {
 
       verify(
         () => mockApiClient.delete<Map<String, dynamic>>(
-          '${ApiConstants.me}/devices/dev-1',
+          '${ApiConstants.mobileDevices}/dev-1',
           options: any<Options?>(named: 'options'),
         ),
       ).called(1);

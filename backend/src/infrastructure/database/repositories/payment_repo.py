@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.domain.enums import PaymentProvider
 from src.infrastructure.database.models.payment_model import PaymentModel
 
 
@@ -16,6 +17,15 @@ class PaymentRepository:
 
     async def get_by_external_id(self, external_id: str) -> PaymentModel | None:
         result = await self._session.execute(select(PaymentModel).where(PaymentModel.external_id == external_id))
+        return result.scalar_one_or_none()
+
+    async def get_telegram_stars_by_charge_id(self, charge_id: str) -> PaymentModel | None:
+        result = await self._session.execute(
+            select(PaymentModel).where(
+                PaymentModel.provider == PaymentProvider.TELEGRAM_STARS.value,
+                PaymentModel.external_id == charge_id,
+            )
+        )
         return result.scalar_one_or_none()
 
     async def get_by_user_uuid(self, user_uuid: UUID, offset: int = 0, limit: int = 100) -> list[PaymentModel]:

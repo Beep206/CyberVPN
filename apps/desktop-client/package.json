@@ -10,10 +10,14 @@
     "test:unit": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:release-gate": "npm run test && npm run build",
+    "smoke:release": "bash ./scripts/run-desktop-sentry-smoke.sh",
+    "release:verify": "npm run test && npm audit --omit=dev",
+    "release:win:nsis": "node ./scripts/release-windows-nsis.mjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },
   "dependencies": {
+    "@sentry/react": "^10.49.0",
     "@base-ui/react": "^1.3.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
@@ -49,6 +53,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@sentry/vite-plugin": "^4.3.0",
     "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

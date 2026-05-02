@@ -11,6 +11,7 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.billing_descriptor_model import BillingDescriptorModel
 from src.infrastructure.database.models.brand_model import BrandModel
+from src.infrastructure.database.models.growth_code_model import GrowthCodeReservationModel
 from src.infrastructure.database.models.invoice_profile_model import InvoiceProfileModel
 from src.infrastructure.database.models.legal_document_model import LegalDocumentModel
 from src.infrastructure.database.models.legal_document_set_model import (
@@ -23,6 +24,7 @@ from src.infrastructure.database.models.offer_model import OfferModel
 from src.infrastructure.database.models.policy_version_model import PolicyVersionModel
 from src.infrastructure.database.models.pricebook_model import PricebookEntryModel, PricebookModel
 from src.infrastructure.database.models.program_eligibility_policy_model import ProgramEligibilityPolicyModel
+from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
@@ -393,6 +395,103 @@ async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_
 
 
 @pytest.mark.asyncio
+async def test_quote_session_reserves_promo_and_binds_it_to_checkout(async_client: AsyncClient) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            with sessionmaker() as db:
+                promo = PromoCodeModel(
+                    id=uuid.uuid4(),
+                    code="PROMOSESSION10",
+                    discount_type="percent",
+                    discount_value=10,
+                    is_active=True,
+                )
+                db.add(promo)
+                db.commit()
+
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "code_input": "PROMOSESSION10",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            quote_payload = quote_response.json()
+            reservation_id = quote_payload["quote"]["code_resolution"]["reservation_id"]
+            assert quote_payload["quote"]["code_input"] == "PROMOSESSION10"
+            assert quote_payload["quote"]["code_resolution"]["code_type"] == "promo"
+            assert quote_payload["quote"]["discounts"][0]["type"] == "promo"
+            assert quote_payload["quote"]["discount_amount"] == 9.0
+            assert reservation_id is not None
+
+            with sessionmaker() as db:
+                reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
+                assert reservation is not None
+                assert reservation.quote_session_id == uuid.UUID(quote_payload["id"])
+                assert reservation.checkout_session_id is None
+                assert reservation.status == "reserved"
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "promo-bind-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 201
+            checkout_payload = checkout_response.json()
+            assert checkout_payload["quote"]["code_resolution"]["reservation_id"] == reservation_id
+
+            with sessionmaker() as db:
+                reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
+                assert reservation is not None
+                assert reservation.checkout_session_id == uuid.UUID(checkout_payload["id"])
+                assert reservation.status == "reserved"
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
 async def test_checkout_session_creation_fails_when_quote_becomes_stale(async_client: AsyncClient) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()
@@ -463,6 +562,96 @@ async def test_checkout_session_creation_fails_when_quote_becomes_stale(async_cl
 
 
 @pytest.mark.asyncio
+async def test_stale_quote_releases_reserved_promo(async_client: AsyncClient) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            with sessionmaker() as db:
+                promo = PromoCodeModel(
+                    id=uuid.uuid4(),
+                    code="PROMOSTALE10",
+                    discount_type="percent",
+                    discount_value=10,
+                    is_active=True,
+                )
+                db.add(promo)
+                db.commit()
+
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "code_input": "PROMOSTALE10",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            quote_payload = quote_response.json()
+            reservation_id = quote_payload["quote"]["code_resolution"]["reservation_id"]
+
+            with sessionmaker() as db:
+                entry = db.get(PricebookEntryModel, uuid.UUID(seeded["pricebook_entry_id"]))
+                entry.visible_price = 69
+                db.add(entry)
+                db.commit()
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "stale-quote-promo-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 409
+            assert "stale" in checkout_response.json()["detail"]
+
+            with sessionmaker() as db:
+                reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
+                assert reservation is not None
+                assert reservation.status == "released"
+                assert reservation.release_reason == "quote_session_stale"
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
 async def test_checkout_session_creation_fails_for_expired_quote(async_client: AsyncClient) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()
@@ -526,6 +715,96 @@ async def test_checkout_session_creation_fails_for_expired_quote(async_client: A
             )
             assert checkout_response.status_code == 409
             assert "expired" in checkout_response.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_expired_quote_expires_reserved_promo(async_client: AsyncClient) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            with sessionmaker() as db:
+                promo = PromoCodeModel(
+                    id=uuid.uuid4(),
+                    code="PROMOEXPIRED10",
+                    discount_type="percent",
+                    discount_value=10,
+                    is_active=True,
+                )
+                db.add(promo)
+                db.commit()
+
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "code_input": "PROMOEXPIRED10",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            quote_payload = quote_response.json()
+            reservation_id = quote_payload["quote"]["code_resolution"]["reservation_id"]
+
+            with sessionmaker() as db:
+                quote_session = db.get(QuoteSessionModel, uuid.UUID(quote_payload["id"]))
+                quote_session.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+                db.add(quote_session)
+                db.commit()
+
+            checkout_response = await async_client.post(
+                "/api/v1/checkout-sessions/",
+                headers={**headers, "Idempotency-Key": "expired-quote-promo-1"},
+                json={"quote_session_id": quote_payload["id"]},
+            )
+            assert checkout_response.status_code == 409
+            assert "expired" in checkout_response.json()["detail"]
+
+            with sessionmaker() as db:
+                reservation = db.get(GrowthCodeReservationModel, uuid.UUID(reservation_id))
+                assert reservation is not None
+                assert reservation.status == "expired"
+                assert reservation.release_reason == "quote_session_expired"
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()

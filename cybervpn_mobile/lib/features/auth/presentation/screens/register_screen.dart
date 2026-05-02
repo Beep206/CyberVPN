@@ -36,7 +36,11 @@ import 'package:cybervpn_mobile/shared/widgets/animated_form_field.dart';
 ///
 /// Set to `false` for immediate login after registration.
 /// Set to `true` for OTP verification flow (enabled in Task MF2-2).
-const bool _kEnableOtpVerification = true;
+const bool _kEnableOtpVerification = false;
+
+/// Username-only registration is intentionally disabled on mobile until the
+/// backend exposes a compatible `/mobile/auth/register` contract.
+const bool _kEnableUsernameOnlyRegistration = false;
 
 /// Registration screen with email, password (with strength indicator),
 /// confirm-password, optional referral code, and T&C acceptance.
@@ -482,10 +486,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
     final referral = _referralCodeController.text.trim();
 
-    // In username-only mode, pass the username as the first argument.
-    // The backend register endpoint accepts both email and username
-    // in the same field (login_or_email concept).
-    final identifier = _isUsernameOnlyMode
+    final identifier =
+        _kEnableUsernameOnlyRegistration && _isUsernameOnlyMode
         ? _usernameController.text.trim()
         : _emailController.text.trim();
 
@@ -549,7 +551,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       next,
     ) {
       final state = next.value;
-      if (state is TelegramAuthSuccess) {
+      if (state is TelegramAuthRequiresTwoFactor) {
+        unawaited(context.push('/telegram-2fa'));
+      } else if (state is TelegramAuthSuccess) {
         // Show welcome toast for new Telegram users
         if (state.isNewUser && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -631,19 +635,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ],
 
                       // ── Google OAuth ─────────────────────────────
-                      SocialLoginButton(
-                        icon: Icons.g_mobiledata,
-                        label: l10n.continueWithGoogle,
-                        onPressed: () => unawaited(_handleGoogleSignIn()),
-                      ),
-                      const SizedBox(height: 16),
+                      if (OAuthProvider.google.isMobileAuthEntryEnabled) ...[
+                        SocialLoginButton(
+                          icon: Icons.g_mobiledata,
+                          label: l10n.continueWithGoogle,
+                          onPressed: () => unawaited(_handleGoogleSignIn()),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
-                      SocialLoginButton(
-                        icon: Icons.public,
-                        label: l10n.continueWithFacebook,
-                        onPressed: () => unawaited(_handleFacebookSignIn()),
-                      ),
-                      const SizedBox(height: 16),
+                      if (OAuthProvider.facebook.isMobileAuthEntryEnabled) ...[
+                        SocialLoginButton(
+                          icon: Icons.public,
+                          label: l10n.continueWithFacebook,
+                          onPressed: () => unawaited(_handleFacebookSignIn()),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── Apple OAuth (kept in code, hidden) ────────
                       if (Platform.isIOS &&
@@ -688,32 +696,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ],
 
                       // ── Registration mode toggle ─────────────────
-                      SegmentedButton<bool>(
-                        segments: [
-                          ButtonSegment<bool>(
-                            value: false,
-                            label: Text(l10n.registerModeEmail),
-                            icon: const Icon(Icons.email_outlined),
-                          ),
-                          ButtonSegment<bool>(
-                            value: true,
-                            label: Text(l10n.registerModeUsernameOnly),
-                            icon: const Icon(Icons.person_outlined),
-                          ),
-                        ],
-                        selected: {_isUsernameOnlyMode},
-                        onSelectionChanged: isLoading
-                            ? null
-                            : (Set<bool> selection) {
-                                setState(() {
-                                  _isUsernameOnlyMode = selection.first;
-                                });
-                              },
-                      ),
-                      const SizedBox(height: 16),
+                      if (_kEnableUsernameOnlyRegistration) ...[
+                        SegmentedButton<bool>(
+                          segments: [
+                            ButtonSegment<bool>(
+                              value: false,
+                              label: Text(l10n.registerModeEmail),
+                              icon: const Icon(Icons.email_outlined),
+                            ),
+                            ButtonSegment<bool>(
+                              value: true,
+                              label: Text(l10n.registerModeUsernameOnly),
+                              icon: const Icon(Icons.person_outlined),
+                            ),
+                          ],
+                          selected: {_isUsernameOnlyMode},
+                          onSelectionChanged: isLoading
+                              ? null
+                              : (Set<bool> selection) {
+                                  setState(() {
+                                    _isUsernameOnlyMode = selection.first;
+                                  });
+                                },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── Username-only warning banner ─────────────
-                      if (_isUsernameOnlyMode) ...[
+                      if (_kEnableUsernameOnlyRegistration &&
+                          _isUsernameOnlyMode) ...[
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
@@ -750,7 +761,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ],
 
                       // ── Username field (username-only mode) ──────
-                      if (_isUsernameOnlyMode) ...[
+                      if (_kEnableUsernameOnlyRegistration &&
+                          _isUsernameOnlyMode) ...[
                         AnimatedFormField(
                           child: FocusTraversalOrder(
                             order: const NumericFocusOrder(1),
@@ -786,7 +798,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ],
 
                       // ── Email (email mode only) ──────────────────
-                      if (!_isUsernameOnlyMode) ...[
+                      if (!_kEnableUsernameOnlyRegistration ||
+                          !_isUsernameOnlyMode) ...[
                         AnimatedFormField(
                           child: FocusTraversalOrder(
                             order: const NumericFocusOrder(1),

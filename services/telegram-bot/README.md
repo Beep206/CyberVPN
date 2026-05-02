@@ -19,6 +19,7 @@ The CyberVPN Telegram Bot provides a complete VPN subscription management interf
 - Prometheus metrics for monitoring
 - Redis-backed FSM (Finite State Machine) for conversation flows
 - Structured logging with `structlog`
+- Sentry-ready error reporting with minimal-PII defaults
 - Circuit breaker pattern for API resilience
 
 ## Architecture
@@ -92,6 +93,7 @@ src/
 | **httpx** | 0.28.1+ | Async HTTP client |
 | **redis** | 7.1+ | FSM storage and caching |
 | **structlog** | 25.5+ | Structured logging |
+| **sentry-sdk** | 2.54+ | Error tracking with release/environment context |
 | **fluent.runtime** | 0.4+ | i18n (Fluent localization) |
 | **prometheus-client** | 0.24.1+ | Metrics export |
 | **tenacity** | 9.0+ | Retry logic with exponential backoff |
@@ -117,6 +119,10 @@ pip install -e ".[dev]"
 ### 2. Configure Environment
 
 Copy `.env.example` to `.env` and configure:
+
+- `SENTRY_DSN` for the bot runtime project
+- `SENTRY_RELEASE` using the canonical release string, for example `telegram-bot@<git-sha>`
+- `TELEGRAM_BOT_OBSERVABILITY_INTERNAL_SECRET` for the protected runtime contract probe
 
 ```bash
 cp .env.example .env
@@ -159,6 +165,8 @@ All configuration is managed via environment variables (see `.env.example` for f
 |----------|---------|-------------|
 | `BOT_TOKEN` | *required* | Telegram bot token from BotFather |
 | `BOT_MODE` | `polling` | Bot mode: `polling` or `webhook` |
+| `TELEGRAM_BOT_SKIP_NETWORK_CALLS` | `false` | Smoke-only override that skips Telegram API calls on startup/shutdown |
+| `TELEGRAM_BOT_OBSERVABILITY_INTERNAL_SECRET` | *(empty)* | Internal secret for `/observability/sentry-contract` |
 | `ENVIRONMENT` | `development` | Environment: `development`, `staging`, `production` |
 
 ### Backend API

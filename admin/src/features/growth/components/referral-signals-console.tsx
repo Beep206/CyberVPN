@@ -1,10 +1,8 @@
 'use client';
 
+import { ShieldAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { TrendingUp } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
-import { growthApi } from '@/lib/api/growth';
 import { GrowthEmptyState } from '@/features/growth/components/growth-empty-state';
 import { GrowthPageShell } from '@/features/growth/components/growth-page-shell';
 import { GrowthStatusChip } from '@/features/growth/components/growth-status-chip';
@@ -12,53 +10,68 @@ import {
   formatCompactNumber,
   formatCurrencyAmount,
   formatDateTime,
-  shortId,
+  humanizeToken,
 } from '@/features/growth/lib/formatting';
+import { growthApi } from '@/lib/api/growth';
 
 export function ReferralSignalsConsole() {
   const t = useTranslations('Growth');
   const locale = useLocale();
-  const referralQuery = useQuery({
-    queryKey: ['growth', 'referrals', 'overview'],
+
+  const overviewQuery = useQuery({
+    queryKey: ['growth', 'signals', 'overview', 'referrals'],
     queryFn: async () => {
-      const response = await growthApi.getReferralOverview();
+      const response = await growthApi.getGrowthSignalsOverview();
       return response.data;
     },
     staleTime: 15_000,
   });
 
-  const overview = referralQuery.data;
+  const abuseQuery = useQuery({
+    queryKey: ['growth', 'signals', 'abuse-queue'],
+    queryFn: async () => {
+      const response = await growthApi.listGrowthAbuseSignals({ limit: 25 });
+      return response.data;
+    },
+    staleTime: 15_000,
+  });
+
+  const overview = overviewQuery.data;
+  const abuseSignals = abuseQuery.data?.items ?? [];
+  const referralEvents = (overview?.recent_lifecycle_events ?? []).filter(
+    (event) => event.event_family === 'referral' || event.event_family === 'growth_reward',
+  );
 
   return (
     <GrowthPageShell
       eyebrow={t('referrals.eyebrow')}
       title={t('referrals.title')}
       description={t('referrals.description')}
-      icon={TrendingUp}
+      icon={ShieldAlert}
       metrics={[
         {
-          label: t('referrals.metrics.adminSurface'),
-          value: formatCompactNumber(overview?.total_commissions ?? 0, locale),
-          hint: t('referrals.metrics.adminSurfaceHint'),
-          tone: overview?.total_commissions ? 'success' : 'neutral',
-        },
-        {
-          label: t('referrals.metrics.uniqueReferrers'),
-          value: formatCompactNumber(overview?.unique_referrers ?? 0, locale),
-          hint: t('referrals.metrics.uniqueReferrersHint'),
+          label: t('referrals.metrics.availableCredit'),
+          value: formatCurrencyAmount(overview?.available_referral_credit_usd, 'USD', locale),
+          hint: t('referrals.metrics.availableCreditHint'),
           tone: 'warning',
         },
         {
-          label: t('referrals.metrics.uniqueReferred'),
-          value: formatCompactNumber(overview?.unique_referred_users ?? 0, locale),
-          hint: t('referrals.metrics.uniqueReferredHint'),
+          label: t('referrals.metrics.blockedRewards'),
+          value: formatCompactNumber(overview?.blocked_reward_count ?? 0, locale),
+          hint: t('referrals.metrics.blockedRewardsHint'),
+          tone: (overview?.blocked_reward_count ?? 0) > 0 ? 'danger' : 'neutral',
+        },
+        {
+          label: t('referrals.metrics.totalRedemptions'),
+          value: formatCompactNumber(overview?.total_redemptions ?? 0, locale),
+          hint: t('referrals.metrics.totalRedemptionsHint'),
+          tone: 'success',
+        },
+        {
+          label: t('referrals.metrics.activeReservations'),
+          value: formatCompactNumber(overview?.active_reservations ?? 0, locale),
+          hint: t('referrals.metrics.activeReservationsHint'),
           tone: 'info',
-        },
-        {
-          label: t('referrals.metrics.totalEarned'),
-          value: formatCurrencyAmount(overview?.total_earned, 'USD', locale),
-          hint: t('referrals.metrics.totalEarnedHint'),
-          tone: 'warning',
         },
       ]}
     >
@@ -67,129 +80,118 @@ export function ReferralSignalsConsole() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
-                {t('referrals.currentStateTitle')}
+                {t('referrals.abuseQueueTitle')}
               </h2>
               <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
-                {t('referrals.currentStateDescription')}
+                {t('referrals.abuseQueueDescription')}
               </p>
             </div>
-            <GrowthStatusChip label={t('referrals.liveOverview')} tone="success" />
+            <GrowthStatusChip label={t('referrals.liveOverview')} tone="warning" />
           </div>
 
-          <div className="mt-5 grid gap-3">
-            {referralQuery.isLoading ? (
+          <div className="mt-5 space-y-3">
+            {abuseQuery.isLoading ? (
               Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-20 animate-pulse rounded-2xl border border-grid-line/20 bg-terminal-bg/45"
+                  className="h-24 animate-pulse rounded-2xl border border-grid-line/20 bg-terminal-bg/45"
                 />
               ))
-            ) : overview?.top_referrers.length ? (
-              overview.top_referrers.map((row) => (
+            ) : abuseSignals.length ? (
+              abuseSignals.map((signal) => (
                 <div
-                  key={row.user.id}
+                  key={signal.signal_key}
                   className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
-                        {row.user.email}
+                        {humanizeToken(signal.signal_type)}
                       </p>
                       <p className="mt-2 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                        @{row.user.username ?? shortId(row.user.id, 12)} / #{shortId(row.user.id, 12)}
+                        {humanizeToken(signal.reason_code)}
+                        {signal.code_type ? ` / ${humanizeToken(signal.code_type)}` : ''}
                       </p>
                     </div>
                     <GrowthStatusChip
-                      label={formatCurrencyAmount(row.total_earned, 'USD', locale)}
-                      tone={row.total_earned > 0 ? 'warning' : 'neutral'}
+                      label={humanizeToken(signal.severity)}
+                      tone={signal.severity === 'danger' ? 'danger' : 'warning'}
                     />
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <GrowthStatusChip
-                      label={t('referrals.badges.commissions', { count: row.commission_count })}
+                      label={t('referrals.badges.count', { count: signal.count })}
+                      tone="danger"
+                    />
+                    <GrowthStatusChip
+                      label={t('referrals.badges.users', { count: signal.unique_users })}
                       tone="info"
                     />
                     <GrowthStatusChip
-                      label={t('referrals.badges.referredUsers', { count: row.referred_users })}
-                      tone="success"
-                    />
-                    <GrowthStatusChip
-                      label={formatDateTime(row.last_commission_at, locale)}
+                      label={formatDateTime(signal.latest_event_at, locale)}
                       tone="neutral"
                     />
                   </div>
 
-                  <div className="mt-4">
-                    <Link
-                      href={`/customers/${row.user.id}`}
-                      className="text-xs font-mono uppercase tracking-[0.18em] text-neon-cyan transition-opacity hover:opacity-80"
-                    >
-                      {t('referrals.openCustomer')}
-                    </Link>
-                  </div>
+                  <p className="mt-4 text-sm font-mono leading-6 text-muted-foreground">
+                    {signal.review_hint}
+                  </p>
                 </div>
               ))
             ) : (
-              <GrowthEmptyState label={t('referrals.topReferrersEmpty')} />
+              <GrowthEmptyState label={t('referrals.abuseQueueEmpty')} />
             )}
           </div>
         </article>
 
         <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-5">
           <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
-            {t('referrals.recentTitle')}
+            {t('referrals.breakdownTitle')}
           </h2>
-          <div className="mt-5 space-y-3">
-            {referralQuery.isLoading ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-20 animate-pulse rounded-2xl border border-grid-line/20 bg-terminal-bg/45"
-                />
-              ))
-            ) : overview?.recent_commissions.length ? (
-              overview.recent_commissions.map((commission) => (
-                <div
-                  key={commission.id}
-                  className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
-                        {formatCurrencyAmount(commission.commission_amount, commission.currency, locale)}
-                      </p>
-                      <p className="mt-2 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                        {commission.referrer?.email ?? shortId(commission.referrer_user_id, 12)}
-                        {' -> '}
-                        {commission.referred_user?.email ?? shortId(commission.referred_user_id, 12)}
-                      </p>
-                    </div>
-                    <GrowthStatusChip
-                      label={`${commission.commission_rate}%`}
-                      tone="warning"
-                    />
-                  </div>
-                  <p className="mt-3 text-sm font-mono leading-6 text-muted-foreground">
-                    {formatDateTime(commission.created_at, locale)}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <GrowthEmptyState label={t('referrals.recentEmpty')} />
-            )}
+          <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+            {t('referrals.breakdownDescription')}
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {(overview?.reward_status_breakdown ?? []).map((item) => (
+              <GrowthStatusChip
+                key={item.key}
+                label={`${humanizeToken(item.key)} · ${formatCompactNumber(item.count, locale)}`}
+                tone={item.key === 'blocked_by_risk' ? 'danger' : 'neutral'}
+              />
+            ))}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
-                {t('referrals.nextFocusTitle')}
-              </p>
-              <GrowthStatusChip label={t('common.backendLimited')} tone="warning" />
+          <div className="mt-6">
+            <h3 className="text-sm font-display uppercase tracking-[0.2em] text-white">
+              {t('referrals.lifecycleTitle')}
+            </h3>
+            <div className="mt-4 space-y-3">
+              {referralEvents.length ? (
+                referralEvents.slice(0, 6).map((event) => (
+                  <div
+                    key={event.id}
+                    className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
+                        {humanizeToken(event.event_name)}
+                      </p>
+                      <GrowthStatusChip
+                        label={humanizeToken(event.event_status)}
+                        tone={event.event_status === 'published' ? 'success' : 'warning'}
+                      />
+                    </div>
+                    <p className="mt-3 text-sm font-mono leading-6 text-muted-foreground">
+                      {formatDateTime(event.occurred_at, locale)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <GrowthEmptyState label={t('referrals.lifecycleEmpty')} />
+              )}
             </div>
-            <p className="mt-3 text-sm font-mono leading-6 text-muted-foreground">
-              {t('referrals.nextFocusDescription')}
-            </p>
           </div>
         </article>
       </div>

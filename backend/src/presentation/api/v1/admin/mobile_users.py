@@ -8,6 +8,9 @@ from httpx import HTTPStatusError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.auth.permissions import Permission
+from src.application.use_cases.growth_notifications.automation import (
+    AutomateCustomerGrowthNotificationRepairUseCase,
+)
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
@@ -391,6 +394,19 @@ async def update_mobile_user(
 
     updated_user = await user_repo.update(user)
 
+    if "email" in changed_fields and updated_user.email:
+        await AutomateCustomerGrowthNotificationRepairUseCase(db).execute(
+            mobile_user_id=updated_user.id,
+            repair_trigger="contact_data_corrected",
+            admin_user_id=current_user.id,
+        )
+    if "telegram_id" in changed_fields and updated_user.telegram_id is not None:
+        await AutomateCustomerGrowthNotificationRepairUseCase(db).execute(
+            mobile_user_id=updated_user.id,
+            repair_trigger="telegram_linked",
+            admin_user_id=current_user.id,
+        )
+
     await _write_audit_entry(
         db=db,
         action="customer_profile_updated",
@@ -404,5 +420,9 @@ async def update_mobile_user(
         },
     )
 
+    refreshed_user = await user_repo.get_by_id_with_devices(updated_user.id)
+    if refreshed_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mobile user not found")
+
     route_operations_total.labels(route="admin_mobile_users", action="update", status="success").inc()
-    return _serialize_mobile_user_detail(updated_user)
+    return _serialize_mobile_user_detail(refreshed_user)

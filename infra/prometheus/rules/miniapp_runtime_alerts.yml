@@ -1,0 +1,154 @@
+groups:
+  - name: miniapp_runtime_alerts
+    interval: 30s
+    rules:
+      - alert: MiniAppBootstrapFailureRateHigh
+        expr: |
+          sum(rate(miniapp_runtime_requests_total{endpoint="bootstrap"}[15m])) > 0.02
+          and
+          (
+            sum(rate(miniapp_runtime_requests_total{endpoint="bootstrap",status!="success"}[15m]))
+            /
+            clamp_min(sum(rate(miniapp_runtime_requests_total{endpoint="bootstrap"}[15m])), 1e-9)
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-miniapp
+          component: miniapp-bootstrap
+        annotations:
+          summary: "Mini App bootstrap failure ratio exceeded 10%"
+          description: "The Mini App bootstrap endpoint is failing too often for active traffic. Check mobile session resolution, entitlement reads, wallet reads, and Telegram-linked user hydration."
+          runbook_path: "docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppCheckoutCommitErrorsHigh
+        expr: |
+          sum(rate(miniapp_checkout_commits_total[15m])) > 0.01
+          and
+          (
+            sum(rate(miniapp_checkout_commits_total{status=~"client_error|server_error"}[15m]))
+            /
+            clamp_min(sum(rate(miniapp_checkout_commits_total[15m])), 1e-9)
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-miniapp
+          component: miniapp-checkout
+        annotations:
+          summary: "Mini App checkout commit error ratio exceeded 10%"
+          description: "Mini App checkout commits are failing at an elevated rate. Check quote-to-commit parity, Telegram Stars invoice creation, wallet constraints, and payment provider availability."
+          runbook_path: "docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppPaymentStatusLookupFailuresSpike
+        expr: |
+          sum(increase(miniapp_runtime_requests_total{endpoint="payment_status",status!="success"}[30m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-miniapp
+          component: miniapp-payment-status
+        annotations:
+          summary: "Mini App payment status lookup failures are spiking"
+          description: "Payment status lookups are returning errors or not-found outcomes too often. Check payment ownership scoping, Telegram Stars reconciliation, and delayed provider confirmation."
+          runbook_path: "docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppConfigDeliveryFailuresHigh
+        expr: |
+          sum(rate(miniapp_config_delivery_total[15m])) > 0.01
+          and
+          (
+            sum(rate(miniapp_config_delivery_total{status!="success"}[15m]))
+            /
+            clamp_min(sum(rate(miniapp_config_delivery_total[15m])), 1e-9)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-miniapp
+          component: miniapp-config
+        annotations:
+          summary: "Mini App config delivery failure ratio exceeded 5%"
+          description: "Mini App config generation or legacy subscription fallback is failing too often. Check Remnawave config generation, user linkage, and subscription_url fallback availability."
+          runbook_path: "docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppRuntimeLatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(miniapp_runtime_request_duration_seconds_bucket{endpoint=~"bootstrap|checkout_quote|checkout_commit|config"}[15m])) by (le, endpoint)
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-miniapp
+          component: miniapp-runtime
+        annotations:
+          summary: "Mini App runtime P95 latency exceeded 1.5s on {{ $labels.endpoint }}"
+          description: "One of the core Mini App endpoints remains above the latency target. Check database latency, Remnawave dependency health, and quote/commit path fan-out."
+          runbook_path: "docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_RUNTIME_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppLaunchBlockedWhileLive
+        expr: |
+          miniapp_launch_state_current{launch_state="blocked"} == 1
+          and
+          miniapp_runtime_rollout_mode_current{mode="live"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          service: cybervpn-miniapp
+          component: miniapp-launch-control
+        annotations:
+          summary: "Mini App is live while launch summary is blocked"
+          description: "Mini App runtime remains in live mode even though server-derived launch summary is blocked. Review launch blockers, ownership fields, and decide whether to rollback or enter maintenance."
+          runbook_path: "docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppRollbackModeActiveTooLong
+        expr: |
+          avg_over_time(miniapp_runtime_rollout_mode_current{mode="rollback"}[30m]) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-miniapp
+          component: miniapp-launch-control
+        annotations:
+          summary: "Mini App rollback mode has stayed active for too long"
+          description: "Mini App rollback has remained active for at least 30 minutes. Confirm whether the incident is still active or move to canary or maintenance with explicit operator ownership."
+          runbook_path: "docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"
+
+      - alert: MiniAppReadyForLiveStalled
+        expr: |
+          avg_over_time(miniapp_launch_state_current{launch_state="ready_for_live"}[60m]) > 0.9
+        for: 10m
+        labels:
+          severity: info
+          service: cybervpn-miniapp
+          component: miniapp-launch-control
+        annotations:
+          summary: "Mini App has been ready for live for more than one hour"
+          description: "Mini App launch summary has remained ready_for_live for an extended period. Confirm whether to promote to live or intentionally hold canary with an updated release decision."
+          runbook_path: "docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/MINIAPP_LAUNCH_CONTROL_RUNBOOK.md"
+          dashboard_uid: "cybervpn-miniapp-runtime"
+          dashboard_path: "/d/cybervpn-miniapp-runtime/cybervpn-miniapp-runtime"

@@ -4,12 +4,84 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tokio::time::{sleep, Duration};
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+pub struct StealthHealthSnapshot {
+    #[serde(default)]
+    pub checked_at: Option<u64>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub success_count: Option<u32>,
+    #[serde(default)]
+    pub sample_count: Option<u32>,
+    #[serde(default)]
+    pub median_first_byte_latency_ms: Option<i32>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+pub struct StealthNetworkMemory {
+    #[serde(default)]
+    pub last_assessed_at: Option<u64>,
+    #[serde(default)]
+    pub last_node_id: Option<String>,
+    #[serde(default)]
+    pub last_status: Option<String>,
+    #[serde(default)]
+    pub last_summary: Option<String>,
+    #[serde(default)]
+    pub last_recommendation_id: Option<String>,
+    #[serde(default)]
+    pub last_applied_recommendation_id: Option<String>,
+    #[serde(default)]
+    pub last_applied_at: Option<u64>,
+    #[serde(default)]
+    pub last_known_good_node_id: Option<String>,
+    #[serde(default)]
+    pub last_known_good_node_name: Option<String>,
+    #[serde(default)]
+    pub last_known_good_strategy_id: Option<String>,
+    #[serde(default)]
+    pub last_known_good_strategy_title: Option<String>,
+    #[serde(default)]
+    pub last_known_good_stealth_mode_enabled: Option<bool>,
+    #[serde(default)]
+    pub last_health: StealthHealthSnapshot,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+pub struct StealthPolicy {
+    #[serde(default)]
+    pub strategy_id: Option<String>,
+    #[serde(default)]
+    pub strategy_title: Option<String>,
+    #[serde(default)]
+    pub target_node_id: Option<String>,
+    #[serde(default)]
+    pub target_node_name: Option<String>,
+    #[serde(default)]
+    pub enable_stealth_mode: Option<bool>,
+    #[serde(default)]
+    pub saved_at: Option<u64>,
+    #[serde(default)]
+    pub last_health: StealthHealthSnapshot,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct NetworkProfile {
+    #[serde(default)]
     pub auto_connect: bool,
+    #[serde(default)]
     pub stealth_required: bool,
+    #[serde(default)]
     pub kill_switch_required: bool,
+    #[serde(default)]
     pub icon_type: String, // "home", "work", "coffee", "public"
+    #[serde(default)]
+    pub stealth_memory: StealthNetworkMemory,
+    #[serde(default)]
+    pub stealth_policy: StealthPolicy,
 }
 
 // Emulate simple struct for the network change

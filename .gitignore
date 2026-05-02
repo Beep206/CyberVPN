@@ -131,6 +131,7 @@ test_perm*.txt
 opencode.json.backup-*
 _*.sh
 _*.jq
+.cache/observability-cli/
 
 # bv (beads viewer) local config and caches
 .bv/

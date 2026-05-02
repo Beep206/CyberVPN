@@ -1,19 +1,20 @@
 """Unit tests for notification tasks."""
 
 import os
-import pytest
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 # Set required environment variables before importing modules
 os.environ.setdefault("REMNAWAVE_API_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123:test-bot")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 
-from src.tasks.notifications.send_notification import send_notification
-from src.tasks.notifications.process_queue import process_notification_queue
+from src.services.telegram_client import TelegramAPIError
 from src.tasks.notifications.broadcast import broadcast_message
+from src.tasks.notifications.process_queue import process_notification_queue
+from src.tasks.notifications.send_notification import send_notification
 
 
 @pytest.mark.asyncio
@@ -21,9 +22,9 @@ async def test_send_notification_success(mock_telegram):
     """Test successful notification send."""
     mock_telegram.send_message.return_value = {"message_id": 12345, "status": "sent"}
 
-    with patch("src.tasks.notifications.send_notification.TelegramClient") as MockTg:
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+    with patch("src.tasks.notifications.send_notification.TelegramClient") as mock_tg:
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await send_notification(chat_id=123456, text="Test message")
 
@@ -37,9 +38,9 @@ async def test_send_notification_telegram_failure(mock_telegram):
     """Test notification send handles Telegram API failure."""
     mock_telegram.send_message.side_effect = TelegramAPIError("API error")
 
-    with patch("src.tasks.notifications.send_notification.TelegramClient") as MockTg:
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+    with patch("src.tasks.notifications.send_notification.TelegramClient") as mock_tg:
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         with pytest.raises(TelegramAPIError):
             await send_notification(chat_id=123456, text="Test message")
@@ -50,9 +51,9 @@ async def test_send_notification_custom_parse_mode(mock_telegram):
     """Test notification with custom parse mode."""
     mock_telegram.send_message.return_value = {"message_id": 789}
 
-    with patch("src.tasks.notifications.send_notification.TelegramClient") as MockTg:
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+    with patch("src.tasks.notifications.send_notification.TelegramClient") as mock_tg:
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         await send_notification(chat_id=999, text="*Bold*", parse_mode="Markdown")
 
@@ -69,11 +70,11 @@ async def test_process_queue_empty(mock_settings, mock_db_session, mock_telegram
     with (
         patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
         patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
-        patch("src.tasks.notifications.process_queue.TelegramClient") as MockTg,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await process_notification_queue()
 
@@ -108,11 +109,11 @@ async def test_process_queue_processes_batch(mock_settings, mock_db_session, moc
     with (
         patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
         patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
-        patch("src.tasks.notifications.process_queue.TelegramClient") as MockTg,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await process_notification_queue()
 
@@ -122,6 +123,43 @@ async def test_process_queue_processes_batch(mock_settings, mock_db_session, moc
         assert notif2.status == "sent"
         assert notif1.sent_at is not None
         assert notif2.sent_at is not None
+
+
+@pytest.mark.asyncio
+async def test_process_queue_syncs_growth_delivery_status(mock_settings, mock_db_session, mock_telegram):
+    """Telegram delivery processor should update canonical growth delivery status."""
+    notif = MagicMock()
+    notif.id = uuid4()
+    notif.telegram_id = 123
+    notif.message = "Growth message"
+    notif.attempts = 0
+    notif.status = "pending"
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [notif]
+    executed_statements = []
+
+    async def _execute(statement, *args, **kwargs):
+        executed_statements.append(str(statement))
+        return mock_result
+
+    mock_db_session.execute = AsyncMock(side_effect=_execute)
+    mock_telegram.send_message.return_value = {"message_id": 999}
+
+    with (
+        patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
+        patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
+    ):
+        mock_factory.return_value = MagicMock(return_value=mock_db_session)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await process_notification_queue()
+
+        assert result["sent"] == 1
+        assert any("customer_growth_notification_deliveries" in stmt for stmt in executed_statements)
+        assert any("delivery_status" in stmt for stmt in executed_statements)
 
 
 @pytest.mark.asyncio
@@ -154,11 +192,11 @@ async def test_process_queue_handles_individual_failures(mock_settings, mock_db_
     with (
         patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
         patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
-        patch("src.tasks.notifications.process_queue.TelegramClient") as MockTg,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await process_notification_queue()
 
@@ -189,11 +227,11 @@ async def test_process_queue_max_retries_reached(mock_settings, mock_db_session,
     with (
         patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
         patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
-        patch("src.tasks.notifications.process_queue.TelegramClient") as MockTg,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await process_notification_queue()
 

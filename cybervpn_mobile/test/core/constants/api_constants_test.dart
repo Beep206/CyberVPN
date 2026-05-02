@@ -35,6 +35,7 @@ void main() {
         'register': ApiConstants.register,
         'refresh': ApiConstants.refresh,
         'logout': ApiConstants.logout,
+        'telegramOidcAuth': ApiConstants.telegramOidcAuth,
         'servers': ApiConstants.servers,
         'serverById': ApiConstants.serverById,
         'plans': ApiConstants.plans,
@@ -69,7 +70,8 @@ void main() {
           expect(
             entry.value.startsWith('/api/v1'),
             isTrue,
-            reason: '${entry.key} = "${entry.value}" does not start with /api/v1',
+            reason:
+                '${entry.key} = "${entry.value}" does not start with /api/v1',
           );
         });
       }
@@ -99,11 +101,15 @@ void main() {
       // Known backend routes from backend/src/presentation/api/v1/**/routes.py
       // Backend router prefix: /api/v1 (from router.py)
 
-      test('auth endpoints match backend /auth/* routes', () {
-        expect(ApiConstants.login, equals('/api/v1/auth/login'));
-        expect(ApiConstants.register, equals('/api/v1/auth/register'));
-        expect(ApiConstants.refresh, equals('/api/v1/auth/refresh'));
-        expect(ApiConstants.logout, equals('/api/v1/auth/logout'));
+      test('mobile auth endpoints match backend /mobile/auth/* routes', () {
+        expect(ApiConstants.login, equals('/api/v1/mobile/auth/login'));
+        expect(ApiConstants.register, equals('/api/v1/mobile/auth/register'));
+        expect(ApiConstants.refresh, equals('/api/v1/mobile/auth/refresh'));
+        expect(ApiConstants.logout, equals('/api/v1/mobile/auth/logout'));
+        expect(
+          ApiConstants.telegramOidcAuth,
+          equals('/api/v1/mobile/auth/telegram/oidc'),
+        );
       });
 
       test('server endpoints match backend /servers/* routes', () {
@@ -131,8 +137,13 @@ void main() {
         );
       });
 
-      test('user/auth me endpoints match backend /auth/me route', () {
-        expect(ApiConstants.me, equals('/api/v1/auth/me'));
+      test('mobile me endpoints match backend /mobile/auth/me route', () {
+        expect(ApiConstants.me, equals('/api/v1/mobile/auth/me'));
+        expect(ApiConstants.mobileDevices, equals('/api/v1/mobile/auth/devices'));
+        expect(
+          ApiConstants.mobileDeviceRegistration,
+          equals('/api/v1/mobile/auth/device'),
+        );
         expect(ApiConstants.updateMe, equals('/api/v1/auth/me'));
         expect(ApiConstants.deleteAccount, equals('/api/v1/auth/me'));
       });
@@ -254,10 +265,7 @@ void main() {
       });
 
       test('configProfiles matches expected path', () {
-        expect(
-          ApiConstants.configProfiles,
-          equals('/api/v1/config-profiles/'),
-        );
+        expect(ApiConstants.configProfiles, equals('/api/v1/config-profiles/'));
       });
 
       test('billing matches expected path', () {
@@ -306,26 +314,35 @@ void main() {
     // ── TE2-6: Additional Backend Alignment Tests ─────────────────────────
 
     group('Security Endpoints (✅ Aligned)', () {
-      test('getAntiphishingCode aligns with backend GET /security/antiphishing', () {
-        expect(
-          ApiConstants.getAntiphishingCode,
-          equals('/api/v1/security/antiphishing'),
-        );
-      });
+      test(
+        'getAntiphishingCode aligns with backend GET /security/antiphishing',
+        () {
+          expect(
+            ApiConstants.getAntiphishingCode,
+            equals('/api/v1/security/antiphishing'),
+          );
+        },
+      );
 
-      test('setAntiphishingCode aligns with backend POST /security/antiphishing', () {
-        expect(
-          ApiConstants.setAntiphishingCode,
-          equals('/api/v1/security/antiphishing'),
-        );
-      });
+      test(
+        'setAntiphishingCode aligns with backend POST /security/antiphishing',
+        () {
+          expect(
+            ApiConstants.setAntiphishingCode,
+            equals('/api/v1/security/antiphishing'),
+          );
+        },
+      );
 
-      test('deleteAntiphishingCode aligns with backend DELETE /security/antiphishing', () {
-        expect(
-          ApiConstants.deleteAntiphishingCode,
-          equals('/api/v1/security/antiphishing'),
-        );
-      });
+      test(
+        'deleteAntiphishingCode aligns with backend DELETE /security/antiphishing',
+        () {
+          expect(
+            ApiConstants.deleteAntiphishingCode,
+            equals('/api/v1/security/antiphishing'),
+          );
+        },
+      );
     });
 
     group('Password Management Endpoints (✅ Aligned)', () {
@@ -390,22 +407,31 @@ void main() {
     });
 
     group('Telegram Bot Auth (✅ Aligned)', () {
-      test('telegramBotLink aligns with backend POST /auth/telegram/bot-link', () {
-        expect(
-          ApiConstants.telegramBotLink,
-          equals('/api/v1/auth/telegram/bot-link'),
-        );
-      });
+      test(
+        'telegramBotLink aligns with backend POST /auth/telegram/bot-link',
+        () {
+          expect(
+            ApiConstants.telegramBotLink,
+            equals('/api/v1/auth/telegram/bot-link'),
+          );
+        },
+      );
     });
 
     group('OTP Endpoints (⚠️ Pending Backend)', () {
-      test('verifyEmail endpoint is defined (pending backend implementation)', () {
-        expect(ApiConstants.verifyEmail, equals('/api/v1/auth/verify-email'));
-      });
+      test(
+        'verifyEmail endpoint is defined (pending backend implementation)',
+        () {
+          expect(ApiConstants.verifyEmail, equals('/api/v1/auth/verify-email'));
+        },
+      );
 
-      test('resendOtp endpoint is defined (pending backend implementation)', () {
-        expect(ApiConstants.resendOtp, equals('/api/v1/auth/resend-otp'));
-      });
+      test(
+        'resendOtp endpoint is defined (pending backend implementation)',
+        () {
+          expect(ApiConstants.resendOtp, equals('/api/v1/auth/resend-otp'));
+        },
+      );
     });
 
     group('Wallet Endpoints (⚠️ Pending Backend)', () {
@@ -413,12 +439,15 @@ void main() {
         expect(ApiConstants.walletBalance, equals('/api/v1/wallet/balance'));
       });
 
-      test('walletTransactions is defined (pending backend implementation)', () {
-        expect(
-          ApiConstants.walletTransactions,
-          equals('/api/v1/wallet/transactions'),
-        );
-      });
+      test(
+        'walletTransactions is defined (pending backend implementation)',
+        () {
+          expect(
+            ApiConstants.walletTransactions,
+            equals('/api/v1/wallet/transactions'),
+          );
+        },
+      );
 
       test('walletWithdraw is defined (pending backend implementation)', () {
         expect(ApiConstants.walletWithdraw, equals('/api/v1/wallet/withdraw'));
@@ -510,29 +539,38 @@ void main() {
     });
 
     group('Method Mismatches (⚠️ Partial Alignment)', () {
-      test('disable2fa: mobile expects POST, backend supports both DELETE + POST', () {
-        // Mobile: expects POST
-        // Backend: DELETE (primary) + POST (alias for backward compatibility)
-        expect(ApiConstants.disable2fa, equals('/api/v1/2fa/disable'));
-      });
+      test(
+        'disable2fa: mobile expects POST, backend supports both DELETE + POST',
+        () {
+          // Mobile: expects POST
+          // Backend: DELETE (primary) + POST (alias for backward compatibility)
+          expect(ApiConstants.disable2fa, equals('/api/v1/2fa/disable'));
+        },
+      );
 
-      test('oauthTelegramCallback: mobile expects GET, backend supports both POST + GET', () {
-        // Mobile: expects GET
-        // Backend: POST (primary) + GET (alias for backward compatibility)
-        expect(
-          ApiConstants.oauthTelegramCallback,
-          equals('/api/v1/oauth/telegram/callback'),
-        );
-      });
+      test(
+        'oauthTelegramCallback: mobile expects GET, backend supports both POST + GET',
+        () {
+          // Mobile: expects GET
+          // Backend: POST (primary) + GET (alias for backward compatibility)
+          expect(
+            ApiConstants.oauthTelegramCallback,
+            equals('/api/v1/oauth/telegram/callback'),
+          );
+        },
+      );
 
-      test('oauthGithubCallback: mobile expects GET, backend supports both POST + GET', () {
-        // Mobile: expects GET
-        // Backend: POST (primary) + GET (alias for backward compatibility)
-        expect(
-          ApiConstants.oauthGithubCallback,
-          equals('/api/v1/oauth/github/callback'),
-        );
-      });
+      test(
+        'oauthGithubCallback: mobile expects GET, backend supports both POST + GET',
+        () {
+          // Mobile: expects GET
+          // Backend: POST (primary) + GET (alias for backward compatibility)
+          expect(
+            ApiConstants.oauthGithubCallback,
+            equals('/api/v1/oauth/github/callback'),
+          );
+        },
+      );
     });
 
     group('Path Mismatches (⚠️ Partial - Backend Has Aliases)', () {

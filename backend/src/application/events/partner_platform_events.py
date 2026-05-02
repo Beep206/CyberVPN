@@ -1,9 +1,43 @@
 """Canonical event families reserved for the partner platform baseline."""
 
 PARTNER_PLATFORM_EVENT_FAMILIES = {
+    "growth_code": (
+        "growth_code.issued",
+        "growth_code.resolved",
+        "growth_code.rejected",
+        "growth_code.reserved",
+        "growth_code.released",
+        "growth_code.reservation_expired",
+        "growth_code.redeemed",
+        "growth_code.revoked",
+    ),
+    "invite": (
+        "invite.generated_from_order",
+        "invite.redeemed",
+        "invite.owner_reward_created",
+    ),
+    "referral": (
+        "referral.reward_pending",
+        "referral.reward_available",
+        "referral.reward_reversed",
+    ),
+    "promo": (
+        "promo.applied_to_order",
+        "promo.rejected",
+    ),
+    "gift": (
+        "gift.issued",
+        "gift.redeemed",
+        "gift.revoked",
+    ),
     "storefront": (
         "storefront.resolved",
         "storefront.binding.changed",
+    ),
+    "partner_bot": (
+        "partner_bot.created",
+        "partner_bot.provisioning_requested",
+        "partner_bot.status_changed",
     ),
     "realm": (
         "realm.session.issued",
@@ -14,12 +48,17 @@ PARTNER_PLATFORM_EVENT_FAMILIES = {
         "order.finalized",
         "order.refunded",
     ),
+    "refund": (
+        "refund.status_changed",
+        "refund.provider_state_reconciled",
+    ),
     "attribution": (
         "attribution.touchpoint.recorded",
         "attribution.result.finalized",
     ),
     "growth_reward": (
         "growth_reward.allocation.created",
+        "growth_reward.allocation.available",
         "growth_reward.allocation.reversed",
     ),
     "settlement": (

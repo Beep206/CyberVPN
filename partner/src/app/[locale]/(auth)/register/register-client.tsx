@@ -12,6 +12,11 @@ import {
   RateLimitCountdown,
   useIsRateLimited,
 } from '@/features/auth/components';
+import {
+  reportFrontendFormValidationError,
+  reportFrontendSubmitAttempt,
+  reportFrontendSubmitFailure,
+} from '@/shared/lib/frontend-observability';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function RegisterClient() {
@@ -45,17 +50,42 @@ export default function RegisterClient() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) {
+      let errorCode = 'missing_fields';
+      if (!email || !password || !confirmPassword) {
+        errorCode = 'missing_fields';
+      } else if (!acceptTerms) {
+        errorCode = 'terms_not_accepted';
+      } else if (!passwordsMatch) {
+        errorCode = 'password_mismatch';
+      } else if (isRateLimited) {
+        errorCode = 'rate_limited';
+      }
+
+      reportFrontendFormValidationError('partner_portal', {
+        errorCode,
+        formName: 'register',
+        path: window.location.pathname,
+      });
       return;
     }
 
     try {
+      reportFrontendSubmitAttempt('partner_portal', {
+        formName: 'register',
+        path: window.location.pathname,
+      });
       await register(email, password, {
         mode: 'email',
         tos_accepted: acceptTerms,
         marketing_consent: marketingConsent,
       });
       router.push(`/verify?email=${encodeURIComponent(email)}`);
-    } catch {
+    } catch (submitError) {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: submitError instanceof Error ? submitError.name || 'register_failed' : 'register_failed',
+        formName: 'register',
+        path: window.location.pathname,
+      });
       // Store state already reflects the error.
     }
   };

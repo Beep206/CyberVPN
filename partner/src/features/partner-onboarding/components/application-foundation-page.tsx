@@ -19,6 +19,7 @@ import { partnerPortalApi } from '@/lib/api/partner-portal';
 import { useUser } from '@/stores/auth-store';
 import { getPartnerRoleRouteAccess } from '@/features/partner-portal-state/lib/portal-access';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
+import { PartnerOnboardingAnalyticsReporter } from '@/features/partner-onboarding/components/partner-onboarding-analytics-reporter';
 import {
   buildPartnerApplicationDraftPayload,
   canResubmitPartnerApplication,
@@ -35,6 +36,11 @@ import {
   type PartnerApplicationDraft,
   type PartnerPrimaryLane,
 } from '@/features/partner-onboarding/lib/application-draft-storage';
+import {
+  reportFrontendFormValidationError,
+  reportFrontendSubmitAttempt,
+  reportFrontendSubmitFailure,
+} from '@/shared/lib/frontend-observability';
 
 const STAGE_KEYS = ['workspace', 'profile', 'compliance', 'review'] as const;
 type StageKey = (typeof STAGE_KEYS)[number];
@@ -168,6 +174,11 @@ export function ApplicationFoundationPage() {
       await invalidatePartnerApplicationQueries(queryClient);
     },
     onError: (error) => {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: error instanceof Error ? error.name || 'application_create_failed' : 'application_create_failed',
+        formName: 'partner_application',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      });
       setActionFeedback({
         tone: 'error',
         message: error instanceof Error ? error.message : t('submitFeedback.error'),
@@ -216,6 +227,11 @@ export function ApplicationFoundationPage() {
       await invalidatePartnerApplicationQueries(queryClient);
     },
     onError: (error) => {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: error instanceof Error ? error.name || 'application_save_failed' : 'application_save_failed',
+        formName: 'partner_application_save',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      });
       setActionFeedback({
         tone: 'error',
         message: error instanceof Error ? error.message : t('saveFeedback.error'),
@@ -259,6 +275,11 @@ export function ApplicationFoundationPage() {
       await invalidatePartnerApplicationQueries(queryClient);
     },
     onError: (error) => {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: error instanceof Error ? error.name || 'application_submit_failed' : 'application_submit_failed',
+        formName: 'partner_application',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      });
       setActionFeedback({
         tone: 'error',
         message: error instanceof Error ? error.message : t('submitFeedback.error'),
@@ -288,6 +309,11 @@ export function ApplicationFoundationPage() {
       await invalidatePartnerApplicationQueries(queryClient);
     },
     onError: (error) => {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: error instanceof Error ? error.name || 'application_withdraw_failed' : 'application_withdraw_failed',
+        formName: 'partner_application_withdraw',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      });
       setActionFeedback({
         tone: 'error',
         message: error instanceof Error ? error.message : t('submitFeedback.error'),
@@ -353,6 +379,7 @@ export function ApplicationFoundationPage() {
     : isSubmitted
       ? t('status.submitted')
       : t('status.draft');
+  const analyticsWorkspaceStatus = currentWorkspaceStatus ?? 'unknown';
 
   const handleFieldChange = <
     Key extends keyof PartnerApplicationDraft,
@@ -374,6 +401,10 @@ export function ApplicationFoundationPage() {
   };
 
   const handleSaveDraft = () => {
+    reportFrontendSubmitAttempt('partner_portal', {
+      formName: 'partner_application_save',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
     saveDraftMutation.mutate(effectiveDraft);
   };
 
@@ -404,19 +435,40 @@ export function ApplicationFoundationPage() {
 
   const handleSubmit = () => {
     if (!allFoundationStagesComplete) {
+      reportFrontendFormValidationError('partner_portal', {
+        errorCode: 'application_foundation_incomplete',
+        formName: 'partner_application',
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      });
       setValidationMessage(t('review.validation'));
       setActiveStage(getNextIncompleteStage(stageProgress));
       return;
     }
+
+    reportFrontendSubmitAttempt('partner_portal', {
+      formName: 'partner_application',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
     submitDraftMutation.mutate(effectiveDraft);
   };
 
   const handleWithdraw = () => {
+    reportFrontendSubmitAttempt('partner_portal', {
+      formName: 'partner_application_withdraw',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
     withdrawDraftMutation.mutate();
   };
 
   return (
     <section className="space-y-6">
+      <PartnerOnboardingAnalyticsReporter
+        applicationStatus={analyticsWorkspaceStatus}
+        distinctId={user?.id ?? null}
+        stageProgress={stageProgress}
+        workspaceStatus={analyticsWorkspaceStatus}
+      />
+
       <header className="rounded-[1.5rem] border border-grid-line/20 bg-terminal-bg/85 p-5 shadow-[0_0_32px_rgba(0,255,255,0.04)] md:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">

@@ -1,7 +1,125 @@
 {
-    "title": "SERVER MANAGEMENT",
-    "subtitle": "Manage VPN nodes, protocols, and deployment regions.",
-    "globalStatus": "GLOBAL STATUS: {status}",
-    "globalStatusValue": "PROVISIONED",
-    "lastSync": "LAST SYNC: {time} AGO"
+  "title": "VPN ACCESS NODE",
+  "subtitle": "Choose a healthy location, import your config, and keep the private tunnel ready across all devices.",
+  "globalStatus": "GLOBAL STATUS: {status}",
+  "globalStatusValue": "PROVISIONED",
+  "lastSync": "LAST SYNC: {time} AGO",
+  "actions": {
+    "managePlan": "Manage plan",
+    "openSettings": "Open settings"
+  },
+  "confidence": {
+    "high": "High",
+    "low": "Low",
+    "medium": "Medium"
+  },
+  "config": {
+    "copyConfig": "Copy raw config",
+    "copySubscription": "Copy subscription",
+    "description": "Use the subscription URL first. It keeps clients synced when routes, credentials, or stealth profiles rotate.",
+    "empty": {
+      "missing_config": "The backend has not returned a config yet. Retry after provisioning finishes or check the subscription state.",
+      "missing_profile": "Profile data is unavailable, so the user-scoped config cannot be requested.",
+      "missing_service": "Service access is not fully provisioned yet. Finish plan activation or device delivery first.",
+      "not_found": "The upstream subscription record was not found for this account.",
+      "ready": "Config is ready."
+    },
+    "eyebrow": "Import kit",
+    "openSubscription": "Open link",
+    "rawConfig": "Raw config",
+    "status": {
+      "missing_config": "Config pending",
+      "missing_profile": "Profile missing",
+      "missing_service": "Provisioning pending",
+      "not_found": "Not found",
+      "ready": "Ready to import"
+    },
+    "subscriptionUrl": "Subscription URL",
+    "title": "One-tap VPN import"
+  },
+  "copy": {
+    "config": "Raw config copied.",
+    "error": "Clipboard copy failed. Use the visible link manually.",
+    "subscription": "Subscription link copied.",
+    "unavailable": "Clipboard is unavailable in this browser."
+  },
+  "dpi": {
+    "confidence": "Confidence",
+    "countries": "Countries",
+    "description": "Current public resistance model: {version}. Use it as a signal, not a guarantee, because DPI conditions change by network.",
+    "empty": "DPI score is not available right now.",
+    "enabled": "Enabled",
+    "eyebrow": "DPI resistance",
+    "title": "Network resilience signal"
+  },
+  "guide": {
+    "description": "The safe path is import, choose the recommended region, then verify the connection before switching sensitive traffic.",
+    "steps": {
+      "choose": {
+        "body": "Start with the recommended node. If speed drops, pick another online node with lower load.",
+        "title": "Choose region"
+      },
+      "import": {
+        "body": "Copy the subscription URL into your VPN client so future server and credential rotations stay automatic.",
+        "title": "Import config"
+      },
+      "verify": {
+        "body": "Reconnect and confirm the client shows an active tunnel before using private workflows.",
+        "title": "Verify tunnel"
+      }
+    },
+    "title": "Connection playbook"
+  },
+  "hero": {
+    "configStatus": "Config state",
+    "eyebrow": "Private access cockpit",
+    "serviceStatus": "Service delivery"
+  },
+  "labels": {
+    "auto": "AUTO",
+    "inbounds": "Inbounds",
+    "load": "Load",
+    "no": "No",
+    "nodeVersion": "Node",
+    "onlineUsers": "Online",
+    "traffic": "Traffic",
+    "unknown": "Unknown",
+    "yes": "Yes"
+  },
+  "recommended": {
+    "description": "Recommendation is based on online state, active connection, disabled flag, load, and traffic pressure.",
+    "empty": "No VPN nodes are available for recommendation.",
+    "eyebrow": "Recommended route",
+    "reasonFallback": "Fallback route",
+    "reasonReady": "Lowest friction",
+    "title": "Best node for this session"
+  },
+  "servers": {
+    "description": "Customer-safe node inventory. It exposes availability and import guidance, not operator controls.",
+    "empty": "No servers returned from the backend.",
+    "title": "Available private routes"
+  },
+  "status": {
+    "loading": "Loading",
+    "maintenance": "Maintenance",
+    "offline": "Offline",
+    "online": "Online",
+    "pending": "Pending",
+    "ready": "Ready",
+    "warning": "Warning"
+  },
+  "summary": {
+    "ariaLabel": "VPN server access summary",
+    "connected": "Connected",
+    "countries": "Regions",
+    "online": "Online nodes",
+    "protocols": "Protocols"
+  },
+  "sync": {
+    "degraded": "Degraded",
+    "lastSynced": "Last sync: {value}",
+    "live": "Live",
+    "neverSynced": "not synced yet",
+    "retry": "Refresh"
+  }
 }

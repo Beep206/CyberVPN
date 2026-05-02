@@ -1,60 +1,189 @@
-/**
- * Mini App Home Page Tests (TOB-5)
- *
- * Tests the home/dashboard page:
- * - Subscription status display (active, trial, none)
- * - Usage stats (data, connections, last connected)
- * - Trial availability and activation
- * - Progress bar colors (red > 80%, cyan <= 80%)
- * - Quick actions visibility
- * - Theme support (dark/light)
- *
- * Depends on: MG-1 (Home page subscription check implementation)
- */
-
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import MiniAppHomePage from '../../page';
+import type React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
+import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import MiniAppHomePage from '../../page';
+import {
+  cleanupTelegramWebAppMock,
+  setupTelegramWebAppMock,
+} from '@/test/mocks/telegram-webapp';
 
-// Mock API modules
+const { mockGetBootstrap, mockEmitMiniAppRuntimeEvent } = vi.hoisted(() => ({
+  mockGetBootstrap: vi.fn(),
+  mockEmitMiniAppRuntimeEvent: vi.fn(),
+}));
+
 vi.mock('@/lib/api', () => ({
-  vpnApi: {
-    getUsage: vi.fn(),
-  },
-  entitlementsApi: {
-    getCurrent: vi.fn(),
-  },
-  serviceAccessApi: {
-    getCurrentServiceState: vi.fn(),
-  },
-  trialApi: {
-    getStatus: vi.fn(),
-  },
-  subscriptionsApi: {
-    list: vi.fn(),
+  miniappApi: {
+    getBootstrap: mockGetBootstrap,
   },
 }));
 
-// Mock next-intl
+vi.mock('@/features/miniapp-runtime/lib/runtime-analytics', () => ({
+  emitMiniAppRuntimeEvent: mockEmitMiniAppRuntimeEvent,
+}));
+
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en-EN',
   useTranslations: () => (key: string) => key,
 }));
 
-// Mock i18n navigation
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: React.ComponentProps<'a'>) => (
-    <a href={href} {...props}>{children}</a>
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
-// Mock VpnConfigCard
 vi.mock('../../components/VpnConfigCard', () => ({
   VpnConfigCard: () => <div data-testid="vpn-config-card">VPN Config Card</div>,
 }));
 
-// Helper to wrap component with QueryClient
+const baseBootstrap = {
+  session: {
+    authenticated: true,
+    userId: 'user-001',
+    telegramUserId: '123456789',
+    authRealm: 'customer',
+  },
+  runtime: {
+    surface: 'telegram_miniapp',
+    tenant: {
+      kind: 'platform',
+      partnerId: null,
+      workspaceId: null,
+      storefrontId: null,
+      botId: null,
+    },
+    brand: {
+      name: 'CyberVPN',
+      logoUrl: null,
+      primaryColor: '#00ffff',
+      supportUrl: null,
+      legalName: null,
+    },
+    commercialPolicy: {
+      pricingPolicyId: 'default',
+      currencyPolicy: 'USD',
+      revenueSharePolicyId: null,
+      trialPolicyId: 'trial-default',
+    },
+    attribution: {
+      source: 'telegram',
+      surface: 'miniapp',
+      referralCode: null,
+      campaign: null,
+      startParam: null,
+    },
+  },
+  user: {
+    firstName: 'Test',
+    username: 'testuser',
+    photoUrl: null,
+    locale: 'en-EN',
+    rtl: false,
+  },
+  subscription: {
+    status: 'none',
+    planId: null,
+    planName: null,
+    expiresAt: null,
+    autoRenew: false,
+  },
+  trial: {
+    eligible: false,
+    reason: null,
+    durationDays: 7,
+    trialStart: null,
+    trialEnd: null,
+    daysRemaining: 0,
+  },
+  wallet: {
+    balance: 0,
+    currency: 'USD',
+    bonusesAvailable: 0,
+  },
+  devices: {
+    activeCount: 0,
+    limit: 5,
+    hasConfig: false,
+  },
+  usage: {
+    bandwidthUsedBytes: 0,
+    bandwidthLimitBytes: 0,
+    connectionsActive: 0,
+    connectionsLimit: 5,
+    periodStart: null,
+    periodEnd: null,
+    lastConnectionAt: null,
+  },
+  serviceState: {
+    providerName: null,
+    channelType: null,
+  },
+  recommendedServer: null,
+  primaryCta: {
+    kind: 'buy_plan',
+    label: 'Choose plan',
+  },
+  referral: {
+    code: null,
+    inviteUrl: null,
+    shareText: null,
+  },
+  payment: {
+    unresolvedPaymentId: null,
+    lastStatus: null,
+  },
+  support: {
+    url: null,
+    paysupportCommandAvailable: false,
+  },
+  rollout: {
+    enabled: true,
+    mode: 'live',
+    trialEnabled: true,
+    checkoutEnabled: true,
+    configEnabled: true,
+    accessGranted: true,
+    isCanaryUser: false,
+    gateReasonCode: null,
+    maintenanceMessage: null,
+  },
+  featureFlags: {},
+  freshness: {
+    generatedAt: '2026-04-24T00:00:00Z',
+  },
+};
+
+function bootstrap(overrides: Record<string, unknown> = {}) {
+  return {
+    ...baseBootstrap,
+    ...overrides,
+    session: { ...baseBootstrap.session, ...(overrides.session as object | undefined) },
+    runtime: { ...baseBootstrap.runtime, ...(overrides.runtime as object | undefined) },
+    user: { ...baseBootstrap.user, ...(overrides.user as object | undefined) },
+    subscription: {
+      ...baseBootstrap.subscription,
+      ...(overrides.subscription as object | undefined),
+    },
+    trial: { ...baseBootstrap.trial, ...(overrides.trial as object | undefined) },
+    wallet: { ...baseBootstrap.wallet, ...(overrides.wallet as object | undefined) },
+    devices: { ...baseBootstrap.devices, ...(overrides.devices as object | undefined) },
+    usage: { ...baseBootstrap.usage, ...(overrides.usage as object | undefined) },
+    serviceState: {
+      ...baseBootstrap.serviceState,
+      ...(overrides.serviceState as object | undefined),
+    },
+    primaryCta: {
+      ...baseBootstrap.primaryCta,
+      ...(overrides.primaryCta as object | undefined),
+    },
+    rollout: { ...baseBootstrap.rollout, ...(overrides.rollout as object | undefined) },
+  };
+}
+
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -62,471 +191,201 @@ function renderWithProviders(ui: React.ReactElement) {
       mutations: { retry: false },
     },
   });
+
   return render(
     <QueryClientProvider client={queryClient}>
       {ui}
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
 describe('MiniApp Home Page', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     setupTelegramWebAppMock();
-    vi.clearAllMocks();
-
-    const { entitlementsApi, serviceAccessApi } = await import('@/lib/api');
-    vi.mocked(entitlementsApi.getCurrent).mockResolvedValue({
-      data: {
-        status: 'none',
-        plan_uuid: null,
-        plan_code: null,
-        display_name: null,
-        period_days: null,
-        expires_at: null,
-        effective_entitlements: {},
-        invite_bundle: {},
-        is_trial: false,
-        addons: [],
-      }
-    } as never);
-    vi.mocked(serviceAccessApi.getCurrentServiceState).mockResolvedValue({
-      data: {
-        customer_account_id: 'user-001',
-        auth_realm_id: 'realm-001',
-        provider_name: 'remnawave',
-        entitlement_snapshot: {
-          status: 'none',
-          plan_uuid: null,
-          plan_code: null,
-          display_name: null,
-          period_days: null,
-          expires_at: null,
-          effective_entitlements: {},
-          invite_bundle: {},
-          is_trial: false,
-          addons: [],
-        },
-        service_identity: null,
-        provisioning_profile: null,
-        device_credential: null,
-        access_delivery_channel: null,
-        purchase_context: {
-          active_entitlement_grant_id: null,
-          source_type: null,
-          source_order_id: null,
-          source_growth_reward_allocation_id: null,
-          source_renewal_order_id: null,
-          manual_source_key: null,
-          origin_storefront_id: null,
-        },
-        consumption_context: {
-          channel_type: 'telegram_bot',
-          channel_subject_ref: 'telegram-miniapp:123456789',
-          provisioning_profile_key: null,
-          credential_type: 'telegram_bot',
-          credential_subject_key: 'telegram-miniapp:123456789',
-        },
-      }
-    } as never);
+    mockGetBootstrap.mockResolvedValue({ data: bootstrap() });
+    mockEmitMiniAppRuntimeEvent.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     cleanupTelegramWebAppMock();
+    vi.clearAllMocks();
   });
 
-  describe('Loading State', () => {
-    it('test_displays_loading_spinner', async () => {
-      const { vpnApi, trialApi, entitlementsApi, serviceAccessApi } = await import('@/lib/api');
+  it('test_displays_loading_spinner', () => {
+    mockGetBootstrap.mockReturnValue(new Promise(() => {}));
 
-      vi.mocked(vpnApi.getUsage).mockReturnValue(new Promise(() => {}) as never);
-      vi.mocked(trialApi.getStatus).mockReturnValue(new Promise(() => {}) as never);
-      vi.mocked(entitlementsApi.getCurrent).mockReturnValue(new Promise(() => {}) as never);
-      vi.mocked(serviceAccessApi.getCurrentServiceState).mockReturnValue(new Promise(() => {}) as never);
+    renderWithProviders(<MiniAppHomePage />);
 
-      renderWithProviders(<MiniAppHomePage />);
-
-      const spinner = document.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
-    });
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  describe('No Subscription', () => {
-    it('test_displays_no_subscription_message', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
+  it('test_displays_no_subscription_message_without_usage_stats', async () => {
+    renderWithProviders(<MiniAppHomePage />);
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: false, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByText('noSubscription')).toBeInTheDocument();
     });
 
-    it('test_no_usage_stats_without_subscription', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: false, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('usage')).not.toBeInTheDocument();
-    });
+    expect(screen.queryByText('usage')).not.toBeInTheDocument();
+    expect(screen.queryByText('vpnConfig')).not.toBeInTheDocument();
   });
 
-  describe('Trial Subscription', () => {
-    it('test_displays_trial_badge', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 1073741824, // 1 GB
-          bandwidth_limit_bytes: 10737418240, // 10 GB
-          connections_active: 2,
-          connections_limit: 5,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: {
-          is_trial_active: true,
-          is_eligible: false,
-          trial_end: '2025-01-30T23:59:59Z',
-          days_remaining: 15,
-        }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('trial')).toBeInTheDocument();
-      });
-    });
-
-    it('test_shows_usage_stats_on_trial', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 2147483648, // 2 GB
-          bandwidth_limit_bytes: 10737418240, // 10 GB
-          connections_active: 3,
-          connections_limit: 5,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: true, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('usage')).toBeInTheDocument();
-        expect(screen.getByText('dataUsed')).toBeInTheDocument();
-        expect(screen.getByText('connections')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Active Subscription', () => {
-    it('test_displays_active_subscription', async () => {
-      const { vpnApi, trialApi, entitlementsApi, serviceAccessApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 5368709120, // 5 GB
-          bandwidth_limit_bytes: 107374182400, // 100 GB
-          connections_active: 1,
-          connections_limit: 10,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: false, is_eligible: false }
-      } as never);
-      vi.mocked(entitlementsApi.getCurrent).mockResolvedValue({
-        data: {
+  it('test_displays_active_subscription_summary', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        subscription: {
           status: 'active',
-          plan_uuid: 'plan-pro-001',
-          plan_code: 'pro',
-          display_name: 'Premium',
-          expires_at: '2025-12-31T23:59:59Z',
-          period_days: 30,
-          effective_entitlements: {},
-          invite_bundle: {},
-          is_trial: false,
-          addons: [],
-        }
-      } as never);
-      vi.mocked(serviceAccessApi.getCurrentServiceState).mockResolvedValue({
-        data: {
-          customer_account_id: 'user-001',
-          auth_realm_id: 'realm-001',
-          provider_name: 'remnawave',
-          entitlement_snapshot: {
-            status: 'active',
-            plan_uuid: 'plan-pro-001',
-            plan_code: 'pro',
-            display_name: 'Premium',
-            expires_at: '2025-12-31T23:59:59Z',
-            period_days: 30,
-            effective_entitlements: {},
-            invite_bundle: {},
-            is_trial: false,
-            addons: [],
-          },
-          service_identity: null,
-          provisioning_profile: null,
-          device_credential: null,
-          access_delivery_channel: null,
-          purchase_context: {
-            active_entitlement_grant_id: null,
-            source_type: null,
-            source_order_id: null,
-            source_growth_reward_allocation_id: null,
-            source_renewal_order_id: null,
-            manual_source_key: null,
-            origin_storefront_id: null,
-          },
-          consumption_context: {
-            channel_type: 'telegram_bot',
-            channel_subject_ref: 'telegram-miniapp:123456789',
-            provisioning_profile_key: null,
-            credential_type: 'telegram_bot',
-            credential_subject_key: 'telegram-miniapp:123456789',
-          },
-        }
-      } as never);
+          planId: 'plan-pro-001',
+          planName: 'Premium',
+          expiresAt: '2026-12-31T23:59:59Z',
+          autoRenew: true,
+        },
+        serviceState: {
+          providerName: 'remnawave',
+          channelType: 'telegram_bot',
+        },
+        devices: {
+          activeCount: 1,
+          limit: 10,
+          hasConfig: true,
+        },
+      }),
+    });
 
-      renderWithProviders(<MiniAppHomePage />);
+    renderWithProviders(<MiniAppHomePage />);
 
-      await waitFor(() => {
-        expect(screen.getByText('subscriptionActive')).toBeInTheDocument();
-        expect(screen.getByText('Premium')).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByText('subscriptionActive')).toBeInTheDocument();
+      expect(screen.getByText('Premium')).toBeInTheDocument();
+      expect(screen.getByText('remnawave')).toBeInTheDocument();
     });
   });
 
-  describe('Usage Stats', () => {
-    it('test_displays_data_usage', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 3221225472, // 3 GB
-          bandwidth_limit_bytes: 10737418240, // 10 GB
-          connections_active: 2,
-          connections_limit: 5,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: true, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/3\.00 GB/)).toBeInTheDocument();
-        expect(screen.getByText(/10\.00 GB/)).toBeInTheDocument();
-      });
+  it('test_displays_trial_badge_and_trial_usage', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        subscription: { status: 'trial' },
+        trial: {
+          eligible: false,
+          trialEnd: '2026-05-01T23:59:59Z',
+          daysRemaining: 7,
+        },
+        usage: {
+          bandwidthUsedBytes: 2 * 1024 ** 3,
+          bandwidthLimitBytes: 10 * 1024 ** 3,
+          connectionsActive: 3,
+          connectionsLimit: 5,
+          lastConnectionAt: '2026-04-24T10:00:00Z',
+        },
+      }),
     });
 
-    it('test_displays_connections_count', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
+    renderWithProviders(<MiniAppHomePage />);
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 1073741824,
-          bandwidth_limit_bytes: 10737418240,
-          connections_active: 4,
-          connections_limit: 10,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: true, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/4 \/ 10/)).toBeInTheDocument();
-      });
-    });
-
-    it('test_cyan_progress_bar_under_80_percent', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 5368709120, // 5 GB (50%)
-          bandwidth_limit_bytes: 10737418240, // 10 GB
-          connections_active: 1,
-          connections_limit: 5,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: true, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        const progressBar = document.querySelector('.bg-neon-cyan');
-        expect(progressBar).toBeInTheDocument();
-      });
-    });
-
-    it('test_red_progress_bar_over_80_percent', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 9663676416, // 9 GB (90%)
-          bandwidth_limit_bytes: 10737418240, // 10 GB
-          connections_active: 1,
-          connections_limit: 5,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: true, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        const progressBar = document.querySelector('.bg-destructive');
-        expect(progressBar).toBeInTheDocument();
-      });
+    await waitFor(() => {
+      expect(screen.getByText('trial')).toBeInTheDocument();
+      expect(screen.getByText('usage')).toBeInTheDocument();
+      expect(screen.getByText(/2\.00 GB \/ 10\.00 GB/)).toBeInTheDocument();
+      expect(screen.getByText('3 / 5')).toBeInTheDocument();
     });
   });
 
-  describe('Trial Availability', () => {
-    it('test_shows_trial_available_card', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: {
-          is_trial_active: false,
-          is_eligible: true, // Can activate trial
-        }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('trialAvailable')).toBeInTheDocument();
-        expect(screen.getByText('activateTrial')).toBeInTheDocument();
-      });
+  it('test_uses_cyan_progress_bar_under_80_percent', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        subscription: { status: 'active' },
+        usage: {
+          bandwidthUsedBytes: 5 * 1024 ** 3,
+          bandwidthLimitBytes: 10 * 1024 ** 3,
+          connectionsActive: 1,
+          connectionsLimit: 5,
+        },
+      }),
     });
 
-    it('test_no_trial_card_when_not_eligible', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
+    renderWithProviders(<MiniAppHomePage />);
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: {
-          is_trial_active: false,
-          is_eligible: false, // Not eligible
-        }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('noSubscription')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('trialAvailable')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector('.bg-neon-cyan')).toBeInTheDocument();
     });
   });
 
-  describe('Quick Actions', () => {
-    it('test_displays_quick_actions', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: false, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('quickActions')).toBeInTheDocument();
-        expect(screen.getByText('viewPlans')).toBeInTheDocument();
-        expect(screen.getByText('wallet')).toBeInTheDocument();
-        expect(screen.getByText('settings')).toBeInTheDocument();
-      });
+  it('test_uses_red_progress_bar_at_80_percent_or_more', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        subscription: { status: 'active' },
+        usage: {
+          bandwidthUsedBytes: 9 * 1024 ** 3,
+          bandwidthLimitBytes: 10 * 1024 ** 3,
+          connectionsActive: 1,
+          connectionsLimit: 5,
+        },
+      }),
     });
 
-    it('test_vpn_config_action_shown_with_subscription', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
+    renderWithProviders(<MiniAppHomePage />);
 
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({
-        data: {
-          bandwidth_used_bytes: 1073741824,
-          bandwidth_limit_bytes: 10737418240,
-          connections_active: 1,
-          connections_limit: 5,
-          last_connection_at: '2025-01-15T14:30:00Z',
-        }
-      } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: true, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('vpnConfig')).toBeInTheDocument();
-      });
-    });
-
-    it('test_vpn_config_action_hidden_without_subscription', async () => {
-      const { vpnApi, trialApi, subscriptionsApi } = await import('@/lib/api');
-
-      vi.mocked(vpnApi.getUsage).mockResolvedValue({ data: null } as never);
-      vi.mocked(trialApi.getStatus).mockResolvedValue({
-        data: { is_trial_active: false, is_eligible: false }
-      } as never);
-      vi.mocked(subscriptionsApi.list).mockResolvedValue({ data: [] } as never);
-
-      renderWithProviders(<MiniAppHomePage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('quickActions')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText('vpnConfig')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector('.bg-destructive')).toBeInTheDocument();
     });
   });
 
+  it('test_shows_trial_available_card_when_rollout_allows_trial', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        trial: {
+          eligible: true,
+          durationDays: 7,
+          daysRemaining: 0,
+        },
+      }),
+    });
+
+    renderWithProviders(<MiniAppHomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('trialAvailable')).toBeInTheDocument();
+      expect(screen.getByText('activateTrial')).toBeInTheDocument();
+    });
+  });
+
+  it('test_hides_trial_card_when_rollout_disables_trial', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        trial: { eligible: true },
+        rollout: { trialEnabled: false },
+      }),
+    });
+
+    renderWithProviders(<MiniAppHomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('noSubscription')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('trialAvailable')).not.toBeInTheDocument();
+  });
+
+  it('test_displays_quick_actions', async () => {
+    renderWithProviders(<MiniAppHomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('quickActions')).toBeInTheDocument();
+      expect(screen.getByText('viewPlans')).toBeInTheDocument();
+      expect(screen.getByText('wallet')).toBeInTheDocument();
+      expect(screen.getByText('settings')).toBeInTheDocument();
+    });
+  });
+
+  it('test_vpn_config_action_is_shown_only_with_subscription_or_trial', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({ subscription: { status: 'active' } }),
+    });
+
+    renderWithProviders(<MiniAppHomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('vpnConfig')).toBeInTheDocument();
+    });
+  });
 });

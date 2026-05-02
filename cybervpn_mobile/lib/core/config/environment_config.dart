@@ -112,6 +112,15 @@ class EnvironmentConfig {
     defaultValue: '',
   );
 
+  /// Value injected at compile time via `--dart-define=SENTRY_RELEASE=...`.
+  ///
+  /// Empty by default so builds without an explicit release contract do not
+  /// create misleading release identifiers in Sentry.
+  static const String _dartDefineSentryRelease = String.fromEnvironment(
+    'SENTRY_RELEASE',
+    defaultValue: '',
+  );
+
   /// Value injected at compile time via `--dart-define=CERT_FINGERPRINTS=...`.
   ///
   /// Comma-separated list of SHA-256 certificate fingerprints for pinning.
@@ -130,6 +139,57 @@ class EnvironmentConfig {
     defaultValue: '',
   );
 
+  /// Value injected at compile time via `--dart-define=TELEGRAM_OIDC_CLIENT_ID=...`.
+  ///
+  /// Used by the official Telegram native login SDK.
+  static const String _dartDefineTelegramOidcClientId = String.fromEnvironment(
+    'TELEGRAM_OIDC_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  /// Value injected at compile time via `--dart-define=TELEGRAM_NATIVE_REDIRECT_URI=...`.
+  ///
+  /// Used by the official Telegram native login SDK callback handling.
+  static const String _dartDefineTelegramNativeRedirectUri =
+      String.fromEnvironment('TELEGRAM_NATIVE_REDIRECT_URI', defaultValue: '');
+
+  /// Feature flag injected at compile time via
+  /// `--dart-define=TELEGRAM_NATIVE_LOGIN_ENABLED=...`.
+  static const String _dartDefineTelegramNativeLoginEnabled =
+      String.fromEnvironment(
+        'TELEGRAM_NATIVE_LOGIN_ENABLED',
+        defaultValue: 'false',
+      );
+
+  /// Feature flag injected at compile time via
+  /// `--dart-define=TELEGRAM_NATIVE_PHONE_SCOPE_ENABLED=...`.
+  static const String _dartDefineTelegramNativePhoneScopeEnabled =
+      String.fromEnvironment(
+        'TELEGRAM_NATIVE_PHONE_SCOPE_ENABLED',
+        defaultValue: 'false',
+      );
+
+  /// Platform rollout flag injected via
+  /// `--dart-define=TELEGRAM_NATIVE_LOGIN_IOS_ENABLED=...`.
+  ///
+  /// Defaults to `true` so existing builds that only use the global flag keep
+  /// working until rollout needs per-platform gating.
+  static const String _dartDefineTelegramNativeLoginIosEnabled =
+      String.fromEnvironment(
+        'TELEGRAM_NATIVE_LOGIN_IOS_ENABLED',
+        defaultValue: 'true',
+      );
+
+  /// Platform rollout flag injected via
+  /// `--dart-define=TELEGRAM_NATIVE_LOGIN_ANDROID_ENABLED=...`.
+  ///
+  /// Defaults to `true` so existing builds that only use the global flag keep
+  /// working until rollout needs per-platform gating.
+  static const String _dartDefineTelegramNativeLoginAndroidEnabled =
+      String.fromEnvironment(
+        'TELEGRAM_NATIVE_LOGIN_ANDROID_ENABLED',
+        defaultValue: 'true',
+      );
 
   // ── Resolved values (dart-define > .env > default) ───────────────────
 
@@ -237,6 +297,26 @@ class EnvironmentConfig {
     return '';
   }
 
+  /// The resolved Sentry release identifier.
+  ///
+  /// Priority: `--dart-define` > `.env` > empty string.
+  ///
+  /// When empty, Sentry falls back to its default release behavior.
+  static String get sentryRelease {
+    if (_dartDefineSentryRelease.isNotEmpty) {
+      return _dartDefineSentryRelease;
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('SENTRY_RELEASE');
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
+    }
+
+    return '';
+  }
+
   /// The resolved certificate fingerprints for SSL pinning.
   ///
   /// Priority: `--dart-define` > `.env` > empty list (disabled).
@@ -286,6 +366,106 @@ class EnvironmentConfig {
     return '';
   }
 
+  /// The resolved Telegram OIDC client id for native login.
+  ///
+  /// Priority: `--dart-define` > `.env` > empty string (disabled).
+  static String get telegramOidcClientId {
+    if (_dartDefineTelegramOidcClientId.isNotEmpty) {
+      return _dartDefineTelegramOidcClientId;
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_OIDC_CLIENT_ID');
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
+    }
+
+    return '';
+  }
+
+  /// The resolved redirect URI for the Telegram native login SDK.
+  ///
+  /// Priority: `--dart-define` > `.env` > empty string (disabled).
+  static String get telegramNativeRedirectUri {
+    if (_dartDefineTelegramNativeRedirectUri.isNotEmpty) {
+      return _dartDefineTelegramNativeRedirectUri;
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_NATIVE_REDIRECT_URI');
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
+    }
+
+    return '';
+  }
+
+  /// `true` when the Telegram native login feature flag is enabled.
+  static bool get telegramNativeLoginEnabledFlag {
+    if (_dartDefineTelegramNativeLoginEnabled != 'false') {
+      return _parseBool(_dartDefineTelegramNativeLoginEnabled);
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_NATIVE_LOGIN_ENABLED');
+      if (envValue != null && envValue.isNotEmpty) {
+        return _parseBool(envValue);
+      }
+    }
+
+    return false;
+  }
+
+  /// `true` when the Telegram native login flow should request the phone scope.
+  static bool get telegramNativePhoneScopeEnabled {
+    if (_dartDefineTelegramNativePhoneScopeEnabled != 'false') {
+      return _parseBool(_dartDefineTelegramNativePhoneScopeEnabled);
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_NATIVE_PHONE_SCOPE_ENABLED');
+      if (envValue != null && envValue.isNotEmpty) {
+        return _parseBool(envValue);
+      }
+    }
+
+    return false;
+  }
+
+  /// `true` when Telegram native login is allowed for iOS builds.
+  static bool get telegramNativeLoginIosEnabledFlag {
+    if (_dartDefineTelegramNativeLoginIosEnabled != 'true') {
+      return _parseBool(_dartDefineTelegramNativeLoginIosEnabled);
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_NATIVE_LOGIN_IOS_ENABLED');
+      if (envValue != null && envValue.isNotEmpty) {
+        return _parseBool(envValue);
+      }
+    }
+
+    return true;
+  }
+
+  /// `true` when Telegram native login is allowed for Android builds.
+  static bool get telegramNativeLoginAndroidEnabledFlag {
+    if (_dartDefineTelegramNativeLoginAndroidEnabled != 'true') {
+      return _parseBool(_dartDefineTelegramNativeLoginAndroidEnabled);
+    }
+
+    if (_dotenvLoaded) {
+      final envValue = dotenv.maybeGet('TELEGRAM_NATIVE_LOGIN_ANDROID_ENABLED');
+      if (envValue != null && envValue.isNotEmpty) {
+        return _parseBool(envValue);
+      }
+    }
+
+    return true;
+  }
+
   // ── Convenience helpers ──────────────────────────────────────────────
 
   /// `true` when running in the `dev` environment.
@@ -297,6 +477,46 @@ class EnvironmentConfig {
   /// `true` when running in the `prod` environment.
   static bool get isProd => environment == 'prod';
 
-  /// `true` when Telegram login is available.
-  static bool get isTelegramLoginAvailable => telegramBotUsername.isNotEmpty;
+  /// `true` when the legacy Telegram Login Widget flow is available.
+  static bool get isTelegramLegacyLoginAvailable =>
+      telegramBotUsername.isNotEmpty;
+
+  /// `true` when the Telegram native SDK flow is configured and enabled.
+  static bool get isTelegramNativeLoginEnabled =>
+      telegramNativeLoginEnabledFlag &&
+      telegramOidcClientId.isNotEmpty &&
+      telegramNativeRedirectUri.isNotEmpty;
+
+  /// `true` when Telegram native login is enabled and allowed for this
+  /// platform rollout cohort.
+  static bool get isTelegramNativeLoginEnabledForCurrentPlatform {
+    if (!isTelegramNativeLoginEnabled || kIsWeb) {
+      return false;
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return telegramNativeLoginIosEnabledFlag;
+      case TargetPlatform.android:
+        return telegramNativeLoginAndroidEnabledFlag;
+      default:
+        return false;
+    }
+  }
+
+  /// `true` when any Telegram login entry point is available.
+  static bool get isTelegramLoginAvailable =>
+      isTelegramNativeLoginEnabled || isTelegramLegacyLoginAvailable;
+
+  static bool _parseBool(String value) {
+    switch (value.trim().toLowerCase()) {
+      case '1':
+      case 'true':
+      case 'yes':
+      case 'on':
+        return true;
+      default:
+        return false;
+    }
+  }
 }

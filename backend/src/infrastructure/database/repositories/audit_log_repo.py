@@ -88,3 +88,17 @@ class AuditLogRepository:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def get_recent_by_actions(
+        self,
+        actions: list[str] | tuple[str, ...],
+        *,
+        limit: int = 20,
+    ) -> list[AuditLog]:
+        result = await self._session.execute(
+            select(AuditLog)
+            .where(AuditLog.action.in_(tuple(actions)))
+            .order_by(AuditLog.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())

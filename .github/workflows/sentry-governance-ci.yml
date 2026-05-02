@@ -1,0 +1,32 @@
+name: Sentry Governance CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'scripts/validate-sentry-governance.py'
+      - '.github/workflows/sentry-governance-ci.yml'
+  pull_request:
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'scripts/validate-sentry-governance.py'
+      - '.github/workflows/sentry-governance-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate governance registry
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Sentry governance registry
+        run: python3 scripts/validate-sentry-governance.py

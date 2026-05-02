@@ -1,0 +1,144 @@
+{
+  "title": "УПРАВЛЕНИЕ ПОДПИСКОЙ",
+  "subtitle": "Управляйте VPN-доступом, trial, upgrade path, add-ons, billing-сигналами и provisioning readiness из одного пользовательского cockpit.",
+  "errorLoading": "Ошибка загрузки подписок",
+  "currentSubscription": "Текущая подписка",
+  "status": "Статус",
+  "expiresAt": "Истекает",
+  "startedAt": "Начало",
+  "autoRenew": "Автопродление",
+  "enabled": "Включено",
+  "disabled": "Выключено",
+  "cancelSubscription": "Отменить подписку",
+  "noActiveSubscription": "Нет активной подписки",
+  "choosePlanBelow": "Выберите план ниже, чтобы начать",
+  "availablePlans": "Доступные планы",
+  "errorLoadingPlans": "Ошибка загрузки планов",
+  "noPlansAvailable": "Сейчас нет доступных планов",
+  "codesAndRewards": "Коды и награды",
+  "rewardsHubTitle": "Центр наград",
+  "rewardsHubDescription": "Управляйте invite-кодами, referral sharing и redemption в одном месте, не разделяя flow по экранам подписки.",
+  "rewardsHubCta": "Открыть центр наград",
+  "checkoutCodesTitle": "Checkout-коды",
+  "checkoutCodesDescription": "Promo-коды применяются в checkout. Invite redemption остаётся в центре наград, чтобы цены и доступ не расходились между поверхностями.",
+  "subscriptionHistory": "История подписки",
+  "actions": {
+    "cancel": "Отменить продление",
+    "getConfig": "Получить VPN config",
+    "paymentHistory": "История платежей",
+    "wallet": "Кошелёк"
+  },
+  "addons": {
+    "description": "Add-ons сначала считаются через backend quote текущего entitlement, поэтому цена и изменения доступа остаются авторитетными.",
+    "empty": "Для текущего плана нет активных add-ons.",
+    "eyebrow": "Каталог add-ons",
+    "purchase": {
+      "completed": "Add-on применён к подписке.",
+      "pending": "Checkout для add-on создан. Завершите invoice для активации."
+    },
+    "purchaseCta": "Купить",
+    "purchaseError": "Покупка add-on не удалась. Повторите или обратитесь в поддержку.",
+    "quote": "Рассчитать",
+    "quoteError": "Не удалось рассчитать add-on. Обновите страницу и повторите.",
+    "quoteReady": "Quote готов: {amount}",
+    "title": "Дополнительная ёмкость и доступ"
+  },
+  "current": {
+    "connectionModes": "Режимы подключения",
+    "description": "Это backend entitlement, который сейчас управляет VPN-доступом, лимитами устройств, traffic policy и delivery сервиса.",
+    "devices": "Устройства",
+    "expiresAt": "Истекает",
+    "eyebrow": "Текущий entitlement",
+    "noPlanDescription": "Выберите публичный план или активируйте доступный trial, чтобы подготовить VPN-доступ.",
+    "noPlanTitle": "Нет активного плана",
+    "subscriptionFallback": "подписка",
+    "support": "Поддержка",
+    "traffic": "Трафик"
+  },
+  "health": {
+    "attention": "Требует внимания",
+    "critical": "Нужно действие",
+    "healthy": "В норме"
+  },
+  "hero": {
+    "eyebrow": "Cockpit плана и доступа",
+    "health": "Здоровье подписки",
+    "service": "Provisioning"
+  },
+  "history": {
+    "empty": "Backend ещё не вернул историю заказов.",
+    "eyebrow": "Billing trail",
+    "title": "Последние заказы подписки"
+  },
+  "labels": {
+    "noPlan": "Нет плана",
+    "notAvailable": "Н/Д"
+  },
+  "nextActions": {
+    "addonsAvailable": "Для этого плана можно рассчитать optional add-ons.",
+    "choosePlan": "Выберите план или trial, чтобы открыть VPN-доступ.",
+    "eyebrow": "Readiness checklist",
+    "finishProvisioning": "Provisioning ещё не завершён. Проверьте service access перед импортом config.",
+    "noAddons": "Для этого плана сейчас нет add-ons.",
+    "paymentSignal": "Для долгосрочного доступа должен быть хотя бы один paid order.",
+    "serviceReady": "Service access подготовлен.",
+    "subscriptionReady": "Subscription entitlement активен.",
+    "title": "Следующие действия"
+  },
+  "planActions": {
+    "commit": {
+      "completed": "Изменение плана завершено.",
+      "pending": "Checkout изменения плана создан. Завершите invoice для активации."
+    },
+    "commitCta": "Применить",
+    "commitError": "Не удалось изменить план. Повторите или обратитесь в checkout support.",
+    "current": "Текущий",
+    "downgrade": "Изменить",
+    "loading": "Выполняется",
+    "purchase": "Купить",
+    "quote": "Рассчитать",
+    "quoteError": "Не удалось рассчитать план. Обновите каталог и повторите.",
+    "quoteReady": "Quote готов: {amount}",
+    "upgrade": "Upgrade"
+  },
+  "plans": {
+    "description": "Публичные планы загружаются из canonical web catalog. Текущий план заблокирован; остальные планы сначала проходят quote перед покупкой или upgrade.",
+    "empty": "Сейчас нет публичных планов.",
+    "eyebrow": "Каталог планов",
+    "perCycle": "за {duration}",
+    "publicCount": "{count} публичных планов",
+    "title": "Выберите следующий уровень доступа"
+  },
+  "service": {
+    "channel": "Канал",
+    "pending": "Ожидается",
+    "profile": "Профиль",
+    "provider": "Провайдер",
+    "provisioned": "Подготовлен"
+  },
+  "summary": {
+    "addons": "Add-ons",
+    "ariaLabel": "Сводка подписки и доступа",
+    "billing": "Цена цикла",
+    "days": "{count}д",
+    "expires": "Осталось",
+    "plan": "План"
+  },
+  "sync": {
+    "degraded": "Есть сбои",
+    "description": "Queries ставятся на паузу в скрытых/offline вкладках и обновляются вручную.",
+    "live": "Live",
+    "retry": "Обновить"
+  },
+  "trial": {
+    "activate": "Запустить trial",
+    "activating": "Активация",
+    "activeDescription": "Trial-доступ активен. Осталось {count} дней до необходимости платного плана.",
+    "activeTitle": "Trial активен",
+    "eligibleDescription": "Запустите trial, чтобы подготовить ограниченный VPN entitlement перед checkout.",
+    "eligibleTitle": "Trial доступен",
+    "error": "Не удалось активировать trial. Повторите или обратитесь в поддержку.",
+    "eyebrow": "Trial-доступ",
+    "success": "Trial активирован. Состояние доступа обновляется."
+  }
+}

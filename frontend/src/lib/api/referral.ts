@@ -6,6 +6,7 @@ type ReferralStatusResponse = operations['get_referral_status_api_v1_referral_st
 type ReferralCodeResponse = operations['get_referral_code_api_v1_referral_code_get']['responses'][200]['content']['application/json'];
 type ReferralStatsResponse = operations['get_referral_stats_api_v1_referral_stats_get']['responses'][200]['content']['application/json'];
 type ReferralCommissionResponse = operations['get_recent_commissions_api_v1_referral_recent_get']['responses'][200]['content']['application/json'];
+type ReferralRewardsResponse = operations['get_referral_rewards_api_v1_referral_rewards_get']['responses'][200]['content']['application/json'];
 
 /**
  * Referral Program API client
@@ -53,4 +54,14 @@ export const referralApi = {
    */
   getRecentCommissions: () =>
     apiClient.get<ReferralCommissionResponse>('/referral/recent'),
+
+  /**
+   * Get canonical referral rewards.
+   * GET /api/v1/referral/rewards
+   *
+   * Returns reward lifecycle entries using target-state statuses:
+   * pending, available, blocked_by_risk, reversed, expired.
+   */
+  getRewards: () =>
+    apiClient.get<ReferralRewardsResponse>('/referral/rewards'),
 };
