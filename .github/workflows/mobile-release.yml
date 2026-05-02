@@ -48,7 +48,7 @@ jobs:
             echo "- Debug symbol upload enabled: \`${SENTRY_UPLOAD_ENABLED}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
