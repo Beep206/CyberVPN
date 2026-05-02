@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -14,7 +14,13 @@ vi.mock('@/shared/ui/modal', () => ({
     isOpen ? <div data-testid="modal">{children}</div> : null,
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const MATCH_ANY_API_ORIGIN = {
+  quoteSessions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/quotes\/?$/,
+  resolveCodes: /https?:\/\/localhost(?::\d+)?\/api\/v1\/codes\/resolve$/,
+  checkoutSessions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/checkout-sessions\/?$/,
+  ordersCommit: /https?:\/\/localhost(?::\d+)?\/api\/v1\/orders\/commit$/,
+  paymentAttempts: /https?:\/\/localhost(?::\d+)?\/api\/v1\/payment-attempts\/?$/,
+};
 
 function createQueryClient() {
   return new QueryClient({
@@ -274,7 +280,7 @@ describe('PurchaseConfirmModal', () => {
     const capturedBodies: Record<string, unknown>[] = [];
 
     server.use(
-      http.post(`${API_BASE}/quotes/`, async ({ request }) => {
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
         capturedBodies.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json(createQuoteSession(), { status: 201 });
       }),
@@ -303,16 +309,32 @@ describe('PurchaseConfirmModal', () => {
     expect(screen.getByText('Checkout total')).toBeInTheDocument();
   });
 
-  it('re-quotes against canonical quote sessions when a promo code is applied', async () => {
+  it('re-quotes against canonical quote sessions when a checkout code is applied', async () => {
     const user = userEvent.setup({ delay: null });
-    const capturedPromoCodes: Array<string | null> = [];
+    const capturedCodeInputs: Array<string | null> = [];
 
     server.use(
-      http.post(`${API_BASE}/quotes/`, async ({ request }) => {
-        const body = (await request.json()) as { promo_code?: string | null };
-        capturedPromoCodes.push(body.promo_code ?? null);
+      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async () =>
+        HttpResponse.json({
+          accepted: true,
+          code_type: 'promo',
+          action_context: 'checkout',
+          result: 'accepted',
+          reject_reason: null,
+          conflict_code: null,
+          wrong_context_target: null,
+          issuer_type: 'admin',
+          owner_type: 'admin_campaign',
+          resolved_code_id: 'promo_001',
+          promo_code_id: 'promo_001',
+          partner_code_id: null,
+          user_message_key: 'growth_codes.promo.accepted',
+        })),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
+        const body = (await request.json()) as { code_input?: string | null };
+        capturedCodeInputs.push(body.code_input ?? null);
 
-        if (body.promo_code === 'SAVE20') {
+        if (body.code_input === 'SAVE20') {
           return HttpResponse.json(
             createQuoteSession({
               quote: createQuote({
@@ -339,11 +361,11 @@ describe('PurchaseConfirmModal', () => {
 
     await screen.findByText('Checkout total');
 
-    await user.type(screen.getByLabelText(/Promo Code/i), 'save20');
-    await user.click(screen.getByRole('button', { name: /Apply Promo/i }));
+    fireEvent.change(screen.getByLabelText(/Checkout Code/i), { target: { value: 'SAVE20' } });
+    await user.click(screen.getByRole('button', { name: /Apply Code/i }));
 
     await waitFor(() => {
-      expect(capturedPromoCodes).toContain('SAVE20');
+      expect(capturedCodeInputs).toContain('SAVE20');
     });
 
     expect(await screen.findByText(/SAVE20 applied/i)).toBeInTheDocument();
@@ -351,14 +373,30 @@ describe('PurchaseConfirmModal', () => {
 
   it('does not surface partner markup-only quote adjustments on official web', async () => {
     server.use(
-      http.post(`${API_BASE}/quotes/`, async ({ request }) => {
-        const body = (await request.json()) as { promo_code?: string | null };
+      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async () =>
+        HttpResponse.json({
+          accepted: true,
+          code_type: 'promo',
+          action_context: 'checkout',
+          result: 'accepted',
+          reject_reason: null,
+          conflict_code: null,
+          wrong_context_target: null,
+          issuer_type: 'admin',
+          owner_type: 'admin_campaign',
+          resolved_code_id: 'promo_001',
+          promo_code_id: 'promo_001',
+          partner_code_id: null,
+          user_message_key: 'growth_codes.promo.accepted',
+        })),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
+        const body = (await request.json()) as { code_input?: string | null };
 
         return HttpResponse.json(
           createQuoteSession({
             quote: createQuote({
-              discount_amount: body.promo_code ? 0 : 0,
-              partner_markup: body.promo_code ? 6.5 : 0,
+              discount_amount: body.code_input ? 0 : 0,
+              partner_markup: body.code_input ? 6.5 : 0,
             }),
           }),
         );
@@ -373,15 +411,60 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Have a Promo Code?');
+    await screen.findByText('Have a Checkout Code?');
 
-    const promoInput = screen.getByLabelText('Promo Code');
-    await userEvent.type(promoInput, 'save20');
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Promo' }));
+    const promoInput = screen.getByLabelText('Checkout Code');
+    fireEvent.change(promoInput, { target: { value: 'SAVE20' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Code' }));
 
     await waitFor(() => {
       expect(screen.queryByText('Quote Updated')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows typed wrong-context feedback for invite codes without mutating checkout state', async () => {
+    const user = userEvent.setup({ delay: null });
+    const capturedBodies: Record<string, unknown>[] = [];
+
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async () =>
+        HttpResponse.json({
+          accepted: false,
+          code_type: 'invite',
+          action_context: 'checkout',
+          result: 'rejected',
+          reject_reason: 'code_wrong_context',
+          conflict_code: null,
+          wrong_context_target: 'redeem',
+          issuer_type: 'admin',
+          owner_type: 'customer',
+          resolved_code_id: 'invite_001',
+          promo_code_id: null,
+          partner_code_id: null,
+          user_message_key: 'growth_codes.invite.redeem_required',
+        })),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
+        capturedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(createQuoteSession(), { status: 201 });
+      }),
+    );
+
+    renderWithProviders(
+      <PurchaseConfirmModal
+        isOpen
+        onClose={vi.fn()}
+        plan={createPlan()}
+      />,
+    );
+
+    await screen.findByText('Checkout total');
+    fireEvent.change(screen.getByLabelText(/Checkout Code/i), { target: { value: 'INVITE-AAA' } });
+    await user.click(screen.getByRole('button', { name: /Apply Code/i }));
+
+    expect(
+      await screen.findByText('Invite codes redeem outside checkout. Open the rewards hub instead.'),
+    ).toBeInTheDocument();
+    expect(capturedBodies.every((body) => body.code_input == null)).toBe(true);
   });
 
   it('commits canonical checkout flow and opens invoice from payment attempt', async () => {
@@ -394,18 +477,18 @@ describe('PurchaseConfirmModal', () => {
     let paymentAttemptIdempotencyKey: string | null = null;
 
     server.use(
-      http.post(`${API_BASE}/quotes/`, async () =>
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>
         HttpResponse.json(createQuoteSession(), { status: 201 })),
-      http.post(`${API_BASE}/checkout-sessions/`, async ({ request }) => {
+      http.post(MATCH_ANY_API_ORIGIN.checkoutSessions, async ({ request }) => {
         checkoutBody = (await request.json()) as Record<string, unknown>;
         checkoutIdempotencyKey = request.headers.get(CANONICAL_IDEMPOTENCY_HEADER);
         return HttpResponse.json(createCheckoutSession(), { status: 201 });
       }),
-      http.post(`${API_BASE}/orders/commit`, async ({ request }) => {
+      http.post(MATCH_ANY_API_ORIGIN.ordersCommit, async ({ request }) => {
         orderCommitBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(createOrder(), { status: 201 });
       }),
-      http.post(`${API_BASE}/payment-attempts/`, async ({ request }) => {
+      http.post(MATCH_ANY_API_ORIGIN.paymentAttempts, async ({ request }) => {
         paymentAttemptBody = (await request.json()) as Record<string, unknown>;
         paymentAttemptIdempotencyKey = request.headers.get(CANONICAL_IDEMPOTENCY_HEADER);
         return HttpResponse.json(createPaymentAttempt(), { status: 201 });

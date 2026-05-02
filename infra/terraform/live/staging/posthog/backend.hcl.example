@@ -1,0 +1,4 @@
+bucket       = "cybervpn-terraform-state"
+key          = "staging/posthog/tofu.tfstate"
+region       = "eu-central-1"
+use_lockfile = true

@@ -14,3 +14,11 @@ Before first use:
 4. Export `TF_VAR_hcloud_token`.
 
 This stack should be applied before `production/edge`.
+
+Typical operator path:
+
+```bash
+tofu -chdir=infra/terraform/live/production/foundation init -backend-config=backend.hcl
+tofu -chdir=infra/terraform/live/production/foundation plan -var-file=terraform.tfvars
+tofu -chdir=infra/terraform/live/production/foundation apply -var-file=terraform.tfvars
+```

@@ -63,6 +63,16 @@ export function AutomationPage() {
     }
   };
 
+  const visibleRules = Object.entries(rules).filter(([, profile]) => {
+    return (
+      Boolean(profile.icon_type) ||
+      profile.auto_connect ||
+      profile.stealth_required ||
+      profile.kill_switch_required ||
+      Boolean(profile.stealth_policy?.strategy_id)
+    );
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0, y: offsets.page }}
@@ -159,7 +169,7 @@ export function AutomationPage() {
           </h3>
           
           <div className="grid gap-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
-            {Object.entries(rules).map(([ssid, profile]) => (
+            {visibleRules.map(([ssid, profile]) => (
               <motion.div 
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
                 key={ssid} 
@@ -172,7 +182,9 @@ export function AutomationPage() {
                   <div>
                     <h4 className="font-bold font-mono tracking-wide text-white">{ssid}</h4>
                     <span className="text-xs text-muted-foreground uppercase tracking-widest">
-                       {profile.auto_connect ? t('automation.autoShieldActive') : t('automation.trustedSector')}
+                       {profile.stealth_policy?.strategy_id
+                        ? t('automation.stealthPolicyPinned')
+                        : profile.auto_connect ? t('automation.autoShieldActive') : t('automation.trustedSector')}
                     </span>
                   </div>
                 </div>
@@ -185,7 +197,7 @@ export function AutomationPage() {
               </motion.div>
             ))}
             
-            {Object.keys(rules).length === 0 && (
+            {visibleRules.length === 0 && (
               <div className="p-8 border border-dashed border-white/10 rounded-2xl flex flex-col items-center text-center text-muted-foreground/50 gap-4">
                  <ShieldAlert size={32} />
                  <p className="font-mono text-sm tracking-widest">{t('automation.noRules')}</p>

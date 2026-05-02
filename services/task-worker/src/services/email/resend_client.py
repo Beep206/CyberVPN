@@ -6,7 +6,11 @@ import httpx
 import structlog
 
 from src.config import get_settings
-from src.services.email.templates import render_magic_link_template, render_otp_template
+from src.services.email.templates import (
+    render_growth_notification_template,
+    render_magic_link_template,
+    render_otp_template,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -232,6 +236,55 @@ class ResendClient:
             logger.error("resend_request_error", error=str(e), email=email)
             raise ResendError(f"Request failed: {e}") from e
 
+    async def send_growth_notification(
+        self,
+        *,
+        email: str,
+        subject: str | None = None,
+        title: str,
+        message: str,
+        locale: str = "en-EN",
+        cta_url: str = "",
+        notes: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Send a growth-notification email."""
+        if not self._client:
+            raise ResendError("Client not initialized. Use async context manager.")
+
+        if not self._api_key:
+            logger.warning("resend_skipped_no_api_key", email=email)
+            return {"id": "mock_no_key", "status": "skipped"}
+
+        payload = {
+            "from": self._from_email,
+            "to": [email],
+            "subject": subject or self._get_growth_notification_subject(title),
+            "html": render_growth_notification_template(
+                title=title,
+                message=message,
+                locale=locale,
+                cta_url=cta_url,
+                notes=notes,
+            ),
+            "text": self._render_growth_notification_text(title, message, cta_url, notes),
+        }
+
+        try:
+            response = await self._client.post("/emails", json=payload)
+
+            if response.status_code >= 400:
+                error_data = response.json() if response.content else {}
+                raise ResendError(
+                    f"Resend API error: {error_data.get('message', response.text)}",
+                    status_code=response.status_code,
+                )
+
+            return response.json()
+
+        except httpx.RequestError as e:
+            logger.error("resend_request_error", error=str(e), email=email)
+            raise ResendError(f"Request failed: {e}") from e
+
     def _get_magic_link_subject(self, locale: str) -> str:
         """Get localized magic link email subject."""
         subjects = {
@@ -284,3 +337,22 @@ class ResendClient:
             subtitle="Enter the following code to reset your password:",
             disclaimer="If you didn't request a password reset, ignore this email and keep your account secure.",
         )
+
+    def _get_growth_notification_subject(self, title: str) -> str:
+        return f"CyberVPN - {title.strip() or 'Account update'}"
+
+    def _render_growth_notification_text(
+        self,
+        title: str,
+        message: str,
+        cta_url: str,
+        notes: list[str] | None,
+    ) -> str:
+        lines = [title.strip() or "CyberVPN account update", "", message.strip()]
+        clean_notes = [str(item).strip() for item in notes or [] if str(item).strip()]
+        if clean_notes:
+            lines.extend(["", "Details:"])
+            lines.extend(f"- {item}" for item in clean_notes)
+        if cta_url:
+            lines.extend(["", f"Open: {cta_url}"])
+        return "\n".join(lines)

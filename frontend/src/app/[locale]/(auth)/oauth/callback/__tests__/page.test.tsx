@@ -5,6 +5,10 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }));
 
+vi.mock('next/server', () => ({
+  connection: vi.fn(() => Promise.resolve()),
+}));
+
 const { redirect } = await import('next/navigation');
 
 describe('OAuthCallbackPage', () => {

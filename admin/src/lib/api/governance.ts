@@ -112,6 +112,124 @@ type CreateLegalDocumentSetRequest = {
   documents: LegalDocumentSetItem[];
 };
 
+type MiniAppRuntimeRollout = {
+  enabled: boolean;
+  mode: 'live' | 'canary' | 'maintenance' | 'rollback';
+  trial_enabled: boolean;
+  checkout_enabled: boolean;
+  config_enabled: boolean;
+  maintenance_message: string | null;
+  canary_telegram_user_ids: number[];
+};
+
+type MiniAppRuntimeConfigResponse = {
+  key: string;
+  rollout: MiniAppRuntimeRollout;
+  description: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+type UpdateMiniAppRuntimeConfigRequest = MiniAppRuntimeRollout & {
+  change_reason?: string | null;
+};
+
+type MiniAppLaunchReadiness = {
+  observability_acknowledged: boolean;
+  incident_runbook_acknowledged: boolean;
+  checkout_canary_passed: boolean;
+  config_delivery_canary_passed: boolean;
+  rollback_drill_acknowledged: boolean;
+  support_window_confirmed: boolean;
+  customer_comms_ready: boolean;
+  status_page_template_ready: boolean;
+  incident_channel: string | null;
+  rollback_commander: string | null;
+  primary_oncall_contact: string | null;
+  release_window_note: string | null;
+  is_ready: boolean;
+};
+
+type MiniAppLaunchReadinessConfigResponse = {
+  key: string;
+  readiness: MiniAppLaunchReadiness;
+  description: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+type UpdateMiniAppLaunchReadinessConfigRequest = Omit<MiniAppLaunchReadiness, 'is_ready'> & {
+  change_reason?: string | null;
+};
+
+type MiniAppLaunchSummaryResponse = {
+  launch_state:
+    | 'live'
+    | 'ready_for_live'
+    | 'canary_in_progress'
+    | 'rollback_in_progress'
+    | 'maintenance'
+    | 'blocked';
+  live_switch_allowed: boolean;
+  next_action:
+    | 'promote_to_live'
+    | 'complete_launch_gates'
+    | 'keep_canary'
+    | 'finish_rollback'
+    | 'hold_maintenance'
+    | 'stabilize_runtime';
+  primary_action:
+    | 'promote_to_live'
+    | 'enter_maintenance'
+    | 'start_rollback'
+    | 'return_to_canary'
+    | null;
+  available_actions: Array<
+    'promote_to_live'
+    | 'enter_maintenance'
+    | 'start_rollback'
+    | 'return_to_canary'
+  >;
+  blockers: string[];
+  runtime: MiniAppRuntimeRollout;
+  readiness: MiniAppLaunchReadiness;
+};
+
+type ExecuteMiniAppLaunchActionRequest = {
+  action:
+    | 'promote_to_live'
+    | 'enter_maintenance'
+    | 'start_rollback'
+    | 'return_to_canary';
+  change_reason?: string | null;
+};
+
+type MiniAppLaunchTimelineEntry = {
+  id: string;
+  created_at: string;
+  admin_id: string | null;
+  action: string;
+  event_type: 'runtime_update' | 'launch_readiness_update' | 'launch_action';
+  action_name:
+    | 'promote_to_live'
+    | 'enter_maintenance'
+    | 'start_rollback'
+    | 'return_to_canary'
+    | null;
+  resulting_runtime_mode: 'live' | 'canary' | 'maintenance' | 'rollback' | null;
+  resulting_launch_state:
+    | 'live'
+    | 'ready_for_live'
+    | 'canary_in_progress'
+    | 'rollback_in_progress'
+    | 'maintenance'
+    | 'blocked'
+    | null;
+  readiness_ready: boolean | null;
+  change_reason: string | null;
+  entity_id: string | null;
+};
+
 export const governanceApi = {
   getAuditLogs: (params?: { page?: number; page_size?: number }) =>
     apiClient.get<AuditLogsResponse>('/admin/audit-log', { params }),
@@ -136,6 +254,27 @@ export const governanceApi = {
 
   updateSetting: (id: number, data: UpdateSettingRequest) =>
     apiClient.put<UpdateSettingResponse>(`/settings/${id}`, data),
+
+  getMiniAppRuntimeConfig: () =>
+    apiClient.get<MiniAppRuntimeConfigResponse>('/admin/system-config/miniapp-runtime'),
+
+  updateMiniAppRuntimeConfig: (data: UpdateMiniAppRuntimeConfigRequest) =>
+    apiClient.put<MiniAppRuntimeConfigResponse>('/admin/system-config/miniapp-runtime', data),
+
+  getMiniAppLaunchReadinessConfig: () =>
+    apiClient.get<MiniAppLaunchReadinessConfigResponse>('/admin/system-config/miniapp-launch-readiness'),
+
+  updateMiniAppLaunchReadinessConfig: (data: UpdateMiniAppLaunchReadinessConfigRequest) =>
+    apiClient.put<MiniAppLaunchReadinessConfigResponse>('/admin/system-config/miniapp-launch-readiness', data),
+
+  getMiniAppLaunchSummary: () =>
+    apiClient.get<MiniAppLaunchSummaryResponse>('/admin/system-config/miniapp-launch-summary'),
+
+  executeMiniAppLaunchAction: (data: ExecuteMiniAppLaunchActionRequest) =>
+    apiClient.post<MiniAppLaunchSummaryResponse>('/admin/system-config/miniapp-launch-actions', data),
+
+  getMiniAppLaunchTimeline: (params?: { limit?: number }) =>
+    apiClient.get<MiniAppLaunchTimelineEntry[]>('/admin/system-config/miniapp-launch-timeline', { params }),
 
   listPolicyVersions: (params?: {
     policy_family?: string;

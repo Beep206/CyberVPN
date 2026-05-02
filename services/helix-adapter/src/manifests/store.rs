@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 use sqlx::{types::Json, PgPool};
+use tracing::instrument;
 
 use crate::{
     error::AppError,
@@ -43,6 +44,13 @@ impl ManifestStore {
         }
     }
 
+    #[instrument(
+        skip(self, request),
+        fields(
+            sentry.name = "helix.resolve_manifest",
+            sentry.op = "helix.manifest.resolve"
+        )
+    )]
     pub async fn resolve_manifest(
         &self,
         request: ResolveManifestRequest,
@@ -212,6 +220,13 @@ impl ManifestStore {
         })
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.revoke_manifest",
+            sentry.op = "helix.manifest.revoke"
+        )
+    )]
     pub async fn revoke_manifest(
         &self,
         manifest_version_id: uuid::Uuid,

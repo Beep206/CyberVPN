@@ -1,0 +1,29 @@
+{
+  "mounts": [
+    {
+      "cluster_id": "nonprod-hetzner-fsn1-core",
+      "config": {
+        "oidc_discovery_url": "https://kubernetes.example.com",
+        "oidc_discovery_ca_pem_file": "/path/to/kubernetes-ca.pem"
+      },
+      "roles": [
+        {
+          "name": "k8s-nonprod-hetzner-fsn1-core-observability-alloy",
+          "payload": {
+            "role_type": "jwt",
+            "user_claim": "sub",
+            "bound_subject": "system:serviceaccount:observability:alloy",
+            "bound_audiences": [
+              "openbao"
+            ],
+            "policies": [
+              "platform-k8s-nonprod-hetzner-fsn1-core-observability-alloy"
+            ],
+            "token_ttl": "15m",
+            "token_max_ttl": "1h"
+          }
+        }
+      ]
+    }
+  ]
+}

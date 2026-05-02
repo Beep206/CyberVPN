@@ -1,14 +1,250 @@
 {
-  "title": "REFERRAL PROGRAM",
-  "subtitle": "Earn commissions by referring friends",
-  "yourCode": "Your Referral Code",
+  "cabinet": {
+    "title": "REFERRAL REWARDS",
+    "subtitle": "Share your code, track canonical reward lifecycle, and keep customer growth separate from partner mechanics.",
+    "hero": {
+      "eyebrow": "Customer growth cockpit",
+      "wallet": "Open wallet",
+      "payments": "Payment history",
+      "health": "Program health",
+      "enabledHint": "Current backend rate: {rate}. Reward eligibility and stacking are always decided server-side.",
+      "disabledHint": "The program is paused by backend policy. Existing rewards remain visible for traceability."
+    },
+    "health": {
+      "active": "Ready to share",
+      "disabled": "Paused",
+      "earning": "Rewards active",
+      "review": "Hold review"
+    },
+    "errors": {
+      "partialTitle": "Referral data is partially unavailable",
+      "partialDescription": "The cockpit keeps available sections visible while the unavailable growth endpoint recovers."
+    },
+    "summary": {
+      "ariaLabel": "Referral rewards summary",
+      "referrals": "Referrals",
+      "available": "Available rewards",
+      "pending": "Pending rewards",
+      "qualifyingOrders": "Qualifying orders"
+    },
+    "share": {
+      "eyebrow": "Share link",
+      "title": "Your referral code",
+      "description": "Share the link or code with friends. The frontend never decides discount eligibility; checkout and redeem flows ask the backend.",
+      "codeLabel": "Referral code",
+      "active": "Active",
+      "paused": "Paused",
+      "copyCode": "Copy code",
+      "copyLink": "Copy link",
+      "copyShareText": "Copy message",
+      "copied": "Copied",
+      "message": "Join CyberVPN with my referral code {code}: {link}"
+    },
+    "rules": {
+      "eyebrow": "Policy guardrails",
+      "title": "What this page will not guess",
+      "items": {
+        "backendTruth": {
+          "title": "Backend is the source of truth",
+          "description": "The UI shows decisions returned by backend contracts and does not compute reward eligibility or stacking locally."
+        },
+        "nonWithdrawable": {
+          "title": "Referral rewards are growth credits",
+          "description": "Referral rewards are presented as customer growth rewards, not partner payouts or withdrawable earnings."
+        },
+        "partnerHidden": {
+          "title": "Partner mechanics stay out",
+          "description": "Partner commissions, reseller tools, payout statements and traffic controls are intentionally not exposed here."
+        },
+        "holdWindow": {
+          "title": "Hold window is explicit",
+          "description": "Backend reports the current reward hold window as {days} days. Pending rewards can still be reversed by policy."
+        }
+      }
+    },
+    "caps": {
+      "eyebrow": "Risk and cap signals",
+      "title": "Cap usage",
+      "description": "Soft progress bars help users understand reward velocity without exposing fraud or risk engine internals.",
+      "monthly": "Monthly usage",
+      "lifetime": "Lifetime usage"
+    },
+    "lifecycle": {
+      "eyebrow": "Reward lifecycle",
+      "title": "Canonical reward states",
+      "description": "Rewards move through backend-owned states. Pending rewards are on hold; available rewards are usable according to account policy.",
+      "blocked": "{count} blocked",
+      "status": {
+        "pending": "Pending",
+        "available": "Available",
+        "blocked_by_risk": "Blocked",
+        "reversed": "Reversed",
+        "expired": "Expired"
+      }
+    },
+    "activity": {
+      "eyebrow": "Recent activity",
+      "title": "Rewards timeline",
+      "empty": "No referral reward activity yet.",
+      "reward": "Reward allocation",
+      "commission": "Referral commission",
+      "holdUntil": "Hold until {date}"
+    },
+    "notifications": {
+      "eyebrow": "Delivery health",
+      "title": "Growth notifications",
+      "description": "Referral rewards and invite updates are surfaced through durable growth notifications.",
+      "actionRequired": "{count} action required",
+      "empty": "No referral notifications are visible right now.",
+      "required": "Action",
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "actions": {
+      "refresh": "Refresh"
+    },
+    "labels": {
+      "notAvailable": "Not available"
+    }
+  },
+  "pageEyebrow": "CUSTOMER GROWTH",
+  "title": "REWARDS HUB",
+  "subtitle": "Manage invites, gift codes, referral sharing, and reward activity from one place.",
+  "hubEyebrow": "SHARE & TRACK",
+  "shareTitle": "Share your referral code",
+  "shareDescription": "Use your referral code with friends and keep invite access separate from checkout discounts.",
+  "yourCode": "Your code",
+  "copyCode": "Copy code",
+  "shareCode": "Share code",
+  "shareMessage": "Join CyberVPN with my referral code: {code}",
   "copied": "Copied!",
-  "copy": "Copy",
-  "shareDescription": "Share this code with friends to earn commissions on their subscriptions",
-  "totalReferrals": "Total Referrals",
-  "totalEarnings": "Total Earnings",
-  "commissionRate": "Commission Rate",
-  "recentCommissions": "Recent Commissions",
-  "noCommissions": "No commissions yet",
-  "startReferring": "Start referring friends to earn commissions!"
+  "programUnavailable": "The referral program is temporarily unavailable. Your existing invites stay visible here, but new referral actions may be paused until the program is restored.",
+  "overview": {
+    "activeInvites": "Active invites",
+    "activeInvitesHint": "Unused invite codes ready to share.",
+    "totalReferrals": "Total referrals",
+    "totalReferralsHint": "Accounts attributed to your current referral program.",
+    "totalRewards": "Rewards earned",
+    "totalRewardsHint": "Current backend reward total for this account.",
+    "currentRate": "Current rate",
+    "currentRateHint": "Program rate returned by the current referral contract."
+  },
+  "redeemTitle": "Redeem a code",
+  "redeemSubtitle": "Invite and gift codes redeem here. Promo and referral discounts still apply later in checkout.",
+  "redeemInputLabel": "Invite or gift code",
+  "redeemPlaceholder": "ENTER-CODE",
+  "redeemButton": "Redeem code",
+  "redeeming": "Redeeming...",
+  "redeemSuccessInvite": "Invite redeemed. Added {days} free days to your account.",
+  "redeemSuccessGift": "Gift redeemed. Added {plan} for {days} days to your account.",
+  "redeemErrors": {
+    "empty": "Enter a code first."
+  },
+  "notifications": {
+    "title": "Growth notifications",
+    "subtitle": "Durable updates for invites, referral rewards, and gift codes.",
+    "loading": "Loading growth notifications...",
+    "empty": "No growth notifications are visible right now.",
+    "archived": "Archived",
+    "unread": "Unread",
+    "actionRequired": "Action required",
+    "markRead": "Mark read",
+    "archive": "Archive",
+    "showArchived": "Show archived",
+    "showActive": "Show active",
+    "detailsButton": "Details",
+    "detailsTitle": "Delivery details",
+    "detailsLoading": "Loading delivery details...",
+    "detailsEmpty": "Select a notification to inspect delivery details.",
+    "supportTitle": "Support handoff",
+    "supportActionHint": "If the automated recovery path is blocked, use the guided repair or support flow below.",
+    "copySupportSummary": "Copy support summary",
+    "openPreferences": "Open preferences",
+    "openTelegramLinking": "Link Telegram",
+    "reviewProfile": "Review profile",
+    "openSupportTicket": "Open support ticket",
+    "emailSupport": "Email support",
+    "openTelegramSupport": "Open Telegram support",
+    "openHelpCenter": "Open help center",
+    "openingSupport": "Opening support...",
+    "deliveryHistoryTitle": "Delivery history",
+    "noDeliveryHistory": "No delivery history is attached to this notification.",
+    "requestRetry": "Request another send",
+    "retrying": "Requesting...",
+    "deliveryPlannedAt": "Planned {date}",
+    "deliveryCompletedAt": "Completed {date}",
+    "counters": {
+      "total": "Total {count}",
+      "unread": "Unread {count}",
+      "actionRequired": "Action {count}"
+    }
+  },
+  "preferences": {
+    "title": "Delivery preferences",
+    "subtitle": "Choose which growth events stay in-app, email, or Telegram.",
+    "saving": "Saving...",
+    "note": "In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.",
+    "categories": {
+      "invites": "Invites",
+      "referralRewards": "Referral rewards",
+      "gifts": "Gift codes",
+      "adminUpdates": "Admin updates"
+    },
+    "channels": {
+      "inApp": "In-app",
+      "email": "Email",
+      "telegram": "Telegram"
+    }
+  },
+  "promoNoteTitle": "Checkout policy",
+  "promoNoteBody": "Promo and referral discounts belong in checkout. This hub handles invite and gift redemption without creating a second pricing source of truth.",
+  "giftPurchase": {
+    "title": "Buy Gift VPN",
+    "subtitle": "Create a gift checkout for a friend without mixing it into referral or promo pricing.",
+    "planLabel": "Gift plan",
+    "planPlaceholder": "Select a plan",
+    "recipientHintLabel": "Recipient hint",
+    "recipientHintPlaceholder": "friend@example.com or internal note",
+    "messageLabel": "Gift message",
+    "messagePlaceholder": "Optional note for the recipient",
+    "action": "Create gift checkout",
+    "processing": "Preparing gift checkout...",
+    "successPaymentPending": "Gift checkout created. Complete payment in the opened window.",
+    "successIssued": "Gift issued successfully. Share this code: {code}",
+    "successQueued": "Gift checkout created successfully.",
+    "errors": {
+      "planRequired": "Choose a plan before creating a gift checkout.",
+      "default": "Failed to create gift checkout."
+    }
+  },
+  "invitesTitle": "My invites",
+  "invitesSubtitle": "Codes issued to your account and their current availability.",
+  "noInvites": "No invite codes available yet.",
+  "giftsTitle": "My gifts",
+  "giftsSubtitle": "Purchased or issued gift codes that you can share or track.",
+  "noGifts": "No gift codes available yet.",
+  "giftStatus": {
+    "active": "Active",
+    "redeemed": "Redeemed",
+    "expired": "Expired",
+    "revoked": "Revoked"
+  },
+  "giftPlan": "{plan} · {days} days",
+  "giftCreated": "Created {date}",
+  "giftRedeemed": "Redeemed {date}",
+  "giftRecipient": "Recipient {recipient}",
+  "giftRecipientFallback": "not specified",
+  "inviteStatus": {
+    "active": "Active",
+    "used": "Used",
+    "expired": "Expired"
+  },
+  "inviteDays": "{days} free days",
+  "inviteExpires": "Expires {date}",
+  "inviteCreated": "Issued {date}",
+  "activityTitle": "Recent referral activity",
+  "activitySubtitle": "Current backend contract still reports referral activity as reward entries tied to the active program.",
+  "noActivity": "No referral activity yet.",
+  "activityReward": "Reward entry {amount}",
+  "activityBase": "Based on {amount} at {rate}%"
 }

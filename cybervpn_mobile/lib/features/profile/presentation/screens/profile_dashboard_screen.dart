@@ -650,17 +650,6 @@ class _QuickActionsSection extends ConsumerWidget {
           },
         ),
 
-        // Security Settings
-        _QuickActionButton(
-          key: const Key('action_security'),
-          icon: Icons.security_outlined,
-          label: l10n.profileSecuritySettings,
-          onTap: () {
-            unawaited(haptics.selection());
-            unawaited(context.push('/profile/2fa'));
-          },
-        ),
-
         // Cancel Subscription (only shown if user has active subscription)
         if (hasSubscription && subscription != null)
           _QuickActionButton(

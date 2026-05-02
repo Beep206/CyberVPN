@@ -16,6 +16,7 @@ export default defineConfig({
     css: false,
     alias: {
       '@': resolve(__dirname, './src'),
+      'server-only': resolve(__dirname, './src/test/server-only.ts'),
     },
     coverage: {
       provider: 'v8',

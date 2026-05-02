@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-04-25",
+  "org_defaults": {
+    "sdk_default_pii": false,
+    "prevent_storing_ip_addresses": true,
+    "require_default_scrubbers": true,
+    "attachments_policy": "disabled_unless_explicitly_approved",
+    "replay_network_detail_policy": "opt_in_only",
+    "safe_identity_policy": "internal_user_id_or_hashed_telegram_id_only"
+  },
+  "scrub_headers": [
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "x-observability-secret",
+    "x-telegram-bot-api-secret-token"
+  ],
+  "scrub_field_markers": [
+    "token",
+    "secret",
+    "password",
+    "cookie",
+    "authorization",
+    "jwt",
+    "payload",
+    "config",
+    "certificate",
+    "private_key",
+    "wireguard",
+    "vless",
+    "vmess",
+    "remnawave",
+    "openbao",
+    "opentofu",
+    "nats",
+    "payment"
+  ],
+  "strict_endpoint_classes": [
+    "auth",
+    "payment",
+    "wallet",
+    "admin_mutation",
+    "webhook_ingestion",
+    "provisioning",
+    "config_delivery"
+  ],
+  "approval_checkpoints": [
+    "self_hosted_org_scrubbers_applied",
+    "prevent_ip_storage_enabled",
+    "replay_masking_reviewed",
+    "attachment_policy_reviewed",
+    "runtime_sdk_defaults_validated"
+  ],
+  "code_expectations": [
+    {
+      "path": "frontend/src/instrumentation-client.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "maskAllText: true",
+        "blockAllMedia: true",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "admin/src/instrumentation-client.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "maskAllText: true",
+        "blockAllMedia: true",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "partner/src/instrumentation-client.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "maskAllText: true",
+        "blockAllMedia: true",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "frontend/sentry.server.config.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "frontend/sentry.edge.config.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "admin/sentry.server.config.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "admin/sentry.edge.config.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "partner/sentry.server.config.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "partner/sentry.edge.config.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "backend/src/main.py",
+      "must_contain": [
+        "send_default_pii=False",
+        "max_request_body_size=\"never\"",
+        "include_local_variables=False",
+        "before_send=before_send",
+        "before_send_transaction=before_send_transaction"
+      ]
+    },
+    {
+      "path": "services/task-worker/src/broker.py",
+      "must_contain": [
+        "send_default_pii=False",
+        "max_request_body_size=\"never\"",
+        "include_local_variables=False",
+        "before_send=before_send"
+      ]
+    },
+    {
+      "path": "services/node-fleet-controller/src/observability.py",
+      "must_contain": [
+        "send_default_pii=False",
+        "max_request_body_size=\"never\"",
+        "before_send=before_send",
+        "before_send_transaction=before_send_transaction"
+      ]
+    },
+    {
+      "path": "services/telegram-bot/src/main.py",
+      "must_contain": [
+        "send_default_pii=False",
+        "max_request_body_size=\"never\"",
+        "before_send=_before_send"
+      ]
+    },
+    {
+      "path": "cybervpn_mobile/lib/main.dart",
+      "must_contain": [
+        "options.sendDefaultPii = false;",
+        "options.beforeBreadcrumb = _sanitizeBreadcrumb;",
+        "options.beforeSend = _sanitizeSentryEvent;"
+      ]
+    },
+    {
+      "path": "apps/desktop-client/src/shared/observability/sentry.ts",
+      "must_contain": [
+        "sendDefaultPii: false",
+        "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "apps/android-tv/app/src/main/java/com/cybervpn/tv/observability/AndroidTvSentry.kt",
+      "must_contain": [
+        "options.setSendDefaultPii(false)",
+        "sanitizeEvent(event)"
+      ]
+    },
+    {
+      "path": "services/helix-adapter/src/observability.rs",
+      "must_contain": [
+        "send_default_pii: false"
+      ]
+    },
+    {
+      "path": "services/helix-node/src/observability.rs",
+      "must_contain": [
+        "send_default_pii: false"
+      ]
+    }
+  ]
+}

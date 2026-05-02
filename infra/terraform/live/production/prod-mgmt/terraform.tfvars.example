@@ -1,0 +1,58 @@
+project_name          = "cybervpn"
+environment           = "prod"
+management_cluster_id = "prod-mgmt"
+
+admin_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+api_load_balancer_location = "nbg1"
+
+control_plane_nodes = {
+  prod-mgmt-cp-01 = {
+    location    = "nbg1"
+    server_type = "cpx31"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+  prod-mgmt-cp-02 = {
+    location    = "fsn1"
+    server_type = "cpx31"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+  prod-mgmt-cp-03 = {
+    location    = "hel1"
+    server_type = "cpx31"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+}
+
+worker_nodes = {
+  prod-mgmt-worker-01 = {
+    location    = "nbg1"
+    server_type = "cpx21"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+  prod-mgmt-worker-02 = {
+    location    = "fsn1"
+    server_type = "cpx21"
+    image       = "90000001"
+    labels = {
+      tier = "management"
+    }
+  }
+}
+
+# Set image to the Talos Hetzner snapshot or image id validated for your project.
+# Validate control-plane latency budget before using multi-location placement exactly as shown here.

@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
+import { reportFrontendRenderError } from '@/shared/lib/frontend-observability';
 
 export default function GlobalError({
   error,
@@ -12,6 +13,10 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     Sentry.captureException(error);
+    reportFrontendRenderError('admin_portal', {
+      errorCode: error.name || error.digest || 'global_error',
+      path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
   }, [error]);
 
   return (

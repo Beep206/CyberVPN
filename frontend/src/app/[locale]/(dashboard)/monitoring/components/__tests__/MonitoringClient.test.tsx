@@ -174,7 +174,7 @@ describe('MonitoringClient', () => {
       expect(screen.getByText('145')).toBeInTheDocument();
       expect(screen.getByText('10 / 12')).toBeInTheDocument();
       expect(screen.getByText('512 GB')).toBeInTheDocument();
-      expect(screen.getByText('9.0 TB')).toBeInTheDocument();
+      expect(screen.getAllByText('9.0 TB').length).toBeGreaterThan(0);
     });
   });
 

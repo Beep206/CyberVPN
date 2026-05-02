@@ -7,9 +7,12 @@ import { ThemeProvider } from "./app/theme-provider";
 import "./shared/i18n/i18n";
 import { ConnectionProvider } from "./shared/model/use-connection";
 import { desktopMotionEase } from "./shared/lib/motion";
+import { initDesktopSentry } from "./shared/observability/sentry";
 import { PageSkeleton } from "./widgets/PageSkeleton";
 import { Layout } from "./widgets/Layout";
 import "./index.css";
+
+initDesktopSentry();
 
 const DashboardPage = lazy(() =>
   import("./pages/Dashboard").then((module) => ({ default: module.DashboardPage })),

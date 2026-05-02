@@ -9,10 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.wallet_service import WalletService
-from src.application.use_cases.attribution.qualifying_events.evaluate_order_policy import _evaluate_stacking
+from src.application.use_cases.growth_codes import (
+    GrowthCodeResolutionOutcome,
+    ResolveGrowthCodeUseCase,
+)
+from src.domain.enums import (
+    CommercialOwnerType,
+    GrowthCodeActionContext,
+    GrowthCodeRejectReason,
+    GrowthCodeResolutionStatus,
+    GrowthCodeType,
+)
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
+from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
+    CustomerCommercialBindingRepository,
+)
+from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
@@ -20,6 +34,12 @@ from src.infrastructure.database.repositories.subscription_plan_repo import Subs
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 
 logger = logging.getLogger(__name__)
+
+PARTNER_MARKUP_OWNER_TYPES = {
+    CommercialOwnerType.AFFILIATE.value,
+    CommercialOwnerType.PERFORMANCE.value,
+    CommercialOwnerType.RESELLER.value,
+}
 
 
 @dataclass(frozen=True)
@@ -45,6 +65,14 @@ class CheckoutAddonLine:
     delta_entitlements: dict
 
 
+@dataclass(frozen=True)
+class CheckoutAppliedDiscount:
+    discount_type: str
+    code: str
+    amount: Decimal
+    policy_version_id: UUID | None = None
+
+
 @dataclass
 class CheckoutResult:
     """Quote result used by both quote and commit endpoints."""
@@ -65,6 +93,10 @@ class CheckoutResult:
     addons: list[CheckoutAddonLine] = field(default_factory=list)
     entitlements_snapshot: dict = field(default_factory=dict)
     commission_base_amount: Decimal = Decimal("0")
+    discounts: list[CheckoutAppliedDiscount] = field(default_factory=list)
+    code_input: str | None = None
+    code_resolution: GrowthCodeResolutionOutcome | None = None
+    reservation_id: UUID | None = None
 
 
 class CheckoutUseCase:
@@ -75,20 +107,25 @@ class CheckoutUseCase:
         self._plan_repo = SubscriptionPlanRepository(session)
         self._promo_repo = PromoCodeRepository(session)
         self._partner_repo = PartnerRepository(session)
+        self._bindings = CustomerCommercialBindingRepository(session)
+        self._growth_code_repo = GrowthCodeRepository(session)
         self._addon_repo = PlanAddonRepository(session)
         wallet_repo = WalletRepository(session)
         self._wallet = WalletService(wallet_repo)
+        self._growth_codes = ResolveGrowthCodeUseCase(session)
 
     async def execute(
         self,
         user_id: UUID,
         plan_id: UUID,
         *,
+        code_input: str | None = None,
         promo_code: str | None = None,
         partner_code: str | None = None,
         use_wallet: Decimal = Decimal("0"),
         addons: list[CheckoutAddonInput] | None = None,
         sale_channel: str = "web",
+        storefront_id: UUID | None = None,
     ) -> CheckoutResult:
         plan = await self._resolve_plan(plan_id, sale_channel=sale_channel)
         addon_lines = await self._resolve_addons(plan=plan, addon_inputs=addons or [], sale_channel=sale_channel)
@@ -98,6 +135,8 @@ class CheckoutUseCase:
 
         partner_markup = Decimal("0")
         partner_code_id = None
+        code_resolution: GrowthCodeResolutionOutcome | None = None
+        normalized_growth_code_input = _normalize_code_input(code_input=code_input, promo_code=promo_code)
 
         user = await self._session.get(MobileUserModel, user_id)
         normalized_partner_code = partner_code.strip() if partner_code else None
@@ -107,33 +146,86 @@ class CheckoutUseCase:
                 raise ValueError("Partner code not found or inactive")
             partner_markup = base_price * (Decimal(str(explicit_code.markup_pct)) / Decimal("100"))
             partner_code_id = explicit_code.id
-        elif user and user.partner_user_id:
-            codes = await self._partner_repo.get_codes_by_partner(user.partner_user_id)
-            active_code = next((code for code in codes if code.is_active), None)
-            if active_code:
+        else:
+            active_code = await self._resolve_bound_partner_code(user=user, storefront_id=storefront_id)
+            if active_code is not None:
                 partner_markup = base_price * (Decimal(str(active_code.markup_pct)) / Decimal("100"))
                 partner_code_id = active_code.id
-
-        stacking = _evaluate_stacking(
-            promo_present=bool(promo_code and promo_code.strip()),
-            partner_code_present=partner_code_id is not None,
-            wallet_present=use_wallet > 0,
-        )
-        if not stacking.stacking_valid:
-            raise ValueError("Promo codes cannot be combined with partner codes")
 
         displayed_price = base_price + addon_amount + partner_markup
 
         discount_amount = Decimal("0")
         promo_code_id = None
-        if promo_code:
-            promo = await self._promo_repo.get_active_by_code(promo_code)
-            if promo:
+        discounts: list[CheckoutAppliedDiscount] = []
+        if normalized_growth_code_input:
+            code_resolution = await self._growth_codes.execute(
+                code=normalized_growth_code_input,
+                action_context=GrowthCodeActionContext.CHECKOUT,
+                user_id=user_id,
+                plan_id=plan.id,
+                amount=displayed_price,
+                storefront_id=storefront_id,
+                existing_partner_code_present=partner_code_id is not None,
+                surface=sale_channel,
+            )
+            if not code_resolution.accepted:
+                raise ValueError(_quote_resolution_error_message(code_resolution))
+
+            if code_resolution.code_type == GrowthCodeType.PARTNER:
+                if partner_code_id is not None:
+                    raise ValueError("Partner code is already applied")
+                if code_resolution.partner_code_id is None:
+                    raise ValueError("Partner code is not valid")
+                partner_code = await self._partner_repo.get_code_by_id(code_resolution.partner_code_id)
+                if partner_code is None or not partner_code.is_active:
+                    raise ValueError("Partner code not found or inactive")
+                partner_markup = base_price * (Decimal(str(partner_code.markup_pct)) / Decimal("100"))
+                partner_code_id = partner_code.id
+                displayed_price = base_price + addon_amount + partner_markup
+            elif code_resolution.code_type == GrowthCodeType.PROMO:
+                promo = await self._promo_repo.get_active_by_code(normalized_growth_code_input)
+                if promo is None:
+                    raise ValueError("Promo code is not valid")
                 promo_code_id = promo.id
                 if promo.discount_type == "percent":
                     discount_amount = displayed_price * (Decimal(str(promo.discount_value)) / Decimal("100"))
                 else:
                     discount_amount = min(Decimal(str(promo.discount_value)), displayed_price)
+                discounts.append(
+                    CheckoutAppliedDiscount(
+                        discount_type=GrowthCodeType.PROMO.value,
+                        code=normalized_growth_code_input,
+                        amount=discount_amount,
+                    )
+                )
+            elif code_resolution.code_type == GrowthCodeType.REFERRAL:
+                if code_resolution.growth_code_id is None:
+                    raise ValueError("Referral code is not valid")
+                referral_policy = await self._growth_code_repo.get_referral_policy(code_resolution.growth_code_id)
+                if referral_policy is None:
+                    raise ValueError("Referral code is not configured")
+                if referral_policy.eligible_durations and plan.duration_days not in referral_policy.eligible_durations:
+                    raise ValueError("Referral code is not eligible for this plan")
+                if (
+                    referral_policy.eligible_plan_families
+                    and plan.plan_code not in referral_policy.eligible_plan_families
+                ):
+                    raise ValueError("Referral code is not eligible for this plan")
+
+                referral_base = base_price
+                if referral_policy.friend_discount_type == "percent":
+                    discount_amount = referral_base * (
+                        Decimal(str(referral_policy.friend_discount_value)) / Decimal("100")
+                    )
+                else:
+                    discount_amount = min(Decimal(str(referral_policy.friend_discount_value)), referral_base)
+                discounts.append(
+                    CheckoutAppliedDiscount(
+                        discount_type=GrowthCodeType.REFERRAL.value,
+                        code=normalized_growth_code_input,
+                        amount=discount_amount,
+                    )
+                )
 
         after_promo = displayed_price - discount_amount
 
@@ -196,7 +288,33 @@ class CheckoutUseCase:
             addons=addon_lines,
             entitlements_snapshot=entitlements_snapshot,
             commission_base_amount=base_price,
+            discounts=discounts,
+            code_input=normalized_growth_code_input,
+            code_resolution=code_resolution,
         )
+
+    async def _resolve_bound_partner_code(
+        self,
+        *,
+        user: MobileUserModel | None,
+        storefront_id: UUID | None,
+    ):
+        if user is None:
+            return None
+
+        bindings = await self._bindings.list_active_for_user(user_id=user.id, storefront_id=storefront_id)
+        for binding in bindings:
+            if binding.partner_code_id is None or binding.owner_type not in PARTNER_MARKUP_OWNER_TYPES:
+                continue
+            code = await self._partner_repo.get_code_by_id(binding.partner_code_id)
+            if code is not None and code.is_active:
+                return code
+
+        if user.partner_user_id is None:
+            return None
+
+        codes = await self._partner_repo.get_codes_by_partner(user.partner_user_id)
+        return next((code for code in codes if code.is_active), None)
 
     async def _resolve_plan(self, plan_id: UUID, *, sale_channel: str) -> SubscriptionPlanModel:
         plan = await self._plan_repo.get_by_id(plan_id)
@@ -280,3 +398,52 @@ class CheckoutUseCase:
             raise ValueError(f"Addon {addon.code} requires location_code")
         if not plan.is_active:
             raise ValueError("Plan is inactive")
+
+
+def _quote_resolution_error_message(resolution) -> str:
+    if resolution.result == GrowthCodeResolutionStatus.CONFLICTED:
+        if resolution.reject_reason == GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PARTNER_CODE:
+            if resolution.code_type == GrowthCodeType.REFERRAL:
+                return "Referral codes cannot be combined with partner codes"
+            return "Promo codes cannot be combined with partner codes"
+        if resolution.reject_reason == GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PARTNER_BINDING:
+            if resolution.code_type == GrowthCodeType.REFERRAL:
+                return "Referral codes cannot be combined with active partner bindings"
+            return "Promo codes cannot be combined with active partner bindings"
+
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_NOT_ACTIVE:
+        if resolution.code_type == GrowthCodeType.PARTNER:
+            return "Partner code is inactive"
+        return "Promo code is inactive"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_EXPIRED:
+        if resolution.code_type == GrowthCodeType.INVITE:
+            return "Invite code expired"
+        return "Promo code expired"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_EXHAUSTED:
+        return "Promo code usage limit reached"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_ALREADY_REDEEMED:
+        if resolution.code_type == GrowthCodeType.INVITE:
+            return "Invite code already used"
+        return "Promo code already used"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_NOT_ELIGIBLE_FOR_SKU:
+        if resolution.code_type == GrowthCodeType.REFERRAL:
+            return "Referral code is not eligible for this plan"
+        return "Promo code is not eligible for this plan"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_WRONG_CONTEXT:
+        if resolution.code_type == GrowthCodeType.INVITE:
+            return "Invite code must be redeemed outside checkout"
+        if resolution.code_type == GrowthCodeType.PARTNER:
+            return "Partner code can only be applied in checkout"
+        return "Promo code can only be applied in checkout"
+    if resolution.reject_reason == GrowthCodeRejectReason.CODE_BLOCKED_BY_RISK:
+        if resolution.code_type == GrowthCodeType.REFERRAL:
+            return "Referral code is blocked by risk policy"
+    return "Growth code is not valid"
+
+
+def _normalize_code_input(*, code_input: str | None, promo_code: str | None) -> str | None:
+    normalized_code_input = code_input.strip() if code_input else None
+    normalized_promo_code = promo_code.strip() if promo_code else None
+    if normalized_code_input and normalized_promo_code and normalized_code_input != normalized_promo_code:
+        raise ValueError("code_input and promo_code must match when both are provided")
+    return normalized_code_input or normalized_promo_code

@@ -67,7 +67,8 @@ import {
   sortPinnedFavoriteProxies,
   sortDashboardVisibleProxies,
 } from "./lib/profile-catalog";
-
+import { SpeedChart } from "./components/SpeedChart";
+import { FpsPingMeter } from "./components/FpsPingMeter";
 const DashboardSupportDeck = lazy(() => import("./components/DashboardSupportDeck"));
 
 function redactSensitiveText(value: string) {
@@ -1493,6 +1494,416 @@ export function DashboardPage() {
               </div>
             ) : (
               <>
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_21rem] 2xl:grid-cols-[minmax(0,1.2fr)_22rem] xl:items-stretch">
+                  <div className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-[color:var(--chrome-elevated)]/84 p-5 shadow-[var(--panel-shadow-strong)]">
+                    <div aria-hidden className="pointer-events-none absolute inset-0">
+                      <div className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-neon-cyan)_28%,transparent),transparent)]" />
+                      <div className="absolute -left-12 top-12 h-44 w-44 rounded-full bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_14%,transparent)] blur-3xl" />
+                      <div className="absolute right-0 top-8 h-36 w-36 rounded-full bg-[color:color-mix(in_oklab,var(--color-neon-pink)_14%,transparent)] blur-3xl" />
+                      <div className="absolute bottom-0 left-12 h-32 w-32 rounded-full bg-[color:color-mix(in_oklab,var(--color-matrix-green)_16%,transparent)] blur-3xl" />
+                    </div>
+
+                    <div className="relative z-10">
+                      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0">
+                          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--color-matrix-green)_24%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_10%,white)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-matrix-green)] dark:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_14%,black)]">
+                            {t("dashboard.selectedRoute")}
+                          </div>
+                          <h2 className="truncate text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                            {selectedProxy?.name ?? t("dashboard.unknownRoute")}
+                          </h2>
+                          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                            {selectedProxy
+                              ? t(selectedRouteExplanation?.summaryKey ?? "dashboard.smartRouteReasonFallback")
+                              : t("dashboard.selectedRouteDesc")}
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-[color:var(--panel-subtle)]/72 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                              <Sparkles size={14} className="text-[var(--color-neon-cyan)]" />
+                              {selectionStateLabel}
+                            </span>
+                            {selectedProxy ? (
+                              <span
+                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] ${selectedLatencyBadge.tone}`}
+                              >
+                                <Gauge size={13} />
+                                {selectedLatencyBadge.detail}
+                              </span>
+                            ) : null}
+                            {selectedRegionLabel ? (
+                              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-[color:var(--panel-subtle)]/72 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                <CountryFlag
+                                  code={selectedRegionCountryCode}
+                                  className="h-3.5 w-[1.3125rem] rounded-[0.15rem] border border-border/65 shadow-[var(--panel-shadow)]"
+                                  fallbackClassName="h-3.5 w-[1.3125rem]"
+                                />
+                                <span>{selectedRegionLabel}</span>
+                              </span>
+                            ) : null}
+                            {selectedProxy ? (
+                              <span className="rounded-full border border-border/70 bg-[color:var(--panel-subtle)]/72 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {selectedRouteModeLabel}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[18rem]">
+                          <div className="rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_10%,white)] px-4 py-3 text-[var(--color-neon-cyan)] shadow-[var(--panel-shadow)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_16%,black)]">
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-75">
+                              {t("dashboard.smartScore")}
+                            </div>
+                            <div className="mt-2 font-mono text-2xl font-semibold tracking-[0.08em] text-foreground">
+                              {selectedRouteExplanation
+                                ? formatDashboardScore(selectedRouteExplanation.score)
+                                : "—"}
+                            </div>
+                            <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                              {t("dashboard.smartScoreHint")}
+                            </div>
+                          </div>
+                          <div className="rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--color-neon-pink)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-pink)_10%,white)] px-4 py-3 text-[var(--color-neon-pink)] shadow-[var(--panel-shadow)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_16%,black)]">
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-75">
+                              {t("dashboard.bestRouteDelta")}
+                            </div>
+                            <div className="mt-2 font-mono text-2xl font-semibold tracking-[0.08em] text-foreground">
+                              {selectedProxy?.id === bestAvailableProxy?.id
+                                ? t("dashboard.bestRouteLeading")
+                                : selectedLatencyLead ?? "—"}
+                            </div>
+                            <div className="mt-1 truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                              {selectedProxy?.id === bestAvailableProxy?.id
+                                ? t("dashboard.bestRouteLeadingHint")
+                                : bestAvailableProxy?.name ?? t("dashboard.bestRouteUnavailable")}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
+                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("dashboard.proxyNode")}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold text-foreground">
+                            {selectedProxy?.server ? `${selectedProxy.server}:${selectedProxy.port}` : "—"}
+                          </div>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("profiles.protocol")}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold text-foreground">
+                            {selectedProxy?.protocol?.toUpperCase() ?? "—"}
+                          </div>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("dashboard.routeRegion")}
+                          </div>
+                          {selectedRegionLabel ? (
+                            <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                              <CountryFlag
+                                code={selectedRegionCountryCode}
+                                className="h-4 w-6 rounded-[0.2rem] border border-border/65 shadow-[var(--panel-shadow)]"
+                                fallbackClassName="h-4 w-6"
+                              />
+                              <span>{selectedRegionLabel}</span>
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-sm font-semibold text-foreground">—</div>
+                          )}
+                        </div>
+                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("dashboard.transportProfile")}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold text-foreground">
+                            {selectedProxy ? selectedTransportSignature : "—"}
+                          </div>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("dashboard.securityEnvelope")}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold text-foreground">
+                            {selectedProxy ? selectedSecurityEnvelope : "—"}
+                          </div>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("dashboard.profileCollection")}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold text-foreground">
+                            {selectedCollectionLabel}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                        <div className="rounded-[1.45rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 p-4 shadow-[var(--panel-shadow)]">
+                          <div className="mb-3 flex items-start justify-between gap-4">
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                                {t("dashboard.smartExplainTitle")}
+                              </div>
+                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                {selectedProxy
+                                  ? t(selectedRouteExplanation?.summaryKey ?? "dashboard.smartRouteReasonFallback")
+                                  : t("dashboard.selectedRouteDesc")}
+                              </p>
+                            </div>
+                            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_10%,white)] text-[var(--color-neon-cyan)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_16%,black)]">
+                              <Sparkles size={16} />
+                            </div>
+                          </div>
+
+                          {selectedProxy && selectedExplainSignals.length ? (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedExplainSignals.map((signal) => (
+                                <SmartSignalChip
+                                  key={`selected-${signal.kind}`}
+                                  signal={signal}
+                                  proxy={selectedProxy}
+                                  latencyBadge={selectedLatencyBadge}
+                                  translate={(key, options) =>
+                                    String(t(key as never, options as never))
+                                  }
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-[1.15rem] border border-dashed border-border/70 bg-[color:var(--panel-surface)]/78 px-4 py-4 text-sm text-muted-foreground">
+                              {t("dashboard.smartExplainEmpty")}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-[1.45rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 p-4 shadow-[var(--panel-shadow)]">
+                          <div className="mb-3 flex items-start justify-between gap-4">
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                                {t("dashboard.routeSignatureTitle")}
+                              </div>
+                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                {t("dashboard.routeSignatureDesc")}
+                              </p>
+                            </div>
+                            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--color-neon-pink)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-pink)_10%,white)] text-[var(--color-neon-pink)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_16%,black)]">
+                              <Fingerprint size={16} />
+                            </div>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {t("dashboard.endpointPrimary")}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {selectedProxy ? selectedEndpointLabel : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {t("dashboard.capacityLabel")}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {selectedProxy ? selectedCapacityLabel : "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {selectedRelayProxy ? t("dashboard.relayPath") : t("dashboard.routeMode")}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {selectedRelayProxy ? selectedRelayProxy.name : selectedRouteModeLabel}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {t("dashboard.positionInProfile")}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-foreground">
+                                {selectedCollectionPosition != null &&
+                                selectedCollectionPosition >= 0 &&
+                                selectedCollection
+                                  ? `${selectedCollectionPosition + 1} / ${selectedCollection.proxyCount}`
+                                  : "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div className="rounded-[1.8rem] border border-border/60 bg-[color:var(--chrome-elevated)]/84 p-4 shadow-[var(--panel-shadow)]">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                        {t("dashboard.bestAvailable")}
+                      </div>
+                      <div className="mt-2 text-lg font-semibold text-foreground">
+                        {bestAvailableProxy?.name ?? t("dashboard.bestRouteUnavailable")}
+                      </div>
+                      <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {t(bestRouteReasonKey)}
+                      </div>
+                      {bestAvailableProxy && bestExplainSignals.length ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {bestExplainSignals.map((signal) => (
+                            <SmartSignalChip
+                              key={`capsule-${signal.kind}`}
+                              signal={signal}
+                              proxy={bestAvailableProxy}
+                              latencyBadge={bestLatencyBadge}
+                              translate={(key, options) =>
+                                String(t(key as never, options as never))
+                              }
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="relative flex flex-1 flex-col overflow-hidden rounded-[1.8rem] border border-border/60 bg-[color:var(--chrome-elevated)]/84 p-4 shadow-[var(--panel-shadow)]">
+                      <div aria-hidden className="pointer-events-none absolute inset-0">
+                        <motion.div
+                          className="absolute -right-12 top-6 h-36 w-36 rounded-full blur-3xl"
+                          style={{ backgroundColor: connectedStateTheme.accent }}
+                          animate={
+                            connectedStatePulseAnimation
+                              ? { opacity: [0.08, 0.22, 0.12], scale: [0.94, 1.08, 0.98] }
+                              : { opacity: 0.08, scale: 1 }
+                          }
+                          transition={{
+                            repeat: connectedStatePulseAnimation ? Infinity : 0,
+                            duration: 3.4,
+                            ease: desktopMotionEase,
+                          }}
+                        />
+                        <motion.div
+                          className="absolute -left-10 bottom-10 h-28 w-28 rounded-full blur-3xl"
+                          style={{ backgroundColor: connectedStateTheme.accent }}
+                          animate={
+                            connectedStatePulseAnimation
+                              ? { opacity: [0.04, 0.14, 0.06], scale: [1, 0.9, 1.04] }
+                              : { opacity: 0.05, scale: 1 }
+                          }
+                          transition={{
+                            repeat: connectedStatePulseAnimation ? Infinity : 0,
+                            duration: 4.2,
+                            ease: desktopMotionEase,
+                          }}
+                        />
+                        <div className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-neon-cyan)_24%,transparent),transparent)]" />
+                      </div>
+
+                      <div className="relative z-10 mb-4 flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            {t("dashboard.selectedRoute")}
+                          </div>
+                          <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {selectionStateLabel}
+                          </div>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${connectedStateTheme.chip}`}
+                        >
+                          <motion.span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: connectedStateTheme.accent, boxShadow: `0 0 12px ${connectedStateTheme.accent}` }}
+                            animate={
+                              connectedStatePulseAnimation
+                                ? { opacity: [0.4, 1, 0.56], scale: [0.9, 1.14, 0.96] }
+                                : { opacity: 0.72, scale: 1 }
+                            }
+                            transition={{
+                              repeat: connectedStatePulseAnimation ? Infinity : 0,
+                              duration: 1.8,
+                              ease: desktopMotionEase,
+                            }}
+                          />
+                          {currentStatusLabel}
+                        </span>
+                      </div>
+
+                      <div className="relative z-10 rounded-[1.45rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3 shadow-[var(--panel-shadow)]">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("dashboard.routeSignatureTitle")}
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-foreground">
+                          {connectedStateSignalText}
+                        </div>
+                        <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {connectedStateTrafficLabel}
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 flex justify-center py-5">
+                        <ConnectButton
+                          status={status}
+                          onConnect={handleConnect}
+                          onDisconnect={handleDisconnect}
+                        />
+                      </div>
+
+                      <div className="relative z-10 mt-auto grid gap-2">
+                        {connectedStateMeters.map((meter, index) => (
+                          <div
+                            key={meter.label}
+                            className="rounded-[1.2rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-3.5 py-3 shadow-[var(--panel-shadow)]"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {meter.label}
+                              </div>
+                              <div className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
+                                {meter.value}
+                              </div>
+                            </div>
+                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[color:var(--field-surface)]/90">
+                              <motion.div
+                                className="h-full rounded-full"
+                                style={{
+                                  background: `linear-gradient(90deg, ${connectedStateTheme.accent}, color-mix(in oklab, ${connectedStateTheme.accent} 55%, white))`,
+                                }}
+                                animate={
+                                  connectedStatePulseAnimation
+                                    ? {
+                                        width: [
+                                          `${Math.max(12, meter.progress - 8)}%`,
+                                          `${meter.progress}%`,
+                                          `${Math.max(12, meter.progress - 4)}%`,
+                                        ],
+                                        opacity: [0.72, 1, 0.82],
+                                      }
+                                    : {
+                                        width: `${meter.progress}%`,
+                                        opacity: 0.88,
+                                      }
+                                }
+                                transition={{
+                                  delay: index * 0.08,
+                                  repeat: connectedStatePulseAnimation ? Infinity : 0,
+                                  duration: 2.4,
+                                  ease: desktopMotionEase,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 lg:grid-cols-[1fr_2fr]">
+                   <FpsPingMeter ping={selectedProxy?.ping} isScanning={selectedProxy ? !hasMeasuredLatency(selectedProxy.ping) : false} />
+                   <SpeedChart downBytes={status.downBytes ?? 0} upBytes={status.upBytes ?? 0} />
+                </div>
+
                 <div className="grid gap-5 2xl:grid-cols-[minmax(28rem,0.84fr)_minmax(42rem,1.16fr)]">
                   <div className="min-w-0 rounded-[1.8rem] border border-border/60 bg-[color:var(--chrome-elevated)]/82 p-5 shadow-[var(--panel-shadow)]">
                     <div className="mb-4 flex items-start justify-between gap-4">
@@ -2143,411 +2554,6 @@ export function DashboardPage() {
                           );
                         })
                       )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_21rem] 2xl:grid-cols-[minmax(0,1.2fr)_22rem] xl:items-stretch">
-                  <div className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-[color:var(--chrome-elevated)]/84 p-5 shadow-[var(--panel-shadow-strong)]">
-                    <div aria-hidden className="pointer-events-none absolute inset-0">
-                      <div className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-neon-cyan)_28%,transparent),transparent)]" />
-                      <div className="absolute -left-12 top-12 h-44 w-44 rounded-full bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_14%,transparent)] blur-3xl" />
-                      <div className="absolute right-0 top-8 h-36 w-36 rounded-full bg-[color:color-mix(in_oklab,var(--color-neon-pink)_14%,transparent)] blur-3xl" />
-                      <div className="absolute bottom-0 left-12 h-32 w-32 rounded-full bg-[color:color-mix(in_oklab,var(--color-matrix-green)_16%,transparent)] blur-3xl" />
-                    </div>
-
-                    <div className="relative z-10">
-                      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0">
-                          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--color-matrix-green)_24%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-matrix-green)_10%,white)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-matrix-green)] dark:bg-[color:color-mix(in_oklab,var(--color-matrix-green)_14%,black)]">
-                            {t("dashboard.selectedRoute")}
-                          </div>
-                          <h2 className="truncate text-2xl font-semibold tracking-[-0.04em] text-foreground">
-                            {selectedProxy?.name ?? t("dashboard.unknownRoute")}
-                          </h2>
-                          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                            {selectedProxy
-                              ? t(selectedRouteExplanation?.summaryKey ?? "dashboard.smartRouteReasonFallback")
-                              : t("dashboard.selectedRouteDesc")}
-                          </p>
-
-                          <div className="mt-4 flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-[color:var(--panel-subtle)]/72 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                              <Sparkles size={14} className="text-[var(--color-neon-cyan)]" />
-                              {selectionStateLabel}
-                            </span>
-                            {selectedProxy ? (
-                              <span
-                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] ${selectedLatencyBadge.tone}`}
-                              >
-                                <Gauge size={13} />
-                                {selectedLatencyBadge.detail}
-                              </span>
-                            ) : null}
-                            {selectedRegionLabel ? (
-                              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-[color:var(--panel-subtle)]/72 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                <CountryFlag
-                                  code={selectedRegionCountryCode}
-                                  className="h-3.5 w-[1.3125rem] rounded-[0.15rem] border border-border/65 shadow-[var(--panel-shadow)]"
-                                  fallbackClassName="h-3.5 w-[1.3125rem]"
-                                />
-                                <span>{selectedRegionLabel}</span>
-                              </span>
-                            ) : null}
-                            {selectedProxy ? (
-                              <span className="rounded-full border border-border/70 bg-[color:var(--panel-subtle)]/72 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {selectedRouteModeLabel}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[18rem]">
-                          <div className="rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_10%,white)] px-4 py-3 text-[var(--color-neon-cyan)] shadow-[var(--panel-shadow)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_16%,black)]">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-75">
-                              {t("dashboard.smartScore")}
-                            </div>
-                            <div className="mt-2 font-mono text-2xl font-semibold tracking-[0.08em] text-foreground">
-                              {selectedRouteExplanation
-                                ? formatDashboardScore(selectedRouteExplanation.score)
-                                : "—"}
-                            </div>
-                            <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                              {t("dashboard.smartScoreHint")}
-                            </div>
-                          </div>
-                          <div className="rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--color-neon-pink)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-pink)_10%,white)] px-4 py-3 text-[var(--color-neon-pink)] shadow-[var(--panel-shadow)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_16%,black)]">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-75">
-                              {t("dashboard.bestRouteDelta")}
-                            </div>
-                            <div className="mt-2 font-mono text-2xl font-semibold tracking-[0.08em] text-foreground">
-                              {selectedProxy?.id === bestAvailableProxy?.id
-                                ? t("dashboard.bestRouteLeading")
-                                : selectedLatencyLead ?? "—"}
-                            </div>
-                            <div className="mt-1 truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                              {selectedProxy?.id === bestAvailableProxy?.id
-                                ? t("dashboard.bestRouteLeadingHint")
-                                : bestAvailableProxy?.name ?? t("dashboard.bestRouteUnavailable")}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
-                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("dashboard.proxyNode")}
-                          </div>
-                          <div className="mt-2 text-sm font-semibold text-foreground">
-                            {selectedProxy?.server ? `${selectedProxy.server}:${selectedProxy.port}` : "—"}
-                          </div>
-                        </div>
-                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("profiles.protocol")}
-                          </div>
-                          <div className="mt-2 text-sm font-semibold text-foreground">
-                            {selectedProxy?.protocol?.toUpperCase() ?? "—"}
-                          </div>
-                        </div>
-                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("dashboard.routeRegion")}
-                          </div>
-                          {selectedRegionLabel ? (
-                            <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                              <CountryFlag
-                                code={selectedRegionCountryCode}
-                                className="h-4 w-6 rounded-[0.2rem] border border-border/65 shadow-[var(--panel-shadow)]"
-                                fallbackClassName="h-4 w-6"
-                              />
-                              <span>{selectedRegionLabel}</span>
-                            </div>
-                          ) : (
-                            <div className="mt-2 text-sm font-semibold text-foreground">—</div>
-                          )}
-                        </div>
-                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("dashboard.transportProfile")}
-                          </div>
-                          <div className="mt-2 text-sm font-semibold text-foreground">
-                            {selectedProxy ? selectedTransportSignature : "—"}
-                          </div>
-                        </div>
-                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("dashboard.securityEnvelope")}
-                          </div>
-                          <div className="mt-2 text-sm font-semibold text-foreground">
-                            {selectedProxy ? selectedSecurityEnvelope : "—"}
-                          </div>
-                        </div>
-                        <div className="rounded-[1.25rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3">
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("dashboard.profileCollection")}
-                          </div>
-                          <div className="mt-2 text-sm font-semibold text-foreground">
-                            {selectedCollectionLabel}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                        <div className="rounded-[1.45rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 p-4 shadow-[var(--panel-shadow)]">
-                          <div className="mb-3 flex items-start justify-between gap-4">
-                            <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                                {t("dashboard.smartExplainTitle")}
-                              </div>
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                {selectedProxy
-                                  ? t(selectedRouteExplanation?.summaryKey ?? "dashboard.smartRouteReasonFallback")
-                                  : t("dashboard.selectedRouteDesc")}
-                              </p>
-                            </div>
-                            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--color-neon-cyan)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_10%,white)] text-[var(--color-neon-cyan)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-cyan)_16%,black)]">
-                              <Sparkles size={16} />
-                            </div>
-                          </div>
-
-                          {selectedProxy && selectedExplainSignals.length ? (
-                            <div className="flex flex-wrap gap-2">
-                              {selectedExplainSignals.map((signal) => (
-                                <SmartSignalChip
-                                  key={`selected-${signal.kind}`}
-                                  signal={signal}
-                                  proxy={selectedProxy}
-                                  latencyBadge={selectedLatencyBadge}
-                                  translate={(key, options) =>
-                                    String(t(key as never, options as never))
-                                  }
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="rounded-[1.15rem] border border-dashed border-border/70 bg-[color:var(--panel-surface)]/78 px-4 py-4 text-sm text-muted-foreground">
-                              {t("dashboard.smartExplainEmpty")}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="rounded-[1.45rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 p-4 shadow-[var(--panel-shadow)]">
-                          <div className="mb-3 flex items-start justify-between gap-4">
-                            <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                                {t("dashboard.routeSignatureTitle")}
-                              </div>
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                {t("dashboard.routeSignatureDesc")}
-                              </p>
-                            </div>
-                            <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--color-neon-pink)_22%,var(--border))] bg-[color:color-mix(in_oklab,var(--color-neon-pink)_10%,white)] text-[var(--color-neon-pink)] dark:bg-[color:color-mix(in_oklab,var(--color-neon-pink)_16%,black)]">
-                              <Fingerprint size={16} />
-                            </div>
-                          </div>
-
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {t("dashboard.endpointPrimary")}
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-foreground">
-                                {selectedProxy ? selectedEndpointLabel : "—"}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {t("dashboard.capacityLabel")}
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-foreground">
-                                {selectedProxy ? selectedCapacityLabel : "—"}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {selectedRelayProxy ? t("dashboard.relayPath") : t("dashboard.routeMode")}
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-foreground">
-                                {selectedRelayProxy ? selectedRelayProxy.name : selectedRouteModeLabel}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {t("dashboard.positionInProfile")}
-                              </div>
-                              <div className="mt-1 text-sm font-semibold text-foreground">
-                                {selectedCollectionPosition != null &&
-                                selectedCollectionPosition >= 0 &&
-                                selectedCollection
-                                  ? `${selectedCollectionPosition + 1} / ${selectedCollection.proxyCount}`
-                                  : "—"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <div className="rounded-[1.8rem] border border-border/60 bg-[color:var(--chrome-elevated)]/84 p-4 shadow-[var(--panel-shadow)]">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                        {t("dashboard.bestAvailable")}
-                      </div>
-                      <div className="mt-2 text-lg font-semibold text-foreground">
-                        {bestAvailableProxy?.name ?? t("dashboard.bestRouteUnavailable")}
-                      </div>
-                      <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                        {t(bestRouteReasonKey)}
-                      </div>
-                      {bestAvailableProxy && bestExplainSignals.length ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {bestExplainSignals.map((signal) => (
-                            <SmartSignalChip
-                              key={`capsule-${signal.kind}`}
-                              signal={signal}
-                              proxy={bestAvailableProxy}
-                              latencyBadge={bestLatencyBadge}
-                              translate={(key, options) =>
-                                String(t(key as never, options as never))
-                              }
-                            />
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="relative flex flex-1 flex-col overflow-hidden rounded-[1.8rem] border border-border/60 bg-[color:var(--chrome-elevated)]/84 p-4 shadow-[var(--panel-shadow)]">
-                      <div aria-hidden className="pointer-events-none absolute inset-0">
-                        <motion.div
-                          className="absolute -right-12 top-6 h-36 w-36 rounded-full blur-3xl"
-                          style={{ backgroundColor: connectedStateTheme.accent }}
-                          animate={
-                            connectedStatePulseAnimation
-                              ? { opacity: [0.08, 0.22, 0.12], scale: [0.94, 1.08, 0.98] }
-                              : { opacity: 0.08, scale: 1 }
-                          }
-                          transition={{
-                            repeat: connectedStatePulseAnimation ? Infinity : 0,
-                            duration: 3.4,
-                            ease: desktopMotionEase,
-                          }}
-                        />
-                        <motion.div
-                          className="absolute -left-10 bottom-10 h-28 w-28 rounded-full blur-3xl"
-                          style={{ backgroundColor: connectedStateTheme.accent }}
-                          animate={
-                            connectedStatePulseAnimation
-                              ? { opacity: [0.04, 0.14, 0.06], scale: [1, 0.9, 1.04] }
-                              : { opacity: 0.05, scale: 1 }
-                          }
-                          transition={{
-                            repeat: connectedStatePulseAnimation ? Infinity : 0,
-                            duration: 4.2,
-                            ease: desktopMotionEase,
-                          }}
-                        />
-                        <div className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-neon-cyan)_24%,transparent),transparent)]" />
-                      </div>
-
-                      <div className="relative z-10 mb-4 flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            {t("dashboard.selectedRoute")}
-                          </div>
-                          <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                            {selectionStateLabel}
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${connectedStateTheme.chip}`}
-                        >
-                          <motion.span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: connectedStateTheme.accent, boxShadow: `0 0 12px ${connectedStateTheme.accent}` }}
-                            animate={
-                              connectedStatePulseAnimation
-                                ? { opacity: [0.4, 1, 0.56], scale: [0.9, 1.14, 0.96] }
-                                : { opacity: 0.72, scale: 1 }
-                            }
-                            transition={{
-                              repeat: connectedStatePulseAnimation ? Infinity : 0,
-                              duration: 1.8,
-                              ease: desktopMotionEase,
-                            }}
-                          />
-                          {currentStatusLabel}
-                        </span>
-                      </div>
-
-                      <div className="relative z-10 rounded-[1.45rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-4 py-3 shadow-[var(--panel-shadow)]">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          {t("dashboard.routeSignatureTitle")}
-                        </div>
-                        <div className="mt-2 text-sm font-semibold text-foreground">
-                          {connectedStateSignalText}
-                        </div>
-                        <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          {connectedStateTrafficLabel}
-                        </div>
-                      </div>
-
-                      <div className="relative z-10 flex justify-center py-5">
-                        <ConnectButton
-                          status={status}
-                          onConnect={handleConnect}
-                          onDisconnect={handleDisconnect}
-                        />
-                      </div>
-
-                      <div className="relative z-10 mt-auto grid gap-2">
-                        {connectedStateMeters.map((meter, index) => (
-                          <div
-                            key={meter.label}
-                            className="rounded-[1.2rem] border border-border/65 bg-[color:var(--panel-subtle)]/72 px-3.5 py-3 shadow-[var(--panel-shadow)]"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                {meter.label}
-                              </div>
-                              <div className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground">
-                                {meter.value}
-                              </div>
-                            </div>
-                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[color:var(--field-surface)]/90">
-                              <motion.div
-                                className="h-full rounded-full"
-                                style={{
-                                  background: `linear-gradient(90deg, ${connectedStateTheme.accent}, color-mix(in oklab, ${connectedStateTheme.accent} 55%, white))`,
-                                }}
-                                animate={
-                                  connectedStatePulseAnimation
-                                    ? {
-                                        width: [
-                                          `${Math.max(12, meter.progress - 8)}%`,
-                                          `${meter.progress}%`,
-                                          `${Math.max(12, meter.progress - 4)}%`,
-                                        ],
-                                        opacity: [0.72, 1, 0.82],
-                                      }
-                                    : {
-                                        width: `${meter.progress}%`,
-                                        opacity: 0.88,
-                                      }
-                                }
-                                transition={{
-                                  delay: index * 0.08,
-                                  repeat: connectedStatePulseAnimation ? Infinity : 0,
-                                  duration: 2.4,
-                                  ease: desktopMotionEase,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </div>

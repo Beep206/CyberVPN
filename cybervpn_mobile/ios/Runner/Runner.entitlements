@@ -12,7 +12,7 @@
 	</array>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:cybervpn.app</string>
+		<string>applinks:$(TELEGRAM_IOS_ASSOCIATED_DOMAIN)</string>
 	</array>
 </dict>
 </plist>

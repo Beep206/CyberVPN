@@ -1,6 +1,6 @@
 {
-  "title": "SUBSCRIPTIONS",
-  "subtitle": "Manage your VPN subscription plans",
+  "title": "SUBSCRIPTION CONTROL",
+  "subtitle": "Manage VPN access, trial state, upgrade path, add-ons, billing signals, and provisioning readiness from one customer-safe cockpit.",
   "errorLoading": "Error loading subscriptions",
   "currentSubscription": "Current Subscription",
   "status": "Status",
@@ -16,5 +16,129 @@
   "errorLoadingPlans": "Error loading plans",
   "noPlansAvailable": "No plans available at the moment",
   "codesAndRewards": "Codes & Rewards",
-  "subscriptionHistory": "Subscription History"
+  "rewardsHubTitle": "Rewards Hub",
+  "rewardsHubDescription": "Manage invite codes, referral sharing, and invite redemption from one place instead of splitting the flow across subscription screens.",
+  "rewardsHubCta": "Open rewards hub",
+  "checkoutCodesTitle": "Checkout codes",
+  "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
+  "subscriptionHistory": "Subscription History",
+  "actions": {
+    "cancel": "Cancel renewal",
+    "getConfig": "Get VPN config",
+    "paymentHistory": "Payment history",
+    "wallet": "Wallet"
+  },
+  "addons": {
+    "description": "Add-ons are quoted against the current entitlement before purchase, so price and access deltas stay backend-authoritative.",
+    "empty": "No active add-ons are available for the current plan.",
+    "eyebrow": "Add-on catalog",
+    "purchase": {
+      "completed": "Add-on was applied to the subscription.",
+      "pending": "Add-on checkout created. Complete the invoice to activate it."
+    },
+    "purchaseCta": "Purchase",
+    "purchaseError": "Add-on purchase failed. Retry or contact support.",
+    "quote": "Quote",
+    "quoteError": "Add-on quote failed. Retry after refreshing the page.",
+    "quoteReady": "Quote ready: {amount}",
+    "title": "Extra capacity and access"
+  },
+  "current": {
+    "connectionModes": "Connection modes",
+    "description": "This is the backend entitlement currently controlling VPN access, device limits, traffic policy, and service delivery.",
+    "devices": "Devices",
+    "expiresAt": "Expires",
+    "eyebrow": "Current entitlement",
+    "noPlanDescription": "Choose a public plan or activate an eligible trial to provision VPN access.",
+    "noPlanTitle": "No active plan",
+    "subscriptionFallback": "subscription",
+    "support": "Support",
+    "traffic": "Traffic"
+  },
+  "health": {
+    "attention": "Needs attention",
+    "critical": "Action required",
+    "healthy": "Healthy"
+  },
+  "hero": {
+    "eyebrow": "Plan and access cockpit",
+    "health": "Subscription health",
+    "service": "Provisioning"
+  },
+  "history": {
+    "empty": "No order history returned by the backend yet.",
+    "eyebrow": "Billing trail",
+    "title": "Recent subscription orders"
+  },
+  "labels": {
+    "noPlan": "No plan",
+    "notAvailable": "N/A"
+  },
+  "nextActions": {
+    "addonsAvailable": "Optional add-ons can be quoted for this plan.",
+    "choosePlan": "Choose a plan or trial to unlock VPN access.",
+    "eyebrow": "Readiness checklist",
+    "finishProvisioning": "Provisioning is still pending. Check service access before importing configs.",
+    "noAddons": "No add-ons are currently available for this plan.",
+    "paymentSignal": "At least one paid order should exist for long-term access.",
+    "serviceReady": "Service access is provisioned.",
+    "subscriptionReady": "Subscription entitlement is active.",
+    "title": "Next best actions"
+  },
+  "planActions": {
+    "commit": {
+      "completed": "Plan change completed.",
+      "pending": "Plan change checkout created. Complete the invoice to activate it."
+    },
+    "commitCta": "Apply",
+    "commitError": "Plan change failed. Retry or use checkout support.",
+    "current": "Current",
+    "downgrade": "Change",
+    "loading": "Working",
+    "purchase": "Purchase",
+    "quote": "Quote",
+    "quoteError": "Plan quote failed. Retry after refreshing the catalog.",
+    "quoteReady": "Quote ready: {amount}",
+    "upgrade": "Upgrade"
+  },
+  "plans": {
+    "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
+    "empty": "No public plans are available right now.",
+    "eyebrow": "Plan catalog",
+    "perCycle": "per {duration}",
+    "publicCount": "{count} public plans",
+    "title": "Choose the next access tier"
+  },
+  "service": {
+    "channel": "Channel",
+    "pending": "Pending",
+    "profile": "Profile",
+    "provider": "Provider",
+    "provisioned": "Provisioned"
+  },
+  "summary": {
+    "addons": "Add-ons",
+    "ariaLabel": "Subscription and access summary",
+    "billing": "Cycle price",
+    "days": "{count}d",
+    "expires": "Time left",
+    "plan": "Plan"
+  },
+  "sync": {
+    "degraded": "Degraded",
+    "description": "Queries pause in hidden/offline tabs and can be refreshed manually.",
+    "live": "Live",
+    "retry": "Refresh"
+  },
+  "trial": {
+    "activate": "Start trial",
+    "activating": "Activating",
+    "activeDescription": "Trial access is active. {count} days remain before a paid plan is required.",
+    "activeTitle": "Trial is active",
+    "eligibleDescription": "Start the trial to provision a limited VPN entitlement before checkout.",
+    "eligibleTitle": "Trial available",
+    "error": "Trial activation failed. Retry or contact support.",
+    "eyebrow": "Trial access",
+    "success": "Trial activated. Access state is refreshing."
+  }
 }

@@ -9,7 +9,11 @@ import redis.asyncio as aioredis
 import structlog
 
 from src.config import get_settings
-from src.services.email.templates import render_magic_link_template, render_otp_template
+from src.services.email.templates import (
+    render_growth_notification_template,
+    render_magic_link_template,
+    render_otp_template,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -319,6 +323,83 @@ class SmtpClient:
             )
             raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
 
+    async def send_growth_notification(
+        self,
+        *,
+        email: str,
+        subject: str | None = None,
+        title: str,
+        message: str,
+        locale: str = "en-EN",
+        cta_url: str = "",
+        notes: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Send a growth-notification email via SMTP."""
+        host, port, index = await self._get_next_server()
+        server_id = f"mailpit-{index + 1}"
+
+        logger.info(
+            "smtp_sending_growth_notification",
+            email=email,
+            server=f"{host}:{port}",
+            server_id=server_id,
+        )
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject or self._get_growth_notification_subject(title)
+        msg["From"] = self._from_email
+        msg["To"] = email
+        msg["X-Mailpit-Server"] = server_id
+        msg["X-Growth-Notification"] = "true"
+
+        msg.attach(
+            MIMEText(
+                self._render_growth_notification_text(title, message, cta_url, notes),
+                "plain",
+            )
+        )
+        msg.attach(
+            MIMEText(
+                render_growth_notification_template(
+                    title=title,
+                    message=message,
+                    locale=locale,
+                    cta_url=cta_url,
+                    notes=notes,
+                    dev_banner=True,
+                ),
+                "html",
+            )
+        )
+
+        try:
+            with smtplib.SMTP(host, port, timeout=10) as server:
+                server.sendmail(self._from_email, [email], msg.as_string())
+
+            logger.info(
+                "smtp_growth_notification_sent",
+                email=email,
+                server=f"{host}:{port}",
+                server_id=server_id,
+            )
+
+            return {
+                "id": f"smtp_{server_id}_{index}",
+                "server": server_id,
+                "host": host,
+                "port": port,
+                "status": "sent",
+            }
+
+        except Exception as e:
+            logger.error(
+                "smtp_growth_notification_failed",
+                email=email,
+                server=f"{host}:{port}",
+                error=str(e),
+            )
+            raise SmtpClientError(f"SMTP send failed: {e}", server=f"{host}:{port}") from e
+
     def _get_magic_link_subject(self, locale: str) -> str:
         """Get localized magic link email subject."""
         subjects = {
@@ -372,3 +453,22 @@ class SmtpClient:
             subtitle="Enter the following code to reset your password:",
             disclaimer="If you didn't request a password reset, ignore this email and keep your account secure.",
         )
+
+    def _get_growth_notification_subject(self, title: str) -> str:
+        return f"[DEV] CyberVPN - {title.strip() or 'Account update'}"
+
+    def _render_growth_notification_text(
+        self,
+        title: str,
+        message: str,
+        cta_url: str,
+        notes: list[str] | None,
+    ) -> str:
+        lines = [title.strip() or "CyberVPN account update", "", message.strip()]
+        clean_notes = [str(item).strip() for item in notes or [] if str(item).strip()]
+        if clean_notes:
+            lines.extend(["", "Details:"])
+            lines.extend(f"- {item}" for item in clean_notes)
+        if cta_url:
+            lines.extend(["", f"Open: {cta_url}"])
+        return "\n".join(lines)

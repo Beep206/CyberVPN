@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getSafeRedirectPath } from './redirect-path';
+import { getDefaultMiniAppPath, getSafeRedirectPath } from './redirect-path';
 import { buildInternalLoginHref, buildLocalizedLoginRedirect } from './session';
 
 describe('auth redirect canonicalization', () => {
@@ -30,5 +30,9 @@ describe('auth redirect canonicalization', () => {
 
   it('falls back to the locale dashboard when redirect points to an auth route', () => {
     expect(getSafeRedirectPath('/ru-RU/login', 'ru-RU')).toBe('/ru-RU/dashboard');
+  });
+
+  it('builds the canonical localized mini app home path', () => {
+    expect(getDefaultMiniAppPath('ru-RU')).toBe('/ru-RU/miniapp/home');
   });
 });

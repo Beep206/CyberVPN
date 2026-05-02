@@ -14,6 +14,7 @@ describe('seo-route-policy', () => {
     expect(isIndexableLocalizedPath('/en-EN/pricing')).toBe(true);
     expect(isIndexableLocalizedPath('/en-EN/help')).toBe(true);
     expect(isIndexableLocalizedPath('/en-EN/guides')).toBe(true);
+    expect(isIndexableLocalizedPath('/en-EN/network/dpi-resistance')).toBe(true);
     expect(isIndexableLocalizedPath('/en-EN/guides/how-to-bypass-dpi-with-vless-reality')).toBe(
       true,
     );
@@ -74,6 +75,7 @@ describe('seo-route-policy', () => {
     expect(isRolloutIndexableLocalizedPath('/ru-RU/wallet')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides')).toBe(true);
     expect(isRolloutIndexableLocalizedPath('/ja-JP/guides')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/en-EN/network/dpi-resistance')).toBe(true);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides/how-to-bypass-dpi-with-vless-reality')).toBe(true);
     expect(isRolloutIndexableLocalizedPath('/zh-CN/compare/vless-reality-vs-wireguard')).toBe(true);
     expect(isRolloutIndexableLocalizedPath('/hi-IN/guides/how-to-bypass-dpi-with-vless-reality')).toBe(true);

@@ -11,10 +11,12 @@ from src.application.use_cases.commerce_sessions.quote_serialization import (
     build_context_snapshot,
     serialize_checkout_result,
 )
+from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
 from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
+from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.presentation.dependencies.auth_realms import RealmResolution
 
 CHECKOUT_SESSION_TTL = timedelta(minutes=30)
@@ -38,6 +40,8 @@ class CreateCheckoutSessionUseCase:
         self._repo = CommerceSessionRepository(session)
         self._resolver = ResolveQuoteContextUseCase(session)
         self._checkout = CheckoutUseCase(session)
+        self._growth_codes = GrowthCodeRepository(session)
+        self._reservations = GrowthCodeReservationService(session)
 
     @staticmethod
     def _normalize_utc(value: datetime) -> datetime:
@@ -70,6 +74,11 @@ class CreateCheckoutSessionUseCase:
         quote_expires_at = self._normalize_utc(quote_session.expires_at)
         if quote_expires_at <= now:
             quote_session.quote_status = "expired"
+            await self._reservations.release_for_quote(
+                quote_session_id=quote_session.id,
+                reason="quote_session_expired",
+                status="expired",
+            )
             await self._session.commit()
             raise QuoteSessionExpiredError("Quote session has expired")
 
@@ -80,8 +89,15 @@ class CreateCheckoutSessionUseCase:
             user_id=user_id,
         )
 
-        if current_context != quote_session.context_snapshot or current_quote_snapshot != quote_session.quote_snapshot:
+        quote_drifted = _sanitize_quote_snapshot(current_quote_snapshot) != _sanitize_quote_snapshot(
+            quote_session.quote_snapshot
+        )
+        if current_context != quote_session.context_snapshot or quote_drifted:
             quote_session.quote_status = "stale"
+            await self._reservations.release_for_quote(
+                quote_session_id=quote_session.id,
+                reason="quote_session_stale",
+            )
             await self._session.commit()
             raise QuoteSessionDriftError("Quote session is stale due to policy or pricing drift")
 
@@ -115,6 +131,7 @@ class CreateCheckoutSessionUseCase:
         )
         quote_session.quote_status = "converted"
         created = await self._repo.create_checkout_session(checkout_session)
+        await self._bind_reservation_to_checkout_session(quote_session=quote_session, checkout_session=created)
         await self._session.commit()
         await self._session.refresh(created)
         return created, True
@@ -141,9 +158,11 @@ class CreateCheckoutSessionUseCase:
         checkout_result = await self._checkout.execute(
             user_id=user_id,
             plan_id=UUID(request_snapshot["plan_id"]),
+            code_input=request_snapshot.get("code_input"),
             promo_code=request_snapshot.get("promo_code"),
             partner_code=request_snapshot.get("partner_code"),
             use_wallet=Decimal(str(request_snapshot.get("use_wallet", 0))),
+            storefront_id=quote_session.storefront_id,
             addons=[
                 CheckoutAddonInput(
                     code=addon["code"],
@@ -155,3 +174,35 @@ class CreateCheckoutSessionUseCase:
             sale_channel=request_snapshot["channel"],
         )
         return build_context_snapshot(resolved_context), serialize_checkout_result(checkout_result)
+
+    async def _bind_reservation_to_checkout_session(
+        self,
+        *,
+        quote_session: QuoteSessionModel,
+        checkout_session: CheckoutSessionModel,
+    ) -> None:
+        reservation_id = _extract_reservation_id(quote_session.quote_snapshot)
+        if reservation_id is None:
+            return
+        reservation = await self._growth_codes.get_reservation_by_id(reservation_id)
+        if reservation is None:
+            return
+        reservation.checkout_session_id = checkout_session.id
+        await self._session.flush()
+
+
+def _extract_reservation_id(quote_snapshot: dict | None) -> UUID | None:
+    code_resolution = (quote_snapshot or {}).get("code_resolution") or {}
+    raw_value = code_resolution.get("reservation_id")
+    if not raw_value:
+        return None
+    return UUID(str(raw_value))
+
+
+def _sanitize_quote_snapshot(snapshot: dict | None) -> dict:
+    sanitized = dict(snapshot or {})
+    code_resolution = dict(sanitized.get("code_resolution") or {})
+    if code_resolution:
+        code_resolution["reservation_id"] = None
+        sanitized["code_resolution"] = code_resolution
+    return sanitized

@@ -4,13 +4,14 @@
  * Tests that Sentry client instrumentation properly:
  * - Imports and calls Sentry.init
  * - Reads DSN from environment variable
- * - Sets tracesSampleRate based on NODE_ENV
+ * - Sets tracesSampleRate based on canonical app environment
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Sentry Client Configuration', () => {
   let mockSentryInit: ReturnType<typeof vi.fn>;
+  let mockReplayIntegration: ReturnType<typeof vi.fn>;
 
   function stubBrowser() {
     vi.stubGlobal('window', {
@@ -21,10 +22,11 @@ describe('Sentry Client Configuration', () => {
 
   beforeEach(() => {
     mockSentryInit = vi.fn();
+    mockReplayIntegration = vi.fn(() => 'replayIntegration');
     vi.doMock('@sentry/nextjs', () => ({
       init: mockSentryInit,
       browserTracingIntegration: vi.fn(() => 'browserTracingIntegration'),
-      replayIntegration: vi.fn(() => 'replayIntegration'),
+      replayIntegration: mockReplayIntegration,
       captureRouterTransitionStart: vi.fn(),
     }));
   });
@@ -103,6 +105,37 @@ describe('Sentry Client Configuration', () => {
     );
   });
 
+  it('prefers NEXT_PUBLIC_APP_ENV over NODE_ENV for environment and sampling', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', 'https://test@sentry.io/123');
+    vi.stubEnv('NEXT_PUBLIC_APP_ENV', 'staging');
+    vi.stubEnv('NODE_ENV', 'production');
+    stubBrowser();
+
+    await import('../instrumentation-client');
+
+    expect(mockSentryInit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environment: 'staging',
+        tracesSampleRate: 1.0,
+      }),
+    );
+  });
+
+  it('passes release from NEXT_PUBLIC_SENTRY_RELEASE when provided', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', 'https://test@sentry.io/123');
+    vi.stubEnv('NEXT_PUBLIC_SENTRY_RELEASE', 'frontend@abc123');
+    vi.stubEnv('NODE_ENV', 'test');
+    stubBrowser();
+
+    await import('../instrumentation-client');
+
+    expect(mockSentryInit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        release: 'frontend@abc123',
+      }),
+    );
+  });
+
   it('includes browser tracing and replay integrations', async () => {
     vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', 'https://test@sentry.io/123');
     vi.stubEnv('NODE_ENV', 'test');
@@ -116,6 +149,14 @@ describe('Sentry Client Configuration', () => {
           'browserTracingIntegration',
           'replayIntegration',
         ]),
+        sendDefaultPii: false,
+        beforeSend: expect.any(Function),
+      }),
+    );
+    expect(mockReplayIntegration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maskAllText: true,
+        blockAllMedia: true,
       }),
     );
   });

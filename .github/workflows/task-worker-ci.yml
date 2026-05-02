@@ -79,6 +79,37 @@ jobs:
         run: |
           pytest services/task-worker/tests/integration/ -v --tb=short -m integration
 
+      - name: Validate Sentry contract
+        env:
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://task-worker@example.com/1
+          SENTRY_RELEASE: task-worker@${{ github.sha }}
+        run: |
+          python3 scripts/validate-sentry-contract.py \
+            --surface task-worker \
+            --environment-var ENVIRONMENT \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release task-worker@${{ github.sha }} \
+            --require-dsn \
+            --summary-label "Task worker Sentry contract"
+
+      - name: Run task-worker Sentry smoke tests
+        env:
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://task-worker@example.com/1
+          SENTRY_RELEASE: task-worker@${{ github.sha }}
+          SENTRY_SMOKE_EXPECT_ENV: staging
+          SENTRY_SMOKE_EXPECT_DSN: https://task-worker@example.com/1
+          SENTRY_SMOKE_EXPECT_RELEASE: task-worker@${{ github.sha }}
+        run: |
+          pytest \
+            services/task-worker/tests/integration/test_broker.py \
+            services/task-worker/tests/integration/test_e2e.py \
+            -k "initializes_sentry_when_configured or sentry_contract_can_be_loaded_from_environment" \
+            -v --tb=short
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: matrix.python-version == '3.13.13'

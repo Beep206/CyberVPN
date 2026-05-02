@@ -12,23 +12,40 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest"
+          - slug: "macos-aarch64"
+            platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
-          - platform: "macos-latest"
+          - slug: "macos-x86_64"
+            platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
-          - platform: "ubuntu-22.04"
+          - slug: "linux-x86_64"
+            platform: "ubuntu-22.04"
             args: ""
-          - platform: "windows-latest"
+          - slug: "windows-x86_64"
+            platform: "windows-latest"
             args: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Resolve desktop release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('apps/desktop-client/package.json', 'utf8')).version)")
+          RELEASE_NAME="desktop@${VERSION}+${GITHUB_RUN_NUMBER}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -62,6 +79,16 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SENTRY_DSN: ${{ secrets.DESKTOP_SENTRY_RENDERER_DSN }}
+          VITE_SENTRY_ENVIRONMENT: production
+          VITE_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          DESKTOP_SENTRY_DSN: ${{ secrets.DESKTOP_SENTRY_NATIVE_DSN }}
+          DESKTOP_SENTRY_ENVIRONMENT: production
+          DESKTOP_SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          DESKTOP_SENTRY_RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ""
@@ -70,9 +97,125 @@ jobs:
           APPLE_ID: ""
           APPLE_PASSWORD: ""
         with:
+          projectPath: ./apps/desktop-client
           tagName: desktop-v__VERSION__ 
           releaseName: "CyberVPN Desktop v__VERSION__"
           releaseBody: "See the assets below to download and install CyberVPN Desktop."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload desktop native debug files to Sentry
+        if: secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '')
+        shell: bash
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ vars.SENTRY_URL }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          mapfile -t native_paths < <(find apps/desktop-client/src-tauri/target \
+            \( -type d -name '*.dSYM' \) -o \
+            \( -type f \( -name 'desktop-client' -o -name 'desktop-client.exe' -o -name '*.pdb' \) \) | sort -u)
+          if [ "${#native_paths[@]}" -eq 0 ]; then
+            echo "No native debug-file candidates found." >&2
+            exit 1
+          fi
+          sentry-cli debug-files upload --wait "${native_paths[@]}"
+
+      - name: Collect desktop Sentry release evidence
+        shell: bash
+        env:
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
+          NATIVE_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
+        run: |
+          python scripts/collect-sentry-release-evidence.py \
+            --surface desktop-client \
+            --release "${SENTRY_RELEASE}" \
+            --environment production \
+            --project "${RENDERER_PROJECT:-unconfigured}" \
+            --project "${NATIVE_PROJECT:-unconfigured}" \
+            --proof-scope release_workflow \
+            --deploy-marker-mode release_workflow \
+            --artifact "renderer-dist=apps/desktop-client/dist" \
+            --artifact "native-release=apps/desktop-client/src-tauri/target/release" \
+            --output "apps/desktop-client/.artifacts/sentry-proof-${{ matrix.slug }}.json" \
+            --summary-label "Desktop Sentry proof"
+
+      - name: Upload desktop Sentry proof manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-sentry-proof-${{ matrix.slug }}
+          path: apps/desktop-client/.artifacts/sentry-proof-${{ matrix.slug }}.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Summarize desktop release metadata
+        shell: bash
+        env:
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
+          NATIVE_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
+          RENDERER_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_RENDERER_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+          NATIVE_UPLOAD_ENABLED: ${{ secrets.SENTRY_AUTH_TOKEN != '' && vars.SENTRY_ORG != '' && (vars.DESKTOP_SENTRY_NATIVE_PROJECT != '' || vars.SENTRY_PROJECT != '') && 'true' || 'false' }}
+        run: |
+          {
+            echo "### Desktop release metadata"
+            echo "- Platform: \`${{ matrix.platform }}\`"
+            echo "- Release: \`${SENTRY_RELEASE}\`"
+            echo "- Renderer project: \`${RENDERER_PROJECT:-unconfigured}\`"
+            echo "- Native project: \`${NATIVE_PROJECT:-unconfigured}\`"
+            echo "- Renderer sourcemap upload enabled: \`${RENDERER_UPLOAD_ENABLED}\`"
+            echo "- Native debug-file upload enabled: \`${NATIVE_UPLOAD_ENABLED}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  record-sentry-release-proof:
+    name: Record desktop Sentry release proof
+    runs-on: ubuntu-latest
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve desktop release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('apps/desktop-client/package.json', 'utf8')).version)")
+          RELEASE_NAME="desktop@${VERSION}+${GITHUB_RUN_NUMBER}"
+          echo "release=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Download desktop Sentry proof manifests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-sentry-proof-*
+          merge-multiple: true
+          path: desktop-sentry-proof
+
+      - name: Record Sentry deploy marker
+        env:
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+          RENDERER_PROJECT: ${{ vars.DESKTOP_SENTRY_RENDERER_PROJECT || vars.SENTRY_PROJECT }}
+          NATIVE_PROJECT: ${{ vars.DESKTOP_SENTRY_NATIVE_PROJECT || vars.SENTRY_PROJECT }}
+        run: |
+          python scripts/record-sentry-release-deploy.py \
+            --release "${SENTRY_RELEASE}" \
+            --environment production \
+            --project "${RENDERER_PROJECT:-unconfigured}" \
+            --project "${NATIVE_PROJECT:-unconfigured}" \
+            --deploy-name desktop-release \
+            --deploy-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --release-url "https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" \
+            --summary-label "Desktop Sentry deploy marker" \
+            --finalize \
+            --noop-on-missing-config

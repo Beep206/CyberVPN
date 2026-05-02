@@ -66,6 +66,7 @@ async def create_quote_session(
             plan_id=payload.plan_id,
             pricebook_key=payload.pricebook_key,
             offer_key=payload.offer_key,
+            code_input=payload.code_input,
             promo_code=payload.promo_code,
             partner_code=payload.partner_code,
             use_wallet=payload.use_wallet,

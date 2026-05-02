@@ -39,6 +39,22 @@ class GrowthRewardAllocationModel(Base):
         nullable=True,
         index=True,
     )
+    source_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_codes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    source_redemption_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("growth_code_redemptions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        unique=True,
+    )
+    policy_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("policy_versions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     order_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("orders.id", ondelete="SET NULL"),
         nullable=True,
@@ -60,6 +76,14 @@ class GrowthRewardAllocationModel(Base):
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
     currency_code: Mapped[str | None] = mapped_column(String(12), nullable=True)
     reward_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    hold_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    available_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    reversal_reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    wallet_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("wallet_transactions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_by_admin_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("admin_users.id", ondelete="SET NULL"),
         nullable=True,

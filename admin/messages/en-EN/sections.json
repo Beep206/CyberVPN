@@ -115,8 +115,8 @@
     "metaTitle": "Governance - Ozoxy Admin",
     "title": "Governance & Audit",
     "description": "Operational governance surface for privileged actions, webhooks, staff onboarding, and future policy control.",
-    "currentState": "Audit logs, webhook logs, and admin invites are already exposed. The missing layer is staff directory management and system configuration governance.",
-    "backendCoverage": "Partial coverage. Strong audit visibility exists, but system configuration and richer staff-management APIs are still missing.",
+    "currentState": "Audit logs, webhook logs, and admin invites are already exposed. The first dedicated system configuration governance API is now live for `miniapp.runtime`; the remaining gap is broader staff directory management and wider `system_config` coverage.",
+    "backendCoverage": "Partial coverage. Strong audit visibility exists and `miniapp.runtime` is now operator-controlled, but broader system configuration families and richer staff-management APIs are still missing.",
     "nextFocus": "Ship the first governance workspace around audit, invites, and webhook forensics, then add admin directory and policy controls.",
     "availableNow": {
       "auditLog": "Privileged action trail from backend audit log.",

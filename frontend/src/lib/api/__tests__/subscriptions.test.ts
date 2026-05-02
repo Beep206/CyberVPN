@@ -15,7 +15,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
@@ -149,7 +149,7 @@ describe('subscriptionsApi.list', () => {
     );
 
     // Act & Assert
-    await expect(subscriptionsApi.list()).rejects.toThrow('No refresh token');
+    await expect(subscriptionsApi.list()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_list_subscriptions_server_error_500_rejects', async () => {

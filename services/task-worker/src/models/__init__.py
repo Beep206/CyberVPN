@@ -1,6 +1,12 @@
 """ORM models for task-worker microservice."""
 
 from src.models.audit_log import AuditLogModel
+from src.models.customer_growth_notification_delivery import (
+    CustomerGrowthNotificationDeliveryModel,
+)
+from src.models.customer_growth_notification_delivery_event import (
+    CustomerGrowthNotificationDeliveryEventModel,
+)
 from src.models.notification_queue import NotificationQueueModel
 from src.models.payment import PaymentModel
 from src.models.refresh_token import RefreshTokenModel
@@ -10,6 +16,8 @@ from src.models.webhook_log import WebhookLogModel
 
 __all__ = [
     "AuditLogModel",
+    "CustomerGrowthNotificationDeliveryModel",
+    "CustomerGrowthNotificationDeliveryEventModel",
     "NotificationQueueModel",
     "PaymentModel",
     "RefreshTokenModel",

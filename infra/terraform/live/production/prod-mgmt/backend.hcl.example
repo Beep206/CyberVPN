@@ -1,0 +1,4 @@
+bucket       = "replace-with-production-tfstate-bucket"
+key          = "production/prod-mgmt/terraform.tfstate"
+region       = "eu-central-1"
+use_lockfile = true

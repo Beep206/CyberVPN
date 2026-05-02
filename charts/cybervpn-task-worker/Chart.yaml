@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cybervpn-task-worker
+description: CyberVPN task-worker runtime chart for worker and scheduler releases
+type: application
+version: 0.2.0
+appVersion: "0.2.0"

@@ -18,6 +18,13 @@ from src.domain.enums import (
 from src.infrastructure.database.models.payout_execution_model import PayoutExecutionModel
 from src.infrastructure.database.models.payout_instruction_model import PayoutInstructionModel
 from src.infrastructure.database.repositories.settlement_repo import SettlementRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_ADMIN_SURFACE,
+    log_partner_runtime_event,
+    observe_partner_payout_execution,
+    observe_partner_payout_failure,
+    observe_partner_payout_instruction_created,
+)
 
 _ACTIVE_PAYOUT_EXECUTION_STATUSES = {
     PayoutExecutionStatus.REQUESTED.value,
@@ -95,6 +102,22 @@ class CreatePayoutInstructionUseCase:
         created = await self._settlement.create_payout_instruction(instruction)
         await self._session.commit()
         await self._session.refresh(created)
+        observe_partner_payout_instruction_created(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=created.instruction_status,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_payout_instruction.created",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_state=created.instruction_status,
+            partner_account_id=str(created.partner_account_id),
+            partner_statement_id=str(created.partner_statement_id),
+            partner_payout_account_id=str(created.partner_payout_account_id),
+            payout_instruction_id=str(created.id),
+            result="success",
+        )
         return CreatePayoutInstructionResult(payout_instruction=created, created=True)
 
     async def _resolve_payout_account(
@@ -287,6 +310,26 @@ class CreatePayoutExecutionUseCase:
         created = await self._settlement.create_payout_execution(execution)
         await self._session.commit()
         await self._session.refresh(created)
+        observe_partner_payout_execution(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=created.execution_status,
+            result="success",
+            started_at=created.created_at,
+            finished_at=created.created_at,
+        )
+        log_partner_runtime_event(
+            "partner_payout_execution.created",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_state=created.execution_status,
+            partner_account_id=str(created.partner_account_id),
+            partner_statement_id=str(created.partner_statement_id),
+            partner_payout_account_id=str(created.partner_payout_account_id),
+            payout_instruction_id=str(created.payout_instruction_id),
+            payout_execution_id=str(created.id),
+            execution_mode=created.execution_mode,
+            result="success",
+        )
         return CreatePayoutExecutionResult(payout_execution=created, created=True)
 
 
@@ -354,6 +397,23 @@ class SubmitPayoutExecutionUseCase:
         }
         await self._session.commit()
         await self._session.refresh(execution)
+        observe_partner_payout_execution(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=execution.execution_status,
+            result="success",
+            started_at=execution.created_at,
+            finished_at=execution.submitted_at,
+        )
+        log_partner_runtime_event(
+            "partner_payout_execution.submitted",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_state=execution.execution_status,
+            payout_execution_id=str(execution.id),
+            payout_instruction_id=str(execution.payout_instruction_id),
+            external_reference=execution.external_reference,
+            result="success",
+        )
         return execution
 
 
@@ -400,6 +460,23 @@ class CompletePayoutExecutionUseCase:
         }
         await self._session.commit()
         await self._session.refresh(execution)
+        observe_partner_payout_execution(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=execution.execution_status,
+            result="success",
+            started_at=execution.created_at,
+            finished_at=execution.completed_at,
+        )
+        log_partner_runtime_event(
+            "partner_payout_execution.completed",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_state=execution.execution_status,
+            payout_execution_id=str(execution.id),
+            payout_instruction_id=str(execution.payout_instruction_id),
+            external_reference=execution.external_reference,
+            result="success",
+        )
         return execution
 
 
@@ -436,6 +513,28 @@ class FailPayoutExecutionUseCase:
         }
         await self._session.commit()
         await self._session.refresh(execution)
+        observe_partner_payout_failure(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=execution.execution_status,
+            reason=execution.failure_reason_code or "unknown",
+        )
+        observe_partner_payout_execution(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=execution.execution_status,
+            result="failure",
+            started_at=execution.created_at,
+            finished_at=execution.updated_at,
+        )
+        log_partner_runtime_event(
+            "partner_payout_execution.failed",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_state=execution.execution_status,
+            payout_execution_id=str(execution.id),
+            payout_instruction_id=str(execution.payout_instruction_id),
+            failure_reason_code=execution.failure_reason_code,
+            result="failure",
+        )
         return execution
 
 
@@ -476,6 +575,22 @@ class ReconcilePayoutExecutionUseCase:
 
         await self._session.commit()
         await self._session.refresh(execution)
+        observe_partner_payout_execution(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_state=execution.execution_status,
+            result="success",
+            started_at=execution.created_at,
+            finished_at=execution.reconciled_at,
+        )
+        log_partner_runtime_event(
+            "partner_payout_execution.reconciled",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_state=execution.execution_status,
+            payout_execution_id=str(execution.id),
+            payout_instruction_id=str(execution.payout_instruction_id),
+            result="success",
+        )
         return execution
 
 

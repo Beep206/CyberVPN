@@ -1,0 +1,15 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: cybervpn-task-worker-chart
+  namespace: flux-system
+spec:
+  interval: 30m
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  secretRef:
+    name: ghcr-platform-workloads
+  url: oci://ghcr.io/beep/vpnbussiness/charts/cybervpn-task-worker
+  ref:
+    tag: REPLACE_ME_CHART_VERSION

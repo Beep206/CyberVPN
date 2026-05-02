@@ -8,6 +8,7 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use chrono::Utc;
 use sha2::{Digest, Sha256};
 use tokio::sync::RwLock;
+use tracing::instrument;
 
 use crate::{
     control_plane::client::{
@@ -58,6 +59,14 @@ impl RuntimeCoordinator {
         })
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.runtime.restore_state",
+            sentry.op = "helix.runtime.restore",
+            node_id = %self.node_id
+        )
+    )]
     pub async fn restore_state(&self) -> Result<NodeRuntimeSnapshot, AppError> {
         let restored = self
             .bundle_store
@@ -84,6 +93,16 @@ impl RuntimeCoordinator {
         Ok(())
     }
 
+    #[instrument(
+        skip(self, assignment, metrics),
+        fields(
+            sentry.name = "helix.runtime.sync_assignment",
+            sentry.op = "helix.runtime.sync_assignment",
+            node_id = %self.node_id,
+            rollout_id = %assignment.rollout_id,
+            bundle_version = %assignment.runtime_profile.bundle_version
+        )
+    )]
     pub async fn sync_assignment(
         &self,
         assignment: &NodeAssignmentDocument,
@@ -102,7 +121,9 @@ impl RuntimeCoordinator {
                 assignment_id: Some(assignment.assignment_id.clone()),
                 runtime_fingerprint: Some(runtime_fingerprint.clone()),
                 rollout_id: Some(assignment.rollout_id.clone()),
-                transport_profile_id: Some(assignment.transport_profile.transport_profile_id.clone()),
+                transport_profile_id: Some(
+                    assignment.transport_profile.transport_profile_id.clone(),
+                ),
                 profile_family: Some(assignment.transport_profile.profile_family.clone()),
                 profile_version: Some(assignment.transport_profile.profile_version),
                 policy_version: Some(assignment.transport_profile.policy_version),
@@ -226,6 +247,14 @@ impl RuntimeCoordinator {
         self.supervisor.clone()
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.runtime.build_heartbeat",
+            sentry.op = "helix.heartbeat.build",
+            node_id = %self.node_id
+        )
+    )]
     pub async fn build_heartbeat(
         &self,
         latency_ms: i32,

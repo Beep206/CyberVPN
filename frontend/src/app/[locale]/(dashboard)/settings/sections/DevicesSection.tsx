@@ -38,34 +38,46 @@ export function DevicesSection() {
 
   // Parse user agent for display
   const parseUserAgent = (ua: string): string => {
-    // Simple parsing - extract browser and OS
-    const parts = ua.split(' ');
-    const browser = parts.find(p => p.includes('Chrome') || p.includes('Firefox') || p.includes('Safari') || p.includes('Edge'));
-    const os = parts.find(p => p.includes('Windows') || p.includes('Mac') || p.includes('Linux') || p.includes('Android') || p.includes('iOS'));
+    const browser =
+      ua.includes('Edg/') ? 'Edge'
+        : ua.includes('Firefox/') ? 'Firefox'
+          : ua.includes('Chrome/') || ua.includes('CriOS/') ? 'Chrome'
+            : ua.includes('Safari/') ? 'Safari'
+              : null;
+    const os =
+      /iPad|CPU OS/.test(ua) ? 'iPadOS'
+        : /iPhone|CPU iPhone OS/.test(ua) ? 'iOS'
+          : ua.includes('Android') ? 'Android'
+            : ua.includes('Windows') ? 'Windows'
+              : ua.includes('Mac OS X') || ua.includes('Macintosh') ? 'macOS'
+                : ua.includes('Linux') ? 'Linux'
+                  : null;
 
     if (browser && os) {
-      return `${browser.split('/')[0]} on ${os.split('/')[0]}`;
+      return `${browser} on ${os}`;
     }
     return ua.substring(0, 50) + (ua.length > 50 ? '...' : '');
   };
 
   // Handle device logout
-  const handleLogout = async (deviceId: string) => {
+  const handleLogout = (deviceId: string) => {
     setLoggingOut(deviceId);
     setError('');
 
-    try {
-      await authApi.logoutDevice(deviceId);
-      await refetch();
-    } catch (err) {
-      if (err instanceof AxiosError) {
-        setError(err.response?.data?.detail || 'Failed to logout device');
-      } else {
-        setError('An error occurred');
+    void (async () => {
+      try {
+        await authApi.logoutDevice(deviceId);
+        await refetch();
+      } catch (err) {
+        if (err instanceof AxiosError) {
+          setError(err.response?.data?.detail || 'Failed to logout device');
+        } else {
+          setError('An error occurred');
+        }
+      } finally {
+        setLoggingOut(null);
       }
-    } finally {
-      setLoggingOut(null);
-    }
+    })();
   };
 
   // Handle logout all other devices

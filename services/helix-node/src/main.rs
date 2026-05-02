@@ -1,25 +1,35 @@
 use tokio::signal;
 use tracing::info;
+use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
-use helix_node::{build_app, build_state, config::NodeConfig, spawn_control_loop};
+use helix_node::{
+    build_app, build_state, config::NodeConfig, observability::init_sentry, spawn_control_loop,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = NodeConfig::from_env()?;
+    let _sentry = init_sentry(&config)?;
 
-    tracing_subscriber::fmt()
-        .with_env_filter(
+    tracing_subscriber::registry()
+        .with(
             EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| EnvFilter::new(config.log_level.clone())),
         )
+        .with(tracing_subscriber::fmt::layer())
+        .with(sentry::integrations::tracing::layer())
         .init();
 
     let state = build_state(config.clone()).await?;
     let app = build_app(state.clone());
     let listener = tokio::net::TcpListener::bind(&config.bind_addr).await?;
 
-    spawn_control_loop(state.clone());
+    if config.smoke_mode {
+        info!("helix-node smoke mode enabled; skipping control-plane loop");
+    } else {
+        spawn_control_loop(state.clone());
+    }
 
     info!(
         "helix-node starting on {} for node {}",

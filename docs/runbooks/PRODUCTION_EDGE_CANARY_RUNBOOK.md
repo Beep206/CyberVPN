@@ -4,21 +4,21 @@ This runbook covers Phase 6: one production Remnawave edge canary and one produc
 
 ## Preconditions
 
-1. Production inventory must be generated from the production Terraform `edge` stack.
+1. Production inventory must be generated from the production OpenTofu `edge` stack.
 2. `inventories/production/group_vars/*` must be filled with real production values and vaulted secrets.
 3. GitHub environment approval must remain manual for production rollout.
 4. Choose exactly one host for the Remnawave canary and one host for the Helix canary.
 
 ## Inventory generation
 
-Before inventory generation, initialize and apply the production Terraform stacks in order:
+Before inventory generation, initialize and apply the production OpenTofu stacks in order:
 
 ```bash
 cd /home/beep/projects/VPNBussiness/infra
-make terraform-init-production-foundation
-make terraform-plan-production-foundation
-make terraform-init-production-edge
-make terraform-plan-production-edge
+make tofu-init-production-foundation
+make tofu-plan-production-foundation
+make tofu-init-production-edge
+make tofu-plan-production-edge
 ```
 
 The production edge stack must already have a real remote state before inventory generation can work.

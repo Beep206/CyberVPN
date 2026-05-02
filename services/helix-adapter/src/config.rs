@@ -2,9 +2,12 @@ use std::env;
 
 use crate::error::AppError;
 
+const DEFAULT_SENTRY_RELEASE: &str = concat!("helix-adapter@", env!("CARGO_PKG_VERSION"), "+local");
+
 #[derive(Debug, Clone)]
 pub struct AdapterConfig {
     pub bind_addr: String,
+    pub environment: String,
     pub remnawave_url: String,
     pub remnawave_token: String,
     pub database_url: String,
@@ -24,13 +27,25 @@ pub struct AdapterConfig {
     pub helix_canary_max_relative_open_to_first_byte_gap_ratio: f64,
     pub helix_rollout_min_continuity_success_rate: f64,
     pub helix_rollout_min_cross_route_recovery_rate: f64,
+    pub sentry_dsn: String,
+    pub sentry_release: String,
+    pub sentry_traces_sample_rate: f32,
+    pub observability_internal_secret: String,
+    pub smoke_mode: bool,
     pub log_level: String,
 }
 
 impl AdapterConfig {
     pub fn from_env() -> Result<Self, AppError> {
+        let default_environment = if cfg!(debug_assertions) {
+            "development"
+        } else {
+            "production"
+        };
+
         Ok(Self {
             bind_addr: env_or_default("ADAPTER_BIND_ADDR", "127.0.0.1:8088"),
+            environment: env_or_default("ENVIRONMENT", default_environment),
             remnawave_url: env_or_default("REMNAWAVE_URL", "http://localhost:3005"),
             remnawave_token: env_or_default("REMNAWAVE_TOKEN", "replace-me"),
             database_url: env_or_default(
@@ -77,6 +92,14 @@ impl AdapterConfig {
                 "HELIX_ROLLOUT_MIN_CROSS_ROUTE_RECOVERY_RATE",
                 0.20,
             )?,
+            sentry_dsn: env_or_default("SENTRY_DSN", ""),
+            sentry_release: env_or_default("SENTRY_RELEASE", DEFAULT_SENTRY_RELEASE),
+            sentry_traces_sample_rate: env_or_parse("SENTRY_TRACES_SAMPLE_RATE", 0.0)?,
+            observability_internal_secret: env_or_default(
+                "HELIX_ADAPTER_OBSERVABILITY_INTERNAL_SECRET",
+                "",
+            ),
+            smoke_mode: env_or_parse("HELIX_ADAPTER_SMOKE_MODE", false)?,
             log_level: env_or_default("LOG_LEVEL", "info"),
         })
     }
@@ -84,6 +107,7 @@ impl AdapterConfig {
     pub fn test_default() -> Self {
         Self {
             bind_addr: "127.0.0.1:8088".to_string(),
+            environment: "development".to_string(),
             remnawave_url: "http://localhost:3005".to_string(),
             remnawave_token: "test-remnawave-token".to_string(),
             database_url: "postgresql://cybervpn:cybervpn@localhost:6767/cybervpn".to_string(),
@@ -103,6 +127,11 @@ impl AdapterConfig {
             helix_canary_max_relative_open_to_first_byte_gap_ratio: 1.15,
             helix_rollout_min_continuity_success_rate: 0.80,
             helix_rollout_min_cross_route_recovery_rate: 0.20,
+            sentry_dsn: "https://helix-adapter@example.com/1".to_string(),
+            sentry_release: DEFAULT_SENTRY_RELEASE.to_string(),
+            sentry_traces_sample_rate: 0.0,
+            observability_internal_secret: "helix-adapter-test-secret".to_string(),
+            smoke_mode: true,
             log_level: "debug".to_string(),
         }
     }

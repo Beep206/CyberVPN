@@ -8,6 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.models.outbox_event_model import OutboxEventModel, OutboxPublicationModel
 from src.infrastructure.database.repositories.outbox_repo import OutboxRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    log_partner_runtime_event,
+    observe_partner_outbox_event_published,
+    observe_partner_outbox_publish_failure,
+)
 
 
 class ListOutboxEventsUseCase:
@@ -129,12 +134,35 @@ class MarkOutboxPublicationPublishedUseCase:
         publication = await self._repo.get_publication_by_id(publication_id)
         if publication is None:
             raise ValueError("Outbox publication not found")
-        return await self._repo.mark_publication_published(
+        outbox_event = await self._repo.get_event_by_id(publication.outbox_event_id)
+        if outbox_event is None:
+            raise ValueError("Outbox event not found")
+        item = await self._repo.mark_publication_published(
             publication=publication,
             lease_owner=lease_owner,
             published_at=datetime.now(UTC),
             publication_payload=publication_payload,
         )
+        lag_seconds = max(
+            (_normalize_utc(item.published_at) - _normalize_utc(outbox_event.occurred_at)).total_seconds(),
+            0.0,
+        )
+        observe_partner_outbox_event_published(
+            event_type=outbox_event.event_name,
+            consumer_name=publication.consumer_key,
+            result="success",
+            lag_seconds=lag_seconds,
+        )
+        log_partner_runtime_event(
+            "partner_outbox.publication_published",
+            surface="partner_backend",
+            route_group="outbox",
+            event_type=outbox_event.event_name,
+            consumer_name=publication.consumer_key,
+            publication_id=str(publication.id),
+            result="success",
+        )
+        return item
 
 
 class MarkOutboxPublicationFailedUseCase:
@@ -152,11 +180,41 @@ class MarkOutboxPublicationFailedUseCase:
         publication = await self._repo.get_publication_by_id(publication_id)
         if publication is None:
             raise ValueError("Outbox publication not found")
+        outbox_event = await self._repo.get_event_by_id(publication.outbox_event_id)
+        if outbox_event is None:
+            raise ValueError("Outbox event not found")
         now = datetime.now(UTC)
-        return await self._repo.mark_publication_failed(
+        item = await self._repo.mark_publication_failed(
             publication=publication,
             lease_owner=lease_owner,
             failed_at=now,
             retry_at=now + timedelta(seconds=retry_after_seconds),
             error_message=error_message,
         )
+        lag_seconds = max(
+            (_normalize_utc(now) - _normalize_utc(outbox_event.occurred_at)).total_seconds(),
+            0.0,
+        )
+        observe_partner_outbox_publish_failure(
+            event_type=outbox_event.event_name,
+            consumer_name=publication.consumer_key,
+            result="failure",
+            lag_seconds=lag_seconds,
+        )
+        log_partner_runtime_event(
+            "partner_outbox.publication_failed",
+            surface="partner_backend",
+            route_group="outbox",
+            event_type=outbox_event.event_name,
+            consumer_name=publication.consumer_key,
+            publication_id=str(publication.id),
+            error_code="publication_failed",
+            result="failure",
+        )
+        return item
+
+
+def _normalize_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

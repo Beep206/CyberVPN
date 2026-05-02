@@ -21,6 +21,17 @@ def serialize_checkout_result(result: CheckoutResult) -> dict[str, Any]:
         "duration_days": result.duration_days,
         "promo_code_id": str(result.promo_code_id) if result.promo_code_id else None,
         "partner_code_id": str(result.partner_code_id) if result.partner_code_id else None,
+        "code_input": result.code_input,
+        "code_resolution": _serialize_code_resolution(result),
+        "discounts": [
+            {
+                "type": discount.discount_type,
+                "code": discount.code,
+                "amount": float(discount.amount),
+                "policy_version_id": str(discount.policy_version_id) if discount.policy_version_id else None,
+            }
+            for discount in result.discounts
+        ],
         "commission_base_amount": float(result.commission_base_amount),
         "addons": [
             {
@@ -35,6 +46,29 @@ def serialize_checkout_result(result: CheckoutResult) -> dict[str, Any]:
             for line in result.addons
         ],
         "entitlements_snapshot": result.entitlements_snapshot,
+    }
+
+
+def _serialize_code_resolution(result: CheckoutResult) -> dict[str, Any] | None:
+    if result.code_resolution is None:
+        return None
+    resolution = result.code_resolution
+    return {
+        "accepted": resolution.accepted,
+        "code_type": resolution.code_type.value if resolution.code_type else None,
+        "action_context": resolution.action_context.value,
+        "result": resolution.result.value,
+        "reject_reason": resolution.reject_reason.value if resolution.reject_reason else None,
+        "conflict_code": resolution.conflict_code,
+        "wrong_context_target": resolution.wrong_context_target.value if resolution.wrong_context_target else None,
+        "issuer_type": resolution.issuer_type,
+        "owner_type": resolution.owner_type,
+        "resolved_code_id": str(resolution.resolved_code_id) if resolution.resolved_code_id else None,
+        "growth_code_id": str(resolution.growth_code_id) if resolution.growth_code_id else None,
+        "promo_code_id": str(resolution.promo_code_id) if resolution.promo_code_id else None,
+        "partner_code_id": str(resolution.partner_code_id) if resolution.partner_code_id else None,
+        "user_message_key": resolution.user_message_key,
+        "reservation_id": str(result.reservation_id) if result.reservation_id else None,
     }
 
 
@@ -184,6 +218,7 @@ def build_request_snapshot(
     plan_id: str,
     currency: str,
     channel: str,
+    code_input: str | None,
     promo_code: str | None,
     partner_code: str | None,
     use_wallet: float,
@@ -196,6 +231,7 @@ def build_request_snapshot(
         "plan_id": plan_id,
         "currency": currency,
         "channel": channel,
+        "code_input": code_input,
         "promo_code": promo_code,
         "partner_code": partner_code,
         "use_wallet": use_wallet,

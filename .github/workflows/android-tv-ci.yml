@@ -1,0 +1,68 @@
+name: Android TV CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/android-tv/**'
+      - '.github/workflows/android-tv-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/android-tv/**'
+      - '.github/workflows/android-tv-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/android-tv
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Grant Execute Permissions to gradlew
+        run: chmod +x gradlew
+
+      - name: Resolve CI release metadata
+        id: release_meta
+        run: |
+          BUILD_NUMBER=101
+          RELEASE_NAME=$(./gradlew -q app:printSentryRelease -PcybervpnVersionCode="${BUILD_NUMBER}")
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "release=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Sentry contract
+        env:
+          SENTRY_DSN: https://android-tv@example.com/1
+          SENTRY_ENVIRONMENT: staging
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          python3 ../../scripts/validate-sentry-contract.py \
+            --surface android-tv \
+            --environment-var SENTRY_ENVIRONMENT \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release "${SENTRY_RELEASE}" \
+            --require-dsn \
+            --summary-label "Android TV Sentry contract"
+
+      - name: Run linters, tests and release assembly
+        env:
+          SENTRY_DSN: https://android-tv@example.com/1
+          SENTRY_ENVIRONMENT: staging
+          SENTRY_RELEASE: ${{ steps.release_meta.outputs.release }}
+        run: |
+          ./gradlew detekt ktlintCheck app:testReleaseUnitTest app:assembleRelease \
+            -PcybervpnVersionCode="${{ steps.release_meta.outputs.build_number }}"

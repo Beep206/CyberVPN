@@ -22,7 +22,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 // Wrapper for React Query
 const createWrapper = () => {
@@ -48,7 +48,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: true,
-            is_active: false,
+            is_trial_active: false,
             trial_end: null,
           });
         })
@@ -69,7 +69,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: true,
-            is_active: false,
+            is_trial_active: false,
             trial_end: null,
           });
         })
@@ -78,28 +78,34 @@ describe('TrialSection', () => {
       render(<TrialSection />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText(/Unlimited bandwidth/i)).toBeInTheDocument();
-        expect(screen.getByText(/All server locations/i)).toBeInTheDocument();
-        expect(screen.getByText(/Multi-device support/i)).toBeInTheDocument();
-        expect(screen.getByText(/Premium protocols/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 device included/i)).toBeInTheDocument();
+        expect(screen.getByText(/Shared server pool/i)).toBeInTheDocument();
+        expect(screen.getByText(/Standard connection mode/i)).toBeInTheDocument();
+        expect(screen.getByText(/No add-ons or dedicated IP/i)).toBeInTheDocument();
       });
     });
 
     it('test_activates_trial_successfully', async () => {
       const user = userEvent.setup();
+      let activated = false;
+      let activationRequests = 0;
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 7);
 
       server.use(
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
-            is_eligible: true,
-            is_active: false,
-            trial_end: null,
+            is_eligible: !activated,
+            is_trial_active: activated,
+            trial_end: activated ? trialEnd.toISOString() : null,
           });
         }),
         http.post(`${API_BASE}/trial/activate`, () => {
+          activationRequests += 1;
+          activated = true;
           return HttpResponse.json({
             message: 'Trial activated',
-            trial_end: '2026-02-18T12:00:00Z',
+            trial_end: trialEnd.toISOString(),
           });
         })
       );
@@ -113,9 +119,9 @@ describe('TrialSection', () => {
       const activateButton = screen.getByText(/Start Free Trial/i);
       await user.click(activateButton);
 
-      // Should show activating state
       await waitFor(() => {
-        expect(screen.getByText(/Activating.../i)).toBeInTheDocument();
+        expect(activationRequests).toBe(1);
+        expect(screen.getByText(/Free Trial Active/i)).toBeInTheDocument();
       });
     });
 
@@ -126,7 +132,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: true,
-            is_active: false,
+            is_trial_active: false,
             trial_end: null,
           });
         }),
@@ -148,7 +154,7 @@ describe('TrialSection', () => {
       await user.click(activateButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/You are not eligible for a trial/i)).toBeInTheDocument();
+        expect(screen.getByText(/Not eligible for trial/i)).toBeInTheDocument();
       });
     });
 
@@ -159,7 +165,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: true,
-            is_active: false,
+            is_trial_active: false,
             trial_end: null,
           });
         }),
@@ -195,7 +201,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: false,
-            is_active: true,
+            is_trial_active: true,
             trial_end: futureDate.toISOString(),
           });
         })
@@ -218,7 +224,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: false,
-            is_active: true,
+            is_trial_active: true,
             trial_end: futureDate.toISOString(),
           });
         })
@@ -241,7 +247,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: false,
-            is_active: true,
+            is_trial_active: true,
             trial_end: futureDate.toISOString(),
           });
         })
@@ -251,7 +257,7 @@ describe('TrialSection', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Enjoy full access to all premium features during your trial period./i)
+          screen.getByText(/Your trial keeps the core CyberVPN layer active with 1 device on the shared pool./i)
         ).toBeInTheDocument();
       });
     });
@@ -263,7 +269,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: false,
-            is_active: true,
+            is_trial_active: true,
             trial_end: futureDate.toISOString(),
           });
         })
@@ -285,7 +291,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: false,
-            is_active: true,
+            is_trial_active: true,
             trial_end: tomorrow.toISOString(),
           });
         })
@@ -305,7 +311,7 @@ describe('TrialSection', () => {
         http.get(`${API_BASE}/trial/status`, () => {
           return HttpResponse.json({
             is_eligible: false,
-            is_active: false,
+            is_trial_active: false,
             trial_end: null,
           });
         })
@@ -326,7 +332,7 @@ describe('TrialSection', () => {
           await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json({
             is_eligible: true,
-            is_active: false,
+            is_trial_active: false,
             trial_end: null,
           });
         })

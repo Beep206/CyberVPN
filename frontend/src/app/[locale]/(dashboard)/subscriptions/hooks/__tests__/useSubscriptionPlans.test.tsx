@@ -14,7 +14,7 @@ import { useSubscriptionPlans } from '../useSubscriptionPlans';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({

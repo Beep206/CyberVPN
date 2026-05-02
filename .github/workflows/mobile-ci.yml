@@ -71,6 +71,29 @@ jobs:
       - name: Run tests
         run: flutter test --coverage
 
+      - name: Validate Sentry contract
+        env:
+          API_ENV: staging
+          SENTRY_DSN: https://mobile@example.com/1
+          SENTRY_RELEASE: cybervpn-mobile@1.0.0+1
+        run: |
+          python3 ../scripts/validate-sentry-contract.py \
+            --surface cybervpn-mobile \
+            --environment-var API_ENV \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release cybervpn-mobile@1.0.0+1 \
+            --require-dsn \
+            --summary-label "Mobile Sentry contract"
+
+      - name: Run Sentry contract smoke test
+        run: |
+          flutter test test/core/config/sentry_contract_test.dart \
+            --dart-define=API_ENV=staging \
+            --dart-define=SENTRY_DSN=https://mobile@example.com/1 \
+            --dart-define=SENTRY_RELEASE=cybervpn-mobile@1.0.0+1
+
       - name: Check overall coverage (min 70%)
         run: |
           if [ ! -f coverage/lcov.info ]; then

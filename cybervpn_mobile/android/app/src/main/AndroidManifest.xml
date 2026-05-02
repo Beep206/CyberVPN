@@ -86,6 +86,17 @@
                     android:scheme="https"
                     android:host="cybervpn.app"/>
             </intent-filter>
+
+            <!-- Telegram Native Login App Link callback -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="${telegramLoginHost}"
+                    android:pathPrefix="${telegramLoginPathPrefix}"/>
+            </intent-filter>
         </activity>
         <service
             android:name=".VpnService"
@@ -161,6 +172,10 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="tg"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

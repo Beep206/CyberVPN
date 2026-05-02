@@ -451,7 +451,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       next,
     ) {
       final state = next.value;
-      if (state is TelegramAuthSuccess) {
+      if (state is TelegramAuthRequiresTwoFactor) {
+        unawaited(context.push('/telegram-2fa'));
+      } else if (state is TelegramAuthSuccess) {
         // Show welcome toast for new Telegram users
         if (state.isNewUser && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -606,24 +608,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ],
 
                       // ── Social Login — Google (full-width) ─────────
-                      _SocialOutlinedButton(
-                        icon: Icons.g_mobiledata,
-                        label: l10n.continueWithGoogle,
-                        onPressed: isLoading
-                            ? null
-                            : () => unawaited(_handleGoogleSignIn()),
-                      ),
-                      const SizedBox(height: Spacing.sm),
+                      if (OAuthProvider.google.isMobileAuthEntryEnabled) ...[
+                        _SocialOutlinedButton(
+                          icon: Icons.g_mobiledata,
+                          label: l10n.continueWithGoogle,
+                          onPressed: isLoading
+                              ? null
+                              : () => unawaited(_handleGoogleSignIn()),
+                        ),
+                        const SizedBox(height: Spacing.sm),
+                      ],
 
                       // ── Social Login — Facebook (browser OAuth) ──────
-                      _SocialOutlinedButton(
-                        icon: Icons.public,
-                        label: l10n.continueWithFacebook,
-                        onPressed: isLoading
-                            ? null
-                            : () => unawaited(_handleFacebookSignIn()),
-                      ),
-                      const SizedBox(height: Spacing.sm),
+                      if (OAuthProvider.facebook.isMobileAuthEntryEnabled) ...[
+                        _SocialOutlinedButton(
+                          icon: Icons.public,
+                          label: l10n.continueWithFacebook,
+                          onPressed: isLoading
+                              ? null
+                              : () => unawaited(_handleFacebookSignIn()),
+                        ),
+                        const SizedBox(height: Spacing.sm),
+                      ],
 
                       // ── Social Login — Apple (kept in code, hidden) ──
                       if (Platform.isIOS &&
@@ -639,41 +645,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ],
 
                       // ── Social Login — Compact icon row ────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _CompactSocialIcon(
-                            icon: Icons.code,
-                            tooltip: 'GitHub',
-                            onPressed: isLoading ? null : _showComingSoon,
-                          ),
-                          const SizedBox(width: Spacing.md),
-                          _CompactSocialIcon(
-                            icon: Icons.discord,
-                            tooltip: 'Discord',
-                            onPressed: isLoading ? null : _showComingSoon,
-                          ),
-                          const SizedBox(width: Spacing.md),
-                          _CompactSocialIcon(
-                            icon: Icons.window,
-                            tooltip: 'Microsoft',
-                            onPressed: isLoading ? null : _showComingSoon,
-                          ),
-                          const SizedBox(width: Spacing.md),
-                          _CompactSocialIcon(
-                            iconWidget: const Text(
-                              'X',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                      if (OAuthProvider.github.isMobileAuthEntryEnabled ||
+                          OAuthProvider.discord.isMobileAuthEntryEnabled ||
+                          OAuthProvider.microsoft.isMobileAuthEntryEnabled ||
+                          OAuthProvider.twitter.isMobileAuthEntryEnabled) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (OAuthProvider.github.isMobileAuthEntryEnabled)
+                              _CompactSocialIcon(
+                                icon: Icons.code,
+                                tooltip: 'GitHub',
+                                onPressed: isLoading ? null : _showComingSoon,
                               ),
-                            ),
-                            tooltip: 'X',
-                            onPressed: isLoading ? null : _showComingSoon,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: Spacing.sm),
+                            if (OAuthProvider.github.isMobileAuthEntryEnabled &&
+                                (OAuthProvider.discord.isMobileAuthEntryEnabled ||
+                                    OAuthProvider.microsoft.isMobileAuthEntryEnabled ||
+                                    OAuthProvider.twitter.isMobileAuthEntryEnabled))
+                              const SizedBox(width: Spacing.md),
+                            if (OAuthProvider.discord.isMobileAuthEntryEnabled)
+                              _CompactSocialIcon(
+                                icon: Icons.discord,
+                                tooltip: 'Discord',
+                                onPressed: isLoading ? null : _showComingSoon,
+                              ),
+                            if (OAuthProvider.discord.isMobileAuthEntryEnabled &&
+                                (OAuthProvider.microsoft.isMobileAuthEntryEnabled ||
+                                    OAuthProvider.twitter.isMobileAuthEntryEnabled))
+                              const SizedBox(width: Spacing.md),
+                            if (OAuthProvider.microsoft.isMobileAuthEntryEnabled)
+                              _CompactSocialIcon(
+                                icon: Icons.window,
+                                tooltip: 'Microsoft',
+                                onPressed: isLoading ? null : _showComingSoon,
+                              ),
+                            if (OAuthProvider.microsoft.isMobileAuthEntryEnabled &&
+                                OAuthProvider.twitter.isMobileAuthEntryEnabled)
+                              const SizedBox(width: Spacing.md),
+                            if (OAuthProvider.twitter.isMobileAuthEntryEnabled)
+                              _CompactSocialIcon(
+                                iconWidget: const Text(
+                                  'X',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                tooltip: 'X',
+                                onPressed: isLoading ? null : _showComingSoon,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: Spacing.sm),
+                      ],
 
                       // ── Magic Link ─────────────────────────────────
                       TextButton(

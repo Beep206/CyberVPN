@@ -1,0 +1,18 @@
+[Unit]
+Description=Prometheus NATS Exporter
+Documentation=https://github.com/nats-io/prometheus-nats-exporter
+After=network-online.target nats.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nats
+Group=nats
+ExecStartPre=/usr/bin/test -f /etc/nats/exporter.env
+ExecStart=/bin/sh -c '. /etc/nats/exporter.env && exec /usr/local/bin/prometheus-nats-exporter $$NATS_EXPORTER_FLAGS'
+Restart=on-failure
+RestartSec=5
+WorkingDirectory=/var/lib/nats
+
+[Install]
+WantedBy=multi-user.target

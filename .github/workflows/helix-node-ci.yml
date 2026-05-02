@@ -1,0 +1,149 @@
+name: Helix Node CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'services/helix-node/**'
+      - '.github/workflows/helix-node-ci.yml'
+  pull_request:
+    paths:
+      - 'services/helix-node/**'
+      - '.github/workflows/helix-node-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: services/helix-node
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt clippy
+
+      - name: Set default Rust toolchain
+        run: rustup default stable
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/helix-node/target
+          key: ${{ runner.os }}-helix-node-${{ hashFiles('services/helix-node/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-helix-node-
+
+      - name: Run rustfmt
+        run: cargo fmt --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run test suite
+        run: cargo test --locked
+
+      - name: Build release binary
+        run: cargo build --locked --release
+
+      - name: Collect release proof manifest
+        env:
+          SENTRY_RELEASE: helix-node@${{ github.sha }}
+          SENTRY_PROJECT: ${{ vars.HELIX_NODE_SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+        run: |
+          python3 ../../scripts/collect-sentry-release-evidence.py \
+            --surface helix-node \
+            --release "${SENTRY_RELEASE}" \
+            --environment staging \
+            --project "${SENTRY_PROJECT:-unconfigured}" \
+            --proof-scope ci_release_build \
+            --deploy-marker-mode external_deployer \
+            --artifact "native-release=target/release/helix-node" \
+            --output target/sentry-proof/helix-node.json \
+            --summary-label "Helix node release proof"
+
+      - name: Upload release proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helix-node-release-proof
+          path: |
+            services/helix-node/target/sentry-proof/helix-node.json
+            services/helix-node/target/release/helix-node
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Validate Sentry contract
+        env:
+          ENVIRONMENT: staging
+          SENTRY_DSN: https://helix-node@example.com/1
+          SENTRY_RELEASE: helix-node@${{ github.sha }}
+        run: |
+          python3 ../../scripts/validate-sentry-contract.py \
+            --surface helix-node \
+            --environment-var ENVIRONMENT \
+            --release-var SENTRY_RELEASE \
+            --dsn-var SENTRY_DSN \
+            --expected-environment staging \
+            --expected-release helix-node@${{ github.sha }} \
+            --require-dsn \
+            --summary-label "Helix node Sentry contract"
+
+      - name: Start Helix node for Sentry smoke validation
+        env:
+          NODE_DAEMON_BIND_ADDR: 127.0.0.1:18091
+          ENVIRONMENT: staging
+          ADAPTER_URL: http://127.0.0.1:8088
+          ADAPTER_TOKEN: helix-node-smoke-token
+          NODE_ID: node-smoke-01
+          STATE_DIR: /tmp/helix-node-sentry-smoke
+          DAEMON_VERSION: v0.1.0
+          SENTRY_DSN: https://helix-node@example.com/1
+          SENTRY_RELEASE: helix-node@${{ github.sha }}
+          HELIX_NODE_OBSERVABILITY_INTERNAL_SECRET: helix-node-smoke-secret
+          HELIX_NODE_SMOKE_MODE: 'true'
+        run: |
+          nohup cargo run --locked > /tmp/helix-node-sentry-smoke.log 2>&1 &
+          echo $! > /tmp/helix-node-sentry-smoke.pid
+
+      - name: Run HTTP smoke validation
+        run: |
+          python3 ../../scripts/http-smoke-check.py \
+            --url http://127.0.0.1:18091/healthz \
+            --expect-status 200 \
+            --expect-json-field status=degraded \
+            --expect-json-field service=helix-node \
+            --expect-json-field environment=staging \
+            --expect-json-field node_id=node-smoke-01 \
+            --summary-label "Helix node health smoke"
+          python3 ../../scripts/http-smoke-check.py \
+            --url http://127.0.0.1:18091/observability/sentry-contract \
+            --header "x-observability-secret: helix-node-smoke-secret" \
+            --expect-status 200 \
+            --expect-json-field runtime_surface=helix-node \
+            --expect-json-field service=helix-node \
+            --expect-json-field environment=staging \
+            --expect-json-field release=helix-node@${{ github.sha }} \
+            --expect-json-field dsn_configured=true \
+            --expect-json-field node_id=node-smoke-01 \
+            --expect-json-field daemon_version=v0.1.0 \
+            --summary-label "Helix node Sentry runtime smoke"
+
+      - name: Stop Helix node smoke daemon
+        if: always()
+        run: |
+          if [ -f /tmp/helix-node-sentry-smoke.pid ]; then
+            kill "$(cat /tmp/helix-node-sentry-smoke.pid)" || true
+          fi

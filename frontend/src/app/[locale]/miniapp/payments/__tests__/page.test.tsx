@@ -19,7 +19,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({

@@ -26,6 +26,20 @@ from src.infrastructure.database.repositories.partner_account_repository import 
 from src.infrastructure.database.repositories.partner_application_repository import (
     PartnerApplicationRepository,
 )
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_ADMIN_SURFACE,
+    PARTNER_PORTAL_SURFACE,
+    PARTNER_PRINCIPAL_CLASS,
+    bind_partner_runtime_context,
+    log_partner_runtime_event,
+    observe_partner_application_decision,
+    observe_partner_application_draft_created,
+    observe_partner_application_draft_saved,
+    observe_partner_application_evidence_upload,
+    observe_partner_application_requested_info,
+    observe_partner_application_submission,
+    observe_partner_notification_generated,
+)
 
 from .create_partner_workspace import CreatePartnerWorkspaceUseCase
 
@@ -62,6 +76,12 @@ def _normalize_bool(value: object | None) -> bool:
 def _normalize_primary_lane(value: object | None) -> str:
     candidate = _normalize_string(value)
     return candidate if candidate in PARTNER_PRIMARY_LANES else ""
+
+
+def _primary_lane_from_payload(payload: dict[str, object] | None) -> str | None:
+    normalized = normalize_partner_application_payload(payload)
+    lane = normalized.get("primary_lane")
+    return str(lane) if lane else None
 
 
 def normalize_partner_application_payload(payload: dict[str, object] | None) -> dict[str, object]:
@@ -183,6 +203,27 @@ class PartnerApplicationWorkflowUseCase:
                 "primary_lane": normalized_payload.get("primary_lane") or None,
             },
         )
+        bind_partner_runtime_context(
+            surface=PARTNER_PORTAL_SURFACE,
+            realm_type="partner",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(normalized_payload),
+            result="success",
+        )
+        observe_partner_application_draft_created(
+            lane=_primary_lane_from_payload(normalized_payload),
+            workspace_status=workspace.status,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_application.draft_created",
+            workspace_id=str(workspace.id),
+            draft_id=str(draft.id),
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(normalized_payload),
+        )
         await self._session.commit()
         await self._session.refresh(draft)
         return draft
@@ -224,6 +265,28 @@ class PartnerApplicationWorkflowUseCase:
                 workspace.status = PartnerAccountStatus.EMAIL_VERIFIED.value
 
         await self._sync_primary_lane_from_payload(draft=draft, payload=merged_payload)
+        bind_partner_runtime_context(
+            surface=PARTNER_PORTAL_SURFACE,
+            realm_type="partner",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(merged_payload),
+            result="success",
+        )
+        observe_partner_application_draft_saved(
+            lane=_primary_lane_from_payload(merged_payload),
+            workspace_status=workspace.status,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_application.draft_saved",
+            workspace_id=str(workspace.id),
+            draft_id=str(draft.id),
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(merged_payload),
+            review_ready=draft.review_ready,
+        )
         await self._session.commit()
         await self._session.refresh(draft)
         return draft
@@ -235,6 +298,7 @@ class PartnerApplicationWorkflowUseCase:
         applicant_admin_user_id: UUID,
         is_resubmission: bool = False,
     ) -> PartnerApplicationDraftModel:
+        started_at = _utcnow()
         draft = await self._get_owned_draft(draft_id=draft_id, applicant_admin_user_id=applicant_admin_user_id)
         workspace = await self._partner_accounts.get_account_by_id(draft.partner_account_id)
         if workspace is None:
@@ -272,6 +336,30 @@ class PartnerApplicationWorkflowUseCase:
                 "workspace_status": workspace.status,
                 "primary_lane": normalized_payload.get("primary_lane") or None,
             },
+        )
+        bind_partner_runtime_context(
+            surface=PARTNER_PORTAL_SURFACE,
+            realm_type="partner",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(normalized_payload),
+            result="success",
+        )
+        observe_partner_application_submission(
+            surface=PARTNER_PORTAL_SURFACE,
+            lane=_primary_lane_from_payload(normalized_payload),
+            workspace_status=workspace.status,
+            result="success",
+            duration_seconds=max((_utcnow() - started_at).total_seconds(), 0.0),
+            reason="resubmission" if is_resubmission else "initial_submission",
+        )
+        log_partner_runtime_event(
+            "partner_application.resubmitted" if is_resubmission else "partner_application.submitted",
+            workspace_id=str(workspace.id),
+            draft_id=str(draft.id),
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(normalized_payload),
         )
         await self._session.commit()
         await self._session.refresh(draft)
@@ -314,6 +402,21 @@ class PartnerApplicationWorkflowUseCase:
             actor_admin_user_id=applicant_admin_user_id,
             event_payload={"workspace_status": workspace.status},
         )
+        bind_partner_runtime_context(
+            surface=PARTNER_PORTAL_SURFACE,
+            realm_type="partner",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(draft.draft_payload),
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_application.withdrawn",
+            workspace_id=str(workspace.id),
+            draft_id=str(draft.id),
+            workspace_status=workspace.status,
+        )
         await self._session.commit()
         await self._session.refresh(draft)
         return draft
@@ -355,6 +458,29 @@ class PartnerApplicationWorkflowUseCase:
                 "attachment_type": attachment.attachment_type,
                 "review_request_id": str(review_request_id) if review_request_id else None,
             },
+        )
+        workspace = await self._require_workspace(draft.partner_account_id)
+        bind_partner_runtime_context(
+            surface=PARTNER_PORTAL_SURFACE,
+            realm_type="partner",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=_primary_lane_from_payload(draft.draft_payload),
+            result="success",
+        )
+        observe_partner_application_evidence_upload(
+            lane=_primary_lane_from_payload(draft.draft_payload),
+            workspace_status=workspace.status,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_application.evidence_uploaded",
+            workspace_id=str(draft.partner_account_id),
+            draft_id=str(draft.id),
+            attachment_id=str(attachment.id),
+            attachment_type=attachment.attachment_type,
+            review_request_id=str(review_request_id) if review_request_id else None,
         )
         await self._session.commit()
         await self._session.refresh(attachment)
@@ -486,6 +612,36 @@ class PartnerApplicationWorkflowUseCase:
                 "required_attachments": review_request.required_attachments,
             },
         )
+        lane_value: str | None = None
+        if lane_application_id is not None:
+            lane_application = await self._applications.get_lane_application_by_id(lane_application_id)
+            lane_value = lane_application.lane_key if lane_application is not None else None
+        if lane_value is None:
+            lane_value = _primary_lane_from_payload(draft.draft_payload)
+        bind_partner_runtime_context(
+            surface=PARTNER_ADMIN_SURFACE,
+            realm_type="admin",
+            principal_class="admin",
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=lane_value,
+            result="success",
+            review_level="workspace",
+        )
+        observe_partner_application_requested_info(
+            lane=lane_value,
+            workspace_status=workspace.status,
+            review_level="workspace",
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_application.info_requested",
+            workspace_id=str(partner_account_id),
+            draft_id=str(draft.id),
+            review_request_id=str(review_request.id),
+            lane=lane_value,
+            request_kind=review_request.request_kind,
+        )
         await self._session.commit()
         await self._session.refresh(review_request)
         return review_request
@@ -527,7 +683,10 @@ class PartnerApplicationWorkflowUseCase:
                 lane_application.decision_reason_code = reason_code.strip()
                 lane_application.decision_summary = reason_summary.strip()
                 lane_application.decided_at = _utcnow()
-        await self._resolve_open_review_requests(partner_account_id=partner_account_id, reviewer_admin_user_id=reviewer_admin_user_id)
+        await self._resolve_open_review_requests(
+            partner_account_id=partner_account_id,
+            reviewer_admin_user_id=reviewer_admin_user_id,
+        )
         await self._append_workflow_event(
             partner_account_id=partner_account_id,
             subject_kind="application",
@@ -536,6 +695,34 @@ class PartnerApplicationWorkflowUseCase:
             message=reason_summary.strip(),
             actor_admin_user_id=reviewer_admin_user_id,
             event_payload={"reason_code": reason_code.strip()},
+        )
+        primary_lane = _primary_lane_from_payload(draft.draft_payload)
+        bind_partner_runtime_context(
+            surface=PARTNER_ADMIN_SURFACE,
+            realm_type="admin",
+            principal_class="admin",
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=primary_lane,
+            result="success",
+            review_level="workspace",
+            decision="approved_probation",
+        )
+        observe_partner_application_decision(
+            decision="approved_probation",
+            lane=primary_lane,
+            workspace_status=workspace.status,
+            review_level="workspace",
+            result="success",
+            reason=reason_code.strip(),
+            submitted_at=draft.submitted_at,
+            decided_at=_utcnow(),
+        )
+        log_partner_runtime_event(
+            "partner_application.approved_probation",
+            workspace_id=str(partner_account_id),
+            draft_id=str(draft.id),
+            reason_code=reason_code.strip(),
         )
         await self._session.commit()
         await self._session.refresh(draft)
@@ -565,6 +752,34 @@ class PartnerApplicationWorkflowUseCase:
             actor_admin_user_id=reviewer_admin_user_id,
             event_payload={"reason_code": reason_code.strip()},
         )
+        primary_lane = _primary_lane_from_payload(draft.draft_payload)
+        bind_partner_runtime_context(
+            surface=PARTNER_ADMIN_SURFACE,
+            realm_type="admin",
+            principal_class="admin",
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=primary_lane,
+            result="success",
+            review_level="workspace",
+            decision="waitlisted",
+        )
+        observe_partner_application_decision(
+            decision="waitlisted",
+            lane=primary_lane,
+            workspace_status=workspace.status,
+            review_level="workspace",
+            result="success",
+            reason=reason_code.strip(),
+            submitted_at=draft.submitted_at,
+            decided_at=_utcnow(),
+        )
+        log_partner_runtime_event(
+            "partner_application.waitlisted",
+            workspace_id=str(partner_account_id),
+            draft_id=str(draft.id),
+            reason_code=reason_code.strip(),
+        )
         await self._session.commit()
         await self._session.refresh(draft)
         return draft
@@ -587,7 +802,10 @@ class PartnerApplicationWorkflowUseCase:
                 lane_application.decision_reason_code = reason_code.strip()
                 lane_application.decision_summary = reason_summary.strip()
                 lane_application.decided_at = _utcnow()
-        await self._resolve_open_review_requests(partner_account_id=partner_account_id, reviewer_admin_user_id=reviewer_admin_user_id)
+        await self._resolve_open_review_requests(
+            partner_account_id=partner_account_id,
+            reviewer_admin_user_id=reviewer_admin_user_id,
+        )
         await self._append_workflow_event(
             partner_account_id=partner_account_id,
             subject_kind="application",
@@ -596,6 +814,34 @@ class PartnerApplicationWorkflowUseCase:
             message=reason_summary.strip(),
             actor_admin_user_id=reviewer_admin_user_id,
             event_payload={"reason_code": reason_code.strip()},
+        )
+        primary_lane = _primary_lane_from_payload(draft.draft_payload)
+        bind_partner_runtime_context(
+            surface=PARTNER_ADMIN_SURFACE,
+            realm_type="admin",
+            principal_class="admin",
+            route_group="application_onboarding",
+            workspace_status=workspace.status,
+            lane=primary_lane,
+            result="success",
+            review_level="workspace",
+            decision="rejected",
+        )
+        observe_partner_application_decision(
+            decision="rejected",
+            lane=primary_lane,
+            workspace_status=workspace.status,
+            review_level="workspace",
+            result="success",
+            reason=reason_code.strip(),
+            submitted_at=draft.submitted_at,
+            decided_at=_utcnow(),
+        )
+        log_partner_runtime_event(
+            "partner_application.rejected",
+            workspace_id=str(partner_account_id),
+            draft_id=str(draft.id),
+            reason_code=reason_code.strip(),
         )
         await self._session.commit()
         await self._session.refresh(draft)
@@ -764,7 +1010,24 @@ class PartnerApplicationWorkflowUseCase:
             event_payload=dict(event_payload or {}),
             created_by_admin_user_id=actor_admin_user_id,
         )
-        return await self._governance.create_workspace_workflow_event(event)
+        created = await self._governance.create_workspace_workflow_event(event)
+        notification_type = _application_notification_type_for_action(created.action_kind)
+        if notification_type is not None:
+            partner_portal_actions = {
+                "workspace_draft_created",
+                "application_submitted",
+                "application_resubmitted",
+            }
+            observe_partner_notification_generated(
+                surface=(
+                    PARTNER_PORTAL_SURFACE
+                    if created.action_kind in partner_portal_actions
+                    else PARTNER_ADMIN_SURFACE
+                ),
+                notification_type=notification_type,
+                result="success",
+            )
+        return created
 
     async def _get_owned_draft(
         self,
@@ -787,6 +1050,18 @@ class PartnerApplicationWorkflowUseCase:
         if draft is None:
             raise ValueError("Partner application draft not found")
         return draft
+
+
+def _application_notification_type_for_action(action_kind: str) -> str | None:
+    if action_kind == "workspace_draft_created":
+        return "workspace_draft"
+    if action_kind in {"application_submitted", "application_resubmitted"}:
+        return "application_submitted"
+    if action_kind in {"application_approved_probation", "application_waitlisted", "application_rejected"}:
+        return action_kind
+    if action_kind in {"lane_application_approved", "lane_application_declined"}:
+        return "lane_membership_changed"
+    return None
 
     async def _require_workspace(self, partner_account_id: UUID):
         workspace = await self._partner_accounts.get_account_by_id(partner_account_id)

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
+from aiogram.types import LabeledPrice
 
 from src.states.subscription import SubscriptionState
 
@@ -17,6 +18,38 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 router = Router(name="payment")
+
+
+def _parse_telegram_stars_invoice_payload(invoice_payload: str) -> tuple[str, int] | None:
+    parts = invoice_payload.split(":")
+    if len(parts) != 3 or parts[0] != "stars":
+        return None
+
+    payment_id = parts[1].strip()
+    if not payment_id:
+        return None
+
+    try:
+        telegram_id = int(parts[2])
+    except (TypeError, ValueError):
+        return None
+
+    return payment_id, telegram_id
+
+
+def _stars_checkout_error_message(detail: str | None = None) -> str:
+    if detail:
+        normalized = detail.strip()
+        if normalized:
+            return normalized[:120]
+    return "Payment validation failed. Please try again."
+
+
+def _format_telegram_stars_amount(total_amount: int, currency: str) -> str:
+    normalized_currency = str(currency or "").upper()
+    if normalized_currency == "XTR":
+        return f"{int(total_amount)} XTR"
+    return f"{int(total_amount)} {normalized_currency}".strip()
 
 
 @router.callback_query(SubscriptionState.selecting_payment, F.data.startswith("pay:"))
@@ -43,6 +76,60 @@ async def payment_method_selected_handler(
     checkout_payload["payment_method"] = payment_method
 
     try:
+        if payment_method == "telegram_stars":
+            telegram_stars_amount = int(checkout_payload.get("telegram_stars_amount") or 0)
+            if telegram_stars_amount <= 0:
+                await callback.answer(i18n.get("error-payment-creation-failed"), show_alert=True)
+                await state.clear()
+                return
+
+            checkout_payload["currency"] = "XTR"
+            invoice = await api_client.create_stars_invoice(
+                telegram_id=user_id,
+                plan_id=str(checkout_payload.get("plan_id") or ""),
+                duration_days=int(data.get("duration_days") or 0),
+                amount=telegram_stars_amount,
+                addons=list(checkout_payload.get("addons") or []),
+                promo_code=checkout_payload.get("promo_code"),
+                use_wallet=float(checkout_payload.get("use_wallet", 0) or 0),
+            )
+            payment_id = str(invoice.get("payment_id") or "")
+            invoice_payload = str(invoice.get("invoice_payload") or "")
+
+            if not payment_id or not invoice_payload:
+                await callback.answer(i18n.get("error-payment-creation-failed"), show_alert=True)
+                await state.clear()
+                return
+
+            await state.update_data(
+                payment_id=payment_id,
+                checkout_payload=checkout_payload,
+                invoice_payload=invoice_payload,
+            )
+            await state.set_state(SubscriptionState.processing_payment)
+
+            await callback.message.answer_invoice(
+                title=str(invoice.get("title") or data.get("plan_name") or "CyberVPN subscription"),
+                description=str(invoice.get("description") or "Telegram Stars payment"),
+                payload=invoice_payload,
+                currency=str(invoice.get("currency") or "XTR"),
+                prices=[
+                    LabeledPrice(
+                        label=str(data.get("plan_name") or "CyberVPN subscription"),
+                        amount=int(invoice.get("amount") or telegram_stars_amount),
+                    )
+                ],
+                provider_token="",
+            )
+            logger.info(
+                "telegram_stars_invoice_sent",
+                user_id=user_id,
+                payment_id=payment_id,
+                total_amount=telegram_stars_amount,
+            )
+            await callback.answer()
+            return
+
         payment = await api_client.commit_checkout(user_id, checkout_payload)
         payment_id = payment.get("payment_id")
         status = payment.get("status")
@@ -154,16 +241,118 @@ async def check_payment_status_handler(
 
 
 @router.pre_checkout_query()
-async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery) -> None:
-    await pre_checkout_query.answer(ok=False, error_message="Telegram Stars are not enabled in this flow")
+async def pre_checkout_handler(
+    pre_checkout_query: PreCheckoutQuery,
+    api_client: CyberVPNAPIClient,
+) -> None:
+    parsed_payload = _parse_telegram_stars_invoice_payload(pre_checkout_query.invoice_payload)
+    if parsed_payload is None:
+        await pre_checkout_query.answer(ok=False, error_message=_stars_checkout_error_message())
+        return
+
+    payment_id, telegram_id = parsed_payload
+    if telegram_id != pre_checkout_query.from_user.id:
+        await pre_checkout_query.answer(ok=False, error_message=_stars_checkout_error_message())
+        return
+
+    try:
+        result = await api_client.validate_stars_pre_checkout(
+            payment_id=payment_id,
+            telegram_id=telegram_id,
+            currency=pre_checkout_query.currency,
+            total_amount=pre_checkout_query.total_amount,
+            invoice_payload=pre_checkout_query.invoice_payload,
+        )
+        ok = bool(result.get("ok"))
+        await pre_checkout_query.answer(
+            ok=ok,
+            error_message=None if ok else _stars_checkout_error_message(result.get("error_message")),
+        )
+    except Exception as exc:
+        logger.error(
+            "telegram_stars_pre_checkout_failed",
+            payment_id=payment_id,
+            telegram_id=telegram_id,
+            error=str(exc),
+        )
+        await pre_checkout_query.answer(ok=False, error_message=_stars_checkout_error_message(str(exc)))
 
 
-@router.message(SubscriptionState.processing_payment, F.successful_payment)
+@router.message(F.successful_payment)
 async def successful_payment_handler(
     message: Message,
     i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    state: FSMContext,
 ) -> None:
     if message.successful_payment is None:
         return
-    logger.warning("unexpected_successful_payment_received", payload=message.successful_payment.invoice_payload)
-    await message.answer(i18n.get("payment-status-unknown"))
+
+    successful_payment = message.successful_payment
+    parsed_payload = _parse_telegram_stars_invoice_payload(successful_payment.invoice_payload)
+    if parsed_payload is None or message.from_user is None:
+        logger.warning("unexpected_successful_payment_received", payload=successful_payment.invoice_payload)
+        await message.answer(i18n.get("payment-status-unknown"))
+        return
+
+    payment_id, telegram_id = parsed_payload
+    if telegram_id != message.from_user.id:
+        logger.warning(
+            "successful_payment_user_mismatch",
+            payment_id=payment_id,
+            expected_telegram_id=telegram_id,
+            actual_telegram_id=message.from_user.id,
+        )
+        await message.answer(i18n.get("payment-status-unknown"))
+        return
+
+    try:
+        result = await api_client.confirm_stars_payment(
+            payment_id=payment_id,
+            telegram_id=telegram_id,
+            currency=successful_payment.currency,
+            total_amount=successful_payment.total_amount,
+            invoice_payload=successful_payment.invoice_payload,
+            telegram_payment_charge_id=successful_payment.telegram_payment_charge_id,
+            provider_payment_charge_id=successful_payment.provider_payment_charge_id,
+        )
+        logger.info(
+            "telegram_stars_payment_confirmed",
+            payment_id=payment_id,
+            telegram_id=telegram_id,
+            already_processed=bool(result.get("already_processed")),
+        )
+    except Exception as exc:
+        logger.error("telegram_stars_payment_confirm_failed", payment_id=payment_id, error=str(exc))
+        await message.answer(i18n.get("payment-status-unknown"))
+        return
+
+    await state.clear()
+    await message.answer(i18n.get("payment-success"))
+
+    from src.keyboards.config import config_delivery_keyboard
+
+    await message.answer(
+        text=i18n.get("config-delivery-prompt"),
+        reply_markup=config_delivery_keyboard(i18n),
+    )
+
+
+@router.message(F.refunded_payment)
+async def refunded_payment_handler(
+    message: Message,
+    i18n: I18nContext,
+) -> None:
+    if message.refunded_payment is None:
+        return
+
+    refunded_payment = message.refunded_payment
+    amount = _format_telegram_stars_amount(refunded_payment.total_amount, refunded_payment.currency)
+    logger.info(
+        "telegram_stars_payment_refunded",
+        telegram_payment_charge_id=refunded_payment.telegram_payment_charge_id,
+        provider_payment_charge_id=refunded_payment.provider_payment_charge_id,
+        amount=refunded_payment.total_amount,
+        currency=refunded_payment.currency,
+    )
+    await message.answer(i18n.get("notify-payment-refunded", amount=amount))

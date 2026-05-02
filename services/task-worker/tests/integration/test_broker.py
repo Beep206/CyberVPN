@@ -103,6 +103,50 @@ class TestBrokerLifecycle:
             mock_get_session_factory.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_worker_startup_event_initializes_sentry_when_configured(self):
+        """Verify startup initializes Sentry with the resolved runtime contract."""
+        mock_state = MagicMock()
+
+        with (
+            patch("src.broker.get_engine") as mock_get_engine,
+            patch("src.broker.get_session_factory") as mock_get_session_factory,
+            patch("src.broker.start_metrics_server"),
+            patch("httpx.AsyncClient"),
+            patch("sentry_sdk.init") as mock_sentry_init,
+        ):
+            mock_get_engine.return_value = AsyncMock()
+            mock_get_session_factory.return_value = MagicMock()
+
+            from src.broker import settings, startup_event
+
+            original_dsn = settings.sentry_dsn
+            original_release = settings.sentry_release
+            original_environment = settings.environment
+
+            try:
+                settings.sentry_dsn = "https://worker@example.com/1"
+                settings.sentry_release = "task-worker@abc123"
+                settings.environment = "staging"
+
+                await startup_event(mock_state)
+
+                mock_sentry_init.assert_called_once_with(
+                    dsn="https://worker@example.com/1",
+                    environment="staging",
+                    release="task-worker@abc123",
+                    traces_sample_rate=0.1,
+                    profiles_sample_rate=0.1,
+                    send_default_pii=False,
+                    max_request_body_size="never",
+                    include_local_variables=False,
+                    before_send=mock_sentry_init.call_args.kwargs["before_send"],
+                )
+            finally:
+                settings.sentry_dsn = original_dsn
+                settings.sentry_release = original_release
+                settings.environment = original_environment
+
+    @pytest.mark.asyncio
     async def test_worker_shutdown_event_cleanup(self):
         """Test worker shutdown event cleans up resources properly."""
         # Mock state with resources

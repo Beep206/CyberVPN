@@ -95,7 +95,10 @@ export function LinkedAccountsSection() {
   const isProcessing = status === 'linking' || status === 'unlinking';
 
   return (
-    <section className="relative border border-neon-cyan/30 bg-terminal-surface/50 rounded-lg overflow-hidden">
+    <section
+      id="linked-accounts"
+      className="relative border border-neon-cyan/30 bg-terminal-surface/50 rounded-lg overflow-hidden"
+    >
       {/* Section Header */}
       <div className="flex items-center gap-2 p-4 border-b border-grid-line/30">
         <Link2 className="w-5 h-5 text-neon-cyan" />

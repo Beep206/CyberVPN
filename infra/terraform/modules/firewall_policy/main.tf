@@ -3,7 +3,7 @@ locals {
   metrics_source_ips = concat(var.metrics_ipv4_cidrs, var.metrics_ipv6_cidrs)
 
   inbound_rules = concat(
-    [
+    var.enable_ssh ? [
       {
         description = "Administrative SSH access"
         direction   = "in"
@@ -11,7 +11,7 @@ locals {
         port        = tostring(var.ssh_port)
         source_ips  = local.admin_source_ips
       }
-    ],
+    ] : [],
     var.allow_https_tcp ? [
       {
         description = "VPN TCP ingress"
@@ -39,6 +39,15 @@ locals {
         source_ips  = local.metrics_source_ips
       }
     ] : [],
+    [
+      for rule in var.extra_inbound_rules : {
+        description = rule.description
+        direction   = "in"
+        protocol    = rule.protocol
+        port        = rule.port
+        source_ips  = rule.source_ips
+      }
+    ],
   )
 }
 
@@ -48,8 +57,8 @@ resource "hcloud_firewall" "this" {
 
   lifecycle {
     precondition {
-      condition     = length(local.admin_source_ips) > 0
-      error_message = "At least one admin CIDR must be provided for SSH access."
+      condition     = !var.enable_ssh || length(local.admin_source_ips) > 0
+      error_message = "At least one admin CIDR must be provided when SSH access is enabled."
     }
   }
 

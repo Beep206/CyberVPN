@@ -33,6 +33,7 @@ class MobileUserRepository:
                 or_(
                     MobileUserModel.email.ilike(like_pattern),
                     MobileUserModel.username.ilike(like_pattern),
+                    MobileUserModel.telegram_subject.ilike(like_pattern),
                     MobileUserModel.telegram_username.ilike(like_pattern),
                     MobileUserModel.remnawave_uuid.ilike(like_pattern),
                     MobileUserModel.referral_code.ilike(like_pattern),
@@ -77,6 +78,13 @@ class MobileUserRepository:
     async def get_by_username(self, username: str) -> MobileUserModel | None:
         """Get mobile user by username."""
         result = await self._session.execute(select(MobileUserModel).where(MobileUserModel.username == username))
+        return result.scalar_one_or_none()
+
+    async def get_by_telegram_subject(self, telegram_subject: str) -> MobileUserModel | None:
+        """Get mobile user by Telegram OIDC subject."""
+        result = await self._session.execute(
+            select(MobileUserModel).where(MobileUserModel.telegram_subject == telegram_subject)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_telegram_id(self, telegram_id: int) -> MobileUserModel | None:
@@ -151,6 +159,55 @@ class MobileUserRepository:
 
         result = await self._session.execute(select(MobileUserModel).where(MobileUserModel.id.in_(ids)))
         return list(result.scalars().all())
+
+    async def list_referred_users(self, referrer_user_id: UUID) -> list[MobileUserModel]:
+        result = await self._session.execute(
+            select(MobileUserModel)
+            .where(MobileUserModel.referred_by_user_id == referrer_user_id)
+            .order_by(MobileUserModel.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def count_referred_users(self, referrer_user_id: UUID) -> int:
+        result = await self._session.execute(
+            select(func.count())
+            .select_from(MobileUserModel)
+            .where(MobileUserModel.referred_by_user_id == referrer_user_id)
+        )
+        return int(result.scalar_one() or 0)
+
+    async def count_referred_users_map(self, referrer_user_ids: list[UUID]) -> dict[UUID, int]:
+        if not referrer_user_ids:
+            return {}
+
+        result = await self._session.execute(
+            select(
+                MobileUserModel.referred_by_user_id,
+                func.count(MobileUserModel.id),
+            )
+            .where(MobileUserModel.referred_by_user_id.in_(referrer_user_ids))
+            .group_by(MobileUserModel.referred_by_user_id)
+        )
+        return {
+            referrer_user_id: int(count or 0)
+            for referrer_user_id, count in result.all()
+            if referrer_user_id is not None
+        }
+
+    async def count_all_referred_users(self) -> int:
+        result = await self._session.execute(
+            select(func.count())
+            .select_from(MobileUserModel)
+            .where(MobileUserModel.referred_by_user_id.is_not(None))
+        )
+        return int(result.scalar_one() or 0)
+
+    async def count_distinct_referrers(self) -> int:
+        result = await self._session.execute(
+            select(func.count(func.distinct(MobileUserModel.referred_by_user_id)))
+            .where(MobileUserModel.referred_by_user_id.is_not(None))
+        )
+        return int(result.scalar_one() or 0)
 
     async def get_device_counts(self, user_ids: list[UUID]) -> dict[UUID, int]:
         if not user_ids:

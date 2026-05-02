@@ -7,6 +7,7 @@ Tests the current end-to-end codes workflows:
 - Partner codes: create -> bind users -> markup -> earnings
 """
 
+import os
 import secrets
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -26,6 +27,16 @@ from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.main import app
 from src.presentation.dependencies.auth import get_current_mobile_user_id
+from tests.conftest import TEST_DB_AVAILABLE_ENV
+
+
+@pytest.fixture(autouse=True)
+def require_docker_backed_db() -> None:
+    if os.environ.get(TEST_DB_AVAILABLE_ENV) == "0":
+        pytest.skip(
+            "Docker-backed test database is unavailable. "
+            "Start the local stack or run targeted sqlite-backed packs."
+        )
 
 
 @pytest.fixture(autouse=True)

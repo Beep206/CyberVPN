@@ -11,6 +11,13 @@ from src.infrastructure.database.repositories.governance_repo import GovernanceR
 from src.infrastructure.database.repositories.partner_account_repository import (
     PartnerAccountRepository,
 )
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_ADMIN_SURFACE,
+    PARTNER_PORTAL_SURFACE,
+    log_partner_runtime_event,
+    observe_partner_case_action,
+    observe_partner_notification_generated,
+)
 
 
 class CreatePartnerWorkspaceWorkflowEventUseCase:
@@ -60,6 +67,34 @@ class CreatePartnerWorkspaceWorkflowEventUseCase:
         )
         await self._session.commit()
         await self._session.refresh(created)
+        surface = _workflow_surface_for_action(normalized_action_kind)
+        notification_type = _notification_type_for_workflow_event(
+            subject_kind=normalized_subject_kind,
+            action_kind=normalized_action_kind,
+        )
+        if notification_type is not None:
+            observe_partner_notification_generated(
+                surface=surface,
+                notification_type=notification_type,
+                result="success",
+            )
+        if normalized_subject_kind == "case":
+            observe_partner_case_action(
+                surface=surface,
+                case_type="workspace_case",
+                action=normalized_action_kind,
+                result="success",
+            )
+        log_partner_runtime_event(
+            "partner_workspace.workflow_event_created",
+            surface=surface,
+            route_group="workflow",
+            workspace_status=workspace.status,
+            subject_kind=normalized_subject_kind,
+            action_kind=normalized_action_kind,
+            subject_id=normalized_subject_id,
+            result="success",
+        )
         return created
 
 
@@ -83,3 +118,33 @@ class ListPartnerWorkspaceWorkflowEventsUseCase:
             limit=limit,
             offset=offset,
         )
+
+
+def _workflow_surface_for_action(action_kind: str) -> str:
+    if action_kind.startswith("partner_"):
+        return PARTNER_PORTAL_SURFACE
+    return PARTNER_ADMIN_SURFACE
+
+
+def _notification_type_for_workflow_event(
+    *,
+    subject_kind: str,
+    action_kind: str,
+) -> str | None:
+    if action_kind == "workspace_draft_created":
+        return "workspace_draft"
+    if action_kind in {"application_submitted", "application_resubmitted"}:
+        return "application_submitted"
+    if action_kind in {"application_approved_probation", "application_waitlisted", "application_rejected"}:
+        return action_kind
+    if action_kind in {"lane_application_approved", "lane_application_declined"}:
+        return "lane_membership_changed"
+    if subject_kind == "review_request":
+        if action_kind.startswith("partner_"):
+            return None
+        return "review_request_opened"
+    if subject_kind == "case":
+        return "case_reply_received" if action_kind.startswith("partner_") else "case_created"
+    if subject_kind == "report_export":
+        return "report_export_requested"
+    return None

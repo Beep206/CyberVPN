@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.foundation.lazy.list.TvLazyColumn
@@ -27,12 +30,11 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import com.cybervpn.tv.core.state.UiState
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 
 @Composable
 fun PerAppScreen(
     modifier: Modifier = Modifier,
-    viewModel: PerAppViewModel = hiltViewModel()
+    viewModel: PerAppViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -41,25 +43,25 @@ fun PerAppScreen(
             is UiState.Loading -> {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
             is UiState.Success -> {
                 TvLazyColumn(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     item {
                         Text(
                             text = "Split Tunneling (Bypass Apps)",
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
                         Text(
                             text = "Selected apps will bypass the VPN entirely.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 24.dp)
+                            modifier = Modifier.padding(bottom = 24.dp),
                         )
                     }
 
@@ -77,7 +79,7 @@ fun PerAppScreen(
                 Text(
                     text = state.message,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.Center),
                 )
             }
         }
@@ -88,35 +90,40 @@ fun PerAppScreen(
 private fun AppListItem(
     app: AppUiModel,
     onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
+    val iconBitmap =
+        remember(app.icon) {
+            app.icon.toBitmap(width = 48, height = 48).asImageBitmap()
+        }
+
     Surface(
         onClick = { onToggle(!app.isBypassed) },
         colors =
             ClickableSurfaceDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                focusedContainerColor = MaterialTheme.colorScheme.inverseSurface
+                focusedContainerColor = MaterialTheme.colorScheme.inverseSurface,
             ),
         shape =
             ClickableSurfaceDefaults.shape(
-                shape = MaterialTheme.shapes.medium
+                shape = MaterialTheme.shapes.medium,
             ),
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
+                .padding(vertical = 4.dp),
     ) {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
-                painter = rememberDrawablePainter(drawable = app.icon),
+                bitmap = iconBitmap,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -125,12 +132,12 @@ private fun AppListItem(
                 text = app.name,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.padding(end = 16.dp),
             )
 
             Checkbox(
                 checked = app.isBypassed,
-                onCheckedChange = onToggle
+                onCheckedChange = onToggle,
             )
         }
     }

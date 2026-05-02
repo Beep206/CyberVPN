@@ -219,6 +219,118 @@ export interface PartnerWorkspacePayoutHistoryResponse {
 export type ListPartnerWorkspacePayoutHistoryResponse =
   PartnerWorkspacePayoutHistoryResponse[];
 
+export interface PartnerWorkspaceResellerVoucherBatchResponse {
+  batch_id: string;
+  gift_type: string;
+  plan_family: string;
+  duration_days: number;
+  status: string;
+  issued_count: number;
+  redeemed_count: number;
+  available_count: number;
+  expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  notes: string[];
+}
+
+export type ListPartnerWorkspaceResellerVoucherBatchesResponse =
+  PartnerWorkspaceResellerVoucherBatchResponse[];
+
+export interface PartnerBotProvisioningJobResponse {
+  id: string;
+  partner_bot_id: string;
+  partner_account_id: string;
+  requested_by_admin_user_id?: string | null;
+  provisioning_path: string;
+  job_status: string;
+  attempt_count: number;
+  request_payload?: Record<string, unknown>;
+  result_payload?: Record<string, unknown>;
+  last_error?: string | null;
+  queued_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerBotResponse {
+  id: string;
+  partner_account_id: string;
+  storefront_id?: string | null;
+  bot_key: string;
+  display_name: string;
+  short_description?: string | null;
+  long_description?: string | null;
+  telegram_bot_id?: string | null;
+  telegram_username?: string | null;
+  managed_by_bot_id?: string | null;
+  default_locale: string;
+  primary_color?: string | null;
+  provisioning_path: string;
+  token_status: string;
+  status: string;
+  release_channel: string;
+  provisioning_last_error?: string | null;
+  provisioning_requested_at?: string | null;
+  provisioned_at?: string | null;
+  suspended_at?: string | null;
+  suspension_reason_code?: string | null;
+  created_by_admin_user_id?: string | null;
+  updated_by_admin_user_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  latest_provisioning_job?: PartnerBotProvisioningJobResponse | null;
+}
+
+export type ListPartnerBotsResponse = PartnerBotResponse[];
+
+export interface ListPartnerBotsParams {
+  partner_account_id: string;
+  bot_status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface CreatePartnerBotPayload {
+  partner_account_id: string;
+  bot_key: string;
+  display_name: string;
+  default_locale?: string;
+  primary_color?: string | null;
+  short_description?: string | null;
+  long_description?: string | null;
+  storefront_id?: string | null;
+  release_channel?: 'stable' | 'beta' | 'canary';
+  provisioning_path?: 'managed_bot' | 'manual_token';
+}
+
+export interface RequestPartnerBotProvisioningPayload {
+  provisioning_path?: 'managed_bot' | 'manual_token';
+  request_payload?: Record<string, unknown>;
+}
+
+export interface SuspendPartnerBotPayload {
+  reason_code?: string | null;
+}
+
+export interface RotatePartnerBotTokenPayload {
+  request_payload?: Record<string, unknown>;
+}
+
+export interface RequestPartnerWorkspaceResellerVoucherBatchPayload {
+  plan_id: string;
+  count: number;
+  recipient_hint?: string | null;
+  gift_message?: string | null;
+}
+
+export interface RequestPartnerWorkspaceResellerVoucherBatchResponse {
+  batch: PartnerWorkspaceResellerVoucherBatchResponse;
+  issued_codes: string[];
+}
+
 export const partnerPortalApi = {
   listMyWorkspaces: () =>
     apiClient.get<ListMyPartnerWorkspacesResponse>('/partner-workspaces/me'),
@@ -404,6 +516,20 @@ export const partnerPortalApi = {
       `/partner-workspaces/${workspaceId}/campaign-assets`,
     ),
 
+  listWorkspaceResellerVoucherBatches: (workspaceId: string) =>
+    apiClient.get<ListPartnerWorkspaceResellerVoucherBatchesResponse>(
+      `/partner-workspaces/${workspaceId}/reseller-voucher-batches`,
+    ),
+
+  requestWorkspaceResellerVoucherBatch: (
+    workspaceId: string,
+    payload: RequestPartnerWorkspaceResellerVoucherBatchPayload,
+  ) =>
+    apiClient.post<RequestPartnerWorkspaceResellerVoucherBatchResponse>(
+      `/partner-workspaces/${workspaceId}/reseller-voucher-batches/request`,
+      payload,
+    ),
+
   listWorkspaceLaneApplications: (workspaceId: string) =>
     apiClient.get<ListPartnerWorkspaceLaneApplicationsResponse>(
       `/partner-workspaces/${workspaceId}/lane-applications`,
@@ -552,6 +678,35 @@ export const partnerPortalApi = {
     apiClient.get<ListPartnerWorkspaceIntegrationDeliveryLogsResponse>(
       `/partner-workspaces/${workspaceId}/integration-delivery-logs`,
     ),
+
+  listPartnerBots: (params: ListPartnerBotsParams) =>
+    apiClient.get<ListPartnerBotsResponse>('/partner-bots', {
+      params,
+    }),
+
+  createPartnerBot: (payload: CreatePartnerBotPayload) =>
+    apiClient.post<PartnerBotResponse>('/partner-bots', payload),
+
+  requestPartnerBotProvisioning: (
+    partnerBotId: string,
+    payload: RequestPartnerBotProvisioningPayload,
+  ) =>
+    apiClient.post<PartnerBotResponse>(`/partner-bots/${partnerBotId}/provision`, payload),
+
+  suspendPartnerBot: (
+    partnerBotId: string,
+    payload: SuspendPartnerBotPayload,
+  ) =>
+    apiClient.post<PartnerBotResponse>(`/partner-bots/${partnerBotId}/suspend`, payload),
+
+  restorePartnerBot: (partnerBotId: string) =>
+    apiClient.post<PartnerBotResponse>(`/partner-bots/${partnerBotId}/restore`, {}),
+
+  rotatePartnerBotToken: (
+    partnerBotId: string,
+    payload: RotatePartnerBotTokenPayload,
+  ) =>
+    apiClient.post<PartnerBotResponse>(`/partner-bots/${partnerBotId}/rotate-token`, payload),
 
   getWorkspacePostbackReadiness: (workspaceId: string) =>
     apiClient.get<GetPartnerWorkspacePostbackReadinessResponse>(

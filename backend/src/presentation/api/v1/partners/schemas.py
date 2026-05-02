@@ -6,8 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from src.domain.enums import AdminRole
-from src.domain.enums import TrafficDeclarationKind
+from src.domain.enums import AdminRole, TrafficDeclarationKind
 
 
 class CreatePartnerCodeRequest(BaseModel):
@@ -481,7 +480,42 @@ class PartnerWorkspaceCampaignAssetResponse(BaseModel):
     status: str
     approval_owner: str
     updated_at: datetime
+    promo_reference: str | None = None
+    disclosure_text: str | None = None
+    allowed_claims: list[str] = Field(default_factory=list)
+    banned_claims: list[str] = Field(default_factory=list)
+    allowed_geographies: list[str] = Field(default_factory=list)
+    destination_urls: list[str] = Field(default_factory=list)
+    valid_from: datetime | None = None
+    valid_until: datetime | None = None
     notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceResellerVoucherBatchResponse(BaseModel):
+    batch_id: UUID
+    gift_type: str
+    plan_family: str
+    duration_days: int
+    status: str
+    issued_count: int
+    redeemed_count: int
+    available_count: int
+    expires_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+    notes: list[str] = Field(default_factory=list)
+
+
+class RequestPartnerWorkspaceResellerVoucherBatchRequest(BaseModel):
+    plan_id: UUID
+    count: int = Field(..., ge=1, le=250)
+    recipient_hint: str | None = Field(default=None, max_length=255)
+    gift_message: str | None = Field(default=None, max_length=500)
+
+
+class RequestPartnerWorkspaceResellerVoucherBatchResponse(BaseModel):
+    batch: PartnerWorkspaceResellerVoucherBatchResponse
+    issued_codes: list[str] = Field(default_factory=list)
 
 
 class PartnerWorkspacePayoutAccountResponse(BaseModel):

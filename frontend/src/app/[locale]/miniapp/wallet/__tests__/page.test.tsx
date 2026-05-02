@@ -21,7 +21,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -45,7 +45,7 @@ describe('MiniAppWalletPage', () => {
   describe('Balance Display', () => {
     it('test_shows_loading_while_fetching_balance', () => {
       server.use(
-        http.get(`${API_BASE}/wallet/balance`, async () => {
+        http.get(`${API_BASE}/wallet`, async () => {
           await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json({ balance: 100 });
         }),
@@ -56,12 +56,12 @@ describe('MiniAppWalletPage', () => {
 
       render(<WalletPage />, { wrapper: createWrapper() });
 
-      expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
+      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     });
 
     it('test_displays_balance_amount', async () => {
       server.use(
-        http.get(`${API_BASE}/wallet/balance`, () => {
+        http.get(`${API_BASE}/wallet`, () => {
           return HttpResponse.json({ balance: 150.50 });
         }),
         http.get(`${API_BASE}/wallet/transactions`, () => {
@@ -82,7 +82,7 @@ describe('MiniAppWalletPage', () => {
   describe('Transaction History', () => {
     it('test_displays_transaction_list', async () => {
       server.use(
-        http.get(`${API_BASE}/wallet/balance`, () => {
+        http.get(`${API_BASE}/wallet`, () => {
           return HttpResponse.json({ balance: 100 });
         }),
         http.get(`${API_BASE}/wallet/transactions`, () => {
@@ -116,7 +116,7 @@ describe('MiniAppWalletPage', () => {
 
     it('test_shows_empty_state_when_no_transactions', async () => {
       server.use(
-        http.get(`${API_BASE}/wallet/balance`, () => {
+        http.get(`${API_BASE}/wallet`, () => {
           return HttpResponse.json({ balance: 0 });
         }),
         http.get(`${API_BASE}/wallet/transactions`, () => {
@@ -135,7 +135,7 @@ describe('MiniAppWalletPage', () => {
       const user = userEvent.setup();
 
       server.use(
-        http.get(`${API_BASE}/wallet/balance`, () => {
+        http.get(`${API_BASE}/wallet`, () => {
           return HttpResponse.json({ balance: 100 });
         }),
         http.get(`${API_BASE}/wallet/transactions`, ({ request }) => {
@@ -162,7 +162,7 @@ describe('MiniAppWalletPage', () => {
       render(<WalletPage />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText('recentTransactions')).toBeInTheDocument();
+        expect(screen.getByText('transactions')).toBeInTheDocument();
       });
 
       const loadMoreButton = screen.queryByText('loadMore');

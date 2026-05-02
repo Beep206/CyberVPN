@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -12,13 +13,18 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import org.telegram.login.LoginError
+import org.telegram.login.TelegramLogin
 
 class MainActivity : FlutterActivity() {
     private val SCREEN_PROTECTION_CHANNEL = "com.cybervpn.cybervpn_mobile/screen_protection"
+    private val TELEGRAM_NATIVE_AUTH_CHANNEL = "com.cybervpn.cybervpn_mobile/telegram_native_auth"
     private val PER_APP_PROXY_CHANNEL = "com.cybervpn.cybervpn_mobile/per_app_proxy"
     private val ANDROID_SYSTEM_CHANNEL = "com.cybervpn.cybervpn_mobile/android_system"
     private val WIDGET_TOGGLE_CHANNEL = "com.cybervpn.cybervpn_mobile/widget_toggle"
@@ -29,10 +35,66 @@ class MainActivity : FlutterActivity() {
     private val VPN_STATE_UPDATE_ACTION = "com.cybervpn.cybervpn_mobile.VPN_STATE_UPDATE_ACTION"
     private val INTERNAL_PREFS_NAME = "cybervpn_android_integration"
     private val LAST_BOOT_HANDLED_AT_MS_KEY = "last_boot_handled_at_ms"
+    private val TELEGRAM_NATIVE_AUTH_PREFS = "cybervpn_telegram_native_auth"
+    private val TELEGRAM_CLIENT_ID_KEY = "client_id"
+    private val TELEGRAM_REDIRECT_URI_KEY = "redirect_uri"
+    private val TELEGRAM_SCOPES_KEY = "scopes"
+    private val TELEGRAM_PENDING_CALLBACK_URI_KEY = "pending_callback_uri"
+    private val TELEGRAM_LOGIN_TAG = "TelegramLogin"
 
     private var widgetToggleChannel: MethodChannel? = null
     private var tileToggleChannel: MethodChannel? = null
     private var vpnToggleReceiver: BroadcastReceiver? = null
+    private var telegramNativeAuthResult: MethodChannel.Result? = null
+    private var pendingTelegramCallbackUri: Uri? = null
+    private var telegramCallbackHandlingInFlight = false
+    private var telegramNativeAuthDidLeaveForeground = false
+
+    private data class TelegramNativeAuthConfig(
+        val clientId: String,
+        val redirectUri: String,
+        val scopes: List<String>,
+    )
+
+    private val telegramNativeAuthPrefs: SharedPreferences
+        get() = getSharedPreferences(TELEGRAM_NATIVE_AUTH_PREFS, Context.MODE_PRIVATE)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        cacheTelegramCallbackIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        cacheTelegramCallbackIntent(intent)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (telegramNativeAuthResult != null) {
+            telegramNativeAuthDidLeaveForeground = true
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (telegramNativeAuthResult == null || telegramCallbackHandlingInFlight) {
+            return
+        }
+
+        if (pendingTelegramCallbackUri != null || readPersistedTelegramCallbackUri() != null) {
+            maybeProcessPendingTelegramCallback()
+            return
+        }
+
+        if (telegramNativeAuthDidLeaveForeground) {
+            completeTelegramNativeAuthWithError(
+                code = "CANCELLED",
+                message = "Telegram login was cancelled.",
+            )
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -58,6 +120,17 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {
                         result.error("DISABLE_FAILED", "Failed to disable screen protection", e.message)
                     }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TELEGRAM_NATIVE_AUTH_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "login" -> {
+                    startTelegramNativeLogin(call, result)
                 }
                 else -> {
                     result.notImplemented()
@@ -147,6 +220,224 @@ class MainActivity : FlutterActivity() {
 
         // Register broadcast receiver for widget and tile toggle actions
         setupVpnToggleReceiver()
+    }
+
+    private fun startTelegramNativeLogin(call: MethodCall, result: MethodChannel.Result) {
+        if (telegramNativeAuthResult != null) {
+            result.error(
+                "IN_PROGRESS",
+                "Telegram native login is already in progress.",
+                null,
+            )
+            return
+        }
+
+        val arguments = call.arguments as? Map<*, *>
+        val clientId = (arguments?.get("clientId") as? String)?.trim().orEmpty()
+        val redirectUri = (arguments?.get("redirectUri") as? String)?.trim().orEmpty()
+        val scopes = (arguments?.get("scopes") as? List<*>)
+            ?.mapNotNull { (it as? String)?.trim()?.takeIf(String::isNotEmpty) }
+            ?.ifEmpty { listOf("profile") }
+            ?: listOf("profile")
+
+        if (clientId.isEmpty() || redirectUri.isEmpty()) {
+            result.error(
+                "NOT_CONFIGURED",
+                "Telegram native login is not configured for this build.",
+                null,
+            )
+            return
+        }
+
+        val config = TelegramNativeAuthConfig(
+            clientId = clientId,
+            redirectUri = redirectUri,
+            scopes = scopes,
+        )
+
+        persistTelegramNativeAuthConfig(config)
+        telegramNativeAuthResult = result
+        telegramNativeAuthDidLeaveForeground = false
+
+        if (maybeProcessPendingTelegramCallback(config)) {
+            return
+        }
+
+        try {
+            TelegramLogin.init(
+                clientId = config.clientId,
+                redirectUri = config.redirectUri,
+                scopes = config.scopes,
+            )
+            TelegramLogin.startLogin(this)
+            Log.d(TELEGRAM_LOGIN_TAG, "startLogin")
+        } catch (error: IllegalStateException) {
+            completeTelegramNativeAuthWithError(
+                code = "NOT_CONFIGURED",
+                message = error.message ?: "Telegram native login is not configured.",
+            )
+        } catch (error: Throwable) {
+            Log.e(TELEGRAM_LOGIN_TAG, "Login failed", error)
+            completeTelegramNativeAuthWithError(
+                code = "LOGIN_FAILED",
+                message = error.message ?: "Telegram native login failed.",
+            )
+        }
+    }
+
+    private fun cacheTelegramCallbackIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        val config = readPersistedTelegramNativeAuthConfig() ?: return
+        if (!matchesTelegramNativeRedirect(uri, config.redirectUri)) {
+            return
+        }
+
+        pendingTelegramCallbackUri = uri
+        persistPendingTelegramCallbackUri(uri)
+
+        if (telegramNativeAuthResult != null) {
+            maybeProcessPendingTelegramCallback(config)
+        }
+    }
+
+    private fun maybeProcessPendingTelegramCallback(
+        config: TelegramNativeAuthConfig? = null,
+    ): Boolean {
+        val currentConfig = config ?: readPersistedTelegramNativeAuthConfig() ?: return false
+        if (telegramCallbackHandlingInFlight) {
+            return true
+        }
+
+        val result = telegramNativeAuthResult ?: return false
+        val callbackUri = pendingTelegramCallbackUri ?: readPersistedTelegramCallbackUri() ?: return false
+
+        telegramCallbackHandlingInFlight = true
+        pendingTelegramCallbackUri = callbackUri
+
+        TelegramLogin.init(
+            clientId = currentConfig.clientId,
+            redirectUri = currentConfig.redirectUri,
+            scopes = currentConfig.scopes,
+        )
+
+        TelegramLogin.handleLoginResponse(
+            callbackUri,
+            onSuccess = { loginData ->
+                Log.d(TELEGRAM_LOGIN_TAG, "idToken received=${loginData.idToken.isNotBlank()}")
+                telegramCallbackHandlingInFlight = false
+                clearTelegramNativeAuthState()
+                result.success(
+                    mapOf(
+                        "idToken" to loginData.idToken,
+                    ),
+                )
+            },
+            onError = { error ->
+                telegramCallbackHandlingInFlight = false
+                val mappedCode = mapTelegramNativeAuthErrorCode(error)
+                clearTelegramNativeAuthState()
+                result.error(mappedCode, error.message, null)
+            },
+        )
+
+        return true
+    }
+
+    private fun mapTelegramNativeAuthErrorCode(error: LoginError): String {
+        val message = error.message.lowercase()
+        return when {
+            "cancel" in message || "access_denied" in message -> "CANCELLED"
+            "must be called before" in message || "not configured" in message -> "NOT_CONFIGURED"
+            else -> "LOGIN_FAILED"
+        }
+    }
+
+    private fun completeTelegramNativeAuthWithError(code: String, message: String) {
+        telegramCallbackHandlingInFlight = false
+        telegramNativeAuthResult?.error(code, message, null)
+        clearTelegramNativeAuthState()
+    }
+
+    private fun clearTelegramNativeAuthState() {
+        telegramNativeAuthResult = null
+        pendingTelegramCallbackUri = null
+        telegramNativeAuthDidLeaveForeground = false
+        telegramNativeAuthPrefs.edit()
+            .remove(TELEGRAM_CLIENT_ID_KEY)
+            .remove(TELEGRAM_REDIRECT_URI_KEY)
+            .remove(TELEGRAM_SCOPES_KEY)
+            .remove(TELEGRAM_PENDING_CALLBACK_URI_KEY)
+            .apply()
+    }
+
+    private fun persistTelegramNativeAuthConfig(config: TelegramNativeAuthConfig) {
+        telegramNativeAuthPrefs.edit()
+            .putString(TELEGRAM_CLIENT_ID_KEY, config.clientId)
+            .putString(TELEGRAM_REDIRECT_URI_KEY, config.redirectUri)
+            .putStringSet(TELEGRAM_SCOPES_KEY, config.scopes.toSet())
+            .apply()
+    }
+
+    private fun persistPendingTelegramCallbackUri(uri: Uri) {
+        telegramNativeAuthPrefs.edit()
+            .putString(TELEGRAM_PENDING_CALLBACK_URI_KEY, uri.toString())
+            .apply()
+    }
+
+    private fun readPersistedTelegramNativeAuthConfig(): TelegramNativeAuthConfig? {
+        val clientId = telegramNativeAuthPrefs.getString(TELEGRAM_CLIENT_ID_KEY, null)?.trim().orEmpty()
+        val redirectUri = telegramNativeAuthPrefs.getString(TELEGRAM_REDIRECT_URI_KEY, null)?.trim().orEmpty()
+        if (clientId.isEmpty() || redirectUri.isEmpty()) {
+            return null
+        }
+
+        val scopes = telegramNativeAuthPrefs.getStringSet(TELEGRAM_SCOPES_KEY, emptySet())
+            ?.toList()
+            ?.sorted()
+            ?.ifEmpty { listOf("profile") }
+            ?: listOf("profile")
+
+        return TelegramNativeAuthConfig(
+            clientId = clientId,
+            redirectUri = redirectUri,
+            scopes = scopes,
+        )
+    }
+
+    private fun readPersistedTelegramCallbackUri(): Uri? {
+        val uriString = telegramNativeAuthPrefs.getString(TELEGRAM_PENDING_CALLBACK_URI_KEY, null)
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
+            ?: return null
+        return Uri.parse(uriString)
+    }
+
+    private fun matchesTelegramNativeRedirect(uri: Uri, redirectUri: String): Boolean {
+        val expected = Uri.parse(redirectUri)
+        val expectedScheme = expected.scheme?.lowercase()
+        val incomingScheme = uri.scheme?.lowercase()
+        if (expectedScheme != incomingScheme) {
+            return false
+        }
+
+        val expectedHost = expected.host?.lowercase()
+        val incomingHost = uri.host?.lowercase()
+        if (!expectedHost.isNullOrEmpty() && expectedHost != incomingHost) {
+            return false
+        }
+
+        val expectedPath = normalizeTelegramPath(expected.path)
+        val incomingPath = normalizeTelegramPath(uri.path)
+        if (expectedPath != "/") {
+            return incomingPath == expectedPath || incomingPath.startsWith("$expectedPath/")
+        }
+
+        return true
+    }
+
+    private fun normalizeTelegramPath(path: String?): String {
+        val normalized = path?.trim().orEmpty()
+        return if (normalized.isEmpty()) "/" else normalized
     }
 
     private fun getInstalledApps(): List<Map<String, Any>> {

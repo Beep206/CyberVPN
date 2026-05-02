@@ -53,6 +53,23 @@ vi.mock('@/features/auth/components', async () => {
         })
       );
     },
+    CyberOtpInput: ({
+      value,
+      onChange,
+      disabled,
+    }: Record<string, unknown>) => {
+      const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const handler = onChange as ((value: string) => void) | undefined;
+        handler?.(event.target.value);
+      };
+
+      return React.createElement('input', {
+        'aria-label': 'otp',
+        value,
+        onChange: handleChange,
+        disabled,
+      });
+    },
     RateLimitCountdown: () => null,
     useIsRateLimited: () => false,
   };
@@ -101,6 +118,9 @@ vi.mock('lucide-react', async () => {
     },
     CheckCircle: (props: Record<string, unknown>) => {
       return React.createElement('span', { ...props, 'data-testid': 'check-icon' });
+    },
+    ShieldCheck: (props: Record<string, unknown>) => {
+      return React.createElement('span', { ...props, 'data-testid': 'shield-check-icon' });
     },
     AlertCircle: (props: Record<string, unknown>) => {
       return React.createElement('span', { ...props, 'data-testid': 'alert-icon' });

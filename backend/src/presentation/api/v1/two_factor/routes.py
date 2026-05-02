@@ -23,6 +23,13 @@ from src.application.use_cases.auth_realms import RealmResolution
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_PRINCIPAL_CLASS,
+    bind_partner_context_from_realm,
+    log_partner_runtime_event,
+    observe_partner_mfa_challenge,
+    observe_partner_mfa_failure,
+)
 from src.infrastructure.monitoring.instrumentation.routes import track_2fa_operation
 from src.infrastructure.totp.totp_service import TOTPService
 from src.presentation.api.v1.auth.cookies import set_auth_cookies
@@ -280,11 +287,29 @@ async def complete_2fa_login(
     current_realm: RealmResolution = Depends(get_request_admin_realm),
 ) -> TokenResponse:
     """Finish a login that is paused behind a pending 2FA token."""
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_mfa_complete",
+        principal_class=PARTNER_PRINCIPAL_CLASS,
+    )
     await _check_verify_rate_limit(str(user.id), redis_client)
 
     uc = TwoFactorUseCase(db)
     valid = await uc.verify_code(user.id, body.code)
     if not valid:
+        observe_partner_mfa_failure(reason="invalid_verification_code")
+        bind_partner_context_from_realm(
+            current_realm=current_realm,
+            route_group="auth_mfa_complete",
+            principal_class=PARTNER_PRINCIPAL_CLASS,
+            result="failure",
+            error_code="invalid_verification_code",
+        )
+        log_partner_runtime_event(
+            "partner_auth.mfa_verification_failed",
+            level="warning",
+            reason="invalid_verification_code",
+        )
         track_2fa_operation(operation="complete_login", success=False)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -340,6 +365,14 @@ async def complete_2fa_login(
         cookie_namespace=current_realm.cookie_namespace,
     )
     track_2fa_operation(operation="complete_login", success=True)
+    observe_partner_mfa_challenge(result="completed", reason="login_completed")
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="auth_mfa_complete",
+        principal_class=principal_type or PARTNER_PRINCIPAL_CLASS,
+        result="success",
+    )
+    log_partner_runtime_event("partner_auth.mfa_verification_succeeded")
 
     return TokenResponse(
         access_token=access_token,

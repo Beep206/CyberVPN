@@ -3,19 +3,43 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+const sentryRelease =
+  process.env.DESKTOP_SENTRY_RELEASE ?? process.env.VITE_SENTRY_RELEASE ?? "";
+const sentryOrg = process.env.SENTRY_ORG ?? "";
+const sentryProject = process.env.DESKTOP_SENTRY_RENDERER_PROJECT ?? process.env.SENTRY_PROJECT ?? "";
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN ?? "";
+const sentryUrl = process.env.SENTRY_URL ?? "";
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    ...(sentryRelease && sentryOrg && sentryProject && sentryAuthToken
+      ? [
+          sentryVitePlugin({
+            authToken: sentryAuthToken,
+            org: sentryOrg,
+            project: sentryProject,
+            ...(sentryUrl ? { url: sentryUrl } : {}),
+            release: {
+              name: sentryRelease,
+            },
+          }),
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks(id) {

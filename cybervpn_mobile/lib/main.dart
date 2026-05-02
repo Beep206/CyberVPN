@@ -76,12 +76,16 @@ Future<void> main() async {
   });
 
   final dsn = EnvironmentConfig.sentryDsn;
+  final sentryRelease = EnvironmentConfig.sentryRelease;
 
   if (dsn.isNotEmpty) {
     await startupMetrics.measureAsync('SentryFlutter.init', () async {
       await SentryFlutter.init((options) {
         options.dsn = dsn;
         options.environment = EnvironmentConfig.environment;
+        if (sentryRelease.isNotEmpty) {
+          options.release = sentryRelease;
+        }
         // Sample all traces in dev/staging; 20% in production to control costs.
         options.tracesSampleRate = EnvironmentConfig.isProd ? 0.2 : 1.0;
         options.sendDefaultPii = false;

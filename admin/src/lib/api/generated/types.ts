@@ -669,6 +669,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mobile/auth/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Devices
+         * @description List active mobile device registrations for the current user.
+         */
+        get: operations["list_devices_api_v1_mobile_auth_devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile/auth/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Device
+         * @description Remove a mobile device registration owned by the current user.
+         */
+        delete: operations["remove_device_api_v1_mobile_auth_devices__device_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/mobile/auth/device": {
         parameters: {
             query?: never;
@@ -689,6 +729,26 @@ export interface paths {
          *     - `UNAUTHORIZED`: Not authenticated (401)
          */
         post: operations["register_device_api_v1_mobile_auth_device_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile/auth/2fa/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete Mobile 2Fa
+         * @description Finish a mobile login paused behind a pending TOTP challenge.
+         */
+        post: operations["complete_mobile_2fa_api_v1_mobile_auth_2fa_complete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -717,6 +777,50 @@ export interface paths {
          */
         post: operations["telegram_callback_api_v1_mobile_auth_telegram_callback_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile/auth/telegram/oidc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Telegram Oidc
+         * @description Authenticate via Telegram OIDC ID token returned by the native SDK.
+         */
+        post: operations["telegram_oidc_api_v1_mobile_auth_telegram_oidc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mobile/auth/telegram/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Telegram Oidc Link
+         * @description Link a Telegram OIDC identity to the current authenticated mobile user.
+         */
+        post: operations["telegram_oidc_link_api_v1_mobile_auth_telegram_link_post"];
+        /**
+         * Telegram Oidc Unlink
+         * @description Unlink Telegram OIDC identity from the current authenticated mobile user.
+         */
+        delete: operations["telegram_oidc_unlink_api_v1_mobile_auth_telegram_link_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2411,6 +2515,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/growth-notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List growth notifications for the current customer */
+        get: operations["list_growth_notifications_api_v1_growth_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/counters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get growth notification counters for the current customer */
+        get: operations["get_growth_notification_counters_api_v1_growth_notifications_counters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get growth notification preferences for the current customer */
+        get: operations["get_growth_notification_preferences_api_v1_growth_notifications_preferences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update growth notification preferences for the current customer */
+        patch: operations["update_growth_notification_preferences_api_v1_growth_notifications_preferences_patch"];
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a growth notification as read */
+        post: operations["mark_growth_notification_read_api_v1_growth_notifications__notification_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/{notification_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a growth notification */
+        post: operations["archive_growth_notification_api_v1_growth_notifications__notification_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/{notification_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get customer troubleshooting detail for a growth notification */
+        get: operations["get_growth_notification_detail_api_v1_growth_notifications__notification_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/{notification_id}/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a supported recovery action for a growth notification delivery */
+        post: operations["request_growth_notification_recovery_api_v1_growth_notifications__notification_id__recovery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/growth-notifications/{notification_id}/support-escalation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log a guided support escalation for a growth notification delivery */
+        post: operations["request_growth_notification_support_escalation_api_v1_growth_notifications__notification_id__support_escalation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gifts/purchase/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quote Gift Purchase */
+        post: operations["quote_gift_purchase_api_v1_gifts_purchase_quote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gifts/purchase/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commit Gift Purchase */
+        post: operations["commit_gift_purchase_api_v1_gifts_purchase_commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gifts/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Gifts */
+        get: operations["list_my_gifts_api_v1_gifts_my_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gifts/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem Gift */
+        post: operations["redeem_gift_api_v1_gifts_redeem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/renewal-orders/resolve": {
         parameters: {
             query?: never;
@@ -3181,6 +3490,143 @@ export interface paths {
         put?: never;
         /** Release Earning Hold */
         post: operations["release_earning_hold_api_v1_earning_holds__hold_id__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Partner Bots */
+        get: operations["list_partner_bots_api_v1_partner_bots__get"];
+        put?: never;
+        /** Create Partner Bot */
+        post: operations["create_partner_bot_api_v1_partner_bots__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/{partner_bot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Bot */
+        get: operations["get_partner_bot_api_v1_partner_bots__partner_bot_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/{partner_bot_id}/provision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Partner Bot Provisioning */
+        post: operations["request_partner_bot_provisioning_api_v1_partner_bots__partner_bot_id__provision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/{partner_bot_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend Partner Bot */
+        post: operations["suspend_partner_bot_api_v1_partner_bots__partner_bot_id__suspend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/{partner_bot_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Partner Bot */
+        post: operations["restore_partner_bot_api_v1_partner_bots__partner_bot_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/{partner_bot_id}/rotate-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate Partner Bot Token */
+        post: operations["rotate_partner_bot_token_api_v1_partner_bots__partner_bot_id__rotate_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/internal/provisioning-jobs/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Claim Partner Bot Provisioning Job */
+        post: operations["claim_partner_bot_provisioning_job_api_v1_partner_bots_internal_provisioning_jobs_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-bots/internal/provisioning-jobs/{partner_bot_provisioning_job_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize Partner Bot Provisioning Job */
+        post: operations["finalize_partner_bot_provisioning_job_api_v1_partner_bots_internal_provisioning_jobs__partner_bot_provisioning_job_id__finalize_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4446,6 +4892,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/checkout/telegram-stars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Commit Telegram Stars Checkout
+         * @description Create a Telegram Stars invoice link for Mini App base-plan checkout.
+         */
+        post: operations["commit_telegram_stars_checkout_api_v1_payments_checkout_telegram_stars_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/checkout": {
         parameters: {
             query?: never;
@@ -4461,6 +4927,26 @@ export interface paths {
          * @description Backward-compatible alias for commit checkout.
          */
         post: operations["checkout_alias_api_v1_payments_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Payment Status
+         * @description Get the authenticated user's payment status.
+         */
+        get: operations["get_payment_status_api_v1_payments__payment_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4587,6 +5073,23 @@ export interface paths {
          * @description Create one or more invite codes (admin only).
          */
         post: operations["admin_create_invites_api_v1_admin_invite_codes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/codes/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Growth Code */
+        post: operations["resolve_growth_code_api_v1_codes_resolve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4734,9 +5237,26 @@ export interface paths {
         };
         /**
          * Get Recent Commissions
-         * @description Return the 10 most recent referral commissions for the authenticated user.
+         * @description Return recent referral activity with compatibility fields for legacy clients.
          */
         get: operations["get_recent_commissions_api_v1_referral_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/referral/rewards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Referral Rewards */
+        get: operations["get_referral_rewards_api_v1_referral_rewards_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5521,6 +6041,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/partner-workspaces/{workspace_id}/reseller-voucher-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Partner Workspace Reseller Voucher Batches */
+        get: operations["list_partner_workspace_reseller_voucher_batches_api_v1_partner_workspaces__workspace_id__reseller_voucher_batches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/reseller-voucher-batches/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Partner Workspace Reseller Voucher Batch */
+        post: operations["request_partner_workspace_reseller_voucher_batch_api_v1_partner_workspaces__workspace_id__reseller_voucher_batches_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/partner-workspaces/{workspace_id}/statements": {
         parameters: {
             query?: never;
@@ -6088,6 +6642,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/miniapp/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Miniapp Bootstrap */
+        get: operations["get_miniapp_bootstrap_api_v1_miniapp_bootstrap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/miniapp/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Miniapp Offers */
+        get: operations["get_miniapp_offers_api_v1_miniapp_offers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/miniapp/trial/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Miniapp Trial */
+        post: operations["activate_miniapp_trial_api_v1_miniapp_trial_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/miniapp/checkout/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quote Miniapp Checkout */
+        post: operations["quote_miniapp_checkout_api_v1_miniapp_checkout_quote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/miniapp/checkout/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commit Miniapp Checkout */
+        post: operations["commit_miniapp_checkout_api_v1_miniapp_checkout_commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/miniapp/payments/{payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Miniapp Payment Status */
+        get: operations["get_miniapp_payment_status_api_v1_miniapp_payments__payment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/miniapp/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Miniapp Config */
+        get: operations["get_miniapp_config_api_v1_miniapp_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/status": {
         parameters: {
             query?: never;
@@ -6208,6 +6881,199 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/monitoring/frontend-runtime-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Frontend Runtime Event
+         * @description Accept frontend UX telemetry from trusted partner/admin app routes.
+         */
+        post: operations["ingest_frontend_runtime_event_api_v1_monitoring_frontend_runtime_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/monitoring/frontend-web-vitals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Frontend Web Vital
+         * @description Accept frontend web-vitals telemetry from trusted partner/admin app routes.
+         */
+        post: operations["ingest_frontend_web_vital_api_v1_monitoring_frontend_web_vitals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Overview */
+        get: operations["get_public_network_overview_api_v1_public_network_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Regions */
+        get: operations["get_public_network_regions_api_v1_public_network_regions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/regions/{region_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Region */
+        get: operations["get_public_network_region_api_v1_public_network_regions__region_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Leaderboard */
+        get: operations["get_public_network_leaderboard_api_v1_public_network_leaderboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/uptime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Uptime */
+        get: operations["get_public_network_uptime_api_v1_public_network_uptime_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Incidents */
+        get: operations["get_public_network_incidents_api_v1_public_network_incidents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/widget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Widget */
+        get: operations["get_public_network_widget_api_v1_public_network_widget_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/dpi-score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Network Dpi Score */
+        get: operations["get_public_network_dpi_score_api_v1_public_network_dpi_score_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/network/internal/dpi-score/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Public Network Dpi Score */
+        post: operations["publish_public_network_dpi_score_api_v1_public_network_internal_dpi_score_publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/audit-log": {
         parameters: {
             query?: never;
@@ -6242,6 +7108,93 @@ export interface paths {
         get: operations["get_webhook_logs_api_v1_admin_webhook_log_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/miniapp-runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Miniapp Runtime Config */
+        get: operations["get_admin_miniapp_runtime_config_api_v1_admin_system_config_miniapp_runtime_get"];
+        /** Update Admin Miniapp Runtime Config */
+        put: operations["update_admin_miniapp_runtime_config_api_v1_admin_system_config_miniapp_runtime_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/miniapp-launch-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Miniapp Launch Readiness Config */
+        get: operations["get_admin_miniapp_launch_readiness_config_api_v1_admin_system_config_miniapp_launch_readiness_get"];
+        /** Update Admin Miniapp Launch Readiness Config */
+        put: operations["update_admin_miniapp_launch_readiness_config_api_v1_admin_system_config_miniapp_launch_readiness_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/miniapp-launch-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Miniapp Launch Summary */
+        get: operations["get_admin_miniapp_launch_summary_api_v1_admin_system_config_miniapp_launch_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/miniapp-launch-timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Miniapp Launch Timeline */
+        get: operations["get_admin_miniapp_launch_timeline_api_v1_admin_system_config_miniapp_launch_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system-config/miniapp-launch-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute Admin Miniapp Launch Action */
+        post: operations["execute_admin_miniapp_launch_action_api_v1_admin_system_config_miniapp_launch_actions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6319,6 +7272,330 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/growth-signals/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Signals Overview */
+        get: operations["get_growth_signals_overview_api_v1_admin_growth_signals_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-signals/abuse-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Abuse Signals */
+        get: operations["list_growth_abuse_signals_api_v1_admin_growth_signals_abuse_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Reporting Overview */
+        get: operations["get_growth_reporting_overview_api_v1_admin_growth_reporting_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/governance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Reporting Governance Overview */
+        get: operations["get_growth_reporting_governance_overview_api_v1_admin_growth_reporting_governance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Reporting Subscriptions */
+        get: operations["list_growth_reporting_subscriptions_api_v1_admin_growth_reporting_subscriptions_get"];
+        put?: never;
+        /** Create Growth Reporting Subscription */
+        post: operations["create_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/subscriptions/{subscription_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Growth Reporting Subscription */
+        put: operations["update_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions__subscription_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/subscriptions/{subscription_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Growth Reporting Subscription */
+        post: operations["pause_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions__subscription_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/subscriptions/{subscription_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume Growth Reporting Subscription */
+        post: operations["resume_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions__subscription_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/subscriptions/{subscription_id}/follow-up/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Growth Reporting Governance Followup */
+        post: operations["update_growth_reporting_governance_followup_api_v1_admin_growth_reporting_subscriptions__subscription_id__follow_up__action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Reporting Deliveries */
+        get: operations["list_growth_reporting_deliveries_api_v1_admin_growth_reporting_deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh Growth Reporting */
+        post: operations["refresh_growth_reporting_api_v1_admin_growth_reporting_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/internal/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Refresh Growth Reporting */
+        post: operations["internal_refresh_growth_reporting_api_v1_admin_growth_reporting_internal_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/internal/governance/followups/process": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Process Growth Reporting Governance Followups */
+        post: operations["internal_process_growth_reporting_governance_followups_api_v1_admin_growth_reporting_internal_governance_followups_process_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Growth Reporting Overview */
+        get: operations["export_growth_reporting_overview_api_v1_admin_growth_reporting_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/governance/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Growth Reporting Governance Snapshot */
+        get: operations["export_growth_reporting_governance_snapshot_api_v1_admin_growth_reporting_governance_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/deliveries/{delivery_id}/artifact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Growth Reporting Delivery Artifact */
+        get: operations["export_growth_reporting_delivery_artifact_api_v1_admin_growth_reporting_deliveries__delivery_id__artifact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/internal/deliveries/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Claim Growth Reporting Deliveries */
+        post: operations["internal_claim_growth_reporting_deliveries_api_v1_admin_growth_reporting_internal_deliveries_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/internal/deliveries/{delivery_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Complete Growth Reporting Delivery */
+        post: operations["internal_complete_growth_reporting_delivery_api_v1_admin_growth_reporting_internal_deliveries__delivery_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-reporting/internal/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Internal Cleanup Growth Reporting Artifacts */
+        post: operations["internal_cleanup_growth_reporting_artifacts_api_v1_admin_growth_reporting_internal_cleanup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/referrals/users/{user_id}": {
         parameters: {
             query?: never;
@@ -6364,6 +7641,210 @@ export interface paths {
         get: operations["get_partner_detail_api_v1_admin_partners__user_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-codes/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lookup Growth Code */
+        post: operations["lookup_growth_code_api_v1_admin_growth_codes_lookup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Growth Notification Deliveries */
+        get: operations["list_growth_notification_deliveries_api_v1_admin_growth_notification_deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Manual Growth Notification */
+        post: operations["create_manual_growth_notification_api_v1_admin_growth_notification_deliveries_manual_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/{delivery_id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Growth Notification Delivery */
+        post: operations["resend_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/{delivery_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Growth Notification Delivery */
+        post: operations["pause_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/{delivery_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Growth Notification Delivery */
+        post: operations["revoke_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/{delivery_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Growth Notification Delivery */
+        post: operations["resolve_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/{delivery_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Growth Notification Delivery Detail */
+        get: operations["get_growth_notification_delivery_detail_api_v1_admin_growth_notification_deliveries__delivery_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/growth-notification-deliveries/{delivery_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Growth Notification Delivery Detail */
+        get: operations["export_growth_notification_delivery_detail_api_v1_admin_growth_notification_deliveries__delivery_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gift-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Gift Codes */
+        get: operations["list_gift_codes_api_v1_admin_gift_codes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gift-codes/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Gift Code */
+        post: operations["issue_gift_code_api_v1_admin_gift_codes_issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gift-code-batches/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Gift Code Batch */
+        post: operations["issue_gift_code_batch_api_v1_admin_gift_code_batches_issue_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6996,6 +8477,106 @@ export interface paths {
          * @description Create a payment and optional invoice for a Telegram bot checkout basket.
          */
         post: operations["commit_bot_user_checkout_api_v1_telegram_bot_user__telegram_id__checkout_commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/payments/stars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Telegram Stars Invoice
+         * @description Create a pending Telegram Stars payment and return invoice parameters for the bot.
+         */
+        post: operations["create_telegram_stars_invoice_api_v1_telegram_payments_stars_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/payments/{payment_id}/pre-checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Telegram Stars Pre Checkout
+         * @description Validate pre_checkout_query before the bot answers Telegram.
+         */
+        post: operations["validate_telegram_stars_pre_checkout_api_v1_telegram_payments__payment_id__pre_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/payments/{payment_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Telegram Stars Payment
+         * @description Confirm a Telegram Stars payment after successful_payment is received.
+         */
+        post: operations["confirm_telegram_stars_payment_api_v1_telegram_payments__payment_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/payments/stars/reconcile-refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile Telegram Stars Refund
+         * @description Synchronize Telegram Stars refund state detected from provider transactions.
+         */
+        post: operations["reconcile_telegram_stars_refund_api_v1_telegram_payments_stars_reconcile_refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/payments/{payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Telegram Payment Status
+         * @description Return payment status for Telegram bot payment flows.
+         */
+        get: operations["get_telegram_payment_status_api_v1_telegram_payments__payment_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8752,6 +10333,23 @@ export interface components {
             /** Note */
             note: string;
         };
+        /** AdminCreateGrowthReportingSubscriptionRequest */
+        AdminCreateGrowthReportingSubscriptionRequest: {
+            /** Recipient Email */
+            recipient_email: string;
+            /** Recipient Name */
+            recipient_name?: string | null;
+            /** Audience Key */
+            audience_key: string;
+            /** Cadence */
+            cadence: string;
+            /**
+             * Report Window Days
+             * @default 30
+             */
+            report_window_days: number;
+            policy?: components["schemas"]["AdminGrowthReportingRecipientPolicyRequest"];
+        };
         /**
          * AdminCreateInviteRequest
          * @description Request body for admin-created invite codes.
@@ -9111,6 +10709,987 @@ export interface components {
             /** Telegram Id */
             telegram_id?: number | null;
         };
+        /** AdminGiftCodeListItemResponse */
+        AdminGiftCodeListItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Masked Code */
+            masked_code: string;
+            /** Raw Code */
+            raw_code?: string | null;
+            /** Batch Id */
+            batch_id?: string | null;
+            /** Status */
+            status: string;
+            /** Issuer Type */
+            issuer_type: string;
+            /** Source Type */
+            source_type?: string | null;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Issued By Admin Id */
+            issued_by_admin_id?: string | null;
+            /** Plan Family */
+            plan_family?: string | null;
+            /** Duration Days */
+            duration_days?: number | null;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Redeemed At */
+            redeemed_at?: string | null;
+            /** Redeemed By User Id */
+            redeemed_by_user_id?: string | null;
+            /** Source Order Id */
+            source_order_id?: string | null;
+            /** Source Payment Id */
+            source_payment_id?: string | null;
+        };
+        /** AdminGrowthAbuseSignalResponse */
+        AdminGrowthAbuseSignalResponse: {
+            /** Signal Key */
+            signal_key: string;
+            /** Signal Type */
+            signal_type: string;
+            /** Severity */
+            severity: string;
+            /** Code Type */
+            code_type?: string | null;
+            /** Reason Code */
+            reason_code: string;
+            /** Count */
+            count: number;
+            /** Unique Users */
+            unique_users: number;
+            /**
+             * Latest Event At
+             * Format: date-time
+             */
+            latest_event_at: string;
+            /** Review Hint */
+            review_hint: string;
+            /** Growth Code Id */
+            growth_code_id?: string | null;
+            /** Reward Allocation Id */
+            reward_allocation_id?: string | null;
+            /** Beneficiary User Id */
+            beneficiary_user_id?: string | null;
+            /** Source Redemption Id */
+            source_redemption_id?: string | null;
+        };
+        /** AdminGrowthAbuseSignalsResponse */
+        AdminGrowthAbuseSignalsResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthAbuseSignalResponse"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminGrowthCodeLookupRequest */
+        AdminGrowthCodeLookupRequest: {
+            /** Code */
+            code: string;
+            /** @default checkout */
+            action_context: components["schemas"]["GrowthCodeActionContext"];
+            /** Lookup User Id */
+            lookup_user_id?: string | null;
+            /** Storefront Key */
+            storefront_key?: string | null;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Amount */
+            amount?: number | null;
+            /**
+             * Channel
+             * @default web
+             */
+            channel: string;
+            /**
+             * Existing Partner Code Present
+             * @default false
+             */
+            existing_partner_code_present: boolean;
+            /**
+             * Existing Promo Present
+             * @default false
+             */
+            existing_promo_present: boolean;
+        };
+        /** AdminGrowthCodeLookupResponse */
+        AdminGrowthCodeLookupResponse: {
+            /** Accepted */
+            accepted: boolean;
+            code_type?: components["schemas"]["GrowthCodeType"] | null;
+            action_context: components["schemas"]["GrowthCodeActionContext"];
+            result: components["schemas"]["GrowthCodeResolutionStatus"];
+            reject_reason?: components["schemas"]["GrowthCodeRejectReason"] | null;
+            /** Conflict Code */
+            conflict_code?: string | null;
+            wrong_context_target?: components["schemas"]["GrowthCodeWrongContextTarget"] | null;
+            /** Issuer Type */
+            issuer_type?: string | null;
+            /** Owner Type */
+            owner_type?: string | null;
+            /** Resolved Code Id */
+            resolved_code_id?: string | null;
+            /** Growth Code Id */
+            growth_code_id?: string | null;
+            /** Promo Code Id */
+            promo_code_id?: string | null;
+            /** Partner Code Id */
+            partner_code_id?: string | null;
+            /** User Message Key */
+            user_message_key: string;
+            /** Lifecycle Summary */
+            lifecycle_summary?: {
+                [key: string]: number;
+            };
+            /** Issuances */
+            issuances?: {
+                [key: string]: string | number | null;
+            }[];
+            /** Touchpoints */
+            touchpoints?: {
+                [key: string]: string | number | null;
+            }[];
+            /** Signup Attributions */
+            signup_attributions?: {
+                [key: string]: string | number | null;
+            }[];
+            /** Redemptions */
+            redemptions?: {
+                [key: string]: string | number | null;
+            }[];
+            /** Rewards */
+            rewards?: {
+                [key: string]: string | number | null;
+            }[];
+            /** Resolution Events */
+            resolution_events?: {
+                [key: string]: string | number | null;
+            }[];
+        };
+        /** AdminGrowthLifecycleEventResponse */
+        AdminGrowthLifecycleEventResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Event Name */
+            event_name: string;
+            /** Event Family */
+            event_family: string;
+            /** Aggregate Type */
+            aggregate_type: string;
+            /** Aggregate Id */
+            aggregate_id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Event Status */
+            event_status: string;
+        };
+        /** AdminGrowthNotificationDeliveryActionRequest */
+        AdminGrowthNotificationDeliveryActionRequest: {
+            /** Reason Code */
+            reason_code?: string | null;
+        };
+        /** AdminGrowthNotificationDeliveryDetailResponse */
+        AdminGrowthNotificationDeliveryDetailResponse: {
+            delivery: components["schemas"]["AdminGrowthNotificationDeliveryResponse"];
+            /** Sibling Deliveries */
+            sibling_deliveries: components["schemas"]["AdminGrowthNotificationDeliveryResponse"][];
+            /** Event Timeline */
+            event_timeline: components["schemas"]["AdminGrowthNotificationDeliveryEventResponse"][];
+            queue_snapshot?: components["schemas"]["AdminGrowthNotificationQueueSnapshotResponse"] | null;
+            source_summary?: components["schemas"]["AdminGrowthNotificationSourceSummaryResponse"] | null;
+            /** Lifecycle Events */
+            lifecycle_events?: components["schemas"]["AdminGrowthLifecycleEventResponse"][];
+            /** Troubleshooting State */
+            troubleshooting_state: string;
+            /** Customer Message Key */
+            customer_message_key: string;
+            /** Support Summary */
+            support_summary: string;
+        };
+        /** AdminGrowthNotificationDeliveryEventResponse */
+        AdminGrowthNotificationDeliveryEventResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Event Type */
+            event_type: string;
+            /** Delivery Status */
+            delivery_status: string;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Event Payload */
+            event_payload?: {
+                [key: string]: unknown;
+            };
+            /** Event Note */
+            event_note?: string | null;
+            /** Notification Queue Id */
+            notification_queue_id?: string | null;
+            /** Created By Admin User Id */
+            created_by_admin_user_id?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminGrowthNotificationDeliveryResponse */
+        AdminGrowthNotificationDeliveryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mobile User Id
+             * Format: uuid
+             */
+            mobile_user_id: string;
+            user?: components["schemas"]["AdminGrowthUserSummary"] | null;
+            /** Notification Key */
+            notification_key: string;
+            /** Notification Kind */
+            notification_kind: string;
+            /** Delivery Channel */
+            delivery_channel: string;
+            /** Delivery Status */
+            delivery_status: string;
+            /** Status Reason */
+            status_reason?: string | null;
+            /** Title */
+            title: string;
+            /** Message */
+            message: string;
+            /** Route Slug */
+            route_slug?: string | null;
+            /** Notes */
+            notes?: string[];
+            /** Source Kind */
+            source_kind?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+            /** Notification Queue Id */
+            notification_queue_id?: string | null;
+            /** Queue Status */
+            queue_status?: string | null;
+            /** Queue Error Message */
+            queue_error_message?: string | null;
+            /** Created By Admin User Id */
+            created_by_admin_user_id?: string | null;
+            /**
+             * Planned At
+             * Format: date-time
+             */
+            planned_at: string;
+            /** Delivered At */
+            delivered_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Can Resend
+             * @default false
+             */
+            can_resend: boolean;
+            /**
+             * Can Pause
+             * @default false
+             */
+            can_pause: boolean;
+            /**
+             * Can Revoke
+             * @default false
+             */
+            can_revoke: boolean;
+            /**
+             * Can Resolve
+             * @default false
+             */
+            can_resolve: boolean;
+        };
+        /** AdminGrowthNotificationQueueSnapshotResponse */
+        AdminGrowthNotificationQueueSnapshotResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Attempts */
+            attempts: number;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Sent At */
+            sent_at?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+        };
+        /** AdminGrowthNotificationSourceSummaryResponse */
+        AdminGrowthNotificationSourceSummaryResponse: {
+            /** Source Kind */
+            source_kind: string;
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Label */
+            source_label?: string | null;
+            /** Source Status */
+            source_status?: string | null;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Beneficiary User Id */
+            beneficiary_user_id?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthReportingDailyPointResponse */
+        AdminGrowthReportingDailyPointResponse: {
+            /** Family */
+            family: string;
+            /** Issued Total */
+            issued_total: number;
+            /** Resolution Attempts Total */
+            resolution_attempts_total: number;
+            /** Resolution Accepted Total */
+            resolution_accepted_total: number;
+            /** Resolution Rejected Total */
+            resolution_rejected_total: number;
+            /** Redemption Total */
+            redemption_total: number;
+            /** Reservations Reserved Total */
+            reservations_reserved_total: number;
+            /** Reservations Consumed Total */
+            reservations_consumed_total: number;
+            /** Reservations Released Total */
+            reservations_released_total: number;
+            /** Reservations Expired Total */
+            reservations_expired_total: number;
+            /** Rewards Created Total */
+            rewards_created_total: number;
+            /** Rewards Available Total */
+            rewards_available_total: number;
+            /** Rewards Reversed Total */
+            rewards_reversed_total: number;
+            /** Reward Created Amount Usd */
+            reward_created_amount_usd: number;
+            /** Reward Available Amount Usd */
+            reward_available_amount_usd: number;
+            /** Reward Reversed Amount Usd */
+            reward_reversed_amount_usd: number;
+            /**
+             * Report Date
+             * Format: date
+             */
+            report_date: string;
+        };
+        /** AdminGrowthReportingDeliveriesResponse */
+        AdminGrowthReportingDeliveriesResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthReportingDeliveryResponse"][];
+            /** Total */
+            total: number;
+            /** Failed Count */
+            failed_count: number;
+        };
+        /** AdminGrowthReportingDeliveryArtifactExportResponse */
+        AdminGrowthReportingDeliveryArtifactExportResponse: {
+            /** Export Kind */
+            export_kind: string;
+            /** Filename */
+            filename: string;
+            /**
+             * Exported At
+             * Format: date-time
+             */
+            exported_at: string;
+            delivery: components["schemas"]["AdminGrowthReportingDeliveryResponse"];
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthReportingDeliveryResponse */
+        AdminGrowthReportingDeliveryResponse: {
+            /** Id */
+            id: string;
+            /** Subscription Id */
+            subscription_id: string;
+            /** Recipient Email */
+            recipient_email: string;
+            /** Recipient Name */
+            recipient_name?: string | null;
+            /** Audience Key */
+            audience_key: string;
+            /** Delivery Channel */
+            delivery_channel: string;
+            /** Cadence */
+            cadence: string;
+            /** Report Window Days */
+            report_window_days: number;
+            /** Template Key */
+            template_key: string;
+            /** Template Locale */
+            template_locale: string;
+            /** Subject Line */
+            subject_line: string;
+            /** Title Line */
+            title_line: string;
+            /** Delivery Status */
+            delivery_status: string;
+            /** Status Reason */
+            status_reason?: string | null;
+            /** Freshness Status */
+            freshness_status: string;
+            /** Artifact Checksum */
+            artifact_checksum?: string | null;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Provider Message Id */
+            provider_message_id?: string | null;
+            /** Failure Message */
+            failure_message?: string | null;
+            /**
+             * Window Start
+             * Format: date
+             */
+            window_start: string;
+            /**
+             * Window End
+             * Format: date
+             */
+            window_end: string;
+            /**
+             * Planned At
+             * Format: date-time
+             */
+            planned_at: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Delivered At */
+            delivered_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Can Export Artifact
+             * @default false
+             */
+            can_export_artifact: boolean;
+            policy: components["schemas"]["AdminGrowthReportingRecipientPolicyResponse"];
+        };
+        /** AdminGrowthReportingExecutiveSummaryResponse */
+        AdminGrowthReportingExecutiveSummaryResponse: {
+            /** Total Issued */
+            total_issued: number;
+            /** Total Redemptions */
+            total_redemptions: number;
+            /** Total Reward Available Usd */
+            total_reward_available_usd: number;
+            /** Total Reward Reversed Usd */
+            total_reward_reversed_usd: number;
+            /** Resolution Acceptance Rate Pct */
+            resolution_acceptance_rate_pct: number;
+            /** Dominant Family */
+            dominant_family?: string | null;
+            /** Highlights */
+            highlights?: string[];
+        };
+        /** AdminGrowthReportingFamilySummaryResponse */
+        AdminGrowthReportingFamilySummaryResponse: {
+            /** Family */
+            family: string;
+            /** Issued Total */
+            issued_total: number;
+            /** Resolution Attempts Total */
+            resolution_attempts_total: number;
+            /** Resolution Accepted Total */
+            resolution_accepted_total: number;
+            /** Resolution Rejected Total */
+            resolution_rejected_total: number;
+            /** Redemption Total */
+            redemption_total: number;
+            /** Reservations Reserved Total */
+            reservations_reserved_total: number;
+            /** Reservations Consumed Total */
+            reservations_consumed_total: number;
+            /** Reservations Released Total */
+            reservations_released_total: number;
+            /** Reservations Expired Total */
+            reservations_expired_total: number;
+            /** Rewards Created Total */
+            rewards_created_total: number;
+            /** Rewards Available Total */
+            rewards_available_total: number;
+            /** Rewards Reversed Total */
+            rewards_reversed_total: number;
+            /** Reward Created Amount Usd */
+            reward_created_amount_usd: number;
+            /** Reward Available Amount Usd */
+            reward_available_amount_usd: number;
+            /** Reward Reversed Amount Usd */
+            reward_reversed_amount_usd: number;
+        };
+        /** AdminGrowthReportingGovernanceAuditEventResponse */
+        AdminGrowthReportingGovernanceAuditEventResponse: {
+            /** Id */
+            id: string;
+            /** Action */
+            action: string;
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Actor Label */
+            actor_label: string;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Changed Fields */
+            changed_fields?: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** AdminGrowthReportingGovernanceCoverageCountResponse */
+        AdminGrowthReportingGovernanceCoverageCountResponse: {
+            /** Coverage State */
+            coverage_state: string;
+            /** Count */
+            count: number;
+        };
+        /** AdminGrowthReportingGovernanceDecisionResponse */
+        AdminGrowthReportingGovernanceDecisionResponse: {
+            /** Delivery Id */
+            delivery_id: string;
+            /** Subscription Id */
+            subscription_id: string;
+            /** Recipient Email */
+            recipient_email: string;
+            /** Audience Key */
+            audience_key: string;
+            /** Template Key */
+            template_key: string;
+            /** Decision Kind */
+            decision_kind: string;
+            /** Status Reason */
+            status_reason: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Planned At
+             * Format: date-time
+             */
+            planned_at: string;
+            /**
+             * Window Start
+             * Format: date
+             */
+            window_start: string;
+            /**
+             * Window End
+             * Format: date
+             */
+            window_end: string;
+            /**
+             * Can Export Artifact
+             * @default false
+             */
+            can_export_artifact: boolean;
+            /** Summary */
+            summary: string;
+        };
+        /** AdminGrowthReportingGovernanceExportResponse */
+        AdminGrowthReportingGovernanceExportResponse: {
+            /** Export Kind */
+            export_kind: string;
+            /** Filename */
+            filename: string;
+            /**
+             * Exported At
+             * Format: date-time
+             */
+            exported_at: string;
+            overview: components["schemas"]["AdminGrowthReportingGovernanceOverviewResponse"];
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminGrowthReportingGovernanceFollowupQueueItemResponse */
+        AdminGrowthReportingGovernanceFollowupQueueItemResponse: {
+            /** Subscription Id */
+            subscription_id: string;
+            /** Recipient Email */
+            recipient_email: string;
+            /** Audience Key */
+            audience_key: string;
+            /** Health Status */
+            health_status: string;
+            followup: components["schemas"]["AdminGrowthReportingGovernanceFollowupResponse"];
+            /**
+             * Next Delivery At
+             * Format: date-time
+             */
+            next_delivery_at: string;
+            /** Latest Delivery Status */
+            latest_delivery_status?: string | null;
+            /** Latest Delivery Reason */
+            latest_delivery_reason?: string | null;
+        };
+        /** AdminGrowthReportingGovernanceFollowupResponse */
+        AdminGrowthReportingGovernanceFollowupResponse: {
+            /** Status */
+            status: string;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Opened At */
+            opened_at?: string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Last Notified At */
+            last_notified_at?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Resolution Code */
+            resolution_code?: string | null;
+            /**
+             * Is Overdue
+             * @default false
+             */
+            is_overdue: boolean;
+            /**
+             * Action Required
+             * @default false
+             */
+            action_required: boolean;
+        };
+        /** AdminGrowthReportingGovernanceOverviewResponse */
+        AdminGrowthReportingGovernanceOverviewResponse: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Active Subscription Count */
+            active_subscription_count: number;
+            /** Paused Subscription Count */
+            paused_subscription_count: number;
+            /** Coverage Gap Count */
+            coverage_gap_count: number;
+            /** Followup Open Count */
+            followup_open_count: number;
+            /** Followup Overdue Count */
+            followup_overdue_count: number;
+            /** Coverage Counts */
+            coverage_counts?: components["schemas"]["AdminGrowthReportingGovernanceCoverageCountResponse"][];
+            /** Followup Queue */
+            followup_queue?: components["schemas"]["AdminGrowthReportingGovernanceFollowupQueueItemResponse"][];
+            /** Recent Decisions */
+            recent_decisions?: components["schemas"]["AdminGrowthReportingGovernanceDecisionResponse"][];
+            /** Recent Audit Events */
+            recent_audit_events?: components["schemas"]["AdminGrowthReportingGovernanceAuditEventResponse"][];
+            /** Notes */
+            notes?: string[];
+        };
+        /** AdminGrowthReportingHealthResponse */
+        AdminGrowthReportingHealthResponse: {
+            /** Freshness Status */
+            freshness_status: string;
+            /** Stale Reason */
+            stale_reason?: string | null;
+            /** Refresh Age Seconds */
+            refresh_age_seconds?: number | null;
+            /** Expected Refresh Interval Seconds */
+            expected_refresh_interval_seconds: number;
+            /** Stale After Seconds */
+            stale_after_seconds: number;
+            /** Auto Refresh Enabled */
+            auto_refresh_enabled: boolean;
+            /** Latest Attempt At */
+            latest_attempt_at?: string | null;
+            /** Latest Success At */
+            latest_success_at?: string | null;
+            /** Latest Failure At */
+            latest_failure_at?: string | null;
+            /** Latest Failure Message */
+            latest_failure_message?: string | null;
+            latest_run?: components["schemas"]["AdminGrowthReportingRefreshRunResponse"] | null;
+        };
+        /** AdminGrowthReportingOverviewResponse */
+        AdminGrowthReportingOverviewResponse: {
+            /**
+             * Window Start
+             * Format: date
+             */
+            window_start: string;
+            /**
+             * Window End
+             * Format: date
+             */
+            window_end: string;
+            /** Latest Rollup Date */
+            latest_rollup_date?: string | null;
+            /** Refreshed At */
+            refreshed_at?: string | null;
+            /** Family Summaries */
+            family_summaries: components["schemas"]["AdminGrowthReportingFamilySummaryResponse"][];
+            /** Daily Points */
+            daily_points: components["schemas"]["AdminGrowthReportingDailyPointResponse"][];
+            totals: components["schemas"]["AdminGrowthReportingFamilySummaryResponse"];
+            health: components["schemas"]["AdminGrowthReportingHealthResponse"];
+            executive_summary: components["schemas"]["AdminGrowthReportingExecutiveSummaryResponse"];
+            /** Coverage Notes */
+            coverage_notes?: string[];
+        };
+        /** AdminGrowthReportingRecipientPolicyRequest */
+        AdminGrowthReportingRecipientPolicyRequest: {
+            /** Template Key */
+            template_key?: string | null;
+            /**
+             * Template Locale
+             * @default en-EN
+             */
+            template_locale: string;
+            /** Email Subject Prefix */
+            email_subject_prefix?: string | null;
+            /** Title Override */
+            title_override?: string | null;
+            /**
+             * Recipient Domain Policy
+             * @default allow_any
+             */
+            recipient_domain_policy: string;
+            /** Allowed Recipient Domains */
+            allowed_recipient_domains?: string[];
+            /** Suppressed Until */
+            suppressed_until?: string | null;
+            /** Suppression Reason Code */
+            suppression_reason_code?: string | null;
+        };
+        /** AdminGrowthReportingRecipientPolicyResponse */
+        AdminGrowthReportingRecipientPolicyResponse: {
+            /** Template Key */
+            template_key: string;
+            /** Template Locale */
+            template_locale: string;
+            /** Email Subject Prefix */
+            email_subject_prefix?: string | null;
+            /** Title Override */
+            title_override?: string | null;
+            /** Recipient Domain Policy */
+            recipient_domain_policy: string;
+            /** Allowed Recipient Domains */
+            allowed_recipient_domains?: string[];
+            /** Suppressed Until */
+            suppressed_until?: string | null;
+            /** Suppression Reason Code */
+            suppression_reason_code?: string | null;
+        };
+        /** AdminGrowthReportingRefreshResponse */
+        AdminGrowthReportingRefreshResponse: {
+            /** Trigger Kind */
+            trigger_kind: string;
+            /**
+             * Window Start
+             * Format: date
+             */
+            window_start: string;
+            /**
+             * Window End
+             * Format: date
+             */
+            window_end: string;
+            /** Latest Rollup Date */
+            latest_rollup_date?: string | null;
+            /**
+             * Refreshed At
+             * Format: date-time
+             */
+            refreshed_at: string;
+            /** Rows Written */
+            rows_written: number;
+            /** Families Updated */
+            families_updated?: string[];
+            /** Coverage Notes */
+            coverage_notes?: string[];
+        };
+        /** AdminGrowthReportingRefreshRunResponse */
+        AdminGrowthReportingRefreshRunResponse: {
+            /** Id */
+            id: string;
+            /** Trigger Kind */
+            trigger_kind: string;
+            /** Refresh Status */
+            refresh_status: string;
+            /** Requested Window Days */
+            requested_window_days: number;
+            /**
+             * Window Start
+             * Format: date
+             */
+            window_start: string;
+            /**
+             * Window End
+             * Format: date
+             */
+            window_end: string;
+            /** Latest Rollup Date */
+            latest_rollup_date?: string | null;
+            /** Rows Written */
+            rows_written: number;
+            /** Families Updated */
+            families_updated?: string[];
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
+            /** Refreshed At */
+            refreshed_at?: string | null;
+        };
+        /** AdminGrowthReportingSubscriptionResponse */
+        AdminGrowthReportingSubscriptionResponse: {
+            /** Id */
+            id: string;
+            /** Recipient Email */
+            recipient_email: string;
+            /** Recipient Name */
+            recipient_name?: string | null;
+            /** Audience Key */
+            audience_key: string;
+            /** Delivery Channel */
+            delivery_channel: string;
+            /** Cadence */
+            cadence: string;
+            /** Report Window Days */
+            report_window_days: number;
+            /** Subscription Status */
+            subscription_status: string;
+            /**
+             * Next Delivery At
+             * Format: date-time
+             */
+            next_delivery_at: string;
+            /** Last Delivery Attempt At */
+            last_delivery_attempt_at?: string | null;
+            /** Last Success At */
+            last_success_at?: string | null;
+            /** Latest Delivery Status */
+            latest_delivery_status?: string | null;
+            /** Latest Delivery Reason */
+            latest_delivery_reason?: string | null;
+            /** Health Status */
+            health_status: string;
+            policy: components["schemas"]["AdminGrowthReportingRecipientPolicyResponse"];
+            followup: components["schemas"]["AdminGrowthReportingGovernanceFollowupResponse"];
+        };
+        /** AdminGrowthReportingSubscriptionsResponse */
+        AdminGrowthReportingSubscriptionsResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthReportingSubscriptionResponse"][];
+            /** Total */
+            total: number;
+            /** Overdue Count */
+            overdue_count: number;
+            /** Active Count */
+            active_count: number;
+            /** Retention Rollup Days */
+            retention_rollup_days: number;
+            /** Retention Refresh Run Days */
+            retention_refresh_run_days: number;
+            /** Retention Delivery Days */
+            retention_delivery_days: number;
+        };
+        /** AdminGrowthSignalCountResponse */
+        AdminGrowthSignalCountResponse: {
+            /** Key */
+            key: string;
+            /** Count */
+            count: number;
+        };
+        /** AdminGrowthSignalsOverviewResponse */
+        AdminGrowthSignalsOverviewResponse: {
+            /** Total Codes */
+            total_codes: number;
+            /** Active Codes */
+            active_codes: number;
+            /** Total Redemptions */
+            total_redemptions: number;
+            /** Active Reservations */
+            active_reservations: number;
+            /** Blocked Reward Count */
+            blocked_reward_count: number;
+            /** Available Referral Credit Usd */
+            available_referral_credit_usd: number;
+            /** Code Status Breakdown */
+            code_status_breakdown: components["schemas"]["AdminGrowthSignalCountResponse"][];
+            /** Resolution Result Breakdown */
+            resolution_result_breakdown: components["schemas"]["AdminGrowthSignalCountResponse"][];
+            /** Rejection Reason Breakdown */
+            rejection_reason_breakdown: components["schemas"]["AdminGrowthSignalCountResponse"][];
+            /** Redemption Breakdown */
+            redemption_breakdown: components["schemas"]["AdminGrowthSignalCountResponse"][];
+            /** Reward Status Breakdown */
+            reward_status_breakdown: components["schemas"]["AdminGrowthSignalCountResponse"][];
+            /** Reward Type Breakdown */
+            reward_type_breakdown: components["schemas"]["AdminGrowthSignalCountResponse"][];
+            /** Recent Lifecycle Events */
+            recent_lifecycle_events: components["schemas"]["AdminGrowthLifecycleEventResponse"][];
+        };
         /** AdminGrowthUserSummary */
         AdminGrowthUserSummary: {
             /**
@@ -9128,6 +11707,253 @@ export interface components {
             referral_code: string | null;
             /** Is Partner */
             is_partner: boolean;
+        };
+        /** AdminIssueGiftCodeBatchRequest */
+        AdminIssueGiftCodeBatchRequest: {
+            /**
+             * Owner User Id
+             * Format: uuid
+             */
+            owner_user_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /**
+             * Count
+             * @default 1
+             */
+            count: number;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Admin Note */
+            admin_note?: string | null;
+        };
+        /** AdminIssueGiftCodeBatchResponse */
+        AdminIssueGiftCodeBatchResponse: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id: string;
+            /** Issued Count */
+            issued_count: number;
+            /** Gift Codes */
+            gift_codes: components["schemas"]["AdminGiftCodeListItemResponse"][];
+        };
+        /** AdminIssueGiftCodeRequest */
+        AdminIssueGiftCodeRequest: {
+            /**
+             * Owner User Id
+             * Format: uuid
+             */
+            owner_user_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Admin Note */
+            admin_note?: string | null;
+        };
+        /** AdminIssueGiftCodeResponse */
+        AdminIssueGiftCodeResponse: {
+            gift_code: components["schemas"]["AdminGiftCodeListItemResponse"];
+        };
+        /** AdminListGiftCodesResponse */
+        AdminListGiftCodesResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGiftCodeListItemResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** AdminListGrowthNotificationDeliveriesResponse */
+        AdminListGrowthNotificationDeliveriesResponse: {
+            /** Items */
+            items: components["schemas"]["AdminGrowthNotificationDeliveryResponse"][];
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+        };
+        /** AdminManualGrowthNotificationRequest */
+        AdminManualGrowthNotificationRequest: {
+            /**
+             * Mobile User Id
+             * Format: uuid
+             */
+            mobile_user_id: string;
+            /** Title */
+            title: string;
+            /** Message */
+            message: string;
+            /**
+             * Route Slug
+             * @default /referral
+             */
+            route_slug: string;
+            /**
+             * Locale
+             * @default en-EN
+             */
+            locale: string;
+            /** Notes */
+            notes?: string[];
+            /** Channels */
+            channels?: string[];
+        };
+        /** AdminManualGrowthNotificationResponse */
+        AdminManualGrowthNotificationResponse: {
+            /** Deliveries */
+            deliveries: components["schemas"]["AdminGrowthNotificationDeliveryResponse"][];
+        };
+        /** AdminMiniAppLaunchReadinessConfigResponse */
+        AdminMiniAppLaunchReadinessConfigResponse: {
+            /** Key */
+            key: string;
+            readiness: components["schemas"]["AdminMiniAppLaunchReadinessResponse"];
+            /** Description */
+            description?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
+        };
+        /** AdminMiniAppLaunchReadinessResponse */
+        AdminMiniAppLaunchReadinessResponse: {
+            /** Observability Acknowledged */
+            observability_acknowledged: boolean;
+            /** Incident Runbook Acknowledged */
+            incident_runbook_acknowledged: boolean;
+            /** Checkout Canary Passed */
+            checkout_canary_passed: boolean;
+            /** Config Delivery Canary Passed */
+            config_delivery_canary_passed: boolean;
+            /** Rollback Drill Acknowledged */
+            rollback_drill_acknowledged: boolean;
+            /** Support Window Confirmed */
+            support_window_confirmed: boolean;
+            /** Customer Comms Ready */
+            customer_comms_ready: boolean;
+            /** Status Page Template Ready */
+            status_page_template_ready: boolean;
+            /** Incident Channel */
+            incident_channel?: string | null;
+            /** Rollback Commander */
+            rollback_commander?: string | null;
+            /** Primary Oncall Contact */
+            primary_oncall_contact?: string | null;
+            /** Release Window Note */
+            release_window_note?: string | null;
+            /** Is Ready */
+            is_ready: boolean;
+        };
+        /** AdminMiniAppLaunchSummaryResponse */
+        AdminMiniAppLaunchSummaryResponse: {
+            /**
+             * Launch State
+             * @enum {string}
+             */
+            launch_state: "live" | "ready_for_live" | "canary_in_progress" | "rollback_in_progress" | "maintenance" | "blocked";
+            /** Live Switch Allowed */
+            live_switch_allowed: boolean;
+            /**
+             * Next Action
+             * @enum {string}
+             */
+            next_action: "promote_to_live" | "complete_launch_gates" | "keep_canary" | "finish_rollback" | "hold_maintenance" | "stabilize_runtime";
+            /** Primary Action */
+            primary_action?: ("promote_to_live" | "enter_maintenance" | "start_rollback" | "return_to_canary") | null;
+            /** Available Actions */
+            available_actions?: ("promote_to_live" | "enter_maintenance" | "start_rollback" | "return_to_canary")[];
+            /** Blockers */
+            blockers?: string[];
+            runtime: components["schemas"]["AdminMiniAppRuntimeRolloutResponse"];
+            readiness: components["schemas"]["AdminMiniAppLaunchReadinessResponse"];
+        };
+        /** AdminMiniAppLaunchTimelineEntryResponse */
+        AdminMiniAppLaunchTimelineEntryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Admin Id */
+            admin_id?: string | null;
+            /** Action */
+            action: string;
+            /**
+             * Event Type
+             * @enum {string}
+             */
+            event_type: "runtime_update" | "launch_readiness_update" | "launch_action";
+            /** Action Name */
+            action_name?: ("promote_to_live" | "enter_maintenance" | "start_rollback" | "return_to_canary") | null;
+            /** Resulting Runtime Mode */
+            resulting_runtime_mode?: ("live" | "canary" | "maintenance" | "rollback") | null;
+            /** Resulting Launch State */
+            resulting_launch_state?: ("live" | "ready_for_live" | "canary_in_progress" | "rollback_in_progress" | "maintenance" | "blocked") | null;
+            /** Readiness Ready */
+            readiness_ready?: boolean | null;
+            /** Change Reason */
+            change_reason?: string | null;
+            /** Entity Id */
+            entity_id?: string | null;
+        };
+        /** AdminMiniAppRuntimeConfigResponse */
+        AdminMiniAppRuntimeConfigResponse: {
+            /** Key */
+            key: string;
+            rollout: components["schemas"]["AdminMiniAppRuntimeRolloutResponse"];
+            /** Description */
+            description?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
+        };
+        /** AdminMiniAppRuntimeRolloutResponse */
+        AdminMiniAppRuntimeRolloutResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Mode
+             * @default live
+             * @enum {string}
+             */
+            mode: "live" | "canary" | "maintenance" | "rollback";
+            /** Trial Enabled */
+            trial_enabled: boolean;
+            /** Checkout Enabled */
+            checkout_enabled: boolean;
+            /** Config Enabled */
+            config_enabled: boolean;
+            /** Maintenance Message */
+            maintenance_message?: string | null;
+            /** Canary Telegram User Ids */
+            canary_telegram_user_ids?: number[];
         };
         /** AdminMobileDeviceResponse */
         AdminMobileDeviceResponse: {
@@ -9439,16 +12265,10 @@ export interface components {
              * Format: uuid
              */
             referrer_user_id: string;
-            /**
-             * Referred User Id
-             * Format: uuid
-             */
-            referred_user_id: string;
-            /**
-             * Payment Id
-             * Format: uuid
-             */
-            payment_id: string;
+            /** Referred User Id */
+            referred_user_id?: string | null;
+            /** Payment Id */
+            payment_id?: string | null;
             /** Commission Rate */
             commission_rate: number;
             /** Base Amount */
@@ -9457,6 +12277,19 @@ export interface components {
             commission_amount: number;
             /** Currency */
             currency: string;
+            /** Reward Status */
+            reward_status?: string | null;
+            /** Hold Until */
+            hold_until?: string | null;
+            /** Available At */
+            available_at?: string | null;
+            /** Reversed At */
+            reversed_at?: string | null;
+            /**
+             * Source Model
+             * @default legacy_commission
+             */
+            source_model: string;
             /**
              * Created At
              * Format: date-time
@@ -9528,6 +12361,35 @@ export interface components {
             amount: number;
             /** Description */
             description?: string | null;
+        };
+        /** AdminUpdateGrowthReportingGovernanceFollowupRequest */
+        AdminUpdateGrowthReportingGovernanceFollowupRequest: {
+            /** Reason Code */
+            reason_code?: string | null;
+        };
+        /** AdminUpdateGrowthReportingSubscriptionRequest */
+        AdminUpdateGrowthReportingSubscriptionRequest: {
+            /** Recipient Email */
+            recipient_email: string;
+            /** Recipient Name */
+            recipient_name?: string | null;
+            /** Audience Key */
+            audience_key: string;
+            /** Cadence */
+            cadence: string;
+            /**
+             * Report Window Days
+             * @default 30
+             */
+            report_window_days: number;
+            policy?: components["schemas"]["AdminGrowthReportingRecipientPolicyRequest"];
+            /** Reason Code */
+            reason_code?: string | null;
+        };
+        /** AdminUpdateGrowthReportingSubscriptionStatusRequest */
+        AdminUpdateGrowthReportingSubscriptionStatusRequest: {
+            /** Reason Code */
+            reason_code?: string | null;
         };
         /** AdminUpdateMobileUserRequest */
         AdminUpdateMobileUserRequest: {
@@ -9748,15 +12610,31 @@ export interface components {
          */
         AuthResponse: {
             /** @description Authentication tokens */
-            tokens: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__TokenResponse"];
+            tokens?: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__TokenResponse"] | null;
             /** @description User profile data */
-            user: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__UserResponse"];
+            user?: components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__UserResponse"] | null;
             /**
              * Is New User
              * @description True if this is a new registration
              * @default false
              */
             is_new_user: boolean;
+            /**
+             * Requires 2Fa
+             * @description Whether the login is paused behind a pending 2FA challenge
+             * @default false
+             */
+            requires_2fa: boolean;
+            /**
+             * Tfa Token
+             * @description Short-lived pending 2FA token returned when requires_2fa is true
+             */
+            tfa_token?: string | null;
+            /**
+             * Method
+             * @description 2FA method identifier, currently `totp`
+             */
+            method?: string | null;
         };
         /**
          * BandwidthResponse
@@ -9900,6 +12778,34 @@ export interface components {
             /** Location Code */
             location_code?: string | null;
         };
+        /** CheckoutCodeResolutionResponse */
+        CheckoutCodeResolutionResponse: {
+            /** Accepted */
+            accepted: boolean;
+            code_type?: components["schemas"]["GrowthCodeType"] | null;
+            action_context: components["schemas"]["GrowthCodeActionContext"];
+            result: components["schemas"]["GrowthCodeResolutionStatus"];
+            reject_reason?: components["schemas"]["GrowthCodeRejectReason"] | null;
+            /** Conflict Code */
+            conflict_code?: string | null;
+            wrong_context_target?: components["schemas"]["GrowthCodeWrongContextTarget"] | null;
+            /** Issuer Type */
+            issuer_type?: string | null;
+            /** Owner Type */
+            owner_type?: string | null;
+            /** Resolved Code Id */
+            resolved_code_id?: string | null;
+            /** Growth Code Id */
+            growth_code_id?: string | null;
+            /** Promo Code Id */
+            promo_code_id?: string | null;
+            /** Partner Code Id */
+            partner_code_id?: string | null;
+            /** User Message Key */
+            user_message_key: string;
+            /** Reservation Id */
+            reservation_id?: string | null;
+        };
         /**
          * CheckoutCommitResponse
          * @description Commit response with persisted payment or invoice reference.
@@ -9927,6 +12833,11 @@ export interface components {
             promo_code_id?: string | null;
             /** Partner Code Id */
             partner_code_id?: string | null;
+            /** Code Input */
+            code_input?: string | null;
+            code_resolution?: components["schemas"]["CheckoutCodeResolutionResponse"] | null;
+            /** Discounts */
+            discounts?: components["schemas"]["CheckoutDiscountResponse"][];
             /** Addons */
             addons?: components["schemas"]["CheckoutAddonResponse"][];
             entitlements_snapshot: components["schemas"]["EntitlementsSnapshotResponse"];
@@ -9942,6 +12853,17 @@ export interface components {
             status: string;
             invoice?: components["schemas"]["InvoiceResponse"] | null;
         };
+        /** CheckoutDiscountResponse */
+        CheckoutDiscountResponse: {
+            /** Type */
+            type: string;
+            /** Code */
+            code: string;
+            /** Amount */
+            amount: number;
+            /** Policy Version Id */
+            policy_version_id?: string | null;
+        };
         /**
          * CheckoutQuoteRequest
          * @description Quote request for a plan + add-ons basket.
@@ -9955,6 +12877,11 @@ export interface components {
             plan_id: string;
             /** Addons */
             addons?: components["schemas"]["CheckoutAddonRequest"][];
+            /**
+             * Code Input
+             * @description Optional promo or referral code
+             */
+            code_input?: string | null;
             /**
              * Promo Code
              * @description Optional promo code
@@ -10011,6 +12938,11 @@ export interface components {
             promo_code_id?: string | null;
             /** Partner Code Id */
             partner_code_id?: string | null;
+            /** Code Input */
+            code_input?: string | null;
+            code_resolution?: components["schemas"]["CheckoutCodeResolutionResponse"] | null;
+            /** Discounts */
+            discounts?: components["schemas"]["CheckoutDiscountResponse"][];
             /** Addons */
             addons?: components["schemas"]["CheckoutAddonResponse"][];
             entitlements_snapshot: components["schemas"]["EntitlementsSnapshotResponse"];
@@ -10114,6 +13046,20 @@ export interface components {
         ClaimOutboxPublicationsResponse: {
             /** Claimed Publications */
             claimed_publications: components["schemas"]["OutboxPublicationResponse"][];
+        };
+        /** ClaimPartnerBotProvisioningJobRequest */
+        ClaimPartnerBotProvisioningJobRequest: {
+            /** Processor Id */
+            processor_id: string;
+            /**
+             * Max Scan Count
+             * @default 10
+             */
+            max_scan_count: number;
+        };
+        /** ClaimPartnerBotProvisioningJobResponse */
+        ClaimPartnerBotProvisioningJobResponse: {
+            bot?: components["schemas"]["PartnerBotResponse"] | null;
         };
         /** CloneNodePluginRequest */
         CloneNodePluginRequest: {
@@ -10901,6 +13847,38 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** CreatePartnerBotRequest */
+        CreatePartnerBotRequest: {
+            /**
+             * Partner Account Id
+             * Format: uuid
+             */
+            partner_account_id: string;
+            /** Bot Key */
+            bot_key: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Default Locale
+             * @default en-EN
+             */
+            default_locale: string;
+            /** Primary Color */
+            primary_color?: string | null;
+            /** Short Description */
+            short_description?: string | null;
+            /** Long Description */
+            long_description?: string | null;
+            /** Storefront Id */
+            storefront_id?: string | null;
+            /**
+             * Release Channel
+             * @default stable
+             */
+            release_channel: string;
+            /** @default managed_bot */
+            provisioning_path: components["schemas"]["PartnerBotProvisioningPath"];
+        };
         /** CreatePartnerCodeRequest */
         CreatePartnerCodeRequest: {
             /**
@@ -11415,6 +14393,8 @@ export interface components {
             plan_id: string;
             /** Addons */
             addons?: components["schemas"]["CheckoutAddonRequest"][];
+            /** Code Input */
+            code_input?: string | null;
             /** Promo Code */
             promo_code?: string | null;
             /** Partner Code */
@@ -12259,51 +15239,12 @@ export interface components {
              * Devices
              * @description List of active sessions
              */
-            devices: components["schemas"]["DeviceSessionResponse"][];
+            devices: components["schemas"]["src__presentation__api__v1__auth__schemas__DeviceSessionResponse"][];
             /**
              * Total
              * @description Total number of active sessions
              */
             total: number;
-        };
-        /**
-         * DeviceSessionResponse
-         * @description Response schema for active device session (BF2-4).
-         */
-        DeviceSessionResponse: {
-            /**
-             * Device Id
-             * @description Unique device identifier
-             */
-            device_id?: string | null;
-            /**
-             * Ip Address
-             * @description Last known IP address
-             */
-            ip_address?: string | null;
-            /**
-             * User Agent
-             * @description Browser/device user agent string
-             */
-            user_agent?: string | null;
-            /**
-             * Last Used At
-             * Format: date-time
-             * @description Last time this session was used
-             */
-            last_used_at: string;
-            /**
-             * Created At
-             * Format: date-time
-             * @description When this session was created
-             */
-            created_at: string;
-            /**
-             * Is Current
-             * @description Whether this is the current session
-             * @default false
-             */
-            is_current: boolean;
         };
         /**
          * DisputeCaseKind
@@ -12669,6 +15610,16 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** ExecuteAdminMiniAppLaunchActionRequest */
+        ExecuteAdminMiniAppLaunchActionRequest: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "promote_to_live" | "enter_maintenance" | "start_rollback" | "return_to_canary";
+            /** Change Reason */
+            change_reason?: string | null;
+        };
         /**
          * FCMTokenDeleteRequest
          * @description Request body for unregistering an FCM push-notification token.
@@ -12765,6 +15716,25 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** FinalizePartnerBotProvisioningJobRequest */
+        FinalizePartnerBotProvisioningJobRequest: {
+            /** Processor Id */
+            processor_id: string;
+            job_status: components["schemas"]["PartnerBotProvisioningJobStatus"];
+            /** Result Payload */
+            result_payload?: {
+                [key: string]: unknown;
+            };
+            /** Last Error */
+            last_error?: string | null;
+            /** Telegram Bot Id */
+            telegram_bot_id?: string | null;
+            /** Telegram Username */
+            telegram_username?: string | null;
+            /** Managed By Bot Id */
+            managed_by_bot_id?: string | null;
+            token_status?: components["schemas"]["PartnerBotTokenStatus"] | null;
+        };
         /**
          * ForgotPasswordRequest
          * @description Request for password reset OTP.
@@ -12791,6 +15761,218 @@ export interface components {
              * @default If this email is registered, a password reset code has been sent.
              */
             message: string;
+        };
+        /**
+         * FrontendRuntimeEventAck
+         * @description Ack for accepted frontend runtime telemetry.
+         */
+        FrontendRuntimeEventAck: {
+            /**
+             * Status
+             * @description Ingest status
+             * @constant
+             */
+            status: "accepted";
+        };
+        /**
+         * FrontendRuntimeEventRequest
+         * @description Frontend runtime telemetry event forwarded from partner/admin apps.
+         */
+        FrontendRuntimeEventRequest: {
+            /**
+             * Event
+             * @description Frontend runtime event type
+             * @enum {string}
+             */
+            event: "route_load" | "api_call" | "route_guard_block" | "form_validation_error" | "submit_attempt" | "submit_failure" | "unhandled_error" | "render_error";
+            /**
+             * Surface
+             * @description Frontend surface that emitted the event
+             * @enum {string}
+             */
+            surface: "partner_portal" | "admin_portal";
+            /**
+             * Connectiontype
+             * @description Browser connection type bucket
+             */
+            connectionType: string;
+            /**
+             * Devicebucket
+             * @description Device bucket
+             */
+            deviceBucket: string;
+            /**
+             * Locale
+             * @description Resolved locale
+             */
+            locale?: string | null;
+            /**
+             * Path
+             * @description Current route pathname
+             */
+            path: string;
+            /**
+             * Reducedmotion
+             * @description Reduced motion preference bucket
+             */
+            reducedMotion: string;
+            /**
+             * Routegroup
+             * @description Frontend route group
+             * @enum {string}
+             */
+            routeGroup: "auth" | "dashboard" | "marketing" | "miniapp";
+            /**
+             * Savedata
+             * @description Save-Data preference bucket
+             */
+            saveData: string;
+            /**
+             * Viewportbucket
+             * @description Viewport bucket
+             */
+            viewportBucket: string;
+            /**
+             * Blockedreason
+             * @description Route guard blocked reason
+             */
+            blockedReason?: string | null;
+            /**
+             * Durationms
+             * @description Observed duration in milliseconds
+             */
+            durationMs?: number | null;
+            /**
+             * Endpointtemplate
+             * @description Normalized API endpoint template
+             */
+            endpointTemplate?: string | null;
+            /**
+             * Errorcode
+             * @description Frontend error code bucket
+             */
+            errorCode?: string | null;
+            /**
+             * Formname
+             * @description Form name bucket
+             */
+            formName?: string | null;
+            /**
+             * Lane
+             * @description Partner lane bucket
+             */
+            lane?: string | null;
+            /**
+             * Method
+             * @description HTTP method bucket
+             */
+            method?: string | null;
+            /**
+             * Releasering
+             * @description Release ring bucket
+             */
+            releaseRing?: string | null;
+            /**
+             * Requestid
+             * @description Browser request correlation id
+             */
+            requestId?: string | null;
+            /**
+             * Result
+             * @description Frontend result bucket
+             */
+            result?: string | null;
+            /**
+             * Workspacestatus
+             * @description Workspace status bucket
+             */
+            workspaceStatus?: string | null;
+        };
+        /**
+         * FrontendWebVitalEventAck
+         * @description Ack for accepted frontend web-vitals telemetry.
+         */
+        FrontendWebVitalEventAck: {
+            /**
+             * Status
+             * @description Ingest status
+             * @constant
+             */
+            status: "accepted";
+        };
+        /**
+         * FrontendWebVitalEventRequest
+         * @description Frontend web-vitals event forwarded from partner/admin apps.
+         */
+        FrontendWebVitalEventRequest: {
+            /**
+             * Surface
+             * @description Frontend surface that emitted the metric
+             * @enum {string}
+             */
+            surface: "partner_portal" | "admin_portal";
+            /**
+             * Connectiontype
+             * @description Browser connection type bucket
+             */
+            connectionType: string;
+            /**
+             * Devicebucket
+             * @description Device bucket
+             */
+            deviceBucket: string;
+            /**
+             * Locale
+             * @description Resolved locale
+             */
+            locale?: string | null;
+            /**
+             * Metric
+             * @description Web vital metric name
+             * @enum {string}
+             */
+            metric: "cls" | "fcp" | "inp" | "lcp" | "ttfb";
+            /**
+             * Path
+             * @description Current route pathname
+             */
+            path: string;
+            /**
+             * Rating
+             * @description Web vital rating bucket
+             */
+            rating: string;
+            /**
+             * Reducedmotion
+             * @description Reduced motion preference bucket
+             */
+            reducedMotion: string;
+            /**
+             * Routegroup
+             * @description Frontend route group
+             * @enum {string}
+             */
+            routeGroup: "auth" | "dashboard" | "marketing" | "miniapp";
+            /**
+             * Savedata
+             * @description Save-Data preference bucket
+             */
+            saveData: string;
+            /**
+             * Value
+             * @description Observed web vital value
+             */
+            value: number;
+            /**
+             * Viewportbucket
+             * @description Viewport bucket
+             */
+            viewportBucket: string;
+            /**
+             * Requestid
+             * @description Browser request correlation id
+             */
+            requestId?: string | null;
         };
         /**
          * GenerateLoginLinkRequest
@@ -12838,6 +16020,142 @@ export interface components {
             credential_type?: components["schemas"]["DeviceCredentialType"] | null;
             /** Credential Subject Key */
             credential_subject_key?: string | null;
+        };
+        /** GiftCodeResponse */
+        GiftCodeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Masked Code */
+            masked_code: string;
+            /** Raw Code */
+            raw_code?: string | null;
+            /**
+             * Code Type
+             * @default gift
+             */
+            code_type: string;
+            /** Status */
+            status: string;
+            /** Issuer Type */
+            issuer_type: string;
+            /** Source Type */
+            source_type?: string | null;
+            /** Plan Family */
+            plan_family?: string | null;
+            /** Duration Days */
+            duration_days?: number | null;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Redeemed At */
+            redeemed_at?: string | null;
+            /** Redeemed By User Id */
+            redeemed_by_user_id?: string | null;
+            /** Source Order Id */
+            source_order_id?: string | null;
+            /** Source Payment Id */
+            source_payment_id?: string | null;
+        };
+        /** GiftPurchaseCommitRequest */
+        GiftPurchaseCommitRequest: {
+            /** Storefront Key */
+            storefront_key?: string | null;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /**
+             * Use Wallet
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Channel
+             * @default web
+             */
+            channel: string;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+        };
+        /** GiftPurchaseCommitResponse */
+        GiftPurchaseCommitResponse: {
+            quote: components["schemas"]["CheckoutQuoteResponse"];
+            /** Payment Id */
+            payment_id?: string | null;
+            /** Status */
+            status: string;
+            invoice?: components["schemas"]["InvoiceResponse"] | null;
+            gift_code?: components["schemas"]["GiftCodeResponse"] | null;
+        };
+        /** GiftPurchaseQuoteRequest */
+        GiftPurchaseQuoteRequest: {
+            /** Storefront Key */
+            storefront_key?: string | null;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /**
+             * Use Wallet
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Channel
+             * @default web
+             */
+            channel: string;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+        };
+        /** GiftPurchaseQuoteResponse */
+        GiftPurchaseQuoteResponse: {
+            quote: components["schemas"]["CheckoutQuoteResponse"];
+        };
+        /** GiftRedeemRequest */
+        GiftRedeemRequest: {
+            /** Code */
+            code: string;
+        };
+        /** GiftRedeemResponse */
+        GiftRedeemResponse: {
+            gift_code: components["schemas"]["GiftCodeResponse"];
+            /**
+             * Entitlement Grant Id
+             * Format: uuid
+             */
+            entitlement_grant_id: string;
+            /** Entitlement Snapshot */
+            entitlement_snapshot: {
+                [key: string]: unknown;
+            };
         };
         /**
          * GitHubCallbackRequest
@@ -12910,6 +16228,277 @@ export interface components {
          * @enum {string}
          */
         GovernanceActionType: "payout_freeze" | "code_suspension" | "reserve_extension" | "traffic_probation" | "creative_restriction" | "manual_override";
+        /**
+         * GrowthCodeActionContext
+         * @enum {string}
+         */
+        GrowthCodeActionContext: "checkout" | "redeem" | "signup" | "admin_lookup";
+        /**
+         * GrowthCodeRejectReason
+         * @enum {string}
+         */
+        GrowthCodeRejectReason: "code_not_found" | "code_expired" | "code_not_active" | "code_exhausted" | "code_already_redeemed" | "code_not_eligible_for_sku" | "code_not_eligible_for_surface" | "code_conflicts_with_partner_code" | "code_conflicts_with_partner_binding" | "code_conflicts_with_promo" | "code_wrong_context" | "code_requires_auth" | "code_blocked_by_risk" | "gift_already_redeemed" | "invite_self_redemption_blocked";
+        /**
+         * GrowthCodeResolutionStatus
+         * @enum {string}
+         */
+        GrowthCodeResolutionStatus: "accepted" | "rejected" | "conflicted" | "blocked_by_risk";
+        /**
+         * GrowthCodeType
+         * @enum {string}
+         */
+        GrowthCodeType: "invite" | "referral" | "promo" | "gift" | "partner";
+        /**
+         * GrowthCodeWrongContextTarget
+         * @enum {string}
+         */
+        GrowthCodeWrongContextTarget: "checkout" | "redeem";
+        /** GrowthNotificationCountersResponse */
+        GrowthNotificationCountersResponse: {
+            /**
+             * Total Notifications
+             * @default 0
+             */
+            total_notifications: number;
+            /**
+             * Unread Notifications
+             * @default 0
+             */
+            unread_notifications: number;
+            /**
+             * Action Required Notifications
+             * @default 0
+             */
+            action_required_notifications: number;
+        };
+        /** GrowthNotificationDeliveryDetailResponse */
+        GrowthNotificationDeliveryDetailResponse: {
+            /** Delivery Id */
+            delivery_id: string;
+            /** Delivery Channel */
+            delivery_channel: string;
+            /** Delivery Status */
+            delivery_status: string;
+            /** Troubleshooting State */
+            troubleshooting_state: string;
+            /** Customer Message Key */
+            customer_message_key: string;
+            /** Customer Summary */
+            customer_summary: string;
+            /**
+             * Recovery Allowed
+             * @default false
+             */
+            recovery_allowed: boolean;
+            /**
+             * Support Required
+             * @default false
+             */
+            support_required: boolean;
+            repair_target?: components["schemas"]["GrowthNotificationRepairTargetResponse"] | null;
+            /**
+             * Planned At
+             * Format: date-time
+             */
+            planned_at: string;
+            /** Delivered At */
+            delivered_at?: string | null;
+            /** Events */
+            events?: components["schemas"]["GrowthNotificationDeliveryEventResponse"][];
+        };
+        /** GrowthNotificationDeliveryEventResponse */
+        GrowthNotificationDeliveryEventResponse: {
+            /** Event Type */
+            event_type: string;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Summary */
+            summary: string;
+        };
+        /** GrowthNotificationDetailResponse */
+        GrowthNotificationDetailResponse: {
+            notification: components["schemas"]["GrowthNotificationFeedItemResponse"];
+            /** Deliveries */
+            deliveries?: components["schemas"]["GrowthNotificationDeliveryDetailResponse"][];
+            support_handoff: components["schemas"]["GrowthNotificationSupportHandoffResponse"];
+        };
+        /** GrowthNotificationFeedItemResponse */
+        GrowthNotificationFeedItemResponse: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Tone */
+            tone: string;
+            /**
+             * Route Slug
+             * @default /referral
+             */
+            route_slug: string;
+            /** Title */
+            title: string;
+            /** Message */
+            message: string;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Action Required
+             * @default false
+             */
+            action_required: boolean;
+            /**
+             * Unread
+             * @default true
+             */
+            unread: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Archived At */
+            archived_at?: string | null;
+            /** Source Kind */
+            source_kind?: string | null;
+            /** Source Id */
+            source_id?: string | null;
+        };
+        /** GrowthNotificationPreferencesResponse */
+        GrowthNotificationPreferencesResponse: {
+            /**
+             * Growth In App Invites
+             * @default true
+             */
+            growth_in_app_invites: boolean;
+            /**
+             * Growth Email Invites
+             * @default false
+             */
+            growth_email_invites: boolean;
+            /**
+             * Growth Telegram Invites
+             * @default true
+             */
+            growth_telegram_invites: boolean;
+            /**
+             * Growth In App Referral Rewards
+             * @default true
+             */
+            growth_in_app_referral_rewards: boolean;
+            /**
+             * Growth Email Referral Rewards
+             * @default true
+             */
+            growth_email_referral_rewards: boolean;
+            /**
+             * Growth Telegram Referral Rewards
+             * @default true
+             */
+            growth_telegram_referral_rewards: boolean;
+            /**
+             * Growth In App Gifts
+             * @default true
+             */
+            growth_in_app_gifts: boolean;
+            /**
+             * Growth Email Gifts
+             * @default true
+             */
+            growth_email_gifts: boolean;
+            /**
+             * Growth Telegram Gifts
+             * @default true
+             */
+            growth_telegram_gifts: boolean;
+            /**
+             * Growth In App Admin Updates
+             * @default true
+             */
+            growth_in_app_admin_updates: boolean;
+            /**
+             * Growth Email Admin Updates
+             * @default true
+             */
+            growth_email_admin_updates: boolean;
+            /**
+             * Growth Telegram Admin Updates
+             * @default true
+             */
+            growth_telegram_admin_updates: boolean;
+        };
+        /** GrowthNotificationPreferencesUpdateRequest */
+        GrowthNotificationPreferencesUpdateRequest: {
+            /** Growth In App Invites */
+            growth_in_app_invites?: boolean | null;
+            /** Growth Email Invites */
+            growth_email_invites?: boolean | null;
+            /** Growth Telegram Invites */
+            growth_telegram_invites?: boolean | null;
+            /** Growth In App Referral Rewards */
+            growth_in_app_referral_rewards?: boolean | null;
+            /** Growth Email Referral Rewards */
+            growth_email_referral_rewards?: boolean | null;
+            /** Growth Telegram Referral Rewards */
+            growth_telegram_referral_rewards?: boolean | null;
+            /** Growth In App Gifts */
+            growth_in_app_gifts?: boolean | null;
+            /** Growth Email Gifts */
+            growth_email_gifts?: boolean | null;
+            /** Growth Telegram Gifts */
+            growth_telegram_gifts?: boolean | null;
+            /** Growth In App Admin Updates */
+            growth_in_app_admin_updates?: boolean | null;
+            /** Growth Email Admin Updates */
+            growth_email_admin_updates?: boolean | null;
+            /** Growth Telegram Admin Updates */
+            growth_telegram_admin_updates?: boolean | null;
+        };
+        /** GrowthNotificationReadStateResponse */
+        GrowthNotificationReadStateResponse: {
+            /** Notification Id */
+            notification_id: string;
+            /** Read At */
+            read_at?: string | null;
+            /** Archived At */
+            archived_at?: string | null;
+        };
+        /** GrowthNotificationRecoveryRequest */
+        GrowthNotificationRecoveryRequest: {
+            /** Delivery Channel */
+            delivery_channel: string;
+        };
+        /** GrowthNotificationRepairTargetResponse */
+        GrowthNotificationRepairTargetResponse: {
+            /** Kind */
+            kind: string;
+            /** Summary */
+            summary: string;
+        };
+        /** GrowthNotificationSupportEscalationRequest */
+        GrowthNotificationSupportEscalationRequest: {
+            /** Delivery Channel */
+            delivery_channel?: string | null;
+            /**
+             * Escalation Channel
+             * @default contact_form
+             */
+            escalation_channel: string;
+        };
+        /** GrowthNotificationSupportHandoffResponse */
+        GrowthNotificationSupportHandoffResponse: {
+            /** Reference Code */
+            reference_code: string;
+            /** Troubleshooting Summary */
+            troubleshooting_summary: string;
+            /** Copy Text */
+            copy_text: string;
+            /** Suggested Escalation Channel */
+            suggested_escalation_channel: string;
+            /** Contact Subject */
+            contact_subject: string;
+            /** Contact Body */
+            contact_body: string;
+        };
         /** GrowthRewardAllocationResponse */
         GrowthRewardAllocationResponse: {
             /**
@@ -12973,7 +16562,7 @@ export interface components {
          * GrowthRewardAllocationStatus
          * @enum {string}
          */
-        GrowthRewardAllocationStatus: "allocated" | "reversed";
+        GrowthRewardAllocationStatus: "pending" | "allocated" | "available" | "blocked_by_risk" | "reversed" | "expired";
         /**
          * GrowthRewardType
          * @enum {string}
@@ -13189,6 +16778,87 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** InternalClaimGrowthReportingDeliveriesResponse */
+        InternalClaimGrowthReportingDeliveriesResponse: {
+            /** Deliveries */
+            deliveries?: components["schemas"]["InternalGrowthReportingDeliveryDispatchResponse"][];
+            /** Claimed Count */
+            claimed_count: number;
+            /** Skipped Count */
+            skipped_count: number;
+            /** Overdue Count */
+            overdue_count: number;
+        };
+        /** InternalCleanupGrowthReportingArtifactsResponse */
+        InternalCleanupGrowthReportingArtifactsResponse: {
+            /** Rollups Deleted */
+            rollups_deleted: number;
+            /** Refresh Runs Deleted */
+            refresh_runs_deleted: number;
+            /** Deliveries Deleted */
+            deliveries_deleted: number;
+            /**
+             * Executed At
+             * Format: date-time
+             */
+            executed_at: string;
+        };
+        /** InternalCompleteGrowthReportingDeliveryRequest */
+        InternalCompleteGrowthReportingDeliveryRequest: {
+            /** Delivery Status */
+            delivery_status: string;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Provider Message Id */
+            provider_message_id?: string | null;
+            /** Failure Message */
+            failure_message?: string | null;
+        };
+        /** InternalGrowthReportingDeliveryDispatchResponse */
+        InternalGrowthReportingDeliveryDispatchResponse: {
+            /** Delivery Id */
+            delivery_id: string;
+            /** Recipient Email */
+            recipient_email: string;
+            /** Recipient Name */
+            recipient_name?: string | null;
+            /** Audience Key */
+            audience_key: string;
+            /** Delivery Channel */
+            delivery_channel: string;
+            /** Subject */
+            subject: string;
+            /** Title */
+            title: string;
+            /** Message */
+            message: string;
+            /** Notes */
+            notes?: string[];
+            /** Locale */
+            locale: string;
+        };
+        /** InternalProcessGrowthReportingGovernanceFollowupsResponse */
+        InternalProcessGrowthReportingGovernanceFollowupsResponse: {
+            /**
+             * Processed At
+             * Format: date-time
+             */
+            processed_at: string;
+            /** Scanned Count */
+            scanned_count: number;
+            /** Opened Count */
+            opened_count: number;
+            /** Reopened Count */
+            reopened_count: number;
+            /** Auto Resolved Count */
+            auto_resolved_count: number;
+            /** Reminded Count */
+            reminded_count: number;
+            /** Open Count */
+            open_count: number;
+            /** Overdue Count */
+            overdue_count: number;
+        };
         /** InviteBundleSchema */
         InviteBundleSchema: {
             /**
@@ -13230,6 +16900,12 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Entitlement Grant Id */
+            entitlement_grant_id?: string | null;
+            /** Entitlement Snapshot */
+            entitlement_snapshot?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * InviteTokenInfo
@@ -13776,6 +17452,380 @@ export interface components {
             shadow_before: components["schemas"]["LegacyServiceAccessShadowResponse"];
             shadow_after: components["schemas"]["LegacyServiceAccessShadowResponse"];
         };
+        /** MiniAppBootstrapDevicesResponse */
+        MiniAppBootstrapDevicesResponse: {
+            /** Activecount */
+            activeCount: number;
+            /** Limit */
+            limit: number;
+            /** Hasconfig */
+            hasConfig: boolean;
+        };
+        /** MiniAppBootstrapFreshnessResponse */
+        MiniAppBootstrapFreshnessResponse: {
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+        };
+        /** MiniAppBootstrapPaymentResponse */
+        MiniAppBootstrapPaymentResponse: {
+            /** Unresolvedpaymentid */
+            unresolvedPaymentId?: string | null;
+            /** Laststatus */
+            lastStatus?: ("pending" | "paid" | "cancelled" | "failed") | null;
+        };
+        /** MiniAppBootstrapPrimaryCtaResponse */
+        MiniAppBootstrapPrimaryCtaResponse: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "start_trial" | "buy_plan" | "renew" | "get_config" | "select_server";
+            /** Label */
+            label: string;
+        };
+        /** MiniAppBootstrapRecommendedServerResponse */
+        MiniAppBootstrapRecommendedServerResponse: {
+            /** Id */
+            id: string;
+            /** Countrycode */
+            countryCode: string;
+            /** City */
+            city?: string | null;
+            /** Publicname */
+            publicName: string;
+            /** Latencyms */
+            latencyMs?: number | null;
+            /** Speedmbps */
+            speedMbps?: number | null;
+            /** Uptimepct30D */
+            uptimePct30d?: number | null;
+            /** Dpiscore */
+            dpiScore?: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "offline";
+            /** Recommendedreason */
+            recommendedReason?: string | null;
+        };
+        /** MiniAppBootstrapReferralResponse */
+        MiniAppBootstrapReferralResponse: {
+            /** Code */
+            code?: string | null;
+            /** Inviteurl */
+            inviteUrl?: string | null;
+            /** Sharetext */
+            shareText?: string | null;
+        };
+        /** MiniAppBootstrapResponse */
+        MiniAppBootstrapResponse: {
+            session: components["schemas"]["MiniAppBootstrapSessionResponse"];
+            runtime: components["schemas"]["MiniAppBootstrapRuntimeResponse"];
+            user: components["schemas"]["MiniAppBootstrapUserResponse"];
+            subscription: components["schemas"]["MiniAppBootstrapSubscriptionResponse"];
+            trial: components["schemas"]["MiniAppBootstrapTrialResponse"];
+            wallet: components["schemas"]["MiniAppBootstrapWalletResponse"];
+            devices: components["schemas"]["MiniAppBootstrapDevicesResponse"];
+            usage: components["schemas"]["MiniAppBootstrapUsageResponse"];
+            serviceState: components["schemas"]["MiniAppBootstrapServiceStateResponse"];
+            recommendedServer?: components["schemas"]["MiniAppBootstrapRecommendedServerResponse"] | null;
+            primaryCta: components["schemas"]["MiniAppBootstrapPrimaryCtaResponse"];
+            referral: components["schemas"]["MiniAppBootstrapReferralResponse"];
+            payment: components["schemas"]["MiniAppBootstrapPaymentResponse"];
+            support: components["schemas"]["MiniAppBootstrapSupportResponse"];
+            rollout: components["schemas"]["MiniAppBootstrapRolloutResponse"];
+            /** Featureflags */
+            featureFlags?: {
+                [key: string]: boolean;
+            };
+            freshness: components["schemas"]["MiniAppBootstrapFreshnessResponse"];
+        };
+        /** MiniAppBootstrapRolloutResponse */
+        MiniAppBootstrapRolloutResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Mode
+             * @default live
+             * @enum {string}
+             */
+            mode: "live" | "canary" | "maintenance" | "rollback";
+            /** Trialenabled */
+            trialEnabled: boolean;
+            /** Checkoutenabled */
+            checkoutEnabled: boolean;
+            /** Configenabled */
+            configEnabled: boolean;
+            /** Accessgranted */
+            accessGranted: boolean;
+            /**
+             * Iscanaryuser
+             * @default false
+             */
+            isCanaryUser: boolean;
+            /** Gatereasoncode */
+            gateReasonCode?: ("runtime_disabled" | "maintenance" | "rollback" | "feature_disabled" | "canary_not_allowed") | null;
+            /** Maintenancemessage */
+            maintenanceMessage?: string | null;
+        };
+        /** MiniAppBootstrapRuntimeAttributionResponse */
+        MiniAppBootstrapRuntimeAttributionResponse: {
+            /** Source */
+            source: string;
+            /** Surface */
+            surface: string;
+            /** Referralcode */
+            referralCode?: string | null;
+            /** Campaign */
+            campaign?: string | null;
+            /** Startparam */
+            startParam?: string | null;
+        };
+        /** MiniAppBootstrapRuntimeBrandResponse */
+        MiniAppBootstrapRuntimeBrandResponse: {
+            /** Name */
+            name: string;
+            /** Logourl */
+            logoUrl?: string | null;
+            /** Primarycolor */
+            primaryColor?: string | null;
+            /** Supporturl */
+            supportUrl?: string | null;
+            /** Legalname */
+            legalName?: string | null;
+        };
+        /** MiniAppBootstrapRuntimeCommercialPolicyResponse */
+        MiniAppBootstrapRuntimeCommercialPolicyResponse: {
+            /** Pricingpolicyid */
+            pricingPolicyId: string;
+            /** Currencypolicy */
+            currencyPolicy: string;
+            /** Revenuesharepolicyid */
+            revenueSharePolicyId?: string | null;
+            /** Trialpolicyid */
+            trialPolicyId?: string | null;
+        };
+        /** MiniAppBootstrapRuntimeResponse */
+        MiniAppBootstrapRuntimeResponse: {
+            /**
+             * Surface
+             * @default telegram_miniapp
+             * @constant
+             */
+            surface: "telegram_miniapp";
+            tenant: components["schemas"]["MiniAppBootstrapRuntimeTenantResponse"];
+            brand: components["schemas"]["MiniAppBootstrapRuntimeBrandResponse"];
+            commercialPolicy: components["schemas"]["MiniAppBootstrapRuntimeCommercialPolicyResponse"];
+            attribution: components["schemas"]["MiniAppBootstrapRuntimeAttributionResponse"];
+        };
+        /** MiniAppBootstrapRuntimeTenantResponse */
+        MiniAppBootstrapRuntimeTenantResponse: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "platform" | "partner";
+            /** Partnerid */
+            partnerId?: string | null;
+            /** Workspaceid */
+            workspaceId?: string | null;
+            /** Storefrontid */
+            storefrontId?: string | null;
+            /** Botid */
+            botId?: string | null;
+        };
+        /** MiniAppBootstrapServiceStateResponse */
+        MiniAppBootstrapServiceStateResponse: {
+            /** Providername */
+            providerName?: string | null;
+            /** Channeltype */
+            channelType?: string | null;
+        };
+        /** MiniAppBootstrapSessionResponse */
+        MiniAppBootstrapSessionResponse: {
+            /** Authenticated */
+            authenticated: boolean;
+            /** Userid */
+            userId?: string | null;
+            /** Telegramuserid */
+            telegramUserId?: string | null;
+            /**
+             * Authrealm
+             * @enum {string}
+             */
+            authRealm: "customer" | "partner_customer";
+        };
+        /** MiniAppBootstrapSubscriptionResponse */
+        MiniAppBootstrapSubscriptionResponse: {
+            /** Status */
+            status: string;
+            /** Planid */
+            planId?: string | null;
+            /** Planname */
+            planName?: string | null;
+            /** Expiresat */
+            expiresAt?: string | null;
+            /**
+             * Autorenew
+             * @default false
+             */
+            autoRenew: boolean;
+        };
+        /** MiniAppBootstrapSupportResponse */
+        MiniAppBootstrapSupportResponse: {
+            /** Url */
+            url?: string | null;
+            /**
+             * Paysupportcommandavailable
+             * @default false
+             */
+            paysupportCommandAvailable: boolean;
+        };
+        /** MiniAppBootstrapTrialResponse */
+        MiniAppBootstrapTrialResponse: {
+            /** Eligible */
+            eligible: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Durationdays */
+            durationDays?: number | null;
+            /** Trialstart */
+            trialStart?: string | null;
+            /** Trialend */
+            trialEnd?: string | null;
+            /**
+             * Daysremaining
+             * @default 0
+             */
+            daysRemaining: number;
+        };
+        /** MiniAppBootstrapUsageResponse */
+        MiniAppBootstrapUsageResponse: {
+            /** Bandwidthusedbytes */
+            bandwidthUsedBytes: number;
+            /** Bandwidthlimitbytes */
+            bandwidthLimitBytes: number;
+            /** Connectionsactive */
+            connectionsActive: number;
+            /** Connectionslimit */
+            connectionsLimit: number;
+            /** Periodstart */
+            periodStart?: string | null;
+            /** Periodend */
+            periodEnd?: string | null;
+            /** Lastconnectionat */
+            lastConnectionAt?: string | null;
+        };
+        /** MiniAppBootstrapUserResponse */
+        MiniAppBootstrapUserResponse: {
+            /** Firstname */
+            firstName?: string | null;
+            /** Username */
+            username?: string | null;
+            /** Photourl */
+            photoUrl?: string | null;
+            /** Locale */
+            locale: string;
+            /** Rtl */
+            rtl: boolean;
+        };
+        /** MiniAppBootstrapWalletResponse */
+        MiniAppBootstrapWalletResponse: {
+            /** Balance */
+            balance: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Bonusesavailable
+             * @default 0
+             */
+            bonusesAvailable: number;
+        };
+        /** MiniAppCheckoutRequest */
+        MiniAppCheckoutRequest: {
+            /**
+             * Flow
+             * @default checkout
+             * @enum {string}
+             */
+            flow: "checkout" | "upgrade" | "addons";
+            /** Planid */
+            planId?: string | null;
+            /** Addons */
+            addons?: components["schemas"]["CheckoutAddonRequest"][];
+            /** Codeinput */
+            codeInput?: string | null;
+            /** Promocode */
+            promoCode?: string | null;
+            /** Partnercode */
+            partnerCode?: string | null;
+            /**
+             * Usewallet
+             * @default 0
+             */
+            useWallet: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+        };
+        /** MiniAppConfigResponse */
+        MiniAppConfigResponse: {
+            /**
+             * Config
+             * @description Generated VPN configuration string
+             */
+            config: string;
+            /**
+             * Isfound
+             * @description Whether the upstream subscription exists
+             * @default true
+             */
+            isFound: boolean;
+            /**
+             * Links
+             * @description All generated connection links
+             */
+            links?: string[];
+            /**
+             * Ssconflinks
+             * @description SS config links
+             */
+            ssConfLinks?: {
+                [key: string]: string;
+            };
+            /** Subscriptionurl */
+            subscriptionUrl?: string | null;
+            /** Configstring */
+            configString: string;
+            /** Clienttype */
+            clientType: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "remnawave_generated" | "legacy_subscription_url";
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+        };
+        /** MiniAppOffersResponse */
+        MiniAppOffersResponse: {
+            /** Plans */
+            plans: components["schemas"]["PlanResponse"][];
+            /** Addons */
+            addons: components["schemas"]["AddonResponse"][];
+            trial: components["schemas"]["TrialStatusResponse"];
+            currentEntitlements: components["schemas"]["CurrentEntitlementsResponse"];
+            freshness: components["schemas"]["MiniAppBootstrapFreshnessResponse"];
+        };
         /**
          * MobileAuthError
          * @description Error response schema for mobile authentication.
@@ -13800,6 +17850,17 @@ export interface components {
             details?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * MobileTwoFactorCompleteRequest
+         * @description Request schema for completing a mobile login paused behind TOTP.
+         */
+        MobileTwoFactorCompleteRequest: {
+            /**
+             * Code
+             * @description Six-digit TOTP verification code
+             */
+            code: string;
         };
         /** NodePluginCollectionResponse */
         NodePluginCollectionResponse: {
@@ -14786,6 +18847,147 @@ export interface components {
             /** Current Permission Keys */
             current_permission_keys?: string[];
         };
+        /** PartnerBotProvisioningJobResponse */
+        PartnerBotProvisioningJobResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Partner Bot Id
+             * Format: uuid
+             */
+            partner_bot_id: string;
+            /**
+             * Partner Account Id
+             * Format: uuid
+             */
+            partner_account_id: string;
+            /** Requested By Admin User Id */
+            requested_by_admin_user_id?: string | null;
+            /** Provisioning Path */
+            provisioning_path: string;
+            /** Job Status */
+            job_status: string;
+            /** Attempt Count */
+            attempt_count: number;
+            /** Request Payload */
+            request_payload?: {
+                [key: string]: unknown;
+            };
+            /** Result Payload */
+            result_payload?: {
+                [key: string]: unknown;
+            };
+            /** Last Error */
+            last_error?: string | null;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Started At */
+            started_at?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PartnerBotProvisioningJobStatus
+         * @enum {string}
+         */
+        PartnerBotProvisioningJobStatus: "queued" | "validating_partner" | "reserving_bot_identity" | "applying_branding" | "configuring_commands" | "configuring_menu_button" | "binding_webhook" | "binding_miniapp" | "generating_launch_assets" | "publishing" | "completed" | "failed_validation" | "failed_bot_creation" | "failed_token_fetch" | "failed_webhook_binding" | "failed_branding" | "rollback_required" | "manual_intervention_required";
+        /**
+         * PartnerBotProvisioningPath
+         * @enum {string}
+         */
+        PartnerBotProvisioningPath: "managed_bot" | "manual_token";
+        /** PartnerBotResponse */
+        PartnerBotResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Partner Account Id
+             * Format: uuid
+             */
+            partner_account_id: string;
+            /** Storefront Id */
+            storefront_id?: string | null;
+            /** Bot Key */
+            bot_key: string;
+            /** Display Name */
+            display_name: string;
+            /** Short Description */
+            short_description?: string | null;
+            /** Long Description */
+            long_description?: string | null;
+            /** Telegram Bot Id */
+            telegram_bot_id?: string | null;
+            /** Telegram Username */
+            telegram_username?: string | null;
+            /** Managed By Bot Id */
+            managed_by_bot_id?: string | null;
+            /** Default Locale */
+            default_locale: string;
+            /** Primary Color */
+            primary_color?: string | null;
+            /** Provisioning Path */
+            provisioning_path: string;
+            /** Token Status */
+            token_status: string;
+            /** Status */
+            status: string;
+            /** Release Channel */
+            release_channel: string;
+            /** Provisioning Last Error */
+            provisioning_last_error?: string | null;
+            /** Provisioning Requested At */
+            provisioning_requested_at?: string | null;
+            /** Provisioned At */
+            provisioned_at?: string | null;
+            /** Suspended At */
+            suspended_at?: string | null;
+            /** Suspension Reason Code */
+            suspension_reason_code?: string | null;
+            /** Created By Admin User Id */
+            created_by_admin_user_id?: string | null;
+            /** Updated By Admin User Id */
+            updated_by_admin_user_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            latest_provisioning_job?: components["schemas"]["PartnerBotProvisioningJobResponse"] | null;
+        };
+        /**
+         * PartnerBotStatus
+         * @enum {string}
+         */
+        PartnerBotStatus: "draft" | "pending_review" | "provisioning_requested" | "provisioning_running" | "active" | "degraded" | "suspended" | "revoked" | "failed";
+        /**
+         * PartnerBotTokenStatus
+         * @enum {string}
+         */
+        PartnerBotTokenStatus: "missing" | "active" | "rotating" | "revoked";
         /** PartnerCodeResponse */
         PartnerCodeResponse: {
             /**
@@ -15407,6 +19609,22 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Promo Reference */
+            promo_reference?: string | null;
+            /** Disclosure Text */
+            disclosure_text?: string | null;
+            /** Allowed Claims */
+            allowed_claims?: string[];
+            /** Banned Claims */
+            banned_claims?: string[];
+            /** Allowed Geographies */
+            allowed_geographies?: string[];
+            /** Destination Urls */
+            destination_urls?: string[];
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid Until */
+            valid_until?: string | null;
             /** Notes */
             notes?: string[];
         };
@@ -15875,6 +20093,42 @@ export interface components {
             /** Last Requested At */
             last_requested_at?: string | null;
         };
+        /** PartnerWorkspaceResellerVoucherBatchResponse */
+        PartnerWorkspaceResellerVoucherBatchResponse: {
+            /**
+             * Batch Id
+             * Format: uuid
+             */
+            batch_id: string;
+            /** Gift Type */
+            gift_type: string;
+            /** Plan Family */
+            plan_family: string;
+            /** Duration Days */
+            duration_days: number;
+            /** Status */
+            status: string;
+            /** Issued Count */
+            issued_count: number;
+            /** Redeemed Count */
+            redeemed_count: number;
+            /** Available Count */
+            available_count: number;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Notes */
+            notes?: string[];
+        };
         /** PartnerWorkspaceResponse */
         PartnerWorkspaceResponse: {
             /**
@@ -16188,12 +20442,46 @@ export interface components {
          * PaymentProvider
          * @enum {string}
          */
-        PaymentProvider: "cryptobot" | "yookassa" | "stripe" | "wallet";
+        PaymentProvider: "cryptobot" | "yookassa" | "telegram_stars" | "stripe" | "wallet";
         /**
          * PaymentStatus
          * @enum {string}
          */
         PaymentStatus: "pending" | "completed" | "failed" | "refunded";
+        /**
+         * PaymentStatusResponse
+         * @description Authenticated payment status payload.
+         */
+        PaymentStatusResponse: {
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** @description Current payment status */
+            status: components["schemas"]["PaymentStatus"];
+            /** @description Payment provider */
+            provider: components["schemas"]["PaymentProvider"];
+            /**
+             * External Id
+             * @description Provider-side charge identifier
+             */
+            external_id?: string | null;
+            /** Amount */
+            amount: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /**
          * PayoutExecutionMode
          * @enum {string}
@@ -17180,6 +21468,457 @@ export interface components {
          * @enum {string}
          */
         ProvisioningProfileStatus: "draft" | "active" | "archived";
+        /** PublicNetworkDpiCountryResponse */
+        PublicNetworkDpiCountryResponse: {
+            /** Countrycode */
+            countryCode: string;
+            /** Publicname */
+            publicName: string;
+            /** Score */
+            score: number;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+            /** Lastupdatedat */
+            lastUpdatedAt?: string | null;
+            /** Protocols */
+            protocols?: components["schemas"]["PublicNetworkDpiProtocolResponse"][];
+        };
+        /** PublicNetworkDpiMeasurementWindowResponse */
+        PublicNetworkDpiMeasurementWindowResponse: {
+            /** Hours */
+            hours: number;
+            /** Minimumprobecount */
+            minimumProbeCount: number;
+        };
+        /** PublicNetworkDpiProtocolResponse */
+        PublicNetworkDpiProtocolResponse: {
+            /** Protocol */
+            protocol: string;
+            /** Successrate */
+            successRate: number;
+            /** Medianhandshakems */
+            medianHandshakeMs?: number | null;
+            /** Httpsbaselinesuccessrate */
+            httpsBaselineSuccessRate?: number | null;
+            /** Medianhttpsbaselinems */
+            medianHttpsBaselineMs?: number | null;
+            /** Lastprobeat */
+            lastProbeAt?: string | null;
+        };
+        /** PublicNetworkDpiScorePublishRequest */
+        PublicNetworkDpiScorePublishRequest: {
+            /** Source */
+            source: string;
+            snapshot: components["schemas"]["PublicNetworkDpiScoreResponse-Input"];
+        };
+        /** PublicNetworkDpiScorePublishResponse */
+        PublicNetworkDpiScorePublishResponse: {
+            /** Published */
+            published: boolean;
+            /** Source */
+            source: string;
+            /** Cachekey */
+            cacheKey: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+        };
+        /** PublicNetworkDpiScoreResponse */
+        "PublicNetworkDpiScoreResponse-Input": {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            /** Methodologyversion */
+            methodologyVersion: string;
+            measurementWindow: components["schemas"]["PublicNetworkDpiMeasurementWindowResponse"];
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+            /** Lastupdatedat */
+            lastUpdatedAt?: string | null;
+            /** Reasoncode */
+            reasonCode?: string | null;
+            /** Countriestracked */
+            countriesTracked: number;
+            /** Countries */
+            countries?: components["schemas"]["PublicNetworkDpiCountryResponse"][];
+        };
+        /** PublicNetworkDpiScoreResponse */
+        "PublicNetworkDpiScoreResponse-Output": {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            /** Methodologyversion */
+            methodologyVersion: string;
+            measurementWindow: components["schemas"]["PublicNetworkDpiMeasurementWindowResponse"];
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+            /** Lastupdatedat */
+            lastUpdatedAt?: string | null;
+            /** Reasoncode */
+            reasonCode?: string | null;
+            /** Countriestracked */
+            countriesTracked: number;
+            /** Countries */
+            countries?: components["schemas"]["PublicNetworkDpiCountryResponse"][];
+        };
+        /** PublicNetworkIncidentResponse */
+        PublicNetworkIncidentResponse: {
+            /** Id */
+            id: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "minor" | "major" | "critical";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "investigating" | "identified" | "monitoring" | "resolved";
+            /** Publictitle */
+            publicTitle: string;
+            /** Publicsummary */
+            publicSummary: string;
+            /** Affectedregions */
+            affectedRegions?: string[];
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            /** Resolvedat */
+            resolvedAt?: string | null;
+        };
+        /** PublicNetworkIncidentsResponse */
+        PublicNetworkIncidentsResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            /** Incidents */
+            incidents: components["schemas"]["PublicNetworkIncidentResponse"][];
+        };
+        /** PublicNetworkLeaderboardEntryResponse */
+        PublicNetworkLeaderboardEntryResponse: {
+            /** Id */
+            id: string;
+            /** Countrycode */
+            countryCode: string;
+            /** Publicname */
+            publicName: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "offline";
+            /** Totalservers */
+            totalServers: number;
+            /** Onlineservers */
+            onlineServers: number;
+            /** Activeusers */
+            activeUsers: number;
+            /** Totaltrafficbytes */
+            totalTrafficBytes: number;
+            /** Rank */
+            rank: number;
+        };
+        /** PublicNetworkLeaderboardResponse */
+        PublicNetworkLeaderboardResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            /** Leaderboard */
+            leaderboard: components["schemas"]["PublicNetworkLeaderboardEntryResponse"][];
+        };
+        /** PublicNetworkOverviewGlobalResponse */
+        PublicNetworkOverviewGlobalResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "major_outage";
+            /** Totalusers */
+            totalUsers: number;
+            /** Activeusers */
+            activeUsers: number;
+            /** Totalservers */
+            totalServers: number;
+            /** Onlineservers */
+            onlineServers: number;
+            /** Totalnodes */
+            totalNodes: number;
+            /** Distinctcountries */
+            distinctCountries: number;
+            /** Totaltrafficbytes */
+            totalTrafficBytes: number;
+            /** Monthlytrafficbytes */
+            monthlyTrafficBytes: number;
+            /** Todaybytesin */
+            todayBytesIn: number;
+            /** Todaybytesout */
+            todayBytesOut: number;
+        };
+        /** PublicNetworkOverviewResponse */
+        PublicNetworkOverviewResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            global: components["schemas"]["PublicNetworkOverviewGlobalResponse"];
+        };
+        /** PublicNetworkRegionDetailResponse */
+        PublicNetworkRegionDetailResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            region: components["schemas"]["PublicNetworkRegionResponse"];
+        };
+        /** PublicNetworkRegionResponse */
+        PublicNetworkRegionResponse: {
+            /** Id */
+            id: string;
+            /** Countrycode */
+            countryCode: string;
+            /** Publicname */
+            publicName: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "offline";
+            /** Totalservers */
+            totalServers: number;
+            /** Onlineservers */
+            onlineServers: number;
+            /** Activeusers */
+            activeUsers: number;
+            /** Totaltrafficbytes */
+            totalTrafficBytes: number;
+        };
+        /** PublicNetworkRegionsResponse */
+        PublicNetworkRegionsResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            /** Regions */
+            regions: components["schemas"]["PublicNetworkRegionResponse"][];
+        };
+        /** PublicNetworkUptimeHistoryDayResponse */
+        PublicNetworkUptimeHistoryDayResponse: {
+            /** Date */
+            date: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "nominal" | "warning" | "outage" | "maintenance";
+        };
+        /** PublicNetworkUptimeResponse */
+        PublicNetworkUptimeResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            summary: components["schemas"]["PublicNetworkUptimeSummaryResponse"];
+            /** History */
+            history: components["schemas"]["PublicNetworkUptimeHistoryDayResponse"][];
+        };
+        /** PublicNetworkUptimeSummaryResponse */
+        PublicNetworkUptimeSummaryResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "major_outage";
+            /** Currentavailabilitypct */
+            currentAvailabilityPct: number;
+            /** Historyavailable */
+            historyAvailable: boolean;
+            /** Windowdays */
+            windowDays: number;
+            /** Coveragedays */
+            coverageDays: number;
+        };
+        /** PublicNetworkWidgetResponse */
+        PublicNetworkWidgetResponse: {
+            /** Schemaversion */
+            schemaVersion: string;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Freshnessstatus
+             * @enum {string}
+             */
+            freshnessStatus: "fresh" | "stale" | "degraded";
+            /**
+             * Widgettype
+             * @enum {string}
+             */
+            widgetType: "network_card" | "uptime_badge" | "speed_badge";
+            /** Locale */
+            locale: string;
+            /**
+             * Themevariant
+             * @enum {string}
+             */
+            themeVariant: "cyber" | "matrix" | "graphite";
+            /** Recommendedheight */
+            recommendedHeight: number;
+            summary: components["schemas"]["PublicNetworkWidgetSummaryResponse"];
+            focusRegion?: components["schemas"]["PublicNetworkRegionResponse"] | null;
+            /** Topregions */
+            topRegions?: components["schemas"]["PublicNetworkLeaderboardEntryResponse"][];
+        };
+        /** PublicNetworkWidgetSummaryResponse */
+        PublicNetworkWidgetSummaryResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "degraded" | "major_outage";
+            /** Currentavailabilitypct */
+            currentAvailabilityPct: number;
+            /** Onlineservers */
+            onlineServers: number;
+            /** Activeusers */
+            activeUsers: number;
+            /** Monthlytrafficbytes */
+            monthlyTrafficBytes: number;
+            /** Incidentscount */
+            incidentsCount: number;
+        };
         /** PurchaseSubscriptionAddonsRequest */
         PurchaseSubscriptionAddonsRequest: {
             /** Addons */
@@ -17499,6 +22238,56 @@ export interface components {
             /** Commission Rate */
             commission_rate: number;
             /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /** Reward Status */
+            reward_status?: string | null;
+            /** Hold Until */
+            hold_until?: string | null;
+            /** Available At */
+            available_at?: string | null;
+            /** Reversed At */
+            reversed_at?: string | null;
+            /**
+             * Source Model
+             * @default legacy_commission
+             */
+            source_model: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReferralRewardResponse */
+        ReferralRewardResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Referred User Id */
+            referred_user_id?: string | null;
+            /** Payment Id */
+            payment_id?: string | null;
+            /** Reward Amount */
+            reward_amount: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /** Reward Status */
+            reward_status: string;
+            /** Hold Until */
+            hold_until?: string | null;
+            /** Available At */
+            available_at?: string | null;
+            /** Reversed At */
+            reversed_at?: string | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -17512,6 +22301,36 @@ export interface components {
             total_earned: number;
             /** Commission Rate */
             commission_rate: number;
+            /**
+             * Pending Rewards Usd
+             * @default 0
+             */
+            pending_rewards_usd: number;
+            /**
+             * Available Rewards Usd
+             * @default 0
+             */
+            available_rewards_usd: number;
+            /**
+             * Reversed Rewards Usd
+             * @default 0
+             */
+            reversed_rewards_usd: number;
+            /**
+             * Monthly Cap Used Usd
+             * @default 0
+             */
+            monthly_cap_used_usd: number;
+            /**
+             * Lifetime Cap Used Usd
+             * @default 0
+             */
+            lifetime_cap_used_usd: number;
+            /**
+             * Qualifying Orders
+             * @default 0
+             */
+            qualifying_orders: number;
         };
         /** ReferralStatusResponse */
         ReferralStatusResponse: {
@@ -17519,6 +22338,10 @@ export interface components {
             enabled: boolean;
             /** Commission Rate */
             commission_rate: number;
+            /** Friend Discount Pct */
+            friend_discount_pct?: number | null;
+            /** Reward Hold Days */
+            reward_hold_days?: number | null;
         };
         /** RefundResponse */
         RefundResponse: {
@@ -18167,6 +22990,34 @@ export interface components {
             /** Response Due At */
             response_due_at?: string | null;
         };
+        /** RequestPartnerBotProvisioningRequest */
+        RequestPartnerBotProvisioningRequest: {
+            provisioning_path?: components["schemas"]["PartnerBotProvisioningPath"] | null;
+            /** Request Payload */
+            request_payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /** RequestPartnerWorkspaceResellerVoucherBatchRequest */
+        RequestPartnerWorkspaceResellerVoucherBatchRequest: {
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Count */
+            count: number;
+            /** Recipient Hint */
+            recipient_hint?: string | null;
+            /** Gift Message */
+            gift_message?: string | null;
+        };
+        /** RequestPartnerWorkspaceResellerVoucherBatchResponse */
+        RequestPartnerWorkspaceResellerVoucherBatchResponse: {
+            batch: components["schemas"]["PartnerWorkspaceResellerVoucherBatchResponse"];
+            /** Issued Codes */
+            issued_codes?: string[];
+        };
         /**
          * ResendOtpRequest
          * @description Request to resend OTP code.
@@ -18335,6 +23186,57 @@ export interface components {
             effective_entitlements: {
                 [key: string]: unknown;
             };
+        };
+        /** ResolveGrowthCodeRequest */
+        ResolveGrowthCodeRequest: {
+            /** Code */
+            code: string;
+            action_context: components["schemas"]["GrowthCodeActionContext"];
+            /** Storefront Key */
+            storefront_key?: string | null;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Amount */
+            amount?: number | null;
+            /**
+             * Channel
+             * @default web
+             */
+            channel: string;
+            /**
+             * Existing Partner Code Present
+             * @default false
+             */
+            existing_partner_code_present: boolean;
+            /**
+             * Existing Promo Present
+             * @default false
+             */
+            existing_promo_present: boolean;
+        };
+        /** ResolveGrowthCodeResponse */
+        ResolveGrowthCodeResponse: {
+            /** Accepted */
+            accepted: boolean;
+            code_type?: components["schemas"]["GrowthCodeType"] | null;
+            action_context: components["schemas"]["GrowthCodeActionContext"];
+            result: components["schemas"]["GrowthCodeResolutionStatus"];
+            reject_reason?: components["schemas"]["GrowthCodeRejectReason"] | null;
+            /** Conflict Code */
+            conflict_code?: string | null;
+            wrong_context_target?: components["schemas"]["GrowthCodeWrongContextTarget"] | null;
+            /** Issuer Type */
+            issuer_type?: string | null;
+            /** Owner Type */
+            owner_type?: string | null;
+            /** Resolved Code Id */
+            resolved_code_id?: string | null;
+            /** Promo Code Id */
+            promo_code_id?: string | null;
+            /** Partner Code Id */
+            partner_code_id?: string | null;
+            /** User Message Key */
+            user_message_key: string;
         };
         /** ResolveRenewalOrderRequest */
         ResolveRenewalOrderRequest: {
@@ -18584,6 +23486,13 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** RotatePartnerBotTokenRequest */
+        RotatePartnerBotTokenRequest: {
+            /** Request Payload */
+            request_payload?: {
+                [key: string]: unknown;
+            };
         };
         /** RotatePartnerWorkspaceIntegrationCredentialRequest */
         RotatePartnerWorkspaceIntegrationCredentialRequest: {
@@ -19248,6 +24157,11 @@ export interface components {
              */
             templates?: components["schemas"]["RemnawaveSubscriptionResponse"][];
         };
+        /** SuspendPartnerBotRequest */
+        SuspendPartnerBotRequest: {
+            /** Reason Code */
+            reason_code?: string | null;
+        };
         /** SuspendPartnerPayoutAccountRequest */
         SuspendPartnerPayoutAccountRequest: {
             /** Reason Code */
@@ -19597,6 +24511,27 @@ export interface components {
             state: string;
         };
         /**
+         * TelegramLinkResponse
+         * @description Response schema for authenticated Telegram account linking.
+         */
+        TelegramLinkResponse: {
+            /**
+             * Linked
+             * @description Whether the Telegram account is linked
+             */
+            linked: boolean;
+            /**
+             * Provider
+             * @description External identity provider name
+             */
+            provider: string;
+            /**
+             * Telegram Username
+             * @description Telegram username, if available
+             */
+            telegram_username?: string | null;
+        };
+        /**
          * TelegramMagicLinkCompleteRequest
          * @description Trusted Telegram bot payload used to complete a magic-link session.
          */
@@ -19719,6 +24654,230 @@ export interface components {
             requires_2fa: boolean;
             /** Tfa Token */
             tfa_token?: string | null;
+        };
+        /**
+         * TelegramOIDCAuthRequest
+         * @description Request schema for Telegram OIDC ID token exchange.
+         *
+         *     Used by POST /api/v1/mobile/auth/telegram/oidc endpoint.
+         */
+        TelegramOIDCAuthRequest: {
+            /**
+             * Id Token
+             * @description Telegram OIDC ID token returned by the native SDK
+             */
+            id_token: string;
+            /** @description Device information for registration */
+            device: components["schemas"]["DeviceInfo"];
+        };
+        /**
+         * TelegramOIDCLinkRequest
+         * @description Request schema for authenticated Telegram account linking.
+         */
+        TelegramOIDCLinkRequest: {
+            /**
+             * Id Token
+             * @description Telegram OIDC ID token returned by the native SDK
+             */
+            id_token: string;
+        };
+        /**
+         * TelegramStarsConfirmRequest
+         * @description Authoritative payment confirmation payload from successful_payment.
+         */
+        TelegramStarsConfirmRequest: {
+            /** Telegram Id */
+            telegram_id: number;
+            /** Currency */
+            currency: string;
+            /** Total Amount */
+            total_amount: number;
+            /** Invoice Payload */
+            invoice_payload: string;
+            /** Telegram Payment Charge Id */
+            telegram_payment_charge_id: string;
+            /** Provider Payment Charge Id */
+            provider_payment_charge_id?: string | null;
+        };
+        /**
+         * TelegramStarsConfirmResponse
+         * @description Confirmation result for a Telegram Stars payment.
+         */
+        TelegramStarsConfirmResponse: {
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** Status */
+            status: string;
+            /** Provider */
+            provider: string;
+            /** External Id */
+            external_id?: string | null;
+            /** Amount */
+            amount: number;
+            /** Currency */
+            currency: string;
+            /**
+             * Already Processed
+             * @default false
+             */
+            already_processed: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * TelegramStarsInvoiceCreateRequest
+         * @description Internal Telegram Stars invoice request.
+         */
+        TelegramStarsInvoiceCreateRequest: {
+            /**
+             * Plan Id
+             * Format: uuid
+             * @description Subscription plan UUID
+             */
+            plan_id: string;
+            /** Addons */
+            addons?: components["schemas"]["CheckoutAddonRequest"][];
+            /** Promo Code */
+            promo_code?: string | null;
+            /**
+             * Use Wallet
+             * @default 0
+             */
+            use_wallet: number;
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Payment Method
+             * @default cryptobot
+             */
+            payment_method: string;
+            /** Telegram Id */
+            telegram_id: number;
+            /** Telegram Stars Amount */
+            telegram_stars_amount: number;
+        };
+        /**
+         * TelegramStarsInvoiceResponse
+         * @description Bot-facing invoice parameters for Telegram Stars.
+         */
+        TelegramStarsInvoiceResponse: {
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /** Invoice Payload */
+            invoice_payload: string;
+            /**
+             * Amount
+             * @description Telegram Stars amount in XTR minor units
+             */
+            amount: number;
+            /**
+             * Currency
+             * @default XTR
+             */
+            currency: string;
+            /**
+             * Status
+             * @default pending
+             */
+            status: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /**
+         * TelegramStarsPreCheckoutRequest
+         * @description Validation payload received from pre_checkout_query.
+         */
+        TelegramStarsPreCheckoutRequest: {
+            /** Telegram Id */
+            telegram_id: number;
+            /** Currency */
+            currency: string;
+            /** Total Amount */
+            total_amount: number;
+            /** Invoice Payload */
+            invoice_payload: string;
+        };
+        /**
+         * TelegramStarsPreCheckoutResponse
+         * @description Validation result for answering Telegram pre-checkout queries.
+         */
+        TelegramStarsPreCheckoutResponse: {
+            /** Ok */
+            ok: boolean;
+            /** Payment Id */
+            payment_id?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+        };
+        /**
+         * TelegramStarsRefundReconciliationRequest
+         * @description Provider-state reconciliation payload for Telegram Stars refunds.
+         */
+        TelegramStarsRefundReconciliationRequest: {
+            /** Telegram Id */
+            telegram_id: number;
+            /** Telegram Payment Charge Id */
+            telegram_payment_charge_id: string;
+            /** Transaction Id */
+            transaction_id: string;
+            /**
+             * Amount
+             * @description Telegram Stars amount in XTR minor units
+             */
+            amount: number;
+            /** Refunded At */
+            refunded_at?: string | null;
+            /** Invoice Payload */
+            invoice_payload?: string | null;
+            /** Raw Transaction */
+            raw_transaction?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * TelegramStarsRefundReconciliationResponse
+         * @description Backend reconciliation result for Telegram Stars refund sync.
+         */
+        TelegramStarsRefundReconciliationResponse: {
+            /** Action */
+            action: string;
+            /** Payment Id */
+            payment_id?: string | null;
+            /** Refund Id */
+            refund_id?: string | null;
+            /** Refund Status */
+            refund_status?: string | null;
+            /**
+             * Already Reconciled
+             * @default false
+             */
+            already_reconciled: boolean;
         };
         /**
          * TelegramUserResponse
@@ -20227,6 +25386,58 @@ export interface components {
             sale_channels?: string[] | null;
             /** Is Active */
             is_active?: boolean | null;
+        };
+        /** UpdateAdminMiniAppLaunchReadinessConfigRequest */
+        UpdateAdminMiniAppLaunchReadinessConfigRequest: {
+            /** Observability Acknowledged */
+            observability_acknowledged: boolean;
+            /** Incident Runbook Acknowledged */
+            incident_runbook_acknowledged: boolean;
+            /** Checkout Canary Passed */
+            checkout_canary_passed: boolean;
+            /** Config Delivery Canary Passed */
+            config_delivery_canary_passed: boolean;
+            /** Rollback Drill Acknowledged */
+            rollback_drill_acknowledged: boolean;
+            /** Support Window Confirmed */
+            support_window_confirmed: boolean;
+            /** Customer Comms Ready */
+            customer_comms_ready: boolean;
+            /** Status Page Template Ready */
+            status_page_template_ready: boolean;
+            /** Incident Channel */
+            incident_channel?: string | null;
+            /** Rollback Commander */
+            rollback_commander?: string | null;
+            /** Primary Oncall Contact */
+            primary_oncall_contact?: string | null;
+            /** Release Window Note */
+            release_window_note?: string | null;
+            /** Change Reason */
+            change_reason?: string | null;
+        };
+        /** UpdateAdminMiniAppRuntimeConfigRequest */
+        UpdateAdminMiniAppRuntimeConfigRequest: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Mode
+             * @default live
+             * @enum {string}
+             */
+            mode: "live" | "canary" | "maintenance" | "rollback";
+            /** Trial Enabled */
+            trial_enabled: boolean;
+            /** Checkout Enabled */
+            checkout_enabled: boolean;
+            /** Config Enabled */
+            config_enabled: boolean;
+            /** Maintenance Message */
+            maintenance_message?: string | null;
+            /** Canary Telegram User Ids */
+            canary_telegram_user_ids?: number[];
+            /** Change Reason */
+            change_reason?: string | null;
         };
         /**
          * UpdateHostRequest
@@ -20906,6 +26117,45 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * DeviceSessionResponse
+         * @description Response schema for active device session (BF2-4).
+         */
+        src__presentation__api__v1__auth__schemas__DeviceSessionResponse: {
+            /**
+             * Device Id
+             * @description Unique device identifier
+             */
+            device_id?: string | null;
+            /**
+             * Ip Address
+             * @description Last known IP address
+             */
+            ip_address?: string | null;
+            /**
+             * User Agent
+             * @description Browser/device user agent string
+             */
+            user_agent?: string | null;
+            /**
+             * Last Used At
+             * Format: date-time
+             * @description Last time this session was used
+             */
+            last_used_at: string;
+            /**
+             * Created At
+             * Format: date-time
+             * @description When this session was created
+             */
+            created_at: string;
+            /**
+             * Is Current
+             * @description Whether this is the current session
+             * @default false
+             */
+            is_current: boolean;
+        };
         /** LoginRequest */
         src__presentation__api__v1__auth__schemas__LoginRequest: {
             /** Login Or Email */
@@ -20979,6 +26229,48 @@ export interface components {
             principal_type?: string | null;
             /** Scope Family */
             scope_family?: string | null;
+        };
+        /**
+         * DeviceSessionResponse
+         * @description Response schema for mobile device/session listing.
+         */
+        src__presentation__api__v1__mobile_auth__schemas__DeviceSessionResponse: {
+            /**
+             * Id
+             * @description Stable device/session identifier
+             */
+            id: string;
+            /**
+             * Name
+             * @description Human-readable device name
+             */
+            name: string;
+            /**
+             * Platform
+             * @description Platform identifier shown in the mobile UI
+             */
+            platform: string;
+            /**
+             * Ip Address
+             * @description Last known IP address, if available
+             */
+            ip_address?: string | null;
+            /**
+             * Last Active At
+             * @description Last activity timestamp
+             */
+            last_active_at?: string | null;
+            /**
+             * Created At
+             * @description Device registration timestamp
+             */
+            created_at?: string | null;
+            /**
+             * Is Current
+             * @description Whether this is the current device
+             * @default false
+             */
+            is_current: boolean;
         };
         /**
          * LoginRequest
@@ -21135,10 +26427,32 @@ export interface components {
              */
             telegram_username?: string | null;
             /**
+             * Is Email Verified
+             * @description Whether the current email credential is considered verified in mobile auth
+             * @default false
+             */
+            is_email_verified: boolean;
+            /**
+             * Is 2Fa Enabled
+             * @description Whether mobile TOTP protection is enabled
+             * @default false
+             */
+            is_2fa_enabled: boolean;
+            /**
+             * Linked Providers
+             * @description Linked external identity providers exposed to the mobile app
+             */
+            linked_providers?: string[];
+            /**
              * Created At
              * @description Account creation timestamp
              */
             created_at?: string | null;
+            /**
+             * Last Login At
+             * @description Last successful login timestamp
+             */
+            last_login_at?: string | null;
             /** @description Subscription information (included in mobile responses) */
             subscription?: components["schemas"]["SubscriptionInfo"] | null;
         };
@@ -22311,6 +27625,91 @@ export interface operations {
             };
         };
     };
+    list_devices_api_v1_mobile_auth_devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["src__presentation__api__v1__mobile_auth__schemas__DeviceSessionResponse"][];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    remove_device_api_v1_mobile_auth_devices__device_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     register_device_api_v1_mobile_auth_device_post: {
         parameters: {
             query?: never;
@@ -22334,6 +27733,57 @@ export interface operations {
                 };
             };
             /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_mobile_2fa_api_v1_mobile_auth_2fa_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileTwoFactorCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Pending mobile login completed after TOTP verification */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Invalid TOTP verification code */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Invalid or expired pending 2FA session */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -22409,6 +27859,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    telegram_oidc_api_v1_mobile_auth_telegram_oidc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramOIDCAuthRequest"];
+            };
+        };
+        responses: {
+            /** @description Existing user authenticated via Telegram OIDC */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description New user created and authenticated via Telegram OIDC */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Telegram OIDC token is invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Telegram OIDC provider is temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    telegram_oidc_link_api_v1_mobile_auth_telegram_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramOIDCLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Telegram identity linked to the current mobile user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramLinkResponse"];
+                };
+            };
+            /** @description Not authenticated or Telegram ID token is invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Current mobile user not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Telegram identity is already linked to another account */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Telegram OIDC provider is temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    telegram_oidc_unlink_api_v1_mobile_auth_telegram_link_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Telegram identity unlinked from the current mobile user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramLinkResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Current mobile user not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
                 };
             };
         };
@@ -26203,6 +31820,393 @@ export interface operations {
             };
         };
     };
+    list_growth_notifications_api_v1_growth_notifications_get: {
+        parameters: {
+            query?: {
+                /** @description Include archived notification records */
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationFeedItemResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_notification_counters_api_v1_growth_notifications_counters_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationCountersResponse"];
+                };
+            };
+        };
+    };
+    get_growth_notification_preferences_api_v1_growth_notifications_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationPreferencesResponse"];
+                };
+            };
+        };
+    };
+    update_growth_notification_preferences_api_v1_growth_notifications_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrowthNotificationPreferencesUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationPreferencesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_growth_notification_read_api_v1_growth_notifications__notification_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationReadStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_growth_notification_api_v1_growth_notifications__notification_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationReadStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_notification_detail_api_v1_growth_notifications__notification_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_growth_notification_recovery_api_v1_growth_notifications__notification_id__recovery_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrowthNotificationRecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_growth_notification_support_escalation_api_v1_growth_notifications__notification_id__support_escalation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrowthNotificationSupportEscalationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthNotificationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quote_gift_purchase_api_v1_gifts_purchase_quote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftPurchaseQuoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftPurchaseQuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_gift_purchase_api_v1_gifts_purchase_commit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftPurchaseCommitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftPurchaseCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_gifts_api_v1_gifts_my_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftCodeResponse"][];
+                };
+            };
+        };
+    };
+    redeem_gift_api_v1_gifts_redeem_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftRedeemRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftRedeemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     resolve_renewal_order_api_v1_renewal_orders_resolve_post: {
         parameters: {
             query?: never;
@@ -28028,6 +34032,312 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarningHoldResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_partner_bots_api_v1_partner_bots__get: {
+        parameters: {
+            query: {
+                partner_account_id: string;
+                bot_status?: components["schemas"]["PartnerBotStatus"] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_partner_bot_api_v1_partner_bots__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerBotRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_bot_api_v1_partner_bots__partner_bot_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_bot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_partner_bot_provisioning_api_v1_partner_bots__partner_bot_id__provision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_bot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestPartnerBotProvisioningRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suspend_partner_bot_api_v1_partner_bots__partner_bot_id__suspend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_bot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspendPartnerBotRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_partner_bot_api_v1_partner_bots__partner_bot_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_bot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_partner_bot_token_api_v1_partner_bots__partner_bot_id__rotate_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_bot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RotatePartnerBotTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_partner_bot_provisioning_job_api_v1_partner_bots_internal_provisioning_jobs_claim_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimPartnerBotProvisioningJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimPartnerBotProvisioningJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_partner_bot_provisioning_job_api_v1_partner_bots_internal_provisioning_jobs__partner_bot_provisioning_job_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                partner_bot_provisioning_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizePartnerBotProvisioningJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerBotResponse"];
                 };
             };
             /** @description Validation Error */
@@ -30745,6 +37055,39 @@ export interface operations {
             };
         };
     };
+    commit_telegram_stars_checkout_api_v1_payments_checkout_telegram_stars_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutQuoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     checkout_alias_api_v1_payments_checkout_post: {
         parameters: {
             query?: never;
@@ -30765,6 +37108,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_payment_status_api_v1_payments__payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -31003,6 +37377,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InviteCodeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_growth_code_api_v1_codes_resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveGrowthCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolveGrowthCodeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -31315,6 +37722,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferralCommissionResponse"][];
+                };
+            };
+        };
+    };
+    get_referral_rewards_api_v1_referral_rewards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralRewardResponse"][];
                 };
             };
         };
@@ -32913,6 +39340,72 @@ export interface operations {
             };
         };
     };
+    list_partner_workspace_reseller_voucher_batches_api_v1_partner_workspaces__workspace_id__reseller_voucher_batches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspaceResellerVoucherBatchResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_partner_workspace_reseller_voucher_batch_api_v1_partner_workspaces__workspace_id__reseller_voucher_batches_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestPartnerWorkspaceResellerVoucherBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestPartnerWorkspaceResellerVoucherBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_partner_workspace_statements_api_v1_partner_workspaces__workspace_id__statements_get: {
         parameters: {
             query?: {
@@ -33960,6 +40453,195 @@ export interface operations {
             };
         };
     };
+    get_miniapp_bootstrap_api_v1_miniapp_bootstrap_get: {
+        parameters: {
+            query?: {
+                locale?: string;
+                startParam?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MiniAppBootstrapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_miniapp_offers_api_v1_miniapp_offers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MiniAppOffersResponse"];
+                };
+            };
+        };
+    };
+    activate_miniapp_trial_api_v1_miniapp_trial_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialActivateResponse"];
+                };
+            };
+        };
+    };
+    quote_miniapp_checkout_api_v1_miniapp_checkout_quote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MiniAppCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutQuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    commit_miniapp_checkout_api_v1_miniapp_checkout_commit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MiniAppCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_miniapp_payment_status_api_v1_miniapp_payments__payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_miniapp_config_api_v1_miniapp_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MiniAppConfigResponse"];
+                };
+            };
+        };
+    };
     get_status_api_v1_status_get: {
         parameters: {
             query?: never;
@@ -34099,6 +40781,310 @@ export interface operations {
             };
         };
     };
+    ingest_frontend_runtime_event_api_v1_monitoring_frontend_runtime_events_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Frontend-Observability-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontendRuntimeEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontendRuntimeEventAck"];
+                };
+            };
+            /** @description Internal secret missing or invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_frontend_web_vital_api_v1_monitoring_frontend_web_vitals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Frontend-Observability-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontendWebVitalEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontendWebVitalEventAck"];
+                };
+            };
+            /** @description Internal secret missing or invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_network_overview_api_v1_public_network_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkOverviewResponse"];
+                };
+            };
+        };
+    };
+    get_public_network_regions_api_v1_public_network_regions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkRegionsResponse"];
+                };
+            };
+        };
+    };
+    get_public_network_region_api_v1_public_network_regions__region_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                region_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkRegionDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_network_leaderboard_api_v1_public_network_leaderboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkLeaderboardResponse"];
+                };
+            };
+        };
+    };
+    get_public_network_uptime_api_v1_public_network_uptime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkUptimeResponse"];
+                };
+            };
+        };
+    };
+    get_public_network_incidents_api_v1_public_network_incidents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkIncidentsResponse"];
+                };
+            };
+        };
+    };
+    get_public_network_widget_api_v1_public_network_widget_get: {
+        parameters: {
+            query?: {
+                locale?: string;
+                themeVariant?: "cyber" | "matrix" | "graphite";
+                widgetType?: "network_card" | "uptime_badge" | "speed_badge";
+                regionId?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkWidgetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_network_dpi_score_api_v1_public_network_dpi_score_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkDpiScoreResponse-Output"];
+                };
+            };
+        };
+    };
+    publish_public_network_dpi_score_api_v1_public_network_internal_dpi_score_publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicNetworkDpiScorePublishRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicNetworkDpiScorePublishResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_audit_logs_api_v1_admin_audit_log_get: {
         parameters: {
             query?: {
@@ -34154,6 +41140,196 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebhookLogResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_miniapp_runtime_config_api_v1_admin_system_config_miniapp_runtime_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppRuntimeConfigResponse"];
+                };
+            };
+        };
+    };
+    update_admin_miniapp_runtime_config_api_v1_admin_system_config_miniapp_runtime_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminMiniAppRuntimeConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppRuntimeConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_miniapp_launch_readiness_config_api_v1_admin_system_config_miniapp_launch_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppLaunchReadinessConfigResponse"];
+                };
+            };
+        };
+    };
+    update_admin_miniapp_launch_readiness_config_api_v1_admin_system_config_miniapp_launch_readiness_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminMiniAppLaunchReadinessConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppLaunchReadinessConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_miniapp_launch_summary_api_v1_admin_system_config_miniapp_launch_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppLaunchSummaryResponse"];
+                };
+            };
+        };
+    };
+    get_admin_miniapp_launch_timeline_api_v1_admin_system_config_miniapp_launch_timeline_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppLaunchTimelineEntryResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    execute_admin_miniapp_launch_action_api_v1_admin_system_config_miniapp_launch_actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExecuteAdminMiniAppLaunchActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMiniAppLaunchSummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -34269,6 +41445,611 @@ export interface operations {
             };
         };
     };
+    get_growth_signals_overview_api_v1_admin_growth_signals_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthSignalsOverviewResponse"];
+                };
+            };
+        };
+    };
+    list_growth_abuse_signals_api_v1_admin_growth_signals_abuse_queue_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthAbuseSignalsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_reporting_overview_api_v1_admin_growth_reporting_overview_get: {
+        parameters: {
+            query?: {
+                window_days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingOverviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_reporting_governance_overview_api_v1_admin_growth_reporting_governance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingGovernanceOverviewResponse"];
+                };
+            };
+        };
+    };
+    list_growth_reporting_subscriptions_api_v1_admin_growth_reporting_subscriptions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingSubscriptionsResponse"];
+                };
+            };
+        };
+    };
+    create_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateGrowthReportingSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions__subscription_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateGrowthReportingSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions__subscription_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateGrowthReportingSubscriptionStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_growth_reporting_subscription_api_v1_admin_growth_reporting_subscriptions__subscription_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateGrowthReportingSubscriptionStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_growth_reporting_governance_followup_api_v1_admin_growth_reporting_subscriptions__subscription_id__follow_up__action__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+                action: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUpdateGrowthReportingGovernanceFollowupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_reporting_deliveries_api_v1_admin_growth_reporting_deliveries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingDeliveriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_growth_reporting_api_v1_admin_growth_reporting_refresh_post: {
+        parameters: {
+            query?: {
+                window_days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_refresh_growth_reporting_api_v1_admin_growth_reporting_internal_refresh_post: {
+        parameters: {
+            query?: {
+                window_days?: number;
+            };
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingRefreshResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_process_growth_reporting_governance_followups_api_v1_admin_growth_reporting_internal_governance_followups_process_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalProcessGrowthReportingGovernanceFollowupsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_growth_reporting_overview_api_v1_admin_growth_reporting_export_get: {
+        parameters: {
+            query?: {
+                window_days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_growth_reporting_governance_snapshot_api_v1_admin_growth_reporting_governance_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingGovernanceExportResponse"];
+                };
+            };
+        };
+    };
+    export_growth_reporting_delivery_artifact_api_v1_admin_growth_reporting_deliveries__delivery_id__artifact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingDeliveryArtifactExportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_claim_growth_reporting_deliveries_api_v1_admin_growth_reporting_internal_deliveries_claim_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalClaimGrowthReportingDeliveriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_complete_growth_reporting_delivery_api_v1_admin_growth_reporting_internal_deliveries__delivery_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalCompleteGrowthReportingDeliveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthReportingDeliveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    internal_cleanup_growth_reporting_artifacts_api_v1_admin_growth_reporting_internal_cleanup_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalCleanupGrowthReportingArtifactsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_referral_user_detail_api_v1_admin_referrals_users__user_id__get: {
         parameters: {
             query?: never;
@@ -34352,6 +42133,409 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPartnerDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_growth_code_api_v1_admin_growth_codes_lookup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthCodeLookupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthCodeLookupResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_growth_notification_deliveries_api_v1_admin_growth_notification_deliveries_get: {
+        parameters: {
+            query?: {
+                mobile_user_id?: string | null;
+                delivery_channel?: string | null;
+                delivery_status?: string | null;
+                source_kind?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminListGrowthNotificationDeliveriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_manual_growth_notification_api_v1_admin_growth_notification_deliveries_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminManualGrowthNotificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminManualGrowthNotificationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthNotificationDeliveryActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthNotificationDeliveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthNotificationDeliveryActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthNotificationDeliveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthNotificationDeliveryActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthNotificationDeliveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_growth_notification_delivery_api_v1_admin_growth_notification_deliveries__delivery_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrowthNotificationDeliveryActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthNotificationDeliveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_growth_notification_delivery_detail_api_v1_admin_growth_notification_deliveries__delivery_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrowthNotificationDeliveryDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_growth_notification_delivery_detail_api_v1_admin_growth_notification_deliveries__delivery_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_gift_codes_api_v1_admin_gift_codes_get: {
+        parameters: {
+            query?: {
+                owner_user_id?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminListGiftCodesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_gift_code_api_v1_admin_gift_codes_issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIssueGiftCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIssueGiftCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_gift_code_batch_api_v1_admin_gift_code_batches_issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIssueGiftCodeBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminIssueGiftCodeBatchResponse"];
                 };
             };
             /** @description Validation Error */
@@ -35571,6 +43755,183 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_telegram_stars_invoice_api_v1_telegram_payments_stars_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramStarsInvoiceCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStarsInvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_telegram_stars_pre_checkout_api_v1_telegram_payments__payment_id__pre_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramStarsPreCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStarsPreCheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_telegram_stars_payment_api_v1_telegram_payments__payment_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramStarsConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStarsConfirmResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconcile_telegram_stars_refund_api_v1_telegram_payments_stars_reconcile_refund_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramStarsRefundReconciliationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramStarsRefundReconciliationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_telegram_payment_status_api_v1_telegram_payments__payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotPaymentStatusResponse"];
                 };
             };
             /** @description Validation Error */

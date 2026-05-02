@@ -27,5 +27,151 @@
     "totalUsers": "Total Users",
     "totalNodes": "Total Nodes",
     "lifetimeTraffic": "Lifetime Traffic",
-    "countries": "Countries"
+    "countries": "Countries",
+    "cabinet": {
+        "eyebrow": "PRIVATE ACCESS COCKPIT",
+        "title": "CyberVPN Personal Cabinet",
+        "subtitle": "A customer-first control room for your plan, VPN readiness, traffic, wallet, rewards, notifications, and security posture.",
+        "statusLabel": "ACCOUNT CHANNEL:",
+        "statusValue": "ENCRYPTED",
+        "connectionStatus": "PRIVATE ACCESS READY",
+        "encryptionStatus": "SESSION: HTTPONLY COOKIE",
+        "anonymousUser": "CyberVPN user",
+        "pendingProvisioning": "Pending provisioning",
+        "noActivePlan": "No active plan",
+        "unknownDate": "Date unavailable",
+        "metricUnavailable": "Data is temporarily unavailable",
+        "retry": "Retry",
+        "unavailable": "Unavailable",
+        "unlimited": "Unlimited",
+        "sync": {
+            "title": "Backend sync state",
+            "status": {
+                "live": "LIVE SYNC",
+                "loading": "SYNCING",
+                "degraded": "PARTIAL DATA"
+            },
+            "clean": "All cabinet resources are responding.",
+            "loading": "{count} cabinet resources are still loading.",
+            "issues": "{count} cabinet resources need retry.",
+            "lastSynced": "Last synced: {value}",
+            "neverSynced": "No backend snapshot has been loaded yet.",
+            "retryAll": "Retry all"
+        },
+        "health": {
+            "healthy": {
+                "title": "Healthy",
+                "description": "Your account has an active service state and no urgent customer actions."
+            },
+            "attention": {
+                "title": "Needs attention",
+                "description": "One or more account signals need review: provisioning, traffic, expiry, or notifications."
+            },
+            "critical": {
+                "title": "Action required",
+                "description": "Your VPN access may be expired, blocked, or near a usage limit. Review the next actions before connecting."
+            }
+        },
+        "hero": {
+            "eyebrow": "Authenticated account",
+            "plan": "Plan",
+            "renewal": "Renewal",
+            "status": "Health"
+        },
+        "actions": {
+            "managePlan": "Manage plan",
+            "managePlanDescription": "Renew, upgrade, or review active limits.",
+            "getConfig": "Get VPN access",
+            "getConfigDescription": "Open servers and import connection profiles.",
+            "finishProvisioning": "Finish VPN setup",
+            "finishProvisioningDescription": "Provision the missing access channel or credential.",
+            "reviewNotifications": "Review alerts",
+            "reviewNotificationsDescription": "Open action-required delivery and reward updates.",
+            "secureAccount": "Secure account",
+            "secureAccountDescription": "Review 2FA, devices, and anti-phishing.",
+            "startTrial": "Start trial",
+            "startTrialDescription": "Activate your eligible trial before choosing a plan.",
+            "watchTraffic": "Review traffic",
+            "watchTrafficDescription": "Check usage before the current period closes.",
+            "invite": "Invite friends",
+            "inviteDescription": "Share rewards and track pending payouts."
+        },
+        "metrics": {
+            "traffic": {
+                "title": "Traffic",
+                "meta": "Limit: {limit}",
+                "empty": "Usage snapshot is not loaded yet",
+                "unmetered": "Current plan has no traffic cap",
+                "percentage": "{percentage}% of traffic limit used"
+            },
+            "devices": {
+                "title": "Connections",
+                "meta": "Active sessions against plan limit",
+                "metaWithLimit": "Device entitlement: {limit}"
+            },
+            "wallet": {
+                "title": "Wallet",
+                "meta": "Frozen balance: {frozen}",
+                "empty": "Wallet snapshot is not loaded yet"
+            },
+            "notifications": {
+                "title": "Inbox",
+                "meta": "{actionRequired} action required from {total} total",
+                "empty": "Notification counters are not loaded yet"
+            }
+        },
+        "readiness": {
+            "eyebrow": "VPN readiness",
+            "title": "Connection delivery state",
+            "description": "This panel checks whether your subscription, provisioning profile, device credential, and access channel line up with the backend.",
+            "degraded": "DEGRADED",
+            "channel": "Access channel",
+            "profile": "Provisioning profile",
+            "credential": "Credential",
+            "lastConnection": "Last connection",
+            "noConnectionYet": "No connection yet"
+        },
+        "plan": {
+            "eyebrow": "Entitlements",
+            "title": "Plan capabilities",
+            "traffic": "Traffic policy",
+            "security": "Connection modes",
+            "support": "Support lane",
+            "defaultSecurity": "Standard encrypted tunnels",
+            "standardSupport": "Standard support",
+            "trialActive": "Trial is active. {days} days remaining."
+        },
+        "notifications": {
+            "eyebrow": "Customer notifications",
+            "title": "Latest account signals",
+            "description": "Recent delivery, rewards, payment, and admin updates from the backend notification system.",
+            "refresh": "Refresh inbox",
+            "empty": "No visible customer notifications right now.",
+            "errorTitle": "Notification stream unavailable",
+            "errorDescription": "The dashboard is still usable. Retry the notification stream or continue to settings and payments.",
+            "actionRequired": "Action required",
+            "unread": "Unread"
+        },
+        "rewards": {
+            "eyebrow": "Growth rewards",
+            "title": "Referral earnings",
+            "referrals": "Referrals",
+            "totalReferrals": "Total invited customers",
+            "available": "Available",
+            "availableMeta": "Ready for wallet usage",
+            "pending": "Pending",
+            "pendingMeta": "Held until reward release"
+        },
+        "security": {
+            "eyebrow": "Privacy and security",
+            "title": "Account protection checklist",
+            "items": {
+                "cookieSession": "Web auth uses httpOnly cookies; tokens are not exposed to browser JavaScript.",
+                "twoFactor": "Enable or review two-factor authentication in settings.",
+                "antiPhishing": "Set an anti-phishing code before trusting operational emails.",
+                "notifications": "Keep critical delivery and payment notifications enabled."
+            },
+            "cta": "Open security settings"
+        }
+    }
 }

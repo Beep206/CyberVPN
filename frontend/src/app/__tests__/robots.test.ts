@@ -10,7 +10,7 @@ function asArray(value: string | string[] | undefined): string[] {
 describe('robots', () => {
   it('points to the canonical sitemap and blocks private/test routes across locales', () => {
     const policy = robots();
-    const [rule] = policy.rules;
+    const [rule] = Array.isArray(policy.rules) ? policy.rules : [policy.rules];
     const disallow = asArray(rule.disallow);
 
     expect(policy.sitemap).toBe(`${SITE_URL}/sitemap.xml`);

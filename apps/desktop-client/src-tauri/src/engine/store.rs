@@ -43,8 +43,12 @@ pub struct AppDataStore {
     // Phase 28 features
     #[serde(default)]
     pub smart_connect_enabled: bool,
+    #[serde(default = "default_stealth_auto_pilot_mode")]
+    pub stealth_auto_pilot_mode: String,
     #[serde(default)]
     pub network_rules: HashMap<String, NetworkProfile>,
+    #[serde(default)]
+    pub last_stealth_rollback: Option<crate::engine::sys::diagnostics::StealthRollbackSnapshot>,
     #[serde(default)]
     pub helix_backend_url: Option<String>,
     #[serde(default)]
@@ -79,6 +83,10 @@ fn default_active_core() -> String {
     "sing-box".to_string()
 }
 
+fn default_stealth_auto_pilot_mode() -> String {
+    "recommend-only".to_string()
+}
+
 impl Default for AppDataStore {
     fn default() -> Self {
         Self {
@@ -98,7 +106,9 @@ impl Default for AppDataStore {
             pqc_enforcement_mode: false,
             privacy_shield_level: default_privacy_shield_level(),
             smart_connect_enabled: false,
+            stealth_auto_pilot_mode: default_stealth_auto_pilot_mode(),
             network_rules: HashMap::new(),
+            last_stealth_rollback: None,
             helix_backend_url: None,
             helix_desktop_client_id: None,
             helix_last_manifest: None,

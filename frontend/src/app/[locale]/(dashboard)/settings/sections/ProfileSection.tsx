@@ -28,7 +28,7 @@ export function ProfileSection() {
   };
 
   return (
-    <section>
+    <section id="profile-contact">
       <h2 className="text-xl font-display text-neon-purple mb-4 pl-2 border-l-4 border-neon-purple">
         {t('profile') || 'Profile'}
       </h2>

@@ -347,6 +347,152 @@
     "activeConnections": "Active Connections",
     "activeSessions": "ACTIVE SESSIONS",
     "aggregateThroughput": "Aggregate throughput",
+    "cabinet": {
+      "actions": {
+        "finishProvisioning": "Finish VPN setup",
+        "finishProvisioningDescription": "Provision the missing access channel or credential.",
+        "getConfig": "Get VPN access",
+        "getConfigDescription": "Open servers and import connection profiles.",
+        "invite": "Invite friends",
+        "inviteDescription": "Share rewards and track pending payouts.",
+        "managePlan": "Manage plan",
+        "managePlanDescription": "Renew, upgrade, or review active limits.",
+        "reviewNotifications": "Review alerts",
+        "reviewNotificationsDescription": "Open action-required delivery and reward updates.",
+        "secureAccount": "Secure account",
+        "secureAccountDescription": "Review 2FA, devices, and anti-phishing.",
+        "startTrial": "Start trial",
+        "startTrialDescription": "Activate your eligible trial before choosing a plan.",
+        "watchTraffic": "Review traffic",
+        "watchTrafficDescription": "Check usage before the current period closes."
+      },
+      "anonymousUser": "CyberVPN user",
+      "connectionStatus": "PRIVATE ACCESS READY",
+      "encryptionStatus": "SESSION: HTTPONLY COOKIE",
+      "eyebrow": "PRIVATE ACCESS COCKPIT",
+      "health": {
+        "attention": {
+          "description": "One or more account signals need review: provisioning, traffic, expiry, or notifications.",
+          "title": "Needs attention"
+        },
+        "critical": {
+          "description": "Your VPN access may be expired, blocked, or near a usage limit. Review the next actions before connecting.",
+          "title": "Action required"
+        },
+        "healthy": {
+          "description": "Your account has an active service state and no urgent customer actions.",
+          "title": "Healthy"
+        }
+      },
+      "hero": {
+        "eyebrow": "Authenticated account",
+        "plan": "Plan",
+        "renewal": "Renewal",
+        "status": "Health"
+      },
+      "metrics": {
+        "devices": {
+          "meta": "Active sessions against plan limit",
+          "metaWithLimit": "Device entitlement: {limit}",
+          "title": "Connections"
+        },
+        "notifications": {
+          "empty": "Notification counters are not loaded yet",
+          "meta": "{actionRequired} action required from {total} total",
+          "title": "Inbox"
+        },
+        "traffic": {
+          "empty": "Usage snapshot is not loaded yet",
+          "meta": "Limit: {limit}",
+          "percentage": "{percentage}% of traffic limit used",
+          "title": "Traffic",
+          "unmetered": "Current plan has no traffic cap"
+        },
+        "wallet": {
+          "empty": "Wallet snapshot is not loaded yet",
+          "meta": "Frozen balance: {frozen}",
+          "title": "Wallet"
+        }
+      },
+      "metricUnavailable": "Data is temporarily unavailable",
+      "noActivePlan": "No active plan",
+      "notifications": {
+        "actionRequired": "Action required",
+        "description": "Recent delivery, rewards, payment, and admin updates from the backend notification system.",
+        "empty": "No visible customer notifications right now.",
+        "errorDescription": "The dashboard is still usable. Retry the notification stream or continue to settings and payments.",
+        "errorTitle": "Notification stream unavailable",
+        "eyebrow": "Customer notifications",
+        "refresh": "Refresh inbox",
+        "title": "Latest account signals",
+        "unread": "Unread"
+      },
+      "pendingProvisioning": "Pending provisioning",
+      "plan": {
+        "defaultSecurity": "Standard encrypted tunnels",
+        "eyebrow": "Entitlements",
+        "security": "Connection modes",
+        "standardSupport": "Standard support",
+        "support": "Support lane",
+        "title": "Plan capabilities",
+        "traffic": "Traffic policy",
+        "trialActive": "Trial is active. {days} days remaining."
+      },
+      "readiness": {
+        "channel": "Access channel",
+        "credential": "Credential",
+        "degraded": "DEGRADED",
+        "description": "This panel checks whether your subscription, provisioning profile, device credential, and access channel line up with the backend.",
+        "eyebrow": "VPN readiness",
+        "lastConnection": "Last connection",
+        "noConnectionYet": "No connection yet",
+        "profile": "Provisioning profile",
+        "title": "Connection delivery state"
+      },
+      "retry": "Retry",
+      "rewards": {
+        "available": "Available",
+        "availableMeta": "Ready for wallet usage",
+        "eyebrow": "Growth rewards",
+        "pending": "Pending",
+        "pendingMeta": "Held until reward release",
+        "referrals": "Referrals",
+        "title": "Referral earnings",
+        "totalReferrals": "Total invited customers"
+      },
+      "security": {
+        "cta": "Open security settings",
+        "eyebrow": "Privacy and security",
+        "items": {
+          "antiPhishing": "Set an anti-phishing code before trusting operational emails.",
+          "cookieSession": "Web auth uses httpOnly cookies; tokens are not exposed to browser JavaScript.",
+          "notifications": "Keep critical delivery and payment notifications enabled.",
+          "twoFactor": "Enable or review two-factor authentication in settings."
+        },
+        "title": "Account protection checklist"
+      },
+      "statusLabel": "ACCOUNT CHANNEL:",
+      "statusValue": "ENCRYPTED",
+      "subtitle": "A customer-first control room for your plan, VPN readiness, traffic, wallet, rewards, notifications, and security posture.",
+      "sync": {
+        "clean": "All cabinet resources are responding.",
+        "issues": "{count} cabinet resources need retry.",
+        "lastSynced": "Last synced: {value}",
+        "loading": "{count} cabinet resources are still loading.",
+        "neverSynced": "No backend snapshot has been loaded yet.",
+        "retryAll": "Retry all",
+        "status": {
+          "degraded": "PARTIAL DATA",
+          "live": "LIVE SYNC",
+          "loading": "SYNCING"
+        },
+        "title": "Backend sync state"
+      },
+      "title": "CyberVPN Personal Cabinet",
+      "unavailable": "Unavailable",
+      "unknownDate": "Date unavailable",
+      "unlimited": "Unlimited"
+    },
     "connectionStatus": "SECURE CONNECTION ESTABLISHED",
     "countries": "Countries",
     "currentConnections": "Current connections",
@@ -889,6 +1035,7 @@
       "daysRemaining": "Days Remaining",
       "expires": "Expires",
       "lastConnected": "Last Connected",
+      "limitedRolloutDescription": "Mini App is currently in limited canary rollout. Access is restricted to approved Telegram users.",
       "never": "Never",
       "noConfigAvailable": "No VPN config available",
       "noConfigDescription": "Activate a subscription to get your VPN configuration",
@@ -897,6 +1044,9 @@
       "openInApp": "Open in App",
       "plan": "Plan",
       "quickActions": "Quick Actions",
+      "rollbackDescription": "Mini App trial and checkout are temporarily paused while rollback is in progress.",
+      "serviceMaintenanceDescription": "Mini App is temporarily in maintenance mode. Some actions may be unavailable.",
+      "serviceMaintenanceTitle": "Service Notice",
       "settings": "Settings",
       "subscriptionActive": "Subscription Active",
       "trafficLimit": "Traffic",
@@ -945,9 +1095,13 @@
       "addonsTitle": "Add-ons",
       "addonsUpgradeLocked": "Upgrade first, then attach add-ons. The current API treats upgrade and add-on purchase as two clean operations.",
       "addonUnavailable": "This add-on is not available on the selected plan.",
-      "apply": "Apply",
+      "apply": "Apply code",
       "availablePlans": "Choose Your Plan",
       "catalogHint": "Public catalog only: Basic, Plus, Pro, Max. Hidden plans stay hidden unless the backend exposes them intentionally.",
+      "checkoutCodeAccepted": "Checkout code accepted: {code}",
+      "checkoutCodeAcceptedReferral": "Referral friend discount accepted for this checkout.",
+      "checkoutCodeEmpty": "Enter a checkout code first.",
+      "checkoutTemporarilyUnavailable": "Checkout is temporarily unavailable. Please try again later.",
       "currentPlanExpiry": "Expires at: {date}",
       "currentPlanNoExpiry": "No expiry date available",
       "currentPlanSelected": "You already have this plan. Add extras or switch to another term to continue.",
@@ -970,13 +1124,14 @@
       "freeTrialDescription": "One device, shared pool only, no dedicated IP, no premium nodes. Clean enough to evaluate the product without breaking anti-fraud economics.",
       "freeTrialTitle": "7-Day Trial",
       "haveInviteCode": "Have an Invite Code?",
-      "havePromoCode": "Have a Promo Code?",
+      "havePromoCode": "Have a Checkout Code?",
       "inviteCodeNote": "Invite redemption stays separate from the paid checkout flow.",
       "inviteCodePlaceholder": "INVITE123",
       "inviteInvalid": "Invalid or already used invite code",
       "inviteRedeemed": "Invite code redeemed. Reward: {reward}",
       "inviteRewardDays": "{count} free days",
       "inviteRewardDefault": "bonus unlocked",
+      "limitedRolloutDescription": "Mini App is currently in limited canary rollout. Access is restricted to approved Telegram users.",
       "noPlans": "No plans available at the moment",
       "paymentCancelled": "Payment was cancelled.",
       "paymentError": "Payment failed. Please try again.",
@@ -994,8 +1149,8 @@
       "periodSelectorTitle": "Choose period",
       "planDevices": "{count} devices",
       "processing": "Processing...",
-      "promoApplied": "Promo applied: {code}",
-      "promoCodePlaceholder": "PROMO2026",
+      "promoApplied": "Checkout code applied: {code}",
+      "promoCodePlaceholder": "SAVE20",
       "purchaseCompleted": "The operation was completed successfully.",
       "quote": {
         "addonAmount": "Add-ons",
@@ -1016,10 +1171,14 @@
       "quoteSubtitle": "The snapshot below is the source of truth for what the user will receive after purchase.",
       "quoteTitle": "Quote & entitlements",
       "redeem": "Redeem",
+      "rollbackDescription": "Mini App trial and checkout are temporarily paused while rollback is in progress.",
+      "runtimeTemporarilyUnavailable": "Mini App is temporarily unavailable. Please try again later.",
       "selectPlanToQuote": "Choose a plan and period to calculate the quote.",
+      "serviceMaintenanceTitle": "Service Notice",
       "trialActivated": "Trial activated. You now have 7 days of entry access.",
       "trialError": "Failed to activate trial. Please try again.",
-      "trialLabel": "Trial"
+      "trialLabel": "Trial",
+      "trialTemporarilyUnavailable": "Trial activation is temporarily unavailable. Please try again later."
     },
     "profile": {
       "accountDeleted": "Account deleted successfully",
@@ -1115,27 +1274,147 @@
       "yourReferralCode": "Your Referral Code"
     },
     "referral": {
-      "commissionAmount": "Amount",
-      "commissionDate": "Date",
-      "commissionFrom": "From",
-      "copied": "Code copied to clipboard!",
-      "howItWorks": "How It Works",
-      "noCommissions": "No commissions yet",
-      "qrCodeTitle": "QR Code",
-      "recentCommissions": "Recent Commissions",
-      "referralRate": "Commission Rate",
-      "scanToJoin": "Scan to join with your code",
-      "shareCode": "Share Code",
-      "shareText": "Join CyberVPN with my referral code: {code} and get started today!",
-      "shareTitle": "Share & Earn",
-      "stats": "Your Stats",
-      "step1": "Share your unique code",
-      "step2": "Friends sign up with your code",
-      "step3": "Earn commission on their purchases",
-      "title": "Referral Program",
-      "totalEarned": "Total Earned",
-      "totalReferrals": "Total Referrals",
-      "yourCode": "Your Referral Code"
+      "activityBase": "Based on {amount} at {rate}%",
+      "activityReward": "Reward entry {amount}",
+      "activitySubtitle": "Current backend contract still reports referral activity as reward entries tied to your account.",
+      "activityTitle": "Recent referral activity",
+      "copied": "Copied",
+      "copyCode": "Copy code",
+      "copyFailed": "Failed to copy code.",
+      "giftCreated": "Created {date}",
+      "giftPlan": "{plan} · {days} days",
+      "giftPurchase": {
+        "action": "Create gift checkout",
+        "errors": {
+          "default": "Failed to create gift checkout.",
+          "planRequired": "Choose a plan before creating a gift checkout."
+        },
+        "messageLabel": "Gift message",
+        "messagePlaceholder": "Optional note for the recipient",
+        "planLabel": "Gift plan",
+        "planPlaceholder": "Select a plan",
+        "processing": "Preparing gift checkout...",
+        "recipientHintLabel": "Recipient hint",
+        "recipientHintPlaceholder": "friend@example.com or note",
+        "subtitle": "Create a gift checkout inside Telegram without mixing it into referral or promo pricing.",
+        "successIssued": "Gift issued successfully. Share this code: {code}",
+        "successPaymentPending": "Gift checkout created. Complete payment in Telegram.",
+        "successQueued": "Gift checkout created successfully.",
+        "title": "Buy Gift VPN"
+      },
+      "giftRecipient": "Recipient {recipient}",
+      "giftRecipientFallback": "not specified",
+      "giftRedeemed": "Redeemed {date}",
+      "giftsSubtitle": "Purchased or issued gift codes you can share from Telegram.",
+      "giftStatus": {
+        "active": "Active",
+        "expired": "Expired",
+        "redeemed": "Redeemed",
+        "revoked": "Revoked"
+      },
+      "giftsTitle": "My gifts",
+      "hubEyebrow": "SHARE & TRACK",
+      "inviteCreated": "Issued {date}",
+      "inviteDays": "{days} free days",
+      "inviteExpires": "Expires {date}",
+      "invitesSubtitle": "Invite codes already issued to your account.",
+      "inviteStatus": {
+        "active": "Active",
+        "expired": "Expired",
+        "used": "Used"
+      },
+      "invitesTitle": "My invites",
+      "noActivity": "No referral activity yet.",
+      "noGifts": "No gift codes available yet.",
+      "noInvites": "No invite codes available yet.",
+      "notifications": {
+        "actionRequired": "Action required",
+        "archive": "Archive",
+        "archived": "Archived",
+        "copySupportSummary": "Copy support summary",
+        "counters": {
+          "actionRequired": "Action {count}",
+          "total": "Total {count}",
+          "unread": "Unread {count}"
+        },
+        "deliveryCompletedAt": "Completed {date}",
+        "deliveryHistoryTitle": "Delivery history",
+        "deliveryPlannedAt": "Planned {date}",
+        "detailsButton": "Details",
+        "detailsEmpty": "Select a notification to inspect delivery details.",
+        "detailsLoading": "Loading delivery details...",
+        "detailsTitle": "Delivery details",
+        "emailSupport": "Email support",
+        "empty": "No growth notifications are visible right now.",
+        "loading": "Loading growth notifications...",
+        "markRead": "Mark read",
+        "noDeliveryHistory": "No delivery history is attached to this notification.",
+        "openHelpCenter": "Open help center",
+        "openingSupport": "Opening support...",
+        "openPreferences": "Open preferences",
+        "openSupportTicket": "Open support ticket",
+        "openTelegramLinking": "Link Telegram",
+        "openTelegramSupport": "Open Telegram support",
+        "requestRetry": "Request another send",
+        "retrying": "Requesting...",
+        "reviewProfile": "Review profile",
+        "showActive": "Show active",
+        "showArchived": "Show archived",
+        "subtitle": "Durable updates for invites, referral rewards, and gift codes.",
+        "supportActionHint": "If the automated recovery path is blocked, use the guided repair or support flow below.",
+        "supportTitle": "Support handoff",
+        "title": "Growth notifications",
+        "unread": "Unread"
+      },
+      "overview": {
+        "activeInvites": "Active invites",
+        "activeInvitesHint": "Unused invite codes ready to share.",
+        "currentRate": "Current rate",
+        "currentRateHint": "Program rate returned by the current referral contract.",
+        "totalReferrals": "Total referrals",
+        "totalReferralsHint": "Accounts attributed to your current referral program.",
+        "totalRewards": "Rewards earned",
+        "totalRewardsHint": "Current backend reward total for this account."
+      },
+      "preferences": {
+        "categories": {
+          "adminUpdates": "Admin updates",
+          "gifts": "Gift codes",
+          "invites": "Invites",
+          "referralRewards": "Referral rewards"
+        },
+        "channels": {
+          "email": "Email",
+          "inApp": "In-app",
+          "telegram": "Telegram"
+        },
+        "note": "In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.",
+        "saving": "Saving...",
+        "subtitle": "Choose which growth events stay in-app, email, or Telegram.",
+        "title": "Delivery preferences"
+      },
+      "programUnavailable": "The referral program is temporarily unavailable. Existing invites remain visible here, but new referral actions may be paused until the program is restored.",
+      "promoNoteBody": "Promo and referral discounts stay in checkout, not in this screen. This hub only handles sharing, tracking, and invite or gift redemption.",
+      "promoNoteTitle": "Checkout policy",
+      "qrCodeHint": "Scan to open CyberVPN in Telegram with your referral code prefilled.",
+      "qrCodeTitle": "Telegram QR",
+      "redeemButton": "Redeem code",
+      "redeemErrors": {
+        "empty": "Enter a code first."
+      },
+      "redeeming": "Redeeming...",
+      "redeemInputLabel": "Invite or gift code",
+      "redeemPlaceholder": "ENTER-CODE",
+      "redeemSubtitle": "Invite and gift codes redeem here. Promo discounts and referral friend discounts apply later in checkout.",
+      "redeemSuccessGift": "Gift redeemed. Added {plan} for {days} days to your account.",
+      "redeemSuccessInvite": "Invite redeemed. Added {days} free days to your account.",
+      "redeemTitle": "Redeem a code",
+      "shareCode": "Share link",
+      "shareDescription": "Keep referral sharing, invite and gift redemption, and issued code tracking in one place. Promo discounts still belong in checkout.",
+      "shareText": "Join CyberVPN with my referral code: {code}",
+      "shareTitle": "Share your referral code",
+      "title": "Rewards Hub",
+      "yourCode": "Your referral code"
     },
     "wallet": {
       "amount": "Amount",
@@ -1176,30 +1455,99 @@
   },
   "Navigation": {
     "analytics": "NET OP",
-    "billing": "BILLING",
+    "billing": "SUBSCRIPTION",
     "closeMenu": "Close menu",
-    "dashboard": "DASHBOARD",
+    "dashboard": "CABINET",
     "mainNavigation": "Main navigation",
     "openMenu": "Open menu",
     "partner": "PARTNER",
     "paymentHistory": "PAYMENTS",
-    "referral": "REFERRAL",
+    "referral": "REWARDS",
     "security": "SECURITY",
-    "servers": "SERVERS",
+    "servers": "NETWORK",
     "settings": "CONFIG",
     "sidebar": "Sidebar",
     "users": "CLIENTS",
     "wallet": "WALLET"
   },
   "Network": {
-    "description": "5000+ RAM-only nodes deployed across structurally secure jurisdictions. Real-time telemetry routing for zero latency.",
+    "actions": {
+      "dpiResistance": "DPI resistance brief"
+    },
+    "description": "Public network overview with current reach, utilization, and service health derived from sanitized telemetry.",
+    "dpi": {
+      "cards": {
+        "confidence": "Confidence",
+        "countriesTracked": "Countries tracked",
+        "measurementWindow": "Measurement window",
+        "methodology": "Methodology"
+      },
+      "confidenceValues": {
+        "high": "HIGH",
+        "low": "LOW",
+        "medium": "MEDIUM"
+      },
+      "description": "A careful public surface for restrictive-network resilience. This page only publishes a score when there is enough fresh probe signal to support it.",
+      "disabledState": "Public DPI scoring remains gated until enough real probe signal exists across recent measurement windows.",
+      "enabledState": "Fresh enough probe coverage is available, so country-level DPI score output can be published.",
+      "error": "The DPI resistance contract is currently unavailable.",
+      "eyebrow": "CYBERVPN DPI RESISTANCE",
+      "gating": {
+        "eyebrow": "PUBLIC RELEASE GATE"
+      },
+      "guardrails": {
+        "eyebrow": "TRUTHFULNESS POLICY",
+        "items": {
+          "conditionsChange": "Restrictive-country conditions can change quickly and confidence must reflect that.",
+          "directional": "Any published score is directional evidence, not a guarantee.",
+          "noInternals": "No anti-blocking internals, probe identities, or sensitive topology.",
+          "noMagic": "No decorative public score without enough real probes."
+        },
+        "title": "What this page will not fake"
+      },
+      "lastUpdated": "Last updated {value}",
+      "links": {
+        "eyebrow": "NEXT SURFACES",
+        "guide": "Read the DPI bypass guide",
+        "network": "Open full network map"
+      },
+      "loading": "Loading DPI resistance readiness...",
+      "methodology": {
+        "eyebrow": "SIGNAL MODEL",
+        "items": {
+          "baseline": "HTTPS/SNI application baseline where TLS-capable surfaces exist.",
+          "connection": "Connection success rate under restrictive conditions.",
+          "freshness": "Freshness, sample count, and directional confidence before publication.",
+          "handshake": "Median handshake latency for supported protocols.",
+          "survival": "Session survival and reconnect stability after establishment."
+        },
+        "title": "What the public score must eventually reflect"
+      },
+      "publishedCountries": {
+        "baseline": "Baseline",
+        "handshake": "Handshake",
+        "score": "Connect",
+        "title": "Published country scores",
+        "updated": "Updated {value}"
+      },
+      "reasonCodes": {
+        "public_dpi_not_enabled": "Awaiting sufficient fresh probe signal",
+        "public_dpi_probe_dimensions_insufficient": "Real probes are flowing, but the signal dimensions are still too narrow for a publishable public score.",
+        "public_dpi_probe_pipeline_not_enabled": "The public DPI pipeline is wired, but probe publication is not active yet.",
+        "public_dpi_probe_source_unavailable": "Probe collection is temporarily degraded, so the public DPI surface remains gated.",
+        "public_dpi_probe_targets_unavailable": "Probe targets are currently unavailable for a trustworthy country-level snapshot.",
+        "public_network_regions_unavailable": "Regional network data is temporarily unavailable for the DPI surface."
+      },
+      "title": "DPI Resistance Score",
+      "windowValue": "{hours}h window"
+    },
     "labels": {
-      "activeNodes": "Active Nodes",
+      "activeNodes": "Online Servers",
       "encryption": "AES-256-GCM",
       "latency": "AVG PING: 12ms",
       "status": "STATUS: ONLINE",
-      "threatsIntercepted": "Threats Blocked",
-      "totalBandwidth": "Core Bandwidth"
+      "threatsIntercepted": "Live Users",
+      "totalBandwidth": "Monthly Traffic"
     },
     "metrics": {
       "bandwidth": "100+ Gbps",
@@ -1221,7 +1569,35 @@
       "6": "São Paulo, BR",
       "7": "Sydney, AU"
     },
-    "title": "Global Infrastructure"
+    "title": "Global Infrastructure",
+    "widget": {
+      "actions": {
+        "fullMap": "Open full map",
+        "statusPage": "Status page"
+      },
+      "description": "Sanitized live network proof for partner embeds, sales pages, and trust surfaces.",
+      "error": "The widget couldn't load the public network snapshot.",
+      "eyebrow": "CYBERVPN PUBLIC NETWORK PROOF",
+      "focusRegion": "Focused region",
+      "freshness": "Updated {value}",
+      "incidents": "Incidents: {value}",
+      "loading": "Loading public network widget...",
+      "metrics": {
+        "availability": "Availability",
+        "liveUsers": "Live users",
+        "monthlyTraffic": "Monthly traffic",
+        "onlineServers": "Online servers"
+      },
+      "regionServers": "Online servers: {value}",
+      "regionUsers": "Live users: {value}",
+      "statusValues": {
+        "degraded": "DEGRADED",
+        "major_outage": "MAJOR OUTAGE",
+        "online": "ONLINE"
+      },
+      "title": "Network Widget",
+      "topRegions": "Top regions"
+    }
   },
   "Partner": {
     "pageDescription": "Manage your partner codes and track earnings",
@@ -1230,10 +1606,65 @@
     "title": "PARTNER DASHBOARD"
   },
   "PaymentHistory": {
-    "history": "Payment History",
-    "noPayments": "No payment history yet",
-    "subtitle": "View all your payment transactions",
-    "title": "PAYMENT HISTORY"
+    "actions": {
+      "next": "Next",
+      "previous": "Previous",
+      "refresh": "Refresh"
+    },
+    "errors": {
+      "partialDescription": "Payment history and commerce orders load independently, so one degraded backend dependency does not blank the page.",
+      "partialTitle": "Payment data is partially unavailable"
+    },
+    "hero": {
+      "completed": "Completed payments",
+      "eyebrow": "Billing timeline",
+      "failed": "{count} failed",
+      "pending": "{count} pending",
+      "subscription": "Subscription",
+      "wallet": "Open wallet"
+    },
+    "labels": {
+      "notAvailable": "Not available"
+    },
+    "subtitle": "Receipts, gateway attempts, wallet-covered amounts and retry actions for unfinished orders.",
+    "summary": {
+      "ariaLabel": "Payment summary",
+      "completed": "Completed",
+      "gateway": "Gateway amount",
+      "pending": "Pending events",
+      "walletApplied": "Wallet applied"
+    },
+    "support": {
+      "cta": "Open settings",
+      "description": "Keep the payment or order ID visible when contacting support. We avoid exposing raw provider payloads in the customer UI.",
+      "eyebrow": "Receipt support",
+      "title": "Need a receipt or dispute review?"
+    },
+    "timeline": {
+      "description": "A merged view of canonical payment records and commerce orders. Order rows expose wallet and gateway split without leaking provider internals.",
+      "empty": "No billing events match this filter.",
+      "eyebrow": "Receipts and orders",
+      "filters": {
+        "all": "All",
+        "ariaLabel": "Payment timeline filters",
+        "completed": "Completed",
+        "failed": "Failed",
+        "pending": "Pending",
+        "refunded": "Refunded"
+      },
+      "kind": {
+        "order": "Order",
+        "payment": "Payment"
+      },
+      "orderSplit": "Gateway {gateway} / wallet {wallet}",
+      "page": "Payment page {page}",
+      "paymentSuffix": "payment",
+      "retry": "Retry payment",
+      "retryError": "Payment retry failed. Refresh the page or contact support if the order remains pending.",
+      "retrying": "Retrying",
+      "title": "Payment timeline"
+    },
+    "title": "PAYMENTS"
   },
   "Placeholder": {
     "descriptionLine1": "This cyber-deck module is currently under development.",
@@ -1509,18 +1940,254 @@
     "title": "Privacy Policy"
   },
   "Referral": {
-    "commissionRate": "Commission Rate",
+    "activityBase": "Based on {amount} at {rate}%",
+    "activityReward": "Reward entry {amount}",
+    "activitySubtitle": "Current backend contract still reports referral activity as reward entries tied to the active program.",
+    "activityTitle": "Recent referral activity",
+    "cabinet": {
+      "actions": {
+        "refresh": "Refresh"
+      },
+      "activity": {
+        "commission": "Referral commission",
+        "empty": "No referral reward activity yet.",
+        "eyebrow": "Recent activity",
+        "holdUntil": "Hold until {date}",
+        "reward": "Reward allocation",
+        "title": "Rewards timeline"
+      },
+      "caps": {
+        "description": "Soft progress bars help users understand reward velocity without exposing fraud or risk engine internals.",
+        "eyebrow": "Risk and cap signals",
+        "lifetime": "Lifetime usage",
+        "monthly": "Monthly usage",
+        "title": "Cap usage"
+      },
+      "errors": {
+        "partialDescription": "The cockpit keeps available sections visible while the unavailable growth endpoint recovers.",
+        "partialTitle": "Referral data is partially unavailable"
+      },
+      "health": {
+        "active": "Ready to share",
+        "disabled": "Paused",
+        "earning": "Rewards active",
+        "review": "Hold review"
+      },
+      "hero": {
+        "disabledHint": "The program is paused by backend policy. Existing rewards remain visible for traceability.",
+        "enabledHint": "Current backend rate: {rate}. Reward eligibility and stacking are always decided server-side.",
+        "eyebrow": "Customer growth cockpit",
+        "health": "Program health",
+        "payments": "Payment history",
+        "wallet": "Open wallet"
+      },
+      "labels": {
+        "notAvailable": "Not available"
+      },
+      "lifecycle": {
+        "blocked": "{count} blocked",
+        "description": "Rewards move through backend-owned states. Pending rewards are on hold; available rewards are usable according to account policy.",
+        "eyebrow": "Reward lifecycle",
+        "status": {
+          "available": "Available",
+          "blocked_by_risk": "Blocked",
+          "expired": "Expired",
+          "pending": "Pending",
+          "reversed": "Reversed"
+        },
+        "title": "Canonical reward states"
+      },
+      "notifications": {
+        "actionRequired": "{count} action required",
+        "description": "Referral rewards and invite updates are surfaced through durable growth notifications.",
+        "empty": "No referral notifications are visible right now.",
+        "eyebrow": "Delivery health",
+        "read": "Read",
+        "required": "Action",
+        "title": "Growth notifications",
+        "unread": "Unread"
+      },
+      "rules": {
+        "eyebrow": "Policy guardrails",
+        "items": {
+          "backendTruth": {
+            "description": "The UI shows decisions returned by backend contracts and does not compute reward eligibility or stacking locally.",
+            "title": "Backend is the source of truth"
+          },
+          "holdWindow": {
+            "description": "Backend reports the current reward hold window as {days} days. Pending rewards can still be reversed by policy.",
+            "title": "Hold window is explicit"
+          },
+          "nonWithdrawable": {
+            "description": "Referral rewards are presented as customer growth rewards, not partner payouts or withdrawable earnings.",
+            "title": "Referral rewards are growth credits"
+          },
+          "partnerHidden": {
+            "description": "Partner commissions, reseller tools, payout statements and traffic controls are intentionally not exposed here.",
+            "title": "Partner mechanics stay out"
+          }
+        },
+        "title": "What this page will not guess"
+      },
+      "share": {
+        "active": "Active",
+        "codeLabel": "Referral code",
+        "copied": "Copied",
+        "copyCode": "Copy code",
+        "copyLink": "Copy link",
+        "copyShareText": "Copy message",
+        "description": "Share the link or code with friends. The frontend never decides discount eligibility; checkout and redeem flows ask the backend.",
+        "eyebrow": "Share link",
+        "message": "Join CyberVPN with my referral code {code}: {link}",
+        "paused": "Paused",
+        "title": "Your referral code"
+      },
+      "subtitle": "Share your code, track canonical reward lifecycle, and keep customer growth separate from partner mechanics.",
+      "summary": {
+        "ariaLabel": "Referral rewards summary",
+        "available": "Available rewards",
+        "pending": "Pending rewards",
+        "qualifyingOrders": "Qualifying orders",
+        "referrals": "Referrals"
+      },
+      "title": "REFERRAL REWARDS"
+    },
     "copied": "Copied!",
-    "copy": "Copy",
-    "noCommissions": "No commissions yet",
-    "recentCommissions": "Recent Commissions",
-    "shareDescription": "Share this code with friends to earn commissions on their subscriptions",
-    "startReferring": "Start referring friends to earn commissions!",
-    "subtitle": "Earn commissions by referring friends",
-    "title": "REFERRAL PROGRAM",
-    "totalEarnings": "Total Earnings",
-    "totalReferrals": "Total Referrals",
-    "yourCode": "Your Referral Code"
+    "copyCode": "Copy code",
+    "giftCreated": "Created {date}",
+    "giftPlan": "{plan} · {days} days",
+    "giftPurchase": {
+      "action": "Create gift checkout",
+      "errors": {
+        "default": "Failed to create gift checkout.",
+        "planRequired": "Choose a plan before creating a gift checkout."
+      },
+      "messageLabel": "Gift message",
+      "messagePlaceholder": "Optional note for the recipient",
+      "planLabel": "Gift plan",
+      "planPlaceholder": "Select a plan",
+      "processing": "Preparing gift checkout...",
+      "recipientHintLabel": "Recipient hint",
+      "recipientHintPlaceholder": "friend@example.com or internal note",
+      "subtitle": "Create a gift checkout for a friend without mixing it into referral or promo pricing.",
+      "successIssued": "Gift issued successfully. Share this code: {code}",
+      "successPaymentPending": "Gift checkout created. Complete payment in the opened window.",
+      "successQueued": "Gift checkout created successfully.",
+      "title": "Buy Gift VPN"
+    },
+    "giftRecipient": "Recipient {recipient}",
+    "giftRecipientFallback": "not specified",
+    "giftRedeemed": "Redeemed {date}",
+    "giftsSubtitle": "Purchased or issued gift codes that you can share or track.",
+    "giftStatus": {
+      "active": "Active",
+      "expired": "Expired",
+      "redeemed": "Redeemed",
+      "revoked": "Revoked"
+    },
+    "giftsTitle": "My gifts",
+    "hubEyebrow": "SHARE & TRACK",
+    "inviteCreated": "Issued {date}",
+    "inviteDays": "{days} free days",
+    "inviteExpires": "Expires {date}",
+    "invitesSubtitle": "Codes issued to your account and their current availability.",
+    "inviteStatus": {
+      "active": "Active",
+      "expired": "Expired",
+      "used": "Used"
+    },
+    "invitesTitle": "My invites",
+    "noActivity": "No referral activity yet.",
+    "noGifts": "No gift codes available yet.",
+    "noInvites": "No invite codes available yet.",
+    "notifications": {
+      "actionRequired": "Action required",
+      "archive": "Archive",
+      "archived": "Archived",
+      "copySupportSummary": "Copy support summary",
+      "counters": {
+        "actionRequired": "Action {count}",
+        "total": "Total {count}",
+        "unread": "Unread {count}"
+      },
+      "deliveryCompletedAt": "Completed {date}",
+      "deliveryHistoryTitle": "Delivery history",
+      "deliveryPlannedAt": "Planned {date}",
+      "detailsButton": "Details",
+      "detailsEmpty": "Select a notification to inspect delivery details.",
+      "detailsLoading": "Loading delivery details...",
+      "detailsTitle": "Delivery details",
+      "emailSupport": "Email support",
+      "empty": "No growth notifications are visible right now.",
+      "loading": "Loading growth notifications...",
+      "markRead": "Mark read",
+      "noDeliveryHistory": "No delivery history is attached to this notification.",
+      "openHelpCenter": "Open help center",
+      "openingSupport": "Opening support...",
+      "openPreferences": "Open preferences",
+      "openSupportTicket": "Open support ticket",
+      "openTelegramLinking": "Link Telegram",
+      "openTelegramSupport": "Open Telegram support",
+      "requestRetry": "Request another send",
+      "retrying": "Requesting...",
+      "reviewProfile": "Review profile",
+      "showActive": "Show active",
+      "showArchived": "Show archived",
+      "subtitle": "Durable updates for invites, referral rewards, and gift codes.",
+      "supportActionHint": "If the automated recovery path is blocked, use the guided repair or support flow below.",
+      "supportTitle": "Support handoff",
+      "title": "Growth notifications",
+      "unread": "Unread"
+    },
+    "overview": {
+      "activeInvites": "Active invites",
+      "activeInvitesHint": "Unused invite codes ready to share.",
+      "currentRate": "Current rate",
+      "currentRateHint": "Program rate returned by the current referral contract.",
+      "totalReferrals": "Total referrals",
+      "totalReferralsHint": "Accounts attributed to your current referral program.",
+      "totalRewards": "Rewards earned",
+      "totalRewardsHint": "Current backend reward total for this account."
+    },
+    "pageEyebrow": "CUSTOMER GROWTH",
+    "preferences": {
+      "categories": {
+        "adminUpdates": "Admin updates",
+        "gifts": "Gift codes",
+        "invites": "Invites",
+        "referralRewards": "Referral rewards"
+      },
+      "channels": {
+        "email": "Email",
+        "inApp": "In-app",
+        "telegram": "Telegram"
+      },
+      "note": "In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.",
+      "saving": "Saving...",
+      "subtitle": "Choose which growth events stay in-app, email, or Telegram.",
+      "title": "Delivery preferences"
+    },
+    "programUnavailable": "The referral program is temporarily unavailable. Your existing invites stay visible here, but new referral actions may be paused until the program is restored.",
+    "promoNoteBody": "Promo and referral discounts belong in checkout. This hub handles invite and gift redemption without creating a second pricing source of truth.",
+    "promoNoteTitle": "Checkout policy",
+    "redeemButton": "Redeem code",
+    "redeemErrors": {
+      "empty": "Enter a code first."
+    },
+    "redeeming": "Redeeming...",
+    "redeemInputLabel": "Invite or gift code",
+    "redeemPlaceholder": "ENTER-CODE",
+    "redeemSubtitle": "Invite and gift codes redeem here. Promo and referral discounts still apply later in checkout.",
+    "redeemSuccessGift": "Gift redeemed. Added {plan} for {days} days to your account.",
+    "redeemSuccessInvite": "Invite redeemed. Added {days} free days to your account.",
+    "redeemTitle": "Redeem a code",
+    "shareCode": "Share code",
+    "shareDescription": "Use your referral code with friends and keep invite access separate from checkout discounts.",
+    "shareMessage": "Join CyberVPN with my referral code: {code}",
+    "shareTitle": "Share your referral code",
+    "subtitle": "Manage invites, gift codes, referral sharing, and reward activity from one place.",
+    "title": "REWARDS HUB",
+    "yourCode": "Your code"
   },
   "Security": {
     "classified": {
@@ -1607,11 +2274,129 @@
     "xrayVersion": "XRAY VERSION"
   },
   "Servers": {
+    "actions": {
+      "managePlan": "Manage plan",
+      "openSettings": "Open settings"
+    },
+    "confidence": {
+      "high": "High",
+      "low": "Low",
+      "medium": "Medium"
+    },
+    "config": {
+      "copyConfig": "Copy raw config",
+      "copySubscription": "Copy subscription",
+      "description": "Use the subscription URL first. It keeps clients synced when routes, credentials, or stealth profiles rotate.",
+      "empty": {
+        "missing_config": "The backend has not returned a config yet. Retry after provisioning finishes or check the subscription state.",
+        "missing_profile": "Profile data is unavailable, so the user-scoped config cannot be requested.",
+        "missing_service": "Service access is not fully provisioned yet. Finish plan activation or device delivery first.",
+        "not_found": "The upstream subscription record was not found for this account.",
+        "ready": "Config is ready."
+      },
+      "eyebrow": "Import kit",
+      "openSubscription": "Open link",
+      "rawConfig": "Raw config",
+      "status": {
+        "missing_config": "Config pending",
+        "missing_profile": "Profile missing",
+        "missing_service": "Provisioning pending",
+        "not_found": "Not found",
+        "ready": "Ready to import"
+      },
+      "subscriptionUrl": "Subscription URL",
+      "title": "One-tap VPN import"
+    },
+    "copy": {
+      "config": "Raw config copied.",
+      "error": "Clipboard copy failed. Use the visible link manually.",
+      "subscription": "Subscription link copied.",
+      "unavailable": "Clipboard is unavailable in this browser."
+    },
+    "dpi": {
+      "confidence": "Confidence",
+      "countries": "Countries",
+      "description": "Current public resistance model: {version}. Use it as a signal, not a guarantee, because DPI conditions change by network.",
+      "empty": "DPI score is not available right now.",
+      "enabled": "Enabled",
+      "eyebrow": "DPI resistance",
+      "title": "Network resilience signal"
+    },
     "globalStatus": "GLOBAL STATUS: {status}",
     "globalStatusValue": "PROVISIONED",
+    "guide": {
+      "description": "The safe path is import, choose the recommended region, then verify the connection before switching sensitive traffic.",
+      "steps": {
+        "choose": {
+          "body": "Start with the recommended node. If speed drops, pick another online node with lower load.",
+          "title": "Choose region"
+        },
+        "import": {
+          "body": "Copy the subscription URL into your VPN client so future server and credential rotations stay automatic.",
+          "title": "Import config"
+        },
+        "verify": {
+          "body": "Reconnect and confirm the client shows an active tunnel before using private workflows.",
+          "title": "Verify tunnel"
+        }
+      },
+      "title": "Connection playbook"
+    },
+    "hero": {
+      "configStatus": "Config state",
+      "eyebrow": "Private access cockpit",
+      "serviceStatus": "Service delivery"
+    },
+    "labels": {
+      "auto": "AUTO",
+      "inbounds": "Inbounds",
+      "load": "Load",
+      "no": "No",
+      "nodeVersion": "Node",
+      "onlineUsers": "Online",
+      "traffic": "Traffic",
+      "unknown": "Unknown",
+      "yes": "Yes"
+    },
     "lastSync": "LAST SYNC: {time} AGO",
-    "subtitle": "Manage VPN nodes, protocols, and deployment regions.",
-    "title": "SERVER MANAGEMENT"
+    "recommended": {
+      "description": "Recommendation is based on online state, active connection, disabled flag, load, and traffic pressure.",
+      "empty": "No VPN nodes are available for recommendation.",
+      "eyebrow": "Recommended route",
+      "reasonFallback": "Fallback route",
+      "reasonReady": "Lowest friction",
+      "title": "Best node for this session"
+    },
+    "servers": {
+      "description": "Customer-safe node inventory. It exposes availability and import guidance, not operator controls.",
+      "empty": "No servers returned from the backend.",
+      "title": "Available private routes"
+    },
+    "status": {
+      "loading": "Loading",
+      "maintenance": "Maintenance",
+      "offline": "Offline",
+      "online": "Online",
+      "pending": "Pending",
+      "ready": "Ready",
+      "warning": "Warning"
+    },
+    "subtitle": "Choose a healthy location, import your config, and keep the private tunnel ready across all devices.",
+    "summary": {
+      "ariaLabel": "VPN server access summary",
+      "connected": "Connected",
+      "countries": "Regions",
+      "online": "Online nodes",
+      "protocols": "Protocols"
+    },
+    "sync": {
+      "degraded": "Degraded",
+      "lastSynced": "Last sync: {value}",
+      "live": "Live",
+      "neverSynced": "not synced yet",
+      "retry": "Refresh"
+    },
+    "title": "VPN ACCESS NODE"
   },
   "ServersTable": {
     "actions": {
@@ -1657,6 +2442,182 @@
   "Settings": {
     "antiphishing": "Antiphishing Code",
     "antiphishingDesc": "Protect yourself from phishing emails",
+    "cabinet": {
+      "actions": {
+        "copied": "Copied",
+        "copyId": "Copy ID",
+        "manage": "Manage",
+        "privacy": "Privacy flow",
+        "refresh": "Refresh",
+        "revoking": "Revoking...",
+        "saveProfile": "Save profile",
+        "saving": "Saving..."
+      },
+      "devices": {
+        "current": "Current",
+        "currentHint": "This session is protected from remote revoke controls.",
+        "description": "Review sessions and revoke stale devices without touching the current one.",
+        "empty": "No active devices found.",
+        "eyebrow": "Session perimeter",
+        "meta": "IP {ip} / last active {date} / id {id}",
+        "revoke": "Revoke",
+        "revokeDevice": "Revoke device",
+        "revokeOthers": "Revoke others",
+        "title": "Active devices"
+      },
+      "errors": {
+        "partialDescription": "The page stays usable, but refresh before making sensitive changes.",
+        "partialTitle": "Some settings failed to load"
+      },
+      "feedback": {
+        "copyFailed": "Clipboard is unavailable.",
+        "deviceFailed": "Device revoke failed.",
+        "deviceRevoked": "Device revoked.",
+        "devicesRevoked": "{count} devices revoked.",
+        "notificationsFailed": "Notification preferences failed to update.",
+        "profileFailed": "Profile update failed.",
+        "profileSaved": "Profile saved.",
+        "securityUpdated": "Security settings updated."
+      },
+      "hero": {
+        "eyebrow": "Identity / Security / Notifications",
+        "securityPosture": "Security posture",
+        "securityScore": "{score}% account hardening score"
+      },
+      "identity": {
+        "description": "Telegram remains the primary support and commerce identity where available.",
+        "eyebrow": "Linked identity",
+        "telegramLinked": "Telegram linked: {id}",
+        "telegramMissing": "Telegram is not linked to this account.",
+        "title": "External accounts"
+      },
+      "labels": {
+        "disabled": "Disabled",
+        "enabled": "Enabled",
+        "loading": "Loading",
+        "notAvailable": "n/a",
+        "notSet": "Not set",
+        "synced": "Synced"
+      },
+      "notifications": {
+        "core": {
+          "emailMarketing": {
+            "description": "Optional product and promotion messages.",
+            "title": "Email marketing"
+          },
+          "emailSecurity": {
+            "description": "Login, password, and account risk alerts.",
+            "title": "Email security alerts"
+          },
+          "pushConnection": {
+            "description": "Connection, disconnect, and service state notices.",
+            "title": "VPN connection push"
+          },
+          "pushPayment": {
+            "description": "Payment lifecycle and invoice confirmations.",
+            "title": "Payment push"
+          },
+          "pushSubscription": {
+            "description": "Renewal, expiry, and entitlement reminders.",
+            "title": "Subscription push"
+          },
+          "title": "Core account"
+        },
+        "description": "Core account notifications and growth notifications are separate backend preference sets.",
+        "eyebrow": "Routing matrix",
+        "growth": {
+          "adminUpdates": {
+            "description": "Operational growth announcements in Telegram.",
+            "title": "Telegram admin updates"
+          },
+          "emailGifts": {
+            "description": "Gift redemption and delivery status by email.",
+            "title": "Gift code email"
+          },
+          "emailRewards": {
+            "description": "Reward lifecycle changes by email.",
+            "title": "Referral reward email"
+          },
+          "inAppInvites": {
+            "description": "Invite and code events inside the cabinet.",
+            "title": "Invite in-app feed"
+          },
+          "telegramRewards": {
+            "description": "Reward lifecycle changes in Telegram.",
+            "title": "Referral reward Telegram"
+          },
+          "title": "Growth events"
+        },
+        "title": "Notification preferences"
+      },
+      "posture": {
+        "attention": "Needs attention",
+        "exposed": "Exposed",
+        "hardened": "Hardened"
+      },
+      "privacy": {
+        "eyebrow": "Privacy guardrails",
+        "items": {
+          "accountDeletion": {
+            "description": "Account deletion remains isolated in the dedicated privacy flow.",
+            "title": "Deletion path"
+          },
+          "noSecretTelemetry": {
+            "description": "Metrics mark actions only, never passwords, TOTP codes, IPs, or anti-phishing values.",
+            "title": "No secret telemetry"
+          },
+          "serverTruth": {
+            "description": "The page reflects API state and does not persist sensitive settings locally.",
+            "title": "Backend is source of truth"
+          },
+          "sessionRevocation": {
+            "description": "Device removal calls authenticated backend session revoke endpoints.",
+            "title": "Session revocation"
+          }
+        },
+        "title": "Data handling rules"
+      },
+      "profile": {
+        "accountId": "Account ID",
+        "description": "Keep editable profile fields aligned with the backend profile record. Email and account ID remain immutable here.",
+        "displayName": "Display name",
+        "displayNamePlaceholder": "Operator name",
+        "email": "Email",
+        "eyebrow": "Profile nucleus",
+        "language": "Language",
+        "timezone": "Timezone",
+        "title": "Account profile",
+        "updatedAt": "Updated {date}"
+      },
+      "security": {
+        "antiphishing": {
+          "disabled": "Set a private code that appears in legitimate emails.",
+          "enabled": "Email authenticity code is set: {code}",
+          "title": "Anti-phishing code"
+        },
+        "description": "Password, TOTP, and anti-phishing flows stay backend-owned and rate-limited.",
+        "eyebrow": "Sensitive controls",
+        "password": {
+          "description": "Change the password with current-password verification.",
+          "title": "Password"
+        },
+        "title": "Security console",
+        "twoFactor": {
+          "disabled": "Enable TOTP before increasing payment or device trust.",
+          "enabled": "TOTP is active for this account.",
+          "title": "Two-factor authentication"
+        }
+      },
+      "subtitle": "Profile, security, notification routing, active sessions, and privacy controls backed by live account APIs.",
+      "summary": {
+        "antiphishing": "Anti-phishing",
+        "ariaLabel": "Settings summary metrics",
+        "devices": "Sessions",
+        "notifications": "Channels on",
+        "twoFactor": "2FA"
+      },
+      "title": "SETTINGS CONTROL ROOM"
+    },
     "cancel": "Cancel",
     "change": "Change",
     "devices": "Active Devices",
@@ -1704,24 +2665,148 @@
     "title": "SYSTEM TELEMETRY"
   },
   "Subscriptions": {
+    "actions": {
+      "cancel": "Cancel renewal",
+      "getConfig": "Get VPN config",
+      "paymentHistory": "Payment history",
+      "wallet": "Wallet"
+    },
+    "addons": {
+      "description": "Add-ons are quoted against the current entitlement before purchase, so price and access deltas stay backend-authoritative.",
+      "empty": "No active add-ons are available for the current plan.",
+      "eyebrow": "Add-on catalog",
+      "purchase": {
+        "completed": "Add-on was applied to the subscription.",
+        "pending": "Add-on checkout created. Complete the invoice to activate it."
+      },
+      "purchaseCta": "Purchase",
+      "purchaseError": "Add-on purchase failed. Retry or contact support.",
+      "quote": "Quote",
+      "quoteError": "Add-on quote failed. Retry after refreshing the page.",
+      "quoteReady": "Quote ready: {amount}",
+      "title": "Extra capacity and access"
+    },
     "autoRenew": "Auto-Renew",
     "availablePlans": "Available Plans",
     "cancelSubscription": "Cancel Subscription",
+    "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
+    "checkoutCodesTitle": "Checkout codes",
     "choosePlanBelow": "Choose a plan below to get started",
     "codesAndRewards": "Codes & Rewards",
+    "current": {
+      "connectionModes": "Connection modes",
+      "description": "This is the backend entitlement currently controlling VPN access, device limits, traffic policy, and service delivery.",
+      "devices": "Devices",
+      "expiresAt": "Expires",
+      "eyebrow": "Current entitlement",
+      "noPlanDescription": "Choose a public plan or activate an eligible trial to provision VPN access.",
+      "noPlanTitle": "No active plan",
+      "subscriptionFallback": "subscription",
+      "support": "Support",
+      "traffic": "Traffic"
+    },
     "currentSubscription": "Current Subscription",
     "disabled": "Disabled",
     "enabled": "Enabled",
     "errorLoading": "Error loading subscriptions",
     "errorLoadingPlans": "Error loading plans",
     "expiresAt": "Expires",
+    "health": {
+      "attention": "Needs attention",
+      "critical": "Action required",
+      "healthy": "Healthy"
+    },
+    "hero": {
+      "eyebrow": "Plan and access cockpit",
+      "health": "Subscription health",
+      "service": "Provisioning"
+    },
+    "history": {
+      "empty": "No order history returned by the backend yet.",
+      "eyebrow": "Billing trail",
+      "title": "Recent subscription orders"
+    },
+    "labels": {
+      "noPlan": "No plan",
+      "notAvailable": "N/A"
+    },
+    "nextActions": {
+      "addonsAvailable": "Optional add-ons can be quoted for this plan.",
+      "choosePlan": "Choose a plan or trial to unlock VPN access.",
+      "eyebrow": "Readiness checklist",
+      "finishProvisioning": "Provisioning is still pending. Check service access before importing configs.",
+      "noAddons": "No add-ons are currently available for this plan.",
+      "paymentSignal": "At least one paid order should exist for long-term access.",
+      "serviceReady": "Service access is provisioned.",
+      "subscriptionReady": "Subscription entitlement is active.",
+      "title": "Next best actions"
+    },
     "noActiveSubscription": "No active subscription",
     "noPlansAvailable": "No plans available at the moment",
+    "planActions": {
+      "commit": {
+        "completed": "Plan change completed.",
+        "pending": "Plan change checkout created. Complete the invoice to activate it."
+      },
+      "commitCta": "Apply",
+      "commitError": "Plan change failed. Retry or use checkout support.",
+      "current": "Current",
+      "downgrade": "Change",
+      "loading": "Working",
+      "purchase": "Purchase",
+      "quote": "Quote",
+      "quoteError": "Plan quote failed. Retry after refreshing the catalog.",
+      "quoteReady": "Quote ready: {amount}",
+      "upgrade": "Upgrade"
+    },
+    "plans": {
+      "description": "Public plans are loaded from the canonical web catalog. Current plan is locked; other plans are quoted before purchase or upgrade.",
+      "empty": "No public plans are available right now.",
+      "eyebrow": "Plan catalog",
+      "perCycle": "per {duration}",
+      "publicCount": "{count} public plans",
+      "title": "Choose the next access tier"
+    },
+    "rewardsHubCta": "Open rewards hub",
+    "rewardsHubDescription": "Manage invite codes, referral sharing, and invite redemption from one place instead of splitting the flow across subscription screens.",
+    "rewardsHubTitle": "Rewards Hub",
+    "service": {
+      "channel": "Channel",
+      "pending": "Pending",
+      "profile": "Profile",
+      "provider": "Provider",
+      "provisioned": "Provisioned"
+    },
     "startedAt": "Started",
     "status": "Status",
     "subscriptionHistory": "Subscription History",
-    "subtitle": "Manage your VPN subscription plans",
-    "title": "SUBSCRIPTIONS"
+    "subtitle": "Manage VPN access, trial state, upgrade path, add-ons, billing signals, and provisioning readiness from one customer-safe cockpit.",
+    "summary": {
+      "addons": "Add-ons",
+      "ariaLabel": "Subscription and access summary",
+      "billing": "Cycle price",
+      "days": "{count}d",
+      "expires": "Time left",
+      "plan": "Plan"
+    },
+    "sync": {
+      "degraded": "Degraded",
+      "description": "Queries pause in hidden/offline tabs and can be refreshed manually.",
+      "live": "Live",
+      "retry": "Refresh"
+    },
+    "title": "SUBSCRIPTION CONTROL",
+    "trial": {
+      "activate": "Start trial",
+      "activating": "Activating",
+      "activeDescription": "Trial access is active. {count} days remain before a paid plan is required.",
+      "activeTitle": "Trial is active",
+      "eligibleDescription": "Start the trial to provision a limited VPN entitlement before checkout.",
+      "eligibleTitle": "Trial available",
+      "error": "Trial activation failed. Retry or contact support.",
+      "eyebrow": "Trial access",
+      "success": "Trial activated. Access state is refreshing."
+    }
   },
   "Terms": {
     "description": "CRITICAL CLEARANCE: TERMS OF SERVICE. AWAITING ACKNOWLEDGMENT...",
@@ -1792,14 +2877,76 @@
     "title": "CLIENT DATABASE"
   },
   "Wallet": {
-    "balance": "Available Balance",
-    "next": "Next",
-    "noTransactions": "No transactions yet",
-    "page": "Page",
-    "previous": "Previous",
-    "subtitle": "Manage your balance and transactions",
+    "actions": {
+      "next": "Next",
+      "previous": "Previous",
+      "refresh": "Refresh"
+    },
+    "errors": {
+      "partialDescription": "The page keeps usable sections visible while the unavailable backend resource recovers.",
+      "partialTitle": "Wallet data is partially unavailable"
+    },
+    "hero": {
+      "available": "Available balance",
+      "currency": "{currency} account",
+      "eyebrow": "Wallet ledger",
+      "fundsFrozen": "Funds reserved",
+      "fundsReady": "Funds ready",
+      "managePlan": "Manage plan",
+      "paymentHistory": "Payment history"
+    },
+    "labels": {
+      "notAvailable": "Not available",
+      "transaction": "Wallet transaction"
+    },
+    "subtitle": "Balance, frozen funds, reward ledger and withdrawal requests in one customer-safe billing surface.",
+    "summary": {
+      "ariaLabel": "Wallet balance summary",
+      "balance": "Available",
+      "frozen": "Frozen",
+      "liability": "Total wallet value",
+      "pendingWithdrawals": "Pending withdrawals"
+    },
     "title": "WALLET",
-    "transactions": "Transaction History",
-    "withdraw": "Withdraw"
+    "transactions": {
+      "balanceAfter": "Balance after: {amount}",
+      "empty": "No wallet transactions match this filter.",
+      "eyebrow": "Ledger stream",
+      "filters": {
+        "all": "All",
+        "ariaLabel": "Wallet transaction filters",
+        "credit": "Credits",
+        "debit": "Debits"
+      },
+      "page": "Ledger page {page}",
+      "title": "Wallet transactions"
+    },
+    "withdrawals": {
+      "description": "No wallet movements have been created yet.",
+      "empty": "No withdrawal requests yet.",
+      "eyebrow": "Payout queue",
+      "lastLedger": "Latest ledger entry: {id}",
+      "title": "Withdrawal status"
+    },
+    "withdrawForm": {
+      "amount": "Amount",
+      "description": "Create a withdrawal request for operations review. Provider limits and compliance checks may apply before funds move.",
+      "errors": {
+        "amount": "Enter a valid withdrawal amount.",
+        "balance": "The withdrawal amount cannot exceed the available balance.",
+        "submit": "Withdrawal request failed. Try again or contact support if the balance changed unexpectedly."
+      },
+      "eyebrow": "Withdrawal request",
+      "method": "Method",
+      "methods": {
+        "cryptobot": "CryptoBot",
+        "manual": "Manual review"
+      },
+      "notice": "Do not send wallet addresses or payment credentials here unless the backend explicitly requests them. Sensitive payout details are handled in the approved support channel.",
+      "submit": "Request withdrawal",
+      "submitting": "Submitting",
+      "success": "Withdrawal request submitted. The wallet ledger will refresh automatically.",
+      "title": "Request payout"
+    }
   }
 }

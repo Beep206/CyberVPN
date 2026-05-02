@@ -25,6 +25,7 @@ class PaymentStatus(StrEnum):
 class PaymentProvider(StrEnum):
     CRYPTOBOT = "cryptobot"
     YOOKASSA = "yookassa"
+    TELEGRAM_STARS = "telegram_stars"
     STRIPE = "stripe"
     WALLET = "wallet"
 
@@ -164,6 +165,51 @@ class PartnerPayoutAccountVerificationStatus(StrEnum):
 class PartnerPayoutAccountApprovalStatus(StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
+
+
+class PartnerBotStatus(StrEnum):
+    DRAFT = "draft"
+    PENDING_REVIEW = "pending_review"
+    PROVISIONING_REQUESTED = "provisioning_requested"
+    PROVISIONING_RUNNING = "provisioning_running"
+    ACTIVE = "active"
+    DEGRADED = "degraded"
+    SUSPENDED = "suspended"
+    REVOKED = "revoked"
+    FAILED = "failed"
+
+
+class PartnerBotTokenStatus(StrEnum):
+    MISSING = "missing"
+    ACTIVE = "active"
+    ROTATING = "rotating"
+    REVOKED = "revoked"
+
+
+class PartnerBotProvisioningPath(StrEnum):
+    MANAGED_BOT = "managed_bot"
+    MANUAL_TOKEN = "manual_token"  # noqa: S105 - enum label for fallback provisioning mode
+
+
+class PartnerBotProvisioningJobStatus(StrEnum):
+    QUEUED = "queued"
+    VALIDATING_PARTNER = "validating_partner"
+    RESERVING_BOT_IDENTITY = "reserving_bot_identity"
+    APPLYING_BRANDING = "applying_branding"
+    CONFIGURING_COMMANDS = "configuring_commands"
+    CONFIGURING_MENU_BUTTON = "configuring_menu_button"
+    BINDING_WEBHOOK = "binding_webhook"
+    BINDING_MINIAPP = "binding_miniapp"
+    GENERATING_LAUNCH_ASSETS = "generating_launch_assets"
+    PUBLISHING = "publishing"
+    COMPLETED = "completed"
+    FAILED_VALIDATION = "failed_validation"
+    FAILED_BOT_CREATION = "failed_bot_creation"
+    FAILED_TOKEN_FETCH = "failed_token_fetch"  # noqa: S105 - enum label, not a credential literal
+    FAILED_WEBHOOK_BINDING = "failed_webhook_binding"
+    FAILED_BRANDING = "failed_branding"
+    ROLLBACK_REQUIRED = "rollback_required"
+    MANUAL_INTERVENTION_REQUIRED = "manual_intervention_required"
 
 
 class PayoutInstructionStatus(StrEnum):
@@ -314,8 +360,57 @@ class GrowthRewardType(StrEnum):
 
 
 class GrowthRewardAllocationStatus(StrEnum):
+    PENDING = "pending"
     ALLOCATED = "allocated"
+    AVAILABLE = "available"
+    BLOCKED_BY_RISK = "blocked_by_risk"
     REVERSED = "reversed"
+    EXPIRED = "expired"
+
+
+class GrowthCodeType(StrEnum):
+    INVITE = "invite"
+    REFERRAL = "referral"
+    PROMO = "promo"
+    GIFT = "gift"
+    PARTNER = "partner"
+
+
+class GrowthCodeActionContext(StrEnum):
+    CHECKOUT = "checkout"
+    REDEEM = "redeem"
+    SIGNUP = "signup"
+    ADMIN_LOOKUP = "admin_lookup"
+
+
+class GrowthCodeResolutionStatus(StrEnum):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    CONFLICTED = "conflicted"
+    BLOCKED_BY_RISK = "blocked_by_risk"
+
+
+class GrowthCodeRejectReason(StrEnum):
+    CODE_NOT_FOUND = "code_not_found"
+    CODE_EXPIRED = "code_expired"
+    CODE_NOT_ACTIVE = "code_not_active"
+    CODE_EXHAUSTED = "code_exhausted"
+    CODE_ALREADY_REDEEMED = "code_already_redeemed"
+    CODE_NOT_ELIGIBLE_FOR_SKU = "code_not_eligible_for_sku"
+    CODE_NOT_ELIGIBLE_FOR_SURFACE = "code_not_eligible_for_surface"
+    CODE_CONFLICTS_WITH_PARTNER_CODE = "code_conflicts_with_partner_code"
+    CODE_CONFLICTS_WITH_PARTNER_BINDING = "code_conflicts_with_partner_binding"
+    CODE_CONFLICTS_WITH_PROMO = "code_conflicts_with_promo"
+    CODE_WRONG_CONTEXT = "code_wrong_context"
+    CODE_REQUIRES_AUTH = "code_requires_auth"
+    CODE_BLOCKED_BY_RISK = "code_blocked_by_risk"
+    GIFT_ALREADY_REDEEMED = "gift_already_redeemed"
+    INVITE_SELF_REDEMPTION_BLOCKED = "invite_self_redemption_blocked"
+
+
+class GrowthCodeWrongContextTarget(StrEnum):
+    CHECKOUT = "checkout"
+    REDEEM = "redeem"
 
 
 class AttributionTouchpointType(StrEnum):

@@ -1,0 +1,56 @@
+{
+  "config": {
+    "oidc_discovery_url": "https://accounts.example.com",
+    "oidc_client_id": "replace-me",
+    "oidc_client_secret": "replace-me",
+    "default_role": "operators-admin"
+  },
+  "roles": [
+    {
+      "name": "operators-admin",
+      "payload": {
+        "user_claim": "email",
+        "groups_claim": "groups",
+        "allowed_redirect_uris": [
+          "https://openbao-nonprod.example.com/ui/vault/auth/oidc/oidc/callback",
+          "http://localhost:8250/oidc/callback"
+        ],
+        "bound_audiences": [
+          "replace-me"
+        ],
+        "oidc_scopes": [
+          "openid",
+          "email",
+          "profile",
+          "groups"
+        ],
+        "policies": [
+          "root-human-operators-admin"
+        ]
+      }
+    },
+    {
+      "name": "operators-readonly",
+      "payload": {
+        "user_claim": "email",
+        "groups_claim": "groups",
+        "allowed_redirect_uris": [
+          "https://openbao-nonprod.example.com/ui/vault/auth/oidc/oidc/callback",
+          "http://localhost:8250/oidc/callback"
+        ],
+        "bound_audiences": [
+          "replace-me"
+        ],
+        "oidc_scopes": [
+          "openid",
+          "email",
+          "profile",
+          "groups"
+        ],
+        "policies": [
+          "root-human-operators-readonly"
+        ]
+      }
+    }
+  ]
+}

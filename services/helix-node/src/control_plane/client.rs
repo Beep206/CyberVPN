@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 use crate::{config::NodeConfig, error::AppError};
 
@@ -149,6 +150,13 @@ impl ControlPlaneClient {
         })
     }
 
+    #[instrument(
+        skip(self),
+        fields(
+            sentry.name = "helix.fetch_assignment",
+            sentry.op = "helix.assignment.fetch"
+        )
+    )]
     pub async fn fetch_assignment(&self) -> Result<NodeAssignmentDocument, AppError> {
         let response = self
             .client
@@ -170,6 +178,13 @@ impl ControlPlaneClient {
         response.json().await.map_err(AppError::Reqwest)
     }
 
+    #[instrument(
+        skip(self, heartbeat),
+        fields(
+            sentry.name = "helix.send_heartbeat",
+            sentry.op = "helix.heartbeat.send"
+        )
+    )]
     pub async fn send_heartbeat(&self, heartbeat: &NodeHeartbeatDocument) -> Result<(), AppError> {
         let response = self
             .client

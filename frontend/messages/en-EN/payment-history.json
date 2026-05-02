@@ -1,6 +1,61 @@
 {
-  "title": "PAYMENT HISTORY",
-  "subtitle": "View all your payment transactions",
-  "history": "Payment History",
-  "noPayments": "No payment history yet"
+  "title": "PAYMENTS",
+  "subtitle": "Receipts, gateway attempts, wallet-covered amounts and retry actions for unfinished orders.",
+  "hero": {
+    "eyebrow": "Billing timeline",
+    "wallet": "Open wallet",
+    "subscription": "Subscription",
+    "completed": "Completed payments",
+    "pending": "{count} pending",
+    "failed": "{count} failed"
+  },
+  "errors": {
+    "partialTitle": "Payment data is partially unavailable",
+    "partialDescription": "Payment history and commerce orders load independently, so one degraded backend dependency does not blank the page."
+  },
+  "summary": {
+    "ariaLabel": "Payment summary",
+    "completed": "Completed",
+    "walletApplied": "Wallet applied",
+    "gateway": "Gateway amount",
+    "pending": "Pending events"
+  },
+  "timeline": {
+    "eyebrow": "Receipts and orders",
+    "title": "Payment timeline",
+    "description": "A merged view of canonical payment records and commerce orders. Order rows expose wallet and gateway split without leaking provider internals.",
+    "filters": {
+      "ariaLabel": "Payment timeline filters",
+      "all": "All",
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed",
+      "refunded": "Refunded"
+    },
+    "empty": "No billing events match this filter.",
+    "kind": {
+      "order": "Order",
+      "payment": "Payment"
+    },
+    "paymentSuffix": "payment",
+    "orderSplit": "Gateway {gateway} / wallet {wallet}",
+    "retry": "Retry payment",
+    "retrying": "Retrying",
+    "retryError": "Payment retry failed. Refresh the page or contact support if the order remains pending.",
+    "page": "Payment page {page}"
+  },
+  "support": {
+    "eyebrow": "Receipt support",
+    "title": "Need a receipt or dispute review?",
+    "description": "Keep the payment or order ID visible when contacting support. We avoid exposing raw provider payloads in the customer UI.",
+    "cta": "Open settings"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "labels": {
+    "notAvailable": "Not available"
+  }
 }

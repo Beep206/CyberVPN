@@ -216,6 +216,25 @@ class TestE2EIntegration:
         assert hasattr(settings, "worker_concurrency")
         assert hasattr(settings, "metrics_port")
 
+    def test_sentry_contract_can_be_loaded_from_environment(self):
+        """Verify worker config exposes the Sentry contract when CI injects it."""
+        import os
+
+        from src.config import get_settings
+
+        settings = get_settings()
+
+        expected_environment = os.environ.get("SENTRY_SMOKE_EXPECT_ENV")
+        expected_release = os.environ.get("SENTRY_SMOKE_EXPECT_RELEASE")
+        expected_dsn = os.environ.get("SENTRY_SMOKE_EXPECT_DSN")
+
+        if expected_environment:
+            assert settings.environment == expected_environment
+        if expected_release:
+            assert settings.sentry_release == expected_release
+        if expected_dsn:
+            assert settings.sentry_dsn == expected_dsn
+
     def test_constants_are_properly_defined(self):
         """Verify all required constants are defined."""
         from src.utils import constants

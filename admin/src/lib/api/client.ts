@@ -3,6 +3,11 @@ import {
   buildLocalizedLoginRedirect,
   isPublicAuthRoute,
 } from '@/features/auth/lib/session';
+import {
+  normalizeFrontendApiEndpointTemplate,
+  reportFrontendApiCall,
+  sanitizeFrontendObservabilityToken,
+} from '@/shared/lib/frontend-observability';
 
 const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
 
@@ -122,14 +127,54 @@ export const apiClient = axios.create({
 
 let requestSequence = 0;
 
+type ObservabilityMetadata = {
+  endpointTemplate?: string;
+  requestId?: string;
+  startedAt?: number;
+  telemetrySkipped?: boolean;
+};
+
+type ApiClientRequestConfig = InternalAxiosRequestConfig & {
+  metadata?: ObservabilityMetadata;
+};
+
 function getRequestId(): string {
   requestSequence += 1;
   return `req-${requestSequence}`;
 }
 
+function reportApiResponseTelemetry(
+  config: ApiClientRequestConfig,
+  input: {
+    errorCode?: string;
+    requestId?: string;
+    result: 'success' | 'failure';
+  },
+): void {
+  if (
+    typeof window === 'undefined'
+    || config.metadata?.startedAt == null
+    || config.metadata.telemetrySkipped
+  ) {
+    return;
+  }
+
+  reportFrontendApiCall('admin_portal', {
+    durationMs: performance.now() - config.metadata.startedAt,
+    endpointTemplate: config.metadata.endpointTemplate ?? config.url ?? '/',
+    errorCode: input.errorCode,
+    method: config.method?.toUpperCase() ?? 'GET',
+    path: window.location.pathname,
+    requestId: input.requestId ?? config.metadata.requestId,
+    result: input.result,
+  });
+}
+
 // Request interceptor - X-Request-ID + queue during refresh
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    const requestConfig = config as ApiClientRequestConfig;
+
     if (config.url) {
       config.url = normalizeApiRequestPath(config.url);
     }
@@ -149,7 +194,14 @@ apiClient.interceptors.request.use(
 
     // Add X-Request-ID for request correlation (DX-02)
     if (config.headers) {
-      config.headers[CANONICAL_REQUEST_ID_HEADER] = getRequestId();
+      const requestId = getRequestId();
+      config.headers[CANONICAL_REQUEST_ID_HEADER] = requestId;
+      requestConfig.metadata = {
+        endpointTemplate: normalizeFrontendApiEndpointTemplate(config.url ?? '/'),
+        requestId,
+        startedAt: typeof window !== 'undefined' ? performance.now() : undefined,
+        telemetrySkipped: config.url?.includes('/analytics/') ?? false,
+      };
     }
     return config;
   },
@@ -175,13 +227,27 @@ const processQueue = (error: AxiosError | null) => {
 };
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const requestConfig = response.config as ApiClientRequestConfig;
+    const requestIdHeader = response.headers[CANONICAL_REQUEST_ID_HEADER.toLowerCase()];
+
+    reportApiResponseTelemetry(requestConfig, {
+      requestId: typeof requestIdHeader === 'string' ? requestIdHeader : undefined,
+      result: 'success',
+    });
+
+    return response;
+  },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as ApiClientRequestConfig & { _retry?: boolean };
 
     // 429 Rate Limit handling
     if (error.response?.status === 429) {
       const retryAfter = parseRetryAfter(error.response.headers['retry-after'] as string | null);
+      reportApiResponseTelemetry(originalRequest, {
+        errorCode: 'rate_limited',
+        result: 'failure',
+      });
       return Promise.reject(new RateLimitError(retryAfter));
     }
 
@@ -191,6 +257,10 @@ apiClient.interceptors.response.use(
 
       // Never retry refresh endpoint itself to avoid interceptor loops
       if (requestUrl.includes('/auth/refresh')) {
+        reportApiResponseTelemetry(originalRequest, {
+          errorCode: 'refresh_unauthorized',
+          result: 'failure',
+        });
         return Promise.reject(error);
       }
 
@@ -233,11 +303,29 @@ apiClient.interceptors.response.use(
           const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
           window.location.href = buildLocalizedLoginRedirect(currentLocation);
         }
+        reportApiResponseTelemetry(originalRequest, {
+          errorCode: sanitizeFrontendObservabilityToken(
+            String(
+              (refreshError as AxiosError).response?.status
+              ?? error.response?.status
+              ?? error.code
+              ?? 'request_failed',
+            ),
+          ),
+          result: 'failure',
+        });
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
+
+    reportApiResponseTelemetry(originalRequest, {
+      errorCode: sanitizeFrontendObservabilityToken(
+        String(error.response?.status ?? error.code ?? 'request_failed'),
+      ),
+      result: 'failure',
+    });
 
     return Promise.reject(error);
   }

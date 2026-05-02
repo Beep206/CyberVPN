@@ -1,0 +1,38 @@
+project_name       = "cybervpn"
+environment        = "nonprod"
+openbao_cluster_id = "openbao-nonprod"
+aws_region         = "eu-central-1"
+ssh_port           = 22
+
+foundation_state = {
+  bucket = "cybervpn-terraform-state"
+  key    = "staging/foundation/terraform.tfstate"
+  region = "eu-central-1"
+}
+
+admin_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+api_ipv4_cidrs = [
+  "203.0.113.10/32",
+]
+
+metrics_ipv4_cidrs = [
+  "198.51.100.20/32",
+]
+
+openbao_nodes = {
+  openbao-nonprod-01 = {
+    location                 = "fsn1"
+    server_type              = "cpx21"
+    enable_backups           = true
+    tls_common_name          = "openbao-nonprod.internal"
+    cloud_init_authorized_keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIREPLACE_THIS_WITH_REAL_PUBLIC_KEY admin@laptop",
+    ]
+    labels = {
+      tier = "control-plane"
+    }
+  }
+}

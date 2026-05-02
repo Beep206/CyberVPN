@@ -31,10 +31,17 @@ const mockVerifyMagicLink = vi.fn();
 let mockIsAuthenticated = false;
 
 vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: () => ({
-    verifyMagicLink: mockVerifyMagicLink,
-    isAuthenticated: mockIsAuthenticated,
-  }),
+  useAuthStore: Object.assign(
+    () => ({
+      verifyMagicLink: mockVerifyMagicLink,
+      isAuthenticated: mockIsAuthenticated,
+    }),
+    {
+      getState: () => ({
+        isAuthenticated: mockIsAuthenticated,
+      }),
+    },
+  ),
 }));
 
 // Mock @/components/ui/button

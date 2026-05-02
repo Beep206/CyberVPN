@@ -10,8 +10,12 @@ from src.infrastructure.database.repositories.commissionability_evaluation_repo 
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
     CustomerCommercialBindingRepository,
 )
+from src.infrastructure.database.repositories.customer_growth_notification_read_state_repository import (
+    CustomerGrowthNotificationReadStateRepository,
+)
 from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
 from src.infrastructure.database.repositories.governance_repo import GovernanceRepository
+from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.growth_reward_allocation_repo import (
     GrowthRewardAllocationRepository,
 )
@@ -62,9 +66,11 @@ __all__ = [
     "AttributionTouchpointRepository",
     "CommissionabilityEvaluationRepository",
     "CustomerCommercialBindingRepository",
+    "CustomerGrowthNotificationReadStateRepository",
     "CustomerStaffNoteRepository",
-    "GrowthRewardAllocationRepository",
     "GovernanceRepository",
+    "GrowthCodeRepository",
+    "GrowthRewardAllocationRepository",
     "InviteCodeRepository",
     "LegalDocumentRepository",
     "OfferRepository",

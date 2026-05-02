@@ -9,9 +9,11 @@ from src.application.use_cases.refunds import (
     CreateRefundUseCase,
     GetRefundUseCase,
     ListRefundsUseCase,
+    RefundProviderExecutionError,
     UpdateRefundUseCase,
 )
 from src.domain.enums import AdminRole
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -108,7 +110,7 @@ async def update_refund(
     refund_id: UUID,
     payload: UpdateRefundRequest,
     db: AsyncSession = Depends(get_db),
-    _current_admin=Depends(require_role(AdminRole.ADMIN)),
+    current_admin: AdminUserModel = Depends(require_role(AdminRole.OPERATOR)),
 ) -> RefundResponse:
     use_case = UpdateRefundUseCase(db)
     try:
@@ -117,9 +119,14 @@ async def update_refund(
             refund_status=payload.refund_status,
             external_reference=payload.external_reference,
             provider_snapshot=payload.provider_snapshot or None,
+            acted_by_admin_user_id=current_admin.id,
+            acted_by_auth_realm_id=current_admin.auth_realm_id,
+            source_context={"source_route": "refunds.update_refund"},
         )
     except ValueError as exc:
         detail = str(exc)
         status_code = status.HTTP_409_CONFLICT if "terminal state" in detail else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=detail) from exc
+    except RefundProviderExecutionError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     return _serialize_refund(updated)

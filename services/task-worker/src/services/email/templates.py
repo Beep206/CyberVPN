@@ -16,6 +16,8 @@ STRICT RULES (see CLAUDE.md + AGENTS.md for full spec):
 
 # ruff: noqa: E501
 
+from html import escape
+
 # -- Shared fragments --------------------------------------------------------
 
 _FONT = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
@@ -283,6 +285,84 @@ def render_magic_link_template(
 </html>"""
 
 
+def render_growth_notification_template(
+    title: str,
+    message: str,
+    locale: str,
+    *,
+    cta_url: str = "",
+    notes: list[str] | None = None,
+    dev_banner: bool = False,
+) -> str:
+    """Render an account-update email for growth notification delivery."""
+    del locale
+    banner = _dev_banner_html() if dev_banner else ""
+    safe_title = escape(title)
+    safe_message = escape(message)
+    safe_cta_url = escape(cta_url, quote=True)
+    notes_section = _growth_notes_section_html(notes or [])
+    action_section = _growth_action_section_html(safe_cta_url) if safe_cta_url else ""
+    return f"""\
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>CyberVPN account update</title>
+</head>
+<body bgcolor="{_BG_BODY}" style="margin: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{_BG_BODY}" style="{_TABLE_RESET} background-color: {_BG_BODY}; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+        <tr>
+            <td align="center" style="padding-top: 40px; padding-right: 20px; padding-bottom: 40px; padding-left: 20px;">
+{banner}\
+                <!--[if mso]>
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td>
+                <![endif]-->
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET} width: 100%; max-width: 600px; background-color: {_BG_CARD}; border: 1px solid {_GREEN};" bgcolor="{_BG_CARD}">
+                    <tr>
+                        <td align="center" style="padding-top: 30px; padding-right: 40px; padding-bottom: 30px; padding-left: 40px; border-bottom: 1px solid {_GREEN}; font-family: {_FONT}; font-size: 28px; font-weight: bold; mso-line-height-rule: exactly; line-height: 34px; color: {_CYAN};">
+                            CYBERVPN
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 8px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_MUTED};">
+                            ACCOUNT // UPDATE // DELIVERY
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 30px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 20px; font-weight: bold; mso-line-height-rule: exactly; line-height: 28px; color: {_WHITE};">
+                            {safe_title}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 30px; padding-left: 40px; font-family: {_FONT}; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px; color: {_TEXT};">
+                            {safe_message}
+                        </td>
+                    </tr>
+{notes_section}\
+{action_section}\
+                    <tr>
+                        <td align="center" style="padding-top: 20px; padding-right: 40px; padding-bottom: 8px; padding-left: 40px; border-top: 1px solid {_BORDER}; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_DIM};">
+                            This message was sent from your CyberVPN growth and rewards center.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 0; padding-right: 40px; padding-bottom: 20px; padding-left: 40px; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_FOOTER};">
+                            &copy; 2026 CyberVPN. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+                <!--[if mso]>
+                </td></tr></table>
+                <![endif]-->
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+
 def _otp_section_html(otp_code: str) -> str:
     """Render the inline OTP code section for magic link emails."""
     return f"""
@@ -307,6 +387,69 @@ def _otp_section_html(otp_code: str) -> str:
                     </tr>
 
                     <!-- Spacer after OTP -->
+                    <tr>
+                        <td style="padding-top: 15px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
+                    </tr>
+"""
+
+
+def _growth_notes_section_html(notes: list[str]) -> str:
+    sanitized_notes = [escape(str(item).strip()) for item in notes if str(item).strip()]
+    if not sanitized_notes:
+        return ""
+
+    notes_html = "".join(
+        f"""
+                    <tr>
+                        <td align="left" style="padding-top: 8px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_TEXT};">
+                            • {note}
+                        </td>
+                    </tr>"""
+        for note in sanitized_notes
+    )
+    return f"""
+                    <tr>
+                        <td align="left" style="padding-top: 0; padding-right: 40px; padding-bottom: 4px; padding-left: 40px; font-family: {_FONT}; font-size: 13px; font-weight: bold; mso-line-height-rule: exactly; line-height: 18px; color: {_GREEN};">
+                            Details
+                        </td>
+                    </tr>
+{notes_html}\
+                    <tr>
+                        <td style="padding-top: 15px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
+                    </tr>
+"""
+
+
+def _growth_action_section_html(cta_url: str) -> str:
+    return f"""
+                    <tr>
+                        <td align="center" style="padding-top: 0; padding-right: 40px; padding-bottom: 0; padding-left: 40px;">
+                            <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET}">
+                                <tr>
+                                    <!--[if mso]>
+                                    <td align="center" bgcolor="{_GREEN}" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;">
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{cta_url}" style="height:52px;v-text-anchor:middle;width:240px;" fillcolor="{_GREEN}" stroke="f">
+                                        <w:anchorlock/>
+                                        <center style="color:{_BG_BODY};font-family:{_FONT};font-size:18px;font-weight:bold;line-height:18px;">OPEN REWARDS HUB</center>
+                                        </v:roundrect>
+                                    </td>
+                                    <![endif]-->
+                                    <!--[if !mso]><!-->
+                                    <td align="center" bgcolor="{_GREEN}" style="background-color: {_GREEN}; padding-top: 16px; padding-right: 32px; padding-bottom: 16px; padding-left: 32px;">
+                                        <a href="{cta_url}" style="color: {_BG_BODY}; font-size: 18px; font-weight: bold; mso-line-height-rule: exactly; line-height: 18px; text-decoration: none; font-family: {_FONT};">
+                                            OPEN REWARDS HUB
+                                        </a>
+                                    </td>
+                                    <!--<![endif]-->
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_DIM};">
+                            {cta_url}
+                        </td>
+                    </tr>
                     <tr>
                         <td style="padding-top: 15px; padding-right: 0; padding-bottom: 0; padding-left: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px;">&nbsp;</td>
                     </tr>

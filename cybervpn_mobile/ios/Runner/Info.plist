@@ -60,6 +60,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tg</string>
+	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>CyberVPN uses Face ID to secure app access and protect your account.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

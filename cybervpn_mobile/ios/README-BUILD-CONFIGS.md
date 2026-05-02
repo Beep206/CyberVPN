@@ -47,10 +47,45 @@ ios/
 Each `.xcconfig` file defines:
 - `PRODUCT_BUNDLE_IDENTIFIER` - Bundle ID for the flavor
 - `PRODUCT_NAME` - Display name shown on device
+- `TELEGRAM_IOS_ASSOCIATED_DOMAIN` - iOS Associated Domain used for Telegram Native Login callback routing
 - Includes appropriate base config (Debug.xcconfig or Release.xcconfig)
 - Includes CocoaPods configuration if present
 
 **Note**: `DART_DEFINES` are passed via `--dart-define` flags in flutter build commands, not in xcconfig files.
+
+## Telegram Native Login (iOS)
+
+The iOS runner now expects the Associated Domains entitlement to resolve through:
+
+- `TELEGRAM_IOS_ASSOCIATED_DOMAIN`
+
+Current repo default:
+
+- `cybervpn.app`
+
+For official Telegram Native Login rollout, replace this per environment with the
+BotFather-generated host:
+
+- `app<client_id>-login.tg.dev`
+
+Example:
+
+```xcconfig
+TELEGRAM_IOS_ASSOCIATED_DOMAIN = app123456-login.tg.dev
+```
+
+That value must match all of the following:
+
+- BotFather `Web Login / Login Widget` iOS registration
+- `Runner.entitlements` effective `applinks:` entry
+- runtime redirect URI passed to Flutter:
+  - `https://app123456-login.tg.dev`
+
+Important constraints:
+
+- iOS compile, signing, and device runtime validation still require macOS + Xcode.
+- WSL/Linux can prepare repo config, but cannot replace real Xcode/device verification.
+- Real Telegram callback validation must be done on a physical iPhone or iPad with Telegram installed.
 
 ## Building with Flutter CLI
 

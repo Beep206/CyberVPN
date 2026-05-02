@@ -198,6 +198,87 @@ class TelegramBotCheckoutRequest(BaseModel):
     payment_method: str = Field(default="cryptobot", min_length=1, max_length=30)
 
 
+class TelegramStarsInvoiceCreateRequest(TelegramBotCheckoutRequest):
+    """Internal Telegram Stars invoice request."""
+
+    telegram_id: int = Field(..., gt=0)
+    telegram_stars_amount: int = Field(..., gt=0)
+
+
+class TelegramStarsInvoiceResponse(BaseModel):
+    """Bot-facing invoice parameters for Telegram Stars."""
+
+    payment_id: UUID
+    title: str
+    description: str
+    invoice_payload: str
+    amount: int = Field(..., gt=0, description="Telegram Stars amount in XTR minor units")
+    currency: str = Field(default="XTR")
+    status: str = Field(default="pending")
+    expires_at: datetime
+
+
+class TelegramStarsPreCheckoutRequest(BaseModel):
+    """Validation payload received from pre_checkout_query."""
+
+    telegram_id: int = Field(..., gt=0)
+    currency: str = Field(..., min_length=3, max_length=12)
+    total_amount: int = Field(..., gt=0)
+    invoice_payload: str = Field(..., min_length=1, max_length=255)
+
+
+class TelegramStarsPreCheckoutResponse(BaseModel):
+    """Validation result for answering Telegram pre-checkout queries."""
+
+    ok: bool
+    payment_id: UUID | None = None
+    status: str | None = None
+    error_message: str | None = None
+
+
+class TelegramStarsConfirmRequest(TelegramStarsPreCheckoutRequest):
+    """Authoritative payment confirmation payload from successful_payment."""
+
+    telegram_payment_charge_id: str = Field(..., min_length=1, max_length=255)
+    provider_payment_charge_id: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class TelegramStarsConfirmResponse(BaseModel):
+    """Confirmation result for a Telegram Stars payment."""
+
+    payment_id: UUID
+    status: str
+    provider: str
+    external_id: str | None = None
+    amount: float
+    currency: str
+    already_processed: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+
+class TelegramStarsRefundReconciliationRequest(BaseModel):
+    """Provider-state reconciliation payload for Telegram Stars refunds."""
+
+    telegram_id: int = Field(..., gt=0)
+    telegram_payment_charge_id: str = Field(..., min_length=1, max_length=255)
+    transaction_id: str = Field(..., min_length=1, max_length=255)
+    amount: int = Field(..., gt=0, description="Telegram Stars amount in XTR minor units")
+    refunded_at: datetime | None = None
+    invoice_payload: str | None = Field(default=None, max_length=255)
+    raw_transaction: dict[str, object] = Field(default_factory=dict)
+
+
+class TelegramStarsRefundReconciliationResponse(BaseModel):
+    """Backend reconciliation result for Telegram Stars refund sync."""
+
+    action: str
+    payment_id: UUID | None = None
+    refund_id: UUID | None = None
+    refund_status: str | None = None
+    already_reconciled: bool = False
+
+
 class TelegramBotPaymentStatusResponse(BaseModel):
     """Payment status returned to the Telegram bot."""
 

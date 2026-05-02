@@ -1,0 +1,457 @@
+groups:
+  - name: partner_platform_recording_rules
+    interval: 30s
+    rules:
+      - record: partner_platform:auth_login_attempts:rate5m
+        expr: |
+          sum(
+            rate(
+              cybervpn_partner_auth_login_attempts_total{
+                surface="partner_portal",
+                realm_type="partner",
+                principal_class="partner_operator"
+              }[5m]
+            )
+          )
+
+      - record: partner_platform:auth_login_success_ratio:5m
+        expr: |
+          sum(
+            rate(
+              cybervpn_partner_auth_login_attempts_total{
+                surface="partner_portal",
+                realm_type="partner",
+                principal_class="partner_operator",
+                result="success"
+              }[5m]
+            )
+          )
+          /
+          clamp_min(partner_platform:auth_login_attempts:rate5m, 1e-9)
+
+      - record: partner_platform:bootstrap_requests:rate5m
+        expr: |
+          sum(
+            rate(
+              cybervpn_partner_bootstrap_requests_total{
+                surface="partner_portal",
+                realm_type="partner",
+                principal_class="partner_operator"
+              }[5m]
+            )
+          )
+
+      - record: partner_platform:bootstrap_success_ratio:5m
+        expr: |
+          sum(
+            rate(
+              cybervpn_partner_bootstrap_requests_total{
+                surface="partner_portal",
+                realm_type="partner",
+                principal_class="partner_operator",
+                result="success"
+              }[5m]
+            )
+          )
+          /
+          clamp_min(partner_platform:bootstrap_requests:rate5m, 1e-9)
+
+      - record: partner_platform:bootstrap_duration_seconds:p95_15m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(
+                cybervpn_partner_bootstrap_duration_seconds_bucket{
+                  surface="partner_portal",
+                  realm_type="partner",
+                  principal_class="partner_operator"
+                }[15m]
+              )
+            )
+          )
+
+      - record: partner_platform:frontend_route_load_duration_seconds:p95_15m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_route_load_duration_seconds_bucket[15m])
+            )
+          )
+
+      - record: partner_platform:frontend_api_call_duration_seconds:p95_15m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_api_call_duration_seconds_bucket[15m])
+            )
+          )
+
+      - record: partner_platform:frontend_lcp_seconds:p75_30m
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_lcp_seconds_bucket[30m])
+            )
+          )
+
+      - record: partner_platform:frontend_fcp_seconds:p75_30m
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_fcp_seconds_bucket[30m])
+            )
+          )
+
+      - record: partner_platform:frontend_inp_seconds:p75_30m
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_inp_seconds_bucket[30m])
+            )
+          )
+
+      - record: partner_platform:frontend_ttfb_seconds:p75_30m
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_ttfb_seconds_bucket[30m])
+            )
+          )
+
+      - record: partner_platform:frontend_cls_ratio:p75_30m
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum by (surface, le) (
+              rate(cybervpn_partner_frontend_cls_ratio_bucket[30m])
+            )
+          )
+
+      - record: partner_platform:frontend_route_load_events:rate15m
+        expr: |
+          sum by (surface) (
+            rate(cybervpn_partner_frontend_route_load_duration_seconds_count[15m])
+          )
+
+      - record: partner_platform:frontend_submit_attempts:rate15m
+        expr: |
+          sum by (surface) (
+            rate(cybervpn_partner_frontend_submit_attempts_total[15m])
+          )
+
+      - record: partner_platform:frontend_submit_failures:rate15m
+        expr: |
+          sum by (surface) (
+            rate(cybervpn_partner_frontend_submit_failures_total[15m])
+          )
+
+      - record: partner_platform:frontend_submit_failure_ratio:15m
+        expr: |
+          partner_platform:frontend_submit_failures:rate15m
+          /
+          clamp_min(partner_platform:frontend_submit_attempts:rate15m, 1e-9)
+
+      - record: partner_platform:frontend_error_events:rate15m
+        expr: |
+          sum by (surface) (
+            rate(cybervpn_partner_frontend_unhandled_errors_total[15m])
+          )
+          +
+          sum by (surface) (
+            rate(cybervpn_partner_frontend_render_errors_total[15m])
+          )
+
+      - record: partner_platform:frontend_route_guard_blocks:rate15m
+        expr: |
+          sum by (surface) (
+            rate(cybervpn_partner_frontend_route_guard_blocks_total[15m])
+          )
+
+      - record: partner_platform:application_submissions:rate5m
+        expr: |
+          sum(rate(cybervpn_partner_application_submissions_total{result="success"}[5m]))
+
+      - record: partner_platform:notifications_generated:rate5m
+        expr: |
+          sum(rate(cybervpn_partner_notifications_generated_total[5m]))
+
+      - record: partner_platform:statement_closes:rate1h
+        expr: |
+          sum(rate(cybervpn_partner_statements_closed_total{result="success"}[1h]))
+
+      - record: partner_platform:payout_executions:rate15m
+        expr: |
+          sum(rate(cybervpn_partner_payout_executions_total{result="success"}[15m]))
+
+      - record: partner_platform:payout_failures:increase15m
+        expr: |
+          sum(increase(cybervpn_partner_payout_failures_total[15m]))
+
+      - record: partner_platform:outbox_publish_attempts:rate5m
+        expr: |
+          sum(rate(cybervpn_partner_outbox_events_published_total[5m]))
+          +
+          sum(rate(cybervpn_partner_outbox_publish_failures_total[5m]))
+
+      - record: partner_platform:outbox_publish_failure_ratio:5m
+        expr: |
+          sum(rate(cybervpn_partner_outbox_publish_failures_total[5m]))
+          /
+          clamp_min(partner_platform:outbox_publish_attempts:rate5m, 1e-9)
+
+      - record: partner_platform:outbox_lag_seconds:p95_15m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(cybervpn_partner_outbox_lag_seconds_bucket[15m])
+            )
+          )
+
+      - record: partner_platform:attribution_resolutions:rate5m
+        expr: |
+          sum(rate(cybervpn_partner_attribution_resolutions_total{result=~"success|cached"}[5m]))
+
+      - record: partner_platform:attribution_no_owner_ratio:5m
+        expr: |
+          sum(rate(cybervpn_partner_attribution_no_owner_total{result="success"}[5m]))
+          /
+          clamp_min(partner_platform:attribution_resolutions:rate5m, 1e-9)
+
+      - record: partner_platform:auth_cross_realm_denied:increase15m
+        expr: |
+          sum(increase(cybervpn_partner_auth_cross_realm_denied_total[15m]))
+
+      - record: partner_platform:auth_wrong_host_rejected:increase15m
+        expr: |
+          sum(increase(cybervpn_partner_auth_wrong_host_token_rejected_total[15m]))
+
+  - name: partner_platform_alerts
+    interval: 30s
+    rules:
+      - alert: PartnerPlatformBootstrapFailureRateCritical
+        expr: |
+          partner_platform:bootstrap_requests:rate5m > 0.01
+          and
+          partner_platform:bootstrap_success_ratio:5m < 0.90
+        for: 5m
+        labels:
+          severity: critical
+          service: partner-platform
+          component: partner-bootstrap
+        annotations:
+          summary: "Partner bootstrap success rate dropped below 90%"
+          description: "Partner bootstrap is failing for active traffic. Check partner realm/session validity, workspace resolution, and backend bootstrap dependencies."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformBootstrapLatencyHigh
+        expr: |
+          partner_platform:bootstrap_requests:rate5m > 0.01
+          and
+          partner_platform:bootstrap_duration_seconds:p95_15m > 0.75
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-bootstrap
+        annotations:
+          summary: "Partner bootstrap P95 latency exceeded 750 ms"
+          description: "Partner bootstrap remains available but latency is elevated. Check backend latency, database access, and blocked-reason/readiness computation."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformCrossRealmDeniedSpike
+        expr: |
+          partner_platform:auth_cross_realm_denied:increase15m > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-auth
+        annotations:
+          summary: "Partner cross-realm denials are spiking"
+          description: "Cross-realm denials exceeded the baseline over the last 15 minutes. Check host-to-realm routing, token audience, and suspicious client behavior."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformWrongHostTokenSpike
+        expr: |
+          partner_platform:auth_wrong_host_rejected:increase15m > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-auth
+        annotations:
+          summary: "Wrong-host partner token rejections are spiking"
+          description: "Partner tokens are being presented on the wrong host or surface. Check host mapping, stale clients, or automated probing."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformPayoutFailuresSpike
+        expr: |
+          partner_platform:payout_failures:increase15m > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-finance
+        annotations:
+          summary: "Partner payout failures detected"
+          description: "At least one payout execution failed within the last 15 minutes. Check payout eligibility, execution payloads, and settlement state transitions."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformOutboxFailureRateHigh
+        expr: |
+          partner_platform:outbox_publish_attempts:rate5m > 0.01
+          and
+          partner_platform:outbox_publish_failure_ratio:5m > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-outbox
+        annotations:
+          summary: "Partner outbox publication failure ratio exceeded 5%"
+          description: "Outbox publication failures are elevated. Check downstream consumers, retry loops, and event-publishing dependencies."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformOutboxLagHigh
+        expr: |
+          partner_platform:outbox_lag_seconds:p95_15m > 60
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-outbox
+        annotations:
+          summary: "Partner outbox lag P95 exceeded 60 seconds"
+          description: "Partner outbox publication lag is above the operational target. Check consumer leases, queue health, and publishing throughput."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformAttributionNoOwnerRateHigh
+        expr: |
+          partner_platform:attribution_resolutions:rate5m > 0.02
+          and
+          partner_platform:attribution_no_owner_ratio:5m > 0.20
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-attribution
+        annotations:
+          summary: "Partner attribution no-owner ratio exceeded 20%"
+          description: "Attribution is resolving too many orders with no commercial owner. Check touchpoint capture, code validity, and attribution inputs."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-runtime"
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+
+      - alert: PartnerPlatformFrontendRouteLoadLatencyHigh
+        expr: |
+          partner_platform:frontend_route_load_events:rate15m > 0.01
+          and
+          partner_platform:frontend_route_load_duration_seconds:p95_15m > 2.5
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-frontend-ux
+        annotations:
+          summary: "Frontend route-load latency exceeded 2.5 s on {{ $labels.surface }}"
+          description: "Browser-observed route-load latency is elevated on {{ $labels.surface }}. Check route payload size, hydration boundaries, blocking queries, and browser-side API latency."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-frontend-ux"
+          dashboard_path: "/d/partner-platform-frontend-ux/partner-platform-frontend-ux"
+
+      - alert: PartnerPlatformFrontendSubmitFailuresHigh
+        expr: |
+          partner_platform:frontend_submit_attempts:rate15m > 0.01
+          and
+          partner_platform:frontend_submit_failure_ratio:15m > 0.20
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-frontend-ux
+        annotations:
+          summary: "Frontend submit-failure ratio exceeded 20% on {{ $labels.surface }}"
+          description: "Frontend form submissions are failing too often on {{ $labels.surface }}. Check auth/onboarding mutations, validation regressions, and browser-side API failures."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-frontend-ux"
+          dashboard_path: "/d/partner-platform-frontend-ux/partner-platform-frontend-ux"
+
+      - alert: PartnerPlatformFrontendErrorSpike
+        expr: |
+          partner_platform:frontend_error_events:rate15m > 0.02
+        for: 10m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-frontend-ux
+        annotations:
+          summary: "Frontend error rate is elevated on {{ $labels.surface }}"
+          description: "Unhandled or render errors are spiking on {{ $labels.surface }}. Check recent deploys, route-specific crashes, and Sentry/browser breadcrumbs."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-frontend-ux"
+          dashboard_path: "/d/partner-platform-frontend-ux/partner-platform-frontend-ux"
+
+      - alert: PartnerPlatformFrontendLCPHigh
+        expr: |
+          partner_platform:frontend_lcp_seconds:p75_30m > 2.5
+        for: 15m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-frontend-ux
+        annotations:
+          summary: "Frontend LCP P75 exceeded 2.5 s on {{ $labels.surface }}"
+          description: "Browser web-vitals telemetry shows degraded LCP on {{ $labels.surface }}. Check hero asset weight, TTFB, and blocking client work before first paint."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-frontend-ux"
+          dashboard_path: "/d/partner-platform-frontend-ux/partner-platform-frontend-ux"
+
+      - alert: PartnerPlatformFrontendINPHigh
+        expr: |
+          partner_platform:frontend_inp_seconds:p75_30m > 0.2
+        for: 15m
+        labels:
+          severity: warning
+          service: partner-platform
+          component: partner-frontend-ux
+        annotations:
+          summary: "Frontend INP P75 exceeded 200 ms on {{ $labels.surface }}"
+          description: "Browser web-vitals telemetry shows degraded interaction responsiveness on {{ $labels.surface }}. Check long tasks, hydration regressions, and heavy client-side mutations."
+          runbook_path: "docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          runbook_url: "https://github.com/Beep206/CyberVPN/blob/main/docs/runbooks/PARTNER_PORTAL_OBSERVABILITY_RUNBOOK.md"
+          dashboard_uid: "partner-platform-frontend-ux"
+          dashboard_path: "/d/partner-platform-frontend-ux/partner-platform-frontend-ux"

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import {
@@ -51,9 +51,21 @@ vi.mock('@/features/partner-portal-state/lib/use-partner-portal-runtime-state', 
   usePartnerPortalRuntimeState: () => mockRuntimeState(),
 }));
 
+const { reportFrontendRouteGuardBlock } = vi.hoisted(() => ({
+  reportFrontendRouteGuardBlock: vi.fn(),
+}));
+
+vi.mock('@/shared/lib/frontend-observability', () => ({
+  reportFrontendRouteGuardBlock,
+}));
+
 import { PartnerRouteGuard } from './partner-route-guard';
 
 describe('PartnerRouteGuard', () => {
+  beforeEach(() => {
+    reportFrontendRouteGuardBlock.mockClear();
+  });
+
   it('explains release-ring blocks through dashboard and inbox actions', () => {
     mockRuntimeState.mockReturnValue({
       state: createPartnerPortalScenarioState(
@@ -78,6 +90,15 @@ describe('PartnerRouteGuard', () => {
     expect(screen.getByRole('link', { name: 'sectionAccess.dashboardLink' })).toHaveAttribute('href', '/dashboard');
     expect(screen.getByRole('link', { name: 'sectionAccess.notificationsLink' })).toHaveAttribute('href', '/notifications');
     expect(screen.queryByText('access:read')).not.toBeInTheDocument();
+    expect(reportFrontendRouteGuardBlock).toHaveBeenCalledWith(
+      'partner_portal',
+      expect.objectContaining({
+        blockedReason: 'release_ring',
+        lane: 'creator_affiliate',
+        releaseRing: 'R1',
+        workspaceStatus: 'active',
+      }),
+    );
   });
 
   it('explains role blocks through dashboard and settings actions', () => {

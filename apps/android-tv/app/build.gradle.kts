@@ -5,7 +5,30 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.sentry.android.gradle)
 }
+
+fun String.toBuildConfigString(): String = "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+val appVersionName =
+    providers.gradleProperty("cybervpnVersionName").orElse("1.0").get()
+val appVersionCode =
+    providers.gradleProperty("cybervpnVersionCode").orElse("1").map { it.toInt() }.get()
+
+val sentryDsn = providers.environmentVariable("SENTRY_DSN").orElse("").get()
+val sentryEnvironment = providers.environmentVariable("SENTRY_ENVIRONMENT").orElse("development").get()
+val sentryRelease =
+    providers.environmentVariable("SENTRY_RELEASE").orElse("android-tv@$appVersionName+$appVersionCode").get()
+val sentryOrg = providers.environmentVariable("SENTRY_ORG").orNull
+val sentryProject =
+    providers
+        .environmentVariable("ANDROID_TV_SENTRY_PROJECT")
+        .orElse(providers.environmentVariable("SENTRY_PROJECT"))
+        .orNull
+val sentryAuthToken = providers.environmentVariable("SENTRY_AUTH_TOKEN").orNull
+val sentryUrl = providers.environmentVariable("SENTRY_URL").orNull
+val sentryUploadEnabled =
+    !sentryAuthToken.isNullOrBlank() && !sentryOrg.isNullOrBlank() && !sentryProject.isNullOrBlank()
 
 android {
     namespace = "com.cybervpn.tv"
@@ -15,8 +38,12 @@ android {
         applicationId = "com.cybervpn.tv"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+
+        buildConfigField("String", "SENTRY_DSN", sentryDsn.toBuildConfigString())
+        buildConfigField("String", "SENTRY_ENVIRONMENT", sentryEnvironment.toBuildConfigString())
+        buildConfigField("String", "SENTRY_RELEASE", sentryRelease.toBuildConfigString())
     }
 
     buildTypes {
@@ -37,12 +64,56 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+}
+
+sentry {
+    includeProguardMapping = true
+    autoUploadProguardMapping = sentryUploadEnabled
+    includeSourceContext = false
+    uploadNativeSymbols = false
+    autoUploadNativeSymbols = false
+    telemetry = false
+    includeDependenciesReport = false
+
+    tracingInstrumentation {
+        enabled = false
+    }
+
+    autoInstallation {
+        enabled = false
+    }
+
+    org = sentryOrg
+    projectName = sentryProject
+    authToken = sentryAuthToken
+    url = sentryUrl
+}
+
+tasks.register("printVersionName") {
+    doLast {
+        println(appVersionName)
+    }
+}
+
+tasks.register("printVersionCode") {
+    doLast {
+        println(appVersionCode)
+    }
+}
+
+tasks.register("printSentryRelease") {
+    doLast {
+        println(sentryRelease)
     }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.leanback)
+    implementation(libs.sentry.android)
 
     // Hilt
     implementation(libs.hilt.android)

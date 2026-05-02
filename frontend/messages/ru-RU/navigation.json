@@ -1,9 +1,17 @@
 {
-    "dashboard": "ПАНЕЛЬ",
-    "servers": "СЕРВЕРЫ",
+    "dashboard": "КАБИНЕТ",
+    "servers": "СЕТЬ",
     "users": "КЛИЕНТЫ",
-    "billing": "ОПЛАТА",
+    "billing": "ПОДПИСКА",
+    "wallet": "КОШЕЛЁК",
+    "paymentHistory": "ПЛАТЕЖИ",
+    "referral": "НАГРАДЫ",
+    "partner": "ПАРТНЁР",
     "analytics": "СЕТЬ",
     "security": "БЕЗОПАСНОСТЬ",
-    "settings": "КОНФИГ"
+    "settings": "НАСТРОЙКИ",
+    "mainNavigation": "Главная навигация",
+    "sidebar": "Боковая панель",
+    "openMenu": "Открыть меню",
+    "closeMenu": "Закрыть меню"
 }

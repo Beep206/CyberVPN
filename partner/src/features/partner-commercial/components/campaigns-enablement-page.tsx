@@ -194,6 +194,49 @@ export function CampaignsEnablementPage() {
                           <li key={note}>{note}</li>
                         ))}
                       </ul>
+                      {asset.promoReference || asset.disclosureText || (asset.allowedClaims?.length ?? 0) > 0 || (asset.bannedClaims?.length ?? 0) > 0 || (asset.allowedGeographies?.length ?? 0) > 0 || (asset.destinationUrls?.length ?? 0) > 0 ? (
+                        <div className="mt-4 space-y-3 rounded-xl border border-grid-line/20 bg-terminal-bg/55 p-4 text-sm font-mono text-muted-foreground">
+                          {asset.promoReference ? (
+                            <p>{t('library.promoReference', { value: asset.promoReference })}</p>
+                          ) : null}
+                          {asset.disclosureText ? (
+                            <p>{t('library.disclosureText', { value: asset.disclosureText })}</p>
+                          ) : null}
+                          {(asset.allowedClaims?.length ?? 0) > 0 ? (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-neon-cyan/80">
+                                {t('library.allowedClaims')}
+                              </p>
+                              <ul className="mt-2 space-y-1">
+                                {asset.allowedClaims?.map((claim) => (
+                                  <li key={claim}>{claim}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                          {(asset.bannedClaims?.length ?? 0) > 0 ? (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-neon-pink/80">
+                                {t('library.bannedClaims')}
+                              </p>
+                              <ul className="mt-2 space-y-1">
+                                {asset.bannedClaims?.map((claim) => (
+                                  <li key={claim}>{claim}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                          {(asset.allowedGeographies?.length ?? 0) > 0 ? (
+                            <p>{t('library.allowedGeographies', { value: (asset.allowedGeographies ?? []).join(', ') })}</p>
+                          ) : null}
+                          {(asset.destinationUrls?.length ?? 0) > 0 ? (
+                            <p>{t('library.destinationUrls', { value: (asset.destinationUrls ?? []).join(', ') })}</p>
+                          ) : null}
+                          {asset.validUntil ? (
+                            <p>{t('library.validUntil', { value: asset.validUntil })}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </article>
                   )) : (
                     <p className="rounded-2xl border border-dashed border-grid-line/25 bg-terminal-surface/25 p-4 text-sm font-mono leading-6 text-muted-foreground">

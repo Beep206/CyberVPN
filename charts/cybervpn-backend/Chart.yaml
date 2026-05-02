@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cybervpn-backend
+description: CyberVPN backend runtime chart for the first Kubernetes control-plane migration set
+type: application
+version: 0.2.0
+appVersion: "0.2.0"

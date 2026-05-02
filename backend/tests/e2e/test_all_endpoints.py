@@ -9,6 +9,7 @@ This module intentionally follows the live contracts that exist today:
 The goal here is broad smoke coverage, not deep business-rule verification.
 """
 
+import os
 import secrets
 import time
 import uuid
@@ -26,9 +27,19 @@ from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.wallet_model import WalletModel
+from tests.conftest import TEST_DB_AVAILABLE_ENV
 
 ADMIN_PASSWORD = "FixtureAdminPassword123!"
 MOBILE_PASSWORD = "MobileFixturePassword123!"
+
+
+@pytest.fixture(autouse=True)
+def require_docker_backed_db() -> None:
+    if os.environ.get(TEST_DB_AVAILABLE_ENV) == "0":
+        pytest.skip(
+            "Docker-backed test database is unavailable. "
+            "Start the local stack or run targeted sqlite-backed packs."
+        )
 
 
 def _elapsed_ms(started_at: float) -> float:

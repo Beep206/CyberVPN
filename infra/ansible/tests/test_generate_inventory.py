@@ -82,12 +82,115 @@ class BuildInventoryTests(unittest.TestCase):
 
 
 class ScriptExecutionTests(unittest.TestCase):
-    def test_script_writes_inventory_snapshot_from_fake_terraform(self) -> None:
+    def test_script_writes_inventory_snapshot_from_fake_opentofu(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            terraform_dir = temp_path / "terraform-stack"
-            terraform_dir.mkdir()
+            stack_dir = temp_path / "edge-stack"
+            stack_dir.mkdir()
             prometheus_output_path = temp_path / "alloy-edge.json"
+
+            fake_tofu = temp_path / "tofu"
+            fake_tofu.write_text(
+                textwrap.dedent(
+                    """\
+                    #!/usr/bin/env python3
+                    import json
+                    import sys
+
+                    if sys.argv[1:] != ["output", "-json", "edge_nodes"]:
+                        raise SystemExit(2)
+
+                    print(json.dumps({
+                        "fi-01": {
+                            "id": "1001",
+                            "ip": "198.51.100.11",
+                            "labels": {"environment": "staging", "role": "remnawave"},
+                            "location": "hel1",
+                            "role": "remnawave",
+                            "server_type": "cx22",
+                            "ssh_port": 22022
+                        }
+                    }))
+                    """
+                )
+            )
+            fake_tofu.chmod(fake_tofu.stat().st_mode | stat.S_IEXEC)
+
+            output_path = temp_path / "generated.hosts.json"
+            subprocess.run(
+                [
+                    os.environ.get("PYTHON", "python"),
+                    str(SCRIPT_PATH),
+                    "--tofu-bin",
+                    str(fake_tofu),
+                    "--stack-dir",
+                    str(stack_dir),
+                    "--output",
+                    str(output_path),
+                    "--environment",
+                    "staging",
+                    "--ansible-user",
+                    "cyberops",
+                    "--prometheus-output",
+                    str(prometheus_output_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            payload = json.loads(output_path.read_text())
+            target_payload = json.loads(prometheus_output_path.read_text())
+            self.assertIn("all", payload)
+            self.assertIn("edge_staging", payload["all"]["children"])
+            self.assertIn("fi-01", payload["all"]["children"]["edge_staging"]["hosts"])
+            self.assertEqual(target_payload[0]["targets"], ["198.51.100.11:9100"])
+
+    def test_script_writes_inventory_snapshot_from_fixture_file(self) -> None:
+        fixture_path = Path(__file__).resolve().parent / "fixtures" / "edge_nodes.sample.json"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            stack_dir = temp_path / "edge-stack"
+            stack_dir.mkdir()
+            output_path = temp_path / "generated.hosts.json"
+            prometheus_output_path = temp_path / "alloy-edge.json"
+
+            subprocess.run(
+                [
+                    os.environ.get("PYTHON", "python"),
+                    str(SCRIPT_PATH),
+                    "--stack-dir",
+                    str(stack_dir),
+                    "--stack-output-file",
+                    str(fixture_path),
+                    "--output",
+                    str(output_path),
+                    "--environment",
+                    "staging",
+                    "--ansible-user",
+                    "cyberops",
+                    "--prometheus-output",
+                    str(prometheus_output_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            payload = json.loads(output_path.read_text())
+            target_payload = json.loads(prometheus_output_path.read_text())
+            edge_hosts = payload["all"]["children"]["edge_staging"]["hosts"]
+            self.assertIn("helix-fi-01", edge_hosts)
+            self.assertEqual(edge_hosts["helix-fi-01"]["node_role"], "helix")
+            self.assertEqual(target_payload[0]["labels"]["job"], "alloy-edge")
+
+    def test_legacy_terraform_flag_aliases_still_work_for_rollback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            stack_dir = temp_path / "edge-stack"
+            stack_dir.mkdir()
+            output_path = temp_path / "generated.hosts.json"
 
             fake_tf = temp_path / "terraform"
             fake_tf.write_text(
@@ -116,7 +219,6 @@ class ScriptExecutionTests(unittest.TestCase):
             )
             fake_tf.chmod(fake_tf.stat().st_mode | stat.S_IEXEC)
 
-            output_path = temp_path / "generated.hosts.json"
             subprocess.run(
                 [
                     os.environ.get("PYTHON", "python"),
@@ -124,15 +226,11 @@ class ScriptExecutionTests(unittest.TestCase):
                     "--terraform-bin",
                     str(fake_tf),
                     "--terraform-dir",
-                    str(terraform_dir),
+                    str(stack_dir),
                     "--output",
                     str(output_path),
                     "--environment",
                     "staging",
-                    "--ansible-user",
-                    "cyberops",
-                    "--prometheus-output",
-                    str(prometheus_output_path),
                 ],
                 check=True,
                 capture_output=True,
@@ -140,50 +238,7 @@ class ScriptExecutionTests(unittest.TestCase):
             )
 
             payload = json.loads(output_path.read_text())
-            target_payload = json.loads(prometheus_output_path.read_text())
-            self.assertIn("all", payload)
-            self.assertIn("edge_staging", payload["all"]["children"])
             self.assertIn("fi-01", payload["all"]["children"]["edge_staging"]["hosts"])
-            self.assertEqual(target_payload[0]["targets"], ["198.51.100.11:9100"])
-
-    def test_script_writes_inventory_snapshot_from_fixture_file(self) -> None:
-        fixture_path = Path(__file__).resolve().parent / "fixtures" / "edge_nodes.sample.json"
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            terraform_dir = temp_path / "terraform-stack"
-            terraform_dir.mkdir()
-            output_path = temp_path / "generated.hosts.json"
-            prometheus_output_path = temp_path / "alloy-edge.json"
-
-            subprocess.run(
-                [
-                    os.environ.get("PYTHON", "python"),
-                    str(SCRIPT_PATH),
-                    "--terraform-dir",
-                    str(terraform_dir),
-                    "--terraform-output-file",
-                    str(fixture_path),
-                    "--output",
-                    str(output_path),
-                    "--environment",
-                    "staging",
-                    "--ansible-user",
-                    "cyberops",
-                    "--prometheus-output",
-                    str(prometheus_output_path),
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-
-            payload = json.loads(output_path.read_text())
-            target_payload = json.loads(prometheus_output_path.read_text())
-            edge_hosts = payload["all"]["children"]["edge_staging"]["hosts"]
-            self.assertIn("helix-fi-01", edge_hosts)
-            self.assertEqual(edge_hosts["helix-fi-01"]["node_role"], "helix")
-            self.assertEqual(target_payload[0]["labels"]["job"], "alloy-edge")
 
 
 if __name__ == "__main__":

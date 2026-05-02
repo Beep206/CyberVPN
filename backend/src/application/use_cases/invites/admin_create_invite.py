@@ -6,6 +6,8 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from src.application.services.config_service import ConfigService
+from src.application.use_cases.growth_notifications.catalog import invite_issued_notification_key
+from src.application.use_cases.growth_notifications.fanout import PlanCustomerGrowthNotificationFanoutUseCase
 from src.domain.enums import InviteSource
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
@@ -25,9 +27,11 @@ class AdminCreateInviteUseCase:
         self,
         invite_repo: InviteCodeRepository,
         config_service: ConfigService,
+        notification_fanout: PlanCustomerGrowthNotificationFanoutUseCase | None = None,
     ) -> None:
         self._invite_repo = invite_repo
         self._config_service = config_service
+        self._notification_fanout = notification_fanout
 
     async def execute(
         self,
@@ -64,6 +68,22 @@ class AdminCreateInviteUseCase:
         ]
 
         created = await self._invite_repo.create_batch(models)
+        if self._notification_fanout is not None:
+            for invite in created:
+                notes = [f"Source: {str(invite.source).replace('_', ' ')}."]
+                if invite.expires_at is not None:
+                    notes.append(f"Expires {invite.expires_at.date().isoformat()}.")
+                await self._notification_fanout.execute(
+                    mobile_user_id=invite.owner_user_id,
+                    notification_key=invite_issued_notification_key(invite.id),
+                    notification_kind="invite_issued",
+                    title="Invite ready to share",
+                    message=f"Your account received an invite code for {invite.free_days} free days.",
+                    route_slug="/referral",
+                    notes=notes,
+                    source_kind="invite_code",
+                    source_id=str(invite.id),
+                )
 
         logger.info(
             "admin_invites_created",

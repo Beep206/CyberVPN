@@ -227,11 +227,13 @@ describe('AnalyticsClient', () => {
       vi.mocked(paymentsApi.getHistory).mockResolvedValue({ data: [] } as never);
       vi.mocked(usageApi.getMyUsage).mockResolvedValue({ data: { bandwidth_used_gb: 0 } } as never);
       vi.mocked(subscriptionsApi.list).mockResolvedValue({
-        data: [
-          { plan_name: 'Basic', id: 1 },
-          { plan_name: 'Pro', id: 2 },
-          { plan_name: 'Basic', id: 3 },
-        ]
+        data: {
+          templates: [
+            { uuid: 'sub-1', plan_name: 'Basic', status: 'active' },
+            { uuid: 'sub-2', plan_name: 'Pro', status: 'active' },
+            { uuid: 'sub-3', plan_name: 'Basic', status: 'active' },
+          ],
+        },
       } as never);
 
       renderWithQueryClient(<AnalyticsClient />);
@@ -249,12 +251,14 @@ describe('AnalyticsClient', () => {
       vi.mocked(paymentsApi.getHistory).mockResolvedValue({ data: [] } as never);
       vi.mocked(usageApi.getMyUsage).mockResolvedValue({ data: { bandwidth_used_gb: 0 } } as never);
       vi.mocked(subscriptionsApi.list).mockResolvedValue({
-        data: [
-          { plan_name: 'Basic', id: 1 },
-          { plan_name: 'Basic', id: 2 },
-          { plan_name: 'Pro', id: 3 },
-          { plan_name: 'Pro', id: 4 },
-        ]
+        data: {
+          templates: [
+            { uuid: 'sub-1', plan_name: 'Basic', status: 'active' },
+            { uuid: 'sub-2', plan_name: 'Basic', status: 'active' },
+            { uuid: 'sub-3', plan_name: 'Pro', status: 'active' },
+            { uuid: 'sub-4', plan_name: 'Pro', status: 'active' },
+          ],
+        },
       } as never);
 
       renderWithQueryClient(<AnalyticsClient />);

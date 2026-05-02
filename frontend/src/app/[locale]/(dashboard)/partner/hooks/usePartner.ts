@@ -19,7 +19,7 @@ export function usePartnerDashboard() {
 /**
  * Hook to fetch partner codes
  */
-export function usePartnerCodes() {
+export function usePartnerCodes(enabled = true) {
   return useQuery({
     queryKey: ['partner-codes'],
     queryFn: async () => {
@@ -27,13 +27,14 @@ export function usePartnerCodes() {
       return response.data;
     },
     staleTime: 1 * 60 * 1000,
+    enabled,
   });
 }
 
 /**
  * Hook to fetch partner earnings
  */
-export function usePartnerEarnings() {
+export function usePartnerEarnings(enabled = true) {
   return useQuery({
     queryKey: ['partner-earnings'],
     queryFn: async () => {
@@ -41,5 +42,6 @@ export function usePartnerEarnings() {
       return response.data;
     },
     staleTime: 2 * 60 * 1000,
+    enabled,
   });
 }

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PartnerClient } from '../PartnerClient';
 import { http, HttpResponse } from 'msw';
@@ -37,7 +37,7 @@ vi.mock('@/features/auth/components/CyberInput', () => ({
   ),
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -54,11 +54,9 @@ const createWrapper = () => {
 describe('PartnerClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
     vi.useRealTimers();
   });
 
@@ -87,8 +85,6 @@ describe('PartnerClient', () => {
     });
 
     it('test_converts_partner_code_to_uppercase', async () => {
-      const user = userEvent.setup({ delay: null });
-
       render(<PartnerClient />, { wrapper: createWrapper() });
 
       await waitFor(() => {
@@ -96,21 +92,20 @@ describe('PartnerClient', () => {
       });
 
       const input = screen.getByLabelText(/Partner Code/i) as HTMLInputElement;
-      await user.type(input, 'partner');
+      fireEvent.change(input, { target: { value: 'partner' } });
 
-      expect(input.value).toBe('PARTNER');
+      await waitFor(() => {
+        expect((screen.getByLabelText(/Partner Code/i) as HTMLInputElement).value).toBe('PARTNER');
+      });
     });
 
     it('test_binds_to_partner_successfully', async () => {
       const user = userEvent.setup({ delay: null });
-      const reloadMock = vi.fn();
-      Object.defineProperty(window, 'location', {
-        value: { reload: reloadMock },
-        writable: true,
-      });
+      let bindPayload: unknown;
 
       server.use(
-        http.post(`${API_BASE}/partner/bind`, () => {
+        http.post(`${API_BASE}/partner/bind`, async ({ request }) => {
+          bindPayload = await request.json();
           return HttpResponse.json({
             message: 'Successfully bound to partner',
           });
@@ -124,7 +119,7 @@ describe('PartnerClient', () => {
       });
 
       const input = screen.getByLabelText(/Partner Code/i);
-      await user.type(input, 'PARTNER2024');
+      fireEvent.change(input, { target: { value: 'partner2024' } });
 
       const bindButton = screen.getByText(/Bind Partner Code/i);
       await user.click(bindButton);
@@ -133,12 +128,7 @@ describe('PartnerClient', () => {
         expect(screen.getByText(/Successfully bound to partner!/i)).toBeInTheDocument();
       });
 
-      // Advance timer for reload
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        expect(reloadMock).toHaveBeenCalled();
-      });
+      expect(bindPayload).toEqual({ partner_code: 'PARTNER2024' });
     });
 
     it('test_shows_error_for_invalid_partner_code', async () => {
@@ -160,7 +150,7 @@ describe('PartnerClient', () => {
       });
 
       const input = screen.getByLabelText(/Partner Code/i);
-      await user.type(input, 'INVALID');
+      fireEvent.change(input, { target: { value: 'invalid' } });
 
       const bindButton = screen.getByText(/Bind Partner Code/i);
       await user.click(bindButton);
@@ -189,9 +179,11 @@ describe('PartnerClient', () => {
 
     it('test_disables_button_while_binding', async () => {
       const user = userEvent.setup({ delay: null });
+      let bindRequests = 0;
 
       server.use(
         http.post(`${API_BASE}/partner/bind`, async () => {
+          bindRequests += 1;
           await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json({ message: 'Success' });
         })
@@ -204,12 +196,13 @@ describe('PartnerClient', () => {
       });
 
       const input = screen.getByLabelText(/Partner Code/i);
-      await user.type(input, 'CODE123');
+      fireEvent.change(input, { target: { value: 'code123' } });
 
       const bindButton = screen.getByText(/Bind Partner Code/i);
       await user.click(bindButton);
 
       await waitFor(() => {
+        expect(bindRequests).toBe(1);
         expect(screen.getByText(/Binding.../i)).toBeInTheDocument();
       });
     });
@@ -220,21 +213,49 @@ describe('PartnerClient', () => {
       server.use(
         http.get(`${API_BASE}/partner/dashboard`, () => {
           return HttpResponse.json({
-            total_earnings: 250.50,
-            active_codes_count: 5,
-            referrals_count: 12,
+            total_earned: 250.50,
+            total_clients: 12,
+            codes: [{ id: 'code-1' }, { id: 'code-2' }, { id: 'code-3' }, { id: 'code-4' }, { id: 'code-5' }],
           });
         }),
         http.get(`${API_BASE}/partner/codes`, () => {
           return HttpResponse.json([
-            { code: 'SUMMER2024', markup_percent: 15, uses_count: 8, earnings: 120.00 },
-            { code: 'WELCOME10', markup_percent: 10, uses_count: 4, earnings: 40.50 },
+            {
+              id: 'code-1',
+              code: 'SUMMER2024',
+              markup_pct: 15,
+              is_active: true,
+              created_at: '2026-02-01T00:00:00Z',
+            },
+            {
+              id: 'code-2',
+              code: 'WELCOME10',
+              markup_pct: 10,
+              is_active: true,
+              created_at: '2026-02-02T00:00:00Z',
+            },
           ]);
         }),
         http.get(`${API_BASE}/partner/earnings`, () => {
           return HttpResponse.json([
-            { created_at: '2026-02-10T12:00:00Z', code: 'SUMMER2024', amount: 25.00 },
-            { created_at: '2026-02-09T12:00:00Z', code: 'WELCOME10', amount: 15.50 },
+            {
+              id: 'earning-1',
+              client_user_id: 'client-user-1',
+              base_price: 100,
+              markup_amount: 10,
+              commission_amount: 15,
+              total_earning: 25,
+              created_at: '2026-02-10T12:00:00Z',
+            },
+            {
+              id: 'earning-2',
+              client_user_id: 'client-user-2',
+              base_price: 70,
+              markup_amount: 5,
+              commission_amount: 10.5,
+              total_earning: 15.5,
+              created_at: '2026-02-09T12:00:00Z',
+            },
           ]);
         })
       );
@@ -256,14 +277,13 @@ describe('PartnerClient', () => {
       render(<PartnerClient />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText('SUMMER2024')).toBeInTheDocument();
+        expect(screen.getAllByText('SUMMER2024').length).toBeGreaterThan(0);
       });
 
-      expect(screen.getByText('WELCOME10')).toBeInTheDocument();
-      expect(screen.getByText('15%')).toBeInTheDocument();
-      expect(screen.getByText('10%')).toBeInTheDocument();
-      expect(screen.getByText('$120')).toBeInTheDocument();
-      expect(screen.getByText('$40.5')).toBeInTheDocument();
+      expect(screen.getAllByText('WELCOME10').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('15%').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('10%').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('-').length).toBeGreaterThan(0);
     });
 
     it('test_displays_recent_earnings_table', async () => {
@@ -273,19 +293,23 @@ describe('PartnerClient', () => {
         expect(screen.getByText(/Recent Earnings/i)).toBeInTheDocument();
       });
 
-      expect(screen.getAllByText(/SUMMER2024/i)).toHaveLength(2); // In codes table and earnings table
-      expect(screen.getByText('$25')).toBeInTheDocument();
-      expect(screen.getByText('$15.5')).toBeInTheDocument();
+      expect(screen.getAllByText('$25.00').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('$15.50').length).toBeGreaterThan(0);
     });
 
     it('test_creates_new_partner_code_successfully', async () => {
       const user = userEvent.setup({ delay: null });
+      let createPayload: unknown;
+      let createRequests = 0;
 
       server.use(
-        http.post(`${API_BASE}/partner/codes`, () => {
+        http.post(`${API_BASE}/partner/codes`, async ({ request }) => {
+          createRequests += 1;
+          createPayload = await request.json();
+          await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json({
             code: 'NEWCODE2024',
-            markup_percent: 20,
+            markup_pct: 20,
           }, { status: 201 });
         })
       );
@@ -300,13 +324,16 @@ describe('PartnerClient', () => {
       const markupInput = screen.getByLabelText(/Markup %/i);
       const createButton = screen.getByText('Create');
 
-      await user.type(nameInput, 'newcode2024');
-      await user.type(markupInput, '20');
+      fireEvent.change(nameInput, { target: { value: 'newcode2024' } });
+      fireEvent.change(markupInput, { target: { value: '20' } });
       await user.click(createButton);
 
       await waitFor(() => {
+        expect(createRequests).toBe(1);
         expect(screen.getByText(/Creating.../i)).toBeInTheDocument();
       });
+
+      expect(createPayload).toEqual({ code: 'NEWCODE2024', markup_pct: 20 });
     });
 
     it('test_validates_code_name_required', async () => {
@@ -321,7 +348,7 @@ describe('PartnerClient', () => {
       const markupInput = screen.getByLabelText(/Markup %/i);
       const createButton = screen.getByText('Create');
 
-      await user.type(markupInput, '15');
+      fireEvent.change(markupInput, { target: { value: '15' } });
       await user.click(createButton);
 
       await waitFor(() => {

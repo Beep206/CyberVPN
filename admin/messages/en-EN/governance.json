@@ -195,7 +195,7 @@
     "roleMatrixTitle": "Role Matrix",
     "roleMatrixDescription": "Frontend mirror of the current backend permission mapping by staff role.",
     "gapTitle": "Known Gap",
-    "gapDescription": "This workspace currently reflects `/settings` and static permission policy only. Dedicated `system_config` governance APIs and a true admin directory are still missing on the backend.",
+    "gapDescription": "The first dedicated `system_config` governance API is now live for `miniapp.runtime`. Broader system configuration families and a true admin directory still need to move off the generic `/settings` surface.",
     "keyPlaceholder": "registration_mode",
     "descriptionPlaceholder": "Short operator-facing explanation",
     "valuePlaceholder": "{\"enabled\": true}",
@@ -214,6 +214,149 @@
       "describedHint": "settings with operator notes",
       "families": "Families",
       "familiesHint": "top-level setting groups"
+    },
+    "runtimeControl": {
+      "title": "Mini App Runtime Control",
+      "description": "Operator-managed rollout policy for Telegram Mini App trial, checkout, config delivery, and maintenance messaging.",
+      "enabled": "Runtime enabled",
+      "mode": "Rollout mode",
+      "trial": "Trial activation",
+      "checkout": "Checkout commit",
+      "config": "Config delivery",
+      "maintenanceMessage": "Maintenance message",
+      "maintenancePlaceholder": "Optional message shown during maintenance or rollback",
+      "canaryAllowlist": "Canary Telegram user IDs",
+      "canaryAllowlistPlaceholder": "123456789, 987654321",
+      "canaryAllowlistHint": "Comma or newline separated Telegram user IDs. Only these users may access Mini App when mode is set to canary.",
+      "canaryAllowlistInvalid": "Enter valid Telegram user IDs in the canary allowlist.",
+      "canaryAllowlistRequired": "Canary mode requires at least one Telegram user ID.",
+      "liveGateBlocked": "Launch gates incomplete",
+      "liveGateHint": "Mini App cannot be switched to live mode until all launch readiness gates are marked complete.",
+      "changeReason": "Change reason",
+      "changeReasonPlaceholder": "Why are you changing rollout policy?",
+      "updatedBy": "Updated by",
+      "lastUpdated": "Last updated",
+      "apply": "Apply runtime policy",
+      "updateSuccess": "Mini App runtime policy updated.",
+      "status": {
+        "live": "Runtime live",
+        "canary": "Canary rollout",
+        "maintenance": "Maintenance mode",
+        "rollback": "Rollback mode"
+      }
+    },
+    "launchReadiness": {
+      "title": "Mini App Launch Readiness",
+      "description": "Operator-owned launch gates that must be completed before Mini App runtime may switch into live mode.",
+      "incidentChannel": "Incident channel",
+      "incidentChannelPlaceholder": "Example: #miniapp-war-room",
+      "rollbackCommander": "Rollback commander",
+      "rollbackCommanderPlaceholder": "Name or handle responsible for rollback decisions",
+      "primaryOncall": "Primary on-call",
+      "primaryOncallPlaceholder": "Name, alias, or pager target",
+      "releaseWindowNote": "Release window note",
+      "releaseWindowNotePlaceholder": "Example: April 24, 18:00 UTC, staffed by support + backend on-call",
+      "changeReason": "Change reason",
+      "changeReasonPlaceholder": "Why are you updating launch readiness?",
+      "updatedBy": "Updated by",
+      "lastUpdated": "Last updated",
+      "apply": "Apply launch readiness",
+      "updateSuccess": "Mini App launch readiness updated.",
+      "status": {
+        "ready": "Launch ready",
+        "blocked": "Launch blocked"
+      },
+      "items": {
+        "observability": "Observability dashboards and alerts acknowledged",
+        "incidentRunbook": "Incident response runbook reviewed",
+        "checkoutCanary": "Checkout canary passed",
+        "configDeliveryCanary": "Config delivery canary passed",
+        "rollbackDrill": "Rollback drill acknowledged",
+        "supportWindow": "Support/on-call window confirmed",
+        "customerComms": "Customer communication template ready",
+        "statusPageTemplate": "Status page template ready"
+      }
+    },
+    "launchSummary": {
+      "title": "Mini App Launch Summary",
+      "description": "Server-derived launch state for Mini App runtime, readiness gates, and incident-response ownership.",
+      "nextAction": "Next action",
+      "liveSwitchAllowed": "Live switch allowed",
+      "liveSwitchBlocked": "Live switch blocked",
+      "incidentChannel": "Incident channel",
+      "rollbackCommander": "Rollback commander",
+      "primaryOncall": "Primary on-call",
+      "blockers": "Current blockers",
+      "noBlockers": "No blockers. Mini App is clear to advance based on current state.",
+      "states": {
+        "live": "Live",
+        "ready_for_live": "Ready for live",
+        "canary_in_progress": "Canary in progress",
+        "rollback_in_progress": "Rollback in progress",
+        "maintenance": "Maintenance",
+        "blocked": "Blocked"
+      },
+      "actions": {
+        "promote_to_live": "Promote to live",
+        "complete_launch_gates": "Complete launch gates",
+        "keep_canary": "Keep current state",
+        "finish_rollback": "Finish rollback",
+        "hold_maintenance": "Hold maintenance",
+        "stabilize_runtime": "Stabilize runtime"
+      },
+      "blockerLabels": {
+        "runtime_disabled": "Runtime disabled",
+        "maintenance_mode_active": "Maintenance mode active",
+        "rollback_mode_active": "Rollback mode active",
+        "observability_unacknowledged": "Observability not acknowledged",
+        "incident_runbook_unacknowledged": "Incident runbook not acknowledged",
+        "checkout_canary_not_passed": "Checkout canary not passed",
+        "config_delivery_canary_not_passed": "Config delivery canary not passed",
+        "rollback_drill_unacknowledged": "Rollback drill not acknowledged",
+        "support_window_unconfirmed": "Support window not confirmed",
+        "customer_comms_not_ready": "Customer communication not ready",
+        "status_page_template_not_ready": "Status page template not ready",
+        "incident_channel_missing": "Incident channel missing",
+        "rollback_commander_missing": "Rollback commander missing",
+        "primary_oncall_contact_missing": "Primary on-call contact missing"
+      }
+    },
+    "launchActions": {
+      "title": "Mini App Launch Actions",
+      "description": "Server-authoritative transitions for launch, maintenance, and rollback decisions.",
+      "reason": "Action reason",
+      "reasonPlaceholder": "Why are you executing this launch action?",
+      "noActions": "No launch actions are currently available for this state.",
+      "currentStateHint": "Current launch state: {state}",
+      "items": {
+        "promote_to_live": "Promote to live",
+        "enter_maintenance": "Enter maintenance",
+        "start_rollback": "Start rollback",
+        "return_to_canary": "Return to canary"
+      },
+      "success": {
+        "promote_to_live": "Mini App promoted to live mode.",
+        "enter_maintenance": "Mini App placed into maintenance mode.",
+        "start_rollback": "Mini App rollback started.",
+        "return_to_canary": "Mini App returned to canary mode."
+      }
+    },
+    "launchChecklist": {
+      "title": "Mini App Launch Checklist",
+      "description": "Operator-facing checklist derived from current launch summary and readiness ownership before live cutover.",
+      "releaseWindow": "Release window",
+      "missingValue": "Not recorded"
+    },
+    "launchTimeline": {
+      "title": "Mini App Launch Timeline",
+      "description": "Recent runtime, readiness, and launch-action decisions for production cutover review.",
+      "empty": "No Mini App launch events recorded yet.",
+      "noReason": "No change reason recorded.",
+      "eventTypes": {
+        "runtime_update": "Runtime update",
+        "launch_readiness_update": "Launch readiness update",
+        "launch_action": "Launch action"
+      }
     }
   }
 }

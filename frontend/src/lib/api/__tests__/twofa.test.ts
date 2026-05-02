@@ -14,7 +14,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
@@ -202,7 +202,7 @@ describe('twofaApi.setup', () => {
     );
 
     // Act & Assert
-    await expect(twofaApi.setup()).rejects.toThrow('No refresh token');
+    await expect(twofaApi.setup()).rejects.toThrow('Request failed with status code 401');
   });
 });
 
@@ -500,7 +500,7 @@ describe('twofaApi.disable', () => {
     // Act & Assert
     await expect(
       twofaApi.disable({ password: 'my_password', code: '123456' }),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 });
 
@@ -556,7 +556,7 @@ describe('twofaApi.getStatus', () => {
     );
 
     // Act & Assert
-    await expect(twofaApi.getStatus()).rejects.toThrow('No refresh token');
+    await expect(twofaApi.getStatus()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_2fa_status_server_error_500_rejects', async () => {

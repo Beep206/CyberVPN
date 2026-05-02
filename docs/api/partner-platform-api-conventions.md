@@ -38,6 +38,7 @@ Reserved resource groups:
 - `/api/v1/pricebooks`
 - `/api/v1/program-eligibility`
 - `/api/v1/catalog`
+- `/api/v1/partner-bots`
 - `/api/v1/partner-payout-accounts`
 
 `partner-payout-accounts` is a first-class resource family. It is not only a nested property of payout instructions.

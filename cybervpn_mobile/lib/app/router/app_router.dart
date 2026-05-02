@@ -17,6 +17,7 @@ import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.
 import 'package:cybervpn_mobile/features/auth/presentation/screens/magic_link_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/otp_verification_screen.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/screens/telegram_two_factor_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/import_list_screen.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/screens/qr_scanner_screen.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/diagnostics_screen.dart';
@@ -276,7 +277,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path == '/forgot-password' ||
             path == '/reset-password' ||
             path == '/magic-link' ||
-            path == '/otp-verification';
+            path == '/otp-verification' ||
+            path == '/telegram-2fa';
         final isOnboardingRoute = path == '/onboarding';
         final isQuickSetupRoute = path == '/quick-setup';
         final isSplashRoute = path == '/splash';
@@ -455,6 +457,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildAdaptiveTransition(
           state: state,
           child: const ForgotPasswordScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/telegram-2fa',
+        name: 'telegram-2fa',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => _buildAdaptiveTransition(
+          state: state,
+          child: const TelegramTwoFactorScreen(),
         ),
       ),
       GoRoute(

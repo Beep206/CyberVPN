@@ -12,19 +12,144 @@ import base64
 import hmac
 import ipaddress
 import logging
-import sys
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from aiogram import Bot, Dispatcher
 
 from src.bot import create_bot, create_dispatcher
 from src.config import BotSettings, get_settings
 
+if TYPE_CHECKING:
+    from aiogram import Bot, Dispatcher
+
 logger = structlog.get_logger(__name__)
+SERVICE_NAME = "cybervpn-telegram-bot"
+RUNTIME_SURFACE = "telegram-bot"
+
+SENSITIVE_HEADER_NAMES = {
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "x-observability-secret",
+    "x-telegram-bot-api-secret-token",
+}
+SENSITIVE_FIELD_MARKERS = (
+    "token",
+    "secret",
+    "password",
+    "cookie",
+    "authorization",
+    "jwt",
+    "payload",
+    "config",
+    "wireguard",
+    "vless",
+    "vmess",
+    "remnawave",
+    "openbao",
+)
+
+
+def _scrub_sensitive_mapping(payload: dict[str, Any]) -> None:
+    for key, value in list(payload.items()):
+        lowered_key = key.lower()
+        if any(marker in lowered_key for marker in SENSITIVE_FIELD_MARKERS):
+            payload[key] = "[Filtered]"
+            continue
+
+        if isinstance(value, dict):
+            _scrub_sensitive_mapping(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    _scrub_sensitive_mapping(item)
+
+
+def _scrub_request_headers(headers: Any) -> None:
+    if not isinstance(headers, dict):
+        return
+
+    for header_name in list(headers):
+        if header_name.lower() in SENSITIVE_HEADER_NAMES:
+            headers[header_name] = "[Filtered]"
+
+
+def _before_send(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any] | None:
+    request = event.get("request")
+    if isinstance(request, dict):
+        _scrub_request_headers(request.get("headers"))
+        if "data" in request:
+            request["data"] = "[Filtered]"
+        if "cookies" in request:
+            request["cookies"] = "[Filtered]"
+
+    user = event.get("user")
+    if isinstance(user, dict):
+        for key in ("ip_address", "email", "username"):
+            user.pop(key, None)
+
+    for section_name in ("extra", "contexts"):
+        section = event.get(section_name)
+        if isinstance(section, dict):
+            _scrub_sensitive_mapping(section)
+
+    return event
+
+
+def is_observability_authorized(
+    configured_secret,
+    provided_secret: str | None,
+) -> bool:
+    if configured_secret is None:
+        return False
+
+    configured = configured_secret.get_secret_value().strip()
+    provided = (provided_secret or "").strip()
+    if not configured or not provided:
+        return False
+    return hmac.compare_digest(configured, provided)
+
+
+def setup_sentry(settings: BotSettings) -> bool:
+    dsn = settings.sentry_dsn.strip()
+    if not dsn:
+        return False
+
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=settings.environment,
+        release=settings.sentry_release or None,
+        send_default_pii=False,
+        max_request_body_size="never",
+        include_local_variables=False,
+        in_app_include=["src"],
+        before_send=_before_send,
+    )
+    sentry_sdk.set_tag("runtime_surface", RUNTIME_SURFACE)
+    sentry_sdk.set_tag("service.name", SERVICE_NAME)
+    sentry_sdk.set_tag("bot_mode", settings.bot_mode)
+
+    logger.info(
+        "sentry_initialized",
+        environment=settings.environment,
+        release=settings.sentry_release or None,
+        bot_mode=settings.bot_mode,
+    )
+    return True
 
 
 async def on_startup(bot: Bot, settings: BotSettings) -> None:
     """Execute startup tasks: log bot info, set webhook if needed."""
+    if settings.skip_telegram_network_calls:
+        logger.info(
+            "bot_startup_network_skipped",
+            mode=settings.bot_mode,
+            environment=settings.environment,
+        )
+        return
+
     bot_info = await bot.get_me()
     logger.info(
         "bot_started",
@@ -45,10 +170,11 @@ async def on_startup(bot: Bot, settings: BotSettings) -> None:
         logger.info("webhook_set", url=webhook_url)
 
 
-async def on_shutdown(bot: Bot) -> None:
+async def on_shutdown(bot: Bot, settings: BotSettings) -> None:
     """Execute graceful shutdown tasks."""
     logger.info("bot_shutting_down")
-    await bot.delete_webhook(drop_pending_updates=True)
+    if not settings.skip_telegram_network_calls:
+        await bot.delete_webhook(drop_pending_updates=True)
     await bot.session.close()
     logger.info("bot_shutdown_complete")
 
@@ -207,7 +333,7 @@ async def _start_metrics_server(settings: BotSettings):
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, host="0.0.0.0", port=settings.prometheus.port)
+    site = web.TCPSite(runner, host="0.0.0.0", port=settings.prometheus.port)  # noqa: S104
     await site.start()
 
     logger.info(
@@ -233,23 +359,58 @@ def run_webhook(bot: Bot, dp: Dispatcher, settings: BotSettings) -> None:
     """
     from aiohttp import web
 
-    from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-
     logger.info(
         "starting_webhook_mode",
         port=settings.webhook.port,
         path=settings.webhook.path,
     )
 
+    app = create_webhook_app(bot, dp, settings)
+    web.run_app(
+        app,
+        host="0.0.0.0",  # noqa: S104 — bound inside container
+        port=settings.webhook.port,
+    )
+
+
+def create_webhook_app(bot: Bot, dp: Dispatcher, settings: BotSettings):
+    from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+    from aiohttp import web
+
     app = web.Application()
 
-    # Health check endpoint
     async def health_handler(_request: web.Request) -> web.Response:
-        return web.json_response({"status": "ok", "mode": "webhook"})
+        return web.json_response(
+            {
+                "status": "ok",
+                "mode": "webhook",
+                "service": SERVICE_NAME,
+                "environment": settings.environment,
+            }
+        )
+
+    async def sentry_contract_handler(request: web.Request) -> web.Response:
+        provided_secret = request.headers.get("x-observability-secret")
+        if not is_observability_authorized(
+            settings.observability_internal_secret,
+            provided_secret,
+        ):
+            raise web.HTTPForbidden(text="Forbidden")
+
+        return web.json_response(
+            {
+                "runtime_surface": RUNTIME_SURFACE,
+                "service": SERVICE_NAME,
+                "environment": settings.environment,
+                "release": settings.sentry_release,
+                "dsn_configured": bool(settings.sentry_dsn.strip()),
+                "bot_mode": settings.bot_mode,
+            }
+        )
 
     app.router.add_get("/health", health_handler)
+    app.router.add_get("/observability/sentry-contract", sentry_contract_handler)
 
-    # Prometheus metrics endpoint
     if settings.prometheus.enabled:
         app.router.add_get(settings.prometheus.path, _build_metrics_handler(settings))
         logger.info(
@@ -266,24 +427,21 @@ def run_webhook(bot: Bot, dp: Dispatcher, settings: BotSettings) -> None:
     )
     webhook_handler.register(app, path=settings.webhook.path)
     setup_application(app, dp, bot=bot)
-
-    web.run_app(
-        app,
-        host="0.0.0.0",  # noqa: S104 — bound inside container
-        port=settings.webhook.port,
-    )
+    return app
 
 
-async def _async_main() -> None:
+async def _async_main(settings: BotSettings) -> None:
     """Async entry point for polling mode."""
-    settings = get_settings()
     bot = create_bot(settings)
     dp = create_dispatcher(settings, bot)
 
     async def _on_startup(bot: Bot, **_: object) -> None:
         await on_startup(bot, settings)
 
-    dp.shutdown.register(on_shutdown)
+    async def _on_shutdown(bot: Bot, **_: object) -> None:
+        await on_shutdown(bot, settings)
+
+    dp.shutdown.register(_on_shutdown)
     dp.startup.register(_on_startup)
 
     metrics_runner = None
@@ -300,6 +458,8 @@ async def _async_main() -> None:
 
 def main() -> None:
     """Application entry point supporting both polling and webhook modes."""
+    settings = get_settings()
+
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
@@ -308,18 +468,17 @@ def main() -> None:
             structlog.dev.set_exc_info,
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.dev.ConsoleRenderer()
-            if not get_settings().logging.json_format
+            if not settings.logging.json_format
             else structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
-            logging.getLevelName(get_settings().logging.level),
+            logging.getLevelName(settings.logging.level),
         ),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,
     )
-
-    settings = get_settings()
+    setup_sentry(settings)
 
     if settings.bot_mode == "webhook":
         bot = create_bot(settings)
@@ -328,11 +487,14 @@ def main() -> None:
         async def _on_startup(bot: Bot, **_: object) -> None:
             await on_startup(bot, settings)
 
-        dp.shutdown.register(on_shutdown)
+        async def _on_shutdown(bot: Bot, **_: object) -> None:
+            await on_shutdown(bot, settings)
+
+        dp.shutdown.register(_on_shutdown)
         dp.startup.register(_on_startup)
         run_webhook(bot, dp, settings)
     else:
-        asyncio.run(_async_main())
+        asyncio.run(_async_main(settings))
 
 
 if __name__ == "__main__":

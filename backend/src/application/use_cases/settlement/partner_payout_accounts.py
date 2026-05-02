@@ -21,6 +21,13 @@ from src.infrastructure.database.models.risk_subject_model import RiskSubjectMod
 from src.infrastructure.database.repositories.partner_account_repository import PartnerAccountRepository
 from src.infrastructure.database.repositories.risk_subject_repo import RiskSubjectGraphRepository
 from src.infrastructure.database.repositories.settlement_repo import SettlementRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_ADMIN_SURFACE,
+    PARTNER_PORTAL_SURFACE,
+    log_partner_runtime_event,
+    observe_partner_payout_account_created,
+    observe_partner_payout_account_verified,
+)
 
 
 @dataclass(frozen=True)
@@ -116,6 +123,21 @@ class CreatePartnerPayoutAccountUseCase:
         await self._get_or_create_workspace_risk_subject(partner_account_id)
         await self._session.commit()
         await self._session.refresh(created)
+        observe_partner_payout_account_created(
+            surface=PARTNER_PORTAL_SURFACE,
+            payout_rail=created.payout_rail,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_payout_account.created",
+            surface=PARTNER_PORTAL_SURFACE,
+            route_group="finance",
+            workspace_status=workspace.status,
+            payout_rail=created.payout_rail,
+            partner_account_id=str(partner_account_id),
+            partner_payout_account_id=str(created.id),
+            result="success",
+        )
         return created
 
     async def _get_or_create_workspace_risk_subject(self, partner_account_id: UUID) -> RiskSubjectModel:
@@ -201,6 +223,20 @@ class VerifyPartnerPayoutAccountUseCase:
         payout_account.approved_at = now
         await self._session.commit()
         await self._session.refresh(payout_account)
+        observe_partner_payout_account_verified(
+            surface=PARTNER_ADMIN_SURFACE,
+            payout_rail=payout_account.payout_rail,
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_payout_account.verified",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="finance",
+            payout_rail=payout_account.payout_rail,
+            partner_account_id=str(payout_account.partner_account_id),
+            partner_payout_account_id=str(payout_account.id),
+            result="success",
+        )
         return payout_account
 
 

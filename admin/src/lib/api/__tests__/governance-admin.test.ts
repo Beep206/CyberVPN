@@ -239,6 +239,7 @@ describe('governanceApi policy settings operations', () => {
     expect(updatedId).toBe('7');
     expect(response.data.isPublic).toBe(true);
   });
+
 });
 
 describe('governanceApi policy version and legal document operations', () => {

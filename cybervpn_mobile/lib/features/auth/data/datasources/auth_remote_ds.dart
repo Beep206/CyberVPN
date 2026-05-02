@@ -52,8 +52,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw FormatException('Expected Map response, got ${data.runtimeType}');
     }
     return (
-      UserModel.fromJson(data['user'] as Map<String, dynamic>),
-      TokenModel.fromJson(data['tokens'] as Map<String, dynamic>),
+      UserModel.fromJson(_normalizeUserJson(data['user'] as Map<String, dynamic>)),
+      TokenModel.fromJson(
+        _normalizeTokensJson(data['tokens'] as Map<String, dynamic>),
+      ),
     );
   }
 
@@ -80,8 +82,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw FormatException('Expected Map response, got ${data.runtimeType}');
     }
     return (
-      UserModel.fromJson(data['user'] as Map<String, dynamic>),
-      TokenModel.fromJson(data['tokens'] as Map<String, dynamic>),
+      UserModel.fromJson(_normalizeUserJson(data['user'] as Map<String, dynamic>)),
+      TokenModel.fromJson(
+        _normalizeTokensJson(data['tokens'] as Map<String, dynamic>),
+      ),
     );
   }
 
@@ -98,7 +102,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (data is! Map<String, dynamic>) {
       throw FormatException('Expected Map response, got ${data.runtimeType}');
     }
-    return TokenModel.fromJson(data);
+    return TokenModel.fromJson(_normalizeTokensJson(data));
   }
 
   @override
@@ -125,8 +129,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw FormatException('Expected Map response, got ${data.runtimeType}');
     }
     return (
-      UserModel.fromJson(data['user'] as Map<String, dynamic>),
-      TokenModel.fromJson(data),
+      UserModel.fromJson(_normalizeUserJson(data['user'] as Map<String, dynamic>)),
+      TokenModel.fromJson(_normalizeTokensJson(data)),
     );
   }
 
@@ -139,6 +143,31 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (data is! Map<String, dynamic>) {
       throw FormatException('Expected Map response, got ${data.runtimeType}');
     }
-    return UserModel.fromJson(data);
+    return UserModel.fromJson(_normalizeUserJson(data));
+  }
+
+  Map<String, dynamic> _normalizeTokensJson(Map<String, dynamic> json) {
+    return <String, dynamic>{
+      'accessToken': json['accessToken'] ?? json['access_token'],
+      'refreshToken': json['refreshToken'] ?? json['refresh_token'],
+      'expiresIn': json['expiresIn'] ?? json['expires_in'],
+      'tokenType': json['tokenType'] ?? json['token_type'],
+    };
+  }
+
+  Map<String, dynamic> _normalizeUserJson(Map<String, dynamic> json) {
+    return <String, dynamic>{
+      'id': (json['id'] ?? '').toString(),
+      'email': (json['email'] ?? '').toString(),
+      'username': json['username'],
+      'avatarUrl': json['avatarUrl'] ?? json['avatar_url'] ?? json['picture'],
+      'telegramId': (json['telegramId'] ?? json['telegram_id'])?.toString(),
+      'isEmailVerified':
+          json['isEmailVerified'] ?? json['is_email_verified'] ?? false,
+      'isPremium': json['isPremium'] ?? json['is_premium'] ?? false,
+      'referralCode': json['referralCode'] ?? json['referral_code'],
+      'createdAt': json['createdAt'] ?? json['created_at'],
+      'lastLoginAt': json['lastLoginAt'] ?? json['last_login_at'],
+    };
   }
 }

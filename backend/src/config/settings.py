@@ -91,7 +91,15 @@ class Settings(BaseSettings):
     telegram_bot_token: SecretStr = SecretStr("")
     telegram_bot_username: str = ""  # Bot username without @
     telegram_auth_max_age_seconds: int = 86400  # 24 hours
+    telegram_oidc_client_id: str = ""
+    telegram_oidc_client_secret: SecretStr = SecretStr("")
+    telegram_oidc_issuer: str = "https://oauth.telegram.org"
+    telegram_oidc_discovery_url: str = "https://oauth.telegram.org/.well-known/openid-configuration"
+    telegram_oidc_jwks_url: str = "https://oauth.telegram.org/.well-known/jwks.json"
+    telegram_oidc_allowed_audience: str = ""
+    telegram_oidc_clock_skew_seconds: int = 60
     telegram_bot_internal_secret: SecretStr = SecretStr("")
+    frontend_observability_internal_secret: SecretStr = SecretStr("")
 
     # Google OAuth (optional)
     google_client_id: str = ""
@@ -127,6 +135,10 @@ class Settings(BaseSettings):
 
     # Payment gateway
     cryptobot_token: SecretStr
+    growth_code_hash_secret: SecretStr = SecretStr("")
+    growth_reporting_rollup_retention_days: int = 180
+    growth_reporting_refresh_run_retention_days: int = 180
+    growth_reporting_delivery_retention_days: int = 90
 
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -191,8 +203,28 @@ class Settings(BaseSettings):
     metrics_host: str = "0.0.0.0"
     metrics_port: int = 9091  # Separate port for /metrics, not exposed publicly
 
+    # Partner event backbone / realtime
+    partner_event_backbone_enabled: bool = False
+    nats_url: str = "nats://localhost:4222"
+    nats_partner_stream_name: str = "PARTNER_EVENTS"
+    nats_partner_subject_prefix: str = "partner"
+    outbox_dispatch_batch_size: int = 100
+    outbox_dispatch_interval_seconds: float = 1.0
+    outbox_dispatch_lease_seconds: int = 30
+    outbox_dispatch_retry_after_seconds: int = 5
+    nats_consumer_fetch_batch_size: int = 25
+    nats_consumer_fetch_timeout_seconds: float = 1.0
+    partner_realtime_backlog_limit: int = 100
+
+    # PostHog product intelligence
+    posthog_enabled: bool = False
+    posthog_host: str = ""
+    posthog_project_api_key: SecretStr = SecretStr("")
+    posthog_timeout_seconds: float = 5.0
+
     # Sentry (Observability)
     sentry_dsn: str = ""  # Sentry DSN for error tracking (optional, empty = disabled)
+    sentry_release: str = ""  # Canonical Sentry release name (optional, empty = auto/disabled)
 
     # OpenTelemetry (Distributed Tracing)
     otel_exporter_endpoint: str = "http://otel-collector:4317"  # OTLP gRPC endpoint

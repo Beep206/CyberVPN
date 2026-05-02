@@ -504,7 +504,7 @@ auth, config_import, diagnostics, navigation, notifications, onboarding, partner
 | `bot` | cybervpn-telegram-bot |
 | `helix` | helix-adapter |
 | `helix-lab` | helix-adapter, 2× helix-node, bench-target, stable-http-proxy |
-| `monitoring` | prometheus, grafana, alertmanager, tempo, loki, promtail, otel-collector, node/redis/pg exporters, cadvisor, auth-metrics-seed |
+| `monitoring` | prometheus, grafana, alertmanager, tempo, loki, node/redis/pg exporters, cadvisor, auth-metrics-seed, plus temporary legacy collector remnants during Alloy migration |
 | `proxy` | caddy |
 | `subscription` | remnawave-subscription-page |
 | `email-test` | 3× mailpit (SMTP rotation testing) |
@@ -515,9 +515,11 @@ auth, config_import, diagnostics, navigation, notifications, onboarding, partner
 
 ### Полный стек:
 - **Metrics:** Prometheus → Grafana (scrape: remnawave, worker, bot, node/redis/pg exporters, cadvisor)
-- **Traces:** OpenTelemetry Collector → Tempo → Grafana
-- **Logs:** Promtail → Loki → Grafana
+- **Traces:** Alloy/OTLP target-state → Tempo → Grafana
+- **Logs:** Alloy target-state → Loki → Grafana
 - **Alerts:** Prometheus Rules → Alertmanager (TaskWorkerDown, HighTaskErrorRate, RedisConnectionFailing и др.)
+
+Локальный Compose-профиль во время migration window всё ещё несёт legacy collector debt, но canonical target-state для платформы уже зафиксирован как `Alloy-only`.
 
 ### Grafana Dashboards:
 - Auth dashboard (регистрации, OAuth, email verification, ошибки)

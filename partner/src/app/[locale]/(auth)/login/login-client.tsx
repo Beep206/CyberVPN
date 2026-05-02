@@ -16,6 +16,11 @@ import {
 import { ACCESS_DENIED_ERROR_CODE } from '@/features/auth/lib/partner-access';
 import { completePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import { getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
+import {
+  reportFrontendFormValidationError,
+  reportFrontendSubmitAttempt,
+  reportFrontendSubmitFailure,
+} from '@/shared/lib/frontend-observability';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function LoginClient() {
@@ -58,20 +63,57 @@ export function LoginClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password || isRateLimited) {
+      reportFrontendFormValidationError('partner_portal', {
+        errorCode: isRateLimited ? 'rate_limited' : 'missing_credentials',
+        formName: 'login',
+        path: window.location.pathname,
+      });
+      return;
+    }
+
     try {
+      reportFrontendSubmitAttempt('partner_portal', {
+        formName: 'login',
+        path: window.location.pathname,
+      });
       await login(email, password);
-    } catch {}
+    } catch (submitError) {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: submitError instanceof Error ? submitError.name || 'login_failed' : 'login_failed',
+        formName: 'login',
+        path: window.location.pathname,
+      });
+    }
   };
 
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!twoFactorCode) {
+      reportFrontendFormValidationError('partner_portal', {
+        errorCode: 'missing_two_factor_code',
+        formName: 'login_two_factor',
+        path: window.location.pathname,
+      });
+      return;
+    }
+
     setIsCompletingTwoFactor(true);
     setTwoFactorError(null);
 
     try {
+      reportFrontendSubmitAttempt('partner_portal', {
+        formName: 'login_two_factor',
+        path: window.location.pathname,
+      });
       const result = await completePendingTwoFactorSession(twoFactorCode);
       window.location.href = result.redirect_to;
     } catch (err) {
+      reportFrontendSubmitFailure('partner_portal', {
+        errorCode: err instanceof Error ? err.name || 'two_factor_failed' : 'two_factor_failed',
+        formName: 'login_two_factor',
+        path: window.location.pathname,
+      });
       setTwoFactorError(err instanceof Error ? err.message : 'Two-factor verification failed.');
       setIsCompletingTwoFactor(false);
     }

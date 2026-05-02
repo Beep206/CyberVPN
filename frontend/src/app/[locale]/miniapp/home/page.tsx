@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
-import { entitlementsApi, serviceAccessApi, trialApi, vpnApi } from '@/lib/api';
+import { useLocale, useTranslations } from 'next-intl';
+import { miniappApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import {
+  AlertTriangle,
   Shield,
   Zap,
   CreditCard,
@@ -13,90 +15,120 @@ import {
   Clock,
   Server,
   Gift,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { Link } from '@/i18n/navigation';
 import { VpnConfigCard } from '../components/VpnConfigCard';
-// import { useAuthStore } from '@/stores/auth-store'; // TODO: Use when subscription data available
+import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
+
+function formatBytes(bytes?: number | null) {
+  if (!bytes) return '0 GB';
+  const gb = bytes / (1024 ** 3);
+  return `${gb.toFixed(2)} GB`;
+}
 
 /**
  * Mini App Home/Dashboard page
- * Shows subscription status, usage stats, trial info, and quick actions
+ * Renders from the dedicated bootstrap/read model instead of broad API fan-out.
  */
 export default function MiniAppHomePage() {
+  const locale = useLocale();
   const t = useTranslations('MiniApp.home');
   const { haptic, colorScheme, webApp } = useTelegramWebApp();
-  // const user = useAuthStore((s) => s.user); // TODO: Use for subscription info when available
+  const openedTracked = useRef(false);
+  const loadedTracked = useRef(false);
+  const failedTracked = useRef(false);
+  const startParam = webApp?.initDataUnsafe?.start_param ?? null;
 
-  // Fetch usage stats
-  const { data: usageData, isLoading: usageLoading } = useQuery({
-    queryKey: ['usage'],
+  const bootstrapQuery = useQuery({
+    queryKey: ['miniapp-bootstrap', locale, startParam],
     queryFn: async () => {
-      const { data } = await vpnApi.getUsage();
-      return data;
-    },
-  });
-
-  // Fetch trial status
-  const { data: trialData, isLoading: trialLoading } = useQuery({
-    queryKey: ['trial'],
-    queryFn: async () => {
-      const { data } = await trialApi.getStatus();
-      return data;
-    },
-  });
-
-  const { data: entitlementData, isLoading: entitlementsLoading } = useQuery({
-    queryKey: ['miniapp-current-entitlements'],
-    queryFn: async () => {
-      const { data } = await entitlementsApi.getCurrent();
-      return data;
-    },
-  });
-
-  const telegramUserId = webApp?.initDataUnsafe.user?.id ?? null;
-  const { data: currentServiceState, isLoading: serviceStateLoading } = useQuery({
-    queryKey: ['miniapp-current-service-state', telegramUserId],
-    queryFn: async () => {
-      const { data } = await serviceAccessApi.getCurrentServiceState({
-        provider_name: 'remnawave',
-        channel_type: 'telegram_bot',
-        credential_type: 'telegram_bot',
-        credential_subject_key: telegramUserId ? `telegram-miniapp:${telegramUserId}` : 'telegram-miniapp',
+      const { data } = await miniappApi.getBootstrap({
+        locale,
+        startParam,
       });
       return data;
     },
-    enabled: telegramUserId !== null,
   });
 
-  const hasActiveSubscription = entitlementData?.status === 'active';
-  const isOnTrial = Boolean(entitlementData?.is_trial || trialData?.is_trial_active);
-  const canActivateTrial = Boolean(trialData?.eligible || trialData?.is_eligible);
-
-  // Format usage percentage
-  const usagePercentage = usageData?.bandwidth_limit_bytes
-    ? Math.round((usageData.bandwidth_used_bytes / usageData.bandwidth_limit_bytes) * 100)
+  const bootstrap = bootstrapQuery.data;
+  const hasActiveSubscription = bootstrap?.subscription.status === 'active';
+  const isOnTrial = bootstrap?.subscription.status === 'trial';
+  const rollout = bootstrap?.rollout;
+  const canActivateTrial = Boolean(
+    bootstrap?.trial.eligible
+    && rollout?.enabled !== false
+    && rollout?.accessGranted !== false
+    && rollout?.trialEnabled !== false
+    && rollout?.mode !== 'rollback'
+    && rollout?.mode !== 'maintenance',
+  );
+  const rolloutBannerMessage = (() => {
+    if (!rollout) return null;
+    if (rollout.maintenanceMessage) return rollout.maintenanceMessage;
+    if (rollout.mode === 'rollback') return t('rollbackDescription');
+    if (rollout.mode === 'canary' && rollout.accessGranted === false) {
+      return t('limitedRolloutDescription');
+    }
+    if (rollout.mode === 'maintenance' || rollout.enabled === false) {
+      return t('serviceMaintenanceDescription');
+    }
+    return null;
+  })();
+  const usageData = bootstrap?.usage;
+  const usagePercentage = usageData?.bandwidthLimitBytes
+    ? Math.round((usageData.bandwidthUsedBytes / usageData.bandwidthLimitBytes) * 100)
     : 0;
+  const isLoading = bootstrapQuery.isLoading;
 
-  // Format bytes to GB
-  const formatBytes = (bytes?: number | null) => {
-    if (!bytes) return '0 GB';
-    const gb = bytes / (1024 ** 3);
-    return `${gb.toFixed(2)} GB`;
-  };
+  useEffect(() => {
+    if (openedTracked.current) return;
+    openedTracked.current = true;
+    void emitMiniAppRuntimeEvent({
+      event: 'miniapp_opened',
+      page: 'home',
+      locale,
+      path: `/${locale}/miniapp/home`,
+    });
+  }, [locale]);
 
-  const isLoading = usageLoading || trialLoading || entitlementsLoading || serviceStateLoading;
+  useEffect(() => {
+    if (!bootstrap || loadedTracked.current) return;
+    loadedTracked.current = true;
+    void emitMiniAppRuntimeEvent({
+      event: 'miniapp_bootstrap_loaded',
+      page: 'home',
+      locale,
+      path: `/${locale}/miniapp/home`,
+      primaryCtaKind: bootstrap.primaryCta.kind,
+      subscriptionStatus: bootstrap.subscription.status,
+    });
+  }, [bootstrap, locale]);
 
-  // Theme colors
+  useEffect(() => {
+    if (!bootstrapQuery.isError || failedTracked.current) return;
+    failedTracked.current = true;
+    void emitMiniAppRuntimeEvent({
+      event: 'miniapp_bootstrap_failed',
+      page: 'home',
+      locale,
+      path: `/${locale}/miniapp/home`,
+      errorCode: 'bootstrap_fetch_failed',
+    });
+  }, [bootstrapQuery.isError, locale]);
+
   const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = isDark
+    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
+    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
+  const borderColor = isDark
+    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
+    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
   const accentColor = 'text-[var(--tg-link-color,var(--color-neon-cyan))]';
 
   return (
     <div className="max-w-screen-sm mx-auto space-y-4">
-      {/* Subscription Status Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -104,13 +136,15 @@ export default function MiniAppHomePage() {
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-24">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-cyan" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-cyan" role="status" />
           </div>
         ) : (
           <>
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Shield className={`h-6 w-6 ${hasActiveSubscription || isOnTrial ? accentColor : 'text-muted-foreground'}`} />
+                <Shield
+                  className={`h-6 w-6 ${hasActiveSubscription || isOnTrial ? accentColor : 'text-muted-foreground'}`}
+                />
                 <h2 className="text-lg font-display">
                   {hasActiveSubscription || isOnTrial ? t('subscriptionActive') : t('noSubscription')}
                 </h2>
@@ -122,59 +156,55 @@ export default function MiniAppHomePage() {
               )}
             </div>
 
-            {/* Active Subscription Info */}
-            {hasActiveSubscription && entitlementData && (
+            {hasActiveSubscription && bootstrap && (
               <div className="space-y-2 text-sm font-mono text-muted-foreground">
                 <div className="flex justify-between">
                   <span>{t('plan')}:</span>
                   <span className="text-foreground font-semibold">
-                    {entitlementData.display_name || entitlementData.plan_code || 'Premium'}
+                    {bootstrap.subscription.planName || 'Premium'}
                   </span>
                 </div>
-                {entitlementData.expires_at && (
+                {bootstrap.subscription.expiresAt && (
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(entitlementData.expires_at).toLocaleDateString()}
+                      {new Date(bootstrap.subscription.expiresAt).toLocaleDateString()}
                     </span>
                   </div>
                 )}
-                {currentServiceState?.provider_name && (
+                {bootstrap.serviceState.providerName && (
                   <div className="flex justify-between">
                     <span>Provider:</span>
-                    <span className="text-foreground">{currentServiceState.provider_name}</span>
+                    <span className="text-foreground">{bootstrap.serviceState.providerName}</span>
                   </div>
                 )}
-                {currentServiceState?.consumption_context?.channel_type && (
+                {bootstrap.serviceState.channelType && (
                   <div className="flex justify-between">
                     <span>Channel:</span>
-                    <span className="text-foreground">{currentServiceState.consumption_context.channel_type}</span>
+                    <span className="text-foreground">{bootstrap.serviceState.channelType}</span>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Trial Info */}
-            {!hasActiveSubscription && isOnTrial && trialData && (
+            {!hasActiveSubscription && isOnTrial && bootstrap && (
               <div className="space-y-2 text-sm font-mono text-muted-foreground">
                 <div className="flex justify-between">
                   <span>{t('plan')}:</span>
                   <span className="text-foreground">{t('trialPlan')}</span>
                 </div>
-                {trialData.trial_end && (
+                {bootstrap.trial.trialEnd && (
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(trialData.trial_end).toLocaleDateString()}
+                      {new Date(bootstrap.trial.trialEnd).toLocaleDateString()}
                     </span>
                   </div>
                 )}
-                {trialData.days_remaining > 0 && (
+                {bootstrap.trial.daysRemaining > 0 && (
                   <div className="flex justify-between">
                     <span>{t('daysRemaining')}:</span>
-                    <span className="text-neon-cyan font-semibold">
-                      {trialData.days_remaining}
-                    </span>
+                    <span className="text-neon-cyan font-semibold">{bootstrap.trial.daysRemaining}</span>
                   </div>
                 )}
               </div>
@@ -189,7 +219,22 @@ export default function MiniAppHomePage() {
         )}
       </motion.div>
 
-      {/* Usage Stats */}
+      {rolloutBannerMessage ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
+            <div>
+              <h3 className="font-display text-sm text-amber-100">{t('serviceMaintenanceTitle')}</h3>
+              <p className="mt-1 text-xs font-mono text-amber-100/80">{rolloutBannerMessage}</p>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+
       {(hasActiveSubscription || isOnTrial) && usageData && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -203,12 +248,11 @@ export default function MiniAppHomePage() {
           </div>
 
           <div className="space-y-4">
-            {/* Data usage */}
             <div>
               <div className="flex justify-between text-sm font-mono mb-2">
                 <span className="text-muted-foreground">{t('dataUsed')}</span>
                 <span className="text-foreground">
-                  {formatBytes(usageData.bandwidth_used_bytes)} / {formatBytes(usageData.bandwidth_limit_bytes)}
+                  {formatBytes(usageData.bandwidthUsedBytes)} / {formatBytes(usageData.bandwidthLimitBytes)}
                 </span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -216,31 +260,29 @@ export default function MiniAppHomePage() {
                   initial={{ width: 0 }}
                   animate={{ width: `${usagePercentage}%` }}
                   transition={{ duration: 0.5, delay: 0.2 }}
-                  className={`h-full ${usagePercentage > 80 ? 'bg-destructive' : 'bg-neon-cyan'}`}
+                  className={`h-full ${usagePercentage >= 80 ? 'bg-destructive' : 'bg-neon-cyan'}`}
                 />
               </div>
             </div>
 
-            {/* Connections */}
             <div className="flex items-center justify-between text-sm font-mono">
               <div className="flex items-center gap-2">
                 <Server className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">{t('connections')}</span>
               </div>
               <span className="text-foreground">
-                {usageData.connections_active} / {usageData.connections_limit}
+                {usageData.connectionsActive} / {usageData.connectionsLimit}
               </span>
             </div>
 
-            {/* Last connected */}
-            {usageData.last_connection_at && (
+            {usageData.lastConnectionAt && (
               <div className="flex items-center justify-between text-sm font-mono">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">{t('lastConnected')}</span>
                 </div>
                 <span className="text-foreground">
-                  {new Date(usageData.last_connection_at).toLocaleString()}
+                  {new Date(usageData.lastConnectionAt).toLocaleString()}
                 </span>
               </div>
             )}
@@ -248,7 +290,6 @@ export default function MiniAppHomePage() {
         </motion.div>
       )}
 
-      {/* Trial Section */}
       {!hasActiveSubscription && !isOnTrial && canActivateTrial && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -276,10 +317,8 @@ export default function MiniAppHomePage() {
         </motion.div>
       )}
 
-      {/* VPN Config Card */}
-      <VpnConfigCard colorScheme={colorScheme} />
+      <VpnConfigCard colorScheme={colorScheme} page="home" />
 
-      {/* Quick Actions Grid */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -310,7 +349,7 @@ export default function MiniAppHomePage() {
           />
           {(hasActiveSubscription || isOnTrial) && (
             <QuickActionCard
-              href="/profile#vpn-config"
+              href="/miniapp/profile#vpn-config"
               icon={Shield}
               label={t('vpnConfig')}
               colorScheme={colorScheme}
@@ -323,7 +362,6 @@ export default function MiniAppHomePage() {
   );
 }
 
-// Quick Action Card Component
 function QuickActionCard({
   href,
   icon: Icon,
@@ -338,8 +376,12 @@ function QuickActionCard({
   onPress: () => void;
 }) {
   const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = isDark
+    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
+    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
+  const borderColor = isDark
+    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
+    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
 
   return (
     <Link

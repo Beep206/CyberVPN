@@ -1160,6 +1160,39 @@ export interface NetworkProfile {
   stealth_required: boolean;
   kill_switch_required: boolean;
   icon_type: string;
+  stealth_memory?: {
+    last_assessed_at?: number | null;
+    last_node_id?: string | null;
+    last_status?: string | null;
+    last_summary?: string | null;
+    last_recommendation_id?: string | null;
+    last_applied_recommendation_id?: string | null;
+    last_applied_at?: number | null;
+    last_known_good_node_id?: string | null;
+    last_known_good_node_name?: string | null;
+    last_known_good_strategy_id?: string | null;
+    last_known_good_strategy_title?: string | null;
+    last_known_good_stealth_mode_enabled?: boolean | null;
+    last_health?: StealthHealthSnapshot;
+  };
+  stealth_policy?: {
+    strategy_id?: string | null;
+    strategy_title?: string | null;
+    target_node_id?: string | null;
+    target_node_name?: string | null;
+    enable_stealth_mode?: boolean | null;
+    saved_at?: number | null;
+    last_health?: StealthHealthSnapshot;
+  };
+}
+
+export interface StealthHealthSnapshot {
+  checked_at?: number | null;
+  status?: "working" | "degraded" | "failed" | "unstable" | null;
+  summary?: string | null;
+  success_count?: number | null;
+  sample_count?: number | null;
+  median_first_byte_latency_ms?: number | null;
 }
 
 export const getSmartConnectStatus = async (): Promise<boolean> => {
@@ -1188,26 +1221,176 @@ export const listenNetworkChanged = (callback: (event: { ssid: string, is_truste
 };
 
 // Phase 29 - Stealth Diagnostics
+export interface StealthProbeFinding {
+  id: string;
+  label: string;
+  status: "pass" | "warn" | "fail" | "inconclusive";
+  summary: string;
+  detail: string;
+}
+
+export interface StealthPreviewChange {
+  scope: string;
+  field: string;
+  from: string;
+  to: string;
+}
+
+export interface StealthStrategy {
+  id: string;
+  tier: string;
+  rank: number;
+  title: string;
+  summary: string;
+  reason: string;
+  tradeoff: string;
+  readiness: "ready" | "manual" | "noop";
+  actionLabel: string;
+  targetNodeId: string;
+  targetNodeName: string;
+  targetProtocol: string;
+  enableStealthMode: boolean;
+  previewChanges: StealthPreviewChange[];
+}
+
+export type StealthAutoPilotMode =
+  | "recommend-only"
+  | "ask-before-apply"
+  | "auto-apply-trusted"
+  | "auto-apply-with-rollback";
+
+export interface StealthAutoPilotState {
+  mode: StealthAutoPilotMode;
+  action:
+    | "idle"
+    | "recommend"
+    | "confirm"
+    | "auto-apply"
+    | "auto-applied"
+    | "apply-failed"
+    | "rolled-back";
+  trustedPattern: boolean;
+  strategyId?: string | null;
+  strategyTitle?: string | null;
+  targetNodeId?: string | null;
+  targetNodeName?: string | null;
+  message?: string | null;
+}
+
+export interface StealthHealthProbe {
+  id: string;
+  label: string;
+  status: "pass" | "fail";
+  summary: string;
+  detail: string;
+  firstByteLatencyMs?: number | null;
+}
+
+export interface StealthHealthAssessment {
+  checkedAt?: number | null;
+  status: "working" | "degraded" | "failed" | "unstable";
+  summary: string;
+  successCount: number;
+  sampleCount: number;
+  medianFirstByteLatencyMs?: number | null;
+  probes: StealthHealthProbe[];
+}
+
+export interface StealthCompareProbe {
+  id: string;
+  label: string;
+  category: "dns" | "handshake" | "runner" | string;
+  status: "pass" | "fail";
+  summary: string;
+  detail: string;
+  firstByteLatencyMs?: number | null;
+}
+
+export interface StealthStrategyComparison {
+  strategy: StealthStrategy;
+  latencyMs?: number | null;
+  dnsSuccessCount: number;
+  dnsSampleCount: number;
+  handshakeSuccessCount: number;
+  handshakeSampleCount: number;
+  stability: "working" | "degraded" | "failed" | "unstable";
+  summary: string;
+  probes: StealthCompareProbe[];
+}
+
+export interface StealthCompareReport {
+  nodeId: string;
+  nodeName: string;
+  assessedAt?: number | null;
+  restoredConnection: boolean;
+  restoreMessage?: string | null;
+  entries: StealthStrategyComparison[];
+}
+
 export interface CensorshipReport {
-    ip_blocked: boolean;
-    sni_filtered: boolean;
-    udp_blocked: boolean;
-    tls_intercepted: boolean;
-    recommended_action: string;
-    recommended_protocol: string;
+  nodeId: string;
+  nodeName: string;
+  networkName: string;
+  assessedAt?: number | null;
+  status: "clear" | "degraded" | "filtered" | "intercepted";
+  confidence: number;
+  summary: string;
+  findings: StealthProbeFinding[];
+  recommendedStrategyId?: string | null;
+  strategies: StealthStrategy[];
+  autoPilot?: StealthAutoPilotState | null;
+  networkMemory?: NetworkProfile["stealth_memory"];
+  networkPolicy?: NetworkProfile["stealth_policy"];
+  rollbackAvailable: boolean;
+}
+
+export interface StealthActionResult {
+  strategyId: string;
+  targetNodeId: string;
+  message: string;
+  rollbackAvailable: boolean;
+  health?: StealthHealthAssessment | null;
 }
 
 export const runStealthDiagnostics = async (nodeId: string): Promise<CensorshipReport> => {
     return await invoke("run_stealth_diagnostics", { nodeId });
 };
 
-export const applyStealthFix = async (nodeId: string, recommendedProtocol: string): Promise<void> => {
-    return await invoke("apply_stealth_fix", { nodeId, recommendedProtocol });
+export const applyStealthFix = async (
+  nodeId: string,
+  recommendationId: string
+): Promise<StealthActionResult> => {
+    return await invoke("apply_stealth_fix", { nodeId, recommendationId });
+};
+
+export const rollbackLastStealthFix = async (): Promise<StealthActionResult> => {
+  return await invoke("rollback_last_stealth_fix");
+};
+
+export const compareStealthStrategies = async (
+  nodeId: string,
+  strategyIds: string[]
+): Promise<StealthCompareReport> => {
+  return await invoke("compare_stealth_strategies", { nodeId, strategyIds });
+};
+
+export const clearNetworkStealthPolicy = async (): Promise<NetworkProfile> => {
+  return await invoke("clear_network_stealth_policy");
 };
 
 export const listenStealthProbeLog = (callback: (log: string) => void) => {
     const unlistenPromise = listen<string>("stealth-probe-log", (event) => callback(event.payload));
     return () => { unlistenPromise.then(f => f()); };
+};
+
+export const getStealthAutoPilotMode = async (): Promise<StealthAutoPilotMode> => {
+  return await invoke<StealthAutoPilotMode>("get_stealth_auto_pilot_mode");
+};
+
+export const setStealthAutoPilotMode = async (
+  mode: StealthAutoPilotMode
+): Promise<StealthAutoPilotMode> => {
+  return await invoke<StealthAutoPilotMode>("set_stealth_auto_pilot_mode", { mode });
 };
 
 // Phase 30 - Telemetry & Analytics

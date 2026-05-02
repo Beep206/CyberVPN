@@ -86,3 +86,71 @@ groups:
         annotations:
           summary: "High external API failure rate"
           description: "External service {{ $labels.service }} has {{ $value | humanizePercentage }} failure rate for the last 5 minutes."
+
+      - alert: PublicNetworkDpiPublisherStale
+        expr: |
+          absent(cybervpn_public_network_dpi_publish_last_success_unixtime)
+          or
+          (time() - cybervpn_public_network_dpi_publish_last_success_unixtime > 5400)
+        for: 20m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+          component: public-network-dpi
+        annotations:
+          summary: "Public DPI publisher is stale"
+          description: "The public DPI snapshot publisher has not completed successfully within the expected freshness window. Check task-worker scheduling, backend publish hooks, and probe source availability."
+
+      - alert: PublicNetworkDpiPublisherDegraded
+        expr: |
+          cybervpn_public_network_dpi_snapshot_freshness{freshness_status="degraded"} == 1
+        for: 1h
+        labels:
+          severity: warning
+          service: cybervpn-worker
+          component: public-network-dpi
+        annotations:
+          summary: "Public DPI publisher is degraded"
+          description: "The latest public DPI snapshot is publishing in degraded freshness mode. Probe targets, probe source health, or last-known-good history fallback should be inspected."
+
+      - alert: PublicNetworkDpiPublisherFailures
+        expr: |
+          increase(cybervpn_public_network_dpi_publish_total{result="failure"}[2h]) > 0
+          or
+          cybervpn_public_network_dpi_publish_consecutive_failures > 0
+        for: 30m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+          component: public-network-dpi
+        annotations:
+          summary: "Public DPI publisher failures detected"
+          description: "One or more public DPI publish attempts failed recently. Check backend internal publish route availability and task-worker logs for probe or publish errors."
+
+      - alert: PartnerBotProvisioningTaskStale
+        expr: |
+          absent(cybervpn_partner_bot_provisioning_last_success_unixtime)
+          or
+          (time() - cybervpn_partner_bot_provisioning_last_success_unixtime > 900)
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+          component: partner-bot-provisioning
+        annotations:
+          summary: "Partner bot provisioning task is stale"
+          description: "The partner bot provisioning task has not completed successfully within the expected schedule window. Check task-worker scheduling and backend internal provisioning APIs."
+
+      - alert: PartnerBotProvisioningTaskErrors
+        expr: |
+          cybervpn_partner_bot_provisioning_last_errors > 0
+          or
+          increase(cybervpn_partner_bot_provisioning_runs_total{result="failure"}[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: cybervpn-worker
+          component: partner-bot-provisioning
+        annotations:
+          summary: "Partner bot provisioning task errors detected"
+          description: "The latest partner bot provisioning cycle observed errors or task-level failures. Check provisioning claims, finalization calls, and operator handoff paths."

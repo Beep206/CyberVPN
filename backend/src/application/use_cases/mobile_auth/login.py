@@ -15,9 +15,9 @@ from src.application.dto.mobile_auth import (
     SubscriptionInfoDTO,
     SubscriptionStatus,
     TokenResponseDTO,
-    UserResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import InvalidCredentialsError
@@ -142,16 +142,7 @@ class MobileLoginUseCase:
         else:
             subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 
-        user_response = UserResponseDTO(
-            id=user.id,
-            email=user.email,
-            username=user.username,
-            status=user.status,
-            telegram_id=user.telegram_id,
-            telegram_username=user.telegram_username,
-            created_at=user.created_at,
-            subscription=subscription,
-        )
+        user_response = build_mobile_user_response(user, subscription=subscription)
 
         return AuthResponseDTO(
             tokens=tokens,

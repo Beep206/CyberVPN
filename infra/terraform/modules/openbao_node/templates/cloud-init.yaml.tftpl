@@ -1,0 +1,38 @@
+#cloud-config
+users:
+  - default
+  - name: ${admin_username}
+    shell: /bin/bash
+    groups: sudo
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys: ${jsonencode(authorized_keys)}
+
+package_update: true
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-cybervpn.conf
+    permissions: "0644"
+    content: |
+      Port ${ssh_port}
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+
+  - path: /usr/local/sbin/install-openbao.sh
+    permissions: "0755"
+    content: |
+${indent(6, install_script)}
+
+  - path: /etc/openbao/openbao.hcl
+    permissions: "0644"
+    content: |
+${indent(6, openbao_config_hcl)}
+
+  - path: /etc/systemd/system/openbao.service
+    permissions: "0644"
+    content: |
+${indent(6, openbao_service_unit)}
+
+runcmd:
+  - /usr/local/sbin/install-openbao.sh
+  - systemctl restart ssh || systemctl restart sshd

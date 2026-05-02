@@ -303,6 +303,152 @@
   "Dashboard": {
     "activeSessions": "АКТИВНЫЕ СЕССИИ",
     "aggregateThroughput": "Суммарная пропускная способность",
+    "cabinet": {
+      "actions": {
+        "finishProvisioning": "Завершить настройку VPN",
+        "finishProvisioningDescription": "Подготовить недостающий канал доступа или credential.",
+        "getConfig": "Получить VPN-доступ",
+        "getConfigDescription": "Открыть серверы и импортировать профили.",
+        "invite": "Пригласить друзей",
+        "inviteDescription": "Делиться наградами и отслеживать выплаты.",
+        "managePlan": "Управлять тарифом",
+        "managePlanDescription": "Продлить, улучшить или проверить лимиты.",
+        "reviewNotifications": "Проверить алерты",
+        "reviewNotificationsDescription": "Открыть важные обновления по доставке, наградам и оплатам.",
+        "secureAccount": "Защитить аккаунт",
+        "secureAccountDescription": "Проверить 2FA, устройства и антифишинг.",
+        "startTrial": "Запустить trial",
+        "startTrialDescription": "Активировать доступный пробный период перед выбором тарифа.",
+        "watchTraffic": "Проверить трафик",
+        "watchTrafficDescription": "Посмотреть usage до окончания текущего периода."
+      },
+      "anonymousUser": "Пользователь CyberVPN",
+      "connectionStatus": "ПРИВАТНЫЙ ДОСТУП ГОТОВ",
+      "encryptionStatus": "СЕССИЯ: HTTPONLY COOKIE",
+      "eyebrow": "ЛИЧНЫЙ КОНТУР ДОСТУПА",
+      "health": {
+        "attention": {
+          "description": "Один или несколько сигналов требуют проверки: подготовка доступа, трафик, срок тарифа или уведомления.",
+          "title": "Нужно внимание"
+        },
+        "critical": {
+          "description": "VPN-доступ может быть истёкшим, заблокированным или близким к лимиту. Проверьте следующие действия перед подключением.",
+          "title": "Требуется действие"
+        },
+        "healthy": {
+          "description": "Аккаунт активен, сервис подготовлен, срочных действий нет.",
+          "title": "В норме"
+        }
+      },
+      "hero": {
+        "eyebrow": "Авторизованный аккаунт",
+        "plan": "Тариф",
+        "renewal": "Продление",
+        "status": "Состояние"
+      },
+      "metrics": {
+        "devices": {
+          "meta": "Активные сессии относительно лимита тарифа",
+          "metaWithLimit": "Лимит устройств: {limit}",
+          "title": "Подключения"
+        },
+        "notifications": {
+          "empty": "Счётчики уведомлений ещё не загружены",
+          "meta": "{actionRequired} требуют действия из {total} всего",
+          "title": "Входящие"
+        },
+        "traffic": {
+          "empty": "Снимок usage ещё не загружен",
+          "meta": "Лимит: {limit}",
+          "percentage": "Использовано {percentage}% лимита трафика",
+          "title": "Трафик",
+          "unmetered": "В текущем тарифе нет лимита трафика"
+        },
+        "wallet": {
+          "empty": "Снимок кошелька ещё не загружен",
+          "meta": "Замороженный баланс: {frozen}",
+          "title": "Кошелёк"
+        }
+      },
+      "metricUnavailable": "Данные временно недоступны",
+      "noActivePlan": "Нет активного тарифа",
+      "notifications": {
+        "actionRequired": "Требуется действие",
+        "description": "Свежие обновления по доставке доступа, наградам, оплатам и админским событиям из backend notification system.",
+        "empty": "Сейчас нет видимых пользовательских уведомлений.",
+        "errorDescription": "Кабинет остаётся рабочим. Повторите загрузку уведомлений или продолжите в настройках и оплатах.",
+        "errorTitle": "Поток уведомлений недоступен",
+        "eyebrow": "Пользовательские уведомления",
+        "refresh": "Обновить входящие",
+        "title": "Последние сигналы аккаунта",
+        "unread": "Не прочитано"
+      },
+      "pendingProvisioning": "Ожидает подготовки",
+      "plan": {
+        "defaultSecurity": "Стандартные зашифрованные туннели",
+        "eyebrow": "Права тарифа",
+        "security": "Режимы подключения",
+        "standardSupport": "Стандартная поддержка",
+        "support": "Линия поддержки",
+        "title": "Возможности плана",
+        "traffic": "Политика трафика",
+        "trialActive": "Пробный период активен. Осталось дней: {days}."
+      },
+      "readiness": {
+        "channel": "Канал доступа",
+        "credential": "Credential",
+        "degraded": "ДЕГРАДАЦИЯ",
+        "description": "Панель проверяет, согласованы ли подписка, профиль подготовки, credential устройства и канал доступа с backend.",
+        "eyebrow": "Готовность VPN",
+        "lastConnection": "Последнее подключение",
+        "noConnectionYet": "Подключений ещё не было",
+        "profile": "Профиль подготовки",
+        "title": "Состояние доставки подключения"
+      },
+      "retry": "Повторить",
+      "rewards": {
+        "available": "Доступно",
+        "availableMeta": "Можно использовать в кошельке",
+        "eyebrow": "Growth-награды",
+        "pending": "В ожидании",
+        "pendingMeta": "Удерживается до релиза награды",
+        "referrals": "Рефералы",
+        "title": "Реферальный доход",
+        "totalReferrals": "Всего приглашённых клиентов"
+      },
+      "security": {
+        "cta": "Открыть настройки безопасности",
+        "eyebrow": "Приватность и безопасность",
+        "items": {
+          "antiPhishing": "Задайте антифишинговый код перед доверием операционным письмам.",
+          "cookieSession": "Web-auth использует httpOnly cookies; токены не доступны JavaScript в браузере.",
+          "notifications": "Оставьте критические уведомления по доставке и оплатам включёнными.",
+          "twoFactor": "Включите или проверьте двухфакторную аутентификацию в настройках."
+        },
+        "title": "Чеклист защиты аккаунта"
+      },
+      "statusLabel": "КАНАЛ АККАУНТА:",
+      "statusValue": "ЗАШИФРОВАН",
+      "subtitle": "Пользовательский центр управления тарифом, готовностью VPN, трафиком, кошельком, наградами, уведомлениями и безопасностью.",
+      "sync": {
+        "clean": "Все ресурсы кабинета отвечают.",
+        "issues": "{count} ресурсов кабинета требуют повтора.",
+        "lastSynced": "Последняя синхронизация: {value}",
+        "loading": "{count} ресурсов кабинета ещё загружаются.",
+        "neverSynced": "Снимок backend ещё не загружен.",
+        "retryAll": "Повторить всё",
+        "status": {
+          "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ",
+          "live": "LIVE SYNC",
+          "loading": "СИНХРОНИЗАЦИЯ"
+        },
+        "title": "Состояние синхронизации backend"
+      },
+      "title": "Личный кабинет CyberVPN",
+      "unavailable": "Недоступно",
+      "unknownDate": "Дата недоступна",
+      "unlimited": "Безлимитно"
+    },
     "connectionStatus": "ЗАЩИЩЕННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО",
     "countries": "Страны",
     "currentConnections": "Текущие подключения",
@@ -825,6 +971,7 @@
       "daysRemaining": "Days Remaining",
       "expires": "Expires",
       "lastConnected": "Last Connected",
+      "limitedRolloutDescription": "Mini App сейчас работает в ограниченном canary rollout. Доступ открыт только для одобренных Telegram-пользователей.",
       "never": "Never",
       "noConfigAvailable": "No VPN config available",
       "noConfigDescription": "Activate a subscription to get your VPN configuration",
@@ -833,6 +980,9 @@
       "openInApp": "Open in App",
       "plan": "Plan",
       "quickActions": "Quick Actions",
+      "rollbackDescription": "Trial и checkout временно приостановлены, пока выполняется rollback.",
+      "serviceMaintenanceDescription": "Mini App временно находится в режиме обслуживания. Часть действий может быть недоступна.",
+      "serviceMaintenanceTitle": "Сервисное уведомление",
       "settings": "Settings",
       "subscriptionActive": "Subscription Active",
       "trial": "TRIAL",
@@ -883,6 +1033,7 @@
       "apply": "Применить",
       "availablePlans": "Выберите план",
       "catalogHint": "Показывается только публичный каталог: Basic, Plus, Pro, Max. Hidden-планы не попадают сюда, пока backend не откроет их явно.",
+      "checkoutTemporarilyUnavailable": "Checkout временно недоступен. Попробуйте позже.",
       "currentPlanExpiry": "Истекает: {date}",
       "currentPlanNoExpiry": "Дата окончания не указана",
       "currentPlanSelected": "У вас уже активен этот план. Можно докупить add-ons или выбрать другой срок.",
@@ -912,6 +1063,7 @@
       "inviteRedeemed": "Invite code активирован. Награда: {reward}",
       "inviteRewardDays": "{count} бесплатных дней",
       "inviteRewardDefault": "бонус активирован",
+      "limitedRolloutDescription": "Mini App сейчас работает в ограниченном canary rollout. Доступ открыт только для одобренных Telegram-пользователей.",
       "noPlans": "Сейчас нет доступных планов",
       "paymentCancelled": "Оплата отменена.",
       "paymentError": "Оплата не удалась. Попробуйте ещё раз.",
@@ -951,10 +1103,14 @@
       "quoteSubtitle": "Снимок ниже является источником истины по тому, что пользователь реально получит после покупки.",
       "quoteTitle": "Quote и entitlements",
       "redeem": "Активировать",
+      "rollbackDescription": "Trial и checkout временно приостановлены, пока выполняется rollback.",
+      "runtimeTemporarilyUnavailable": "Mini App временно недоступен. Попробуйте позже.",
       "selectPlanToQuote": "Выберите план и период, чтобы посчитать quote.",
+      "serviceMaintenanceTitle": "Сервисное уведомление",
       "trialActivated": "Trial активирован. У вас есть 7 дней входного доступа.",
       "trialError": "Не удалось активировать trial. Попробуйте ещё раз.",
-      "trialLabel": "Trial"
+      "trialLabel": "Trial",
+      "trialTemporarilyUnavailable": "Активация trial временно недоступна. Попробуйте позже."
     },
     "profile": {
       "accountDeleted": "Account deleted successfully",
@@ -1055,6 +1211,38 @@
       "copied": "Code copied to clipboard!",
       "howItWorks": "How It Works",
       "noCommissions": "No commissions yet",
+      "notifications": {
+        "actionRequired": "Action required",
+        "archive": "Archive",
+        "counters": {
+          "actionRequired": "Action {count}",
+          "total": "Total {count}",
+          "unread": "Unread {count}"
+        },
+        "empty": "No growth notifications are visible right now.",
+        "loading": "Loading growth notifications...",
+        "markRead": "Mark read",
+        "subtitle": "Durable updates for invites, referral rewards, and gift codes.",
+        "title": "Growth notifications",
+        "unread": "Unread"
+      },
+      "preferences": {
+        "categories": {
+          "adminUpdates": "Admin updates",
+          "gifts": "Gift codes",
+          "invites": "Invites",
+          "referralRewards": "Referral rewards"
+        },
+        "channels": {
+          "email": "Email",
+          "inApp": "In-app",
+          "telegram": "Telegram"
+        },
+        "note": "In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.",
+        "saving": "Saving...",
+        "subtitle": "Choose which growth events stay in-app, email, or Telegram.",
+        "title": "Delivery preferences"
+      },
       "qrCodeTitle": "QR Code",
       "recentCommissions": "Recent Commissions",
       "referralRate": "Commission Rate",
@@ -1107,22 +1295,99 @@
   "Monitoring": {},
   "Navigation": {
     "analytics": "СЕТЬ",
-    "billing": "ОПЛАТА",
-    "dashboard": "ПАНЕЛЬ",
+    "billing": "ПОДПИСКА",
+    "closeMenu": "Закрыть меню",
+    "dashboard": "КАБИНЕТ",
+    "mainNavigation": "Главная навигация",
+    "openMenu": "Открыть меню",
+    "partner": "ПАРТНЁР",
+    "paymentHistory": "ПЛАТЕЖИ",
+    "referral": "НАГРАДЫ",
     "security": "БЕЗОПАСНОСТЬ",
-    "servers": "СЕРВЕРЫ",
-    "settings": "КОНФИГ",
-    "users": "КЛИЕНТЫ"
+    "servers": "СЕТЬ",
+    "settings": "НАСТРОЙКИ",
+    "sidebar": "Боковая панель",
+    "users": "КЛИЕНТЫ",
+    "wallet": "КОШЕЛЁК"
   },
   "Network": {
-    "description": "Более 5000 RAM-only узлов, развернутых в безопасных юрисдикциях. Телеметрия в реальном времени для нулевой задержки.",
+    "actions": {
+      "dpiResistance": "Сводка по DPI resistance"
+    },
+    "description": "Публичный обзор сети с текущим охватом, утилизацией и состоянием сервиса на основе санитизированной телеметрии.",
+    "dpi": {
+      "cards": {
+        "confidence": "Уверенность",
+        "countriesTracked": "Стран под наблюдением",
+        "measurementWindow": "Окно измерения",
+        "methodology": "Методология"
+      },
+      "confidenceValues": {
+        "high": "ВЫСОКАЯ",
+        "low": "НИЗКАЯ",
+        "medium": "СРЕДНЯЯ"
+      },
+      "description": "Осторожная публичная поверхность для устойчивости в restrictive networks. Эта страница публикует score только тогда, когда есть достаточно свежего probe signal.",
+      "disabledState": "Публичный DPI score остаётся gated, пока не накопится достаточно реального probe signal по свежим measurement windows.",
+      "enabledState": "Свежего probe coverage достаточно, поэтому можно публиковать country-level DPI score.",
+      "error": "Контракт DPI resistance сейчас недоступен.",
+      "eyebrow": "CYBERVPN DPI RESISTANCE",
+      "gating": {
+        "eyebrow": "PUBLIC RELEASE GATE"
+      },
+      "guardrails": {
+        "eyebrow": "TRUTHFULNESS POLICY",
+        "items": {
+          "conditionsChange": "Условия в restrictive countries могут быстро меняться, и confidence обязан это отражать.",
+          "directional": "Любой опубликованный score является directional evidence, а не гарантией.",
+          "noInternals": "Никаких anti-blocking internals, identities probe sources или чувствительной topology.",
+          "noMagic": "Никакого декоративного public score без достаточного числа реальных probes."
+        },
+        "title": "Что эта страница не будет фейковать"
+      },
+      "lastUpdated": "Последнее обновление {value}",
+      "links": {
+        "eyebrow": "NEXT SURFACES",
+        "guide": "Открыть гайд по обходу DPI",
+        "network": "Открыть полную карту сети"
+      },
+      "loading": "Загружаем readiness DPI resistance...",
+      "methodology": {
+        "eyebrow": "SIGNAL MODEL",
+        "items": {
+          "baseline": "HTTPS/SNI application baseline там, где доступны TLS-capable surfaces.",
+          "connection": "Успешность подключения в restrictive conditions.",
+          "freshness": "Свежесть, объём выборки и directional confidence перед публикацией.",
+          "handshake": "Медианная latency рукопожатия для поддерживаемых протоколов.",
+          "survival": "Устойчивость сессии и reconnect после установления соединения."
+        },
+        "title": "Что в будущем должен отражать публичный score"
+      },
+      "publishedCountries": {
+        "baseline": "Baseline",
+        "handshake": "Handshake",
+        "score": "Connect",
+        "title": "Опубликованные country scores",
+        "updated": "Обновлено {value}"
+      },
+      "reasonCodes": {
+        "public_dpi_not_enabled": "Ожидаем достаточный свежий probe signal",
+        "public_dpi_probe_dimensions_insufficient": "Реальные probes уже идут, но измерений пока недостаточно для честного публичного score.",
+        "public_dpi_probe_pipeline_not_enabled": "Публичный DPI pipeline уже собран, но публикация probe snapshots ещё не активна.",
+        "public_dpi_probe_source_unavailable": "Сбор probes временно degraded, поэтому публичный DPI surface остаётся gated.",
+        "public_dpi_probe_targets_unavailable": "Сейчас недоступны probe targets для надёжного country-level snapshot.",
+        "public_network_regions_unavailable": "Региональные network data для DPI surface временно недоступны."
+      },
+      "title": "DPI Resistance Score",
+      "windowValue": "Окно {hours}ч"
+    },
     "labels": {
-      "activeNodes": "Активные Узлы",
+      "activeNodes": "Серверы Онлайн",
       "encryption": "AES-256-GCM",
       "latency": "СР. ПИНГ: 12мс",
       "status": "СТАТУС: ОНЛАЙН",
-      "threatsIntercepted": "Заблокировано Угроз",
-      "totalBandwidth": "Пропускная Способность"
+      "threatsIntercepted": "Пользователи Онлайн",
+      "totalBandwidth": "Трафик За Месяц"
     },
     "metrics": {
       "bandwidth": "100+ Гбит/с",
@@ -1144,10 +1409,98 @@
       "6": "Сан-Паулу, БР",
       "7": "Сидней, АВСТР"
     },
-    "title": "Глобальная Инфраструктура"
+    "title": "Глобальная Инфраструктура",
+    "widget": {
+      "actions": {
+        "fullMap": "Открыть полную карту",
+        "statusPage": "Статус-страница"
+      },
+      "description": "Санитизированное live-доказательство сети для partner embeds, sales pages и trust surfaces.",
+      "error": "Виджет не смог загрузить публичный network snapshot.",
+      "eyebrow": "CYBERVPN PUBLIC NETWORK PROOF",
+      "focusRegion": "Фокусный регион",
+      "freshness": "Обновлено {value}",
+      "incidents": "Инциденты: {value}",
+      "loading": "Загружаем публичный network widget...",
+      "metrics": {
+        "availability": "Доступность",
+        "liveUsers": "Пользователи онлайн",
+        "monthlyTraffic": "Трафик за месяц",
+        "onlineServers": "Серверы онлайн"
+      },
+      "regionServers": "Серверы онлайн: {value}",
+      "regionUsers": "Пользователи онлайн: {value}",
+      "statusValues": {
+        "degraded": "ДЕГРАДАЦИЯ",
+        "major_outage": "КРУПНЫЙ СБОЙ",
+        "online": "ОНЛАЙН"
+      },
+      "title": "Виджет Сети",
+      "topRegions": "Топ регионов"
+    }
   },
   "Partner": {},
-  "PaymentHistory": {},
+  "PaymentHistory": {
+    "actions": {
+      "next": "Вперед",
+      "previous": "Назад",
+      "refresh": "Обновить"
+    },
+    "errors": {
+      "partialDescription": "История платежей и commerce-заказы загружаются независимо, поэтому деградация одного backend-ресурса не скрывает всю страницу.",
+      "partialTitle": "Платежные данные частично недоступны"
+    },
+    "hero": {
+      "completed": "Завершенные платежи",
+      "eyebrow": "Billing-хронология",
+      "failed": "{count} неуспешны",
+      "pending": "{count} ожидают",
+      "subscription": "Подписка",
+      "wallet": "Открыть кошелек"
+    },
+    "labels": {
+      "notAvailable": "Недоступно"
+    },
+    "subtitle": "Квитанции, попытки оплаты через провайдеров, суммы, покрытые кошельком, и повтор оплаты для незавершенных заказов.",
+    "summary": {
+      "ariaLabel": "Сводка платежей",
+      "completed": "Завершено",
+      "gateway": "Через провайдер",
+      "pending": "Ожидают",
+      "walletApplied": "Покрыто кошельком"
+    },
+    "support": {
+      "cta": "Открыть настройки",
+      "description": "При обращении в поддержку держите под рукой ID платежа или заказа. Мы не раскрываем raw provider payloads в пользовательском UI.",
+      "eyebrow": "Поддержка квитанций",
+      "title": "Нужна квитанция или проверка спора?"
+    },
+    "timeline": {
+      "description": "Единый список canonical payment records и commerce-заказов. В заказах показано разделение wallet/gateway без раскрытия внутренних payload провайдера.",
+      "empty": "Нет billing-событий для этого фильтра.",
+      "eyebrow": "Квитанции и заказы",
+      "filters": {
+        "all": "Все",
+        "ariaLabel": "Фильтры хронологии платежей",
+        "completed": "Завершенные",
+        "failed": "Ошибки",
+        "pending": "Ожидают",
+        "refunded": "Возвраты"
+      },
+      "kind": {
+        "order": "Заказ",
+        "payment": "Платеж"
+      },
+      "orderSplit": "Провайдер {gateway} / кошелек {wallet}",
+      "page": "Страница платежей {page}",
+      "paymentSuffix": "платеж",
+      "retry": "Повторить оплату",
+      "retryError": "Не удалось повторить оплату. Обновите страницу или обратитесь в поддержку, если заказ остается в ожидании.",
+      "retrying": "Повтор",
+      "title": "Хронология платежей"
+    },
+    "title": "ПЛАТЕЖИ"
+  },
   "Placeholder": {
     "descriptionLine1": "Этот модуль кибер-дека сейчас в разработке.",
     "descriptionLine2": "Проверьте позже для обновлений прошивки.",
@@ -1421,7 +1774,116 @@
     },
     "title": "Privacy Policy"
   },
-  "Referral": {},
+  "Referral": {
+    "cabinet": {
+      "actions": {
+        "refresh": "Обновить"
+      },
+      "activity": {
+        "commission": "Referral commission",
+        "empty": "Реферальной активности пока нет.",
+        "eyebrow": "Недавняя активность",
+        "holdUntil": "Hold до {date}",
+        "reward": "Reward allocation",
+        "title": "Хронология наград"
+      },
+      "caps": {
+        "description": "Soft progress bars помогают понять скорость начислений без раскрытия fraud/risk engine internals.",
+        "eyebrow": "Risk и cap-сигналы",
+        "lifetime": "Общее использование",
+        "monthly": "Месячное использование",
+        "title": "Использование лимитов"
+      },
+      "errors": {
+        "partialDescription": "Cockpit оставляет доступные секции видимыми, пока недоступный growth endpoint восстанавливается.",
+        "partialTitle": "Реферальные данные частично недоступны"
+      },
+      "health": {
+        "active": "Готово к шерингу",
+        "disabled": "Пауза",
+        "earning": "Награды активны",
+        "review": "Hold review"
+      },
+      "hero": {
+        "disabledHint": "Программа приостановлена backend-политикой. Существующие награды остаются видимыми для трассируемости.",
+        "enabledHint": "Текущая ставка backend: {rate}. Eligibility и stacking наград всегда решаются на сервере.",
+        "eyebrow": "Customer growth cockpit",
+        "health": "Состояние программы",
+        "payments": "История платежей",
+        "wallet": "Открыть кошелек"
+      },
+      "labels": {
+        "notAvailable": "Недоступно"
+      },
+      "lifecycle": {
+        "blocked": "{count} заблокировано",
+        "description": "Награды проходят backend-owned states. Pending rewards находятся на hold; available rewards доступны согласно account policy.",
+        "eyebrow": "Lifecycle наград",
+        "status": {
+          "available": "Доступно",
+          "blocked_by_risk": "Заблокировано",
+          "expired": "Истекло",
+          "pending": "Ожидает",
+          "reversed": "Отменено"
+        },
+        "title": "Canonical reward states"
+      },
+      "notifications": {
+        "actionRequired": "{count} требуют действия",
+        "description": "Реферальные награды и invite updates отображаются через durable growth notifications.",
+        "empty": "Реферальных уведомлений сейчас нет.",
+        "eyebrow": "Delivery health",
+        "read": "Прочитано",
+        "required": "Действие",
+        "title": "Growth notifications",
+        "unread": "Новое"
+      },
+      "rules": {
+        "eyebrow": "Policy guardrails",
+        "items": {
+          "backendTruth": {
+            "description": "UI показывает решения из backend contracts и не рассчитывает eligibility или stacking наград локально.",
+            "title": "Backend — источник истины"
+          },
+          "holdWindow": {
+            "description": "Backend сообщает текущее окно удержания наград: {days} дней. Pending rewards все еще могут быть отменены политикой.",
+            "title": "Hold window явный"
+          },
+          "nonWithdrawable": {
+            "description": "Реферальные награды показываются как customer growth rewards, а не partner payouts или withdrawable earnings.",
+            "title": "Реферальные награды — growth credits"
+          },
+          "partnerHidden": {
+            "description": "Partner commissions, reseller tools, payout statements и traffic controls намеренно не раскрываются здесь.",
+            "title": "Partner-механики скрыты"
+          }
+        },
+        "title": "Что эта страница не угадывает"
+      },
+      "share": {
+        "active": "Активно",
+        "codeLabel": "Реферальный код",
+        "copied": "Скопировано",
+        "copyCode": "Копировать код",
+        "copyLink": "Копировать ссылку",
+        "copyShareText": "Копировать текст",
+        "description": "Делитесь ссылкой или кодом с друзьями. Frontend не решает discount eligibility: checkout и redeem flows запрашивают backend.",
+        "eyebrow": "Ссылка для приглашения",
+        "message": "Подключайся к CyberVPN с моим реферальным кодом {code}: {link}",
+        "paused": "Пауза",
+        "title": "Ваш реферальный код"
+      },
+      "subtitle": "Делитесь кодом, отслеживайте canonical lifecycle наград и отделяйте customer growth от partner-механик.",
+      "summary": {
+        "ariaLabel": "Сводка реферальных наград",
+        "available": "Доступные награды",
+        "pending": "Награды в ожидании",
+        "qualifyingOrders": "Квалифицирующие заказы",
+        "referrals": "Рефералы"
+      },
+      "title": "РЕФЕРАЛЬНЫЕ НАГРАДЫ"
+    }
+  },
   "Security": {
     "classified": {
       "text1": "Наши алгоритмы [ОБФУСКАЦИИ] разработаны бывшими инженерами [УДАЛЕНО], что позволяет нашему трафику сливаться с фоновым шумом интернета.",
@@ -1507,11 +1969,129 @@
     "xrayVersion": "ВЕРСИЯ XRAY"
   },
   "Servers": {
+    "actions": {
+      "managePlan": "Управлять планом",
+      "openSettings": "Открыть настройки"
+    },
+    "confidence": {
+      "high": "Высокая",
+      "low": "Низкая",
+      "medium": "Средняя"
+    },
+    "config": {
+      "copyConfig": "Скопировать raw config",
+      "copySubscription": "Скопировать подписку",
+      "description": "Сначала используйте ссылку подписки. Она держит клиенты синхронизированными при ротации маршрутов, ключей и stealth-профилей.",
+      "empty": {
+        "missing_config": "Backend ещё не вернул конфигурацию. Повторите после завершения provisioning или проверьте подписку.",
+        "missing_profile": "Профиль недоступен, поэтому пользовательскую конфигурацию нельзя запросить.",
+        "missing_service": "Доступ к сервису ещё не полностью подготовлен. Завершите активацию плана или доставку устройства.",
+        "not_found": "Upstream-запись подписки для этого аккаунта не найдена.",
+        "ready": "Конфигурация готова."
+      },
+      "eyebrow": "Набор импорта",
+      "openSubscription": "Открыть ссылку",
+      "rawConfig": "Raw config",
+      "status": {
+        "missing_config": "Конфиг ожидается",
+        "missing_profile": "Нет профиля",
+        "missing_service": "Provisioning ожидается",
+        "not_found": "Не найдено",
+        "ready": "Готово к импорту"
+      },
+      "subscriptionUrl": "Ссылка подписки",
+      "title": "Импорт VPN в один шаг"
+    },
+    "copy": {
+      "config": "Raw config скопирован.",
+      "error": "Не удалось скопировать в буфер. Используйте видимую ссылку вручную.",
+      "subscription": "Ссылка подписки скопирована.",
+      "unavailable": "Буфер обмена недоступен в этом браузере."
+    },
+    "dpi": {
+      "confidence": "Доверие",
+      "countries": "Страны",
+      "description": "Текущая публичная модель устойчивости: {version}. Это сигнал, а не гарантия, потому что DPI-условия меняются по сетям.",
+      "empty": "DPI score сейчас недоступен.",
+      "enabled": "Включено",
+      "eyebrow": "DPI-устойчивость",
+      "title": "Сигнал устойчивости сети"
+    },
     "globalStatus": "ОБЩИЙ СТАТУС: {status}",
     "globalStatusValue": "РАЗВЕРНУТО",
+    "guide": {
+      "description": "Безопасный путь: импортировать конфигурацию, выбрать рекомендованный регион, затем проверить соединение до чувствительного трафика.",
+      "steps": {
+        "choose": {
+          "body": "Начните с рекомендованного узла. Если скорость падает, выберите другой online-узел с меньшей нагрузкой.",
+          "title": "Выберите регион"
+        },
+        "import": {
+          "body": "Скопируйте ссылку подписки в VPN-клиент, чтобы будущая ротация серверов и ключей применялась автоматически.",
+          "title": "Импортируйте конфиг"
+        },
+        "verify": {
+          "body": "Переподключитесь и убедитесь, что клиент показывает активный туннель перед приватными сценариями.",
+          "title": "Проверьте туннель"
+        }
+      },
+      "title": "Сценарий подключения"
+    },
+    "hero": {
+      "configStatus": "Состояние конфига",
+      "eyebrow": "Кабина приватного доступа",
+      "serviceStatus": "Доставка доступа"
+    },
+    "labels": {
+      "auto": "AUTO",
+      "inbounds": "Inbounds",
+      "load": "Нагрузка",
+      "no": "Нет",
+      "nodeVersion": "Node",
+      "onlineUsers": "Online",
+      "traffic": "Трафик",
+      "unknown": "Неизвестно",
+      "yes": "Да"
+    },
     "lastSync": "ПОСЛЕДНЯЯ СИНХРОНИЗАЦИЯ: {time} НАЗАД",
-    "subtitle": "Управление узлами VPN, протоколами и регионами размещения.",
-    "title": "УПРАВЛЕНИЕ СЕРВЕРАМИ"
+    "recommended": {
+      "description": "Рекомендация учитывает online-статус, активное подключение, disabled-флаг, нагрузку и давление трафика.",
+      "empty": "Нет VPN-узлов для рекомендации.",
+      "eyebrow": "Рекомендованный маршрут",
+      "reasonFallback": "Запасной маршрут",
+      "reasonReady": "Минимальное трение",
+      "title": "Лучший узел для этой сессии"
+    },
+    "servers": {
+      "description": "Пользовательский список узлов. Здесь есть доступность и подсказки импорта, но нет операторских controls.",
+      "empty": "Backend не вернул серверы.",
+      "title": "Доступные приватные маршруты"
+    },
+    "status": {
+      "loading": "Загрузка",
+      "maintenance": "Обслуживание",
+      "offline": "Offline",
+      "online": "Online",
+      "pending": "Ожидается",
+      "ready": "Готово",
+      "warning": "Внимание"
+    },
+    "subtitle": "Выберите стабильную локацию, импортируйте конфигурацию и держите приватный туннель готовым на всех устройствах.",
+    "summary": {
+      "ariaLabel": "Сводка доступа к VPN-серверам",
+      "connected": "Подключены",
+      "countries": "Регионы",
+      "online": "Online-узлы",
+      "protocols": "Протоколы"
+    },
+    "sync": {
+      "degraded": "Есть сбои",
+      "lastSynced": "Синхронизация: {value}",
+      "live": "Live",
+      "neverSynced": "ещё не было",
+      "retry": "Обновить"
+    },
+    "title": "УЗЕЛ VPN-ДОСТУПА"
   },
   "ServersTable": {
     "actions": {
@@ -1554,7 +2134,184 @@
     },
     "title": "АКТИВНАЯ ИНФРАСТРУКТУРА"
   },
-  "Settings": {},
+  "Settings": {
+    "cabinet": {
+      "actions": {
+        "copied": "Скопировано",
+        "copyId": "Копировать ID",
+        "manage": "Управлять",
+        "privacy": "Privacy flow",
+        "refresh": "Обновить",
+        "revoking": "Отзываю...",
+        "saveProfile": "Сохранить профиль",
+        "saving": "Сохраняю..."
+      },
+      "devices": {
+        "current": "Текущая",
+        "currentHint": "Эта сессия защищена от remote revoke controls.",
+        "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
+        "empty": "Активные устройства не найдены.",
+        "eyebrow": "Session perimeter",
+        "meta": "IP {ip} / активность {date} / id {id}",
+        "revoke": "Отозвать",
+        "revokeDevice": "Отозвать устройство",
+        "revokeOthers": "Отозвать остальные",
+        "title": "Активные устройства"
+      },
+      "errors": {
+        "partialDescription": "Страница остаётся доступной, но перед чувствительными изменениями обновите данные.",
+        "partialTitle": "Часть настроек не загрузилась"
+      },
+      "feedback": {
+        "copyFailed": "Clipboard недоступен.",
+        "deviceFailed": "Не удалось отозвать устройство.",
+        "deviceRevoked": "Устройство отозвано.",
+        "devicesRevoked": "Устройств отозвано: {count}.",
+        "notificationsFailed": "Не удалось обновить уведомления.",
+        "profileFailed": "Не удалось обновить профиль.",
+        "profileSaved": "Профиль сохранён.",
+        "securityUpdated": "Настройки безопасности обновлены."
+      },
+      "hero": {
+        "eyebrow": "Identity / Security / Notifications",
+        "securityPosture": "Security posture",
+        "securityScore": "{score}% уровень защиты аккаунта"
+      },
+      "identity": {
+        "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
+        "eyebrow": "Linked identity",
+        "telegramLinked": "Telegram привязан: {id}",
+        "telegramMissing": "Telegram не привязан к этому аккаунту.",
+        "title": "Внешние аккаунты"
+      },
+      "labels": {
+        "disabled": "Выключено",
+        "enabled": "Включено",
+        "loading": "Загрузка",
+        "notAvailable": "н/д",
+        "notSet": "Не задан",
+        "synced": "Синхронизировано"
+      },
+      "notifications": {
+        "core": {
+          "emailMarketing": {
+            "description": "Опциональные продуктовые и промо сообщения.",
+            "title": "Email marketing"
+          },
+          "emailSecurity": {
+            "description": "Login, password и account risk alerts.",
+            "title": "Email security alerts"
+          },
+          "pushConnection": {
+            "description": "Connection, disconnect и service state notices.",
+            "title": "VPN connection push"
+          },
+          "pushPayment": {
+            "description": "Payment lifecycle и подтверждения invoice.",
+            "title": "Payment push"
+          },
+          "pushSubscription": {
+            "description": "Renewal, expiry и entitlement reminders.",
+            "title": "Subscription push"
+          },
+          "title": "Core account"
+        },
+        "description": "Core account notifications и growth notifications разделены на разные backend preference sets.",
+        "eyebrow": "Routing matrix",
+        "growth": {
+          "adminUpdates": {
+            "description": "Операционные growth announcements в Telegram.",
+            "title": "Telegram admin updates"
+          },
+          "emailGifts": {
+            "description": "Gift redemption и delivery status по email.",
+            "title": "Gift code email"
+          },
+          "emailRewards": {
+            "description": "Изменения lifecycle наград по email.",
+            "title": "Referral reward email"
+          },
+          "inAppInvites": {
+            "description": "Invite и code events внутри кабинета.",
+            "title": "Invite in-app feed"
+          },
+          "telegramRewards": {
+            "description": "Изменения lifecycle наград в Telegram.",
+            "title": "Referral reward Telegram"
+          },
+          "title": "Growth events"
+        },
+        "title": "Настройки уведомлений"
+      },
+      "posture": {
+        "attention": "Требует внимания",
+        "exposed": "Уязвим",
+        "hardened": "Усилен"
+      },
+      "privacy": {
+        "eyebrow": "Privacy guardrails",
+        "items": {
+          "accountDeletion": {
+            "description": "Удаление аккаунта остаётся в отдельном privacy flow.",
+            "title": "Deletion path"
+          },
+          "noSecretTelemetry": {
+            "description": "Метрики отмечают только действия, не пароли, TOTP codes, IP или anti-phishing values.",
+            "title": "Без secret telemetry"
+          },
+          "serverTruth": {
+            "description": "Страница отражает API state и не хранит чувствительные настройки локально.",
+            "title": "Backend как source of truth"
+          },
+          "sessionRevocation": {
+            "description": "Удаление устройств вызывает authenticated backend session revoke endpoints.",
+            "title": "Session revocation"
+          }
+        },
+        "title": "Правила обработки данных"
+      },
+      "profile": {
+        "accountId": "Account ID",
+        "description": "Редактируемые поля синхронизируются с backend profile record. Email и account ID здесь неизменяемые.",
+        "displayName": "Display name",
+        "displayNamePlaceholder": "Имя оператора",
+        "email": "Email",
+        "eyebrow": "Profile nucleus",
+        "language": "Язык",
+        "timezone": "Часовой пояс",
+        "title": "Профиль аккаунта",
+        "updatedAt": "Обновлено {date}"
+      },
+      "security": {
+        "antiphishing": {
+          "disabled": "Установите приватный код для легитимных писем.",
+          "enabled": "Код подлинности email установлен: {code}",
+          "title": "Anti-phishing code"
+        },
+        "description": "Password, TOTP и anti-phishing flows остаются backend-owned и rate-limited.",
+        "eyebrow": "Sensitive controls",
+        "password": {
+          "description": "Смена пароля требует текущий пароль.",
+          "title": "Пароль"
+        },
+        "title": "Security console",
+        "twoFactor": {
+          "disabled": "Включите TOTP перед повышением trust для платежей и устройств.",
+          "enabled": "TOTP активен для этого аккаунта.",
+          "title": "Двухфакторная аутентификация"
+        }
+      },
+      "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
+      "summary": {
+        "antiphishing": "Anti-phishing",
+        "ariaLabel": "Сводные метрики настроек",
+        "devices": "Сессии",
+        "notifications": "Каналов включено",
+        "twoFactor": "2FA"
+      },
+      "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ"
+    }
+  },
   "Status": {
     "history": {
       "title": "История за 90 дней",
@@ -1578,7 +2335,150 @@
     "subtitle": "Глобальный центр управления сетью",
     "title": "СИСТЕМНАЯ РАДАР"
   },
-  "Subscriptions": {},
+  "Subscriptions": {
+    "actions": {
+      "cancel": "Отменить продление",
+      "getConfig": "Получить VPN config",
+      "paymentHistory": "История платежей",
+      "wallet": "Кошелёк"
+    },
+    "addons": {
+      "description": "Add-ons сначала считаются через backend quote текущего entitlement, поэтому цена и изменения доступа остаются авторитетными.",
+      "empty": "Для текущего плана нет активных add-ons.",
+      "eyebrow": "Каталог add-ons",
+      "purchase": {
+        "completed": "Add-on применён к подписке.",
+        "pending": "Checkout для add-on создан. Завершите invoice для активации."
+      },
+      "purchaseCta": "Купить",
+      "purchaseError": "Покупка add-on не удалась. Повторите или обратитесь в поддержку.",
+      "quote": "Рассчитать",
+      "quoteError": "Не удалось рассчитать add-on. Обновите страницу и повторите.",
+      "quoteReady": "Quote готов: {amount}",
+      "title": "Дополнительная ёмкость и доступ"
+    },
+    "autoRenew": "Автопродление",
+    "availablePlans": "Доступные планы",
+    "cancelSubscription": "Отменить подписку",
+    "checkoutCodesDescription": "Promo-коды применяются в checkout. Invite redemption остаётся в центре наград, чтобы цены и доступ не расходились между поверхностями.",
+    "checkoutCodesTitle": "Checkout-коды",
+    "choosePlanBelow": "Выберите план ниже, чтобы начать",
+    "codesAndRewards": "Коды и награды",
+    "current": {
+      "connectionModes": "Режимы подключения",
+      "description": "Это backend entitlement, который сейчас управляет VPN-доступом, лимитами устройств, traffic policy и delivery сервиса.",
+      "devices": "Устройства",
+      "expiresAt": "Истекает",
+      "eyebrow": "Текущий entitlement",
+      "noPlanDescription": "Выберите публичный план или активируйте доступный trial, чтобы подготовить VPN-доступ.",
+      "noPlanTitle": "Нет активного плана",
+      "subscriptionFallback": "подписка",
+      "support": "Поддержка",
+      "traffic": "Трафик"
+    },
+    "currentSubscription": "Текущая подписка",
+    "disabled": "Выключено",
+    "enabled": "Включено",
+    "errorLoading": "Ошибка загрузки подписок",
+    "errorLoadingPlans": "Ошибка загрузки планов",
+    "expiresAt": "Истекает",
+    "health": {
+      "attention": "Требует внимания",
+      "critical": "Нужно действие",
+      "healthy": "В норме"
+    },
+    "hero": {
+      "eyebrow": "Cockpit плана и доступа",
+      "health": "Здоровье подписки",
+      "service": "Provisioning"
+    },
+    "history": {
+      "empty": "Backend ещё не вернул историю заказов.",
+      "eyebrow": "Billing trail",
+      "title": "Последние заказы подписки"
+    },
+    "labels": {
+      "noPlan": "Нет плана",
+      "notAvailable": "Н/Д"
+    },
+    "nextActions": {
+      "addonsAvailable": "Для этого плана можно рассчитать optional add-ons.",
+      "choosePlan": "Выберите план или trial, чтобы открыть VPN-доступ.",
+      "eyebrow": "Readiness checklist",
+      "finishProvisioning": "Provisioning ещё не завершён. Проверьте service access перед импортом config.",
+      "noAddons": "Для этого плана сейчас нет add-ons.",
+      "paymentSignal": "Для долгосрочного доступа должен быть хотя бы один paid order.",
+      "serviceReady": "Service access подготовлен.",
+      "subscriptionReady": "Subscription entitlement активен.",
+      "title": "Следующие действия"
+    },
+    "noActiveSubscription": "Нет активной подписки",
+    "noPlansAvailable": "Сейчас нет доступных планов",
+    "planActions": {
+      "commit": {
+        "completed": "Изменение плана завершено.",
+        "pending": "Checkout изменения плана создан. Завершите invoice для активации."
+      },
+      "commitCta": "Применить",
+      "commitError": "Не удалось изменить план. Повторите или обратитесь в checkout support.",
+      "current": "Текущий",
+      "downgrade": "Изменить",
+      "loading": "Выполняется",
+      "purchase": "Купить",
+      "quote": "Рассчитать",
+      "quoteError": "Не удалось рассчитать план. Обновите каталог и повторите.",
+      "quoteReady": "Quote готов: {amount}",
+      "upgrade": "Upgrade"
+    },
+    "plans": {
+      "description": "Публичные планы загружаются из canonical web catalog. Текущий план заблокирован; остальные планы сначала проходят quote перед покупкой или upgrade.",
+      "empty": "Сейчас нет публичных планов.",
+      "eyebrow": "Каталог планов",
+      "perCycle": "за {duration}",
+      "publicCount": "{count} публичных планов",
+      "title": "Выберите следующий уровень доступа"
+    },
+    "rewardsHubCta": "Открыть центр наград",
+    "rewardsHubDescription": "Управляйте invite-кодами, referral sharing и redemption в одном месте, не разделяя flow по экранам подписки.",
+    "rewardsHubTitle": "Центр наград",
+    "service": {
+      "channel": "Канал",
+      "pending": "Ожидается",
+      "profile": "Профиль",
+      "provider": "Провайдер",
+      "provisioned": "Подготовлен"
+    },
+    "startedAt": "Начало",
+    "status": "Статус",
+    "subscriptionHistory": "История подписки",
+    "subtitle": "Управляйте VPN-доступом, trial, upgrade path, add-ons, billing-сигналами и provisioning readiness из одного пользовательского cockpit.",
+    "summary": {
+      "addons": "Add-ons",
+      "ariaLabel": "Сводка подписки и доступа",
+      "billing": "Цена цикла",
+      "days": "{count}д",
+      "expires": "Осталось",
+      "plan": "План"
+    },
+    "sync": {
+      "degraded": "Есть сбои",
+      "description": "Queries ставятся на паузу в скрытых/offline вкладках и обновляются вручную.",
+      "live": "Live",
+      "retry": "Обновить"
+    },
+    "title": "УПРАВЛЕНИЕ ПОДПИСКОЙ",
+    "trial": {
+      "activate": "Запустить trial",
+      "activating": "Активация",
+      "activeDescription": "Trial-доступ активен. Осталось {count} дней до необходимости платного плана.",
+      "activeTitle": "Trial активен",
+      "eligibleDescription": "Запустите trial, чтобы подготовить ограниченный VPN entitlement перед checkout.",
+      "eligibleTitle": "Trial доступен",
+      "error": "Не удалось активировать trial. Повторите или обратитесь в поддержку.",
+      "eyebrow": "Trial-доступ",
+      "success": "Trial активирован. Состояние доступа обновляется."
+    }
+  },
   "Terms": {
     "description": "КРИТИЧЕСКИЙ УРОВЕНЬ: УСЛОВИЯ ОБСЛУЖИВАНИЯ. ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ...",
     "sections": {
@@ -1645,5 +2545,77 @@
     },
     "title": "БАЗА КЛИЕНТОВ"
   },
-  "Wallet": {}
+  "Wallet": {
+    "actions": {
+      "next": "Вперед",
+      "previous": "Назад",
+      "refresh": "Обновить"
+    },
+    "errors": {
+      "partialDescription": "Страница оставляет доступные блоки рабочими, пока недоступный backend-ресурс восстанавливается.",
+      "partialTitle": "Данные кошелька частично недоступны"
+    },
+    "hero": {
+      "available": "Доступный баланс",
+      "currency": "Счет {currency}",
+      "eyebrow": "Журнал кошелька",
+      "fundsFrozen": "Средства зарезервированы",
+      "fundsReady": "Средства доступны",
+      "managePlan": "Управлять тарифом",
+      "paymentHistory": "История платежей"
+    },
+    "labels": {
+      "notAvailable": "Недоступно",
+      "transaction": "Транзакция кошелька"
+    },
+    "subtitle": "Баланс, замороженные средства, журнал начислений и заявки на вывод в одном безопасном billing-разделе.",
+    "summary": {
+      "ariaLabel": "Сводка баланса кошелька",
+      "balance": "Доступно",
+      "frozen": "Заморожено",
+      "liability": "Всего в кошельке",
+      "pendingWithdrawals": "Ожидают вывода"
+    },
+    "title": "КОШЕЛЕК",
+    "transactions": {
+      "balanceAfter": "Баланс после: {amount}",
+      "empty": "Нет транзакций кошелька для этого фильтра.",
+      "eyebrow": "Поток журнала",
+      "filters": {
+        "all": "Все",
+        "ariaLabel": "Фильтры транзакций кошелька",
+        "credit": "Начисления",
+        "debit": "Списания"
+      },
+      "page": "Страница журнала {page}",
+      "title": "Транзакции кошелька"
+    },
+    "withdrawals": {
+      "description": "Движений по кошельку пока нет.",
+      "empty": "Заявок на вывод пока нет.",
+      "eyebrow": "Очередь выплат",
+      "lastLedger": "Последняя запись журнала: {id}",
+      "title": "Статус выводов"
+    },
+    "withdrawForm": {
+      "amount": "Сумма",
+      "description": "Создайте заявку на вывод для проверки операционной командой. Перед переводом средств могут применяться лимиты провайдера и compliance-проверки.",
+      "errors": {
+        "amount": "Введите корректную сумму вывода.",
+        "balance": "Сумма вывода не может превышать доступный баланс.",
+        "submit": "Не удалось создать заявку на вывод. Повторите попытку или обратитесь в поддержку, если баланс изменился неожиданно."
+      },
+      "eyebrow": "Заявка на вывод",
+      "method": "Метод",
+      "methods": {
+        "cryptobot": "CryptoBot",
+        "manual": "Ручная проверка"
+      },
+      "notice": "Не отправляйте адреса кошельков или платежные реквизиты здесь, если backend явно их не запрашивает. Чувствительные payout-данные обрабатываются в согласованном канале поддержки.",
+      "submit": "Запросить вывод",
+      "submitting": "Отправка",
+      "success": "Заявка на вывод отправлена. Журнал кошелька обновится автоматически.",
+      "title": "Запросить выплату"
+    }
+  }
 }

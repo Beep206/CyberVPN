@@ -1,6 +1,6 @@
 {
   "title": "Global Infrastructure",
-  "description": "5000+ RAM-only nodes deployed across structurally secure jurisdictions. Real-time telemetry routing for zero latency.",
+  "description": "Public network overview with current reach, utilization, and service health derived from sanitized telemetry.",
   "regions": {
     "namerica": "North America",
     "europe": "Europe",
@@ -13,12 +13,109 @@
     "threats": "14.2M/s"
   },
   "labels": {
-    "totalBandwidth": "Core Bandwidth",
-    "activeNodes": "Active Nodes",
-    "threatsIntercepted": "Threats Blocked",
+    "totalBandwidth": "Monthly Traffic",
+    "activeNodes": "Online Servers",
+    "threatsIntercepted": "Live Users",
     "status": "STATUS: ONLINE",
     "latency": "AVG PING: 12ms",
     "encryption": "AES-256-GCM"
+  },
+  "widget": {
+    "eyebrow": "CYBERVPN PUBLIC NETWORK PROOF",
+    "title": "Network Widget",
+    "description": "Sanitized live network proof for partner embeds, sales pages, and trust surfaces.",
+    "loading": "Loading public network widget...",
+    "error": "The widget couldn't load the public network snapshot.",
+    "freshness": "Updated {value}",
+    "focusRegion": "Focused region",
+    "topRegions": "Top regions",
+    "incidents": "Incidents: {value}",
+    "regionServers": "Online servers: {value}",
+    "regionUsers": "Live users: {value}",
+    "metrics": {
+      "availability": "Availability",
+      "onlineServers": "Online servers",
+      "liveUsers": "Live users",
+      "monthlyTraffic": "Monthly traffic"
+    },
+    "statusValues": {
+      "online": "ONLINE",
+      "degraded": "DEGRADED",
+      "major_outage": "MAJOR OUTAGE"
+    },
+    "actions": {
+      "fullMap": "Open full map",
+      "statusPage": "Status page"
+    }
+  },
+  "dpi": {
+    "eyebrow": "CYBERVPN DPI RESISTANCE",
+    "title": "DPI Resistance Score",
+    "description": "A careful public surface for restrictive-network resilience. This page only publishes a score when there is enough fresh probe signal to support it.",
+    "loading": "Loading DPI resistance readiness...",
+    "error": "The DPI resistance contract is currently unavailable.",
+    "enabledState": "Fresh enough probe coverage is available, so country-level DPI score output can be published.",
+    "disabledState": "Public DPI scoring remains gated until enough real probe signal exists across recent measurement windows.",
+    "lastUpdated": "Last updated {value}",
+    "windowValue": "{hours}h window",
+    "cards": {
+      "methodology": "Methodology",
+      "confidence": "Confidence",
+      "countriesTracked": "Countries tracked",
+      "measurementWindow": "Measurement window"
+    },
+    "confidenceValues": {
+      "low": "LOW",
+      "medium": "MEDIUM",
+      "high": "HIGH"
+    },
+    "gating": {
+      "eyebrow": "PUBLIC RELEASE GATE"
+    },
+    "publishedCountries": {
+      "title": "Published country scores",
+      "updated": "Updated {value}",
+      "score": "Connect",
+      "baseline": "Baseline",
+      "handshake": "Handshake"
+    },
+    "reasonCodes": {
+      "public_dpi_not_enabled": "Awaiting sufficient fresh probe signal",
+      "public_dpi_probe_pipeline_not_enabled": "The public DPI pipeline is wired, but probe publication is not active yet.",
+      "public_dpi_probe_dimensions_insufficient": "Real probes are flowing, but the signal dimensions are still too narrow for a publishable public score.",
+      "public_dpi_probe_targets_unavailable": "Probe targets are currently unavailable for a trustworthy country-level snapshot.",
+      "public_dpi_probe_source_unavailable": "Probe collection is temporarily degraded, so the public DPI surface remains gated.",
+      "public_network_regions_unavailable": "Regional network data is temporarily unavailable for the DPI surface."
+    },
+    "methodology": {
+      "eyebrow": "SIGNAL MODEL",
+      "title": "What the public score must eventually reflect",
+      "items": {
+        "connection": "Connection success rate under restrictive conditions.",
+        "handshake": "Median handshake latency for supported protocols.",
+        "baseline": "HTTPS/SNI application baseline where TLS-capable surfaces exist.",
+        "survival": "Session survival and reconnect stability after establishment.",
+        "freshness": "Freshness, sample count, and directional confidence before publication."
+      }
+    },
+    "guardrails": {
+      "eyebrow": "TRUTHFULNESS POLICY",
+      "title": "What this page will not fake",
+      "items": {
+        "noMagic": "No decorative public score without enough real probes.",
+        "noInternals": "No anti-blocking internals, probe identities, or sensitive topology.",
+        "directional": "Any published score is directional evidence, not a guarantee.",
+        "conditionsChange": "Restrictive-country conditions can change quickly and confidence must reflect that."
+      }
+    },
+    "links": {
+      "eyebrow": "NEXT SURFACES",
+      "network": "Open full network map",
+      "guide": "Read the DPI bypass guide"
+    }
+  },
+  "actions": {
+    "dpiResistance": "DPI resistance brief"
   },
   "servers": {
     "1": "New York, USA",

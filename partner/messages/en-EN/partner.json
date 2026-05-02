@@ -1149,6 +1149,13 @@
       "title": "Campaign library",
       "description": "Campaign assets remain lane-aware. Performance requires the strictest review path, while Creator and Reseller use different enablement depth.",
       "approvalOwner": "Approval owner: {value}",
+      "promoReference": "Promo reference: {value}",
+      "disclosureText": "Disclosure text: {value}",
+      "allowedClaims": "Allowed claims",
+      "bannedClaims": "Banned claims",
+      "allowedGeographies": "Allowed geographies: {value}",
+      "destinationUrls": "Destination URLs: {value}",
+      "validUntil": "Valid until: {value}",
       "empty": "No campaign assets are available for the current workspace state and lane."
     },
     "capabilities": {
@@ -1546,7 +1553,94 @@
       "routeAccess": "Route access",
       "technicalReadiness": "Technical readiness",
       "surfaceMode": "Surface mode",
-      "credentials": "Credentials"
+      "credentials": "Credentials",
+      "bots": "Bots"
+    },
+    "readiness": {
+      "title": "Provisioning readiness",
+      "description": "Phase 5 makes the white-label launch posture explicit: managed-bot readiness, manual token fallback, and postback delivery now stay visible from the partner surface instead of living only in operator workflows.",
+      "loading": "Loading postback and provisioning readiness...",
+      "error": "The postback readiness contract is currently unavailable.",
+      "notesTitle": "Operator notes",
+      "noNotes": "No additional operator notes are attached to the current readiness posture.",
+      "postbackTitle": "Postback posture",
+      "postbackStatus": "Readiness status",
+      "postbackCredential": "Credential status",
+      "postbackDelivery": "Delivery status",
+      "cards": {
+        "managedPath": "Managed path",
+        "managedPathCount": "Bots on managed path: {value}",
+        "manualFallback": "Manual fallback",
+        "manualFallbackCount": "Bots on manual path: {value}",
+        "postback": "Postback",
+        "deliveryStatus": "Delivery: {value}",
+        "intervention": "Needs intervention",
+        "pendingCount": "Queued or running: {value}",
+        "notAvailable": "Not available"
+      },
+      "snapshot": {
+        "activeBots": "Active bots",
+        "readyManagedBindings": "Ready managed bindings",
+        "suspendedBots": "Suspended bots",
+        "scope": "Tracking scope"
+      },
+      "notes": {
+        "managed_path_operator_handoff": "Managed-bot creation still requires operator-mediated Telegram binding before it can be treated as fully live.",
+        "manual_path_available": "Manual token onboarding remains available as the fallback launch path for partners who need a faster handoff.",
+        "operator_attention_required": "At least one bot still needs operator follow-up before launch posture is clean.",
+        "postback_under_review": "Postback readiness is still under review, so click-tracking and delivery promotion remain conditional.",
+        "postback_blocked": "Postback readiness is blocked, so launch-sensitive automation stays constrained."
+      }
+    },
+    "bots": {
+      "title": "Partner bots",
+      "description": "This is the first white-label runtime inventory slice: branded Telegram bot records, provisioning path, and current launch status for the active workspace.",
+      "empty": "No partner bots have been created for this workspace yet.",
+      "loading": "Loading partner bot inventory...",
+      "routeHint": "Provisioning foundation is ready; branded bot creation and launch actions land in the next phase 4 slices.",
+      "createTitle": "Create draft bot",
+      "createRuntimeHint": "Shared runtime",
+      "createBotKeyPlaceholder": "bot key",
+      "createDisplayNamePlaceholder": "display name",
+      "createLocalePlaceholder": "default locale",
+      "createDescriptionPlaceholder": "Short branded description for the bot profile and launch surfaces.",
+      "createProvisioningPathManaged": "Managed bot",
+      "createProvisioningPathManual": "Manual token fallback",
+      "createSubmit": "Create draft bot",
+      "createSubmitting": "Creating...",
+      "createHelp": "Create the branded bot record first, then queue provisioning or manual-token onboarding.",
+      "createSuccess": "Draft partner bot created.",
+      "createError": "The partner bot draft could not be created.",
+      "workspaceRequired": "Select a workspace before creating a partner bot.",
+      "readOnlyMode": "This role can review partner bot posture, but provisioning and launch actions are blocked.",
+      "tokenStatus": "Token status: {value}",
+      "provisioningPath": "Provisioning path: {value}",
+      "releaseChannel": "Release channel: {value}",
+      "defaultLocale": "Default locale: {value}",
+      "binding": "Telegram binding: {value}",
+      "bindingPending": "not bound yet",
+      "latestJob": "Latest provisioning job: {value}",
+      "noJobs": "Latest provisioning job: not requested yet",
+      "updatedAt": "Updated at: {value}",
+      "lastError": "Last provisioning error: {value}",
+      "lastReasonCode": "Latest job reason code: {value}",
+      "actionReferenceManualPlaceholder": "BotFather handoff reference or operator note",
+      "actionReferenceManagedPlaceholder": "Managed-bot note or operator handoff reference",
+      "suspendReasonPlaceholder": "Suspension reason code",
+      "provisionSuccess": "Provisioning request queued.",
+      "provisionError": "The provisioning request could not be queued.",
+      "rotateSuccess": "Token rotation request queued.",
+      "rotateError": "The token rotation request could not be queued.",
+      "suspendSuccess": "Partner bot suspended.",
+      "suspendError": "The partner bot could not be suspended.",
+      "restoreSuccess": "Partner bot restored.",
+      "restoreError": "The partner bot could not be restored.",
+      "actions": {
+        "provision": "Queue provisioning",
+        "rotateToken": "Rotate token",
+        "suspend": "Suspend bot",
+        "restore": "Restore bot"
+      }
     },
     "credentials": {
       "title": "Integration credentials",
@@ -1556,6 +1650,23 @@
     },
     "delivery": {
       "title": "Delivery logs"
+    },
+    "widgets": {
+      "title": "Public network widget kit",
+      "description": "Phase 5 opens the first partner-facing trust widget slice: an approved public network card backed by sanitized snapshot data and ready for iframe embeds.",
+      "runtimeHint": "Sanitized public proof",
+      "loading": "Loading widget preview posture...",
+      "error": "The widget preview contract is currently unavailable.",
+      "previewTitle": "Live widget preview",
+      "openLivePreview": "Open standalone widget",
+      "embedCodeTitle": "Embed code",
+      "snapshot": {
+        "status": "Snapshot status",
+        "availability": "Availability",
+        "onlineServers": "Online servers",
+        "monthlyTraffic": "Monthly traffic",
+        "updatedAt": "Updated at: {value}"
+      }
     },
     "capabilities": {
       "title": "Integration capability posture",
@@ -1590,7 +1701,8 @@
       "routeAccess": "Route access",
       "workspaceStatus": "Workspace status",
       "surfaceMode": "Surface mode",
-      "storefronts": "Storefronts"
+      "storefronts": "Storefronts",
+      "voucherBatches": "Voucher batches"
     },
     "snapshot": {
       "pricebook": "Pricebook preview",
@@ -1618,6 +1730,30 @@
     "modes": {
       "operational": "The reseller workspace can use its storefront-linked operational console within the assigned row-level scope.",
       "constrained": "The reseller console remains visible for remediation, but expansion-oriented storefront actions stay constrained."
+    },
+    "voucherBatches": {
+      "title": "Voucher batches",
+      "description": "Approved reseller workspaces can track batch-issued gift vouchers without exposing consumer invite or referral mechanics.",
+      "batchTitle": "{plan} / {duration} days",
+      "batchStats": "Issued: {issued} · Redeemed: {redeemed} · Available: {available}",
+      "expiresAt": "Expires at: {value}",
+      "empty": "No voucher batches have been issued for this reseller workspace yet."
+    },
+    "voucherRequest": {
+      "title": "Request voucher batch",
+      "description": "Issue a reseller-scoped voucher batch directly from the partner surface. The raw codes are shown once after issuance.",
+      "readOnly": "This role can review voucher posture, but new reseller voucher requests are blocked.",
+      "planPlaceholder": "Select subscription plan",
+      "countPlaceholder": "Voucher count",
+      "recipientHintPlaceholder": "Recipient hint or campaign label",
+      "messagePlaceholder": "Optional batch note or message for the voucher pack.",
+      "submit": "Issue voucher batch",
+      "submitting": "Issuing...",
+      "success": "Voucher batch issued with {count} codes.",
+      "error": "The reseller voucher batch could not be issued.",
+      "workspaceRequired": "Select a workspace before requesting a voucher batch.",
+      "planRequired": "Select a subscription plan before requesting vouchers.",
+      "issuedCodesTitle": "Issued codes"
     },
     "links": {
       "title": "Linked surfaces",

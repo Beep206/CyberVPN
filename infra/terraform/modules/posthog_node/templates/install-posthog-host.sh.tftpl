@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y brotli ca-certificates certbot curl git jq nginx openssl python3-certbot-nginx
+
+if ! command -v docker >/dev/null 2>&1; then
+  apt-get install -y docker.io
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  apt-get install -y docker-compose-plugin || true
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  mkdir -p /usr/local/lib/docker/cli-plugins
+  curl -fsSL "https://github.com/docker/compose/releases/download/v2.33.1/docker-compose-linux-$$(uname -m)" \
+    -o /usr/local/lib/docker/cli-plugins/docker-compose
+  chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+fi
+
+install -d -m 0750 /opt/posthog/self-host /opt/posthog/bootstrap /var/backups/posthog /var/www/certbot
+if [ ! -f /usr/local/sbin/posthog-local-backup.sh ]; then
+  cat > /usr/local/sbin/posthog-local-backup.sh <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+  chmod 0750 /usr/local/sbin/posthog-local-backup.sh
+fi
+systemctl enable docker
+systemctl enable nginx
+systemctl restart docker
+systemctl restart nginx
+usermod -aG docker ${admin_username} || true

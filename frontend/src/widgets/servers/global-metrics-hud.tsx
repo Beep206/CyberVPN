@@ -1,25 +1,35 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { Activity, ShieldAlert, Cpu } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { CypherText } from '@/shared/ui/atoms/cypher-text';
+import { useLocale, useTranslations } from 'next-intl';
+import { Activity, Server, Users } from 'lucide-react';
+import { publicNetworkApi } from '@/lib/api';
+import {
+    formatCount,
+    formatTraffic,
+    pollingInterval,
+} from '@/features/network-intelligence/lib/public-network';
 
 export function GlobalMetricsHud() {
+    const locale = useLocale();
     const t = useTranslations('Network');
-    const [threats, setThreats] = useState(14200000); // Base starting number
+    const overviewQuery = useQuery({
+        queryKey: ['public-network-overview'],
+        queryFn: async () => {
+            const { data } = await publicNetworkApi.getOverview();
+            return data;
+        },
+        staleTime: 30_000,
+        refetchInterval: pollingInterval(30_000),
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
+    });
 
-    // Simulate live incrementing threats
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setThreats(prev => prev + Math.floor(Math.random() * 50));
-        }, 100);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Format number to "14.2M/s" style or full commas
-    const formattedThreats = new Intl.NumberFormat('en-US').format(threats);
+    const globalMetrics = overviewQuery.data?.global;
+    const monthlyTraffic = formatTraffic(globalMetrics?.monthlyTrafficBytes, locale);
+    const onlineServers = formatCount(globalMetrics?.onlineServers, locale);
+    const liveUsers = formatCount(globalMetrics?.activeUsers, locale);
 
     return (
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto mt-12 md:mt-0">
@@ -38,7 +48,7 @@ export function GlobalMetricsHud() {
                     </span>
                 </div>
                 <div className="font-display text-2xl font-black text-white">
-                    {t('metrics.bandwidth')}
+                    {monthlyTraffic}
                 </div>
             </motion.div>
 
@@ -50,13 +60,13 @@ export function GlobalMetricsHud() {
             >
                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-matrix-green to-transparent opacity-50" />
                 <div className="flex items-center gap-3 mb-2">
-                    <Cpu className="w-4 h-4 text-matrix-green" />
+                    <Server className="w-4 h-4 text-matrix-green" />
                     <span className="font-mono text-[10px] uppercase text-muted-foreground tracking-widest">
                         {t('labels.activeNodes')}
                     </span>
                 </div>
                 <div className="font-display text-2xl font-black text-white">
-                    <CypherText text={t('metrics.nodes')} />
+                    {onlineServers}
                 </div>
             </motion.div>
 
@@ -64,17 +74,17 @@ export function GlobalMetricsHud() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="bg-[#050510]/80 backdrop-blur-md border border-neon-purple/20 rounded-lg p-5 flex-1 md:w-56 relative overflow-hidden group shadow-[0_0_30px_rgba(255,0,255,0.05)]"
+                className="bg-[#050510]/80 backdrop-blur-md border border-neon-pink/20 rounded-lg p-5 flex-1 md:w-56 relative overflow-hidden group shadow-[0_0_30px_rgba(255,0,255,0.05)]"
             >
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-purple to-transparent opacity-50" />
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-pink to-transparent opacity-50" />
                 <div className="flex items-center gap-3 mb-2">
-                    <ShieldAlert className="w-4 h-4 text-neon-purple" />
+                    <Users className="w-4 h-4 text-neon-pink" />
                     <span className="font-mono text-[10px] uppercase text-muted-foreground tracking-widest">
                         {t('labels.threatsIntercepted')}
                     </span>
                 </div>
                 <div className="font-display text-2xl font-black text-white font-mono">
-                    {formattedThreats}
+                    {liveUsers}
                 </div>
             </motion.div>
         </div>

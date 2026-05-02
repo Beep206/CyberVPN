@@ -1,0 +1,79 @@
+{
+  "system_account": "SYS",
+  "accounts": [
+    {
+      "name": "SYS",
+      "users": [
+        {
+          "name": "ops-admin",
+          "username": "ops-admin",
+          "permissions": {
+            "publish": [">"],
+            "subscribe": [">"]
+          }
+        },
+        {
+          "name": "sys-observer",
+          "username": "sys-observer",
+          "permissions": {
+            "publish": ["$SYS.REQ.>"],
+            "subscribe": ["$SYS.>"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PLATFORM",
+      "users": [
+        {
+          "name": "billing-app",
+          "username": "billing-app",
+          "permissions": {
+            "publish": ["billing.>", "payment.>", "subscription.>"],
+            "subscribe": ["_INBOX.>"]
+          }
+        },
+        {
+          "name": "notification-worker",
+          "username": "notification-worker",
+          "permissions": {
+            "publish": ["notification.>"],
+            "subscribe": ["billing.payment.>", "subscription.>", "_INBOX.>"]
+          }
+        },
+        {
+          "name": "partner-realtime-gateway",
+          "username": "partner-realtime-gateway",
+          "permissions": {
+            "publish": ["partner.realtime.>"],
+            "subscribe": ["partner.>", "billing.payment.>", "subscription.>", "_INBOX.>"]
+          }
+        },
+        {
+          "name": "fleet-controller",
+          "username": "fleet-controller",
+          "permissions": {
+            "publish": ["node.lifecycle.>", "node.command.>", "provider.health.>"],
+            "subscribe": ["node.health.>", "provider.health.>", "_INBOX.>"]
+          }
+        },
+        {
+          "name": "fleet-node-agent",
+          "username": "fleet-node-agent",
+          "permissions": {
+            "publish": ["node.health.>", "node.telemetry.>"],
+            "subscribe": ["node.command.>", "_INBOX.>"]
+          }
+        },
+        {
+          "name": "analytics-bridge",
+          "username": "analytics-bridge",
+          "permissions": {
+            "publish": ["analytics.product.>"],
+            "subscribe": ["billing.>", "payment.>", "subscription.>", "partner.>", "_INBOX.>"]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -41,6 +41,7 @@ export interface TelegramWebAppMock {
   showConfirm: ReturnType<typeof vi.fn>;
   openLink: ReturnType<typeof vi.fn>;
   openTelegramLink: ReturnType<typeof vi.fn>;
+  openInvoice?: ReturnType<typeof vi.fn>;
   HapticFeedback: {
     impactOccurred: ReturnType<typeof vi.fn>;
     notificationOccurred: ReturnType<typeof vi.fn>;
@@ -110,6 +111,7 @@ export function createTelegramWebAppMock(overrides?: Partial<TelegramWebAppMock>
     showConfirm: vi.fn().mockResolvedValue(true),
     openLink: vi.fn(),
     openTelegramLink: vi.fn(),
+    openInvoice: vi.fn(),
     HapticFeedback: {
       impactOccurred: vi.fn(),
       notificationOccurred: vi.fn(),

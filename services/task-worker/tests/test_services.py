@@ -86,6 +86,54 @@ async def test_remnawave_client_get_nodes_normalizes_aliases():
 
 
 @pytest.mark.asyncio
+async def test_remnawave_client_get_inbounds_returns_inbound_list():
+    """Test RemnawaveClient get_inbounds returns the upstream inbound collection."""
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "inbounds": [{"uuid": "inbound-1", "protocol": "vless", "port": 443}]
+        }
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            inbounds = await client.get_inbounds()
+
+            assert len(inbounds) == 1
+            assert inbounds[0]["uuid"] == "inbound-1"
+            assert inbounds[0]["protocol"] == "vless"
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_get_hosts_returns_host_list():
+    """Test RemnawaveClient get_hosts returns the upstream host collection."""
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "hosts": [{"uuid": "host-1", "inboundUuid": "inbound-1", "address": "edge.example.com"}]
+        }
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            hosts = await client.get_hosts()
+
+            assert len(hosts) == 1
+            assert hosts[0]["uuid"] == "host-1"
+            assert hosts[0]["address"] == "edge.example.com"
+
+
+@pytest.mark.asyncio
 async def test_remnawave_client_get_user_normalizes_single_payload():
     """Test RemnawaveClient get_user normalizes a single user payload."""
     user_payload = load_remnawave_fixture("user_2_7_4.json")

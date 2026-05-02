@@ -8,7 +8,7 @@ import {
 import { server } from '@/test/mocks/server';
 import { CANONICAL_IDEMPOTENCY_HEADER } from '../client';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 function createQuoteSessionResponse() {
   return {

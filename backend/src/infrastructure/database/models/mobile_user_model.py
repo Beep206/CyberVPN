@@ -6,9 +6,9 @@ Integrates with Remnawave for VPN configuration management.
 
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Uuid
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
@@ -55,6 +55,12 @@ class MobileUserModel(Base):
     )
 
     # Telegram OAuth linking
+    telegram_subject: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
     telegram_id: Mapped[int | None] = mapped_column(
         BigInteger,
         unique=True,
@@ -64,6 +70,22 @@ class MobileUserModel(Base):
     telegram_username: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
+    )
+    notification_prefs: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    # Mobile TOTP authentication
+    totp_secret: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    totp_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
     )
 
     # Remnawave VPN user reference

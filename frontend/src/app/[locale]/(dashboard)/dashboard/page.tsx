@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { DashboardGlobe } from './components/DashboardGlobe';
-import { DashboardStats } from './components/DashboardStats';
-import { ServerGrid } from './components/ServerGrid';
+import { CustomerCabinetDashboard } from '@/widgets/customer-cabinet/customer-cabinet-dashboard';
 
 export default async function Dashboard({
   params,
@@ -24,69 +23,50 @@ export default async function Dashboard({
         <header className="mb-8 flex flex-col gap-4 rounded-2xl border border-grid-line/30 bg-terminal-surface/30 p-4 shadow-[0_0_30px_rgba(0,255,255,0.05)] backdrop-blur md:mb-12 md:flex-row md:items-center md:justify-between md:p-6">
           <div className="flex w-full items-start gap-4 md:w-auto md:items-center">
             <div className="hidden h-12 w-12 items-center justify-center rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 md:flex">
-              <span className="font-cyber text-2xl text-neon-cyan">VPN</span>
+              <span className="font-cyber text-2xl text-neon-cyan">CV</span>
             </div>
             <div className="min-w-0">
+              <p className="mb-2 font-mono text-xs uppercase tracking-[0.32em] text-neon-cyan">
+                {t('cabinet.eyebrow')}
+              </p>
               <h1 className="break-words text-2xl font-display tracking-wider text-white drop-shadow-glow md:text-3xl">
-                {t('title')}
+                {t('cabinet.title')}
               </h1>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-matrix-green animate-pulse" />
                 <p className="font-mono text-xs text-muted-foreground md:text-sm">
-                  {t('statusLabel')}{' '}
+                  {t('cabinet.statusLabel')}{' '}
                   <span className="font-bold text-matrix-green">
-                    {t('statusValue')}
+                    {t('cabinet.statusValue')}
                   </span>
                 </p>
               </div>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground md:text-base">
+                {t('cabinet.subtitle')}
+              </p>
             </div>
           </div>
 
           <div className="hidden border-l border-white/10 pl-4 text-right font-cyber text-xs text-neon-pink opacity-80 md:block">
-            <div className="mb-1">{t('connectionStatus')}</div>
-            <div>{t('encryptionStatus')}</div>
+            <div className="mb-1">{t('cabinet.connectionStatus')}</div>
+            <div>{t('cabinet.encryptionStatus')}</div>
           </div>
         </header>
 
-        <div className="grid gap-8">
-          <Suspense
-            fallback={
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((_, index) => (
-                  <div
-                    key={index}
-                    className="cyber-card h-32 rounded-xl p-6 animate-pulse"
-                  />
-                ))}
-              </div>
-            }
-          >
-            <DashboardStats />
-          </Suspense>
-
-          <div className="space-y-4">
-            <div className="mb-6 flex items-center gap-2 border-b border-neon-purple/30 pb-2">
-              <div className="h-6 w-1 bg-neon-purple" />
-              <h2 className="text-xl font-display tracking-wide text-neon-purple">
-                {t('serverMatrix')}
-              </h2>
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {[...Array(8)].map((_, index) => (
+                <div
+                  key={index}
+                  className="cyber-card h-36 rounded-xl p-6 animate-pulse"
+                />
+              ))}
             </div>
-            <Suspense
-              fallback={
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                  {[...Array(4)].map((_, index) => (
-                    <div
-                      key={index}
-                      className="cyber-card h-40 rounded-xl p-6 animate-pulse"
-                    />
-                  ))}
-                </div>
-              }
-            >
-              <ServerGrid />
-            </Suspense>
-          </div>
-        </div>
+          }
+        >
+          <CustomerCabinetDashboard />
+        </Suspense>
       </div>
     </section>
   );

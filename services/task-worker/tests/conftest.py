@@ -7,6 +7,7 @@ Provides mock fixtures for:
 - External API clients (Remnawave, Telegram, CryptoBot)
 """
 
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -27,6 +28,8 @@ def mock_settings_for_imports():
     # External Services
     settings.remnawave_url = "http://localhost:3000"
     settings.remnawave_api_token.get_secret_value.return_value = "test-token"
+    settings.backend_api_url = "http://localhost:8000/api/v1"
+    settings.backend_internal_secret.get_secret_value.return_value = "internal-secret"
     settings.helix_enabled = True
     settings.helix_adapter_url = "http://localhost:8090"
     settings.helix_adapter_token.get_secret_value.return_value = (
@@ -69,11 +72,18 @@ def mock_settings_for_imports():
     settings.bulk_batch_size = 50
 
     # Monitoring
+    settings.metrics_enabled = True
+    settings.metrics_protect = False
+    settings.metrics_allowed_ips = []
+    settings.metrics_basic_auth_user = None
+    settings.metrics_basic_auth_password = None
     settings.metrics_port = 9091
 
     # Application Environment
     settings.log_level = "DEBUG"
-    settings.environment = "test"
+    settings.environment = os.environ.get("ENVIRONMENT", "test")
+    settings.sentry_dsn = os.environ.get("SENTRY_DSN", "")
+    settings.sentry_release = os.environ.get("SENTRY_RELEASE", "")
 
     with patch("src.config.get_settings", return_value=settings):
         yield settings
@@ -93,6 +103,8 @@ def mock_settings():
     # External Services
     settings.remnawave_url = "http://localhost:3000"
     settings.remnawave_api_token.get_secret_value.return_value = "test-token"
+    settings.backend_api_url = "http://localhost:8000/api/v1"
+    settings.backend_internal_secret.get_secret_value.return_value = "internal-secret"
     settings.helix_enabled = True
     settings.helix_adapter_url = "http://localhost:8090"
     settings.helix_adapter_token.get_secret_value.return_value = (
@@ -135,11 +147,18 @@ def mock_settings():
     settings.bulk_batch_size = 50
 
     # Monitoring
+    settings.metrics_enabled = True
+    settings.metrics_protect = False
+    settings.metrics_allowed_ips = []
+    settings.metrics_basic_auth_user = None
+    settings.metrics_basic_auth_password = None
     settings.metrics_port = 9091
 
     # Application Environment
     settings.log_level = "DEBUG"
-    settings.environment = "test"
+    settings.environment = os.environ.get("ENVIRONMENT", "test")
+    settings.sentry_dsn = os.environ.get("SENTRY_DSN", "")
+    settings.sentry_release = os.environ.get("SENTRY_RELEASE", "")
 
     return settings
 
@@ -248,6 +267,7 @@ async def mock_telegram():
 
     # API methods
     client.send_message = AsyncMock(return_value=True)
+    client.get_star_transactions = AsyncMock(return_value={"transactions": []})
     client.send_bulk_messages = AsyncMock(return_value={"sent": 10, "failed": 0})
     client.edit_message = AsyncMock(return_value=True)
     client.delete_message = AsyncMock(return_value=True)

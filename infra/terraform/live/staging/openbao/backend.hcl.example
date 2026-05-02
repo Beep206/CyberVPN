@@ -1,0 +1,8 @@
+bucket       = "cybervpn-terraform-state"
+key          = "staging/openbao/terraform.tfstate"
+region       = "eu-central-1"
+encrypt      = true
+use_lockfile = true
+
+# This path lives under the legacy staging implementation directory, but the
+# canonical environment id for this stack is nonprod.

@@ -1850,9 +1850,122 @@
       "editorTitle": "Редактор настройки",
       "empty": "Нет настроек для текущего представления.",
       "eyebrow": "ВИДИМОСТЬ ПОЛИТИК",
-      "gapDescription": "Сейчас этот workspace отражает только `/settings` и статическую policy permissions. Выделенных `system_config` governance API и настоящего admin directory на backend пока нет.",
+      "gapDescription": "Первый выделенный `system_config` governance API уже появился для `miniapp.runtime`. Более широкие семейства системной конфигурации и настоящий admin directory всё ещё нужно вынести с общего слоя `/settings`.",
       "gapTitle": "Известный gap",
       "keyPlaceholder": "registration_mode",
+      "launchActions": {
+        "currentStateHint": "Текущее состояние запуска: {state}",
+        "description": "Server-authoritative переходы состояния для запуска, maintenance и rollback-решений.",
+        "items": {
+          "enter_maintenance": "Перевести в maintenance",
+          "promote_to_live": "Перевести в live",
+          "return_to_canary": "Вернуть в canary",
+          "start_rollback": "Запустить rollback"
+        },
+        "noActions": "Для текущего состояния launch-действия недоступны.",
+        "reason": "Причина действия",
+        "reasonPlaceholder": "Почему выполняется это launch-действие?",
+        "success": {
+          "enter_maintenance": "Mini App переведён в maintenance mode.",
+          "promote_to_live": "Mini App переведён в live mode.",
+          "return_to_canary": "Mini App возвращён в canary mode.",
+          "start_rollback": "Для Mini App запущен rollback."
+        },
+        "title": "Действия запуска Mini App"
+      },
+      "launchChecklist": {
+        "description": "Операторский чеклист, собранный из текущей launch summary и ownership readiness перед переводом в live.",
+        "missingValue": "Не указано",
+        "releaseWindow": "Окно релиза",
+        "title": "Чеклист запуска Mini App"
+      },
+      "launchReadiness": {
+        "apply": "Применить launch readiness",
+        "changeReason": "Причина изменения",
+        "changeReasonPlaceholder": "Почему обновляется launch readiness?",
+        "description": "Операторские launch gate'ы, которые должны быть завершены до перевода Mini App runtime в live mode.",
+        "incidentChannel": "Канал инцидента",
+        "incidentChannelPlaceholder": "Например: #miniapp-war-room",
+        "items": {
+          "checkoutCanary": "Checkout canary пройден",
+          "configDeliveryCanary": "Canary по выдаче конфига пройден",
+          "customerComms": "Шаблон коммуникации с пользователями готов",
+          "incidentRunbook": "Изучен incident response runbook",
+          "observability": "Подтверждены observability dashboard'ы и alerts",
+          "rollbackDrill": "Rollback drill подтверждён",
+          "statusPageTemplate": "Шаблон status page готов",
+          "supportWindow": "Подтверждено окно support/on-call"
+        },
+        "lastUpdated": "Последнее обновление",
+        "primaryOncall": "Primary on-call",
+        "primaryOncallPlaceholder": "Имя, алиас или pager target",
+        "releaseWindowNote": "Примечание к release window",
+        "releaseWindowNotePlaceholder": "Например: 24 апреля, 18:00 UTC, дежурят support и backend on-call",
+        "rollbackCommander": "Rollback commander",
+        "rollbackCommanderPlaceholder": "Имя или handle ответственного за rollback-решение",
+        "status": {
+          "blocked": "Запуск заблокирован",
+          "ready": "К запуску готово"
+        },
+        "title": "Готовность Mini App к запуску",
+        "updatedBy": "Обновил",
+        "updateSuccess": "Готовность Mini App к запуску обновлена."
+      },
+      "launchSummary": {
+        "actions": {
+          "complete_launch_gates": "Закрыть launch gate'ы",
+          "finish_rollback": "Завершить rollback",
+          "hold_maintenance": "Оставить maintenance",
+          "keep_canary": "Оставить текущее состояние",
+          "promote_to_live": "Перевести в live",
+          "stabilize_runtime": "Стабилизировать runtime"
+        },
+        "blockerLabels": {
+          "checkout_canary_not_passed": "Checkout canary не пройден",
+          "config_delivery_canary_not_passed": "Canary выдачи конфига не пройден",
+          "customer_comms_not_ready": "Коммуникация с пользователями не готова",
+          "incident_channel_missing": "Не указан incident channel",
+          "incident_runbook_unacknowledged": "Incident runbook не подтверждён",
+          "maintenance_mode_active": "Активен maintenance mode",
+          "observability_unacknowledged": "Observability не подтверждён",
+          "primary_oncall_contact_missing": "Не указан primary on-call contact",
+          "rollback_commander_missing": "Не указан rollback commander",
+          "rollback_drill_unacknowledged": "Rollback drill не подтверждён",
+          "rollback_mode_active": "Активен rollback mode",
+          "runtime_disabled": "Runtime выключен",
+          "status_page_template_not_ready": "Шаблон status page не готов",
+          "support_window_unconfirmed": "Окно support не подтверждено"
+        },
+        "blockers": "Текущие блокеры",
+        "description": "Server-derived состояние запуска Mini App runtime, readiness gate'ов и incident-response ownership.",
+        "incidentChannel": "Канал инцидента",
+        "liveSwitchAllowed": "Перевод в live разрешён",
+        "liveSwitchBlocked": "Перевод в live заблокирован",
+        "nextAction": "Следующее действие",
+        "noBlockers": "Блокеров нет. По текущему состоянию Mini App можно двигать дальше.",
+        "primaryOncall": "Primary on-call",
+        "rollbackCommander": "Rollback commander",
+        "states": {
+          "blocked": "Заблокировано",
+          "canary_in_progress": "Canary в процессе",
+          "live": "Live",
+          "maintenance": "Maintenance",
+          "ready_for_live": "Готово к live",
+          "rollback_in_progress": "Rollback в процессе"
+        },
+        "title": "Сводка запуска Mini App"
+      },
+      "launchTimeline": {
+        "description": "Последние решения по runtime, readiness и launch actions для review перед production cutover.",
+        "empty": "События запуска Mini App пока не зафиксированы.",
+        "eventTypes": {
+          "launch_action": "Launch action",
+          "launch_readiness_update": "Обновление launch readiness",
+          "runtime_update": "Обновление runtime"
+        },
+        "noReason": "Причина изменения не указана.",
+        "title": "Таймлайн запуска Mini App"
+      },
       "metaTitle": "Policy Surface - Ozoxy Admin",
       "metrics": {
         "described": "С описанием",
@@ -1870,6 +1983,36 @@
       "resetEditor": "Сбросить редактор",
       "roleMatrixDescription": "Frontend mirror текущего backend mapping permissions по staff-ролям.",
       "roleMatrixTitle": "Матрица ролей",
+      "runtimeControl": {
+        "apply": "Применить runtime policy",
+        "canaryAllowlist": "Telegram user ID для canary",
+        "canaryAllowlistHint": "Укажите Telegram user ID через запятую или с новой строки. Только эти пользователи получат доступ к Mini App в режиме canary.",
+        "canaryAllowlistInvalid": "Введите корректные Telegram user ID для canary allowlist.",
+        "canaryAllowlistPlaceholder": "123456789, 987654321",
+        "canaryAllowlistRequired": "Для режима canary нужен хотя бы один Telegram user ID.",
+        "changeReason": "Причина изменения",
+        "changeReasonPlaceholder": "Почему меняется rollout policy?",
+        "checkout": "Checkout commit",
+        "config": "Выдача конфига",
+        "description": "Операторская политика rollout для Telegram Mini App: триал, checkout, выдача конфига и maintenance-сообщение.",
+        "enabled": "Runtime включён",
+        "lastUpdated": "Последнее обновление",
+        "liveGateBlocked": "Launch gate'ы не завершены",
+        "liveGateHint": "Mini App нельзя перевести в live mode, пока все launch readiness gate'ы не отмечены как завершённые.",
+        "maintenanceMessage": "Maintenance message",
+        "maintenancePlaceholder": "Необязательное сообщение для maintenance или rollback",
+        "mode": "Режим rollout",
+        "status": {
+          "canary": "Canary rollout",
+          "live": "Runtime активен",
+          "maintenance": "Режим maintenance",
+          "rollback": "Rollback mode"
+        },
+        "title": "Управление Mini App Runtime",
+        "trial": "Активация триала",
+        "updatedBy": "Обновил",
+        "updateSuccess": "Политика Mini App runtime обновлена."
+      },
       "searchPlaceholder": "Поиск по ключу настройки, описанию, значению...",
       "selectionRequired": "Выберите настройку перед обновлением.",
       "title": "Policy surface",
@@ -1926,6 +2069,53 @@
       "unused": "Не использован",
       "used": "Использован"
     },
+    "giftCodes": {
+      "description": "Admin-консоль для выдачи одиночных или batch клиентских gift-кодов, просмотра redemption-статуса и единого операторского gift-инвентаря.",
+      "empty": "По текущему фильтру gift-коды не найдены.",
+      "eyebrow": "Рост / Gift-коды",
+      "fields": {
+        "adminNote": "Заметка администратора",
+        "count": "Количество",
+        "giftMessage": "Gift-сообщение",
+        "ownerFilter": "Фильтр owner",
+        "ownerUserId": "Owner User ID",
+        "planId": "План",
+        "planPlaceholder": "Выберите gift-план",
+        "reasonCode": "Код причины",
+        "recipientHint": "Подсказка получателя"
+      },
+      "filtersDescription": "Фильтруйте live gift inventory по owner user и проверяйте redemptions, не выходя из growth console.",
+      "filtersTitle": "Фильтры Инвентаря",
+      "inventoryDescription": "Живой admin inventory для active, redeemed и operator-issued gift-кодов.",
+      "inventoryTitle": "Gift-Инвентарь",
+      "issueAction": "Выдать gift",
+      "issuePanelDescription": "Создайте один или несколько gift-кодов, привязанных к пользователю, на основе живого каталога планов и сохраните recipient-контекст в каноническом lifecycle.",
+      "issuePanelTitle": "Выдача Gift-кода",
+      "issuing": "Выдаём...",
+      "liveInventory": "Живой инвентарь",
+      "metaTitle": "Gift-коды - Ozoxy Admin",
+      "metrics": {
+        "active": "Активные Gift",
+        "activeHint": "Gift-коды, которые ещё можно redeem’нуть.",
+        "lastIssued": "Последний Выданный",
+        "lastIssuedHint": "Самый свежий batch или code из текущей admin-сессии.",
+        "redeemed": "Redeemed Gift",
+        "redeemedHint": "Gift-коды, уже превращённые в entitlement grants.",
+        "total": "Gift-коды",
+        "totalHint": "Канонические записи gift-кодов, вернувшиеся из admin inventory."
+      },
+      "syncing": "Синхронизация",
+      "table": {
+        "code": "Код",
+        "created": "Создан",
+        "owner": "Owner",
+        "plan": "План",
+        "recipient": "Получатель",
+        "redeemed": "Redeemed",
+        "status": "Статус"
+      },
+      "title": "Gift-Инвентарь"
+    },
     "inviteCodes": {
       "backendNote": "Admin-покрытие здесь реальное, но узкое: сейчас можно создавать batch, а inventory и redemption-аналитику добавим, когда появятся backend routes.",
       "createAction": "Сгенерировать batch",
@@ -1970,6 +2160,7 @@
       "subnavLabel": "Навигация роста"
     },
     "nav": {
+      "giftCodes": "Gift-коды",
       "inviteCodes": "Invite-коды",
       "overview": "Обзор",
       "partners": "Партнёры",
@@ -1977,23 +2168,78 @@
       "referrals": "Рефералы"
     },
     "overview": {
-      "description": "Операторская поверхность для промо-инвентаря, генерации invite-кодов, партнёрских операций и живой referral-аналитики.",
+      "breakdownDescription": "Компактный срез текущих code-status и lifecycle-позы.",
+      "breakdownTitle": "Разбивка По Статусам",
+      "deliveryFeedDescription": "Последние per-channel growth-доставки с действиями resend, pause, revoke и resolve.",
+      "deliveryFeedEmpty": "По текущему фильтру growth-доставки не найдены.",
+      "deliveryFeedTitle": "Лента Доставки",
+      "deliveryForensics": {
+        "empty": "Выберите delivery, чтобы открыть support timeline.",
+        "export": "Экспорт JSON",
+        "exporting": "Экспортируем...",
+        "queueAttempts": "{count} попыток очереди",
+        "queueEmpty": "У этого delivery сейчас нет связанного async queue item.",
+        "queueTitle": "Снимок Очереди",
+        "siblingEmpty": "Для этого уведомления не найдено sibling-delivery по другим каналам.",
+        "siblingTitle": "Соседние Каналы",
+        "sourceEmpty": "Для этого delivery нет source summary.",
+        "sourceTitle": "Сводка По Источнику",
+        "supportSummary": "Support Summary",
+        "timelineEmpty": "Для delivery пока не записано timeline-событий.",
+        "timelineTitle": "Timeline Доставки",
+        "title": "Delivery Forensics"
+      },
+      "deliveryOps": {
+        "actions": {
+          "inspect": "Inspect",
+          "pause": "Pause",
+          "resend": "Resend",
+          "resolve": "Resolve",
+          "revoke": "Revoke"
+        },
+        "channels": {
+          "email": "Email",
+          "inApp": "In-app",
+          "telegram": "Telegram"
+        },
+        "fields": {
+          "filterUserId": "Фильтр по UUID клиента",
+          "message": "Сообщение",
+          "notes": "Операторские Заметки",
+          "routeSlug": "Route Slug",
+          "title": "Заголовок",
+          "userId": "Customer User ID"
+        },
+        "manualFailed": "Не удалось отправить manual notification. Проверьте payload и ответ backend.",
+        "manualHint": "Ручные notice'ы уважают customer growth delivery preferences и ложатся в канонический delivery-ledger.",
+        "notesPlaceholder": "Одна заметка на строку",
+        "queueStatus": "Очередь",
+        "send": "Отправить notice",
+        "sending": "Отправляем..."
+      },
+      "deliveryOpsDescription": "Отправляйте клиентам операторские уведомления и управляйте live-состоянием growth-delivery из той же консоли.",
+      "deliveryOpsLive": "Live delivery control",
+      "deliveryOpsTitle": "Операции Доставки",
+      "description": "Операторская поверхность для lifecycle growth-кодов, abuse-сигналов, referral reward-позы и связанных promo/gift операций.",
       "eyebrow": "Привлечение / Удержание",
-      "liveInventoryDescription": "Текущее состояние промо, полученное из admin promo endpoint.",
-      "liveInventoryTitle": "Живой Промо-Инвентарь",
+      "liveSignalsDescription": "Последние outbox-backed growth lifecycle events от выдачи кода до reward или redemption.",
+      "liveSignalsEmpty": "Пока нет недавних lifecycle-событий.",
+      "liveSignalsTitle": "Живой Lifecycle-Поток",
       "metaTitle": "Рост - Ozoxy Admin",
       "metrics": {
-        "activePromos": "Активные Кампании",
-        "activePromosHint": "Коды, которые сейчас можно погасить.",
-        "expiring": "Скоро Истекут",
-        "expiringHint": "Промокоды, истекающие в ближайшие 7 дней.",
-        "plans": "Каталог Планов",
-        "plansHint": "Планы, которые можно таргетировать через invite или promo.",
-        "promos": "Промо-инвентарь",
-        "promosHint": "Уже есть admin-read список промокодов."
+        "availableCredit": "Доступный Кредит",
+        "availableCreditHint": "Referral credit, который уже доступен в невыводимом growth-ledger.",
+        "blockedSignals": "Заблокированные Сигналы",
+        "blockedSignalsHint": "Rewards или abuse-элементы, уже помеченные как требующие risk-внимания.",
+        "redemptions": "Redemption'ы",
+        "redemptionsHint": "Финальные использования кода, уже превратившиеся в скидку, entitlement или reward.",
+        "totalCodes": "Всего Кодов",
+        "totalCodesHint": "Канонические записи growth-кодов по invite, referral, promo и gift lifecycle."
       },
       "noPlans": "Для таргетинга нет доступных планов.",
       "operatorNotes": {
+        "giftsDescription": "Админка уже умеет выдавать одиночные и batch gift-коды и видеть активный или redeemed inventory, не выходя из growth console.",
+        "giftsTitle": "Gift-инвентарь уже живой",
         "invitesDescription": "Backend уже умеет admin invite generation, но пока не даёт admin list/detail inventory. Поэтому модуль делает упор на детерминированную генерацию batch и локальный readback результата.",
         "invitesTitle": "Invite-коды пока только на создание",
         "partnersDescription": "Админка уже умеет повышать, искать и смотреть partner-level performance, а payout-модерация остаётся следующим слоем.",
@@ -2007,10 +2253,136 @@
       "planTargetingTitle": "Контекст Таргетинга По Планам",
       "quickSignals": {
         "coverage": "Покрытие",
-        "coverageValue": "5 live-surface",
+        "coverageValue": "6 live-surface",
         "exhausted": "Исчерпанные Промо"
       },
+      "reporting": {
+        "cards": {
+          "accepted": "Принято",
+          "availableCredit": "Доступный Кредит",
+          "redeemed": "Погашено",
+          "reserved": "Зарезервировано"
+        },
+        "coverageTitle": "Примечания По Покрытию",
+        "deliveries": {
+          "actions": {
+            "export": "Экспорт артефакта"
+          },
+          "description": "Последние публикации регулярной отчётности со статусом доставки, freshness-позой и экспортируемыми артефактами.",
+          "empty": "По регулярной отчётности пока не записано delivery-событий.",
+          "failed": "{count} failed deliveries",
+          "title": "Последние Reporting Delivery"
+        },
+        "description": "Persisted daily growth rollups поверх канонических lifecycle-таблиц кодов. Это reporting truth, а не live debug-поверхность resolver'а.",
+        "distribution": {
+          "actions": {
+            "cancelEdit": "Отменить редактирование",
+            "pause": "Пауза",
+            "resume": "Возобновить",
+            "update": "Обновить"
+          },
+          "allowedDomainsValue": "Разрешённые домены: {value}",
+          "create": "Создать подписку",
+          "createFailed": "Не удалось создать подписку. Проверьте cadence, audience и backend validation.",
+          "createHint": "Подписки забирают только свежие reporting-снимки и публикуют их через worker delivery pipeline.",
+          "creating": "Создаём...",
+          "description": "Управляемые reporting-подписки для получателей из finance, product, risk и ops.",
+          "empty": "Регулярные reporting-подписки пока не настроены.",
+          "fields": {
+            "allowedDomains": "Разрешённые Домены",
+            "audience": "Аудитория",
+            "cadence": "Каденс",
+            "domainPolicy": "Политика Доменов",
+            "email": "Email Получателя",
+            "locale": "Локаль",
+            "name": "Имя Получателя",
+            "namePlaceholder": "Необязательное отображаемое имя",
+            "subjectPrefix": "Префикс Темы",
+            "suppressedUntil": "Подавлять До",
+            "suppressionReason": "Причина Подавления",
+            "template": "Шаблон",
+            "titleOverride": "Заголовок Письма",
+            "titleOverridePlaceholder": "Необязательный кастомный заголовок",
+            "windowDays": "Окно в Днях"
+          },
+          "metrics": {
+            "active": "{count} активных подписок"
+          },
+          "nextDelivery": "Следующая {value}",
+          "suppressedUntil": "Подавлено до {value}",
+          "title": "Регулярная Дистрибуция"
+        },
+        "empty": "Для этого окна пока нет reporting-rollups. Сначала обновите reporting layer.",
+        "executive": {
+          "acceptanceRate": "Acceptance Rate",
+          "dominantFamily": "Доминирующее Семейство",
+          "issued": "Выдано",
+          "redemptions": "Погашено",
+          "title": "Executive Highlights"
+        },
+        "export": "Экспорт rollups",
+        "exporting": "Экспортируем...",
+        "governance": {
+          "actions": {
+            "dismiss": "Скрыть",
+            "resolve": "Закрыть"
+          },
+          "auditLink": "Открыть audit log",
+          "auditTitle": "Последний Audit Политик",
+          "decisionsTitle": "Последние Governance Решения",
+          "description": "Audit timeline и решения delivery-governance по тихим пробелам в покрытии reporting.",
+          "emptyAudit": "Пока не записано недавних governance audit entries.",
+          "emptyDecisions": "Пока не записано недавних suppressed или domain-blocked решений по reporting.",
+          "export": "Экспорт governance snapshot",
+          "exporting": "Экспортируем snapshot...",
+          "followupDue": "Срок {value}",
+          "followupEmpty": "Сейчас нет открытой governance follow-up работы.",
+          "followupLastNotified": "Последний reminder {value}",
+          "followupTitle": "Очередь Recovery Follow-up",
+          "metrics": {
+            "active": "Активные подписки",
+            "followups": "Открытые follow-up",
+            "gaps": "{count} активных gap",
+            "overdue": "Просроченные follow-up",
+            "paused": "Подписки на паузе"
+          },
+          "noFieldDiff": "Только смена snapshot",
+          "title": "Governance Покрытие"
+        },
+        "health": {
+          "description": "Freshness, лаг и состояние последнего запуска scheduled reporting pipeline.",
+          "expectedInterval": "Ожидаемый Интервал",
+          "lastRun": "Последний Запуск",
+          "latestAttempt": "Последняя Попытка",
+          "latestSuccess": "Последний Успех",
+          "refreshAge": "Возраст {value}",
+          "statuses": {
+            "failed": "Ошибка",
+            "fresh": "Свежо",
+            "never_refreshed": "Ни разу не обновлялось",
+            "stale": "Устарело"
+          },
+          "title": "Состояние Refresh",
+          "unavailable": "Недоступно"
+        },
+        "notRefreshed": "Rollups ещё не обновлялись",
+        "refresh": "Обновить rollups",
+        "refreshedAt": "Обновлено {value}",
+        "refreshing": "Обновляем...",
+        "rows": "{count} дневных строк",
+        "table": {
+          "date": "Дата",
+          "giftRedeemed": "Погашено Gift",
+          "inviteIssued": "Выдано Invite",
+          "promoAccepted": "Принято Promo",
+          "referralAvailable": "Доступно Referral"
+        },
+        "title": "Reporting Rollups",
+        "trendTitle": "Daily Trend Cut",
+        "window": "Окно {days} дней"
+      },
       "routes": {
+        "giftCodes": "Выдача одиночных или batch gift-кодов, просмотр live-инвентаря и контроль redemption-состояния.",
         "inviteCodes": "Генерация batch invite-кодов для конкретного пользователя с optional plan-targeting.",
         "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
         "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
@@ -2019,6 +2391,8 @@
       "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
       "routesTitle": "Инвентарь Маршрутов",
       "title": "Контроль Роста",
+      "topRejectionsEmpty": "Давление по отклонениям пока не видно.",
+      "topRejectionsTitle": "Топ Причин Отклонения",
       "usesLabel": "{current} / {max} использований"
     },
     "partners": {
@@ -2203,33 +2577,32 @@
       "writeOnlyHint": "Write-only поля"
     },
     "referrals": {
+      "abuseQueueDescription": "Повторяющиеся rejection-кластеры и blocked rewards, которые нужно triage’ить до того, как они станут support или fraud-инцидентом.",
+      "abuseQueueEmpty": "Открытых growth abuse-сигналов сейчас нет.",
+      "abuseQueueTitle": "Сигналы Для Abuse-Review",
       "badges": {
-        "commissions": "{count} комиссий",
-        "referredUsers": "{count} приведено"
+        "count": "{count} сигналов",
+        "users": "{count} пользователей"
       },
-      "currentStateDescription": "Живой leaderboard, построенный на admin-safe referral analytics endpoints.",
-      "currentStateTitle": "Топ Referrer'ы",
-      "description": "Admin-safe обзор referral earnings, топ-referrer'ов и недавней commission-активности.",
+      "breakdownDescription": "Текущая referral reward-поза после hold, risk-block и availability transition.",
+      "breakdownTitle": "Разбивка По Статусам Reward",
+      "description": "Операционный срез abuse-pressure, blocked rewards и referral lifecycle events после cutover growth-codes.",
       "eyebrow": "Рост / Рефералы",
+      "lifecycleEmpty": "Referral lifecycle events пока не эмитились.",
+      "lifecycleTitle": "Referral Lifecycle",
       "liveOverview": "Живой обзор",
       "metaTitle": "Рефералы - Ozoxy Admin",
       "metrics": {
-        "adminSurface": "Комиссии",
-        "adminSurfaceHint": "общее число commission-record, видимых админу",
-        "totalEarned": "Всего Заработано",
-        "totalEarnedHint": "совокупный payout-объём по referral",
-        "uniqueReferred": "Приведённые Пользователи",
-        "uniqueReferredHint": "уникальные пользователи, привлечённые через referral-механику",
-        "uniqueReferrers": "Referrer'ы",
-        "uniqueReferrersHint": "пользователи, заработавшие хотя бы одну referral-комиссию"
+        "activeReservations": "Активные Reservation",
+        "activeReservationsHint": "Quote reservation, которые всё ещё удерживают claim на growth-code.",
+        "availableCredit": "Доступный Кредит",
+        "availableCreditHint": "Сумма referral reward, уже доступная в каноническом невыводимом балансе.",
+        "blockedRewards": "Заблокированные Reward",
+        "blockedRewardsHint": "Reward allocations, которые сейчас удерживаются risk-решениями.",
+        "totalRedemptions": "Всего Redemption'ов",
+        "totalRedemptionsHint": "Объём redemption, уже привязанный к lifecycle growth-кодов."
       },
-      "nextFocusDescription": "Основной gap здесь уже не в базовой видимости. Следующий слой — abuse-review, payout-операции и более глубокая attribution-диагностика.",
-      "nextFocusTitle": "Следующий Фокус",
-      "openCustomer": "Открыть карточку клиента",
-      "recentEmpty": "Недавние referral-комиссии не найдены.",
-      "recentTitle": "Последние Комиссии",
-      "title": "Referral-Аналитика",
-      "topReferrersEmpty": "Referral-активность пока отсутствует."
+      "title": "Referral-Сигналы"
     }
   },
   "Header": {
@@ -3586,8 +3959,8 @@
         "policyVisibility": "Базовая видимость уже существующих governance-поверхностей.",
         "webhookLog": "Видимость обработки вебхуков и контекста ошибок."
       },
-      "backendCoverage": "Частичное покрытие. Видимость аудита сильная, но system configuration и богатые staff-management API пока отсутствуют.",
-      "currentState": "Audit logs, webhook logs и admin invites уже доступны. Не хватает staff directory management и system configuration governance.",
+      "backendCoverage": "Частичное покрытие. Видимость аудита сильная, а `miniapp.runtime` уже под операторским контролем, но более широкие system configuration семейства и богатые staff-management API пока отсутствуют.",
+      "currentState": "Audit logs, webhook logs и admin invites уже доступны. Первый выделенный system configuration governance API уже работает для `miniapp.runtime`; основной remaining gap теперь в более широком staff directory management и покрытии остальных `system_config` семейств.",
       "description": "Операционная поверхность для привилегированных действий, вебхуков, onboarding сотрудников и будущего policy control.",
       "metaTitle": "Контроль - Ozoxy Admin",
       "nextFocus": "Сначала выпустить workspace вокруг аудита, инвайтов и webhook-forensics, потом добавить admin directory и policy controls.",

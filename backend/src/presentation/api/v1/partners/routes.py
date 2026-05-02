@@ -3,6 +3,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from time import perf_counter
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
 from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.gifts.service import IssueGiftCodeUseCase
 from src.application.use_cases.governance import (
     CreateCreativeApprovalUseCase,
     CreatePartnerWorkspaceWorkflowEventUseCase,
@@ -26,10 +28,10 @@ from src.application.use_cases.partners.bind_partner import BindPartnerUseCase
 from src.application.use_cases.partners.create_partner_code import CreatePartnerCodeUseCase
 from src.application.use_cases.partners.create_partner_workspace import CreatePartnerWorkspaceUseCase
 from src.application.use_cases.partners.get_partner_workspace import GetPartnerWorkspaceUseCase
-from src.application.use_cases.partners.partner_dashboard import PartnerDashboardUseCase
 from src.application.use_cases.partners.partner_applications import (
     PartnerApplicationWorkflowUseCase,
 )
+from src.application.use_cases.partners.partner_dashboard import PartnerDashboardUseCase
 from src.application.use_cases.reporting import (
     BuildPartnerWorkspaceIntegrationDeliveryLogsUseCase,
     BuildPartnerWorkspacePostbackReadinessUseCase,
@@ -76,13 +78,14 @@ from src.infrastructure.database.models.order_attribution_result_model import (
 )
 from src.infrastructure.database.models.order_model import OrderModel
 from src.infrastructure.database.models.partner_model import PartnerCodeModel
-from src.infrastructure.database.models.payment_dispute_model import PaymentDisputeModel
 from src.infrastructure.database.models.partner_workspace_legal_acceptance_model import (
     PartnerWorkspaceLegalAcceptanceModel,
 )
+from src.infrastructure.database.models.payment_dispute_model import PaymentDisputeModel
 from src.infrastructure.database.models.refund_model import RefundModel
 from src.infrastructure.database.models.renewal_order_model import RenewalOrderModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.partner_account_repository import (
     PartnerAccountRepository,
 )
@@ -97,7 +100,19 @@ from src.infrastructure.database.repositories.partner_workspace_profile_reposito
     PartnerWorkspaceProfileRepository,
 )
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_PORTAL_SURFACE,
+    bind_partner_context_from_realm,
+    bind_partner_runtime_context,
+    log_partner_runtime_event,
+    observe_partner_bootstrap,
+    observe_partner_notification_state_change,
+)
 from src.infrastructure.monitoring.instrumentation.routes import track_partner_operation
+from src.presentation.api.v1.auth.realm_context import (
+    get_principal_type_for_realm,
+    get_scope_family_for_realm,
+)
 from src.presentation.api.v1.creative_approvals.schemas import CreativeApprovalResponse
 from src.presentation.api.v1.orders.explainability.routes import (
     _serialize_evaluation as _serialize_order_explainability_evaluation,
@@ -108,10 +123,6 @@ from src.presentation.api.v1.orders.explainability.routes import (
 from src.presentation.api.v1.orders.explainability.schemas import OrderExplainabilityResponse
 from src.presentation.api.v1.partner_statements.schemas import PartnerStatementResponse
 from src.presentation.api.v1.traffic_declarations.schemas import TrafficDeclarationResponse
-from src.presentation.api.v1.auth.realm_context import (
-    get_principal_type_for_realm,
-    get_scope_family_for_realm,
-)
 from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import get_request_admin_realm
 from src.presentation.dependencies.database import get_db
@@ -126,12 +137,11 @@ from .schemas import (
     AddPartnerWorkspaceMemberRequest,
     BindPartnerRequest,
     CreatePartnerApplicationAttachmentRequest,
-    CreatePartnerLaneApplicationRequest,
     CreatePartnerCodeRequest,
+    CreatePartnerLaneApplicationRequest,
     CreatePartnerWorkspacePayoutAccountRequest,
     CreatePartnerWorkspaceRequest,
     MarkPartnerWorkspaceCaseReadyForOpsRequest,
-    PartnerWorkspaceLegalDocumentResponse,
     PartnerApplicationAdminDetailResponse,
     PartnerApplicationAdminSummaryResponse,
     PartnerApplicationApplicantSummaryResponse,
@@ -145,12 +155,12 @@ from .schemas import (
     PartnerCodeResponse,
     PartnerDashboardResponse,
     PartnerEarningResponse,
+    PartnerLaneApplicationResponse,
     PartnerNotificationCountersResponse,
     PartnerNotificationFeedItemResponse,
     PartnerNotificationPreferencesResponse,
     PartnerNotificationPreferencesUpdateRequest,
     PartnerNotificationReadStateResponse,
-    PartnerLaneApplicationResponse,
     PartnerSessionBootstrapBlockedReasonResponse,
     PartnerSessionBootstrapCounterResponse,
     PartnerSessionBootstrapPendingTaskResponse,
@@ -163,6 +173,7 @@ from .schemas import (
     PartnerWorkspaceConversionRecordResponse,
     PartnerWorkspaceIntegrationCredentialResponse,
     PartnerWorkspaceIntegrationDeliveryLogResponse,
+    PartnerWorkspaceLegalDocumentResponse,
     PartnerWorkspaceMemberResponse,
     PartnerWorkspaceOrganizationProfileResponse,
     PartnerWorkspacePayoutAccountEligibilityResponse,
@@ -173,27 +184,30 @@ from .schemas import (
     PartnerWorkspaceProgramReadinessItemResponse,
     PartnerWorkspaceProgramsResponse,
     PartnerWorkspaceReportExportResponse,
-    PartnerWorkspaceRoleResponse,
+    PartnerWorkspaceResellerVoucherBatchResponse,
     PartnerWorkspaceResponse,
     PartnerWorkspaceReviewRequestResponse,
+    PartnerWorkspaceRoleResponse,
     PartnerWorkspaceSettingsResponse,
     PartnerWorkspaceThreadEventResponse,
     PartnerWorkspaceTrafficDeclarationResponse,
     PromotePartnerRequest,
     PromotePartnerResponse,
+    RequestPartnerApplicationInfoRequest,
+    RequestPartnerWorkspaceResellerVoucherBatchRequest,
+    RequestPartnerWorkspaceResellerVoucherBatchResponse,
     RotatePartnerWorkspaceIntegrationCredentialRequest,
     RotatePartnerWorkspaceIntegrationCredentialResponse,
     SchedulePartnerWorkspaceReportExportRequest,
-    RequestPartnerApplicationInfoRequest,
     SubmitPartnerWorkspaceCaseResponseRequest,
     SubmitPartnerWorkspaceCreativeApprovalRequest,
     SubmitPartnerWorkspaceReviewRequestResponseRequest,
     SubmitPartnerWorkspaceTrafficDeclarationRequest,
+    UpdateMarkupRequest,
+    UpdatePartnerLaneApplicationRequest,
     UpdatePartnerWorkspaceMemberRequest,
     UpdatePartnerWorkspaceOrganizationProfileRequest,
     UpdatePartnerWorkspaceSettingsRequest,
-    UpdatePartnerLaneApplicationRequest,
-    UpdateMarkupRequest,
     UpsertPartnerApplicationDraftRequest,
 )
 
@@ -539,7 +553,11 @@ async def _build_partner_notification_feed(
 
         cases = await _load_workspace_cases(access=access, db=db)
         for item in cases:
-            if item.status == "resolved" or item.kind == "requested_info" or not _pref_enabled(current_user, "partner_case_messages"):
+            if (
+                item.status == "resolved"
+                or item.kind == "requested_info"
+                or not _pref_enabled(current_user, "partner_case_messages")
+            ):
                 continue
             latest_event = _latest_partner_thread_event(item.thread_events)
             _append_partner_notification(
@@ -598,7 +616,9 @@ async def _build_partner_notification_feed(
                 kind="legal_acceptance_required",
                 tone="warning",
                 route_slug="/legal",
-                message=f"{document.title} ({document.version}) requires acceptance before governed rollout can continue.",
+                message=(
+                    f"{document.title} ({document.version}) requires acceptance before governed rollout can continue."
+                ),
                 notes=list(document.notes or []),
                 action_required=True,
                 created_at=access.workspace.updated_at,
@@ -720,7 +740,10 @@ async def _build_partner_notification_feed(
             offset=0,
         )
         for statement in statements:
-            if statement.statement_status != PartnerStatementStatus.CLOSED.value or not _pref_enabled(current_user, "partner_payout_status_emails"):
+            if (
+                statement.statement_status != PartnerStatementStatus.CLOSED.value
+                or not _pref_enabled(current_user, "partner_payout_status_emails")
+            ):
                 continue
             _append_partner_notification(
                 items=items,
@@ -1607,7 +1630,10 @@ def _build_partner_workspace_payout_history(
             notes.append("Instruction is waiting for finance maker-checker approval.")
         elif instruction.instruction_status == PayoutInstructionStatus.APPROVED.value:
             notes.append("Instruction is approved and waiting for execution.")
-        elif instruction.instruction_status == PayoutInstructionStatus.REJECTED.value and instruction.rejection_reason_code:
+        elif (
+            instruction.instruction_status == PayoutInstructionStatus.REJECTED.value
+            and instruction.rejection_reason_code
+        ):
             notes.append(f"Instruction was rejected: {instruction.rejection_reason_code}.")
         elif instruction.instruction_status == PayoutInstructionStatus.COMPLETED.value:
             notes.append("Instruction was completed without an exposed execution row.")
@@ -2347,6 +2373,36 @@ def _derive_workspace_campaign_channel(*, scope_label: str, approval_payload: di
     return "content"
 
 
+def _payload_string_list(payload: dict, *keys: str) -> list[str]:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, list):
+            return [
+                str(item).strip()
+                for item in value
+                if str(item).strip()
+            ]
+    return []
+
+
+def _payload_string(payload: dict, *keys: str) -> str | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _payload_datetime(payload: dict, *keys: str) -> datetime | None:
+    value = _payload_string(payload, *keys)
+    if value is None:
+        return None
+    try:
+        return _normalize_utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
+    except ValueError:
+        return None
+
+
 def _map_workspace_campaign_status(approval_status: str) -> str:
     if approval_status == CreativeApprovalStatus.COMPLETE.value:
         return "approved"
@@ -2389,11 +2445,156 @@ def _build_workspace_campaign_assets(
                 status=_map_workspace_campaign_status(approval.approval_status),
                 approval_owner=str(approval_payload.get("approval_owner") or "Partner Ops"),
                 updated_at=_normalize_utc(approval.updated_at),
+                promo_reference=_payload_string(
+                    approval_payload,
+                    "promo_reference",
+                    "promo_code",
+                    "campaign_key",
+                ),
+                disclosure_text=_payload_string(
+                    approval_payload,
+                    "disclosure_text",
+                    "disclosure_copy",
+                    "required_disclosure",
+                ),
+                allowed_claims=_payload_string_list(
+                    approval_payload,
+                    "allowed_claims",
+                    "approved_claims",
+                ),
+                banned_claims=_payload_string_list(
+                    approval_payload,
+                    "banned_claims",
+                    "prohibited_claims",
+                ),
+                allowed_geographies=_payload_string_list(
+                    approval_payload,
+                    "allowed_geographies",
+                    "allowed_geos",
+                ),
+                destination_urls=_payload_string_list(
+                    approval_payload,
+                    "destination_urls",
+                    "landing_page_urls",
+                ),
+                valid_from=_payload_datetime(
+                    approval_payload,
+                    "valid_from",
+                    "starts_at",
+                ),
+                valid_until=_payload_datetime(
+                    approval_payload,
+                    "valid_until",
+                    "expires_at",
+                ),
                 notes=notes,
             )
         )
 
     return items
+
+
+def _workspace_has_reseller_voucher_capability(programs: PartnerWorkspaceProgramsResponse) -> bool:
+    lane = next(
+        (item for item in programs.lane_memberships if item.lane_key == "reseller_api"),
+        None,
+    )
+    if lane is None:
+        return False
+    return lane.membership_status != "not_applied"
+
+
+async def _ensure_workspace_reseller_voucher_capability(
+    *,
+    access: PartnerWorkspaceAccess,
+    db: AsyncSession,
+) -> None:
+    programs = await BuildPartnerWorkspaceProgramsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        workspace_status=access.workspace.status,
+        workspace_label=access.workspace.display_name,
+    )
+    programs_response = PartnerWorkspaceProgramsResponse(
+        canonical_source=programs.canonical_source,
+        primary_lane_key=programs.primary_lane_key,
+        lane_memberships=[_serialize_workspace_program_lane(item) for item in programs.lane_memberships],
+        readiness_items=[_serialize_workspace_program_readiness_item(item) for item in programs.readiness_items],
+        updated_at=_normalize_utc(programs.updated_at),
+    )
+    if not _workspace_has_reseller_voucher_capability(programs_response):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reseller voucher batches are not enabled for this workspace",
+        )
+
+
+def _derive_reseller_voucher_batch_status(*, codes: list, redemption_counts: dict[UUID, int]) -> str:
+    now = datetime.now(UTC)
+    if codes and all((code.revoked_at is not None or code.status == "revoked") for code in codes):
+        return "revoked"
+    if codes and all(code.expires_at is not None and _normalize_utc(code.expires_at) <= now for code in codes):
+        return "expired"
+
+    issued_count = len(codes)
+    redeemed_count = sum(1 for code in codes if redemption_counts.get(code.id, 0) > 0)
+    if issued_count > 0 and redeemed_count >= issued_count:
+        return "redeemed_out"
+    if redeemed_count > 0:
+        return "partially_redeemed"
+    return "active"
+
+
+def _build_reseller_voucher_batch_summary(
+    *,
+    batch_id: UUID,
+    codes: list,
+    policies_by_code_id: dict[UUID, object],
+    redemption_counts: dict[UUID, int],
+) -> PartnerWorkspaceResellerVoucherBatchResponse:
+    first_code = codes[0]
+    first_policy = policies_by_code_id.get(first_code.id)
+    redeemed_count = sum(1 for code in codes if redemption_counts.get(code.id, 0) > 0)
+    available_count = sum(
+        1
+        for code in codes
+        if redemption_counts.get(code.id, 0) == 0
+        and code.revoked_at is None
+        and code.status != "revoked"
+        and (code.expires_at is None or _normalize_utc(code.expires_at) > datetime.now(UTC))
+    )
+    policy_snapshot = dict(getattr(first_policy, "policy_snapshot", {}) or {})
+    notes: list[str] = []
+    plan_display_name = policy_snapshot.get("plan_display_name")
+    if isinstance(plan_display_name, str) and plan_display_name.strip():
+        notes.append(f"Plan: {plan_display_name.strip()}")
+    recipient_hint = policy_snapshot.get("recipient_hint")
+    if isinstance(recipient_hint, str) and recipient_hint.strip():
+        notes.append(f"Recipient hint: {recipient_hint.strip()}")
+
+    created_at = min(_normalize_utc(code.created_at) for code in codes)
+    updated_at = max(_normalize_utc(code.updated_at) for code in codes)
+    expires_at = max(
+        (_normalize_utc(code.expires_at) for code in codes if code.expires_at is not None),
+        default=None,
+    )
+
+    return PartnerWorkspaceResellerVoucherBatchResponse(
+        batch_id=batch_id,
+        gift_type=str(getattr(first_policy, "grant_type", "subscription_entitlement")),
+        plan_family=str(getattr(first_policy, "plan_family", "unknown")),
+        duration_days=int(getattr(first_policy, "duration_days", 0)),
+        status=_derive_reseller_voucher_batch_status(
+            codes=codes,
+            redemption_counts=redemption_counts,
+        ),
+        issued_count=len(codes),
+        redeemed_count=redeemed_count,
+        available_count=available_count,
+        expires_at=expires_at,
+        created_at=created_at,
+        updated_at=updated_at,
+        notes=notes,
+    )
 
 
 def _normalize_utc(value: datetime) -> datetime:
@@ -3173,7 +3374,10 @@ async def approve_admin_partner_lane_application(
     db: AsyncSession = Depends(get_db),
 ) -> PartnerLaneApplicationResponse:
     if target_status not in {"approved_probation", "approved_active"}:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Unsupported lane approval target status")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Unsupported lane approval target status",
+        )
     try:
         item = await PartnerApplicationWorkflowUseCase(db).approve_lane(
             lane_application_id=lane_application_id,
@@ -3239,7 +3443,34 @@ async def get_partner_session_bootstrap(
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerSessionBootstrapResponse:
+    started_at = perf_counter()
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="bootstrap",
+        principal_class=get_principal_type_for_realm(current_realm),
+    )
     if current_realm.realm_type != "partner":
+        bind_partner_runtime_context(
+            surface=PARTNER_PORTAL_SURFACE,
+            realm_type=current_realm.realm_type,
+            principal_class=get_principal_type_for_realm(current_realm),
+            route_group="bootstrap",
+            workspace_status="none",
+            result="failure",
+            error_code="partner_realm_required",
+        )
+        observe_partner_bootstrap(
+            duration_seconds=max(perf_counter() - started_at, 0.0),
+            workspace_status="none",
+            result="failure",
+            reason="partner_realm_required",
+        )
+        log_partner_runtime_event(
+            "partner_session.bootstrap_failed",
+            level="warning",
+            reason="partner_realm_required",
+            realm_type=current_realm.realm_type,
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Partner realm session is required for partner bootstrap",
@@ -3372,6 +3603,30 @@ async def get_partner_session_bootstrap(
         )
 
     track_partner_operation(operation="get_session_bootstrap")
+    active_workspace_status = active_workspace.status if active_workspace is not None else "none"
+    primary_blocked_reason = blocked_reasons[0].reason_code if blocked_reasons else None
+    bind_partner_context_from_realm(
+        current_realm=current_realm,
+        route_group="bootstrap",
+        principal_class=get_principal_type_for_realm(current_realm),
+        workspace_status=active_workspace_status,
+        blocked_reason=primary_blocked_reason,
+        result="success",
+    )
+    observe_partner_bootstrap(
+        duration_seconds=max(perf_counter() - started_at, 0.0),
+        workspace_status=active_workspace_status,
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_session.bootstrap_loaded",
+        workspace_id=str(active_workspace.id) if active_workspace is not None else None,
+        workspace_status=active_workspace_status,
+        release_ring=release_ring,
+        pending_task_count=len(pending_tasks),
+        blocked_reason_codes=[item.reason_code for item in blocked_reasons],
+        unread_notifications=notification_counters.unread_notifications,
+    )
     return PartnerSessionBootstrapResponse(
         principal=_build_partner_session_principal_response(
             user=current_user,
@@ -3485,6 +3740,22 @@ async def mark_partner_notification_read(
     )
     await db.commit()
     track_partner_operation(operation="mark_partner_notification_read")
+    observe_partner_notification_state_change(
+        surface=PARTNER_PORTAL_SURFACE,
+        notification_type=target.kind,
+        action="read",
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_notification.marked_read",
+        surface=PARTNER_PORTAL_SURFACE,
+        route_group="notifications",
+        notification_type=target.kind,
+        workspace_status=access.workspace.status,
+        source_kind=target.source_kind,
+        source_event_kind=target.source_event_kind,
+        result="success",
+    )
     return PartnerNotificationReadStateResponse(
         notification_id=notification_id,
         unread=False,
@@ -3530,6 +3801,22 @@ async def archive_partner_notification(
     )
     await db.commit()
     track_partner_operation(operation="archive_partner_notification")
+    observe_partner_notification_state_change(
+        surface=PARTNER_PORTAL_SURFACE,
+        notification_type=target.kind,
+        action="archive",
+        result="success",
+    )
+    log_partner_runtime_event(
+        "partner_notification.archived",
+        surface=PARTNER_PORTAL_SURFACE,
+        route_group="notifications",
+        notification_type=target.kind,
+        workspace_status=access.workspace.status,
+        source_kind=target.source_kind,
+        source_event_kind=target.source_event_kind,
+        result="success",
+    )
     return PartnerNotificationReadStateResponse(
         notification_id=notification_id,
         unread=False,
@@ -4376,6 +4663,98 @@ async def list_partner_workspace_campaign_assets(
     )
     track_partner_operation(operation="list_workspace_campaign_assets")
     return _build_workspace_campaign_assets(creative_approvals=creative_approvals)
+
+
+@router.get(
+    "/partner-workspaces/{workspace_id}/reseller-voucher-batches",
+    response_model=list[PartnerWorkspaceResellerVoucherBatchResponse],
+)
+async def list_partner_workspace_reseller_voucher_batches(
+    workspace_id: UUID,
+    access: PartnerWorkspaceAccess = Depends(
+        require_partner_workspace_permission(PartnerPermission.CODES_READ)
+    ),
+    db: AsyncSession = Depends(get_db),
+) -> list[PartnerWorkspaceResellerVoucherBatchResponse]:
+    await _ensure_workspace_reseller_voucher_capability(access=access, db=db)
+    repo = GrowthCodeRepository(db)
+    codes = await repo.list_codes(
+        code_type="gift",
+        owner_partner_account_id=access.workspace.id,
+        limit=500,
+        offset=0,
+    )
+    batched_codes = [code for code in codes if code.batch_id is not None]
+    if not batched_codes:
+        track_partner_operation(operation="list_workspace_reseller_voucher_batches")
+        return []
+
+    code_ids = [code.id for code in batched_codes]
+    policies_by_code_id = await repo.list_gift_policies_for_codes(code_ids)
+    redemption_counts = await repo.count_redemptions_for_codes(code_ids)
+
+    grouped: dict[UUID, list] = {}
+    for code in batched_codes:
+        if code.batch_id is None:
+            continue
+        grouped.setdefault(code.batch_id, []).append(code)
+
+    items = [
+        _build_reseller_voucher_batch_summary(
+            batch_id=batch_id,
+            codes=sorted(group_codes, key=lambda item: _normalize_utc(item.created_at)),
+            policies_by_code_id=policies_by_code_id,
+            redemption_counts=redemption_counts,
+        )
+        for batch_id, group_codes in grouped.items()
+    ]
+    items.sort(key=lambda item: item.updated_at, reverse=True)
+    track_partner_operation(operation="list_workspace_reseller_voucher_batches")
+    return items
+
+
+@router.post(
+    "/partner-workspaces/{workspace_id}/reseller-voucher-batches/request",
+    response_model=RequestPartnerWorkspaceResellerVoucherBatchResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def request_partner_workspace_reseller_voucher_batch(
+    workspace_id: UUID,
+    body: RequestPartnerWorkspaceResellerVoucherBatchRequest,
+    access: PartnerWorkspaceAccess = Depends(
+        require_partner_workspace_permission(PartnerPermission.CODES_WRITE)
+    ),
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> RequestPartnerWorkspaceResellerVoucherBatchResponse:
+    await _ensure_workspace_reseller_voucher_capability(access=access, db=db)
+    result = await IssueGiftCodeUseCase(db).execute_batch(
+        owner_partner_account_id=access.workspace.id,
+        plan_id=body.plan_id,
+        count=body.count,
+        issuer_type="partner_workspace",
+        issuance_type="partner_reseller_batch",
+        recipient_hint=body.recipient_hint,
+        gift_message=body.gift_message,
+        issued_by_admin_id=current_user.id,
+        reason_code="reseller_voucher_batch_request",
+    )
+    redemption_counts = {item.growth_code.id: 0 for item in result.items}
+    policies_by_code_id = {
+        item.growth_code.id: item.policy
+        for item in result.items
+    }
+    batch = _build_reseller_voucher_batch_summary(
+        batch_id=result.batch_id,
+        codes=[item.growth_code for item in result.items],
+        policies_by_code_id=policies_by_code_id,
+        redemption_counts=redemption_counts,
+    )
+    track_partner_operation(operation="request_workspace_reseller_voucher_batch")
+    return RequestPartnerWorkspaceResellerVoucherBatchResponse(
+        batch=batch,
+        issued_codes=[item.raw_code for item in result.items],
+    )
 
 
 @router.get(

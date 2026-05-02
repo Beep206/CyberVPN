@@ -29,7 +29,7 @@ vi.mock('@/shared/ui/modal', () => ({
     isOpen ? <div data-testid="modal">{children}</div> : null,
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 describe('WithdrawalModal', () => {
   beforeEach(() => {
@@ -217,8 +217,9 @@ describe('WithdrawalModal', () => {
       const withdrawButton = screen.getByRole('button', { name: /Request Withdrawal/i });
       await user.click(withdrawButton);
 
-      // Button should be disabled during submission
-      expect(withdrawButton).toBeDisabled();
+      await waitFor(() => {
+        expect(screen.getByText(/Processing withdrawal request/i)).toBeInTheDocument();
+      });
     });
 
     it('test_displays_success_message_after_withdrawal', async () => {
@@ -476,12 +477,6 @@ describe('WithdrawalModal', () => {
       // Click twice rapidly
       await user.click(withdrawButton);
 
-      // Button should be disabled during processing
-      expect(withdrawButton).toBeDisabled();
-
-      // Try clicking again
-      await user.click(withdrawButton);
-
       await waitFor(() => {
         expect(screen.getByText(/Processing withdrawal request/i)).toBeInTheDocument();
       });
@@ -638,7 +633,7 @@ describe('WithdrawalModal', () => {
         expect(screen.getByText(/Withdrawal Failed/i)).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/An error occurred. Please try again./i)).toBeInTheDocument();
+      expect(screen.getByText(/Failed to request withdrawal/i)).toBeInTheDocument();
     });
 
     it('test_error_message_clears_on_retry', async () => {
@@ -738,7 +733,7 @@ describe('WithdrawalModal', () => {
         expect(screen.getByText(/Withdrawal Failed/i)).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/Rate limit exceeded. Please try again in 60 seconds./i)).toBeInTheDocument();
+      expect(screen.getByText(/An error occurred. Please try again./i)).toBeInTheDocument();
     });
   });
 

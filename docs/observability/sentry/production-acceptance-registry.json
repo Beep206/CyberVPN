@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-04-25",
+  "projects": [
+    {
+      "project": "web-frontend",
+      "surface": "frontend",
+      "owner_team": "web",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned",
+        "production_smoke_verified"
+      ],
+      "notes": "Web runtime baseline is complete, but production deploy-marker ownership and live self-hosted proof are still unresolved."
+    },
+    {
+      "project": "web-admin",
+      "surface": "admin",
+      "owner_team": "web",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned",
+        "production_smoke_verified"
+      ],
+      "notes": "Admin follows the same unresolved production deploy-marker model as the other web surfaces."
+    },
+    {
+      "project": "web-partner",
+      "surface": "partner",
+      "owner_team": "web",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned",
+        "production_smoke_verified"
+      ],
+      "notes": "Partner is baseline-complete in code, but production acceptance still depends on live deploy ownership and self-hosted Sentry verification."
+    },
+    {
+      "project": "backend-api",
+      "surface": "backend",
+      "owner_team": "core",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned",
+        "production_smoke_verified"
+      ],
+      "notes": "Backend still needs a real deploy-marker owner plus live self-hosted verification."
+    },
+    {
+      "project": "task-worker",
+      "surface": "services/task-worker",
+      "owner_team": "core",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned"
+      ],
+      "notes": "Worker runtime is implemented, but release/deploy ownership is not yet tied to a live deploy flow."
+    },
+    {
+      "project": "cybervpn-mobile",
+      "surface": "cybervpn_mobile",
+      "owner_team": "client-apps",
+      "acceptance_status": "pending_external_deployer",
+      "deploy_marker_strategy": "external_deployer",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "symbolication_proved_in_live_sentry",
+        "external_deployer_confirmed"
+      ],
+      "notes": "Build and debug-file evidence exists, but live App Store / Play promotion owns the real deploy event."
+    },
+    {
+      "project": "telegram-bot",
+      "surface": "services/telegram-bot",
+      "owner_team": "core",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned",
+        "production_smoke_verified"
+      ],
+      "notes": "Bot runtime and privacy hooks are in place; production acceptance still needs live project provisioning and deploy ownership."
+    },
+    {
+      "project": "desktop-renderer",
+      "surface": "apps/desktop-client",
+      "owner_team": "client-apps",
+      "acceptance_status": "pending_live_sentry",
+      "deploy_marker_strategy": "repo_workflow",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "symbolication_proved_in_live_sentry",
+        "deploy_marker_verified_in_live_sentry"
+      ],
+      "notes": "Repo-owned release workflow now records deploy markers; remaining blocker is live self-hosted verification."
+    },
+    {
+      "project": "desktop-native",
+      "surface": "apps/desktop-client",
+      "owner_team": "client-apps",
+      "acceptance_status": "pending_live_sentry",
+      "deploy_marker_strategy": "repo_workflow",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "symbolication_proved_in_live_sentry",
+        "deploy_marker_verified_in_live_sentry"
+      ],
+      "notes": "Native release-proof and deploy marker are wired; real self-hosted symbolication is still unproven."
+    },
+    {
+      "project": "android-tv",
+      "surface": "apps/android-tv",
+      "owner_team": "client-apps",
+      "acceptance_status": "pending_live_sentry",
+      "deploy_marker_strategy": "repo_workflow",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "symbolication_proved_in_live_sentry",
+        "deploy_marker_verified_in_live_sentry"
+      ],
+      "notes": "Gradle mapping upload and deploy marker path exist, but live self-hosted release proof is still pending."
+    },
+    {
+      "project": "node-fleet-controller",
+      "surface": "services/node-fleet-controller",
+      "owner_team": "platform",
+      "acceptance_status": "pending_deploy_strategy",
+      "deploy_marker_strategy": "not_yet_defined",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "deploy_marker_strategy_assigned",
+        "production_smoke_verified"
+      ],
+      "notes": "Controller runtime is baseline-complete, but production deploy ownership and live Sentry verification remain open."
+    },
+    {
+      "project": "helix-adapter",
+      "surface": "services/helix-adapter",
+      "owner_team": "platform",
+      "acceptance_status": "pending_external_deployer",
+      "deploy_marker_strategy": "external_deployer",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "symbolication_proved_in_live_sentry",
+        "external_deployer_confirmed"
+      ],
+      "notes": "Release proof artifacts exist, but the real deploy event belongs to an external service deployment path."
+    },
+    {
+      "project": "helix-node",
+      "surface": "services/helix-node",
+      "owner_team": "platform",
+      "acceptance_status": "pending_external_deployer",
+      "deploy_marker_strategy": "external_deployer",
+      "open_gates": [
+        "live_project_provisioned",
+        "privacy_rules_applied_in_sentry",
+        "alert_routing_applied_in_sentry",
+        "symbolication_proved_in_live_sentry",
+        "external_deployer_confirmed"
+      ],
+      "notes": "Release proof artifacts exist, but production acceptance depends on the real node deployment system and live self-hosted proof."
+    }
+  ]
+}

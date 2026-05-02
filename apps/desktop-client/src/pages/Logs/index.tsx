@@ -1,8 +1,14 @@
 import { motion } from "framer-motion";
 import { Bug } from "lucide-react";
-import { DiagnosticsSupportPanel } from "../../components/settings/diagnostics-support-panel";
+import { lazy, Suspense } from "react";
 import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
 import { useTranslation } from "react-i18next";
+
+const DiagnosticsSupportPanel = lazy(() =>
+  import("../../components/settings/diagnostics-support-panel").then((module) => ({
+    default: module.DiagnosticsSupportPanel,
+  })),
+);
 
 export function LogsPage() {
   const { t } = useTranslation();
@@ -30,7 +36,15 @@ export function LogsPage() {
         </div>
       </header>
 
-      <DiagnosticsSupportPanel />
+      <Suspense
+        fallback={
+          <div className="rounded-xl border border-border/50 bg-[color:var(--panel-surface)] p-6 text-sm text-muted-foreground">
+            Loading diagnostics workspace...
+          </div>
+        }
+      >
+        <DiagnosticsSupportPanel />
+      </Suspense>
     </motion.div>
   );
 }

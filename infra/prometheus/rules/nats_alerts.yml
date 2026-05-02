@@ -1,0 +1,33 @@
+groups:
+  - name: cybervpn_nats_alerts
+    interval: 30s
+    rules:
+      - alert: NatsExporterDown
+        expr: up{job="nats-exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: nats
+        annotations:
+          summary: "NATS exporter is down"
+          description: "Prometheus cannot scrape the NATS exporter target {{ $labels.instance }} for more than 5 minutes."
+
+      - alert: NatsRouteCountLow
+        expr: gnatsd_varz_routes < 2
+        for: 5m
+        labels:
+          severity: warning
+          service: nats
+        annotations:
+          summary: "NATS route count is below the expected 3-node baseline"
+          description: "The node {{ $labels.instance }} has fewer than two active routes for more than 5 minutes."
+
+      - alert: NatsSlowConsumersDetected
+        expr: gnatsd_varz_slow_consumers > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: nats
+        annotations:
+          summary: "NATS slow consumers detected"
+          description: "The NATS node {{ $labels.instance }} has reported slow consumers for more than 2 minutes."

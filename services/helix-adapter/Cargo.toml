@@ -13,6 +13,9 @@ ed25519-dalek = "2"
 http-body-util = "0.1"
 prometheus = "0.13"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+subtle = "2"
+sentry = { version = "0.47", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tracing"] }
+sentry-tower = { version = "0.47", features = ["http"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

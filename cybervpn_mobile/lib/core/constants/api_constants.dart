@@ -82,44 +82,49 @@ class ApiConstants {
 
   // ── Auth Endpoints ────────────────────────────────────────────────────
 
-  /// **POST /api/v1/auth/login**
+  /// **POST /api/v1/mobile/auth/login**
   ///
-  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/login`
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/login`
   /// Auth: None (public endpoint)
   /// Status: ✅ Aligned
   ///
-  /// Request: `{ "login_or_email": string, "password": string }`
-  /// Response: `{ "access_token": string, "refresh_token": string, "token_type": "Bearer", "expires_in": int }`
-  static const String login = '$apiPrefix/auth/login';
+  /// Request: `{ "email": string, "password": string, "device": {...} }`
+  /// Response: `{ "tokens": {...}, "user": {...} }`
+  static const String login = '$apiPrefix/mobile/auth/login';
 
-  /// **POST /api/v1/auth/register**
+  /// **POST /api/v1/mobile/auth/register**
   ///
-  /// Backend: ⚠️ Not implemented in backend auth routes
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/register`
   /// Auth: None (public endpoint)
-  /// Status: ⚠️ Partial - Mobile expects this, but backend may use different registration flow
+  /// Status: ✅ Aligned
   ///
-  /// Note: Backend endpoint pending verification in `backend/src/presentation/api/v1/auth/registration.py`
-  static const String register = '$apiPrefix/auth/register';
+  /// Request: `{ "email": string, "password": string, "device": {...} }`
+  /// Response: `{ "tokens": {...}, "user": {...} }`
+  static const String register = '$apiPrefix/mobile/auth/register';
 
-  /// **POST /api/v1/auth/refresh**
+  /// **POST /api/v1/mobile/auth/refresh**
   ///
-  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/refresh`
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/refresh`
   /// Auth: Refresh Token (in request body)
   /// Status: ✅ Aligned
   ///
-  /// Request: `{ "refresh_token": string }`
+  /// Request: `{ "refresh_token": string, "device_id": string }`
   /// Response: `{ "access_token": string, "refresh_token": string, "token_type": "Bearer", "expires_in": int }`
-  static const String refresh = '$apiPrefix/auth/refresh';
+  static const String refresh = '$apiPrefix/mobile/auth/refresh';
 
-  /// **POST /api/v1/auth/logout**
+  /// **POST /api/v1/mobile/auth/logout**
   ///
-  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/logout`
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/logout`
   /// Auth: Refresh Token (in request body)
   /// Status: ✅ Aligned
   ///
-  /// Request: `{ "refresh_token": string }`
+  /// Request: `{ "refresh_token": string, "device_id": string }`
   /// Response: 204 No Content
-  static const String logout = '$apiPrefix/auth/logout';
+  static const String logout = '$apiPrefix/mobile/auth/logout';
 
   /// **POST /api/v1/mobile/auth/biometric/enroll**
   ///
@@ -139,6 +144,26 @@ class ApiConstants {
   /// Request: `{ "device_token": string, "device_id": string }`
   /// Response: `{ "access_token": string, "refresh_token": string, "token_type": "Bearer", "expires_in": int }`
   static const String biometricLogin = '$apiPrefix/mobile/auth/biometric/login';
+
+  /// **POST /api/v1/mobile/auth/telegram/oidc**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/telegram/oidc`
+  /// Auth: None (public mobile login endpoint)
+  /// Status: ✅ Aligned
+  ///
+  /// Exchanges a Telegram native SDK `id_token` for CyberVPN mobile tokens.
+  static const String telegramOidcAuth = '$apiPrefix/mobile/auth/telegram/oidc';
+
+  /// **POST /api/v1/mobile/auth/2fa/complete**
+  ///
+  /// Completes a mobile login paused behind a pending TOTP challenge.
+  static const String mobile2faComplete = '$apiPrefix/mobile/auth/2fa/complete';
+
+  /// **POST /api/v1/mobile/auth/telegram/link**
+  ///
+  /// Authenticated Telegram OIDC account linking for the current mobile user.
+  static const String telegramOidcLink = '$apiPrefix/mobile/auth/telegram/link';
 
   /// **POST /api/v1/auth/forgot-password**
   ///
@@ -372,15 +397,32 @@ class ApiConstants {
 
   // ── User Endpoints ────────────────────────────────────────────────────
 
-  /// **GET /api/v1/auth/me**
+  /// **GET /api/v1/mobile/auth/me**
   ///
-  /// Backend: `backend/src/presentation/api/v1/auth/routes.py` - `/auth/me`
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/me`
   /// Auth: JWT (current authenticated user)
   /// Status: ✅ Aligned
   ///
-  /// Returns current authenticated admin user information.
-  /// Response: `{ "id": int, "login": string, "email": string, "role": string, ... }`
-  static const String me = '$apiPrefix/auth/me';
+  /// Returns current authenticated mobile user information.
+  /// Response: `{ "id": string, "email": string, "linked_providers": [...], ... }`
+  static const String me = '$apiPrefix/mobile/auth/me';
+
+  /// **GET /api/v1/mobile/auth/devices**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/devices`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  static const String mobileDevices = '$apiPrefix/mobile/auth/devices';
+
+  /// **POST /api/v1/mobile/auth/device**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/mobile_auth/routes.py`
+  /// - `/mobile/auth/device`
+  /// Auth: JWT (current authenticated user)
+  /// Status: ✅ Aligned
+  static const String mobileDeviceRegistration = '$apiPrefix/mobile/auth/device';
 
   /// **POST /api/v1/fcm/tokens**
   ///

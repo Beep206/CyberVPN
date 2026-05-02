@@ -19,6 +19,23 @@ function readSetCookieHeaders(response: Response): string[] {
   return headerValue ? [headerValue] : [];
 }
 
+function responseWithSetCookie(
+  body: unknown,
+  setCookie: string,
+): Response {
+  const response = new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+
+  Object.defineProperty(response.headers, 'getSetCookie', {
+    configurable: true,
+    value: () => [setCookie],
+  });
+
+  return response;
+}
+
 describe('OAuth web flow route integration', () => {
   const originalFetch = global.fetch;
 
@@ -45,8 +62,8 @@ describe('OAuth web flow route integration', () => {
         ),
       )
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
+        responseWithSetCookie(
+          {
             access_token: 'access_token_value',
             refresh_token: 'refresh_token_value',
             token_type: 'bearer',
@@ -62,14 +79,8 @@ describe('OAuth web flow route integration', () => {
             is_new_user: false,
             requires_2fa: false,
             tfa_token: null,
-          }),
-          {
-            status: 200,
-            headers: {
-              'content-type': 'application/json',
-              'set-cookie': 'access_token=abc; Path=/; HttpOnly',
-            },
           },
+          'access_token=abc; Path=/; HttpOnly',
         ),
       ) as typeof fetch;
 

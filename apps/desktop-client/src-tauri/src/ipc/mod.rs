@@ -20,6 +20,15 @@ pub struct AppState {
     pub connection_attempt: AtomicU64,
 }
 
+#[derive(Clone)]
+struct StealthCompareRestoreSnapshot {
+    status: ConnectionStatus,
+    stealth_mode_enabled: bool,
+    active_profile_id: Option<String>,
+    last_connection_options: models::LastConnectionOptions,
+    last_stealth_rollback: Option<crate::engine::sys::diagnostics::StealthRollbackSnapshot>,
+}
+
 fn emit_connection_lifecycle_event(app: &AppHandle, event: &str, payload: serde_json::Value) {
     let _ = app.emit(
         "connection-lifecycle",
@@ -84,6 +93,56 @@ fn sanitize_source_surface(source_surface: Option<&str>, default_surface: &str) 
     } else {
         sanitized
     }
+}
+
+fn stealth_strategy_title(tier: &str) -> &'static str {
+    match tier {
+        "fast" => "Fast",
+        "balanced" => "Balanced",
+        "resistant" => "Resistant",
+        "maximum" => "Maximum Evasion",
+        "last-known-good" => "Last known good",
+        _ => "Stealth strategy",
+    }
+}
+
+async fn restore_stealth_compare_state(
+    snapshot: &StealthCompareRestoreSnapshot,
+    app: &AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let mut store_data = store::load_store(app)?;
+    store_data.stealth_mode_enabled = snapshot.stealth_mode_enabled;
+    store_data.active_profile_id = snapshot.active_profile_id.clone();
+    store_data.last_connection_options = snapshot.last_connection_options.clone();
+    store_data.last_stealth_rollback = snapshot.last_stealth_rollback.clone();
+    store::save_store(app, &store_data)?;
+
+    if snapshot.status.status == "disconnected" || snapshot.status.status == "disconnecting" {
+        disconnect_internal("stealth-compare-restore", app.clone(), state).await?;
+        return Ok(());
+    }
+
+    let profile_id = resolve_profile_id_for_connect(
+        &store_data,
+        snapshot.last_connection_options.profile_id.as_deref(),
+    );
+
+    if let Some(profile_id) = profile_id {
+        connect_profile_internal(
+            profile_id,
+            snapshot.last_connection_options.tun_mode,
+            snapshot.last_connection_options.system_proxy,
+            "stealth-compare-restore",
+            app.clone(),
+            state,
+        )
+        .await?;
+    } else {
+        disconnect_internal("stealth-compare-restore", app.clone(), state).await?;
+    }
+
+    Ok(())
 }
 
 fn derive_last_connection_options(
@@ -2790,6 +2849,41 @@ pub async fn set_smart_connect_status(
 }
 
 #[tauri::command]
+pub async fn get_stealth_auto_pilot_mode(app: tauri::AppHandle) -> Result<String, AppError> {
+    let app_for_store = app.clone();
+    let mut store =
+        tokio::task::spawn_blocking(move || crate::engine::store::load_store(&app_for_store))
+            .await
+            .map_err(|e| AppError::System(format!("Tokio error: {}", e)))??;
+    let normalized =
+        crate::engine::sys::diagnostics::normalize_auto_pilot_mode(&store.stealth_auto_pilot_mode)
+            .to_string();
+
+    if store.stealth_auto_pilot_mode != normalized {
+        store.stealth_auto_pilot_mode = normalized.clone();
+        crate::engine::store::save_store(&app, &store)?;
+    }
+
+    Ok(normalized)
+}
+
+#[tauri::command]
+pub async fn set_stealth_auto_pilot_mode(
+    mode: String,
+    app: tauri::AppHandle,
+) -> Result<String, AppError> {
+    let normalized = crate::engine::sys::diagnostics::normalize_auto_pilot_mode(&mode).to_string();
+    tokio::task::spawn_blocking(move || {
+        let mut store = crate::engine::store::load_store(&app)?;
+        store.stealth_auto_pilot_mode = normalized.clone();
+        crate::engine::store::save_store(&app, &store)?;
+        Ok::<String, AppError>(normalized)
+    })
+    .await
+    .map_err(|e| AppError::System(format!("Tokio error: {}", e)))?
+}
+
+#[tauri::command]
 pub async fn get_network_rules(
     app: tauri::AppHandle,
 ) -> Result<
@@ -2822,49 +2916,541 @@ pub async fn update_network_rule(
 pub async fn run_stealth_diagnostics(
     node_id: String,
     app: tauri::AppHandle,
+    state: tauri::State<'_, crate::ipc::AppState>,
 ) -> Result<crate::engine::sys::diagnostics::CensorshipReport, AppError> {
-    let store = crate::engine::store::load_store(&app)?;
+    let mut store = crate::engine::store::load_store(&app)?;
+    let network_name = crate::engine::sys::net_monitor::get_current_ssid()
+        .unwrap_or_else(|_| "Wired Connection".to_string());
     let node = store
         .profiles
-        .into_iter()
+        .iter()
+        .cloned()
         .find(|p| p.id == node_id)
         .ok_or_else(|| AppError::System("Node not found".into()))?;
-    crate::engine::sys::diagnostics::run_stealth_diagnostics(node, app).await
+    let profiles = store.profiles.clone();
+    let stealth_mode_enabled = store.stealth_mode_enabled;
+    let stealth_auto_pilot_mode =
+        crate::engine::sys::diagnostics::normalize_auto_pilot_mode(&store.stealth_auto_pilot_mode)
+            .to_string();
+    let current_connection_node_id = store
+        .last_connection_options
+        .profile_id
+        .clone()
+        .or_else(|| store.active_profile_id.clone());
+    let existing_network_memory = store
+        .network_rules
+        .get(&network_name)
+        .map(|profile| profile.stealth_memory.clone());
+    let mut report = crate::engine::sys::diagnostics::run_stealth_diagnostics(
+        node,
+        profiles,
+        network_name.clone(),
+        stealth_mode_enabled,
+        existing_network_memory,
+        app.clone(),
+    )
+    .await?;
+
+    let profile = store.network_rules.entry(network_name).or_default();
+    profile.stealth_memory.last_assessed_at = report.assessed_at;
+    profile.stealth_memory.last_node_id = Some(report.node_id.clone());
+    profile.stealth_memory.last_status = Some(report.status.clone());
+    profile.stealth_memory.last_summary = Some(report.summary.clone());
+    profile.stealth_memory.last_recommendation_id = report.recommended_strategy_id.clone();
+    report.network_memory = Some(profile.stealth_memory.clone());
+    report.network_policy = Some(profile.stealth_policy.clone());
+    report.rollback_available = store.last_stealth_rollback.is_some();
+    report.auto_pilot = Some(crate::engine::sys::diagnostics::evaluate_auto_pilot(
+        &stealth_auto_pilot_mode,
+        &report,
+        report.network_policy.as_ref(),
+        report.network_memory.as_ref(),
+        current_connection_node_id.as_deref(),
+        stealth_mode_enabled,
+    ));
+
+    crate::engine::store::save_store(&app, &store)?;
+
+    if let Some(auto_pilot) = report.auto_pilot.clone() {
+        if auto_pilot.action == "auto-apply" {
+            let strategy_id =
+                auto_pilot
+                    .strategy_id
+                    .clone()
+                    .ok_or_else(|| AppError::Actionable {
+                        error: "Auto-Pilot selected an invalid strategy".to_string(),
+                        resolution:
+                            "Rerun diagnostics or switch Auto-Pilot back to recommend-only."
+                                .to_string(),
+                    })?;
+
+            let updated_auto_pilot = match apply_stealth_fix(
+                report.node_id.clone(),
+                strategy_id,
+                app.clone(),
+                state.clone(),
+            )
+            .await
+            {
+                Ok(result) => {
+                    let should_rollback_for_health = auto_pilot.mode == "auto-apply-with-rollback"
+                        && result
+                            .health
+                            .as_ref()
+                            .is_some_and(|health| health.status == "failed");
+
+                    if should_rollback_for_health {
+                        match rollback_last_stealth_fix(app.clone(), state.clone()).await {
+                            Ok(rollback) => {
+                                crate::engine::sys::diagnostics::StealthAutoPilotState {
+                                    action: "rolled-back".to_string(),
+                                    message: Some(format!(
+                                        "{} | {}",
+                                        result.message, rollback.message
+                                    )),
+                                    ..auto_pilot.clone()
+                                }
+                            }
+                            Err(rollback_error) => {
+                                crate::engine::sys::diagnostics::StealthAutoPilotState {
+                                    action: "apply-failed".to_string(),
+                                    message: Some(format!(
+                                        "{} | rollback: {}",
+                                        result.message, rollback_error
+                                    )),
+                                    ..auto_pilot.clone()
+                                }
+                            }
+                        }
+                    } else {
+                        crate::engine::sys::diagnostics::StealthAutoPilotState {
+                            action: "auto-applied".to_string(),
+                            message: Some(match result.health.as_ref() {
+                                Some(health) => format!("{} | {}", result.message, health.summary),
+                                None => result.message,
+                            }),
+                            ..auto_pilot.clone()
+                        }
+                    }
+                }
+                Err(error) => {
+                    if auto_pilot.mode == "auto-apply-with-rollback" {
+                        match rollback_last_stealth_fix(app.clone(), state.clone()).await {
+                            Ok(result) => crate::engine::sys::diagnostics::StealthAutoPilotState {
+                                action: "rolled-back".to_string(),
+                                message: Some(result.message),
+                                ..auto_pilot.clone()
+                            },
+                            Err(rollback_error) => {
+                                crate::engine::sys::diagnostics::StealthAutoPilotState {
+                                    action: "apply-failed".to_string(),
+                                    message: Some(format!(
+                                        "{} | rollback: {}",
+                                        error, rollback_error
+                                    )),
+                                    ..auto_pilot.clone()
+                                }
+                            }
+                        }
+                    } else {
+                        crate::engine::sys::diagnostics::StealthAutoPilotState {
+                            action: "apply-failed".to_string(),
+                            message: Some(error.to_string()),
+                            ..auto_pilot.clone()
+                        }
+                    }
+                }
+            };
+
+            let refreshed_store = crate::engine::store::load_store(&app)?;
+            if let Some(network_profile) = refreshed_store.network_rules.get(&report.network_name) {
+                report.network_memory = Some(network_profile.stealth_memory.clone());
+                report.network_policy = Some(network_profile.stealth_policy.clone());
+            }
+            report.rollback_available = refreshed_store.last_stealth_rollback.is_some();
+            report.auto_pilot = Some(updated_auto_pilot);
+        }
+    }
+
+    Ok(report)
 }
 
 #[tauri::command]
 pub async fn apply_stealth_fix(
     node_id: String,
-    recommended_protocol: String,
+    recommendation_id: String,
     app: tauri::AppHandle,
     state: tauri::State<'_, crate::ipc::AppState>,
-) -> Result<(), AppError> {
+) -> Result<crate::engine::sys::diagnostics::StealthActionResult, AppError> {
     let mut store = crate::engine::store::load_store(&app)?;
+    let network_name = crate::engine::sys::net_monitor::get_current_ssid()
+        .unwrap_or_else(|_| "Wired Connection".to_string());
     let tun_mode = store.last_connection_options.tun_mode;
     let system_proxy = store.last_connection_options.system_proxy;
-    if let Some(node) = store.profiles.iter_mut().find(|p| p.id == node_id) {
-        if recommended_protocol == "xhttp"
-            || recommended_protocol == "vless-reality"
-            || recommended_protocol == "wireguard"
-        {
-            node.protocol = recommended_protocol;
-        } else if recommended_protocol == "vless-stealth" {
-            node.protocol = "vless".to_string();
-            store.stealth_mode_enabled = true;
-        }
+    let (strategy_tier, target_node_id, enable_stealth_mode) =
+        crate::engine::sys::diagnostics::parse_strategy_id(&recommendation_id).ok_or_else(
+            || AppError::Actionable {
+                error: "Strategy id is malformed or unsupported".to_string(),
+                resolution:
+                    "Rerun diagnostics and apply one of the returned strategy ladder entries."
+                        .to_string(),
+            },
+        )?;
+    let target_node = store
+        .profiles
+        .iter()
+        .find(|profile| profile.id == target_node_id)
+        .cloned()
+        .ok_or_else(|| AppError::System("Node not found".into()))?;
+
+    if enable_stealth_mode
+        && target_node.protocol != "vless"
+        && target_node.tls.as_deref() != Some("reality")
+    {
+        return Err(AppError::Actionable {
+            error: "Selected strategy requires a node that supports the built-in stealth camouflage path"
+                .to_string(),
+            resolution: "Choose a VLESS or REALITY-capable strategy, then apply it again."
+                .to_string(),
+        });
     }
+
+    let previous_node_id = store
+        .last_connection_options
+        .profile_id
+        .clone()
+        .or_else(|| store.active_profile_id.clone())
+        .unwrap_or(node_id);
+    if previous_node_id == target_node_id && store.stealth_mode_enabled == enable_stealth_mode {
+        return Ok(crate::engine::sys::diagnostics::StealthActionResult {
+            strategy_id: recommendation_id,
+            target_node_id,
+            message: "No changes were applied because the current connection already matches the selected strategy.".to_string(),
+            rollback_available: store.last_stealth_rollback.is_some(),
+            health: None,
+        });
+    }
+
+    let network_profile = store.network_rules.entry(network_name.clone()).or_default();
+    let previous_network_policy = Some(network_profile.stealth_policy.clone());
+    store.last_stealth_rollback = Some(crate::engine::sys::diagnostics::StealthRollbackSnapshot {
+        previous_node_id,
+        previous_stealth_mode_enabled: store.stealth_mode_enabled,
+        network_name: Some(network_name.clone()),
+        previous_network_policy,
+        created_at: current_timestamp_ms(),
+    });
+    store.stealth_mode_enabled = enable_stealth_mode;
+
+    network_profile.stealth_memory.last_node_id = Some(target_node_id.clone());
+    network_profile
+        .stealth_memory
+        .last_applied_recommendation_id = Some(recommendation_id.clone());
+    network_profile.stealth_memory.last_applied_at = current_timestamp_ms();
+    network_profile.stealth_policy.strategy_id = Some(recommendation_id.clone());
+    network_profile.stealth_policy.strategy_title =
+        Some(stealth_strategy_title(strategy_tier.as_str()).to_string());
+    network_profile.stealth_policy.target_node_id = Some(target_node_id.clone());
+    network_profile.stealth_policy.target_node_name = Some(target_node.name.clone());
+    network_profile.stealth_policy.enable_stealth_mode = Some(enable_stealth_mode);
+    network_profile.stealth_policy.saved_at = current_timestamp_ms();
+
     crate::engine::store::save_store(&app, &store)?;
-    // Reconnect to apply the altered node and stealth profile
     crate::ipc::connect_profile_internal(
-        node_id,
+        target_node_id.clone(),
         tun_mode,
         system_proxy,
-        "stealth-fix",
+        "stealth-strategy",
+        app.clone(),
+        state.clone(),
+    )
+    .await?;
+
+    let proxy_url = {
+        let status = state.status.read().await;
+        status.proxy_url.clone()
+    };
+    let health = if let Some(proxy_url) = proxy_url.as_deref() {
+        crate::engine::sys::diagnostics::run_stealth_health_check(proxy_url, app.clone()).await
+    } else {
+        crate::engine::sys::diagnostics::StealthHealthAssessment {
+            checked_at: current_timestamp_ms(),
+            status: "failed".to_string(),
+            summary: "The route reconnected, but no live proxy endpoint was available for post-apply health checks."
+                .to_string(),
+            success_count: 0,
+            sample_count: 0,
+            median_first_byte_latency_ms: None,
+            probes: Vec::new(),
+        }
+    };
+    let health_snapshot = crate::engine::sys::diagnostics::health_snapshot_from_assessment(&health);
+
+    let mut store = crate::engine::store::load_store(&app)?;
+    let network_profile = store.network_rules.entry(network_name).or_default();
+    network_profile.stealth_memory.last_health = health_snapshot.clone();
+    network_profile.stealth_policy.last_health = health_snapshot;
+    if health.status == "working" {
+        network_profile.stealth_memory.last_known_good_node_id = Some(target_node_id.clone());
+        network_profile.stealth_memory.last_known_good_node_name = Some(target_node.name.clone());
+        network_profile.stealth_memory.last_known_good_strategy_id =
+            Some(recommendation_id.clone());
+        network_profile
+            .stealth_memory
+            .last_known_good_strategy_title =
+            Some(stealth_strategy_title(strategy_tier.as_str()).to_string());
+        network_profile
+            .stealth_memory
+            .last_known_good_stealth_mode_enabled = Some(enable_stealth_mode);
+    }
+    crate::engine::store::save_store(&app, &store)?;
+
+    Ok(crate::engine::sys::diagnostics::StealthActionResult {
+        strategy_id: recommendation_id,
+        target_node_id,
+        message: if enable_stealth_mode {
+            format!(
+                "The '{}' strategy was applied and '{}' is reconnecting with camouflage enabled.",
+                strategy_tier, target_node.name
+            )
+        } else {
+            format!(
+                "The '{}' strategy was applied and '{}' is reconnecting on the standard path.",
+                strategy_tier, target_node.name
+            )
+        },
+        rollback_available: true,
+        health: Some(health),
+    })
+}
+
+#[tauri::command]
+pub async fn rollback_last_stealth_fix(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::ipc::AppState>,
+) -> Result<crate::engine::sys::diagnostics::StealthActionResult, AppError> {
+    let mut store = crate::engine::store::load_store(&app)?;
+    let snapshot = store
+        .last_stealth_rollback
+        .clone()
+        .ok_or_else(|| AppError::Actionable {
+            error: "No stealth rollback snapshot is available".to_string(),
+            resolution: "Apply a stealth recommendation before attempting rollback.".to_string(),
+        })?;
+    let tun_mode = store.last_connection_options.tun_mode;
+    let system_proxy = store.last_connection_options.system_proxy;
+    store
+        .profiles
+        .iter()
+        .find(|profile| profile.id == snapshot.previous_node_id)
+        .ok_or_else(|| AppError::System("Rollback node not found".into()))?;
+    store.stealth_mode_enabled = snapshot.previous_stealth_mode_enabled;
+    if let Some(network_name) = snapshot.network_name.clone() {
+        let network_profile = store.network_rules.entry(network_name).or_default();
+        network_profile
+            .stealth_memory
+            .last_applied_recommendation_id = Some("rollback".to_string());
+        network_profile.stealth_memory.last_applied_at = current_timestamp_ms();
+        network_profile.stealth_policy = snapshot.previous_network_policy.unwrap_or_default();
+    }
+    store.last_stealth_rollback = None;
+
+    crate::engine::store::save_store(&app, &store)?;
+
+    crate::ipc::connect_profile_internal(
+        snapshot.previous_node_id.clone(),
+        tun_mode,
+        system_proxy,
+        "stealth-rollback",
         app.clone(),
         state,
     )
     .await?;
-    Ok(())
+
+    Ok(crate::engine::sys::diagnostics::StealthActionResult {
+        strategy_id: "rollback".to_string(),
+        target_node_id: snapshot.previous_node_id,
+        message: "The previous stealth posture was restored and the node is reconnecting."
+            .to_string(),
+        rollback_available: false,
+        health: None,
+    })
+}
+
+#[tauri::command]
+pub async fn compare_stealth_strategies(
+    node_id: String,
+    strategy_ids: Vec<String>,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::ipc::AppState>,
+) -> Result<crate::engine::sys::diagnostics::StealthCompareReport, AppError> {
+    let deduped_strategy_ids = strategy_ids
+        .into_iter()
+        .map(|strategy_id| strategy_id.trim().to_string())
+        .filter(|strategy_id| !strategy_id.is_empty())
+        .fold(Vec::<String>::new(), |mut acc, strategy_id| {
+            if !acc.contains(&strategy_id) {
+                acc.push(strategy_id);
+            }
+            acc
+        });
+
+    if deduped_strategy_ids.len() < 2 || deduped_strategy_ids.len() > 3 {
+        return Err(AppError::Actionable {
+            error: "Compare mode requires 2 to 3 automatically applicable strategies"
+                .to_string(),
+            resolution:
+                "Select two or three ready strategies from the current ladder and run compare again."
+                    .to_string(),
+        });
+    }
+
+    let store_data = crate::engine::store::load_store(&app)?;
+    let network_name = crate::engine::sys::net_monitor::get_current_ssid()
+        .unwrap_or_else(|_| "Wired Connection".to_string());
+    let node = store_data
+        .profiles
+        .iter()
+        .cloned()
+        .find(|profile| profile.id == node_id)
+        .ok_or_else(|| AppError::System("Node not found".into()))?;
+    let report = crate::engine::sys::diagnostics::run_stealth_diagnostics(
+        node.clone(),
+        store_data.profiles.clone(),
+        network_name.clone(),
+        store_data.stealth_mode_enabled,
+        store_data
+            .network_rules
+            .get(&network_name)
+            .map(|profile| profile.stealth_memory.clone()),
+        app.clone(),
+    )
+    .await?;
+    let strategies = deduped_strategy_ids
+        .iter()
+        .map(|strategy_id| {
+            report
+                .strategies
+                .iter()
+                .find(|strategy| strategy.id == *strategy_id)
+                .cloned()
+                .ok_or_else(|| AppError::Actionable {
+                    error: format!("Strategy '{strategy_id}' is not available for this node"),
+                    resolution:
+                        "Rerun diagnostics and select only strategies from the current ladder."
+                            .to_string(),
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if strategies
+        .iter()
+        .any(|strategy| strategy.readiness == "manual")
+    {
+        return Err(AppError::Actionable {
+            error: "Manual-only strategies cannot participate in live compare mode".to_string(),
+            resolution: "Choose only ready or already-matched strategies for live comparison."
+                .to_string(),
+        });
+    }
+
+    let restore_snapshot = {
+        let status = state.status.read().await.clone();
+        StealthCompareRestoreSnapshot {
+            status,
+            stealth_mode_enabled: store_data.stealth_mode_enabled,
+            active_profile_id: store_data.active_profile_id.clone(),
+            last_connection_options: store_data.last_connection_options.clone(),
+            last_stealth_rollback: store_data.last_stealth_rollback.clone(),
+        }
+    };
+    let mut entries = Vec::new();
+
+    for strategy in &strategies {
+        {
+            let mut compare_store = crate::engine::store::load_store(&app)?;
+            compare_store.stealth_mode_enabled = strategy.enable_stealth_mode;
+            compare_store.last_stealth_rollback = restore_snapshot.last_stealth_rollback.clone();
+            crate::engine::store::save_store(&app, &compare_store)?;
+        }
+
+        let _ = disconnect_internal("stealth-compare-switch", app.clone(), state.clone()).await;
+
+        let compare_entry = match connect_profile_internal(
+            strategy.target_node_id.clone(),
+            restore_snapshot.last_connection_options.tun_mode,
+            restore_snapshot.last_connection_options.system_proxy,
+            "stealth-compare",
+            app.clone(),
+            state.clone(),
+        )
+        .await
+        {
+            Ok(()) => {
+                let proxy_url = {
+                    let status = state.status.read().await;
+                    status.proxy_url.clone()
+                };
+
+                if let Some(proxy_url) = proxy_url.as_deref() {
+                    crate::engine::sys::diagnostics::run_stealth_strategy_compare(
+                        proxy_url,
+                        strategy,
+                        app.clone(),
+                    )
+                    .await
+                } else {
+                    crate::engine::sys::diagnostics::failed_strategy_comparison(
+                        strategy,
+                        format!(
+                            "The '{}' route reconnected, but no live proxy endpoint was available for compare probes.",
+                            strategy.title
+                        ),
+                        "Temporary compare route did not expose a SOCKS5 proxy URL after reconnect."
+                            .to_string(),
+                    )
+                }
+            }
+            Err(error) => crate::engine::sys::diagnostics::failed_strategy_comparison(
+                strategy,
+                format!(
+                    "The '{}' route could not be reconnected for live compare mode.",
+                    strategy.title
+                ),
+                error.to_string(),
+            ),
+        };
+
+        entries.push(compare_entry);
+    }
+
+    let restore_result =
+        restore_stealth_compare_state(&restore_snapshot, &app, state.clone()).await;
+
+    Ok(crate::engine::sys::diagnostics::StealthCompareReport {
+        node_id: report.node_id,
+        node_name: report.node_name,
+        assessed_at: current_timestamp_ms(),
+        restored_connection: restore_result.is_ok(),
+        restore_message: restore_result.err().map(|error| error.to_string()),
+        entries,
+    })
+}
+
+#[tauri::command]
+pub async fn clear_network_stealth_policy(
+    app: tauri::AppHandle,
+) -> Result<crate::engine::sys::net_monitor::NetworkProfile, AppError> {
+    let mut store = crate::engine::store::load_store(&app)?;
+    let network_name = crate::engine::sys::net_monitor::get_current_ssid()
+        .unwrap_or_else(|_| "Wired Connection".to_string());
+    let updated_profile = {
+        let profile = store.network_rules.entry(network_name).or_default();
+        profile.stealth_policy = Default::default();
+        profile.clone()
+    };
+    crate::engine::store::save_store(&app, &store)?;
+    Ok(updated_profile)
 }
 
 #[tauri::command]

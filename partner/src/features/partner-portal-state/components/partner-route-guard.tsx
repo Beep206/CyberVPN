@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import { ArrowUpRight, LockKeyhole } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -12,6 +13,7 @@ import {
 } from '@/features/partner-portal-state/lib/portal-visibility';
 import { getPartnerRoleRouteAccess } from '@/features/partner-portal-state/lib/portal-access';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
+import { reportFrontendRouteGuardBlock } from '@/shared/lib/frontend-observability';
 
 export function PartnerRouteGuard({
   route,
@@ -27,6 +29,48 @@ export function PartnerRouteGuard({
   const access = getPartnerRoleRouteAccess(route, state);
   const visibility = getPartnerRouteVisibility(route, state);
   const blockReason = getPartnerRouteBlockReason(route, state);
+  const lastReportedBlockRef = useRef<string>('');
+
+  useEffect(() => {
+    if (access !== 'none' || typeof window === 'undefined') {
+      return;
+    }
+
+    const normalizedBlockReason =
+      blockReason === 'release_ring'
+        ? 'release_ring'
+        : visibility === 'hidden'
+          ? 'surface_policy'
+          : 'role_access_denied';
+    const reportKey = [
+      route,
+      normalizedBlockReason,
+      state.workspaceStatus,
+      state.primaryLane,
+      state.releaseRing,
+    ].join(':');
+
+    if (lastReportedBlockRef.current === reportKey) {
+      return;
+    }
+
+    lastReportedBlockRef.current = reportKey;
+    reportFrontendRouteGuardBlock('partner_portal', {
+      blockedReason: normalizedBlockReason,
+      lane: state.primaryLane,
+      path: window.location.pathname,
+      releaseRing: state.releaseRing,
+      workspaceStatus: state.workspaceStatus,
+    });
+  }, [
+    access,
+    blockReason,
+    route,
+    state.primaryLane,
+    state.releaseRing,
+    state.workspaceStatus,
+    visibility,
+  ]);
 
   if (access === 'none') {
     const blockedByVisibility = visibility === 'hidden';

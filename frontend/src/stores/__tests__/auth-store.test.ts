@@ -187,6 +187,10 @@ function resetStoreState() {
   });
 }
 
+function setWindowLocation(overrides: Partial<Location>) {
+  Object.assign(window.location, overrides);
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -196,10 +200,12 @@ describe('Auth Store', () => {
     vi.clearAllMocks();
     resetStoreState();
     sessionStorage.clear();
-    window.location.href = 'http://localhost:3000';
-    window.location.origin = 'http://localhost:3000';
-    window.location.pathname = '/';
-    window.location.search = '';
+    setWindowLocation({
+      href: 'http://localhost:3000',
+      origin: 'http://localhost:3000',
+      pathname: '/',
+      search: '',
+    });
   });
 
   afterEach(() => {
@@ -481,6 +487,8 @@ describe('Auth Store', () => {
         login: 'john.doe',
         email: 'john.doe@example.com',
         password: 'pass',
+        tos_accepted: true,
+        marketing_consent: false,
       });
     });
 
@@ -521,6 +529,8 @@ describe('Auth Store', () => {
       expect(mockRegister).toHaveBeenCalledWith({
         login: 'cyberpunk_hacker',
         password: 'pass',
+        tos_accepted: true,
+        marketing_consent: false,
       });
       expect(useAuthStore.getState().user?.email).toBe('');
       expect(useAuthStore.getState().user?.is_active).toBe(true);
@@ -1236,7 +1246,7 @@ describe('Auth Store', () => {
 
   describe('oauthLogin', () => {
     it('test_oauthLogin_telegram_starts_magic_link_flow', async () => {
-      window.location.pathname = '/ru-RU/login';
+      setWindowLocation({ pathname: '/ru-RU/login' });
       mockRequestTelegramMagicLink.mockResolvedValue({
         data: {
           token: 'magic_tg_token',
@@ -1257,8 +1267,10 @@ describe('Auth Store', () => {
     });
 
     it('test_oauthLogin_redirects_to_same_origin_bff_start_route', async () => {
-      window.location.pathname = '/ru-RU/login';
-      window.location.search = '?redirect=%2Fru-RU%2Fdashboard%2Fservers';
+      setWindowLocation({
+        pathname: '/ru-RU/login',
+        search: '?redirect=%2Fru-RU%2Fdashboard%2Fservers',
+      });
 
       const store = useAuthStore.getState();
       await store.oauthLogin('google');
@@ -1271,8 +1283,7 @@ describe('Auth Store', () => {
     });
 
     it('test_oauthLogin_uses_default_locale_when_path_has_no_locale', async () => {
-      window.location.pathname = '/login';
-      window.location.search = '';
+      setWindowLocation({ pathname: '/login', search: '' });
 
       await useAuthStore.getState().oauthLogin('github');
 
@@ -1282,8 +1293,7 @@ describe('Auth Store', () => {
     });
 
     it('test_oauthLogin_sets_loading_state_before_navigation', async () => {
-      window.location.pathname = '/ru-RU/login';
-      window.location.search = '';
+      setWindowLocation({ pathname: '/ru-RU/login', search: '' });
 
       await useAuthStore.getState().oauthLogin('github');
 
@@ -1292,9 +1302,11 @@ describe('Auth Store', () => {
     });
 
     it('test_oauthLogin_sets_error_on_invalid_origin', async () => {
-      window.location.pathname = '/ru-RU/login';
-      window.location.search = '';
-      window.location.origin = '://invalid-origin';
+      setWindowLocation({
+        pathname: '/ru-RU/login',
+        search: '',
+        origin: '://invalid-origin',
+      });
 
       await expect(
         useAuthStore.getState().oauthLogin('twitter')
@@ -1539,6 +1551,8 @@ describe('Auth Store', () => {
       expect(mockRegister).toHaveBeenCalledWith({
         login: 'noatsymbol',
         password: 'password',
+        tos_accepted: true,
+        marketing_consent: false,
       });
     });
 

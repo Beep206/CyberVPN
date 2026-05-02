@@ -12,6 +12,12 @@ from src.infrastructure.database.repositories.partner_account_repository import 
     PartnerAccountRepository,
 )
 from src.infrastructure.database.repositories.payment_dispute_repo import PaymentDisputeRepository
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    PARTNER_ADMIN_SURFACE,
+    log_partner_runtime_event,
+    observe_partner_case_created,
+    observe_partner_notification_generated,
+)
 
 _CLOSED_DISPUTE_CASE_STATUSES = {
     DisputeCaseStatus.RESOLVED.value,
@@ -82,6 +88,28 @@ class CreateDisputeCaseUseCase:
         created = await self._repo.create_dispute_case(model)
         await self._session.commit()
         await self._session.refresh(created)
+        observe_partner_case_created(
+            surface=PARTNER_ADMIN_SURFACE,
+            case_type=created.case_kind,
+            result="success",
+        )
+        observe_partner_notification_generated(
+            surface=PARTNER_ADMIN_SURFACE,
+            notification_type="case_created",
+            result="success",
+        )
+        log_partner_runtime_event(
+            "partner_case.created",
+            surface=PARTNER_ADMIN_SURFACE,
+            route_group="cases",
+            workspace_status=workspace.status,
+            case_type=created.case_kind,
+            case_status=created.case_status,
+            partner_account_id=str(partner_account_id),
+            payment_dispute_id=str(payment_dispute_id) if payment_dispute_id is not None else None,
+            order_id=str(linked_order_id) if linked_order_id is not None else None,
+            result="success",
+        )
         return created
 
 

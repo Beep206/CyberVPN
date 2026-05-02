@@ -4,7 +4,8 @@ import { Shield, Plus, Trash2, Server, Globe, Key, ClipboardPaste, ScanLine, Sha
 import { getProfiles, addProfile, parseClipboardLink, scanScreenForQr, generateLink, ProxyNode } from "../../shared/api/ipc";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { Button } from "../../components/ui/button";
+import { CyberButton } from "../../shared/ui/atoms/cyber-button";
+import { GlassCard } from "../../shared/ui/atoms/glass-card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import {
@@ -173,20 +174,20 @@ export function ProfilesPage() {
         </div>
         
         <div className="flex gap-3">
-          <Button variant="outline" onClick={handleScanScreen} disabled={isScanning} className="gap-2 border-[var(--color-neon-cyan)]/30 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10 transition-all">
+          <CyberButton variant="secondary" onClick={handleScanScreen} disabled={isScanning} className="gap-2 border-[var(--color-neon-cyan)]/30 text-[var(--color-neon-cyan)]">
             <ScanLine size={16} className={isScanning ? "animate-spin" : ""} />
             {t('profiles.scanQr')}
-          </Button>
+          </CyberButton>
           
-          <Button variant="outline" onClick={handlePasteFromClipboard} className="gap-2 border-border/60 bg-[color:var(--panel-subtle)] hover:bg-accent/70 transition-all">
+          <CyberButton variant="secondary" onClick={handlePasteFromClipboard} className="gap-2 border-border/60 hover:bg-accent/70">
             <ClipboardPaste size={16} />
             {t('profiles.paste')}
-          </Button>
+          </CyberButton>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger
               render={
-                <Button className="gap-2 bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 hover:shadow-[0_0_15px_rgba(0,255,136,0.6)] transition-all" />
+                <CyberButton variant="primary" className="gap-2" />
               }
             >
               <Plus size={16} />
@@ -252,7 +253,7 @@ export function ProfilesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreateProfile} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">{t('profiles.saveProfile')}</Button>
+              <CyberButton onClick={handleCreateProfile} variant="primary">{t('profiles.saveProfile')}</CyberButton>
             </DialogFooter>
           </DialogContent>
           </Dialog>
@@ -274,9 +275,9 @@ export function ProfilesPage() {
                 <p className="w-full break-all rounded-lg border border-border/50 bg-[color:var(--panel-subtle)] p-3 font-mono text-xs text-muted-foreground/80 select-all">
                     {shareLink}
                 </p>
-                <Button 
-                    variant="outline" 
-                    className="w-full mt-4 border-[var(--color-neon-cyan)]/50 text-[var(--color-neon-cyan)] hover:bg-[var(--color-neon-cyan)]/10"
+                <CyberButton
+                    variant="secondary"
+                    className="w-full mt-4 border-[var(--color-neon-cyan)]/50 text-[var(--color-neon-cyan)]"
                     onClick={() => {
                         navigator.clipboard.writeText(shareLink);
                         toast.success(t('profiles.copied'));
@@ -284,7 +285,7 @@ export function ProfilesPage() {
                 >
                     <ClipboardPaste size={16} className="mr-2" />
                     {t('profiles.copyRawLink')}
-                </Button>
+                </CyberButton>
             </div>
         </DialogContent>
       </Dialog>
@@ -292,55 +293,52 @@ export function ProfilesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
          <AnimatePresence initial={false}>
              {profiles.map((p) => (
-                 <motion.div
+                 <GlassCard
                      key={p.id}
-                     layout
-                     initial={{ opacity: 0, y: offsets.list }}
-                     animate={{ opacity: 1, y: 0 }}
-                     exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
-                     transition={{ duration: durations.list, ease: desktopMotionEase }}
-                     className="group relative flex flex-col p-5 rounded-xl border border-border/40 bg-card/10 hover:bg-card/30 hover:border-[var(--color-neon-cyan)]/50 transition-all duration-300"
+                     variant="stealth"
+                     withScanlines
+                     className="group relative flex flex-col hover:border-[var(--color-neon-cyan)]/50 transition-all duration-300"
                  >
                      <div className="flex justify-between items-start mb-4">
                          <div className="flex items-center gap-3">
                              <div className="p-2 rounded-md bg-[var(--color-neon-cyan)]/10 text-[var(--color-neon-cyan)] group-hover:bg-[var(--color-neon-cyan)]/20 transition-colors">
                                  <Shield size={20} />
                              </div>
-                             <h3 className="font-semibold text-lg">{p.name}</h3>
+                             <h3 className="font-semibold text-lg hover:text-[var(--color-neon-cyan)] transition-colors">{p.name}</h3>
                          </div>
                          <div className="flex gap-2">
-                             <Button variant="ghost" size="icon" onClick={() => handleShare(p)} className="text-muted-foreground hover:text-[var(--color-neon-cyan)] opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button onClick={() => handleShare(p)} className="p-2 -mr-2 text-muted-foreground hover:text-[var(--color-neon-cyan)] opacity-0 group-hover:opacity-100 transition-opacity">
                                  <Share2 size={16} />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                             </button>
+                             <button className="p-2 -mr-2 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                  <Trash2 size={16} />
-                             </Button>
+                             </button>
                          </div>
                      </div>
                      
                      <div className="space-y-2 text-sm text-muted-foreground/80 font-mono">
                          <div className="flex items-center gap-2">
-                             <Server size={14} className="text-muted-foreground" />
+                             <Server size={14} className="text-[var(--color-neon-cyan)]" />
                              <span className="truncate">{p.server}:{p.port}</span>
                          </div>
                          <div className="flex items-center gap-2">
-                             <Globe size={14} className="text-muted-foreground" />
+                             <Globe size={14} className="text-[var(--color-neon-pink)]" />
                              <span className="uppercase">{p.protocol}</span>
                          </div>
                          {p.uuid && (
                              <div className="flex items-center gap-2">
-                                 <Key size={14} className="text-muted-foreground" />
-                                 <span className="truncate text-xs">{p.uuid.substring(0, 8)}...</span>
+                                 <Key size={14} className="opacity-60" />
+                                 <span className="truncate text-xs opacity-60">{p.uuid.substring(0, 8)}...</span>
                              </div>
                          )}
                          {p.nextHopId && (
                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
-                                 <Globe size={14} className="text-[var(--color-neon-pink)]" />
-                                 <span className="text-xs text-[var(--color-neon-pink)]">{t('profiles.chain')} → {profiles.find(x => x.id === p.nextHopId)?.name || t('profiles.unknown')}</span>
+                                 <Globe size={14} className="text-[var(--color-matrix-green)]" />
+                                 <span className="text-xs text-[var(--color-matrix-green)]">{t('profiles.chain')} → {profiles.find(x => x.id === p.nextHopId)?.name || t('profiles.unknown')}</span>
                              </div>
                          )}
                      </div>
-                 </motion.div>
+                 </GlassCard>
              ))}
          </AnimatePresence>
          

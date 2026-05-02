@@ -13,6 +13,7 @@ This runbook is the operational companion to:
 - [partner/admin e2e conformance test plan](../plans/2026-04-20-partner-admin-e2e-conformance-test-plan.md)
 - [partner portal backend integration closure spec](../plans/2026-04-20-partner-portal-backend-integration-closure-spec.md)
 - [partner realm/session/auth/access verification spec](../plans/2026-04-20-partner-realm-session-auth-access-verification-spec.md)
+- [partner admin GitHub protection handoff](./PARTNER_ADMIN_GITHUB_PROTECTION_HANDOFF.md)
 - [environment-specific cutover runbooks](../plans/2026-04-17-partner-platform-environment-specific-cutover-runbooks.md)
 - [rehearsal logs and evidence archive template](../plans/2026-04-17-partner-platform-rehearsal-logs-and-evidence-archive-template.md)
 

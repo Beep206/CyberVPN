@@ -13,6 +13,7 @@ Dependencies:
 """
 
 import logging
+import os
 from unittest.mock import patch
 
 import pytest
@@ -123,6 +124,13 @@ class TestPrometheusMetrics:
             assert "cache_operations_total" in body
             assert "external_api_duration_seconds" in body
             assert "auth_attempts_total" in body
+            assert "telegram_native_login_started_total" in body
+            assert "telegram_native_login_completed_total" in body
+            assert "telegram_native_login_failed_total" in body
+            assert "telegram_oidc_token_validation_failed_total" in body
+            assert "telegram_oidc_user_created_total" in body
+            assert "telegram_oidc_user_resolved_total" in body
+            assert "telegram_oidc_device_registered_total" in body
             assert "auth_client_activity_total" in body
             assert "auth_bruteforce_events_total" in body
             assert "auth_password_identifier_events_total" in body
@@ -420,6 +428,33 @@ class TestSentryInitialization:
         assert isinstance(settings.sentry_dsn, str)
         # In test environment, DSN may be empty - that's OK
         # In production, this should be populated via SENTRY_DSN env var
+
+    @pytest.mark.integration
+    async def test_sentry_release_configured_in_settings(self, test_settings):
+        """Test that Sentry release field exists in settings."""
+        from src.config.settings import settings
+
+        assert hasattr(settings, "sentry_release")
+        assert isinstance(settings.sentry_release, str)
+
+    @pytest.mark.integration
+    async def test_sentry_runtime_contract_smoke(self, async_client: AsyncClient):
+        """Smoke-test resolved Sentry environment/release under CI-provided env vars."""
+        from src.config.settings import settings
+
+        expected_environment = os.environ.get("SENTRY_SMOKE_EXPECT_ENV")
+        expected_release = os.environ.get("SENTRY_SMOKE_EXPECT_RELEASE")
+        expected_dsn = os.environ.get("SENTRY_SMOKE_EXPECT_DSN")
+
+        if expected_environment:
+            assert settings.environment == expected_environment
+        if expected_release:
+            assert settings.sentry_release == expected_release
+        if expected_dsn:
+            assert settings.sentry_dsn == expected_dsn
+
+        response = await async_client.get("/health")
+        assert response.status_code == 200
 
     @pytest.mark.integration
     async def test_sentry_sdk_initialized_on_startup(self):

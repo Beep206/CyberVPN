@@ -1,0 +1,31 @@
+foundation_state = {
+  bucket = "cybervpn-terraform-state"
+  key    = "staging/foundation/terraform.tfstate"
+  region = "eu-central-1"
+}
+
+admin_ipv4_cidrs = ["203.0.113.10/32"]
+client_ipv4_cidrs = [
+  "203.0.113.10/32"
+]
+metrics_ipv4_cidrs = [
+  "203.0.113.10/32"
+]
+
+nats_nodes = {
+  "nats-nonprod-01" = {
+    location                 = "fsn1"
+    server_type              = "cax21"
+    cloud_init_authorized_keys = []
+  }
+  "nats-nonprod-02" = {
+    location                 = "nbg1"
+    server_type              = "cax21"
+    cloud_init_authorized_keys = []
+  }
+  "nats-nonprod-03" = {
+    location                 = "hel1"
+    server_type              = "cax21"
+    cloud_init_authorized_keys = []
+  }
+}

@@ -17,6 +17,24 @@ vi.mock('next-intl/server', () => ({
   }),
 }));
 
+vi.mock('@/i18n/server', () => ({
+  getCachedTranslations: vi.fn(async (_locale: string, namespace?: string) => {
+    return (key: string) => `${namespace ?? 'unknown'}.${key}`;
+  }),
+  getScopedMessages: vi.fn(async () => ({})),
+  setRequestLocale: vi.fn(),
+  getFormatter: vi.fn(),
+  getLocale: vi.fn(async () => 'en-EN'),
+  getMessages: vi.fn(async () => ({})),
+  getNow: vi.fn(async () => new Date('2026-01-01T00:00:00Z')),
+  getTimeZone: vi.fn(async () => 'UTC'),
+}));
+
+vi.mock('next/cache', () => ({
+  cacheLife: vi.fn(),
+  cacheTag: vi.fn(),
+}));
+
 describe('page metadata policy', () => {
   it('keeps core marketing routes indexable with localized canonical paths and route-specific copy', async () => {
     const [homeMetadata, pricingMetadata, helpMetadata] = await Promise.all([

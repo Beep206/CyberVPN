@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -8,12 +9,16 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.application.services.config_service import ConfigService
-from src.application.services.wallet_service import WalletService
-from src.application.use_cases.growth_rewards import CreateGrowthRewardAllocationUseCase
-from src.application.use_cases.referrals.process_referral_commission import (
-    ProcessReferralCommissionUseCase,
+from src.application.use_cases.referrals.process_referral_reward import (
+    ProcessReferralRewardUseCase,
 )
-from src.domain.enums import GrowthRewardType
+from src.application.use_cases.referrals.release_referral_rewards import (
+    ReleaseReferralRewardsUseCase,
+)
+from src.application.use_cases.referrals.reverse_referral_rewards import (
+    ReverseReferralRewardsForOrderUseCase,
+)
+from src.domain.enums import GrowthRewardAllocationStatus, GrowthRewardType
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -25,11 +30,7 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.infrastructure.database.repositories.growth_reward_allocation_repo import (
     GrowthRewardAllocationRepository,
 )
-from src.infrastructure.database.repositories.referral_commission_repo import (
-    ReferralCommissionRepository,
-)
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
-from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 from src.main import app
 from tests.helpers.realm_auth import (
     FakeRedis,
@@ -59,7 +60,7 @@ def _make_admin_token(auth_service: AuthService, *, user_id, realm) -> str:
 
 
 @pytest.mark.asyncio
-async def test_invite_redeem_creates_bonus_days_growth_reward_allocation(
+async def test_invite_redeem_creates_entitlement_grant_instead_of_bonus_days_reward(
     async_client: AsyncClient,
 ) -> None:
     auth_service = AuthService()
@@ -147,6 +148,22 @@ async def test_invite_redeem_creates_bonus_days_growth_reward_allocation(
                 json={"code": invite.code},
             )
             assert redeem_response.status_code == 200
+            redeem_payload = redeem_response.json()
+            assert redeem_payload["entitlement_grant_id"] is not None
+            assert redeem_payload["entitlement_snapshot"]["status"] == "active"
+            assert redeem_payload["entitlement_snapshot"]["plan_code"] == "invite"
+            assert redeem_payload["entitlement_snapshot"]["effective_entitlements"]["device_limit"] == 1
+
+            current_entitlement_response = await async_client.get(
+                "/api/v1/entitlements/current",
+                headers=customer_headers,
+            )
+            assert current_entitlement_response.status_code == 200
+            current_entitlement_payload = current_entitlement_response.json()
+            assert current_entitlement_payload["status"] == "active"
+            assert current_entitlement_payload["plan_code"] == "invite"
+            assert current_entitlement_payload["period_days"] == 42
+            assert current_entitlement_payload["effective_entitlements"]["device_limit"] == 1
 
             list_response = await async_client.get(
                 "/api/v1/growth-rewards/allocations",
@@ -155,24 +172,14 @@ async def test_invite_redeem_creates_bonus_days_growth_reward_allocation(
             )
             assert list_response.status_code == 200
             allocations = list_response.json()
-            assert len(allocations) == 1
-
-            allocation = allocations[0]
-            assert allocation["reward_type"] == GrowthRewardType.BONUS_DAYS.value
-            assert allocation["quantity"] == 42.0
-            assert allocation["unit"] == "days"
-            assert allocation["invite_code_id"] == str(invite.id)
-            assert allocation["source_key"] == f"invite:{invite.id}:bonus_days:{beneficiary.id}"
-            assert allocation["reward_payload"]["code"] == invite.code
-            assert allocation["reward_payload"]["invite_owner_user_id"] == str(invite_owner.id)
-            assert allocation["reward_payload"]["invite_source"] == invite.source
+            assert allocations == []
     finally:
         app.dependency_overrides.pop(get_redis, None)
         cleanup_sqlite_file(sqlite_path)
 
 
 @pytest.mark.asyncio
-async def test_referral_commission_creates_referral_credit_growth_reward(
+async def test_referral_reward_creates_pending_growth_reward_without_wallet_credit(
 ) -> None:
     auth_service = AuthService()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -198,6 +205,7 @@ async def test_referral_commission_creates_referral_credit_growth_reward(
                 password_hash=await auth_service.hash_password("Referrer123!"),
                 is_active=True,
                 status="active",
+                referral_code=f"REF{uuid.uuid4().hex[:6].upper()}",
             )
             referred = MobileUserModel(
                 id=uuid.uuid4(),
@@ -226,21 +234,20 @@ async def test_referral_commission_creates_referral_credit_growth_reward(
             await config_repo.set("referral.commission_rate", {"rate": 0.10})
             await config_repo.set("referral.duration_mode", {"mode": "first_payment_only"})
 
-            use_case = ProcessReferralCommissionUseCase(
-                commission_repo=ReferralCommissionRepository(adapter),
-                wallet_service=WalletService(WalletRepository(adapter)),
+            use_case = ProcessReferralRewardUseCase(
+                adapter,
                 config_service=ConfigService(config_repo),
-                growth_rewards=CreateGrowthRewardAllocationUseCase(adapter),
             )
-            commission = await use_case.execute(
+            allocation = await use_case.execute(
                 referrer_user_id=referrer.id,
                 referred_user_id=referred.id,
                 payment_id=payment.id,
                 base_amount=Decimal("125.00"),
+                duration_days=365,
             )
             db.commit()
 
-            assert commission is not None
+            assert allocation is not None
 
             allocations = await GrowthRewardAllocationRepository(adapter).list(
                 beneficiary_user_id=referrer.id,
@@ -248,13 +255,215 @@ async def test_referral_commission_creates_referral_credit_growth_reward(
             assert len(allocations) == 1
             allocation = allocations[0]
             assert allocation.reward_type == GrowthRewardType.REFERRAL_CREDIT.value
-            assert allocation.referral_commission_id == commission.id
-            assert float(allocation.quantity) == 12.5
+            assert allocation.referral_commission_id is None
+            assert allocation.source_code_id is not None
+            assert float(allocation.quantity) == 10.0
             assert allocation.unit == "credit"
             assert allocation.currency_code == "USD"
+            assert allocation.allocation_status == GrowthRewardAllocationStatus.PENDING.value
+            assert allocation.hold_until is not None
+            assert allocation.available_at is None
             assert allocation.reward_payload["payment_id"] == str(payment.id)
             assert allocation.reward_payload["referred_user_id"] == str(referred.id)
+            assert allocation.reward_payload["reward_was_capped"] is False
     finally:
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_release_referral_rewards_moves_pending_reward_to_available() -> None:
+    auth_service = AuthService()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    try:
+        with sessionmaker() as db:
+            adapter = SyncSessionAdapter(db)
+            realm = AuthRealmModel(
+                id=uuid.uuid4(),
+                realm_key=f"customer-{uuid.uuid4().hex[:8]}",
+                realm_type="customer",
+                display_name="Referral Growth Realm",
+                audience=f"cybervpn:customer:{uuid.uuid4().hex[:8]}",
+                cookie_namespace=f"customer-{uuid.uuid4().hex[:8]}",
+                status="active",
+                is_default=False,
+            )
+            referrer = MobileUserModel(
+                id=uuid.uuid4(),
+                auth_realm_id=realm.id,
+                email=f"referrer-{uuid.uuid4().hex[:8]}@example.test",
+                password_hash=await auth_service.hash_password("Referrer123!"),
+                is_active=True,
+                status="active",
+                referral_code=f"REF{uuid.uuid4().hex[:6].upper()}",
+            )
+            referred = MobileUserModel(
+                id=uuid.uuid4(),
+                auth_realm_id=realm.id,
+                email=f"referred-{uuid.uuid4().hex[:8]}@example.test",
+                password_hash=await auth_service.hash_password("Referred123!"),
+                is_active=True,
+                status="active",
+                referred_by_user_id=referrer.id,
+            )
+            payment = PaymentModel(
+                id=uuid.uuid4(),
+                user_uuid=referred.id,
+                amount=Decimal("125.00"),
+                currency="USD",
+                status="completed",
+                provider="cryptobot",
+                subscription_days=365,
+                metadata_={},
+            )
+            db.add_all([realm, referrer, referred, payment])
+            db.commit()
+
+            config_repo = SystemConfigRepository(adapter)
+            await config_repo.set("referral.enabled", {"enabled": True})
+
+            created = await ProcessReferralRewardUseCase(
+                adapter,
+                config_service=ConfigService(config_repo),
+            ).execute(
+                referrer_user_id=referrer.id,
+                referred_user_id=referred.id,
+                payment_id=payment.id,
+                base_amount=Decimal("125.00"),
+                duration_days=365,
+            )
+            db.commit()
+
+            assert created is not None
+            released = await ReleaseReferralRewardsUseCase(adapter).execute(
+                as_of=datetime.now(UTC) + timedelta(days=30),
+                commit=False,
+            )
+            db.commit()
+
+            assert len(released) == 1
+            assert released[0].id == created.id
+            assert released[0].allocation_status == GrowthRewardAllocationStatus.AVAILABLE.value
+            assert released[0].available_at is not None
+            assert released[0].hold_until is None
+    finally:
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_reverse_referral_rewards_for_order_marks_reward_reversed(
+    async_client: AsyncClient,
+) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_order_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            quote_payload, checkout_payload = await _create_quote_checkout(
+                async_client=async_client,
+                headers=headers,
+                storefront_key=seeded["storefront_key"],
+                pricebook_key=seeded["pricebook_key"],
+                offer_key=seeded["offer_key"],
+                plan_id=seeded["plan_id"],
+                idempotency_key="referral-reverse-checkout",
+            )
+            order_response = await async_client.post(
+                "/api/v1/orders/commit",
+                headers=headers,
+                json={"checkout_session_id": checkout_payload["id"]},
+            )
+            assert order_response.status_code == 201
+            order_payload = order_response.json()
+
+            with sessionmaker() as db:
+                adapter = SyncSessionAdapter(db)
+                customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
+                assert customer_user is not None
+                referrer = MobileUserModel(
+                    id=uuid.uuid4(),
+                    auth_realm_id=customer_user.auth_realm_id,
+                    email=f"referrer-{uuid.uuid4().hex[:8]}@example.test",
+                    password_hash=await auth_service.hash_password("Referrer123!"),
+                    is_active=True,
+                    status="active",
+                    referral_code=f"REF{uuid.uuid4().hex[:6].upper()}",
+                )
+                customer_user.referred_by_user_id = referrer.id
+                payment = PaymentModel(
+                    id=uuid.uuid4(),
+                    user_uuid=customer_user.id,
+                    amount=Decimal("125.00"),
+                    currency="USD",
+                    status="completed",
+                    provider="cryptobot",
+                    subscription_days=365,
+                    metadata_={},
+                )
+                db.add_all([referrer, payment])
+                db.commit()
+
+                config_repo = SystemConfigRepository(adapter)
+                await config_repo.set("referral.enabled", {"enabled": True})
+
+                allocation = await ProcessReferralRewardUseCase(
+                    adapter,
+                    config_service=ConfigService(config_repo),
+                ).execute(
+                    referrer_user_id=referrer.id,
+                    referred_user_id=customer_user.id,
+                    payment_id=payment.id,
+                    base_amount=Decimal("125.00"),
+                    duration_days=365,
+                    order_id=uuid.UUID(order_payload["id"]),
+                    storefront_id=uuid.UUID(seeded["storefront_id"]),
+                )
+                db.commit()
+
+                assert allocation is not None
+                reversed_allocations = await ReverseReferralRewardsForOrderUseCase(adapter).execute(
+                    order_id=uuid.UUID(order_payload["id"]),
+                    reversal_reason="refund_succeeded",
+                    commit=False,
+                )
+                db.commit()
+
+                assert len(reversed_allocations) == 1
+                assert reversed_allocations[0].id == allocation.id
+                assert reversed_allocations[0].allocation_status == GrowthRewardAllocationStatus.REVERSED.value
+                assert reversed_allocations[0].reversal_reason == "refund_succeeded"
+                assert reversed_allocations[0].reversed_at is not None
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
         cleanup_sqlite_file(sqlite_path)
 
 

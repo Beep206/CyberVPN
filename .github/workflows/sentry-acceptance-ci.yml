@@ -1,0 +1,39 @@
+name: Sentry Acceptance CI
+
+on:
+  push:
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'docs/plans/2026-04-24-sentry-rollout-tracker.md'
+      - '.github/workflows/sentry-acceptance-ci.yml'
+      - 'scripts/validate-sentry-governance.py'
+      - 'scripts/validate-sentry-privacy.py'
+      - 'scripts/validate-sentry-release-proof.py'
+      - 'scripts/validate-sentry-production-acceptance.py'
+  pull_request:
+    paths:
+      - 'docs/observability/sentry/**'
+      - 'docs/plans/2026-04-24-sentry-rollout-tracker.md'
+      - '.github/workflows/sentry-acceptance-ci.yml'
+      - 'scripts/validate-sentry-governance.py'
+      - 'scripts/validate-sentry-privacy.py'
+      - 'scripts/validate-sentry-release-proof.py'
+      - 'scripts/validate-sentry-production-acceptance.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate governance baseline
+        run: python3 scripts/validate-sentry-governance.py
+
+      - name: Validate privacy baseline
+        run: python3 scripts/validate-sentry-privacy.py
+
+      - name: Validate release-proof baseline
+        run: python3 scripts/validate-sentry-release-proof.py
+
+      - name: Validate production acceptance baseline
+        run: python3 scripts/validate-sentry-production-acceptance.py

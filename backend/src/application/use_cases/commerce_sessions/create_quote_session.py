@@ -13,8 +13,9 @@ from src.application.use_cases.commerce_sessions.quote_serialization import (
     build_request_snapshot,
     serialize_checkout_result,
 )
+from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
-from src.domain.enums import AttributionTouchpointType
+from src.domain.enums import AttributionTouchpointType, GrowthCodeType
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
 from src.presentation.dependencies.auth_realms import RealmResolution
@@ -29,6 +30,7 @@ class CreateQuoteSessionUseCase:
         self._checkout = CheckoutUseCase(session)
         self._resolver = ResolveQuoteContextUseCase(session)
         self._touchpoints = RecordAttributionTouchpointUseCase(session)
+        self._reservations = GrowthCodeReservationService(session)
 
     async def execute(
         self,
@@ -40,6 +42,7 @@ class CreateQuoteSessionUseCase:
         plan_id: UUID,
         pricebook_key: str | None,
         offer_key: str | None,
+        code_input: str | None,
         promo_code: str | None,
         partner_code: str | None,
         use_wallet: float,
@@ -64,9 +67,11 @@ class CreateQuoteSessionUseCase:
         checkout_result = await self._checkout.execute(
             user_id=user_id,
             plan_id=plan_id,
+            code_input=code_input,
             promo_code=promo_code,
             partner_code=partner_code,
             use_wallet=Decimal(str(use_wallet)),
+            storefront_id=resolved_context.storefront.id,
             addons=[
                 CheckoutAddonInput(
                     code=addon["code"],
@@ -109,6 +114,7 @@ class CreateQuoteSessionUseCase:
                 plan_id=str(plan_id),
                 currency=currency.upper(),
                 channel=channel,
+                code_input=checkout_result.code_input,
                 promo_code=promo_code.strip() if promo_code else None,
                 partner_code=partner_code.strip() if partner_code else None,
                 use_wallet=use_wallet,
@@ -119,6 +125,16 @@ class CreateQuoteSessionUseCase:
             expires_at=now + QUOTE_SESSION_TTL,
         )
         created = await self._repo.create_quote_session(model)
+        if _should_reserve_growth_code(checkout_result):
+            reservation = await self._reservations.reserve_for_quote(
+                growth_code_id=checkout_result.code_resolution.growth_code_id,
+                quote_session_id=created.id,
+                user_id=user_id,
+                expires_at=created.expires_at,
+            )
+            checkout_result.reservation_id = reservation.id
+            created.quote_snapshot = serialize_checkout_result(checkout_result)
+            await self._session.flush()
 
         await self._touchpoints.execute(
             current_realm=current_realm,
@@ -161,3 +177,13 @@ class CreateQuoteSessionUseCase:
         await self._session.commit()
         await self._session.refresh(created)
         return created
+
+
+def _should_reserve_growth_code(checkout_result) -> bool:
+    if checkout_result.code_resolution is None:
+        return False
+    if not checkout_result.code_resolution.accepted:
+        return False
+    if checkout_result.code_resolution.growth_code_id is None:
+        return False
+    return checkout_result.code_resolution.code_type == GrowthCodeType.PROMO

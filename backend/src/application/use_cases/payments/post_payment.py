@@ -11,15 +11,15 @@ from src.application.events import EventOutboxService
 from src.application.services.config_service import ConfigService
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.attribution.qualifying_events import EvaluateOrderPolicyUseCase
-from src.application.use_cases.growth_rewards import CreateGrowthRewardAllocationUseCase
+from src.application.use_cases.gifts.service import IssueGiftCodeUseCase
 from src.application.use_cases.invites.generate_invites import (
     GenerateInvitesForPaymentUseCase,
 )
 from src.application.use_cases.partners.process_partner_earning import (
     ProcessPartnerEarningUseCase,
 )
-from src.application.use_cases.referrals.process_referral_commission import (
-    ProcessReferralCommissionUseCase,
+from src.application.use_cases.referrals.process_referral_reward import (
+    ProcessReferralRewardUseCase,
 )
 from src.application.use_cases.settlement import RecordEarningEventUseCase
 from src.domain.enums import WalletTxReason
@@ -40,9 +40,6 @@ from src.infrastructure.database.repositories.plan_addon_repo import (
 )
 from src.infrastructure.database.repositories.promo_code_repo import (
     PromoCodeRepository,
-)
-from src.infrastructure.database.repositories.referral_commission_repo import (
-    ReferralCommissionRepository,
 )
 from src.infrastructure.database.repositories.renewal_order_repo import RenewalOrderRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import (
@@ -88,14 +85,11 @@ class PostPaymentProcessingUseCase:
             invite_repo=invite_repo,
             plan_repo=plan_repo,
         )
+        self._issue_gift = IssueGiftCodeUseCase(session)
 
-        commission_repo = ReferralCommissionRepository(session)
-        growth_rewards = CreateGrowthRewardAllocationUseCase(session)
-        self._process_referral = ProcessReferralCommissionUseCase(
-            commission_repo=commission_repo,
-            wallet_service=self._wallet,
+        self._process_referral = ProcessReferralRewardUseCase(
+            session,
             config_service=self._config,
-            growth_rewards=growth_rewards,
         )
 
         partner_repo = PartnerRepository(session)
@@ -126,24 +120,26 @@ class PostPaymentProcessingUseCase:
         results: dict = {"payment_id": str(payment_id)}
         commission_base_amount = Decimal(str((payment.metadata_ or {}).get("commission_base_amount", payment.amount)))
         checkout_mode = str((payment.metadata_ or {}).get("checkout_mode", "new_purchase"))
+        gift_flow = checkout_mode == "gift_purchase"
         payment_attempt = await self._payment_attempt_repo.get_by_payment_id(payment.id)
         policy_evaluation = None
         renewal_order = None
+        resolved_order = None
         if payment_attempt is not None and payment_attempt.order_id is not None:
             try:
                 if payment.status == "completed" and payment_attempt.status == "succeeded":
-                    order = await self._orders.get_by_id(payment_attempt.order_id)
-                    if order is not None and order.settlement_status == "pending_payment":
-                        order.settlement_status = "paid"
+                    resolved_order = await self._orders.get_by_id(payment_attempt.order_id)
+                    if resolved_order is not None and resolved_order.settlement_status == "pending_payment":
+                        resolved_order.settlement_status = "paid"
                         await self._session.flush()
                         await self._outbox.append_event(
                             event_name="order.finalized",
                             aggregate_type="order",
-                            aggregate_id=str(order.id),
-                            partition_key=str(order.user_id),
+                            aggregate_id=str(resolved_order.id),
+                            partition_key=str(resolved_order.user_id),
                             event_payload={
-                                "order_id": str(order.id),
-                                "settlement_status": order.settlement_status,
+                                "order_id": str(resolved_order.id),
+                                "settlement_status": resolved_order.settlement_status,
                                 "payment_id": str(payment.id),
                                 "payment_attempt_id": str(payment_attempt.id),
                             },
@@ -234,10 +230,43 @@ class PostPaymentProcessingUseCase:
         else:
             results["addons_extended"] = 0
 
+        if gift_flow and payment.plan_id:
+            try:
+                issued_gift = await self._issue_gift.execute(
+                    owner_user_id=payment.user_uuid,
+                    plan_id=payment.plan_id,
+                    issuer_type="purchase",
+                    issuance_type="gift_purchase",
+                    recipient_hint=(payment.metadata_ or {}).get("gift_recipient_hint"),
+                    gift_message=(payment.metadata_ or {}).get("gift_message"),
+                    source_payment_id=payment.id,
+                    source_order_id=payment_attempt.order_id if payment_attempt is not None else None,
+                    storefront_id=_parse_optional_uuid((payment.metadata_ or {}).get("gift_storefront_id")),
+                    auth_realm_id=_parse_optional_uuid((payment.metadata_ or {}).get("gift_auth_realm_id")),
+                    reason_code="gift_purchase",
+                )
+                results["gift_code_issued"] = True
+                results["gift_code_id"] = str(issued_gift.growth_code.id)
+                results["gift_code_prefix"] = issued_gift.growth_code.code_prefix
+            except Exception:
+                logger.exception(
+                    "post_payment_gift_issue_failed",
+                    extra={"payment_id": str(payment_id)},
+                )
+                results["gift_code_issued"] = False
+                results["gift_code_id"] = None
+                results["gift_code_prefix"] = None
+        else:
+            results["gift_code_issued"] = False
+            results["gift_code_id"] = None
+            results["gift_code_prefix"] = None
+
         # ------------------------------------------------------------------
         # 2. Generate invite codes
         # ------------------------------------------------------------------
-        if payment.plan_id:
+        if gift_flow:
+            results["invites_generated"] = 0
+        elif payment.plan_id:
             try:
                 invites = await self._generate_invites.execute(
                     owner_user_id=payment.user_uuid,
@@ -251,15 +280,21 @@ class PostPaymentProcessingUseCase:
                     extra={"payment_id": str(payment_id)},
                 )
                 results["invites_generated"] = 0
+        else:
+            results["invites_generated"] = 0
 
         # ------------------------------------------------------------------
-        # 3. Process referral commission
+        # 3. Process referral reward
         # ------------------------------------------------------------------
         referrer_id = user.referred_by_user_id if user else None
-        if referrer_id is not None and commission_base_amount > 0:
+        if gift_flow:
+            results["referral_reward_amount"] = None
+            results["referral_reward_status"] = None
+            results["referral_commission"] = None
+        elif referrer_id is not None and commission_base_amount > 0:
             if policy_evaluation is not None and not policy_evaluation.payout_rules.referral_cash_payout_allowed:
                 logger.info(
-                    "post_payment_referral_commission_blocked_by_policy",
+                    "post_payment_referral_reward_blocked_by_policy",
                     extra={
                         "payment_id": str(payment_id),
                         "order_id": (
@@ -270,24 +305,35 @@ class PostPaymentProcessingUseCase:
                         "reason_codes": policy_evaluation.payout_rules.referral_reason_codes,
                     },
                 )
+                results["referral_reward_amount"] = None
+                results["referral_reward_status"] = None
                 results["referral_commission"] = None
                 results["referral_policy_block_reasons"] = policy_evaluation.payout_rules.referral_reason_codes
             else:
                 try:
-                    commission = await self._process_referral.execute(
+                    reward = await self._process_referral.execute(
                         referrer_user_id=referrer_id,
                         referred_user_id=payment.user_uuid,
                         payment_id=payment.id,
                         base_amount=commission_base_amount,
+                        duration_days=payment.subscription_days,
+                        order_id=payment_attempt.order_id if payment_attempt is not None else None,
+                        storefront_id=resolved_order.storefront_id if resolved_order is not None else None,
                     )
-                    results["referral_commission"] = float(commission.commission_amount) if commission else None
+                    results["referral_reward_amount"] = float(reward.quantity) if reward else None
+                    results["referral_reward_status"] = reward.allocation_status if reward else None
+                    results["referral_commission"] = results["referral_reward_amount"]
                 except Exception:
                     logger.exception(
-                        "post_payment_referral_commission_failed",
+                        "post_payment_referral_reward_failed",
                         extra={"payment_id": str(payment_id)},
                     )
+                    results["referral_reward_amount"] = None
+                    results["referral_reward_status"] = None
                     results["referral_commission"] = None
         else:
+            results["referral_reward_amount"] = None
+            results["referral_reward_status"] = None
             results["referral_commission"] = None
 
         # ------------------------------------------------------------------
@@ -304,7 +350,11 @@ class PostPaymentProcessingUseCase:
             if resolved_partner_code is not None:
                 resolved_partner_user_id = resolved_partner_code.partner_user_id
 
-        if resolved_partner_code_id and user and resolved_partner_user_id and commission_base_amount > 0:
+        if gift_flow:
+            results["partner_earning"] = None
+            results["settlement_earning_event_id"] = None
+            results["settlement_earning_event_status"] = None
+        elif resolved_partner_code_id and user and resolved_partner_user_id and commission_base_amount > 0:
             if policy_evaluation is not None and not policy_evaluation.payout_rules.partner_cash_payout_allowed:
                 logger.info(
                     "post_payment_partner_earning_blocked_by_policy",
@@ -409,3 +459,14 @@ class PostPaymentProcessingUseCase:
 
         logger.info("post_payment_processing_completed", extra=results)
         return results
+
+
+def _parse_optional_uuid(value: str | UUID | None) -> UUID | None:
+    if value is None:
+        return None
+    if isinstance(value, UUID):
+        return value
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError):
+        return None

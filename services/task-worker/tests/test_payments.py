@@ -13,6 +13,7 @@ os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 
 from src.tasks.payments.verify_pending import verify_pending_payments
 from src.tasks.payments.process_completion import process_payment_completion
+from src.tasks.payments.reconcile_telegram_stars import reconcile_telegram_stars_refunds
 from src.tasks.payments.retry_webhooks import retry_failed_webhooks
 
 
@@ -225,6 +226,61 @@ async def test_verify_pending_empty_queue(mock_db_session, mock_cryptobot, mock_
         assert result["completed"] == 0
         assert result["expired"] == 0
         mock_cryptobot.get_invoices.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reconcile_telegram_stars_refunds_syncs_provider_state(mock_settings, mock_telegram):
+    """Test Telegram Stars reconciliation forwards outgoing refund transactions to backend."""
+    mock_telegram.get_star_transactions.return_value = {
+        "transactions": [
+            {
+                "id": "tg-charge-1",
+                "amount": 250,
+                "date": 1713780000,
+                "receiver": {
+                    "type": "user",
+                    "transaction_type": "invoice_payment",
+                    "invoice_payload": "stars:payment:user",
+                    "user": {"id": 555},
+                },
+            }
+        ]
+    }
+    mock_backend = AsyncMock()
+    mock_backend.enabled = True
+    mock_backend.reconcile_telegram_stars_refund = AsyncMock(
+        return_value={"action": "created_and_reconciled"}
+    )
+
+    with (
+        patch("src.tasks.payments.reconcile_telegram_stars.get_settings", return_value=mock_settings),
+        patch("src.tasks.payments.reconcile_telegram_stars.TelegramClient") as MockTg,
+        patch("src.tasks.payments.reconcile_telegram_stars.BackendAPIClient") as MockBackend,
+    ):
+        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        MockBackend.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
+        MockBackend.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await reconcile_telegram_stars_refunds()
+
+        mock_telegram.get_star_transactions.assert_awaited_once()
+        mock_backend.reconcile_telegram_stars_refund.assert_awaited_once()
+        assert result["checked"] == 1
+        assert result["actions"] == {"created_and_reconciled": 1}
+
+
+@pytest.mark.asyncio
+async def test_reconcile_telegram_stars_refunds_skips_without_backend_config(mock_settings):
+    """Test Telegram Stars reconciliation is skipped when backend hook is not configured."""
+    mock_settings.backend_api_url = None
+    mock_settings.backend_internal_secret = None
+
+    with patch("src.tasks.payments.reconcile_telegram_stars.get_settings", return_value=mock_settings):
+        result = await reconcile_telegram_stars_refunds()
+
+    assert result["skipped"] is True
+    assert result["reason"] == "backend_api_not_configured"
 
 
 @pytest.mark.asyncio

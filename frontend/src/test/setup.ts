@@ -1,20 +1,48 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { server } from './mocks/server';
 
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
+
+function installBrowserApiMocks() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: window.navigator,
+  });
+
+  Object.defineProperty(window.navigator, 'sendBeacon', {
+    configurable: true,
+    value: vi.fn(() => true),
+  });
+
+  Object.defineProperty(window, 'open', {
+    configurable: true,
+    value: vi.fn(),
+  });
+}
+
+installBrowserApiMocks();
 
 // ---------------------------------------------------------------------------
 // MSW Server Lifecycle
 // ---------------------------------------------------------------------------
 
 // Start the MSW server before all tests in a file.
-// onUnhandledRequest: 'bypass' lets real network requests initiated by the DOM test runtime
-// pass through without failing, while still intercepting API calls that match
-// the registered handlers.
+// Real network calls make the suite nondeterministic in the sandbox, so any
+// unhandled request must be added to the MSW contract instead of bypassed.
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'bypass' });
+  server.listen({ onUnhandledRequest: 'error' });
+});
+
+// Some suites call vi.unstubAllGlobals(); restore browser APIs before every
+// test so analytics/reporting helpers keep using sendBeacon instead of fetch.
+beforeEach(() => {
+  installBrowserApiMocks();
 });
 
 // Reset any per-test handler overrides so tests stay isolated.
@@ -69,6 +97,22 @@ vi.mock('@/i18n/navigation', () => ({
   },
 }));
 
+const createMotionValue = (initial: unknown = 0) => {
+  let current = initial;
+
+  return {
+    get: () => current,
+    set: (next: unknown) => {
+      current = next;
+    },
+    on: () => () => undefined,
+    onChange: () => () => undefined,
+    getVelocity: () => 0,
+    destroy: () => undefined,
+    toString: () => String(current),
+  };
+};
+
 // Mock motion/react to avoid animation issues in tests
 vi.mock('motion/react', () => ({
   motion: new Proxy(
@@ -107,6 +151,14 @@ vi.mock('motion/react', () => ({
     }
   ),
   AnimatePresence: ({ children }: { children: unknown }) => children,
+  MotionConfig: ({ children }: { children: unknown }) => children,
+  useMotionValue: (initial: unknown) => createMotionValue(initial),
+  useSpring: (value: unknown) => value,
+  useMotionTemplate: (strings: TemplateStringsArray, ...values: unknown[]) =>
+    strings.reduce(
+      (acc, chunk, index) => `${acc}${chunk}${index < values.length ? String(values[index]) : ''}`,
+      '',
+    ),
   useReducedMotion: () => false,
   useInView: () => true,
 }));

@@ -7,6 +7,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.referrals.reverse_referral_rewards import (
+    ReverseReferralRewardsForOrderUseCase,
+)
 from src.application.use_cases.settlement.adjustments import (
     ApplyPaymentDisputeSettlementEffectsUseCase,
 )
@@ -36,6 +39,7 @@ class UpsertPaymentDisputeUseCase:
         self._payments = PaymentRepository(session)
         self._payment_disputes = PaymentDisputeRepository(session)
         self._settlement_effects = ApplyPaymentDisputeSettlementEffectsUseCase(session)
+        self._reverse_referral_rewards = ReverseReferralRewardsForOrderUseCase(session)
 
     async def execute(
         self,
@@ -149,6 +153,15 @@ class UpsertPaymentDisputeUseCase:
             dispute.closed_at = closed_at
 
         await self._settlement_effects.execute(payment_dispute_id=dispute.id)
+        if (
+            dispute.lifecycle_status == PaymentDisputeStatus.CLOSED.value
+            and dispute.outcome_class == PaymentDisputeOutcomeClass.LOST.value
+        ):
+            await self._reverse_referral_rewards.execute(
+                order_id=order.id,
+                reversal_reason="payment_dispute_lost",
+                commit=False,
+            )
 
         await self._session.commit()
         refreshed = await self._payment_disputes.get_by_id(dispute.id)

@@ -48,9 +48,9 @@ Operational rule:
 | Command family | Canonical source | Primary owner group | Notes |
 |---|---|---|---|
 | local bootstrap | repo root `npm`, `infra/docker compose`, `infra/README.md` | platform engineering, frontend platform | local integration only |
-| staging terraform and inventory | `infra/Makefile` | platform engineering | foundation, edge, dns, control-plane |
+| staging OpenTofu and inventory | `infra/Makefile` | platform engineering | foundation, edge, dns, control-plane |
 | staging rollout and smoke | `infra/Makefile`, staging runbooks | platform engineering, QA | includes smoke and rollback |
-| production terraform and inventory | `infra/Makefile`, production canary runbook | platform engineering | live environment precondition |
+| production OpenTofu and inventory | `infra/Makefile`, production canary runbook | platform engineering | live environment precondition |
 | control-plane release promotion | `infra/Makefile`, control-plane release runbook | platform engineering | requires immutable image digests |
 | production edge canary rollout | `infra/Makefile`, production canary runbook | platform engineering, QA | live window must name canary hosts |
 | production rollback | `infra/Makefile`, production canary runbook | platform engineering, incident commander | live window must name rollback owner |
@@ -75,18 +75,18 @@ Local validation still relies on target-specific engineering gate packs. This sh
 
 ## 5. Staging Environment Command Inventory
 
-## 5.1 Terraform And Inventory
+## 5.1 OpenTofu And Inventory
 
 | Use case | Canonical command |
 |---|---|
-| init staging foundation | `cd infra && make terraform-init-staging-foundation` |
-| plan staging foundation | `cd infra && make terraform-plan-staging-foundation` |
-| init staging edge | `cd infra && make terraform-init-staging-edge` |
-| plan staging edge | `cd infra && make terraform-plan-staging-edge` |
-| init staging dns | `cd infra && make terraform-init-staging-dns` |
-| plan staging dns | `cd infra && make terraform-plan-staging-dns` |
-| init staging control-plane | `cd infra && make terraform-init-staging-control-plane` |
-| plan staging control-plane | `cd infra && make terraform-plan-staging-control-plane` |
+| init staging foundation | `cd infra && make tofu-init-staging-foundation` |
+| plan staging foundation | `cd infra && make tofu-plan-staging-foundation` |
+| init staging edge | `cd infra && make tofu-init-staging-edge` |
+| plan staging edge | `cd infra && make tofu-plan-staging-edge` |
+| init staging dns | `cd infra && make tofu-init-staging-dns` |
+| plan staging dns | `cd infra && make tofu-plan-staging-dns` |
+| init staging control-plane | `cd infra && make tofu-init-staging-control-plane` |
+| plan staging control-plane | `cd infra && make tofu-plan-staging-control-plane` |
 | generate staging inventory | `cd infra && make inventory-staging` |
 
 ## 5.2 Edge And Service Rollouts
@@ -130,18 +130,18 @@ The detailed environment variables and API checks remain in [STAGING_REMNAWAVE_S
 
 ## 6. Production Environment Command Inventory
 
-## 6.1 Terraform And Inventory
+## 6.1 OpenTofu And Inventory
 
 | Use case | Canonical command |
 |---|---|
-| init production foundation | `cd infra && make terraform-init-production-foundation` |
-| plan production foundation | `cd infra && make terraform-plan-production-foundation` |
-| init production edge | `cd infra && make terraform-init-production-edge` |
-| plan production edge | `cd infra && make terraform-plan-production-edge` |
-| init production dns | `cd infra && make terraform-init-production-dns` |
-| plan production dns | `cd infra && make terraform-plan-production-dns` |
-| init production control-plane | `cd infra && make terraform-init-production-control-plane` |
-| plan production control-plane | `cd infra && make terraform-plan-production-control-plane` |
+| init production foundation | `cd infra && make tofu-init-production-foundation` |
+| plan production foundation | `cd infra && make tofu-plan-production-foundation` |
+| init production edge | `cd infra && make tofu-init-production-edge` |
+| plan production edge | `cd infra && make tofu-plan-production-edge` |
+| init production dns | `cd infra && make tofu-init-production-dns` |
+| plan production dns | `cd infra && make tofu-plan-production-dns` |
+| init production control-plane | `cd infra && make tofu-init-production-control-plane` |
+| plan production control-plane | `cd infra && make tofu-plan-production-control-plane` |
 | generate production inventory | `cd infra && make inventory-production` |
 
 ## 6.2 Production Control-Plane Promotion
@@ -243,7 +243,7 @@ Use the template below for every real production window.
 
 ## Approved Command Set
 
-- terraform and inventory: <link to section 6.1>
+- OpenTofu and inventory: <link to section 6.1>
 - control-plane promotion: <link to section 6.2 or n/a>
 - edge rollout family: <link to section 6.3 or 6.4>
 - smoke references: <link to rehearsal log or runbook>

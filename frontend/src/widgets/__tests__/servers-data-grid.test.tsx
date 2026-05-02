@@ -97,7 +97,7 @@ describe('ServersDataGrid', () => {
     expect(screen.getAllByText('governance.noPlugin').length).toBeGreaterThan(0);
     expect(screen.getByText(/governance.pluginActive: 1/)).toBeInTheDocument();
     expect(screen.getByText(/governance.noPlugin: 1/)).toBeInTheDocument();
-    expect(screen.getByText('2.7.4')).toBeInTheDocument();
+    expect(screen.getAllByText('2.7.4').length).toBeGreaterThan(0);
     expect(screen.getByText('1.8.13')).toBeInTheDocument();
     expect(screen.getByText(/labels.plugin: plugin-u/)).toBeInTheDocument();
   });

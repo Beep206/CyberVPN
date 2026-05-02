@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DevicesSection } from '../DevicesSection';
 import { http, HttpResponse } from 'msw';
@@ -19,10 +19,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => {
+    const messages: Record<string, string> = {
+      devices: 'Active Devices',
+    };
+    return (key: string) => messages[key] ?? key;
+  },
 }));
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -66,7 +71,7 @@ describe('DevicesSection', () => {
   });
 
   describe('Loading State', () => {
-    it('test_shows_loading_skeleton_while_fetching', () => {
+    it('test_shows_loading_skeleton_while_fetching', async () => {
       server.use(
         http.get(`${API_BASE}/auth/devices`, async () => {
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -78,6 +83,10 @@ describe('DevicesSection', () => {
 
       const skeletons = document.querySelectorAll('.animate-pulse');
       expect(skeletons.length).toBeGreaterThan(0);
+
+      await waitFor(() => {
+        expect(screen.getByText(/No active devices found/i)).toBeInTheDocument();
+      });
     });
   });
 
@@ -117,11 +126,8 @@ describe('DevicesSection', () => {
       render(<DevicesSection />, { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(screen.getByText(/Last active:/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Last active:/)).toHaveLength(3);
       });
-
-      const lastActiveTimes = screen.getAllByText(/Last active:/);
-      expect(lastActiveTimes.length).toBe(3);
     });
 
     it('test_parses_user_agent_for_display', async () => {
@@ -132,6 +138,7 @@ describe('DevicesSection', () => {
       });
 
       expect(screen.getByText(/Safari on iOS/)).toBeInTheDocument();
+      expect(screen.getByText(/Safari on iPadOS/)).toBeInTheDocument();
     });
   });
 
@@ -294,6 +301,9 @@ describe('DevicesSection', () => {
             { detail: 'Internal server error' },
             { status: 500 }
           );
+        }),
+        http.delete(`${API_BASE}/auth/devices/device-3`, () => {
+          return HttpResponse.json({ message: 'Logged out successfully' });
         })
       );
 
@@ -422,10 +432,11 @@ describe('DevicesSection', () => {
     });
 
     it('test_disables_logout_button_while_logging_out', async () => {
-      const user = userEvent.setup();
+      let logoutRequests = 0;
 
       server.use(
         http.delete(`${API_BASE}/auth/devices/device-2`, async () => {
+          logoutRequests += 1;
           await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json({ message: 'Success' });
         })
@@ -440,10 +451,19 @@ describe('DevicesSection', () => {
       const logoutButtons = screen.getAllByLabelText('Logout device');
       const firstButton = logoutButtons[0] as HTMLButtonElement;
 
-      await user.click(firstButton);
+      fireEvent.click(firstButton);
 
-      // Button should be disabled during logout
-      expect(firstButton).toBeDisabled();
+      await waitFor(() => {
+        expect(logoutRequests).toBe(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByLabelText('Logout device')[0]).toBeDisabled();
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByLabelText('Logout device')[0]).toBeEnabled();
+      });
     });
   });
 
@@ -481,7 +501,7 @@ describe('DevicesSection', () => {
       });
 
       // Component should handle error gracefully
-      expect(screen.queryByText(/Active Devices/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Active Devices/i })).toBeInTheDocument();
     });
 
     it('test_handles_network_error', async () => {
@@ -498,7 +518,7 @@ describe('DevicesSection', () => {
       });
 
       // Component should handle error gracefully
-      expect(screen.queryByText(/Active Devices/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Active Devices/i })).toBeInTheDocument();
     });
   });
 
@@ -533,7 +553,7 @@ describe('DevicesSection', () => {
       });
     });
 
-    it('test_has_1_minute_stale_time', () => {
+    it('test_has_1_minute_stale_time', async () => {
       const queryClient = new QueryClient({
         defaultOptions: {
           queries: { retry: false },
@@ -555,7 +575,9 @@ describe('DevicesSection', () => {
 
       // Verify staleTime is set (1 minute = 60000ms)
       // Can't directly access staleTime but we can verify the hook is defined
-      expect(screen.queryByText(/Active Devices/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Active Devices/i })).toBeInTheDocument();
+      });
     });
   });
 });

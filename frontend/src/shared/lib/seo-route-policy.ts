@@ -25,6 +25,7 @@ export const INDEXABLE_MARKETING_PATHS = [
   '/guides',
   '/help',
   '/network',
+  '/network/dpi-resistance',
   '/pricing',
   '/privacy',
   '/privacy-policy',
@@ -34,7 +35,7 @@ export const INDEXABLE_MARKETING_PATHS = [
   '/trust',
 ] as const;
 
-export const INDEXABLE_MARKETING_PREFIXES = ['/compare', '/devices', '/guides'] as const;
+export const INDEXABLE_MARKETING_PREFIXES = ['/compare', '/devices', '/guides', '/network'] as const;
 
 export const CLIENT_PORTAL_PATH_PREFIXES = [
   '/analytics',

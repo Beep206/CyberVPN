@@ -5,6 +5,7 @@ Handles Telegram Login Widget callback validation and user creation/linking.
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -16,10 +17,10 @@ from src.application.dto.mobile_auth import (
     SubscriptionStatus,
     TelegramAuthRequestDTO,
     TokenResponseDTO,
-    UserResponseDTO,
 )
 from src.application.services.auth_service import AuthService
 from src.application.services.telegram_auth import TelegramAuthService
+from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
@@ -118,16 +119,7 @@ class MobileTelegramAuthUseCase:
         else:
             subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 
-        user_response = UserResponseDTO(
-            id=user.id,
-            email=user.email,
-            username=user.username,
-            status=user.status,
-            telegram_id=user.telegram_id,
-            telegram_username=user.telegram_username,
-            created_at=user.created_at,
-            subscription=subscription,
-        )
+        user_response = build_mobile_user_response(user, subscription=subscription)
 
         return (
             AuthResponseDTO(
@@ -141,12 +133,14 @@ class MobileTelegramAuthUseCase:
     async def _create_user_from_telegram(self, telegram_data) -> MobileUserModel:
         """Create a new user from Telegram data.
 
-        The user will have no password (can only login via Telegram).
-        Email is generated from Telegram ID to ensure uniqueness.
+        The user gets a synthetic password hash so storage stays compatible with
+        the existing non-null mobile password schema while password login remains
+        disabled until the user explicitly sets credentials.
         """
         # Generate placeholder email from Telegram ID
         # User can update this later if needed
         placeholder_email = f"tg{telegram_data.telegram_id}@telegram.local"
+        password_hash = await self.auth_service.hash_password(secrets.token_urlsafe(32))
 
         # Build username from Telegram data
         username = telegram_data.username
@@ -158,7 +152,7 @@ class MobileTelegramAuthUseCase:
         user = MobileUserModel(
             auth_realm_id=stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"])),
             email=placeholder_email,
-            password_hash=None,  # No password for Telegram-only auth
+            password_hash=password_hash,
             username=username,
             telegram_id=telegram_data.telegram_id,
             telegram_username=telegram_data.username,

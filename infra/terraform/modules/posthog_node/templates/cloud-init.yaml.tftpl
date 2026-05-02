@@ -1,0 +1,54 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+users:
+  - default
+  - name: ${admin_username}
+    shell: /bin/bash
+    groups: [sudo]
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+%{ for key in authorized_keys ~}
+      - ${key}
+%{ endfor ~}
+
+write_files:
+  - path: /usr/local/sbin/install-posthog-host.sh
+    permissions: "0755"
+    owner: root:root
+    content: |
+${indent(6, install_host_script)}
+  - path: /etc/systemd/system/posthog-local-backup.service
+    permissions: "0644"
+    owner: root:root
+    content: |
+${indent(6, backup_service_unit)}
+  - path: /etc/systemd/system/posthog-local-backup.timer
+    permissions: "0644"
+    owner: root:root
+    content: |
+${indent(6, backup_timer_unit)}
+  - path: /etc/posthog/bootstrap/node-meta.json
+    permissions: "0644"
+    owner: root:root
+    content: |
+      {
+        "instance_id": "${posthog_instance_id}",
+        "node_name": "${node_name}",
+        "domain_name": "${domain_name}",
+        "advertise_address": "${advertise_address}",
+        "ports": {
+          "http": 80,
+          "https": 443
+        },
+        "backup_retention_days": ${backup_retention_days}
+      }
+
+runcmd:
+  - ["bash", "-lc", "sed -i 's/^#\\?Port .*/Port ${ssh_port}/' /etc/ssh/sshd_config && systemctl restart ssh || systemctl restart sshd"]
+  - ["/usr/local/sbin/install-posthog-host.sh"]
+  - ["systemctl", "daemon-reload"]
+  - ["systemctl", "enable", "posthog-local-backup.timer"]
+  - ["systemctl", "start", "posthog-local-backup.timer"]

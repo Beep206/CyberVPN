@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+
+if ! command -v curl >/dev/null 2>&1; then
+  apt-get update
+  apt-get install -y curl ca-certificates tar
+fi
+
+if ! getent group nats >/dev/null 2>&1; then
+  groupadd --system nats
+fi
+
+if ! id -u nats >/dev/null 2>&1; then
+  useradd --system --gid nats --home-dir /var/lib/nats --shell /usr/sbin/nologin nats
+fi
+
+tmp_dir="$$(mktemp -d)"
+trap 'rm -rf "$$tmp_dir"' EXIT
+
+nats_archive_url="https://github.com/nats-io/nats-server/releases/download/v${nats_version}/nats-server-v${nats_version}-linux-amd64.tar.gz"
+curl -fsSL "$$nats_archive_url" -o "$$tmp_dir/nats-server.tar.gz"
+tar -xzf "$$tmp_dir/nats-server.tar.gz" -C "$$tmp_dir"
+install -m 0755 "$$tmp_dir/nats-server-v${nats_version}-linux-amd64/nats-server" /usr/local/bin/nats-server
+
+exporter_archive_url="https://github.com/nats-io/prometheus-nats-exporter/releases/download/v${nats_exporter_version}/prometheus-nats-exporter-v${nats_exporter_version}-linux-amd64.tar.gz"
+curl -fsSL "$$exporter_archive_url" -o "$$tmp_dir/prometheus-nats-exporter.tar.gz"
+tar -xzf "$$tmp_dir/prometheus-nats-exporter.tar.gz" -C "$$tmp_dir"
+install -m 0755 "$$tmp_dir/prometheus-nats-exporter-v${nats_exporter_version}-linux-amd64/prometheus-nats-exporter" /usr/local/bin/prometheus-nats-exporter
+
+install -d -m 0750 -o nats -g nats /etc/nats
+install -d -m 0750 -o nats -g nats /etc/nats/tls
+install -d -m 0750 -o nats -g nats /etc/nats/bootstrap
+install -d -m 0750 -o nats -g nats /var/lib/nats
+install -d -m 0750 -o nats -g nats /var/log/nats

@@ -23,6 +23,7 @@ import { PageSkeleton } from "./PageSkeleton";
 import { RouteTransition } from "./RouteTransition";
 import { useTranslation } from "react-i18next";
 import { desktopMotionEase, useDesktopMotionBudget } from "../shared/lib/motion";
+import { Scanlines } from "../shared/ui/atoms/scanlines";
 
 export function Layout() {
   const location = useLocation();
@@ -120,7 +121,7 @@ export function Layout() {
            CYBERVPN
         </div>
 
-        <nav className="relative z-10 w-full flex-1 space-y-2.5 px-4">
+        <nav className="relative z-10 w-full flex-1 overflow-y-auto premium-scrollbar space-y-2.5 px-4 pb-4">
           {navItems.map((item, index) => {
             const activeChrome = getActiveChrome(item.path);
 
@@ -198,6 +199,7 @@ export function Layout() {
         </div>
       </main>
       <Toaster position="bottom-right" />
+      <Scanlines />
     </div>
   );
 }

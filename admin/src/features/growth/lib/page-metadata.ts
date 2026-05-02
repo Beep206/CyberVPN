@@ -17,6 +17,11 @@ const GROWTH_PAGE_CONFIG = {
     titleKey: 'inviteCodes.metaTitle',
     descriptionKey: 'inviteCodes.description',
   },
+  giftCodes: {
+    canonicalPath: '/growth/gift-codes',
+    titleKey: 'giftCodes.metaTitle',
+    descriptionKey: 'giftCodes.description',
+  },
   partners: {
     canonicalPath: '/growth/partners',
     titleKey: 'partners.metaTitle',

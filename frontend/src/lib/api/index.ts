@@ -27,6 +27,8 @@ export { codesApi } from './codes';
 export { referralApi } from './referral';
 export { promoApi } from './promo';
 export { invitesApi } from './invites';
+export { giftsApi } from './gifts';
+export { growthNotificationsApi } from './growth-notifications';
 export { addonsApi } from './addons';
 
 // Subscriptions
@@ -37,6 +39,8 @@ export { plansApi } from './plans';
 // Infrastructure
 export { serversApi } from './servers';
 export { monitoringApi } from './monitoring';
+export { miniappApi } from './miniapp';
+export { publicNetworkApi } from './public-network';
 
 // Security
 export { twofaApi } from './twofa';

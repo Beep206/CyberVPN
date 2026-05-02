@@ -1,11 +1,14 @@
 import 'dart:io' show Platform;
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:cybervpn_mobile/core/config/environment_config.dart';
+import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/device/device_info.dart';
 import 'package:cybervpn_mobile/core/device/device_provider.dart';
+import 'package:cybervpn_mobile/core/network/auth_interceptor.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -31,10 +34,14 @@ class TelegramAuthResult {
 class TelegramAuthException implements Exception {
   final String code;
   final String message;
+  final String? tfaToken;
+  final String? method;
 
   const TelegramAuthException({
     required this.code,
     required this.message,
+    this.tfaToken,
+    this.method,
   });
 
   @override
@@ -77,9 +84,13 @@ class TelegramAuthService {
   Future<bool> openTelegramAppStore() async {
     final Uri storeUrl;
     if (Platform.isIOS) {
-      storeUrl = Uri.parse('https://apps.apple.com/app/telegram-messenger/id686449807');
+      storeUrl = Uri.parse(
+        'https://apps.apple.com/app/telegram-messenger/id686449807',
+      );
     } else {
-      storeUrl = Uri.parse('https://play.google.com/store/apps/details?id=org.telegram.messenger');
+      storeUrl = Uri.parse(
+        'https://play.google.com/store/apps/details?id=org.telegram.messenger',
+      );
     }
 
     AppLogger.info(
@@ -209,37 +220,11 @@ class TelegramAuthService {
     try {
       final response = await _apiClient.post<Map<String, dynamic>>(
         '/mobile/auth/telegram/callback',
-        data: {
-          'auth_data': authData,
-          'device': device.toJson(),
-        },
+        data: {'auth_data': authData, 'device': device.toJson()},
       );
-
-      final responseData = response.data!;
-
-      // Parse response
-      final tokensData = responseData['tokens'] as Map<String, dynamic>;
-      final userData = responseData['user'] as Map<String, dynamic>;
-      final isNewUser = responseData['is_new_user'] as bool? ?? false;
-
-      final tokens = TokenModel.fromJson(tokensData);
-      final user = UserModel.fromJson(userData);
-
-      // Store tokens atomically
-      await _storage.setTokens(
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      );
-
-      AppLogger.info(
-        'Telegram authentication successful (new_user: $isNewUser)',
-        category: 'auth.telegram',
-      );
-
-      return TelegramAuthResult(
-        user: user,
-        tokens: tokens,
-        isNewUser: isNewUser,
+      return _consumeAuthResponse(
+        response.data!,
+        successLogMessage: 'Telegram authentication successful',
       );
     } on TelegramAuthException {
       rethrow;
@@ -273,6 +258,239 @@ class TelegramAuthService {
         message: 'Telegram authentication failed: $e',
       );
     }
+  }
+
+  /// Authenticates with the backend using a Telegram native SDK `id_token`.
+  Future<TelegramAuthResult> authenticateWithIdToken({
+    required String idToken,
+    required DeviceInfo device,
+  }) async {
+    AppLogger.info(
+      'Authenticating with Telegram native id_token',
+      category: 'auth.telegram.native',
+    );
+
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        ApiConstants.telegramOidcAuth,
+        data: {'id_token': idToken, 'device': device.toJson()},
+      );
+
+      return _consumeAuthResponse(
+        response.data!,
+        successLogMessage: 'Telegram native authentication successful',
+      );
+    } on TelegramAuthException {
+      rethrow;
+    } catch (e, st) {
+      AppLogger.error(
+        'Telegram native authentication failed',
+        error: e,
+        stackTrace: st,
+        category: 'auth.telegram.native',
+      );
+
+      if (e is Exception) {
+        final errorStr = e.toString();
+        if (errorStr.contains('INVALID_TELEGRAM_ID_TOKEN')) {
+          throw const TelegramAuthException(
+            code: 'INVALID_TELEGRAM_ID_TOKEN',
+            message: 'Invalid Telegram identity token.',
+          );
+        }
+      }
+
+      throw TelegramAuthException(
+        code: 'TELEGRAM_NATIVE_AUTH_FAILED',
+        message: 'Telegram authentication failed: $e',
+      );
+    }
+  }
+
+  /// Completes a Telegram login paused behind a pending TOTP challenge.
+  Future<TelegramAuthResult> completeTwoFactor({
+    required String tfaToken,
+    required String code,
+  }) async {
+    AppLogger.info(
+      'Completing Telegram native login 2FA challenge',
+      category: 'auth.telegram.native',
+    );
+
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        ApiConstants.mobile2faComplete,
+        data: {'code': code},
+        options: Options(
+          headers: {'Authorization': 'Bearer $tfaToken'},
+          extra: {
+            AuthInterceptor.skipAuthHeaderKey: true,
+            AuthInterceptor.skipAuthRefreshHandlingKey: true,
+          },
+        ),
+      );
+
+      return _consumeAuthResponse(
+        response.data!,
+        successLogMessage:
+            'Telegram native authentication successful after 2FA',
+      );
+    } on TelegramAuthException {
+      rethrow;
+    } catch (e, st) {
+      AppLogger.error(
+        'Telegram native 2FA completion failed',
+        error: e,
+        stackTrace: st,
+        category: 'auth.telegram.native',
+      );
+
+      if (e is Exception) {
+        final errorStr = e.toString();
+        if (errorStr.contains('INVALID_2FA_CODE')) {
+          throw const TelegramAuthException(
+            code: 'INVALID_2FA_CODE',
+            message: 'Invalid verification code.',
+          );
+        }
+        if (errorStr.contains('INVALID_2FA_TOKEN')) {
+          throw const TelegramAuthException(
+            code: 'INVALID_2FA_TOKEN',
+            message: 'Two-factor login session expired. Please try again.',
+          );
+        }
+      }
+
+      throw TelegramAuthException(
+        code: 'TELEGRAM_NATIVE_2FA_FAILED',
+        message: 'Telegram 2FA verification failed: $e',
+      );
+    }
+  }
+
+  /// Links a Telegram native SDK `id_token` to the currently authenticated user.
+  Future<void> linkCurrentUserWithIdToken({required String idToken}) async {
+    AppLogger.info(
+      'Linking Telegram native identity to current mobile user',
+      category: 'auth.telegram.native',
+    );
+
+    try {
+      await _apiClient.post<Map<String, dynamic>>(
+        ApiConstants.telegramOidcLink,
+        data: {'id_token': idToken},
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'Telegram native account linking failed',
+        error: e,
+        stackTrace: st,
+        category: 'auth.telegram.native',
+      );
+
+      if (e is Exception) {
+        final errorStr = e.toString();
+        if (errorStr.contains('TELEGRAM_IDENTITY_ALREADY_LINKED')) {
+          throw const TelegramAuthException(
+            code: 'TELEGRAM_IDENTITY_ALREADY_LINKED',
+            message: 'Telegram account is already linked to another user.',
+          );
+        }
+        if (errorStr.contains('INVALID_TELEGRAM_ID_TOKEN')) {
+          throw const TelegramAuthException(
+            code: 'INVALID_TELEGRAM_ID_TOKEN',
+            message: 'Invalid Telegram identity token.',
+          );
+        }
+      }
+
+      throw TelegramAuthException(
+        code: 'TELEGRAM_LINK_FAILED',
+        message: 'Telegram account linking failed: $e',
+      );
+    }
+  }
+
+  /// Unlinks Telegram from the currently authenticated user.
+  Future<void> unlinkCurrentUserTelegram() async {
+    AppLogger.info(
+      'Unlinking Telegram identity from current mobile user',
+      category: 'auth.telegram.native',
+    );
+
+    try {
+      await _apiClient.delete<Map<String, dynamic>>(ApiConstants.telegramOidcLink);
+    } catch (e, st) {
+      AppLogger.error(
+        'Telegram unlink failed',
+        error: e,
+        stackTrace: st,
+        category: 'auth.telegram.native',
+      );
+      throw TelegramAuthException(
+        code: 'TELEGRAM_UNLINK_FAILED',
+        message: 'Telegram account unlink failed: $e',
+      );
+    }
+  }
+
+  Future<TelegramAuthResult> _consumeAuthResponse(
+    Map<String, dynamic> responseData, {
+    required String successLogMessage,
+  }) async {
+    if (responseData['requires_2fa'] == true) {
+      throw TelegramAuthException(
+        code: 'TWO_FACTOR_REQUIRED',
+        message: 'Two-factor authentication is required.',
+        tfaToken: responseData['tfa_token'] as String?,
+        method: responseData['method'] as String?,
+      );
+    }
+
+    final tokensData =
+        responseData['tokens'] as Map<String, dynamic>? ?? const {};
+    final userData = responseData['user'] as Map<String, dynamic>? ?? const {};
+    final isNewUser = responseData['is_new_user'] as bool? ?? false;
+
+    final tokens = TokenModel.fromJson(_normalizeTokensJson(tokensData));
+    final user = UserModel.fromJson(_normalizeUserJson(userData));
+
+    await _storage.setTokens(
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    );
+
+    AppLogger.info(
+      '$successLogMessage (new_user: $isNewUser)',
+      category: 'auth.telegram',
+    );
+
+    return TelegramAuthResult(user: user, tokens: tokens, isNewUser: isNewUser);
+  }
+
+  Map<String, dynamic> _normalizeTokensJson(Map<String, dynamic> json) {
+    return <String, dynamic>{
+      'accessToken': json['accessToken'] ?? json['access_token'],
+      'refreshToken': json['refreshToken'] ?? json['refresh_token'],
+      'expiresIn': json['expiresIn'] ?? json['expires_in'],
+      'tokenType': json['tokenType'] ?? json['token_type'],
+    };
+  }
+
+  Map<String, dynamic> _normalizeUserJson(Map<String, dynamic> json) {
+    return <String, dynamic>{
+      'id': (json['id'] ?? '').toString(),
+      'email': (json['email'] ?? '').toString(),
+      'username': json['username'],
+      'avatarUrl': json['avatarUrl'] ?? json['avatar_url'] ?? json['picture'],
+      'telegramId': (json['telegramId'] ?? json['telegram_id'])?.toString(),
+      'isEmailVerified':
+          json['isEmailVerified'] ?? json['is_email_verified'] ?? false,
+      'isPremium': json['isPremium'] ?? json['is_premium'] ?? false,
+      'referralCode': json['referralCode'] ?? json['referral_code'],
+      'createdAt': json['createdAt'] ?? json['created_at'],
+      'lastLoginAt': json['lastLoginAt'] ?? json['last_login_at'],
+    };
   }
 }
 

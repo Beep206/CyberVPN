@@ -4,6 +4,7 @@ import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { ConnectionStatus } from '@/shared/api/ipc';
 import { desktopMotionEase, useDesktopMotionBudget } from '../shared/lib/motion';
 import { useTranslation } from 'react-i18next';
+import { CypherText } from '../shared/ui/atoms/cypher-text';
 
 interface ConnectButtonProps {
     status: ConnectionStatus;
@@ -163,7 +164,7 @@ export function ConnectButton({ status, onConnect, onDisconnect }: ConnectButton
             
             {(isConnectedLike || isConnecting || isDisconnecting) && status.activeId && (
                     <div className="rounded-full border border-border/60 bg-[color:var(--chrome-elevated)]/88 px-4 py-2 font-mono text-sm text-muted-foreground shadow-[var(--panel-shadow)] backdrop-blur-xl">
-                        {t('dashboard.profileId')}: <span className="text-[var(--color-neon-cyan)]">{status.activeId}</span>
+                        {t('dashboard.profileId')}: <CypherText className="text-[var(--color-neon-cyan)]" text={status.activeId} trigger={status.status} />
                     </div>
             )}
         </div>

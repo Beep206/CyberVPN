@@ -1,4 +1,5 @@
 import { cacheLife } from 'next/cache';
+import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { SmoothScrollProvider } from '@/app/providers/smooth-scroll-provider';
 import { MARKETING_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
@@ -21,8 +22,10 @@ export default async function MarketingLayout({
 
   return (
     <ScopedIntlProvider locale={locale} namespaces={MARKETING_CLIENT_NAMESPACES}>
-      <SmoothScrollProvider />
-      <CachedMarketingShell>{children}</CachedMarketingShell>
+      <QueryProvider>
+        <SmoothScrollProvider />
+        <CachedMarketingShell>{children}</CachedMarketingShell>
+      </QueryProvider>
     </ScopedIntlProvider>
   );
 }

@@ -192,8 +192,20 @@ class UserResponseDTO:
     telegram_username: str | None = None
     """Linked Telegram username (if connected)."""
 
+    is_email_verified: bool = False
+    """Whether the user's current email credential is considered verified in mobile auth."""
+
+    is_2fa_enabled: bool = False
+    """Whether mobile TOTP protection is enabled for the account."""
+
+    linked_providers: list[str] | None = None
+    """Linked external identity providers exposed to the mobile client."""
+
     created_at: datetime | None = None
     """Account creation timestamp."""
+
+    last_login_at: datetime | None = None
+    """Last successful login timestamp."""
 
     subscription: SubscriptionInfoDTO | None = None
     """Subscription information (included in mobile responses)."""
@@ -206,14 +218,23 @@ class AuthResponseDTO:
     Used by login and register endpoints for mobile-optimized single response.
     """
 
-    tokens: TokenResponseDTO
+    tokens: TokenResponseDTO | None = None
     """Authentication tokens."""
 
-    user: UserResponseDTO
+    user: UserResponseDTO | None = None
     """User profile data."""
 
     is_new_user: bool = False
     """True if this is a new registration."""
+
+    requires_2fa: bool = False
+    """True when login is paused behind a pending TOTP challenge."""
+
+    tfa_token: str | None = None
+    """Short-lived pending-2FA token returned when requires_2fa is true."""
+
+    method: str | None = None
+    """2FA method identifier, currently `totp`."""
 
 
 @dataclass(frozen=True)
@@ -245,6 +266,32 @@ class DeviceResponseDTO:
 
 
 @dataclass(frozen=True)
+class DeviceSessionDTO:
+    """Response DTO for mobile device/session listing."""
+
+    id: str
+    """Stable device/session identifier used by the mobile client."""
+
+    name: str
+    """Human-readable device name."""
+
+    platform: str
+    """Platform identifier shown in the mobile UI."""
+
+    ip_address: str | None = None
+    """Last known IP address, if available."""
+
+    last_active_at: datetime | None = None
+    """Last activity timestamp."""
+
+    created_at: datetime | None = None
+    """Device registration timestamp."""
+
+    is_current: bool = False
+    """Whether the listed device is the caller's current device."""
+
+
+@dataclass(frozen=True)
 class TelegramAuthRequestDTO:
     """Request DTO for Telegram OAuth callback.
 
@@ -256,6 +303,42 @@ class TelegramAuthRequestDTO:
 
     device: DeviceInfoDTO
     """Device information for login."""
+
+
+@dataclass(frozen=True)
+class TelegramOIDCAuthRequestDTO:
+    """Request DTO for Telegram OIDC ID token exchange.
+
+    Used by POST /api/v1/mobile/auth/telegram/oidc endpoint.
+    """
+
+    id_token: str
+    """Telegram OIDC ID token returned by the native SDK."""
+
+    device: DeviceInfoDTO
+    """Device information for login."""
+
+
+@dataclass(frozen=True)
+class TelegramOIDCLinkRequestDTO:
+    """Request DTO for authenticated Telegram OIDC account linking."""
+
+    id_token: str
+    """Telegram OIDC ID token returned by the native SDK."""
+
+
+@dataclass(frozen=True)
+class TelegramLinkResponseDTO:
+    """Response DTO for authenticated Telegram account linking."""
+
+    linked: bool
+    """Whether the Telegram identity is now linked to the current account."""
+
+    provider: str
+    """External identity provider name."""
+
+    telegram_username: str | None = None
+    """Resolved Telegram username, if present."""
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cybervpn-task-worker.fullname" . }}
+  labels:
+    {{- include "cybervpn-task-worker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cybervpn-task-worker.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "cybervpn-task-worker.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "cybervpn-task-worker.serviceAccountName" . }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ .name }}
+        {{- end }}
+      {{- if .Values.prometheusMultiproc.enabled }}
+      volumes:
+        - name: prometheus-multiproc
+          emptyDir: {}
+      {{- end }}
+      containers:
+        - name: {{ .Values.workload.mode | default "worker" }}
+          image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.containerPort }}
+          envFrom:
+            - secretRef:
+                name: {{ include "cybervpn-task-worker.secretName" . }}
+          {{- if .Values.prometheusMultiproc.enabled }}
+          env:
+            - name: PROMETHEUS_MULTIPROC_DIR
+              value: {{ .Values.prometheusMultiproc.dir | quote }}
+          volumeMounts:
+            - name: prometheus-multiproc
+              mountPath: {{ .Values.prometheusMultiproc.dir | quote }}
+          {{- end }}
+          command:
+            {{- toYaml .Values.workload.command | nindent 12 }}
+          {{- if .Values.workload.args }}
+          args:
+            {{- toYaml .Values.workload.args | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - healthcheck.py
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - healthcheck.py
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

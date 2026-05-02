@@ -184,6 +184,58 @@ groups:
           summary: "Failed login backlog exceeded {{ $value }}"
           description: "Database-backed failed login attempts are accumulating. This usually indicates ongoing password attacks or users repeatedly failing authentication."
 
+      - alert: TelegramNativeLoginFailureRateHigh
+        expr: |
+          (
+            sum(rate(telegram_native_login_failed_total[15m]))
+            /
+            clamp_min(sum(rate(telegram_native_login_started_total[15m])), 1e-9)
+          ) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Telegram native login failure rate is high ({{ $value | humanizePercentage }})"
+          description: "Telegram native login failure rate exceeded 25% over the last 15 minutes. Check BotFather config, mobile callback flow, and Telegram OIDC validation."
+
+      - alert: TelegramNativeLoginPlatformFailureRateHigh
+        expr: |
+          (
+            sum by (platform) (rate(telegram_native_login_failed_total[15m]))
+            /
+            clamp_min(sum by (platform) (rate(telegram_native_login_started_total[15m])), 1e-9)
+          ) > 0.40
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Telegram native login failure rate is high on {{ $labels.platform }}"
+          description: "Telegram native login failure rate exceeded 40% on {{ $labels.platform }} over the last 15 minutes. Check platform-specific redirect, signing, and callback configuration."
+
+      - alert: TelegramOIDCValidationFailuresSpike
+        expr: |
+          sum(increase(telegram_oidc_token_validation_failed_total[15m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Telegram OIDC validation failures are spiking"
+          description: "More than 10 Telegram OIDC token validation failures occurred in the last 15 minutes. Check JWKS availability, audience validation, issuer validation, and token expiry skew."
+
+      - alert: TelegramOIDCLinkConflictSpike
+        expr: |
+          sum(increase(telegram_oidc_user_link_conflict_total[30m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Telegram account linking conflicts are spiking"
+          description: "More than 5 Telegram link conflicts occurred in the last 30 minutes. Check duplicate-account prevention logic, linking UX, and migration edge cases."
+
   - name: auth_recording_rules
     interval: 30s
     rules:
