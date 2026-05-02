@@ -111,7 +111,7 @@ jobs:
             -v --tb=short
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         if: matrix.python-version == '3.13.13'
         with:
           file: ./coverage.xml
