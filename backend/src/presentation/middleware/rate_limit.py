@@ -9,6 +9,7 @@ Security improvements:
 
 import logging
 import time
+from dataclasses import dataclass, field
 from threading import Lock
 
 import redis.asyncio as redis
@@ -20,6 +21,29 @@ from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_pool
 
 logger = logging.getLogger("cybervpn")
+
+
+@dataclass(frozen=True)
+class RateLimitRule:
+    """Route-category rate-limit policy for launch-critical S1 surfaces."""
+
+    name: str
+    limit: int
+    methods: frozenset[str] = field(default_factory=frozenset)
+    exact_paths: frozenset[str] = field(default_factory=frozenset)
+    path_prefixes: tuple[str, ...] = ()
+    path_suffixes: tuple[str, ...] = ()
+
+    def matches(self, request: Request) -> bool:
+        method = request.method.upper()
+        path = request.url.path
+        if self.methods and method not in self.methods:
+            return False
+        return (
+            path in self.exact_paths
+            or any(path.startswith(prefix) for prefix in self.path_prefixes)
+            or any(path.endswith(suffix) for suffix in self.path_suffixes)
+        )
 
 
 class CircuitBreaker:
@@ -109,8 +133,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/me/",
         "/api/v1/auth/session",
         "/api/v1/auth/session/",
-        "/api/v1/auth/refresh",
-        "/api/v1/auth/refresh/",
     }
     _HELIX_ADMIN_READ_PREFIX = "/api/v1/helix/admin/"
 
@@ -118,21 +140,37 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self,
         app,
         requests_per_minute: int = 60,
+        window_seconds: int | None = None,
         fail_open: bool | None = None,
         circuit_failure_threshold: int = 3,
         circuit_cooldown_seconds: float = 30.0,
+        auth_sensitive_requests_per_minute: int | None = None,
+        payment_write_requests_per_minute: int | None = None,
+        trial_activate_requests_per_minute: int | None = None,
+        growth_sensitive_requests_per_minute: int | None = None,
+        support_write_requests_per_minute: int | None = None,
     ) -> None:
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
-        self.window = 60
-        configured_helix_budget = getattr(
-            settings,
-            "helix_admin_read_rate_limit_requests",
-            requests_per_minute,
+        self.window = self._configured_limit(
+            explicit=window_seconds,
+            setting_name="rate_limit_window",
+            default=60,
         )
         self.helix_admin_read_requests_per_minute = max(
-            int(configured_helix_budget),
+            self._configured_limit(
+                explicit=None,
+                setting_name="helix_admin_read_rate_limit_requests",
+                default=requests_per_minute,
+            ),
             self.requests_per_minute,
+        )
+        self._s1_rules = self._build_s1_rules(
+            auth_sensitive_requests_per_minute=auth_sensitive_requests_per_minute,
+            payment_write_requests_per_minute=payment_write_requests_per_minute,
+            trial_activate_requests_per_minute=trial_activate_requests_per_minute,
+            growth_sensitive_requests_per_minute=growth_sensitive_requests_per_minute,
+            support_write_requests_per_minute=support_write_requests_per_minute,
         )
         # Default to fail-closed in production, configurable via settings
         if fail_open is None:
@@ -158,7 +196,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_ip = self._get_client_ip(request)
-        key = f"cybervpn:rate_limit:{client_ip}:{request.url.path}"
+        key = f"cybervpn:rate_limit:{client_ip}:{self._rate_limit_bucket_for(request)}"
         request_budget = self._requests_budget_for(request)
 
         # Check circuit breaker first
@@ -250,13 +288,162 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
     def _requests_budget_for(self, request: Request) -> int:
-        if (
-            request.method.upper() == "GET"
-            and request.url.path.startswith(self._HELIX_ADMIN_READ_PREFIX)
-        ):
+        rule = self._rule_for(request)
+        if rule is not None:
+            return rule.limit
+
+        if request.method.upper() == "GET" and request.url.path.startswith(self._HELIX_ADMIN_READ_PREFIX):
             return self.helix_admin_read_requests_per_minute
 
         return self.requests_per_minute
+
+    def _rate_limit_bucket_for(self, request: Request) -> str:
+        rule = self._rule_for(request)
+        if rule is not None:
+            return rule.name
+        return request.url.path
+
+    def _rule_for(self, request: Request) -> RateLimitRule | None:
+        return next((rule for rule in self._s1_rules if rule.matches(request)), None)
+
+    @staticmethod
+    def _configured_limit(*, explicit: int | None, setting_name: str, default: int) -> int:
+        value = explicit
+        if value is None:
+            configured = getattr(settings, setting_name, default)
+            value = configured if isinstance(configured, int) else default
+        return max(1, int(value))
+
+    def _build_s1_rules(
+        self,
+        *,
+        auth_sensitive_requests_per_minute: int | None,
+        payment_write_requests_per_minute: int | None,
+        trial_activate_requests_per_minute: int | None,
+        growth_sensitive_requests_per_minute: int | None,
+        support_write_requests_per_minute: int | None,
+    ) -> tuple[RateLimitRule, ...]:
+        auth_limit = self._configured_limit(
+            explicit=auth_sensitive_requests_per_minute,
+            setting_name="rate_limit_auth_sensitive_requests",
+            default=20,
+        )
+        payment_limit = self._configured_limit(
+            explicit=payment_write_requests_per_minute,
+            setting_name="rate_limit_payment_write_requests",
+            default=30,
+        )
+        trial_limit = self._configured_limit(
+            explicit=trial_activate_requests_per_minute,
+            setting_name="rate_limit_trial_activate_requests",
+            default=10,
+        )
+        growth_limit = self._configured_limit(
+            explicit=growth_sensitive_requests_per_minute,
+            setting_name="rate_limit_growth_sensitive_requests",
+            default=60,
+        )
+        support_limit = self._configured_limit(
+            explicit=support_write_requests_per_minute,
+            setting_name="rate_limit_support_write_requests",
+            default=30,
+        )
+
+        return (
+            RateLimitRule(
+                name="s1_auth_sensitive",
+                limit=auth_limit,
+                methods=frozenset({"POST", "DELETE"}),
+                exact_paths=frozenset(
+                    {
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/logout",
+                        "/api/v1/auth/resend-otp",
+                        "/api/v1/auth/resend-verification",
+                        "/api/v1/auth/magic-link",
+                        "/api/v1/auth/magic-link/verify",
+                        "/api/v1/auth/telegram/miniapp",
+                        "/api/v1/auth/telegram/web",
+                        "/api/v1/auth/telegram/bot-link",
+                        "/api/v1/auth/telegram/generate-login-link",
+                        "/api/v1/mobile/auth/register",
+                        "/api/v1/mobile/auth/login",
+                        "/api/v1/mobile/auth/refresh",
+                        "/api/v1/mobile/auth/logout",
+                        "/api/v1/mobile/auth/2fa/complete",
+                        "/api/v1/mobile/auth/telegram/callback",
+                        "/api/v1/mobile/auth/telegram/oidc",
+                        "/api/v1/oauth/telegram/callback",
+                        "/api/v1/oauth/telegram/magic-link/complete",
+                        "/api/v1/oauth/github/callback",
+                        "/api/v1/oauth/facebook/callback",
+                    }
+                ),
+                path_prefixes=("/api/v1/oauth/",),
+            ),
+            RateLimitRule(
+                name="s1_payment_write",
+                limit=payment_limit,
+                methods=frozenset({"POST"}),
+                exact_paths=frozenset(
+                    {
+                        "/api/v1/payments/crypto/invoice",
+                        "/api/v1/payments/checkout/quote",
+                        "/api/v1/payments/checkout/commit",
+                        "/api/v1/payments/checkout/telegram-stars",
+                        "/api/v1/payments/checkout",
+                        "/api/v1/payments/create",
+                        "/api/v1/miniapp/checkout/quote",
+                        "/api/v1/miniapp/checkout/commit",
+                        "/api/v1/checkout-sessions",
+                        "/api/v1/checkout-sessions/",
+                        "/api/v1/payment-attempts",
+                        "/api/v1/payment-attempts/",
+                        "/api/v1/telegram/payments/stars",
+                    }
+                ),
+                path_prefixes=("/api/v1/telegram/payments/",),
+                path_suffixes=("/checkout/quote", "/checkout/commit"),
+            ),
+            RateLimitRule(
+                name="s1_trial_activate",
+                limit=trial_limit,
+                methods=frozenset({"POST"}),
+                exact_paths=frozenset(
+                    {
+                        "/api/v1/trial/activate",
+                        "/api/v1/miniapp/trial/activate",
+                        "/api/v1/telegram/trial/activate",
+                    }
+                ),
+                path_suffixes=("/trial/activate",),
+            ),
+            RateLimitRule(
+                name="s1_growth_sensitive",
+                limit=growth_limit,
+                methods=frozenset({"GET", "POST"}),
+                exact_paths=frozenset(
+                    {
+                        "/api/v1/promo/validate",
+                        "/api/v1/gifts/purchase/quote",
+                        "/api/v1/gifts/purchase/commit",
+                        "/api/v1/gifts/redeem",
+                    }
+                ),
+                path_prefixes=("/api/v1/referral/", "/api/v1/growth-rewards/"),
+            ),
+            RateLimitRule(
+                name="s1_support_write",
+                limit=support_limit,
+                methods=frozenset({"POST", "PUT", "PATCH", "DELETE"}),
+                path_prefixes=(
+                    "/api/v1/admin/mobile-users/",
+                    "/api/v1/admin/customer-operations/",
+                ),
+            ),
+        )
 
     def _get_client_ip(self, request: Request) -> str:
         """Get client IP address with trusted proxy validation (MED-8).

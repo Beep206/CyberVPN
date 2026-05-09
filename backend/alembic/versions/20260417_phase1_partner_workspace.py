@@ -1,6 +1,6 @@
 """Add partner workspace accounts, roles, memberships, and legacy links.
 
-Revision ID: 20260417_phase1_partner_workspace
+Revision ID: 20260417_p1_partner_workspace
 Revises: 20260417_phase1_auth_realms
 Create Date: 2026-04-17 23:55:00.000000
 """
@@ -17,7 +17,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260417_phase1_partner_workspace"
+revision: str = "20260417_p1_partner_workspace"
 down_revision: str | None = "20260417_phase1_auth_realms"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

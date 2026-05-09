@@ -1,0 +1,67 @@
+{
+    "meta": {
+        "title": "Cookie Policy",
+        "description": "Stage 1 Cookie Policy candidate for CyberVPN Controlled Public Beta."
+    },
+    "title": "Cookie Policy",
+    "lastUpdated": "S1 candidate updated May 5, 2026",
+    "intro": "This Cookie Policy is a Stage 1 candidate for the CyberVPN Controlled Public Beta. It explains cookies, local storage, session storage, telemetry and similar browser storage used or prepared in the CyberVPN web site, web cabinet, Telegram Mini App, backend API flows and admin/support surfaces. It is not final legal advice and must be approved by the project owner and legal reviewer before it is treated as final public legal copy.",
+    "sections": {
+        "scope": {
+            "title": "1. Scope",
+            "content": "This policy covers cyber-vpn.net as the primary S1 domain, cyber-vpn.org as a mirror/redirect domain, admin.cyber-vpn.net as the primary admin domain and admin.cyber-vpn.org as a redirect to the primary admin domain. The S1 rule is to prefer canonical cookies on cyber-vpn.net/admin.cyber-vpn.net and keep .org mirrors redirect-only unless a separate domain/cookie evidence pack approves otherwise."
+        },
+        "inventory": {
+            "title": "2. Cookie and Storage Inventory",
+            "intro": "The S1 inventory is based on the current monorepo and local source review. Deployed browser evidence, including DevTools/curl Set-Cookie output, must still be attached before go-live.",
+            "items": {
+                "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime must be confirmed in browser cookie inventory evidence.",
+                "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. The configured S1 behavior is HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days.",
+                "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP and 2FA redirect handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests.",
+                "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing, but production PII evidence is still required.",
+                "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
+                "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. For S1, PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced."
+            }
+        },
+        "consent": {
+            "title": "3. Consent and Default State",
+            "items": {
+                "necessary": "Strictly necessary cookies and storage may be used to provide login, security, checkout return handling, fraud prevention, language routing, support and VPN provisioning flows requested by the user.",
+                "nonEssential": "Non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default for S1 until the project has a consent mechanism, cookie inventory, legal approval and evidence.",
+                "marketing": "S1 does not approve marketing pixels, advertising retargeting or cross-site profiling by default. If enabled later, the Cookie Policy, Privacy Policy, consent UI and evidence pack must be updated first.",
+                "changes": "If CyberVPN adds a new cookie, storage mechanism, SDK or tracking provider, the owner must approve the change and attach updated cookie inventory evidence before public use."
+            }
+        },
+        "retention": {
+            "title": "4. Retention",
+            "items": {
+                "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
+                "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow.",
+                "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
+                "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the approved Privacy Policy, provider settings and the S1 observability evidence pack."
+            }
+        },
+        "controls": {
+            "title": "5. User Controls",
+            "items": {
+                "browser": "Users can control cookies, local storage and session storage in their browser or device settings. Blocking strictly necessary storage may prevent login, checkout, VPN provisioning, support/admin access or Telegram Mini App flows from working.",
+                "logout": "Logging out should clear CyberVPN auth cookies. Some provider-side cookies, browser cache, locale preference or Telegram-controlled storage may need to be cleared through the browser, Telegram app or the third-party provider.",
+                "support": "Cookie/privacy questions can be sent to support@cyber-vpn.net. Refund-related payment questions can be sent to refund@cyber-vpn.net."
+            }
+        },
+        "goLiveBlockers": {
+            "title": "6. Required Evidence Before Go-Live",
+            "items": {
+                "browserInventory": "Attach deployed browser cookie inventory for public site, web cabinet, login/register, OAuth, Telegram Mini App, checkout, logout and admin flows.",
+                "setCookie": "Attach redacted Set-Cookie evidence proving Secure, HttpOnly where applicable, SameSite, domain, path and expiry/max-age for production HTTPS responses.",
+                "consent": "If non-essential analytics or marketing storage is enabled, attach consent banner/settings evidence proving default-off behavior and withdrawal controls.",
+                "legal": "Owner/legal review must approve this Cookie Policy together with Terms of Service, Privacy Policy, Acceptable Use Policy and Refund Policy.",
+                "pii": "Attach Sentry/observability PII scrubbing evidence, analytics payload review and proof that cookies, Set-Cookie headers and secrets are filtered from logs."
+            }
+        },
+        "changes": {
+            "title": "7. Changes Before Go-Live",
+            "content": "This S1 candidate may change before public go-live. Final publication requires owner/legal approval, deployed cookie inventory, Set-Cookie evidence, consent evidence where non-essential storage is used and alignment with the Privacy Policy, Terms of Service, Acceptable Use Policy and Refund Policy."
+        }
+    }
+}

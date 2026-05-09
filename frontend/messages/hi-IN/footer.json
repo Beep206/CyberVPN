@@ -33,6 +33,9 @@
         "documentation": "Docs",
         "privacy": "Privacy Policy",
         "terms": "Terms of Service",
-        "security": "Security"
+        "security": "Security",
+        "acceptableUse": "Acceptable Use",
+        "refundPolicy": "Refund Policy",
+        "cookiePolicy": "Cookie Policy"
     }
 }

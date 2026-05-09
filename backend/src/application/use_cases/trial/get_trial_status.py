@@ -8,6 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 
+from .stage1_trial_policy import (
+    STAGE1_TRIAL_DEVICE_LIMIT,
+    STAGE1_TRIAL_DURATION_DAYS,
+    STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +34,10 @@ class TrialStatus:
         self.trial_end = trial_end
         self.days_remaining = days_remaining
         self.is_eligible = is_eligible
+        self.duration_days = STAGE1_TRIAL_DURATION_DAYS
+        self.device_limit = STAGE1_TRIAL_DEVICE_LIMIT
+        self.traffic_limit_bytes = STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
+        self.one_trial_per_account = STAGE1_TRIAL_ONE_PER_ACCOUNT
 
 
 class GetTrialStatusUseCase:

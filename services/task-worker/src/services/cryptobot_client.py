@@ -7,7 +7,7 @@ References:
 - CryptoBot API: https://help.crypt.bot/crypto-pay-api
 """
 
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 import structlog
@@ -53,14 +53,24 @@ class CryptoBotClient:
         client: Persistent httpx.AsyncClient instance
     """
 
-    def __init__(self, token: SecretStr | None = None):
+    NETWORK_BASE_URLS: ClassVar[dict[str, str]] = {
+        "mainnet": "https://pay.crypt.bot/api",
+        "testnet": "https://testnet-pay.crypt.bot/api",
+    }
+
+    def __init__(self, token: SecretStr | None = None, network: str | None = None):
         """Initialize CryptoBot client with authentication token.
 
         Args:
             token: CryptoBot API token (SecretStr for secure handling)
+            network: CryptoBot network, either "mainnet" or "testnet"
         """
         settings = get_settings()
-        self.base_url = "https://pay.crypt.bot/api"
+        self.network = network or settings.cryptobot_network
+        if self.network not in self.NETWORK_BASE_URLS:
+            msg = "Unsupported CryptoBot network. Expected 'mainnet' or 'testnet'."
+            raise ValueError(msg)
+        self.base_url = self.NETWORK_BASE_URLS[self.network]
         self.token = token or settings.cryptobot_token
         self.client: httpx.AsyncClient | None = None
         self._log = logger.bind(service="cryptobot_client")
@@ -142,8 +152,8 @@ class CryptoBotClient:
             try:
                 error_data = e.response.json()
                 error_message = error_data.get("error", {}).get("name", error_message)
-            except Exception:
-                pass
+            except Exception as error:
+                self._log.debug("cryptobot_error_response_json_parse_failed", error=str(error))
 
             self._log.error(
                 "cryptobot_http_error",
@@ -160,7 +170,7 @@ class CryptoBotClient:
             self._log.error("cryptobot_request_error", endpoint=endpoint, error=str(e))
             raise CryptoBotAPIError(
                 status_code=0,
-                message=f"Request failed: {str(e)}",
+                message=f"Request failed: {e!s}",
             ) from e
 
     async def get_invoices(self, invoice_ids: list[int] | None = None, status: str | None = None) -> list[dict]:

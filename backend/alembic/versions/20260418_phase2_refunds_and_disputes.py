@@ -1,6 +1,6 @@
 """Add refunds and canonical payment disputes for Phase 2.
 
-Revision ID: 20260418_phase2_refunds_and_disputes
+Revision ID: 20260418_p2_refunds_disputes
 Revises: 20260418_phase2_payment_attempts
 Create Date: 2026-04-18 13:20:00.000000
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "20260418_phase2_refunds_and_disputes"
+revision: str = "20260418_p2_refunds_disputes"
 down_revision: str | None = "20260418_phase2_payment_attempts"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None

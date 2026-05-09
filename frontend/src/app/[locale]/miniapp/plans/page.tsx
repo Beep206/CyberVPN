@@ -27,7 +27,9 @@ import {
   getGrowthCodeResolutionMessage,
   getUnsupportedCheckoutCodeMessage,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
-import { formatMoney } from '@/widgets/pricing/utils';
+import { formatMoney, getPricePresentation } from '@/widgets/pricing/utils';
+import { getLocalDisplayEstimate } from '@/shared/lib/pricing-display';
+import { STAGE1_CHECKOUT_CODES_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 import type { PricingTierCode } from '@/widgets/pricing/types';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
@@ -245,6 +247,7 @@ function QuoteBreakdown({
   quote: CheckoutQuoteResponse;
 }) {
   const entitlements = quote.entitlements_snapshot.effective_entitlements;
+  const quoteLocalEstimate = getLocalDisplayEstimate(locale, quote.displayed_price);
 
   return (
     <div className="space-y-4">
@@ -263,7 +266,19 @@ function QuoteBreakdown({
         ))}
         <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-3 font-display text-lg uppercase tracking-[0.16em] text-white">
           <span>{t('quote.total')}</span>
-          <span>{formatMoney(locale, quote.displayed_price, 'USD')}</span>
+          <div className="text-right">
+            <span>{formatMoney(locale, quote.displayed_price, 'USD')}</span>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/42">
+              {t('billingCurrencyNotice', { currency: 'USD' })}
+            </p>
+            {quoteLocalEstimate ? (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-neon-cyan/75">
+                {t('localEstimate', {
+                  price: formatMoney(locale, quoteLocalEstimate.amount, quoteLocalEstimate.currency),
+                })}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -308,6 +323,7 @@ export default function MiniAppPlansPage() {
   const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();
   const queryClient = useQueryClient();
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
+  const checkoutCodesEnabled = STAGE1_CHECKOUT_CODES_UI_ENABLED;
 
   const [selectedPlanCodeOverride, setSelectedPlanCodeOverride] = useState<PricingTierCode | null>(null);
   const [selectedPeriodOverride, setSelectedPeriodOverride] = useState<number | null>(null);
@@ -391,6 +407,7 @@ export default function MiniAppPlansPage() {
   const selectedSku = selectedFamily?.periods.find((plan) => plan.duration_days === selectedPeriod) ?? null;
   const extraDeviceAddon = addonsData?.find((addon) => addon.code === 'extra_device');
   const dedicatedIpAddon = addonsData?.find((addon) => addon.code === 'dedicated_ip');
+  const addonsEnabled = Boolean(extraDeviceAddon || dedicatedIpAddon);
 
   const isCurrentPlan = Boolean(selectedSku && currentEntitlements?.plan_uuid === selectedSku.uuid);
   const hasCurrentSubscription = currentEntitlements?.status === 'active';
@@ -404,7 +421,7 @@ export default function MiniAppPlansPage() {
     (selectedFamily && extraDeviceAddon?.max_quantity_by_plan[selectedFamily.code]) || 0;
 
   const addonLines =
-    !isUpgradeFlow
+    addonsEnabled && !isUpgradeFlow
       ? [
           ...(extraDeviceQty > 0
             ? [{ code: 'extra_device', qty: extraDeviceQty }]
@@ -429,13 +446,13 @@ export default function MiniAppPlansPage() {
         ? 'upgrade'
         : 'checkout';
 
-  const dedicatedIpReady = !wantsDedicatedIp || dedicatedIpLocation.trim().length >= 2;
+  const dedicatedIpReady = !addonsEnabled || !wantsDedicatedIp || dedicatedIpLocation.trim().length >= 2;
   const effectivePromoCode =
-    flow !== 'checkout' && appliedCodeType === 'promo'
+    checkoutCodesEnabled && flow !== 'checkout' && appliedCodeType === 'promo'
       ? appliedCodeInput
       : null;
   const effectiveCheckoutCodeInput =
-    flow === 'checkout'
+    checkoutCodesEnabled && flow === 'checkout'
       ? appliedCodeInput
       : null;
   const unsupportedAppliedCodeMessage =
@@ -486,6 +503,14 @@ export default function MiniAppPlansPage() {
   });
 
   async function handleApplyCode() {
+    if (!checkoutCodesEnabled) {
+      setCodeFeedback({
+        tone: 'warning',
+        message: t('checkoutCodeDisabled'),
+      });
+      return;
+    }
+
     if (!checkoutEnabled) {
       setCodeFeedback({
         tone: 'warning',
@@ -771,7 +796,20 @@ export default function MiniAppPlansPage() {
     ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
     : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
 
-  const selectedPrice = selectedSku ? formatMoney(locale, selectedSku.price_usd, 'USD') : null;
+  const selectedPricePresentation = selectedSku ? getPricePresentation(locale, selectedSku) : null;
+  const selectedPrice = selectedPricePresentation
+    ? formatMoney(
+        locale,
+        selectedPricePresentation.billing.amount,
+        selectedPricePresentation.billing.currency,
+      )
+    : null;
+  const extraDevicePricePresentation = extraDeviceAddon
+    ? getPricePresentation(locale, extraDeviceAddon)
+    : null;
+  const dedicatedIpPricePresentation = dedicatedIpAddon
+    ? getPricePresentation(locale, dedicatedIpAddon)
+    : null;
   const flowLabel = flow === 'addons'
     ? t('flow.addons')
     : flow === 'upgrade'
@@ -960,6 +998,17 @@ export default function MiniAppPlansPage() {
                     <p className="mt-1 text-sm font-mono text-white/60">
                       {selectedFamily.displayName} · {selectedPrice}
                     </p>
+                    {selectedPricePresentation?.localEstimate ? (
+                      <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">
+                        {t('localEstimate', {
+                          price: formatMoney(
+                            locale,
+                            selectedPricePresentation.localEstimate.amount,
+                            selectedPricePresentation.localEstimate.currency,
+                          ),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                   <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
                     {flowLabel}
@@ -969,6 +1018,7 @@ export default function MiniAppPlansPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {selectedFamily.periods.map((period) => {
                     const isSelected = selectedPeriod === period.duration_days;
+                    const periodPrice = getPricePresentation(locale, period);
 
                     return (
                       <button
@@ -988,8 +1038,19 @@ export default function MiniAppPlansPage() {
                           {formatPeriodLabel(t, period.duration_days)}
                         </div>
                         <div className="mt-1 text-xs font-mono text-white/55">
-                          {formatMoney(locale, period.price_usd, 'USD')}
+                          {formatMoney(locale, periodPrice.billing.amount, periodPrice.billing.currency)}
                         </div>
+                        {periodPrice.localEstimate ? (
+                          <div className="mt-1 text-[11px] font-mono text-neon-cyan/70">
+                            {t('localEstimate', {
+                              price: formatMoney(
+                                locale,
+                                periodPrice.localEstimate.amount,
+                                periodPrice.localEstimate.currency,
+                              ),
+                            })}
+                          </div>
+                        ) : null}
                         {period.invite_bundle.count > 0 ? (
                           <div className="mt-2 text-[11px] font-mono text-matrix-green">
                             {t('periodInviteBonus', {
@@ -1013,139 +1074,177 @@ export default function MiniAppPlansPage() {
         )}
       </div>
 
-      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
-        <div className="mb-4">
-          <h3 className="font-display text-lg uppercase tracking-[0.16em]">{t('addonsTitle')}</h3>
-          <p className="mt-1 text-sm font-mono text-muted-foreground">{t('addonsDescription')}</p>
-        </div>
-
-        {isUpgradeFlow ? (
-          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-mono text-amber-200">
-            {t('addonsUpgradeLocked')}
+      {addonsEnabled ? (
+        <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+          <div className="mb-4">
+            <h3 className="font-display text-lg uppercase tracking-[0.16em]">{t('addonsTitle')}</h3>
+            <p className="mt-1 text-sm font-mono text-muted-foreground">{t('addonsDescription')}</p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-display text-base uppercase tracking-[0.14em] text-white">
-                    {t('extraDeviceTitle')}
-                  </p>
-                  <p className="mt-2 text-sm font-mono text-white/60">
-                    {extraDeviceAddon
-                      ? t('extraDevicePrice', {
-                          price: formatMoney(locale, extraDeviceAddon.price_usd, 'USD'),
-                        })
-                      : t('addonUnavailable')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={extraDeviceQty <= 0}
-                    onClick={() => setExtraDeviceQty((current) => Math.max(0, current - 1))}
-                    className="rounded-lg border border-white/10 p-2 text-white/70 disabled:opacity-40"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <div className="min-w-10 text-center font-display text-lg text-white">{extraDeviceQty}</div>
-                  <button
-                    type="button"
-                    disabled={!canAddExtraDevice || extraDeviceQty >= maxExtraDevices}
-                    onClick={() => setExtraDeviceQty((current) => Math.min(maxExtraDevices, current + 1))}
-                    className="rounded-lg border border-white/10 p-2 text-white/70 disabled:opacity-40"
-                  >
-                    <ChevronRight className="h-4 w-4 rotate-90" />
-                  </button>
-                </div>
-              </div>
-              {canAddExtraDevice ? (
-                <p className="mt-3 text-xs font-mono text-white/55">
-                  {t('extraDeviceLimit', { count: maxExtraDevices })}
-                </p>
-              ) : (
-                <p className="mt-3 text-xs font-mono text-white/45">{t('addonUnavailable')}</p>
-              )}
+
+          {isUpgradeFlow ? (
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-mono text-amber-200">
+              {t('addonsUpgradeLocked')}
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={wantsDedicatedIp}
-                  onChange={(event) => setWantsDedicatedIp(event.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-white/20 bg-black"
-                />
-                <div className="flex-1">
-                  <p className="font-display text-base uppercase tracking-[0.14em] text-white">
-                    {t('dedicatedIpTitle')}
-                  </p>
-                  <p className="mt-2 text-sm font-mono text-white/60">
-                    {dedicatedIpAddon
-                      ? t('dedicatedIpPrice', {
-                          price: formatMoney(locale, dedicatedIpAddon.price_usd, 'USD'),
-                        })
-                      : t('addonUnavailable')}
-                  </p>
+          ) : (
+            <div className="space-y-4">
+              {extraDeviceAddon ? (
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-display text-base uppercase tracking-[0.14em] text-white">
+                        {t('extraDeviceTitle')}
+                      </p>
+                      <p className="mt-2 text-sm font-mono text-white/60">
+                        {extraDevicePricePresentation
+                          ? t('extraDevicePrice', {
+                              price: formatMoney(
+                                locale,
+                                extraDevicePricePresentation.billing.amount,
+                                extraDevicePricePresentation.billing.currency,
+                              ),
+                            })
+                          : t('addonUnavailable')}
+                      </p>
+                      {extraDevicePricePresentation?.localEstimate ? (
+                        <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">
+                          {t('localEstimate', {
+                            price: formatMoney(
+                              locale,
+                              extraDevicePricePresentation.localEstimate.amount,
+                              extraDevicePricePresentation.localEstimate.currency,
+                            ),
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={extraDeviceQty <= 0}
+                        onClick={() => setExtraDeviceQty((current) => Math.max(0, current - 1))}
+                        className="rounded-lg border border-white/10 p-2 text-white/70 disabled:opacity-40"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <div className="min-w-10 text-center font-display text-lg text-white">{extraDeviceQty}</div>
+                      <button
+                        type="button"
+                        disabled={!canAddExtraDevice || extraDeviceQty >= maxExtraDevices}
+                        onClick={() => setExtraDeviceQty((current) => Math.min(maxExtraDevices, current + 1))}
+                        className="rounded-lg border border-white/10 p-2 text-white/70 disabled:opacity-40"
+                      >
+                        <ChevronRight className="h-4 w-4 rotate-90" />
+                      </button>
+                    </div>
+                  </div>
+                  {canAddExtraDevice ? (
+                    <p className="mt-3 text-xs font-mono text-white/55">
+                      {t('extraDeviceLimit', { count: maxExtraDevices })}
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-xs font-mono text-white/45">{t('addonUnavailable')}</p>
+                  )}
                 </div>
-              </label>
+              ) : null}
 
-              {wantsDedicatedIp ? (
-                <div className="mt-4 space-y-2">
-                  <input
-                    type="text"
-                    value={dedicatedIpLocation}
-                    onChange={(event) => setDedicatedIpLocation(event.target.value.toLowerCase())}
-                    placeholder={t('dedicatedIpLocationPlaceholder')}
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
-                  />
-                  <p className="text-xs font-mono text-white/45">
-                    {t('dedicatedIpLocationHint')}
-                  </p>
+              {dedicatedIpAddon ? (
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={wantsDedicatedIp}
+                      onChange={(event) => setWantsDedicatedIp(event.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-white/20 bg-black"
+                    />
+                    <div className="flex-1">
+                      <p className="font-display text-base uppercase tracking-[0.14em] text-white">
+                        {t('dedicatedIpTitle')}
+                      </p>
+                      <p className="mt-2 text-sm font-mono text-white/60">
+                        {dedicatedIpPricePresentation
+                          ? t('dedicatedIpPrice', {
+                              price: formatMoney(
+                                locale,
+                                dedicatedIpPricePresentation.billing.amount,
+                                dedicatedIpPricePresentation.billing.currency,
+                              ),
+                            })
+                          : t('addonUnavailable')}
+                      </p>
+                      {dedicatedIpPricePresentation?.localEstimate ? (
+                        <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">
+                          {t('localEstimate', {
+                            price: formatMoney(
+                              locale,
+                              dedicatedIpPricePresentation.localEstimate.amount,
+                              dedicatedIpPricePresentation.localEstimate.currency,
+                            ),
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                  </label>
+
+                  {wantsDedicatedIp ? (
+                    <div className="mt-4 space-y-2">
+                      <input
+                        type="text"
+                        value={dedicatedIpLocation}
+                        onChange={(event) => setDedicatedIpLocation(event.target.value.toLowerCase())}
+                        placeholder={t('dedicatedIpLocationPlaceholder')}
+                        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
+                      />
+                      <p className="text-xs font-mono text-white/45">
+                        {t('dedicatedIpLocationHint')}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      ) : null}
 
-      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
-        <div className="mb-3 flex items-center gap-2">
-          <Tag className="h-5 w-5 text-neon-cyan" />
-          <h3 className="font-display text-sm uppercase tracking-[0.14em]">{t('havePromoCode')}</h3>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={codeInput}
-            onChange={(event) => setCodeInput(event.target.value.toUpperCase())}
-            placeholder={t('promoCodePlaceholder')}
-            className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
-          />
-          <button
-            type="button"
-            onClick={() => void handleApplyCode()}
-            disabled={!checkoutEnabled}
-            className="rounded-xl bg-neon-cyan px-4 py-3 font-mono text-sm text-black"
-          >
-            {t('apply')}
-          </button>
-        </div>
-        {displayedCodeFeedback ? (
-          <div
-            className={`mt-3 flex items-center gap-2 text-xs font-mono ${
-              displayedCodeFeedback.tone === 'error'
-                ? 'text-neon-pink'
-                : displayedCodeFeedback.tone === 'warning'
-                  ? 'text-amber-200'
-                  : 'text-neon-cyan'
-            }`}
-          >
-            <Check className="h-3 w-3" />
-            {displayedCodeFeedback.message}
+      {checkoutCodesEnabled ? (
+        <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
+          <div className="mb-3 flex items-center gap-2">
+            <Tag className="h-5 w-5 text-neon-cyan" />
+            <h3 className="font-display text-sm uppercase tracking-[0.14em]">{t('havePromoCode')}</h3>
           </div>
-        ) : null}
-      </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={codeInput}
+              onChange={(event) => setCodeInput(event.target.value.toUpperCase())}
+              placeholder={t('promoCodePlaceholder')}
+              className="flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
+            />
+            <button
+              type="button"
+              onClick={() => void handleApplyCode()}
+              disabled={!checkoutEnabled}
+              className="rounded-xl bg-neon-cyan px-4 py-3 font-mono text-sm text-black"
+            >
+              {t('apply')}
+            </button>
+          </div>
+          {displayedCodeFeedback ? (
+            <div
+              className={`mt-3 flex items-center gap-2 text-xs font-mono ${
+                displayedCodeFeedback.tone === 'error'
+                  ? 'text-neon-pink'
+                  : displayedCodeFeedback.tone === 'warning'
+                    ? 'text-amber-200'
+                    : 'text-neon-cyan'
+              }`}
+            >
+              <Check className="h-3 w-3" />
+              {displayedCodeFeedback.message}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-4`}>
         <div className="mb-4 flex items-center justify-between gap-3">

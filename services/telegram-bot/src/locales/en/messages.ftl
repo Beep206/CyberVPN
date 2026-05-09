@@ -261,6 +261,45 @@ promocode-cancelled = ✅ Promo code entry cancelled.
 support-message = 🆘 <b>Support</b>
 
     Contact us: { $contact }
+    To create a support request, send: <code>/support your question</code>
+
+support-first-line-payment = 💳 <b>Payment support</b>
+
+    I recorded this as a payment question. Please include the payment method and approximate payment time in your next message to support.
+
+support-first-line-provisioning = 🔐 <b>Access support</b>
+
+    I recorded this as an access/config issue. Do not send your full VPN config link here; support can identify the case by reference.
+
+support-first-line-connectivity = 🌐 <b>Connection support</b>
+
+    Try switching server/location and restarting the VPN app. If it still fails, support will need your OS/app name and error text.
+
+support-first-line-account = 👤 <b>Account support</b>
+
+    I recorded this as an account/login issue. Support may ask you to confirm your Telegram account or email.
+
+support-first-line-legal_abuse = ⚠️ <b>Escalation required</b>
+
+    This type of request must be reviewed by the owner/support process.
+
+support-first-line-general = 🆘 <b>Support</b>
+
+    I can answer only basic launch-beta questions here. For anything account-specific, contact support.
+
+support-first-line-without-escalation = { $first_line }
+
+    Reference: <code>{ $reference }</code>
+    Contact: { $contact }
+
+support-escalation-created = ✅ Escalated to support.
+
+    Reference: <code>{ $reference }</code>
+    Contact: { $contact }
+
+support-escalation-fallback = ⚠️ I could not create the support record automatically.
+
+    Send this reference to { $contact }: <code>{ $reference }</code>
 
 # ── Devices / Config ─────────────────────────────────────────────────────
 config-title = 📱 <b>Connection</b>

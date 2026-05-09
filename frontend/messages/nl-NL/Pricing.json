@@ -1,6 +1,6 @@
 {
   "title": "ACCESS TIERS",
-  "subtitle": "Network Power Allocation",
+  "subtitle": "4 plans, 4 billing terms. One full VPN baseline on every paid plan.",
   "tiers": {
     "basic": {
       "name": "STEALTH",
@@ -53,5 +53,15 @@
     "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
     "q3": "Do you accept crypto?",
     "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive."
+  },
+  "labels": {
+    "chargedInBillingCurrency": "Charged in {currency}",
+    "localDisplayEstimate": "Approx. {price} display only"
+  },
+  "introPills": {
+    "addons": "Options"
+  },
+  "periods": {
+    "helper": "Choose the term that fits your setup; checkout stays simple and predictable."
   }
 }

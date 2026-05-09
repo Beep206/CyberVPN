@@ -196,6 +196,28 @@ export interface DeleteAccountResponse {
   message: string;
 }
 
+export type PrivacyRequestType = 'account_deletion' | 'data_export';
+
+export interface PrivacyRequestCreate {
+  request_type: PrivacyRequestType;
+  notes?: string | null;
+}
+
+export interface PrivacyRequestResponse {
+  request_type: PrivacyRequestType;
+  message: string;
+  ticket_reference: string;
+  target_contact: string;
+  priority: string;
+  support_state: string;
+  ack_sla_minutes: number | null;
+  customer_response_sla_minutes: number;
+  manual_fulfillment_target_days: number;
+  required_actions: string[];
+  forbidden_actions: string[];
+  audit_required: boolean;
+}
+
 export interface MagicLinkRequest {
   email: string;
 }
@@ -404,6 +426,23 @@ export const authApi = {
    */
   deleteAccount: () =>
     apiClient.delete<DeleteAccountResponse>('/auth/me'),
+
+  /**
+   * Open a manual S1 privacy request for account deletion or data export.
+   * POST /api/v1/auth/me/privacy-requests
+   */
+  requestPrivacyAction: (payload: PrivacyRequestCreate) =>
+    apiClient.post<PrivacyRequestResponse>('/auth/me/privacy-requests', payload),
+
+  /**
+   * Request a manual S1 account-data export.
+   * POST /api/v1/auth/me/privacy-requests
+   */
+  requestDataExport: (notes?: string | null) =>
+    authApi.requestPrivacyAction({
+      request_type: 'data_export',
+      notes: notes ?? null,
+    }),
 
   /**
    * List all active devices/sessions for the authenticated user

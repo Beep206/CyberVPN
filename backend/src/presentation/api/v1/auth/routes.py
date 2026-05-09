@@ -19,6 +19,10 @@ from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.application.services.login_protection import AccountLockedException, LoginProtectionService
 from src.application.services.magic_link_service import MagicLinkService, RateLimitExceededError
 from src.application.services.otp_service import OtpService
+from src.application.services.public_registration_policy import (
+    PublicRegistrationDisabledError,
+    ensure_public_registration_enabled,
+)
 from src.application.services.telegram_auth import TelegramAuthService
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
@@ -33,6 +37,7 @@ from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCa
 from src.application.use_cases.auth.telegram_web_auth import TelegramWebAuthUseCase
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.application.use_cases.auth_realms import RealmResolution
+from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.cache.redis_client import get_redis
@@ -81,6 +86,11 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
 )
+from src.presentation.api.shared import (
+    Stage1PrivacyRequestInput,
+    Stage1SupportChannel,
+    build_stage1_privacy_request,
+)
 from src.presentation.api.v1.auth.cookies import (
     clear_auth_cookies,
     get_refresh_token_cookie,
@@ -110,6 +120,8 @@ from src.presentation.api.v1.auth.schemas import (
     MagicLinkVerifyOtpRequest,
     MagicLinkVerifyRequest,
     MagicLinkVerifyResponse,
+    PrivacyRequestCreate,
+    PrivacyRequestResponse,
     RefreshTokenRequest,
     ResendOtpRequest,
     ResendOtpResponse,
@@ -874,6 +886,54 @@ async def get_me(
     return _build_admin_user_response(current_user, current_realm)
 
 
+@router.post(
+    "/me/privacy-requests",
+    response_model=PrivacyRequestResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        401: {"description": "Not authenticated"},
+        422: {"description": "Validation error"},
+    },
+)
+@router.post(
+    "/me/privacy-requests/",
+    response_model=PrivacyRequestResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    include_in_schema=False,
+)
+async def create_privacy_request(
+    request: PrivacyRequestCreate,
+    current_user=Depends(get_current_active_user),
+) -> PrivacyRequestResponse:
+    """Open a manual S1 privacy request for account deletion or data export.
+
+    This endpoint creates a safe support/escalation reference only. S1 does not
+    automatically export raw data or perform destructive deletion from this
+    request path.
+    """
+
+    decision = build_stage1_privacy_request(
+        Stage1PrivacyRequestInput(
+            request_kind=request.request_type,
+            channel=Stage1SupportChannel.WEB_CONTACT_FORM,
+            user_reference=str(current_user.id),
+            contact=current_user.email,
+            notes=request.notes,
+        )
+    )
+
+    logger.info(
+        "S1 privacy request accepted",
+        extra={
+            "user_id": str(current_user.id),
+            "request_type": decision.request_kind.value,
+            "ticket_reference": decision.ticket.reference,
+        },
+    )
+
+    return PrivacyRequestResponse(**decision.to_api_dict())
+
+
 @router.delete(
     "/me",
     response_model=DeleteAccountResponse,
@@ -1385,6 +1445,28 @@ async def verify_magic_link(
     is_new_user = user is None
 
     if is_new_user:
+        try:
+            ensure_public_registration_enabled(
+                channel="magic_link",
+                registration_enabled=settings.registration_enabled,
+            )
+        except PublicRegistrationDisabledError as e:
+            track_auth_attempt(method="magic_link", success=False)
+            track_auth_error("registration_disabled")
+            track_auth_flow_event(
+                channel="web",
+                method="magic_link",
+                provider="email",
+                locale=payload_locale or "unknown",
+                client_context=client_context,
+                step="register",
+                status="failure",
+            )
+            observe_auth_request_duration("magic_link", started_at)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=e.public_detail(),
+            ) from e
         # Auto-register: create user with verified email
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
         user = AdminUserModel(
@@ -1559,6 +1641,28 @@ async def verify_magic_link_otp(
     is_new_user = user is None
 
     if is_new_user:
+        try:
+            ensure_public_registration_enabled(
+                channel="magic_link_otp",
+                registration_enabled=settings.registration_enabled,
+            )
+        except PublicRegistrationDisabledError as e:
+            track_auth_attempt(method="magic_link_otp", success=False)
+            track_auth_error("registration_disabled")
+            track_auth_flow_event(
+                channel="web",
+                method="magic_link_otp",
+                provider="email",
+                locale=payload_locale or "unknown",
+                client_context=client_context,
+                step="register",
+                status="failure",
+            )
+            observe_auth_request_duration("magic_link_otp", started_at)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=e.public_detail(),
+            ) from e
         # Auto-register: create user with verified email
         password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
         user = AdminUserModel(
@@ -1709,10 +1813,35 @@ async def telegram_miniapp_auth(
         session=db,
         telegram_provider=telegram_provider,
         remnawave_gateway=remnawave_adapter,
+        allow_new_users=settings.registration_enabled,
     )
 
     try:
         result = await use_case.execute(init_data=request.init_data)
+    except PublicRegistrationDisabledError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("registration_disabled")
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="register",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="registration_disabled",
+        )
+        observe_auth_request_duration("telegram", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=e.public_detail(),
+        ) from e
     except ValueError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("invalid_credentials")
@@ -1860,10 +1989,35 @@ async def telegram_web_auth(
         session=db,
         telegram_service=telegram_service,
         remnawave_gateway=remnawave_adapter,
+        allow_new_users=settings.registration_enabled,
     )
 
     try:
         result = await use_case.execute(payload=request.model_dump())
+    except PublicRegistrationDisabledError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("registration_disabled")
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="register",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="registration_disabled",
+        )
+        observe_auth_request_duration("telegram", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=e.public_detail(),
+        ) from e
     except ValueError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("invalid_credentials")

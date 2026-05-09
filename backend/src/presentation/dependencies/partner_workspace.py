@@ -29,7 +29,7 @@ class PartnerWorkspaceAccess:
 
 
 def _is_internal_admin(user: AdminUserModel) -> bool:
-    return AdminRole(user.role) in {AdminRole.ADMIN, AdminRole.SUPER_ADMIN}
+    return AdminRole(user.role) in {AdminRole.ADMIN, AdminRole.SUPER_ADMIN, AdminRole.OWNER_SUPER_ADMIN}
 
 
 async def get_partner_workspace_access(

@@ -261,13 +261,17 @@ class TestE2EIntegration:
     def test_metrics_are_properly_defined(self):
         """Verify Prometheus metrics are properly defined."""
         from src.metrics import (
-            TASK_DURATION,
-            TASK_TOTAL,
-            TASK_IN_PROGRESS,
-            QUEUE_DEPTH,
-            WORKER_INFO,
-            EXTERNAL_REQUEST_TOTAL,
             EXTERNAL_REQUEST_DURATION,
+            EXTERNAL_REQUEST_TOTAL,
+            QUEUE_DEPTH,
+            STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT,
+            STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED,
+            STAGE1_PAYMENT_RECONCILIATION_MAX_AGE_MINUTES,
+            STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL,
+            TASK_DURATION,
+            TASK_IN_PROGRESS,
+            TASK_TOTAL,
+            WORKER_INFO,
         )
 
         # Verify metrics exist and have proper types
@@ -278,6 +282,10 @@ class TestE2EIntegration:
         assert WORKER_INFO is not None
         assert EXTERNAL_REQUEST_TOTAL is not None
         assert EXTERNAL_REQUEST_DURATION is not None
+        assert STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL is not None
+        assert STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT is not None
+        assert STAGE1_PAYMENT_RECONCILIATION_MAX_AGE_MINUTES is not None
+        assert STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED is not None
 
     def test_logging_is_configured(self):
         """Verify logging is properly configured."""

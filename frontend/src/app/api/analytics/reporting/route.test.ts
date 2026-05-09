@@ -6,7 +6,7 @@ import {
   resetAnalyticsReportingStore,
 } from '@/shared/lib/analytics-reporting';
 
-function createRequest(origin = 'https://vpn.ozoxy.ru', nextOrigin = 'https://vpn.ozoxy.ru') {
+function createRequest(origin = 'https://cyber-vpn.net', nextOrigin = 'https://cyber-vpn.net') {
   return {
     headers: new Headers({
       referer: `${origin}/en-EN/analytics`,
@@ -74,7 +74,7 @@ describe('GET /api/analytics/reporting', () => {
 
   it('rejects foreign origins', async () => {
     const response = await GET(
-      createRequest('https://evil.example', 'https://vpn.ozoxy.ru') as never,
+      createRequest('https://evil.example', 'https://cyber-vpn.net') as never,
     );
 
     expect(response.status).toBe(403);

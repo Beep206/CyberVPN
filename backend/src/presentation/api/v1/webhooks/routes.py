@@ -8,9 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
 from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
 from src.config.settings import settings
+from src.domain.exceptions.domain_errors import InvalidWebhookSignatureError
 from src.infrastructure.monitoring.metrics import webhook_operations_total
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
+from src.presentation.api.shared.stage1_payment_mapping import Stage1PaymentProvider
+from src.presentation.api.shared.stage1_webhook_signature import verify_stage1_webhook_signature
 from src.presentation.dependencies.database import get_db
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -63,10 +66,21 @@ async def cryptobot_webhook(
     """Handle webhook callbacks from CryptoBot payment service."""
     body = await request.body()
     signature = request.headers.get("crypto-pay-api-signature", "")
+    cryptobot_token = settings.cryptobot_token.get_secret_value()
 
-    handler = CryptoBotWebhookHandler(settings.cryptobot_token.get_secret_value())
+    signature_decision = verify_stage1_webhook_signature(
+        Stage1PaymentProvider.CRYPTOBOT,
+        body=body,
+        headers=request.headers,
+        secret=cryptobot_token,
+    )
+    if not signature_decision.accepted:
+        webhook_operations_total.labels(provider="cryptobot", status=signature_decision.status.value).inc()
+        raise InvalidWebhookSignatureError()
+
+    handler = CryptoBotWebhookHandler(cryptobot_token)
     use_case = ProcessPaymentWebhookUseCase(webhook_handler=handler, session=db)
 
     result = await use_case.execute(provider="cryptobot", body=body, signature=signature)
-    webhook_operations_total.labels(provider="cryptobot", status="success").inc()
+    webhook_operations_total.labels(provider="cryptobot", status=result.get("status", "unknown")).inc()
     return result

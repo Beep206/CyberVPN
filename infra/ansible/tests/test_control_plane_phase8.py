@@ -96,6 +96,9 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
                 "backend": {
                     "remnawave_token": "backend-rw",
                     "jwt_secret": "backend-jwt",
+                    "telegram_bot_token": "backend-telegram-token",
+                    "telegram_bot_username": "CyberVPNStageBot",
+                    "telegram_bot_internal_secret": "backend-telegram-internal",
                     "totp_encryption_key": "totp-key",
                     "oauth_token_encryption_key": "oauth-key",
                 },
@@ -110,6 +113,9 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
         self.assertEqual(payload["vault_control_plane_postgres_password"], "postgres-secret")
         self.assertEqual(payload["vault_control_plane_registry_username"], "octocat")
         self.assertEqual(payload["vault_control_plane_backend_jwt_secret"], "backend-jwt")
+        self.assertEqual(payload["vault_control_plane_backend_telegram_bot_token"], "backend-telegram-token")
+        self.assertEqual(payload["vault_control_plane_backend_telegram_bot_username"], "CyberVPNStageBot")
+        self.assertEqual(payload["vault_control_plane_backend_telegram_bot_internal_secret"], "backend-telegram-internal")
         self.assertEqual(payload["vault_control_plane_worker_telegram_bot_token"], "")
         self.assertEqual(payload["vault_control_plane_backend_env_extra"], {})
 
@@ -133,6 +139,9 @@ class BootstrapControlPlaneVaultTests(unittest.TestCase):
                         "vault_control_plane_backend_remnawave_token": "backend-rw",
                         "vault_control_plane_backend_jwt_secret": "backend-jwt",
                         "vault_control_plane_backend_cryptobot_token": "",
+                        "vault_control_plane_backend_telegram_bot_token": "",
+                        "vault_control_plane_backend_telegram_bot_username": "",
+                        "vault_control_plane_backend_telegram_bot_internal_secret": "",
                         "vault_control_plane_backend_totp_encryption_key": "totp-key",
                         "vault_control_plane_backend_oauth_token_encryption_key": "oauth-key",
                         "vault_control_plane_worker_remnawave_api_token": "worker-rw",

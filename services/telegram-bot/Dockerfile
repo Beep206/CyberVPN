@@ -1,12 +1,10 @@
 # ── Build stage ──────────────────────────────────────────────────────────
-FROM python:3.13.13-slim-bookworm AS builder
+FROM python:3.13.13-alpine AS builder
 
 WORKDIR /build
 
 # Install build dependencies (for hiredis, etc.)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc libc6-dev && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache build-base
 
 # Copy dependency files
 COPY pyproject.toml README.md ./
@@ -17,11 +15,11 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir .
 
 # ── Runtime stage ────────────────────────────────────────────────────────
-FROM python:3.13.13-slim-bookworm AS runtime
+FROM python:3.13.13-alpine AS runtime
 
 # Security: create non-root user
-RUN groupadd -r botuser && \
-    useradd -r -g botuser -d /app -s /sbin/nologin botuser
+RUN addgroup -S botuser && \
+    adduser -S -G botuser -h /app -s /sbin/nologin botuser
 
 WORKDIR /app
 

@@ -5,6 +5,7 @@ authentication dependency via FastAPI dependency overrides.
 """
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -12,6 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 from src.main import app
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 
 
 class _MockUser:
@@ -29,12 +31,28 @@ def _mock_current_active_user() -> _MockUser:
     return _MockUser()
 
 
+async def _mock_admin_realm() -> SimpleNamespace:
+    return SimpleNamespace(
+        auth_realm=SimpleNamespace(
+            audience="admin",
+            cookie_namespace="admin",
+            id=uuid4(),
+            realm_key="admin",
+            realm_type="admin",
+        ),
+        cookie_namespace="admin",
+        source="test",
+    )
+
+
 @pytest.fixture(autouse=True)
 def _override_auth():
     """Override authentication for all tests in this module."""
     app.dependency_overrides[get_current_active_user] = _mock_current_active_user
+    app.dependency_overrides[get_request_admin_realm] = _mock_admin_realm
     yield
     app.dependency_overrides.pop(get_current_active_user, None)
+    app.dependency_overrides.pop(get_request_admin_realm, None)
 
 
 @pytest.mark.asyncio
@@ -48,12 +66,18 @@ async def test_get_usage_success() -> None:
 
     assert response.status_code == 200
     data = response.json()
+    assert "usage_available" in data
+    assert "usage_source" in data
+    assert "usage_unavailable_reason" in data
     assert "bandwidth_used_bytes" in data
     assert "bandwidth_limit_bytes" in data
     assert "connections_active" in data
     assert "connections_limit" in data
     assert "period_start" in data
     assert "period_end" in data
+    assert "generated_at" in data
+    assert data["usage_available"] is False
+    assert data["usage_source"] == "unavailable"
     assert isinstance(data["bandwidth_used_bytes"], int)
     assert isinstance(data["connections_active"], int)
 

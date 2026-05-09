@@ -26,7 +26,7 @@ def mask_secret(value: str, visible_chars: int = 4) -> str:
         Masked string in format "***XXXX" where X are the last visible_chars
 
     Example:
-        >>> mask_secret("sk_live_1234567890abcdef", 4)
+        >>> mask_secret("example-secret-value-for-tests", 4)
         "***cdef"
         >>> mask_secret("short", 4)
         "***"

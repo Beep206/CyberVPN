@@ -269,7 +269,7 @@ export function DeleteAccountClient() {
         <p className="text-gray-300">
           <strong>{t('contact.email')}:</strong>{' '}
           <a
-            href="mailto:privacy@cybervpn.app"
+            href={`mailto:${t('contact.emailAddress')}`}
             className="text-matrix-green hover:underline"
             aria-label={t('contact.emailAddress')}
           >

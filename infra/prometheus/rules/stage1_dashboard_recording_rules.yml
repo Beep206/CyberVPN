@@ -1,0 +1,85 @@
+groups:
+  - name: stage1_controlled_public_beta_dashboard
+    interval: 30s
+    rules:
+      - record: stage1:target_up
+        expr: |
+          max by (job) (up{job=~"cybervpn-local-backend|cybervpn-telegram-bot|cybervpn-worker|postgres|redis|remnawave"}) or vector(0)
+
+      - record: stage1:api_http_error_ratio:5m
+        expr: |
+          sum(rate(http_requests_total{job="cybervpn-local-backend",status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_requests_total{job="cybervpn-local-backend"}[5m])), 1e-9)
+
+      - record: stage1:api_http_p95_seconds:5m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="cybervpn-local-backend"}[5m])) by (le)
+          ) or vector(0)
+
+      - record: stage1:auth_success_ratio:5m
+        expr: |
+          sum(rate(auth_attempts_total{status="success"}[5m]))
+          /
+          clamp_min(sum(rate(auth_attempts_total[5m])), 1e-9)
+
+      - record: stage1:registrations:24h
+        expr: |
+          sum(increase(registrations_total[24h])) or vector(0)
+
+      - record: stage1:payment_success_ratio:1h
+        expr: |
+          sum(increase(payments_total{status=~"success|completed|paid"}[1h]))
+          /
+          clamp_min(sum(increase(payments_total[1h])), 1e-9)
+
+      - record: stage1:payment_reconciliation_items:current
+        expr: |
+          sum(cybervpn_stage1_payment_reconciliation_items_current) or vector(0)
+
+      - record: stage1:payment_reconciliation_p0_items:current
+        expr: |
+          sum(cybervpn_stage1_payment_reconciliation_items_current{severity="p0_blocker"}) or vector(0)
+
+      - record: stage1:worker_queue_depth:current
+        expr: |
+          sum(cybervpn_queue_depth) or vector(0)
+
+      - record: stage1:worker_task_error_ratio:5m
+        expr: |
+          sum(rate(taskiq_tasks_total{job="cybervpn-worker",status="error"}[5m]))
+          /
+          clamp_min(sum(rate(taskiq_tasks_total{job="cybervpn-worker"}[5m])), 1e-9)
+
+      - record: stage1:remnawave_external_error_ratio:5m
+        expr: |
+          sum(rate(cybervpn_external_requests_total{service=~"remnawave|Remnawave",status!~"2.."}[5m]))
+          /
+          clamp_min(sum(rate(cybervpn_external_requests_total{service=~"remnawave|Remnawave"}[5m])), 1e-9)
+
+      - record: stage1:postgres_rollback_ratio:5m
+        expr: |
+          sum(rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m]))
+          /
+          clamp_min(
+            sum(rate(pg_stat_database_xact_commit{datname!~"template.*|postgres"}[5m]))
+            +
+            sum(rate(pg_stat_database_xact_rollback{datname!~"template.*|postgres"}[5m])),
+            1e-9
+          )
+
+      - record: stage1:redis_memory_used_bytes
+        expr: |
+          max(redis_memory_used_bytes) or vector(0)
+
+      - record: stage1:remnawave_healthy_nodes:current
+        expr: |
+          sum(remnawave_node_status{job="remnawave"}) or vector(0)
+
+      - record: stage1:telegram_bot_error_ratio:5m
+        expr: |
+          sum(rate(bot_updates_total{job="cybervpn-telegram-bot",status="error"}[5m]))
+          /
+          clamp_min(sum(rate(bot_updates_total{job="cybervpn-telegram-bot"}[5m])), 1e-9)

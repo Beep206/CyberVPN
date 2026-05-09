@@ -174,6 +174,19 @@ describe('MSW API Mocking', () => {
     expect(data.message).toBe('Account has been deleted');
   });
 
+  it('test_msw_privacy_request_returns_manual_review_reference', async () => {
+    const response = await fetch('http://localhost:8000/api/v1/auth/me/privacy-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_type: 'data_export' }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(202);
+    expect(data.request_type).toBe('data_export');
+    expect(data.target_contact).toBe('privacy@cyber-vpn.net');
+  });
+
   it('test_msw_servers_list_returns_all_servers', async () => {
     const response = await fetch('http://localhost:8000/api/v1/servers');
     const data = await response.json();

@@ -26,6 +26,40 @@ class AccountLinkingUseCase:
             access_token=access_token,
             refresh_token=refresh_token,
         )
+        result = await self._session.execute(
+            select(OAuthAccount).where(
+                OAuthAccount.provider == provider,
+                OAuthAccount.provider_user_id == provider_user_id,
+            )
+        )
+        existing_identity = result.scalar_one_or_none()
+        if existing_identity:
+            if existing_identity.user_id != user_id:
+                raise ValueError("Provider account is already linked to another user.")
+            existing_identity.provider_username = provider_username
+            existing_identity.provider_email = provider_email
+            existing_identity.access_token = stored_tokens.access_token
+            existing_identity.refresh_token = stored_tokens.refresh_token
+            await self._session.flush()
+            return existing_identity
+
+        result = await self._session.execute(
+            select(OAuthAccount).where(
+                OAuthAccount.user_id == user_id,
+                OAuthAccount.provider == provider,
+            )
+        )
+        existing_provider = result.scalar_one_or_none()
+        if existing_provider:
+            if existing_provider.provider_user_id != provider_user_id:
+                raise ValueError("User already has a different account linked for this provider.")
+            existing_provider.provider_username = provider_username
+            existing_provider.provider_email = provider_email
+            existing_provider.access_token = stored_tokens.access_token
+            existing_provider.refresh_token = stored_tokens.refresh_token
+            await self._session.flush()
+            return existing_provider
+
         account = OAuthAccount(
             user_id=user_id,
             provider=provider,

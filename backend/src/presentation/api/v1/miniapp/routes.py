@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from time import perf_counter
+from typing import Literal
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -11,6 +13,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService, MiniAppRuntimeConfig
+from src.application.services.stage1_plan_policy import (
+    filter_stage1_public_addons,
+    filter_stage1_public_paid_plans,
+)
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
@@ -25,6 +31,10 @@ from src.application.use_cases.subscriptions import (
 )
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
 from src.application.use_cases.trial.get_trial_status import GetTrialStatusUseCase
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX,
+    STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS,
+)
 from src.config.settings import settings
 from src.domain.entities.user import User
 from src.domain.enums import CatalogVisibility
@@ -100,6 +110,7 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/miniapp", tags=["miniapp"])
+logger = logging.getLogger(__name__)
 
 _RTL_LOCALE_PREFIXES = ("ar", "fa", "he", "ur")
 
@@ -160,10 +171,7 @@ def _evaluate_miniapp_runtime_access(
     feature: str,
     telegram_user_id: int | None = None,
 ) -> _MiniAppRuntimeDecision:
-    is_canary_user = (
-        telegram_user_id is not None
-        and telegram_user_id in config.canary_telegram_user_ids
-    )
+    is_canary_user = telegram_user_id is not None and telegram_user_id in config.canary_telegram_user_ids
 
     if config.mode == "maintenance":
         return _MiniAppRuntimeDecision(
@@ -232,8 +240,7 @@ def _assert_miniapp_runtime_enabled(
             "config": "Config delivery is temporarily unavailable. Please try again later.",
         }.get(feature, "Mini App feature is temporarily unavailable. Please try again later."),
         "canary_not_allowed": (
-            "Mini App is in limited canary rollout. Please try again later or use the "
-            "primary bot flow."
+            "Mini App is in limited canary rollout. Please try again later or use the primary bot flow."
         ),
     }.get(
         decision.gate_reason_code,
@@ -279,10 +286,16 @@ def _build_primary_cta(
     return MiniAppBootstrapPrimaryCtaResponse(kind="buy_plan", label="View plans")
 
 
-def _build_usage_snapshot(remnawave_user: User | None) -> MiniAppBootstrapUsageResponse:
+def _build_usage_snapshot(
+    remnawave_user: User | None,
+    unavailable_reason: Literal["upstream_user_not_found", "upstream_unavailable"] = "upstream_user_not_found",
+) -> MiniAppBootstrapUsageResponse:
     now = datetime.now(UTC)
     if remnawave_user is None:
         return MiniAppBootstrapUsageResponse(
+            usageAvailable=False,
+            usageSource="unavailable",
+            usageUnavailableReason=unavailable_reason,
             bandwidthUsedBytes=0,
             bandwidthLimitBytes=0,
             connectionsActive=0,
@@ -310,6 +323,9 @@ def _build_usage_snapshot(remnawave_user: User | None) -> MiniAppBootstrapUsageR
         )
 
     return MiniAppBootstrapUsageResponse(
+        usageAvailable=True,
+        usageSource="remnawave",
+        usageUnavailableReason=None,
         bandwidthUsedBytes=remnawave_user.used_traffic_bytes or 0,
         bandwidthLimitBytes=remnawave_user.traffic_limit_bytes or 0,
         connectionsActive=1 if remnawave_user.online_at else 0,
@@ -502,7 +518,7 @@ async def get_miniapp_bootstrap(
             wallet_currency = "USD"
             wallet_bonuses = 0.0
 
-        referral_code = await GetReferralCodeUseCase(db).execute(user_id)
+        referral_code = await GetReferralCodeUseCase(db).execute(user_id) if settings.referral_enabled else None
         invite_url = _build_invite_url(referral_code)
         mobile_devices = await device_repo.get_user_devices(user_id)
 
@@ -519,10 +535,26 @@ async def get_miniapp_bootstrap(
                 credential_subject_key=f"telegram-miniapp:{mobile_user.telegram_id}",
             )
 
-        remnawave_user = await _get_remnawave_user(
-            client=remnawave_client,
-            telegram_id=mobile_user.telegram_id,
-        )
+        remnawave_user = None
+        usage_unavailable_reason: Literal[
+            "upstream_user_not_found",
+            "upstream_unavailable",
+        ] = "upstream_user_not_found"
+        try:
+            remnawave_user = await _get_remnawave_user(
+                client=remnawave_client,
+                telegram_id=mobile_user.telegram_id,
+            )
+        except Exception as exc:
+            usage_unavailable_reason = "upstream_unavailable"
+            logger.warning(
+                "Could not fetch Mini App usage from Remnawave",
+                extra={
+                    "telegram_id": str(mobile_user.telegram_id),
+                    "reason": usage_unavailable_reason,
+                    "error": str(exc),
+                },
+            )
         rollout_access = _evaluate_miniapp_runtime_access(
             rollout,
             feature="bootstrap",
@@ -595,7 +627,10 @@ async def get_miniapp_bootstrap(
                 limit=device_limit,
                 hasConfig=has_config,
             ),
-            usage=_build_usage_snapshot(remnawave_user),
+            usage=_build_usage_snapshot(
+                remnawave_user,
+                unavailable_reason=usage_unavailable_reason,
+            ),
             serviceState=MiniAppBootstrapServiceStateResponse(
                 providerName="remnawave" if current_service_state is not None else None,
                 channelType=(
@@ -609,11 +644,7 @@ async def get_miniapp_bootstrap(
             recommendedServer=None,
             primaryCta=_build_primary_cta(
                 subscription_status=subscription_status,
-                trial_eligible=(
-                    rollout_access.allowed
-                    and rollout.trial_enabled
-                    and trial_status.is_eligible
-                ),
+                trial_eligible=(rollout_access.allowed and rollout.trial_enabled and trial_status.is_eligible),
                 has_config=has_config,
             ),
             referral=MiniAppBootstrapReferralResponse(
@@ -645,6 +676,10 @@ async def get_miniapp_bootstrap(
                 "miniapp_trial_enabled": rollout.trial_enabled,
                 "miniapp_checkout_enabled": rollout.checkout_enabled,
                 "miniapp_config_enabled": rollout.config_enabled,
+                "stage1_referral_enabled": settings.referral_enabled,
+                "stage1_promo_codes_enabled": settings.promo_codes_enabled,
+                "stage1_gift_codes_enabled": settings.gift_codes_enabled,
+                "stage1_checkout_code_discounts_enabled": settings.checkout_code_discounts_enabled,
             },
             freshness=MiniAppBootstrapFreshnessResponse(generatedAt=datetime.now(UTC)),
         )
@@ -681,8 +716,15 @@ async def get_miniapp_offers(
         )
 
         return MiniAppOffersResponse(
-            plans=[_serialize_plan(plan) for plan in plans],
-            addons=[_serialize_addon(addon) for addon in addons],
+            plans=[_serialize_plan(plan) for plan in filter_stage1_public_paid_plans(plans, sale_channel="miniapp")],
+            addons=[
+                _serialize_addon(addon)
+                for addon in filter_stage1_public_addons(
+                    addons,
+                    sale_channel="miniapp",
+                    enabled=settings.stage1_addons_enabled,
+                )
+            ],
             trial=trial_status,
             currentEntitlements=current_entitlements,
             freshness=MiniAppBootstrapFreshnessResponse(generatedAt=datetime.now(UTC)),
@@ -704,8 +746,8 @@ async def activate_miniapp_trial(
     started = perf_counter()
     error: Exception | None = None
     rate_limit_key = f"trial_activate:{user_id}"
-    rate_limit_window = 3600
-    rate_limit_max = 3
+    rate_limit_window = STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS
+    rate_limit_max = STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX
 
     try:
         rollout = await _get_miniapp_runtime_config(db)
@@ -878,11 +920,7 @@ async def commit_miniapp_checkout(
             )
             quote = _serialize_base_checkout_quote(result)
 
-            can_use_stars = (
-                body.currency.upper() == "XTR"
-                and body.use_wallet <= 0
-                and len(body.addons) == 0
-            )
+            can_use_stars = body.currency.upper() == "XTR" and body.use_wallet <= 0 and len(body.addons) == 0
             if can_use_stars:
                 payment_rail = "telegram_stars_xtr"
                 mobile_user = await db.get(MobileUserModel, user_id)
@@ -923,9 +961,7 @@ async def commit_miniapp_checkout(
                     payment_plan_id=result.plan_id,
                 )
                 invoice = (
-                    InvoiceResponse(**asdict(commit_result.invoice))
-                    if commit_result.invoice is not None
-                    else None
+                    InvoiceResponse(**asdict(commit_result.invoice)) if commit_result.invoice is not None else None
                 )
                 commit_metric_status = str(commit_result.status or "completed")
                 response = MiniAppCheckoutCommitResponse(
@@ -935,11 +971,7 @@ async def commit_miniapp_checkout(
                     invoice=invoice,
                 )
         if response is None:
-            invoice = (
-                InvoiceResponse(**asdict(commit_result.invoice))
-                if commit_result.invoice is not None
-                else None
-            )
+            invoice = InvoiceResponse(**asdict(commit_result.invoice)) if commit_result.invoice is not None else None
             commit_metric_status = str(commit_result.status or "completed")
             response = MiniAppCheckoutCommitResponse(
                 **quote.model_dump(),

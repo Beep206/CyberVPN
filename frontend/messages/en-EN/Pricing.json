@@ -1,14 +1,14 @@
 {
   "title": "Pricing That Stays Clear",
-  "subtitle": "4 plans, 4 terms, 2 add-ons. One full VPN baseline on every paid plan.",
+  "subtitle": "4 plans, 4 billing terms. One full VPN baseline on every paid plan.",
   "introPills": {
     "plans": "4 plans",
     "periods": "4 periods",
-    "addons": "2 add-ons"
+    "addons": "Options"
   },
   "periods": {
     "label": "Choose your billing term",
-    "helper": "Add-ons inherit the same subscription term, so you keep one clean checkout shape.",
+    "helper": "Choose the term that fits your setup; checkout stays simple and predictable.",
     "best": "Best value",
     "term": "Selectable term",
     "options": {
@@ -54,13 +54,15 @@
   },
   "labels": {
     "devices": "{count} devices",
-    "unlimitedFairUse": "Unlimited / fair use",
+    "trafficFairUse": "Fair-use policy",
     "perSelectedTerm": "per {days}-day term",
     "monthlyEquivalent": "{price} / 30 days equivalent",
     "inviteBundle": "{count} invites · {days} friend days",
     "inviteNone": "No invite bundle",
     "includedDedicatedIp": "{count} dedicated IP included",
-    "dedicatedIpAddon": "Dedicated IP as add-on"
+    "dedicatedIpAddon": "Dedicated IP as add-on",
+    "chargedInBillingCurrency": "Charged in {currency}",
+    "localDisplayEstimate": "Approx. {price} display only"
   },
   "modeNames": {
     "standard": "Standard",
@@ -119,8 +121,8 @@
         "a": "Yes. Baseline VPN protection is not tiered away. Paid plans differ by seats, routing modes, server pool quality, dedicated IP access, and support."
       },
       {
-        "q": "Why does the storefront say Unlimited / fair use?",
-        "a": "Because that is how the mainstream VPN market communicates consumer plans. Enforcement stays internal through fair-use rules and server policy instead of public hard caps."
+        "q": "What does Fair-use policy mean?",
+        "a": "S1 avoids a public hard-cap promise. Traffic handling follows fair-use rules, node policy, abuse controls, and the selected plan instead of an absolute unlimited claim."
       },
       {
         "q": "When do invite bundles appear?",

@@ -9,6 +9,12 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_DEVICE_LIMIT,
+    STAGE1_TRIAL_DURATION_DAYS,
+    STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+)
 from src.config.settings import settings
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 
@@ -59,7 +65,11 @@ class TestTrialActivation:
         assert data["activated"] is True
         assert "trial_end" in data
         assert "message" in data
-        assert "7 days" in data["message"]
+        assert "3 days" in data["message"]
+        assert data["duration_days"] == STAGE1_TRIAL_DURATION_DAYS
+        assert data["device_limit"] == STAGE1_TRIAL_DEVICE_LIMIT
+        assert data["traffic_limit_bytes"] == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
+        assert data["one_trial_per_account"] is STAGE1_TRIAL_ONE_PER_ACCOUNT
 
     @pytest.mark.integration
     async def test_activate_trial_already_used(
@@ -133,6 +143,10 @@ class TestTrialStatus:
         assert data["days_remaining"] == 0
         assert data["trial_start"] is None
         assert data["trial_end"] is None
+        assert data["duration_days"] == STAGE1_TRIAL_DURATION_DAYS
+        assert data["device_limit"] == STAGE1_TRIAL_DEVICE_LIMIT
+        assert data["traffic_limit_bytes"] == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
+        assert data["one_trial_per_account"] is STAGE1_TRIAL_ONE_PER_ACCOUNT
 
 
 class TestTrialAuth:

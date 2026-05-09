@@ -143,9 +143,31 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
                     is_active=True,
                     is_email_verified=True,
                 )
+                finance_user = AdminUserModel(
+                    login="refund_finance",
+                    email="refund-finance@example.com",
+                    auth_realm_id=admin_realm.id,
+                    password_hash=await auth_service.hash_password("RefundFinanceP@ssword123!"),
+                    role="finance",
+                    is_active=True,
+                    is_email_verified=True,
+                )
+                support_user = AdminUserModel(
+                    login="refund_support",
+                    email="refund-support@example.com",
+                    auth_realm_id=admin_realm.id,
+                    password_hash=await auth_service.hash_password("RefundSupportP@ssword123!"),
+                    role="support",
+                    is_active=True,
+                    is_email_verified=True,
+                )
                 db.add(admin_user)
+                db.add(finance_user)
+                db.add(support_user)
                 db.commit()
                 admin_token = _make_admin_token(auth_service, user_id=admin_user.id, realm=admin_realm)
+                finance_token = _make_admin_token(auth_service, user_id=finance_user.id, realm=admin_realm)
+                support_token = _make_admin_token(auth_service, user_id=support_user.id, realm=admin_realm)
 
             customer_token = _make_customer_access_token(
                 auth_service,
@@ -158,6 +180,14 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
             }
             admin_headers = {
                 "Authorization": f"Bearer {admin_token}",
+                "X-Auth-Realm": "admin",
+            }
+            finance_headers = {
+                "Authorization": f"Bearer {finance_token}",
+                "X-Auth-Realm": "admin",
+            }
+            support_headers = {
+                "Authorization": f"Bearer {support_token}",
                 "X-Auth-Realm": "admin",
             }
 
@@ -229,9 +259,20 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
             )
             assert overflow_refund_response.status_code == 400
 
+            support_refund_update = await async_client.patch(
+                f"/api/v1/refunds/{first_refund['id']}",
+                headers=support_headers,
+                json={
+                    "refund_status": "processing",
+                    "provider_snapshot": {"provider_ref": "support-must-not-approve"},
+                },
+            )
+            assert support_refund_update.status_code == 403
+            assert "finance or admin" in support_refund_update.json()["detail"]
+
             first_refund_completed = await async_client.patch(
                 f"/api/v1/refunds/{first_refund['id']}",
-                headers=admin_headers,
+                headers=finance_headers,
                 json={
                     "refund_status": "succeeded",
                     "external_reference": "refund-ext-1",
@@ -280,9 +321,28 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
             assert order_response.status_code == 200
             assert order_response.json()["settlement_status"] == "refunded"
 
+            support_dispute_response = await async_client.post(
+                "/api/v1/payment-disputes/",
+                headers=support_headers,
+                json={
+                    "order_id": order_payload["id"],
+                    "payment_attempt_id": attempt_payload["id"],
+                    "provider": "cryptobot",
+                    "external_reference": "support-dispute-blocked",
+                    "subtype": "inquiry",
+                    "outcome_class": "open",
+                    "lifecycle_status": "opened",
+                    "disputed_amount": displayed_price,
+                    "fee_amount": 0,
+                    "fee_status": "none",
+                    "reason_code": "support_should_escalate",
+                },
+            )
+            assert support_dispute_response.status_code == 403
+
             initial_dispute_response = await async_client.post(
                 "/api/v1/payment-disputes/",
-                headers=admin_headers,
+                headers=finance_headers,
                 json={
                     "order_id": order_payload["id"],
                     "payment_attempt_id": attempt_payload["id"],
@@ -304,7 +364,7 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
 
             chargeback_update_response = await async_client.post(
                 "/api/v1/payment-disputes/",
-                headers=admin_headers,
+                headers=finance_headers,
                 json={
                     "order_id": order_payload["id"],
                     "payment_attempt_id": attempt_payload["id"],
@@ -329,7 +389,7 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
 
             reversal_update_response = await async_client.post(
                 "/api/v1/payment-disputes/",
-                headers=admin_headers,
+                headers=finance_headers,
                 json={
                     "order_id": order_payload["id"],
                     "payment_attempt_id": attempt_payload["id"],
@@ -357,7 +417,7 @@ async def test_refunds_and_payment_disputes_are_order_linked_and_support_normali
 
             list_disputes_response = await async_client.get(
                 f"/api/v1/payment-disputes/?order_id={order_payload['id']}",
-                headers=admin_headers,
+                headers=finance_headers,
             )
             assert list_disputes_response.status_code == 200
             disputes_payload = list_disputes_response.json()

@@ -1,12 +1,29 @@
 import json
 import logging
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, Literal
 from urllib.parse import urlparse
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode
 
 _logger = logging.getLogger(__name__)
+
+S1_PRODUCTION_CORS_ORIGINS = frozenset(
+    {
+        "https://cyber-vpn.net",
+        "https://admin.cyber-vpn.net",
+    }
+)
+S1_REDIRECT_ONLY_ORIGINS = frozenset(
+    {
+        "https://cyber-vpn.org",
+        "https://admin.cyber-vpn.org",
+    }
+)
+S1_PRODUCTION_COOKIE_DOMAINS = frozenset({"", "cyber-vpn.net"})
+S1_PRODUCTION_ADMIN_ALLOWED_HOSTS = frozenset({"admin.cyber-vpn.net"})
+S1_REDIRECT_ONLY_ADMIN_HOSTS = frozenset({"admin.cyber-vpn.org"})
+S1_PUBLIC_NON_ADMIN_HOSTS = frozenset({"cyber-vpn.net", "cyber-vpn.org"})
 
 
 class Settings(BaseSettings):
@@ -34,6 +51,13 @@ class Settings(BaseSettings):
     remnawave_default_internal_squad_name: str = "Default-Squad"
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25
+    stage1_trial_provisioning_enabled: bool = False
+    stage1_paid_provisioning_enabled: bool = False
+    stage1_addons_enabled: bool = False
+    referral_enabled: bool = False
+    promo_codes_enabled: bool = False
+    gift_codes_enabled: bool = False
+    checkout_code_discounts_enabled: bool = False
 
     # Helix adapter
     helix_enabled: bool = False
@@ -62,18 +86,12 @@ class Settings(BaseSettings):
     # Active OAuth login providers (rollout gate)
     oauth_enabled_login_providers: Annotated[list[str], NoDecode] = [
         "google",
-        "discord",
-        "facebook",
-        "microsoft",
-        "twitter",
         "github",
     ]
 
     # Only these providers may auto-link to an existing account by email
     oauth_trusted_email_link_providers: Annotated[list[str], NoDecode] = [
         "google",
-        "discord",
-        "microsoft",
         "github",
     ]
 
@@ -135,6 +153,7 @@ class Settings(BaseSettings):
 
     # Payment gateway
     cryptobot_token: SecretStr
+    cryptobot_network: Literal["mainnet", "testnet"] = "mainnet"
     growth_code_hash_secret: SecretStr = SecretStr("")
     growth_reporting_rollup_retention_days: int = 180
     growth_reporting_refresh_run_retention_days: int = 180
@@ -161,6 +180,11 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 100
     rate_limit_window: int = 60  # seconds
     helix_admin_read_rate_limit_requests: int = 1500
+    rate_limit_auth_sensitive_requests: int = 20
+    rate_limit_payment_write_requests: int = 30
+    rate_limit_trial_activate_requests: int = 10
+    rate_limit_growth_sensitive_requests: int = 60
+    rate_limit_support_write_requests: int = 30
     trust_proxy_headers: bool = False
 
     # OTP Configuration
@@ -181,6 +205,7 @@ class Settings(BaseSettings):
     mobile_rate_limit_fail_open: bool = False  # MED-4: Mobile rate limit fail-closed
     jwt_allowed_algorithms: Annotated[list[str], NoDecode] = ["HS256", "HS384", "HS512"]  # MED-5: Allowlist
     swagger_enabled: bool = False  # SEC-008: Disabled by default, enable via env for dev
+    csrf_protection_enabled: bool = True  # S1-BE-006: Origin/Referer guard for cookie-auth unsafe methods
 
     # TOTP Encryption (MED-6)
     totp_encryption_key: SecretStr = SecretStr("")  # AES-256 key for TOTP secrets
@@ -190,6 +215,11 @@ class Settings(BaseSettings):
 
     # Trusted Proxy (MED-8)
     trusted_proxy_ips: Annotated[list[str], NoDecode] = []  # List of trusted proxy IPs for X-Forwarded-For
+
+    # Admin access boundary (S1-ADM-001)
+    admin_host_protection_enabled: bool = True
+    admin_allowed_hosts: Annotated[list[str], NoDecode] = ["admin.cyber-vpn.net"]
+    admin_2fa_required: bool = False
 
     # Token Device Binding (MED-2)
     enforce_token_binding: bool = False  # Strict fingerprint validation on token refresh
@@ -240,6 +270,7 @@ class Settings(BaseSettings):
         "oauth_retained_refresh_token_providers",
         "jwt_allowed_algorithms",
         "trusted_proxy_ips",
+        "admin_allowed_hosts",
         mode="before",
     )
     @classmethod
@@ -256,6 +287,91 @@ class Settings(BaseSettings):
 
             return [origin.strip() for origin in normalized.split(",") if origin.strip()]
         return v
+
+    @field_validator("admin_host_protection_enabled", mode="after")
+    @classmethod
+    def validate_admin_host_protection_enabled(cls, v: bool, info) -> bool:
+        environment = str(info.data.get("environment", "development")).lower()
+        if environment == "production" and not v:
+            raise ValueError("ADMIN_HOST_PROTECTION_ENABLED=false is not allowed in production.")
+        return v
+
+    @field_validator("admin_2fa_required", mode="after")
+    @classmethod
+    def validate_admin_2fa_required(cls, v: bool, info) -> bool:
+        environment = str(info.data.get("environment", "development")).lower()
+        if environment == "production" and not v:
+            raise ValueError("ADMIN_2FA_REQUIRED=false is not allowed in production.")
+        return v
+
+    @field_validator("admin_allowed_hosts", mode="after")
+    @classmethod
+    def validate_admin_allowed_hosts(cls, v: list[str], info) -> list[str]:
+        environment = str(info.data.get("environment", "development")).lower()
+        normalized_hosts: list[str] = []
+
+        for host in v:
+            normalized = host.strip().lower().lstrip(".")
+            if not normalized:
+                continue
+            if "://" in normalized or "/" in normalized or "?" in normalized or "#" in normalized:
+                raise ValueError("ADMIN_ALLOWED_HOSTS entries must be bare hostnames, not URLs.")
+            if ":" in normalized and not normalized.startswith("["):
+                raise ValueError("ADMIN_ALLOWED_HOSTS entries must not include ports.")
+            normalized_hosts.append(normalized.strip("[]"))
+
+        if environment == "production":
+            if not normalized_hosts:
+                raise ValueError("ADMIN_ALLOWED_HOSTS must include the approved S1 admin host in production.")
+            if S1_PRODUCTION_ADMIN_ALLOWED_HOSTS - set(normalized_hosts):
+                raise ValueError("ADMIN_ALLOWED_HOSTS must include admin.cyber-vpn.net in S1 production.")
+            invalid_hosts = set(normalized_hosts) & (S1_REDIRECT_ONLY_ADMIN_HOSTS | S1_PUBLIC_NON_ADMIN_HOSTS)
+            if invalid_hosts:
+                raise ValueError(
+                    "ADMIN_ALLOWED_HOSTS must not include public or redirect-only hosts in S1 production."
+                )
+            if set(normalized_hosts) - S1_PRODUCTION_ADMIN_ALLOWED_HOSTS:
+                raise ValueError("ADMIN_ALLOWED_HOSTS contains hostnames not approved for S1 production.")
+
+        return normalized_hosts
+
+    @field_validator("cors_origins", mode="after")
+    @classmethod
+    def validate_cors_origins(cls, v: list[str], info) -> list[str]:
+        """Validate browser origins before wiring CORS middleware."""
+        environment = str(info.data.get("environment", "development")).lower()
+        normalized_origins: list[str] = []
+
+        for origin in v:
+            normalized = origin.strip().rstrip("/")
+            if normalized == "*":
+                normalized_origins.append(normalized)
+                continue
+
+            parsed = urlparse(normalized)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("CORS_ORIGINS entries must be absolute http(s) origins.")
+            if parsed.path not in {"", "/"} or parsed.params or parsed.query or parsed.fragment:
+                raise ValueError("CORS_ORIGINS entries must not include path, query, or fragment.")
+
+            origin_value = f"{parsed.scheme}://{parsed.netloc}"
+            normalized_origins.append(origin_value)
+
+        if environment == "production":
+            if not normalized_origins:
+                raise ValueError("CORS_ORIGINS must include approved S1 browser origins in production.")
+            if "*" in normalized_origins:
+                raise ValueError("CORS_ORIGINS='*' is not allowed in production.")
+
+            for origin in normalized_origins:
+                if not origin.startswith("https://"):
+                    raise ValueError("Production CORS_ORIGINS must use https origins.")
+                if origin in S1_REDIRECT_ONLY_ORIGINS:
+                    raise ValueError("cyber-vpn.org origins are redirect-only in S1 and must not call the API.")
+                if origin not in S1_PRODUCTION_CORS_ORIGINS:
+                    raise ValueError(f"Production CORS origin is not approved for S1: {origin}")
+
+        return normalized_origins
 
     @field_validator("jwt_issuer", "jwt_audience", mode="before")
     @classmethod
@@ -302,6 +418,87 @@ class Settings(BaseSettings):
             raise ValueError("OAUTH_WEB_BASE_URL must not include a path, query, or fragment.")
 
         return f"{parsed.scheme}://{parsed.netloc}"
+
+    @field_validator("cookie_domain", mode="before")
+    @classmethod
+    def normalize_cookie_domain(cls, v: str | None) -> str:
+        if v is None:
+            return ""
+        return v.strip().lower().lstrip(".")
+
+    @field_validator("cookie_domain", mode="after")
+    @classmethod
+    def validate_cookie_domain(cls, v: str, info) -> str:
+        if not v:
+            return ""
+
+        if "://" in v or "/" in v or ":" in v or "?" in v or "#" in v:
+            raise ValueError("COOKIE_DOMAIN must be a bare hostname, not a URL.")
+
+        environment = str(info.data.get("environment", "development")).lower()
+        if environment == "production" and v not in S1_PRODUCTION_COOKIE_DOMAINS:
+            raise ValueError("COOKIE_DOMAIN must be empty for host-only cookies or 'cyber-vpn.net' in S1 production.")
+
+        return v
+
+    @field_validator("cookie_secure", mode="after")
+    @classmethod
+    def validate_cookie_secure(cls, v: bool, info) -> bool:
+        environment = str(info.data.get("environment", "development")).lower()
+        if environment == "production" and not v:
+            raise ValueError("COOKIE_SECURE=false is not allowed in production.")
+        return v
+
+    @field_validator("csrf_protection_enabled", mode="after")
+    @classmethod
+    def validate_csrf_protection_enabled(cls, v: bool, info) -> bool:
+        environment = str(info.data.get("environment", "development")).lower()
+        if environment == "production" and not v:
+            raise ValueError("CSRF_PROTECTION_ENABLED=false is not allowed in production.")
+        return v
+
+    @field_validator("cryptobot_network", mode="after")
+    @classmethod
+    def validate_cryptobot_network(cls, v: str, info) -> str:
+        environment = str(info.data.get("environment", "development")).lower()
+        if environment == "production" and v != "mainnet":
+            raise ValueError("CRYPTOBOT_NETWORK=testnet is not allowed in production.")
+        return v
+
+    PROVIDER_SECRET_PLACEHOLDER_PATTERNS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "<",
+            "changeme",
+            "dev",
+            "dummy",
+            "example",
+            "local",
+            "placeholder",
+            "redacted",
+            "replace",
+            "test",
+            "your_",
+        }
+    )
+
+    @field_validator("cryptobot_token", mode="after")
+    @classmethod
+    def validate_cryptobot_token(cls, v: SecretStr, info) -> SecretStr:
+        environment = str(info.data.get("environment", "development")).lower()
+        token = v.get_secret_value().strip()
+
+        if environment != "production":
+            return SecretStr(token)
+
+        if len(token) < 16:
+            raise ValueError("CRYPTOBOT_TOKEN must be a real provider token in production.")
+
+        token_lower = token.lower()
+        for marker in cls.PROVIDER_SECRET_PLACEHOLDER_PATTERNS:
+            if marker in token_lower:
+                raise ValueError("CRYPTOBOT_TOKEN must not be a placeholder/test value in production.")
+
+        return SecretStr(token)
 
     # SEC-004 + MED-005: Known weak/test secrets to reject in production
     WEAK_SECRET_PATTERNS: ClassVar[frozenset[str]] = frozenset(

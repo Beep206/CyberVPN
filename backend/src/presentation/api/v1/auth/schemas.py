@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -300,6 +301,37 @@ class DeleteAccountResponse(BaseModel):
     """Response for successful account deletion (FEAT-03)."""
 
     message: str = "Account has been deleted"
+
+
+class PrivacyRequestCreate(BaseModel):
+    """Request to open an S1 manual privacy review item."""
+
+    request_type: Literal["account_deletion", "data_export"] = Field(
+        ...,
+        description="S1 privacy request type.",
+    )
+    notes: str | None = Field(
+        default=None,
+        max_length=700,
+        description="Optional user-provided context; secrets and configs are redacted before staff use.",
+    )
+
+
+class PrivacyRequestResponse(BaseModel):
+    """Response for an accepted S1 manual privacy request."""
+
+    request_type: Literal["account_deletion", "data_export"]
+    message: str
+    ticket_reference: str
+    target_contact: str
+    priority: str
+    support_state: str
+    ack_sla_minutes: int | None = None
+    customer_response_sla_minutes: int
+    manual_fulfillment_target_days: int
+    required_actions: list[str]
+    forbidden_actions: list[str]
+    audit_required: bool
 
 
 class ChangePasswordRequest(BaseModel):

@@ -19,6 +19,7 @@
     "inactive": "Inactive",
     "lastLogin": "Last login",
     "limit": "Limit",
+    "no": "No",
     "none": "None",
     "note": "Note",
     "payments": "Payments",
@@ -39,7 +40,8 @@
     "traffic": "Traffic",
     "used": "Used",
     "username": "Username",
-    "wallet": "Wallet"
+    "wallet": "Wallet",
+    "yes": "Yes"
   },
   "directory": {
     "metaTitle": "Customers - Ozoxy Admin",
@@ -167,6 +169,17 @@
     "vpnDisableTitle": "Disable VPN access",
     "vpnDisableDescription": "Immediately disable VPN access for this linked Remnawave user.",
     "vpnDisableSuccess": "VPN access disabled.",
+    "regenerateVpnCredentials": "Regenerate credentials",
+    "regenerateVpnCredentialsTitle": "Regenerate VPN credentials",
+    "regenerateVpnCredentialsDescription": "Rotate the linked Remnawave credentials after verified support recovery. The response shown here is intentionally limited to audit-safe status fields.",
+    "credentialRegenerationReasonPlaceholder": "Customer reported lost device; rotate VPN credentials after identity verification",
+    "credentialRegenerationReasonRequired": "Credential regeneration requires a support reason with at least 3 characters.",
+    "credentialRegenerationSuccess": "VPN credentials regenerated. Share only the approved delivery link or config path after support verification.",
+    "credentialRegenerationResultTitle": "Credential rotation evidence",
+    "credentialRegenerationResultDescription": "Safe summary only; raw subscription URLs, config links, and short UUID secrets are not returned by this action.",
+    "revokeOnlyVpnPasswords": "Revoke only protocol passwords and keep the subscription short UUID when Remnawave supports it.",
+    "revokeOnlyVpnPasswordsMode": "Password rotation",
+    "fullVpnCredentialRotationMode": "Full rotation",
     "notesTitle": "Staff Notes",
     "notesDescription": "Capture operator context, billing notes, and support breadcrumbs directly on the customer card.",
     "notesEmpty": "No staff notes recorded yet.",
@@ -354,7 +367,13 @@
       "ssConfigLinks": "SS config links",
       "userAgent": "User agent",
       "download": "Download",
-      "upload": "Upload"
+      "upload": "Upload",
+      "auditAction": "Audit action",
+      "regeneratedAt": "Regenerated at",
+      "subscriptionUrlChanged": "Subscription URL changed",
+      "shortUuidChanged": "Short UUID changed",
+      "configDeliveryRequired": "Config delivery required",
+      "regenerationMode": "Regeneration mode"
     },
     "deviceSessionsClearedYes": "Yes, device registration was cleared.",
     "deviceSessionsClearedNo": "No, existing device registration was left intact."

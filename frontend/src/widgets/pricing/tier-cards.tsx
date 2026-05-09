@@ -7,9 +7,10 @@ import { Link } from '@/i18n/navigation';
 import { TierLevel } from './pricing-dashboard';
 import { cn } from '@/lib/utils';
 import type { PricingPlanFamily, PricingTierCode } from './types';
-import { formatMoney, getPlanPeriod, getPreferredCurrency } from './utils';
+import { formatMoney, getPlanPeriod, getPricePresentation } from './utils';
 
 interface TierCardsProps {
+  dedicatedIpAddonAvailable?: boolean;
   hoveredTier: TierLevel;
   onHover: (tier: TierLevel) => void;
   plans: PricingPlanFamily[];
@@ -56,7 +57,13 @@ const tierConfig: Record<
   },
 };
 
-export function TierCards({ hoveredTier, onHover, plans, selectedPeriod }: TierCardsProps) {
+export function TierCards({
+  dedicatedIpAddonAvailable = true,
+  hoveredTier,
+  onHover,
+  plans,
+  selectedPeriod,
+}: TierCardsProps) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
 
@@ -67,8 +74,9 @@ export function TierCards({ hoveredTier, onHover, plans, selectedPeriod }: TierC
         const Icon = config.icon;
         const isHovered = hoveredTier === plan.code;
         const activePeriod = getPlanPeriod(plan, selectedPeriod);
-        const preferredPrice = getPreferredCurrency(locale, activePeriod);
-        const monthlyEquivalent = preferredPrice.amount / Math.max(activePeriod.duration_days / 30, 1);
+        const pricePresentation = getPricePresentation(locale, activePeriod);
+        const monthlyEquivalent =
+          pricePresentation.billing.amount / Math.max(activePeriod.duration_days / 30, 1);
         const modeLabel = plan.connection_modes
           .map((mode) => t(`modeNames.${mode}`))
           .join(' · ');
@@ -83,7 +91,9 @@ export function TierCards({ hoveredTier, onHover, plans, selectedPeriod }: TierC
           : t('labels.inviteNone');
         const dedicatedIpLabel = plan.dedicated_ip.included > 0
           ? t('labels.includedDedicatedIp', { count: plan.dedicated_ip.included })
-          : t('labels.dedicatedIpAddon');
+          : dedicatedIpAddonAvailable && plan.dedicated_ip.eligible
+            ? t('labels.dedicatedIpAddon')
+            : null;
         const badge =
           typeof plan.features.marketing_badge === 'string'
             ? String(plan.features.marketing_badge)
@@ -91,10 +101,10 @@ export function TierCards({ hoveredTier, onHover, plans, selectedPeriod }: TierC
 
         const bulletRows = [
           t('labels.devices', { count: plan.devices_included }),
-          t('labels.unlimitedFairUse'),
+          t('labels.trafficFairUse'),
           modeLabel,
           poolLabel,
-          dedicatedIpLabel,
+          ...(dedicatedIpLabel ? [dedicatedIpLabel] : []),
           inviteLabel,
         ];
 
@@ -158,7 +168,11 @@ export function TierCards({ hoveredTier, onHover, plans, selectedPeriod }: TierC
               <div className="mb-6">
                 <div className="flex items-end gap-3">
                   <span className="font-display text-5xl font-black tracking-tight text-white">
-                    {formatMoney(locale, preferredPrice.amount, preferredPrice.currency)}
+                    {formatMoney(
+                      locale,
+                      pricePresentation.billing.amount,
+                      pricePresentation.billing.currency,
+                    )}
                   </span>
                   <span className="pb-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white/45">
                     {t('labels.perSelectedTerm', { days: activePeriod.duration_days })}
@@ -166,9 +180,29 @@ export function TierCards({ hoveredTier, onHover, plans, selectedPeriod }: TierC
                 </div>
                 <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-white/55">
                   {t('labels.monthlyEquivalent', {
-                    price: formatMoney(locale, monthlyEquivalent, preferredPrice.currency),
+                    price: formatMoney(
+                      locale,
+                      monthlyEquivalent,
+                      pricePresentation.billing.currency,
+                    ),
                   })}
                 </p>
+                <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/42">
+                  {t('labels.chargedInBillingCurrency', {
+                    currency: pricePresentation.billing.currency,
+                  })}
+                </p>
+                {pricePresentation.localEstimate ? (
+                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-neon-cyan/70">
+                    {t('labels.localDisplayEstimate', {
+                      price: formatMoney(
+                        locale,
+                        pricePresentation.localEstimate.amount,
+                        pricePresentation.localEstimate.currency,
+                      ),
+                    })}
+                  </p>
+                ) : null}
                 <p className="mt-4 min-h-[4.25rem] text-sm font-mono leading-relaxed text-white/72">
                   {t(`tiers.${plan.code}.description`)}
                 </p>

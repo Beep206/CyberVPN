@@ -16,6 +16,7 @@ export function OfficialSupportRoutingPanel({ locale }: { locale: string }) {
           </h2>
           <div className="mt-4 space-y-2 font-mono text-sm text-muted-foreground">
             <p>{profile.supportEmail}</p>
+            <p>Refund/payment: {profile.refundEmail}</p>
             <p>Response window: {profile.responseWindow}</p>
             <p>Surface: {profile.surfaceLabel}</p>
           </div>
@@ -29,6 +30,17 @@ export function OfficialSupportRoutingPanel({ locale }: { locale: string }) {
             <p>{profile.communicationSenderName}</p>
             <p>{profile.communicationSenderEmail}</p>
             <div className="flex flex-wrap gap-3 pt-2">
+              <Link href={profile.webTicketPath} locale={locale} className="text-neon-cyan underline underline-offset-4">
+                Web ticket
+              </Link>
+              <a
+                href={profile.telegramBotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-matrix-green underline underline-offset-4"
+              >
+                Telegram bot
+              </a>
               <Link href={profile.helpCenterPath} locale={locale} className="text-neon-cyan underline underline-offset-4">
                 Help center
               </Link>

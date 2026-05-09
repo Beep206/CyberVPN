@@ -178,6 +178,7 @@ docker run -d \
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token for notifications | - | Yes |
 | `ADMIN_TELEGRAM_IDS` | Comma-separated admin Telegram IDs | - | Yes |
 | `CRYPTOBOT_TOKEN` | CryptoBot API token for payments | - | No |
+| `CRYPTOBOT_NETWORK` | CryptoBot network: `mainnet` or `testnet`; production rejects `testnet` | `mainnet` | No |
 | `WORKER_CONCURRENCY` | Number of worker processes | `2` | No |
 | `RESULT_TTL_SECONDS` | Task result retention time | `3600` | No |
 | `LOG_LEVEL` | Logging level (DEBUG/INFO/WARNING/ERROR) | `INFO` | No |

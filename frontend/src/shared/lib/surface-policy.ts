@@ -1,3 +1,8 @@
+import {
+  getStage1GrowthUiState,
+  type Stage1GrowthPublicEnv,
+} from './stage1-growth-flags';
+
 export type OfficialWebSurfaceCapability =
   | 'invite_codes'
   | 'promo_codes'
@@ -5,18 +10,26 @@ export type OfficialWebSurfaceCapability =
   | 'partner_code_entry'
   | 'workspace_operator_modules';
 
-const OFFICIAL_WEB_SURFACE_POLICY: Record<OfficialWebSurfaceCapability, boolean> = {
-  invite_codes: true,
-  promo_codes: true,
-  partner_markup_visibility: false,
-  partner_code_entry: false,
-  workspace_operator_modules: false,
-};
+export function getOfficialWebSurfacePolicy(
+  env?: Stage1GrowthPublicEnv,
+): Record<OfficialWebSurfaceCapability, boolean> {
+  const growthState = getStage1GrowthUiState(env);
+
+  return {
+    invite_codes: true,
+    promo_codes:
+      growthState.checkoutCodesUiEnabled && growthState.promoCodesUiEnabled,
+    partner_markup_visibility: false,
+    partner_code_entry: false,
+    workspace_operator_modules: false,
+  };
+}
 
 export function canOfficialWebSurfaceAccess(
   capability: OfficialWebSurfaceCapability,
+  env?: Stage1GrowthPublicEnv,
 ): boolean {
-  return OFFICIAL_WEB_SURFACE_POLICY[capability];
+  return getOfficialWebSurfacePolicy(env)[capability];
 }
 
 export function shouldRenderOfficialQuoteAdjustmentBanner(input: {

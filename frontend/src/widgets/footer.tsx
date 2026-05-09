@@ -28,6 +28,9 @@ const FOOTER_LINKS = {
   legal: [
     { label: 'privacy', href: '/privacy' },
     { label: 'terms', href: '/terms' },
+    { label: 'acceptableUse', href: '/acceptable-use' },
+    { label: 'refundPolicy', href: '/refund-policy' },
+    { label: 'cookiePolicy', href: '/cookie-policy' },
     { label: 'security', href: '/security' },
   ],
   product: [

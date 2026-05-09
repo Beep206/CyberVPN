@@ -1,5 +1,6 @@
 """Admin customer-support routes for timeline, notes, VPN access, and recovery actions."""
 
+import logging
 import secrets
 import string
 from datetime import UTC, datetime
@@ -8,12 +9,22 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.application.use_cases.auth.permissions import Permission
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.auth.permissions import Permission
+from src.application.use_cases.subscriptions.stage1_credential_regeneration import (
+    STAGE1_CREDENTIAL_REGENERATION_ACTION,
+    Stage1CredentialRegenerationService,
+    build_stage1_credential_regeneration_request,
+)
+from src.application.use_cases.subscriptions.stage1_manual_subscription import (
+    STAGE1_MANUAL_SUBSCRIPTION_ACTION,
+    Stage1ManualSubscriptionError,
+    Stage1ManualSubscriptionService,
+    build_stage1_manual_subscription_request,
+)
 from src.domain.enums import UserStatus
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
-from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
@@ -23,31 +34,43 @@ from src.infrastructure.database.repositories.payment_repo import PaymentReposit
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 from src.infrastructure.database.repositories.withdrawal_repo import WithdrawalRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
+from src.infrastructure.remnawave.stage1_credential_regeneration_gateway import (
+    RemnawaveStage1CredentialRegenerationGateway,
+)
+from src.infrastructure.remnawave.stage1_manual_subscription_gateway import (
+    RemnawaveStage1ManualSubscriptionGateway,
+)
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
+from .audit import write_required_admin_audit_entry
 from .customer_support_schemas import (
     AdminBulkDeviceRevokeResponse,
     AdminCreateCustomerStaffNoteRequest,
+    AdminCustomerCredentialRegenerationRequest,
+    AdminCustomerCredentialRegenerationResponse,
+    AdminCustomerManualSubscriptionRequest,
+    AdminCustomerManualSubscriptionResponse,
     AdminCustomerPasswordResetRequest,
     AdminCustomerPasswordResetResponse,
-    AdminCustomerSubscriptionResyncResponse,
     AdminCustomerStaffNoteResponse,
+    AdminCustomerSubscriptionResyncResponse,
     AdminCustomerSupportActionRequest,
     AdminCustomerTimelineItemResponse,
     AdminCustomerTimelineResponse,
     AdminCustomerVpnUserResponse,
     AdminSupportActorSummary,
 )
-from .mobile_users_schemas import AdminMobileDeviceResponse
 from .mobile_users import build_mobile_user_subscription_snapshot
+from .mobile_users_schemas import AdminMobileDeviceResponse
 
 router = APIRouter(prefix="/admin/mobile-users", tags=["admin", "customer-support"])
+logger = logging.getLogger(__name__)
 
-TEMP_PASSWORD_SPECIALS = "!@#$%^&*()-_=+[]{}"
+TEMP_PASSWORD_SPECIALS = "!@#$%^&*()-_=+[]{}"  # noqa: S105 - alphabet for generated temporary passwords.
 
 
 def _actor_label(actor: AdminUserModel | None) -> str | None:
@@ -98,20 +121,34 @@ async def _write_audit_entry(
     request: Request,
     details: dict[str, object] | None = None,
 ) -> None:
-    audit_repo = AuditLogRepository(db)
-    try:
-        await audit_repo.create(
-            event_type=action,
-            actor_id=actor.id,
-            resource_type="mobile_user",
-            resource_id=str(user_id),
-            details=details,
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception:
-        # Best-effort audit logging; do not fail primary support action.
-        return
+    await _write_required_audit_entry(
+        db=db,
+        action=action,
+        user_id=user_id,
+        actor=actor,
+        request=request,
+        details=details,
+    )
+
+
+async def _write_required_audit_entry(
+    *,
+    db: AsyncSession,
+    action: str,
+    user_id: UUID,
+    actor: AdminUserModel,
+    request: Request,
+    details: dict[str, object] | None = None,
+) -> None:
+    await write_required_admin_audit_entry(
+        db=db,
+        action=action,
+        resource_type="mobile_user",
+        resource_id=user_id,
+        actor=actor,
+        request=request,
+        details=details,
+    )
 
 
 async def _require_mobile_user(
@@ -332,6 +369,187 @@ async def disable_customer_vpn_user(
 
     route_operations_total.labels(route="admin_customer_support", action="vpn_disable", status="success").inc()
     return _serialize_vpn_user(user.remnawave_uuid, vpn_user)
+
+
+@router.post(
+    "/{user_id}/vpn-user/regenerate-credentials",
+    response_model=AdminCustomerCredentialRegenerationResponse,
+)
+async def regenerate_customer_vpn_credentials(
+    user_id: UUID,
+    body: AdminCustomerCredentialRegenerationRequest,
+    request: Request,
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    client=Depends(get_remnawave_client),
+    _: None = Depends(require_permission(Permission.VPN_CREDENTIAL_REGENERATE)),
+) -> AdminCustomerCredentialRegenerationResponse:
+    user = await _require_mobile_user(user_id, db)
+    if not user.remnawave_uuid:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer has no linked VPN user")
+
+    current_vpn_user = None
+    user_gateway = RemnawaveUserGateway(client=client)
+    try:
+        vpn_uuid = UUID(user.remnawave_uuid)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Remnawave UUID") from exc
+
+    current_vpn_user = await user_gateway.get_by_uuid(vpn_uuid)
+    previous_short_uuid = current_vpn_user.short_uuid if current_vpn_user else None
+    previous_subscription_url = user.subscription_url or (
+        current_vpn_user.subscription_url if current_vpn_user else None
+    )
+
+    regeneration_request = build_stage1_credential_regeneration_request(
+        customer_account_id=user_id,
+        remnawave_uuid=user.remnawave_uuid,
+        actor_admin_id=current_user.id,
+        reason=body.reason,
+        previous_short_uuid=previous_short_uuid,
+        previous_subscription_url=previous_subscription_url,
+        revoke_only_passwords=body.revoke_only_passwords,
+    )
+    result = await Stage1CredentialRegenerationService(
+        RemnawaveStage1CredentialRegenerationGateway(user_gateway),
+    ).regenerate(regeneration_request)
+
+    if result.subscription_url and user.subscription_url != result.subscription_url:
+        user.subscription_url = result.subscription_url
+        user_repo = MobileUserRepository(db)
+        await user_repo.update(user)
+
+    await _write_required_audit_entry(
+        db=db,
+        action=STAGE1_CREDENTIAL_REGENERATION_ACTION,
+        user_id=user_id,
+        actor=current_user,
+        request=request,
+        details=result.to_audit_details(reason=body.reason),
+    )
+
+    logger.info(
+        "Stage 1 VPN credential regeneration completed",
+        extra={"stage1_vpn_credential_regeneration": result.to_safe_dict()},
+    )
+    route_operations_total.labels(
+        route="admin_customer_support",
+        action="vpn_credentials_regenerate",
+        status="success",
+    ).inc()
+    return AdminCustomerCredentialRegenerationResponse(
+        user_id=user_id,
+        remnawave_uuid=UUID(result.remnawave_uuid),
+        status=result.status,
+        short_uuid_changed=result.short_uuid_changed,
+        subscription_url_changed=result.subscription_url_changed,
+        revoke_only_passwords=result.revoke_only_passwords,
+        expires_at=result.expires_at,
+        regenerated_at=result.regenerated_at,
+        audit_action=STAGE1_CREDENTIAL_REGENERATION_ACTION,
+    )
+
+
+@router.post(
+    "/{user_id}/subscription/manual-grant",
+    response_model=AdminCustomerManualSubscriptionResponse,
+)
+async def apply_manual_customer_subscription(
+    user_id: UUID,
+    body: AdminCustomerManualSubscriptionRequest,
+    request: Request,
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    client=Depends(get_remnawave_client),
+    _: None = Depends(require_permission(Permission.SUBSCRIPTION_CREATE)),
+) -> AdminCustomerManualSubscriptionResponse:
+    user = await _require_mobile_user(user_id, db)
+    user_gateway = RemnawaveUserGateway(client=client)
+    current_vpn_user = None
+
+    if user.remnawave_uuid:
+        try:
+            current_vpn_user = await user_gateway.get_by_uuid(UUID(user.remnawave_uuid))
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Remnawave UUID") from exc
+
+    current_expires_at = current_vpn_user.expires_at if current_vpn_user is not None else None
+    previous_subscription_url = user.subscription_url or (
+        current_vpn_user.subscription_url if current_vpn_user is not None else None
+    )
+
+    try:
+        manual_request = build_stage1_manual_subscription_request(
+            customer_account_id=user_id,
+            actor_admin_id=current_user.id,
+            email=user.email,
+            username=user.username,
+            telegram_id=user.telegram_id,
+            reason=body.reason,
+            duration_days=body.duration_days,
+            current_access_expires_at=current_expires_at,
+            traffic_limit_bytes=body.traffic_limit_bytes,
+            device_limit=body.device_limit,
+            existing_remnawave_uuid=user.remnawave_uuid,
+            previous_subscription_url=previous_subscription_url,
+        )
+        result = await Stage1ManualSubscriptionService(
+            RemnawaveStage1ManualSubscriptionGateway(user_gateway),
+        ).apply(manual_request)
+    except Stage1ManualSubscriptionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    user_changed = False
+    if user.remnawave_uuid != result.remnawave_uuid:
+        user.remnawave_uuid = result.remnawave_uuid
+        user_changed = True
+    if result.subscription_url and user.subscription_url != result.subscription_url:
+        user.subscription_url = result.subscription_url
+        user_changed = True
+    if user.status != UserStatus.ACTIVE.value:
+        user.status = UserStatus.ACTIVE.value
+        user_changed = True
+    if not user.is_active:
+        user.is_active = True
+        user_changed = True
+
+    if user_changed:
+        user_repo = MobileUserRepository(db)
+        await user_repo.update(user)
+
+    audit_details = result.to_audit_details(reason=body.reason)
+    audit_details["previous_subscription_url_present"] = previous_subscription_url is not None
+    await _write_required_audit_entry(
+        db=db,
+        action=STAGE1_MANUAL_SUBSCRIPTION_ACTION,
+        user_id=user_id,
+        actor=current_user,
+        request=request,
+        details=audit_details,
+    )
+
+    logger.info(
+        "Stage 1 manual subscription operation completed",
+        extra={"stage1_manual_subscription": result.to_safe_dict()},
+    )
+    route_operations_total.labels(
+        route="admin_customer_support",
+        action="subscription_manual_grant",
+        status="success",
+    ).inc()
+    return AdminCustomerManualSubscriptionResponse(
+        user_id=user_id,
+        remnawave_uuid=UUID(result.remnawave_uuid),
+        status=result.status,
+        operation=result.operation,
+        duration_days=result.duration_days,
+        previous_expires_at=result.previous_expires_at,
+        expires_at=result.expires_at,
+        created=result.created,
+        subscription_url_changed=result.subscription_url_changed,
+        config_delivery_required=True,
+        audit_action=STAGE1_MANUAL_SUBSCRIPTION_ACTION,
+    )
 
 
 @router.delete("/{user_id}/devices/{device_id}", response_model=AdminMobileDeviceResponse)
@@ -608,7 +826,9 @@ async def get_customer_timeline(
                 status=withdrawal.status,
                 amount=float(withdrawal.amount),
                 currency=withdrawal.currency,
-                actor_label=_actor_label(actors_by_id.get(withdrawal.processed_by)) if withdrawal.processed_by else None,
+                actor_label=(
+                    _actor_label(actors_by_id.get(withdrawal.processed_by)) if withdrawal.processed_by else None
+                ),
                 metadata={
                     "method": withdrawal.method,
                     "processed_at": withdrawal.processed_at.isoformat() if withdrawal.processed_at else None,

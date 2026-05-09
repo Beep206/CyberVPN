@@ -2,7 +2,7 @@
 
 Status: draft
 Owner: platform
-Last updated: 2026-04-24
+Last updated: 2026-05-06
 Scope: CI and runtime Sentry-related configuration
 Depends on: `05-environment-and-release-contract.md`
 Related paths: `.github/workflows/`, `infra/`, `.env.example` files across surfaces
@@ -33,8 +33,8 @@ Related paths: `.github/workflows/`, `infra/`, `.env.example` files across surfa
 
 | Surface | Required runtime vars | Required CI vars | Notes |
 | --- | --- | --- | --- |
-| `frontend` | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_APP_ENV`, `APP_ENV`, `NEXT_PUBLIC_SENTRY_RELEASE`, `SENTRY_RELEASE`, `FRONTEND_OBSERVABILITY_INTERNAL_SECRET` | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, project slug | `frontend` staging and CI smoke paths now use the full contract |
-| `admin` | same as `frontend`, including `FRONTEND_OBSERVABILITY_INTERNAL_SECRET` for the protected runtime probe | same as `frontend` | dedicated Sentry runtime smoke now exists in conformance flow |
+| `frontend` | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`, `NEXT_PUBLIC_APP_ENV`, `APP_ENV`, `NEXT_PUBLIC_SENTRY_RELEASE`, `SENTRY_RELEASE`, `FRONTEND_OBSERVABILITY_INTERNAL_SECRET` | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT=web-frontend` | `frontend` staging and CI smoke paths now use the full contract |
+| `admin` | same as `frontend`, including `FRONTEND_OBSERVABILITY_INTERNAL_SECRET` for the protected runtime probe | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT=web-admin` | dedicated Sentry runtime smoke now exists in conformance flow; browser instrumentation uses only `NEXT_PUBLIC_*` env |
 | `partner` | same as `frontend`, including `FRONTEND_OBSERVABILITY_INTERNAL_SECRET` for the protected runtime probe | same as `frontend` | dedicated Sentry runtime smoke now exists; local Vitest remains separately flaky |
 | `backend` | `SENTRY_DSN`, `ENVIRONMENT`, `SENTRY_RELEASE` | optional release automation vars | `.env.example` now documents DSN and release |
 | `task-worker` | `SENTRY_DSN`, `ENVIRONMENT`, `SENTRY_RELEASE` | optional release automation vars | `.env.example` now documents DSN and release |

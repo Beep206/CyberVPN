@@ -89,7 +89,7 @@ export async function QuickStart() {
             <div className="text-muted-foreground mb-2">{t('terminalComment')}</div>
             <div className="flex items-center text-matrix-green mb-1">
               <span className="opacity-50 select-none mr-3">sys@admin:~$</span>
-              <span className="break-all">curl -sL https://get.cybervpn.com | bash -s -- --protocol=vless-reality</span>
+              <span className="break-all">cybervpn access --source=qr-or-subscription-url --protocol=vless-reality</span>
             </div>
             <div className="text-neon-cyan mt-4 animate-pulse">
               {t('terminalStatus')}

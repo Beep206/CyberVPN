@@ -1,7 +1,7 @@
 """Add commissionability evaluations for Phase 2.
 
-Revision ID: 20260418_phase2_commissionability_scaffolding
-Revises: 20260418_phase2_refunds_and_disputes
+Revision ID: 20260418_p2_commissionability
+Revises: 20260418_p2_refunds_disputes
 Create Date: 2026-04-18 14:05:00.000000
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "20260418_phase2_commissionability_scaffolding"
-down_revision: str | None = "20260418_phase2_refunds_and_disputes"
+revision: str = "20260418_p2_commissionability"
+down_revision: str | None = "20260418_p2_refunds_disputes"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None
 
@@ -24,13 +24,13 @@ def upgrade() -> None:
         sa.Column("order_id", sa.Uuid(), nullable=False),
         sa.Column("commissionability_status", sa.String(length=20), nullable=False, server_default="pending"),
         sa.Column("reason_codes", sa.JSON(), nullable=False, server_default=sa.text("'[]'")),
-        sa.Column("partner_context_present", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.Column("program_allows_commissionability", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.Column("positive_commission_base", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.Column("paid_status", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.Column("fully_refunded", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.Column("open_payment_dispute_present", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.Column("risk_allowed", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("partner_context_present", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("program_allows_commissionability", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("positive_commission_base", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("paid_status", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("fully_refunded", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("open_payment_dispute_present", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("risk_allowed", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("evaluation_snapshot", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
         sa.Column("explainability_snapshot", sa.JSON(), nullable=False, server_default=sa.text("'{}'")),
         sa.Column("evaluated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),

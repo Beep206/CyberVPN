@@ -3,5 +3,15 @@
   "subtitle": "Gestisci nodi VPN, protocolli e regioni di deployment.",
   "globalStatus": "STATO GLOBALE: {status}",
   "globalStatusValue": "PROVISIONATO",
-  "lastSync": "ULTIMA SYNC: {time} FA"
+  "lastSync": "ULTIMA SYNC: {time} FA",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

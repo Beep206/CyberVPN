@@ -136,16 +136,16 @@ class TestOAuthLoginRedirectContract:
         from src.presentation.api.v1.oauth.routes import _build_oauth_web_callback_uri
 
         with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
-            mock_settings.oauth_web_base_url = "https://vpn.ozoxy.ru"
+            mock_settings.oauth_web_base_url = "https://cyber-vpn.net"
 
-            assert _build_oauth_web_callback_uri("google") == "https://vpn.ozoxy.ru/api/oauth/callback/google"
+            assert _build_oauth_web_callback_uri("google") == "https://cyber-vpn.net/api/oauth/callback/google"
 
     def test_allows_exact_native_redirect_uri_override(self):
         """Explicit native/universal callback URIs are allowed only by exact match."""
         from src.presentation.api.v1.oauth.routes import _resolve_oauth_login_redirect_uri
 
         with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
-            mock_settings.oauth_web_base_url = "https://vpn.ozoxy.ru"
+            mock_settings.oauth_web_base_url = "https://cyber-vpn.net"
             mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
 
             assert (
@@ -158,11 +158,11 @@ class TestOAuthLoginRedirectContract:
         from src.presentation.api.v1.oauth.routes import _resolve_oauth_login_redirect_uri
 
         with patch("src.presentation.api.v1.oauth.routes.settings") as mock_settings:
-            mock_settings.oauth_web_base_url = "https://vpn.ozoxy.ru"
+            mock_settings.oauth_web_base_url = "https://cyber-vpn.net"
             mock_settings.oauth_allowed_redirect_uris = ["cybervpn://oauth/callback"]
 
             with pytest.raises(Exception) as exc_info:
-                _resolve_oauth_login_redirect_uri("google", "https://vpn.ozoxy.ru/en-EN/oauth/callback")
+                _resolve_oauth_login_redirect_uri("google", "https://cyber-vpn.net/en-EN/oauth/callback")
 
             assert getattr(exc_info.value, "status_code", None) == 400
 
@@ -190,14 +190,15 @@ class TestOAuthLoginProviderAvailability:
         assert _is_oauth_login_provider_enabled("apple") is False
 
     def test_provider_enablement_follows_rollout_configuration(self):
-        """Provider availability must respect the active rollout allowlist."""
+        """Provider availability must respect both runtime config and S1 allowlist."""
         from src.presentation.api.v1.oauth.routes import _is_oauth_login_provider_enabled
 
         with patch("src.presentation.api.v1.oauth.routes.settings.oauth_enabled_login_providers", ["facebook"]):
-            assert _is_oauth_login_provider_enabled("facebook") is True
+            assert _is_oauth_login_provider_enabled("facebook") is False
 
         with patch("src.presentation.api.v1.oauth.routes.settings.oauth_enabled_login_providers", ["google"]):
-            assert _is_oauth_login_provider_enabled("facebook") is False
+            assert _is_oauth_login_provider_enabled("google") is True
+            assert _is_oauth_login_provider_enabled("github") is False
 
 
 class TestOAuthTokenRetentionPolicy:

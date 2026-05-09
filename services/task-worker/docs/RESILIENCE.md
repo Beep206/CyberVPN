@@ -31,7 +31,7 @@ run_security_checks()  # Logs warnings for missing/weak secrets
 log_masked_config()  # DATABASE_URL, tokens, etc. are masked
 
 # Mask individual secrets
-masked = mask_secret("sk_live_1234567890abcdef", visible_chars=4)
+masked = mask_secret("example-secret-value-for-tests", visible_chars=4)
 # Returns: "***cdef"
 ```
 

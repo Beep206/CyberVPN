@@ -3,5 +3,15 @@
   "subtitle": "VPN نوڈز، پروٹوکولز، اور تعیناتی علاقوں کا انتظام۔",
   "globalStatus": "عالمی اسٹیٹس: {status}",
   "globalStatusValue": "فراہم شدہ",
-  "lastSync": "آخری مطابقت: {time} پہلے"
+  "lastSync": "آخری مطابقت: {time} پہلے",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

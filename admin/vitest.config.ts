@@ -5,7 +5,10 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    // Match the frontend runner: the current jsdom/cssstyle stack crashes
+    // before test execution in this workspace runtime.
+    pool: 'threads',
+    environment: 'happy-dom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],

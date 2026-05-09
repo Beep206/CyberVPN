@@ -1,7 +1,7 @@
 """phase26_growth_reporting_governance_followups
 
-Revision ID: 20260422_phase26_growth_reporting_governance_followups
-Revises: 20260422_phase22_growth_reporting_governance
+Revision ID: 20260422_p26_growth_gov_fups
+Revises: 20260422_p22_growth_governance
 Create Date: 2026-04-22 23:59:30.000000
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260422_phase26_growth_reporting_governance_followups"
-down_revision = "20260422_phase22_growth_reporting_governance"
+revision = "20260422_p26_growth_gov_fups"
+down_revision = "20260422_p22_growth_governance"
 branch_labels = None
 depends_on = None
 
@@ -70,9 +70,9 @@ def upgrade() -> None:
             "growth_reporting_subscriptions",
             ["governance_followup_status"],
         )
-    if "ix_growth_reporting_subscriptions_governance_followup_reason_code" not in index_names:
+    if "ix_growth_report_subs_gov_reason" not in index_names:
         op.create_index(
-            "ix_growth_reporting_subscriptions_governance_followup_reason_code",
+            "ix_growth_report_subs_gov_reason",
             "growth_reporting_subscriptions",
             ["governance_followup_reason_code"],
         )
@@ -92,7 +92,7 @@ def downgrade() -> None:
     index_names = {index["name"] for index in inspector.get_indexes("growth_reporting_subscriptions")}
     for index_name in (
         "ix_growth_reporting_subscriptions_governance_followup_due_at",
-        "ix_growth_reporting_subscriptions_governance_followup_reason_code",
+        "ix_growth_report_subs_gov_reason",
         "ix_growth_reporting_subscriptions_governance_followup_status",
     ):
         if index_name in index_names:

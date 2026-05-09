@@ -1,0 +1,206 @@
+> CyberVPN Launch Program  
+> Версия: 0.1-draft  
+> Дата подготовки: 2026-05-02  
+> Основание: ответы на CyberVPN Launch Questionnaire от 2026-04-25.  
+> Статус: draft для оценки владельцем проекта. Не является финальным разрешением на разработку или запуск.
+
+
+# Stage 1 Implementation Backlog
+
+## Purpose
+
+Backlog разбивает Stage 1 на implementable work items. Каждая задача должна иметь acceptance criteria и evidence. Перед стартом разработки конкретная задача должна ссылаться на утверждённый requirement ID из документов Stage 1.
+
+## Priority scale
+
+| Priority | Meaning |
+|---|---|
+| P0 | Hard blocker for Stage 1 go-live |
+| P1 | Required for healthy beta |
+| P2 | Useful but may be deferred if documented |
+| P3 | Out of Stage 1 unless re-approved |
+
+## Workstream 1 — Governance and repository freeze
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-REL-001 | P0 | Select launch candidate branch/tag policy | Branch/tag naming documented; freeze rules agreed | Release policy note |
+| S1-REL-002 | P0 | Audit dirty worktree and separate launch-critical vs experimental | Completed for the 2026-05-09 repeat snapshot: no dirty top-level partner/mobile/desktop/TV/Helix/GitOps runtime matches were found, but the worktree is broad and must not be tagged until the follow-up secrets/current-tree baseline review is complete | `22_STAGE1_REL_002_DIRTY_WORKTREE_SCOPE_MAP.md` |
+| S1-REL-003 | P0 | Create Stage 1 decision log | All unresolved launch decisions tracked | Decision log document |
+| S1-REL-004 | P0 | Define go/no-go owner and stop authority | Decision maker recorded | Governance record |
+| S1-REL-005 | P1 | Prepare release notes template | Completed locally in `78_STAGE1_REL_005_RELEASE_NOTES_TEMPLATE_EVIDENCE.md`: reusable RC/live release notes template and sample created; real filled release note, owner go/no-go and rollback dry-run remain required per candidate | `templates/STAGE1_RELEASE_NOTES_TEMPLATE.md`, `templates/STAGE1_RELEASE_NOTES_SAMPLE_STAGE1_BETA_RC.md`, `78_STAGE1_REL_005_RELEASE_NOTES_TEMPLATE_EVIDENCE.md` |
+
+## Workstream 2 — Infrastructure and environments
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-INFRA-001 | P0 | Select production topology | Completed locally in `120_STAGE1_INFRA_001_PRODUCTION_TOPOLOGY_EVIDENCE.md`: Simple Controlled Hybrid Container Topology, component placement, ingress, private dependencies, data authority and home-lab boundary are documented; real staging/prod provider/deploy/DNS/TLS/ingress evidence remains required | `infra/topology/stage1-production-topology.json`, `120_STAGE1_INFRA_001_PRODUCTION_TOPOLOGY_EVIDENCE.md` |
+| S1-INFRA-002 | P0 | Create staging environment | Completed locally in `121_STAGE1_INFRA_002_STAGING_ENVIRONMENT_EVIDENCE.md`: staging contract requires separate DB, Valkey/Redis, Remnawave, Telegram bot, sandbox/test payments, no production credentials/data and E2E health evidence; real external staging deploy/health proof remains required | `infra/topology/stage1-staging-environment.json`, `121_STAGE1_INFRA_002_STAGING_ENVIRONMENT_EVIDENCE.md` |
+| S1-INFRA-003 | P0 | Create production environment | Completed locally in `122_STAGE1_INFRA_003_PRODUCTION_ENVIRONMENT_EVIDENCE.md`: production deployability contract requires no staging credentials/state, immutable tag/SHA deploys, separate managed/private services, protected ingress, kill switches and external production evidence before go-live; real external production deploy/health proof remains required | `infra/topology/stage1-production-environment.json`, `122_STAGE1_INFRA_003_PRODUCTION_ENVIRONMENT_EVIDENCE.md` |
+| S1-INFRA-004 | P0 | Configure DNS/TLS for main/admin/status endpoints | Completed locally in `123_STAGE1_INFRA_004_DNS_TLS_EVIDENCE.md`: DNS/TLS contract defines `.net` primary, `.org` redirects, admin mirror redirect, API/webhook/OAuth host, `/status`, TLS requirements and live evidence commands; real DNS/TLS/redirect/admin-protection proof remains required | `infra/dns/stage1-dns-tls-contract.json`, `123_STAGE1_INFRA_004_DNS_TLS_EVIDENCE.md` |
+| S1-INFRA-005 | P0 | Protect backend/admin ingress | Completed locally in `124_STAGE1_INFRA_005_PROTECTED_INGRESS_EVIDENCE.md`: backend/admin direct-public exposure is forbidden, admin requires protected access before login, `.org` admin is redirect-only, webhooks/OAuth have no interactive challenge, private services stay private; deployed edge/reverse-proxy/firewall proof remains required | `infra/ingress/stage1-protected-ingress-contract.json`, `124_STAGE1_INFRA_005_PROTECTED_INGRESS_EVIDENCE.md` |
+| S1-INFRA-006 | P0 | Configure secrets management | Secrets separated by service/env; no production secrets in repo | Secrets inventory without values |
+| S1-INFRA-007 | P0 | Run secrets scan | Completed locally and revalidated on 2026-05-09 in `27_STAGE1_INFRA_007_SECRETS_SCAN_EVIDENCE.md`: current-tree findings were reviewed, easy test/public-copy false positives were reduced, the redacted accepted baseline has `77` findings and the baseline-enforced scan returns no leaks; remote history replacement/owner decision and token rotation if applicable remain before RC/go-live | `27_STAGE1_INFRA_007_SECRETS_SCAN_EVIDENCE.md` |
+| S1-INFRA-008 | P1 | Configure edge WAF/rate limiting if available | Completed locally in `119_STAGE1_INFRA_008_EDGE_WAF_RATE_LIMITING_EVIDENCE.md`: Cloudflare/equivalent edge baseline, webhook no-challenge exceptions, admin protection requirement and non-HTTP surface exclusions are documented/tested; real DNS/TLS/WAF/rate-limit/security-event evidence remains required | `119_STAGE1_INFRA_008_EDGE_WAF_RATE_LIMITING_EVIDENCE.md` |
+| S1-INFRA-009 | P1 | Verify local Docker/Compose stack | Docker and Compose are available; local compose config resolves; local service inventory captured | Docker/Compose evidence |
+
+## Workstream 3 — Database and backend readiness
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-BE-001 | P0 | Run migrations on clean staging DB | Revalidated locally on PostgreSQL 17.7 in `28_STAGE1_BE_001_CLEAN_DB_MIGRATION_EVIDENCE.md`: single Alembic head, clean `upgrade head`, 120 public tables, S1-critical tables present and S1-sensitive DB defaults off; managed staging/prod evidence still required | `28_STAGE1_BE_001_CLEAN_DB_MIGRATION_EVIDENCE.md` |
+| S1-BE-002 | P0 | Define first-admin bootstrap | Revalidated locally on 2026-05-09 in `29_STAGE1_BE_002_FIRST_ADMIN_BOOTSTRAP_EVIDENCE.md`: direct protected CLI creates exactly one `owner/super_admin` with TOTP enabled, writes bootstrap audit and rejects repeat bootstrap; staging/prod evidence still required | `29_STAGE1_BE_002_FIRST_ADMIN_BOOTSTRAP_EVIDENCE.md` |
+| S1-BE-003 | P0 | Verify public/internal endpoint allowlist | Public endpoints documented; admin/internal protected | Route audit |
+| S1-BE-004 | P0 | Disable public Swagger/OpenAPI in production | Swagger inaccessible publicly in prod | Screenshot/curl output |
+| S1-BE-005 | P0 | Verify CORS/cookies/secure settings | Cookies secure; CORS limited to approved domains | Config evidence |
+| S1-BE-006 | P0 | CSRF assessment for cookie flows | CSRF protections implemented or documented with mitigation | Security note/test |
+| S1-BE-007 | P1 | Verify rate limits | Auth/payment/trial/referral/support rate limits exist or accepted | Tests/config evidence |
+| S1-BE-008 | P1 | Define canonical status/error model | UI/backend states aligned | API contract/error matrix |
+
+## Workstream 4 — Auth and account linking
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-AUTH-001 | P0 | Implement/verify public registration toggle | Completed locally: public new-account creation is blocked across web password, mobile password, magic link/OTP, OAuth, Telegram Web/Mini App, mobile Telegram/OIDC and Telegram Bot bootstrap when `REGISTRATION_ENABLED=false`; existing-account login remains allowed; deployed toggle proof still required | `113_STAGE1_AUTH_001_REGISTRATION_KILL_SWITCH_EVIDENCE.md` |
+| S1-AUTH-002 | P0 | Verify email/login password flow | Completed locally: register -> OTP verify -> login by email/username -> refresh rotation -> logout/replay rejection and session-cookie security are covered; deployed HTTPS/browser/email evidence still required | `114_STAGE1_AUTH_002_EMAIL_PASSWORD_FLOW_EVIDENCE.md` |
+| S1-AUTH-003 | P1 | Verify magic link/OTP | Completed locally: magic-link request dispatches token/OTP payload, token and OTP login create secure sessions, OTP replay is rejected, request/resend rate limits are proven, and OTP generation uses cryptographic randomness; real email-provider/deployed HTTPS evidence still required | `115_STAGE1_AUTH_003_MAGIC_LINK_OTP_EVIDENCE.md` |
+| S1-AUTH-004 | P0 | Verify admin 2FA | Completed locally: protected admin role/permission surfaces fail closed with `403 Admin 2FA required` when TOTP is disabled, valid TOTP-enabled admins pass, 2FA lifecycle/complete tests pass and sensitive finance/support admin gates share the required 2FA posture; deployed browser/API persona proof still required | `116_STAGE1_AUTH_004_ADMIN_2FA_EVIDENCE.md` |
+| S1-AUTH-005 | P0 | Define Telegram/email/OAuth account linking rules | Completed locally: Telegram cannot auto-merge by email, provider identity conflicts return controlled errors, same-identity linking is idempotent; support/audit/deployed evidence still required | `57_STAGE1_TG_005_TELEGRAM_AUTH_LINKING_EVIDENCE.md` |
+| S1-AUTH-006 | P1 | Verify S1 OAuth providers | Completed locally: backend defaults, runtime route gate, trusted-email auto-link gate, tests and docs restrict S1 OAuth to Google/GitHub only; real provider apps/credentials/callbacks/browser evidence still required | `117_STAGE1_AUTH_006_OAUTH_PROVIDER_SCOPE_EVIDENCE.md` |
+| S1-AUTH-007 | P1 | Verify delete/export data path | Completed locally: authenticated `POST /auth/me/privacy-requests` accepts account deletion/data export requests, routes them to `s1_privacy_rights_review` with owner/audit guardrails and keeps existing authenticated soft-delete path available; deployed mailbox/support queue evidence still required | `118_STAGE1_AUTH_007_DELETE_EXPORT_DATA_PATH_EVIDENCE.md` |
+
+## Workstream 5 — Payments and billing
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-PAY-001 | P0 | Choose Stage 1 primary payment provider | Completed locally: CryptoBot / Crypto Pay selected as first live paid-path candidate because current checkout/webhook/signature/idempotency/reconciliation/provisioning-failure contracts already exist; real account, credentials, sandbox/testnet and production callback evidence remain required before paid beta | `125_STAGE1_PAY_001_PRIMARY_PAYMENT_PROVIDER_EVIDENCE.md`; `infra/payments/stage1-primary-payment-provider.json` |
+| S1-PAY-002 | P0 | Configure provider sandbox/test mode | Completed locally: CryptoBot mainnet/testnet runtime contract is configured for backend and task-worker, production rejects testnet, Telegram Bot config is compatible; real `@CryptoTestnetBot` credentials, success/failure/expired invoice samples and callback evidence remain required before paid beta | `126_STAGE1_PAY_002_CRYPTOBOT_SANDBOX_EVIDENCE.md`; `infra/payments/stage1-cryptobot-sandbox-contract.json` |
+| S1-PAY-003 | P0 | Configure provider production credentials | Completed locally: CryptoBot production credential inventory without values is documented, fake token generation is disabled, and backend/task-worker/bot reject placeholder/test CryptoBot tokens in production; real provider account and secret-store evidence remain required before paid beta | `127_STAGE1_PAY_003_CRYPTOBOT_PRODUCTION_CREDENTIALS_EVIDENCE.md`; `infra/payments/stage1-cryptobot-production-credentials-contract.json` |
+| S1-PAY-004 | P0 | Define provider status mapping | Final/non-final statuses documented; placeholder mapping from `18_STAGE1_OPERATIONAL_INPUTS_AND_EVIDENCE.md` replaced by real provider evidence before enablement | Status mapping doc + provider callback samples |
+| S1-PAY-005 | P0 | Test webhook signature verification | Completed locally in `46_STAGE1_PAY_005_WEBHOOK_SIGNATURE_VERIFICATION_EVIDENCE.md`: provider-specific authenticity gate added, invalid CryptoBot signatures fail closed before side effects, YooKassa requires provider status/IP recheck; real provider callback/signature/recheck evidence remains required | Test output |
+| S1-PAY-006 | P0 | Test webhook idempotency | Duplicate webhook has no duplicate transaction/subscription/provisioning | Completed locally in `37_STAGE1_PAY_006_WEBHOOK_IDEMPOTENCY_EVIDENCE.md`; durable persistence/live provider evidence remains required |
+| S1-PAY-007 | P0 | Implement orphan payment policy | Orphan payment becomes support/reconciliation item; no unresolved paid-but-no-access/orphan older than 24h | Completed locally in `38_STAGE1_PAY_007_ORPHAN_PAYMENT_POLICY_EVIDENCE.md`; real admin/support queue and alert delivery evidence remain required |
+| S1-PAY-008 | P0 | Payment -> provisioning failure handling | Completed locally in `45_STAGE1_PAY_008_PAYMENT_PROVISIONING_FAILURE_EVIDENCE.md`: paid state preserved, provisioning retry queued, duplicate webhook does not duplicate provisioning; durable persistence/live provider/staging evidence remains required | E2E failure test |
+| S1-PAY-009 | P1 | Refund/dispute process | Completed locally in `81_STAGE1_PAY_009_REFUND_DISPUTE_PROCESS_EVIDENCE.md`: customer refund request path exists, refund/dispute state changes are finance/admin role-gated, support is denied from finance mutations, provider posture documented; real provider refund/dispute evidence remains required before enablement | `81_STAGE1_PAY_009_REFUND_DISPUTE_PROCESS_EVIDENCE.md` |
+| S1-PAY-010 | P1 | Wallet/payment history verification | Completed locally in `82_STAGE1_PAY_010_WALLET_PAYMENT_HISTORY_EVIDENCE.md`: authenticated customer scoping, no frontend `user_uuid`, no raw provider fields in customer UI, withdrawal/payout request creation and UI default-off; deployed screenshots and real provider evidence remain required | `82_STAGE1_PAY_010_WALLET_PAYMENT_HISTORY_EVIDENCE.md` |
+| S1-PAY-011 | P1 | Telegram Stars readiness if enabled | Completed locally: XTR-only Stars contract, pre-checkout non-grant rule, successful-payment confirmation, charge-id storage, refundStarPayment client and refund reconciliation are covered; real BotFather/test/prod Stars payment, support, refund and provisioning evidence still required before enablement | `108_STAGE1_PAY_011_TELEGRAM_STARS_READINESS_EVIDENCE.md` |
+| S1-PAY-012 | P1 | Reconciliation job | Completed locally in `83_STAGE1_PAY_012_RECONCILIATION_JOB_EVIDENCE.md`: backend-authoritative redacted reconciliation report, internal worker endpoint and scheduled worker task detect stale/mismatched attempts, orphan/final payments, order settlement mismatch and user mismatch; real provider reconciliation/admin queue/alert evidence remains required | `83_STAGE1_PAY_012_RECONCILIATION_JOB_EVIDENCE.md` |
+| S1-PAY-013 | P1 | PayRam readiness if enabled | Completed locally: PayRam status/auth/idempotency/evidence guardrails match current docs and documentation-only samples cannot enable provider; real PayRam account, credentials, callback/status/refund/reconciliation/provisioning evidence still required before enablement | `109_STAGE1_PAY_013_PAYRAM_READINESS_EVIDENCE.md` |
+| S1-PAY-014 | P1 | NOWPayments readiness if enabled | Completed locally: NOWPayments status/IPN HMAC/idempotency/evidence guardrails match current docs and documentation-only samples cannot enable provider; real NOWPayments account, credentials, IPN/status/refund/reconciliation/provisioning evidence still required before enablement | `110_STAGE1_PAY_014_NOWPAYMENTS_READINESS_EVIDENCE.md` |
+| S1-PAY-015 | P1 | Digiseller Russia path readiness if enabled | Completed locally: Digiseller status/HMAC/idempotency/evidence guardrails match current docs and documentation-only samples cannot enable provider; real Digiseller seller account, product/payment model, credentials, callback/status/refund/reconciliation/provisioning evidence still required before enablement | `111_STAGE1_PAY_015_DIGISELLER_READINESS_EVIDENCE.md` |
+| S1-PAY-016 | P1 | YooKassa Russia path readiness if enabled | Completed locally: YooKassa status/recheck/idempotency/evidence guardrails match current docs and documentation-only samples cannot enable provider; real YooKassa shop account, credentials, webhook/status/refund/reconciliation/receipt/provisioning evidence still required before enablement | `112_STAGE1_PAY_016_YOOKASSA_READINESS_EVIDENCE.md` |
+| S1-PAY-017 | P1 | Replace provider documentation placeholders | Completed locally in `84_STAGE1_PAY_017_PROVIDER_PLACEHOLDER_REPLACEMENT_EVIDENCE.md`: provider evidence registry, documentation placeholder fixture and enablement guardrails added; all providers remain blocked until real sandbox/prod callback/status/signature/refund/reconciliation samples exist | `84_STAGE1_PAY_017_PROVIDER_PLACEHOLDER_REPLACEMENT_EVIDENCE.md` |
+
+## Workstream 6 — Trial, subscriptions and pricing
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-PROD-001 | P0 | Configure trial 3 days / 1 device | Local canonical trial policy/API/entitlement/copy contract completed; no duplicate account trial without rejection | `47_STAGE1_PROD_001_TRIAL_POLICY_EVIDENCE.md` |
+| S1-PROD-002 | P0 | Configure monthly/quarterly/semiannual/yearly plans | Local paid beta matrix Basic/Plus/Pro/Max x 30/90/180/365 visible and public checkout rejects out-of-scope terms | `48_STAGE1_PROD_002_PAID_PLAN_MATRIX_EVIDENCE.md` |
+| S1-PROD-003 | P1 | Configure public/private plans | Completed locally in `49_STAGE1_PROD_003_PLAN_VISIBILITY_EVIDENCE.md`: private/internal plans are hidden/admin-only and public web/Mini App/Telegram Bot catalogs filter private, wrong-channel and out-of-scope rows; deployed API/UI/admin evidence remains required | `49_STAGE1_PROD_003_PLAN_VISIBILITY_EVIDENCE.md` |
+| S1-PROD-004 | P1 | Implement local currency display rule | Completed locally in `50_STAGE1_PROD_004_LOCAL_CURRENCY_DISPLAY_EVIDENCE.md`: USD remains billing source of truth, RUB is display-only estimate for Russian locale, checkout request currency remains USD/XTR as intended; deployed provider invoice/currency evidence remains required | `50_STAGE1_PROD_004_LOCAL_CURRENCY_DISPLAY_EVIDENCE.md` |
+| S1-PROD-005 | P0 | Grace period behavior | Completed locally in `98_STAGE1_PROD_005_GRACE_PERIOD_BEHAVIOR_EVIDENCE.md`: paid access enters 72h self-service grace with provisioning ready, disables at the boundary, trial has no paid grace, and missing Remnawave UUID escalates to support/reconciliation; durable worker and staging/prod Remnawave evidence remain required | `98_STAGE1_PROD_005_GRACE_PERIOD_BEHAVIOR_EVIDENCE.md` |
+| S1-PROD-006 | P1 | Add-ons disabled or explicitly enabled | Completed locally in `51_STAGE1_PROD_006_ADDONS_KILL_SWITCH_EVIDENCE.md`: add-ons are disabled by default across public catalogs, checkout/use cases, Mini App, Telegram Bot catalog and web pricing display; deployed flag/API/UI rejection evidence remains required | `51_STAGE1_PROD_006_ADDONS_KILL_SWITCH_EVIDENCE.md` |
+| S1-PROD-007 | P1 | Promo/gift/referral kill switches | Completed locally in `52_STAGE1_PROD_007_GROWTH_KILL_SWITCH_EVIDENCE.md`: public promo/gift/referral and checkout-code discount flows are fail-closed by default across backend APIs, checkout, Mini App bootstrap, dashboard and Mini App UI; deployed flag/API/UI rejection evidence remains required | `52_STAGE1_PROD_007_GROWTH_KILL_SWITCH_EVIDENCE.md` |
+
+## Workstream 7 — Remnawave and VPN provisioning
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-VPN-001 | P0 | Deploy Remnawave staging | Local control-plane smoke completed: Remnawave/PostgreSQL/Valkey start, local TLS/proxy path works, unauth API returns 401 and auth `/api/nodes` returns an array; real external staging Remnawave/private API boundary/connected node evidence still required | `128_STAGE1_VPN_001_REMNAWAVE_STAGING_CONTROL_PLANE_EVIDENCE.md`; external staging health evidence |
+| S1-VPN-002 | P0 | Deploy Remnawave production | Production Remnawave ready and separate | Health evidence |
+| S1-VPN-003 | P0 | Define Stage 1 protocol list | VLESS Reality RAW default and VLESS Reality XHTTP alternate documented; Helix/Verta/Beep and non-S1 protocols disabled | `39_STAGE1_VPN_003_PROTOCOL_LIST_EVIDENCE.md`; staging/prod profile evidence still required |
+| S1-VPN-004 | P0 | Test trial provisioning | Trial creates VPN access through mockable S1 Remnawave gateway; real staging/prod trial evidence still required | `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md` |
+| S1-VPN-005 | P0 | Test paid provisioning | Paid subscription creates/updates access through mockable S1 Remnawave gateway; real payment webhook integration, retry behavior and staging/prod paid evidence still required | `41_STAGE1_VPN_005_PAID_PROVISIONING_EVIDENCE.md` |
+| S1-VPN-006 | P0 | Test provisioning retry | Remnawave outage queues retry and later succeeds through local contract; durable PostgreSQL/worker and staging/prod outage evidence still required | `42_STAGE1_VPN_006_PROVISIONING_RETRY_EVIDENCE.md` |
+| S1-VPN-007 | P0 | Test expiry/grace disable | Local worker contract proves paid access is disabled only after 72h grace; trial disables at expiry; durable DB/worker and staging/prod evidence still required | `44_STAGE1_VPN_007_EXPIRY_GRACE_DISABLE_EVIDENCE.md` |
+| S1-VPN-008 | P1 | Credential regeneration from admin/support | Backend/API and reusable frontend support-widget contracts implemented locally: dedicated role gate, required audit event, sanitized logs/UI; staging/prod and deployed admin-page evidence still required | `43_STAGE1_VPN_008_CREDENTIAL_REGENERATION_EVIDENCE.md` |
+| S1-VPN-009 | P1 | Usage/traffic display | Local API/UI contract marks authoritative Remnawave usage as available and fallback snapshots as unavailable; staging/prod Remnawave usage evidence still required | `85_STAGE1_VPN_009_USAGE_DISPLAY_EVIDENCE.md` |
+| S1-VPN-010 | P1 | Node list/regions | Completed locally: 12 country-level startup regions, activation tiers, node-slot template and public visibility rules documented | `86_STAGE1_VPN_010_NODE_REGION_INVENTORY_EVIDENCE.md`; real staging/prod provider/node/monitoring evidence still required |
+| S1-VPN-011 | P1 | Torrent blocking policy for selected nodes | Completed locally: Torrent/P2P restricted-by-default policy, Remnawave Torrent Blocker enablement contract, TOR addon finding and TOR future-control placeholder documented | `87_STAGE1_VPN_011_TORRENT_TOR_NODE_POLICY_EVIDENCE.md`; real staging/prod plugin/provider/webhook/alert evidence still required before enablement |
+| S1-VPN-012 | P1 | Run local Remnawave smoke | Local Remnawave smoke is executed or blocked with reason; evidence is labelled local/dev and does not replace staging/prod proof | Local smoke output |
+
+## Workstream 8 — Frontend customer cabinet and marketing
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-FE-001 | P0 | Marketing critical pages ready | Completed locally: pricing/features/devices/help/legal/status/legal route files exist, EN/RU copy has no placeholders/stale domains/unsupported S1 public claims, and canonical domain is `cyber-vpn.net`; deployed staging/RC screenshots and domain proof still required | `107_STAGE1_FE_001_MARKETING_CRITICAL_PAGES_EVIDENCE.md` |
+| S1-FE-002 | P0 | Dashboard states implemented | Completed locally: active/trial/grace/expired/payment/provisioning states render clearly in customer dashboard; deployed staging/RC screenshots and real provider/Remnawave transition evidence still required | `99_STAGE1_FE_002_DASHBOARD_STATES_EVIDENCE.md` |
+| S1-FE-003 | P0 | Config delivery UI | Completed locally: QR/subscription URL/config file actions are available on customer server-access UI with masked preview, delivery-payload fallback and raw-value safety tests; deployed staging/RC screenshots and real Remnawave/client import evidence still required | `100_STAGE1_FE_003_CONFIG_DELIVERY_UI_EVIDENCE.md` |
+| S1-FE-004 | P1 | Devices page | Completed locally: authenticated `/settings#devices` surface shows active devices/sessions, entitlement-derived device limit, remaining/over-limit state and safe revoke actions; deployed screenshots and real backend/Remnawave/device enforcement evidence still required | `101_STAGE1_FE_004_DEVICES_PAGE_EVIDENCE.md` |
+| S1-FE-005 | P1 | Wallet page | Completed locally: `/wallet` shows recent safe payment history from customer-scoped API, hides raw provider fields and keeps withdrawal UI disabled by default; deployed screenshots and real provider/payment evidence still required | `102_STAGE1_FE_005_WALLET_PAGE_EVIDENCE.md` |
+| S1-FE-006 | P1 | Referral/promo/gift UI gated | Completed locally: public growth UI is fail-closed by default, requires `NEXT_PUBLIC_STAGE1_GROWTH_EVIDENCE_APPROVED` plus specific flags, and web/Mini App referral/promo/gift/checkout-code surfaces stay hidden or paused; deployed screenshots/final env evidence still required | `103_STAGE1_FE_006_GROWTH_UI_GATES_EVIDENCE.md` |
+| S1-FE-007 | P0 | Hide operator/admin surfaces from users | Completed locally: customer dashboard policy hides analytics/monitoring/users/partner, nav remains customer-only, and `/servers` keeps config delivery while removing operator metrics/stats API call; deployed browser evidence still required | `104_STAGE1_FE_007_OPERATOR_SURFACE_AUDIT_EVIDENCE.md` |
+| S1-FE-008 | P1 | Platform guides | Completed locally: public `/devices` hub now includes Android, iOS, Windows, macOS, Linux and Telegram Mini App setup guides with safe QR/subscription URL/config wording and no native app/autorenewal overpromise | `105_STAGE1_FE_008_PLATFORM_GUIDES_EVIDENCE.md`; deployed screenshots and real Remnawave/client import evidence still required |
+| S1-FE-009 | P1 | i18n critical-path validation | Completed locally: all enabled locales are runtime fallback-complete for S1 critical paths; `en-EN` and `ru-RU` are the directly reviewed S1 launch locales; secondary locales remain fallback-supported, not fully translated | `106_STAGE1_FE_009_I18N_CRITICAL_PATH_EVIDENCE.md`; deployed browser spot-checks and RC rerun still required |
+| S1-FE-010 | P1 | Frontend bundle/env scan | Completed locally in `80_STAGE1_FE_010_FRONTEND_BUNDLE_ENV_SCAN_EVIDENCE.md`: production build passed, private canary/local private env values were not found in client/static or server app artifacts, and Sentry release injection was hardened to public release metadata only; RC/staging/production deployed artifact scan remains required | `80_STAGE1_FE_010_FRONTEND_BUNDLE_ENV_SCAN_EVIDENCE.md` |
+
+## Workstream 9 — Telegram Bot and Mini App
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-TG-001 | P0 | Create staging bot | Completed locally in `53_STAGE1_TG_001_STAGING_BOT_CONFIG_EVIDENCE.md`: staging/prod bot identity config is separate, S1 command/menu startup surface is deterministic, and command entrypoints are covered; external BotFather/getMe/webhook evidence remains required | `53_STAGE1_TG_001_STAGING_BOT_CONFIG_EVIDENCE.md` |
+| S1-TG-002 | P0 | Create production bot | Completed locally in `54_STAGE1_TG_002_PRODUCTION_BOT_TOKEN_PATH_EVIDENCE.md`: production Telegram Bot token path, backend/worker vault keys and redacted inventory are defined; external BotFather/token/getMe/webhook evidence remains required | `54_STAGE1_TG_002_PRODUCTION_BOT_TOKEN_PATH_EVIDENCE.md` |
+| S1-TG-003 | P0 | Verify Bot commands/menu/onboarding | Completed locally in `55_STAGE1_TG_003_COMMANDS_MENU_ONBOARDING_EVIDENCE.md`: `/start`, `/menu`, `/connect`, `/plans`, `/trial`, `/support`, `/paysupport`, startup commands and menu button are covered; live Telegram client screenshots/deployed staging evidence remain required | `55_STAGE1_TG_003_COMMANDS_MENU_ONBOARDING_EVIDENCE.md` |
+| S1-TG-004 | P0 | Verify Mini App home/plans/payments/devices/profile/wallet | Completed locally in `56_STAGE1_TG_004_MINIAPP_CABINET_EVIDENCE.md`: Mini App home/plans/payments/devices/profile/wallet routes render as light cabinet with mobile screenshots; real Telegram initData auth/linking and deployed staging evidence remain required | `56_STAGE1_TG_004_MINIAPP_CABINET_EVIDENCE.md` |
+| S1-TG-005 | P0 | Verify Telegram auth/linking | Completed locally: Mini App initData, bot-link, magic-link, Telegram OAuth callback, no-silent-merge and conflict handling are covered; real BotFather/domain/token/client/webhook evidence still required | `57_STAGE1_TG_005_TELEGRAM_AUTH_LINKING_EVIDENCE.md` |
+| S1-TG-006 | P1 | Verify Telegram notifications | Completed locally in `58_STAGE1_TG_006_TELEGRAM_NOTIFICATIONS_EVIDENCE.md`: expiry/payment/provisioning notification contract, disabled/unlinked fail-closed behavior, HTML escaping and queue processor delivery are covered; real BotFather/token/webhook/client/deployed evidence remains required | `58_STAGE1_TG_006_TELEGRAM_NOTIFICATIONS_EVIDENCE.md` |
+| S1-TG-007 | P0 | Verify Telegram rate limiting | Completed locally in `59_STAGE1_TG_007_TELEGRAM_RATE_LIMITING_EVIDENCE.md`: message/callback anti-spam, settings-backed limits, fail-closed Redis behavior, dispatcher wiring and Mini App/backend rate-limit linkage are covered; deployed Redis/webhook/client evidence remains required | `59_STAGE1_TG_007_TELEGRAM_RATE_LIMITING_EVIDENCE.md` |
+| S1-TG-008 | P1 | Verify AI support first line + escalation | Completed locally in `60_STAGE1_TG_008_AI_SUPPORT_ESCALATION_EVIDENCE.md`: deterministic no-cost first-line triage, safe redaction, `/support <question>` and `/paysupport <question>` escalation, backend support staff-note intake and fallback reference are covered; real deployed bot/admin queue/alert/SLA evidence remains required | `60_STAGE1_TG_008_AI_SUPPORT_ESCALATION_EVIDENCE.md` |
+
+## Workstream 10 — Admin and support
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-ADM-001 | P0 | Admin domain/access protection | Completed locally in `62_STAGE1_ADM_001_ADMIN_ACCESS_PROTECTION_EVIDENCE.md`: backend admin host guard, production settings validation and admin mirror redirect are covered; deployed DNS/TLS/ingress/private-access evidence remains required before go-live | `62_STAGE1_ADM_001_ADMIN_ACCESS_PROTECTION_EVIDENCE.md` |
+| S1-ADM-002 | P0 | RBAC matrix implemented | Completed locally in `63_STAGE1_ADM_002_RBAC_MATRIX_EVIDENCE.md`: owner/super_admin, support, operator/ops and finance permissions are separated and tested through FastAPI dependencies; deployed admin persona/UI proof remains required before go-live | `63_STAGE1_ADM_002_RBAC_MATRIX_EVIDENCE.md` |
+| S1-ADM-003 | P0 | Admin 2FA enforced | Completed locally in `64_STAGE1_ADM_003_ADMIN_2FA_ENFORCEMENT_EVIDENCE.md`: production config fails closed unless `ADMIN_2FA_REQUIRED=true`, and role/permission-protected admin API surfaces reject users without TOTP; deployed browser/API persona proof remains required before go-live | `64_STAGE1_ADM_003_ADMIN_2FA_ENFORCEMENT_EVIDENCE.md` |
+| S1-ADM-004 | P0 | Audit log for privileged actions | Completed locally in `65_STAGE1_ADM_004_PRIVILEGED_AUDIT_LOG_EVIDENCE.md`: sensitive admin mutations use required audit logging, invite tokens/config links/passwords are redacted, and support/system-config audit tests pass; deployed audit-log/persona proof remains required before go-live | `65_STAGE1_ADM_004_PRIVILEGED_AUDIT_LOG_EVIDENCE.md` |
+| S1-ADM-005 | P1 | Payment attempts view | Completed locally in `66_STAGE1_ADM_005_PAYMENT_ATTEMPTS_VIEW_EVIDENCE.md`: support/finance can inspect safe status through role-gated admin API and reusable UI panel without raw provider payloads/idempotency/payment URLs; deployed admin persona/real provider evidence remains required | `66_STAGE1_ADM_005_PAYMENT_ATTEMPTS_VIEW_EVIDENCE.md` |
+| S1-ADM-006 | P1 | Subscription manual operations | Completed locally in `67_STAGE1_ADM_006_MANUAL_SUBSCRIPTION_OPS_EVIDENCE.md`: manual grant/extend requires `SUBSCRIPTION_CREATE`, writes required audit, stores config URL internally only and exposes a safe reusable UI panel; deployed persona/Remnawave evidence remains required | `67_STAGE1_ADM_006_MANUAL_SUBSCRIPTION_OPS_EVIDENCE.md` |
+| S1-ADM-007 | P1 | Credential regeneration | Completed locally in `68_STAGE1_ADM_007_CREDENTIAL_REGENERATION_ADMIN_EVIDENCE.md`: OpenAPI/admin client/customer-detail action wired to role-gated/audit-logged backend with safe result summary; deployed admin browser/persona and real Remnawave evidence remain required | `68_STAGE1_ADM_007_CREDENTIAL_REGENERATION_ADMIN_EVIDENCE.md` |
+| S1-SUP-001 | P0 | Support ticket path | Completed locally in `69_STAGE1_SUP_001_SUPPORT_TICKET_PATH_EVIDENCE.md`: Telegram/email/web/bot/admin support-ticket references, queue/SLA mapping, redaction and public support contact profile are covered; deployed mailbox/web/bot/admin queue/alert evidence remains required | `69_STAGE1_SUP_001_SUPPORT_TICKET_PATH_EVIDENCE.md` |
+| S1-SUP-002 | P0 | Support templates | Completed locally in `70_STAGE1_SUP_002_SUPPORT_TEMPLATES_EVIDENCE.md`: failed payment, paid-no-access, VPN not connecting, expired subscription and refund request templates are cataloged/tested with sensitive-data guardrails; owner/legal text approval is closed in `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md`, provider/live workflow evidence remains required | `70_STAGE1_SUP_002_SUPPORT_TEMPLATES_EVIDENCE.md`, `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-SUP-003 | P0 | Escalation process | Completed locally in `71_STAGE1_SUP_003_ESCALATION_PROCESS_EVIDENCE.md`: AI/support -> finance/ops/owner escalation rules, P0/P1 SLA, sensitive-data guardrails and template/rule consistency are covered; deployed admin/support queue, alert delivery and human SLA evidence remain required | `71_STAGE1_SUP_003_ESCALATION_PROCESS_EVIDENCE.md` |
+
+## Workstream 11 — Legal, privacy and abuse
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-LEGAL-001 | P0 | Final Terms of Service | Owner-approved for S1 legal/text closure; conservative Terms candidate and all-locale unsafe-copy guard exist | `72_STAGE1_LEGAL_001_TERMS_OF_SERVICE_EVIDENCE.md`, `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-002 | P0 | Final Privacy Policy | Owner-approved for S1 legal/text closure; bounded privacy candidate, data categories, retention criteria and privacy contact are covered | `73_STAGE1_LEGAL_002_PRIVACY_POLICY_EVIDENCE.md`, `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-003 | P0 | Acceptable Use Policy | Owner-approved for S1 legal/text closure; abuse prohibitions and bounded torrent/node/provider wording are covered | `74_STAGE1_LEGAL_003_ACCEPTABLE_USE_POLICY_EVIDENCE.md`, `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-004 | P0 | Refund Policy | Owner-approved for S1 legal/text closure; manual provider-bounded refund wording is covered | `75_STAGE1_LEGAL_004_REFUND_POLICY_EVIDENCE.md`, `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-005 | P0 | Cookie Policy | Owner-approved for S1 legal/text closure; cookie/storage disclosure and non-essential tracking default-off rule are covered | `76_STAGE1_LEGAL_005_COOKIE_POLICY_EVIDENCE.md`, `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-006 | P0 | No-logs claim validation | Owner-approved for S1 wording stance; no absolute no-logs overpromise, operational metadata is disclosed where used | `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-007 | P1 | Law enforcement request policy | Owner-approved for S1 support/owner intake, verification, minimum disclosure and audit boundary | `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-008 | P1 | Abuse complaint runbook | Owner-approved for S1 abuse intake, safe evidence handling, owner/ops escalation and audited action boundary | `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+| S1-LEGAL-009 | P1 | GDPR export/delete process | Owner-approved for S1 manual support/privacy request procedure; automation may be deferred | `79_STAGE1_LEGAL_TEXT_OWNER_APPROVAL_EVIDENCE.md` |
+
+## Workstream 12 — Observability, QA, backups and release
+
+| ID | Priority | Task | Acceptance | Evidence |
+|---|---:|---|---|---|
+| S1-OBS-001 | P0 | Configure Sentry critical projects | Completed locally: frontend/admin/backend/bot/worker Sentry config contract and tests pass; live Sentry DSN/dashboard/test-event evidence still required before go-live | `94_STAGE1_OBS_001_SENTRY_PROJECTS_CONFIG_EVIDENCE.md` |
+| S1-OBS-002 | P0 | Verify PII scrubbing | Completed locally: S1-sensitive cookies/auth headers/config URLs/OAuth/TOTP/payment/Telegram/Remnawave values redacted across frontend/admin/backend/bot/worker Sentry paths and backend log sanitization | `95_STAGE1_OBS_002_PII_SCRUBBING_EVIDENCE.md` |
+| S1-OBS-003 | P0 | Configure metrics/dashboards | Completed locally: Stage 1 Grafana dashboard, Prometheus recording rules and static contract cover API/auth/payments/provisioning/worker/DB/Redis/Remnawave; deployed Grafana screenshots/live targets remain required before go-live | `96_STAGE1_OBS_003_METRICS_DASHBOARDS_EVIDENCE.md` |
+| S1-OBS-004 | P0 | Configure alerts | Completed locally and revalidated 2026-05-09: S1 Prometheus alert rules and Alertmanager Telegram/email routing contract exist for `-5173727789` and `backup@cyber-vpn.net`; live delivery evidence remains required before go-live | `97_STAGE1_OBS_004_ALERTS_EVIDENCE.md` |
+| S1-QA-001 | P0 | Critical E2E tests | Completed locally: backend/frontend/admin/bot/worker critical slices pass; real staging/prod provider, Remnawave and VPN client connection evidence still required | `88_STAGE1_QA_001_CRITICAL_E2E_LOCAL_EVIDENCE.md` |
+| S1-QA-002 | P0 | Dependency audit | Completed locally: root/frontend/admin npm audits have no high/critical findings; backend/bot/worker Python lock exports are clean; S1 Python service images rebuilt/scanned with no high/critical after Alpine base-image remediation; repeat on final RC artifacts/images | `89_STAGE1_QA_002_DEPENDENCY_AUDIT_EVIDENCE.md` |
+| S1-QA-003 | P0 | Backup configured | Completed locally: PostgreSQL backup config aligned to `.dump` custom-format artifacts, 14-day retention configured, on-demand local backup created and verified with `pg_restore --list`; staging/prod/off-host encrypted evidence remains required | `92_STAGE1_QA_003_LOCAL_BACKUP_EVIDENCE.md` |
+| S1-QA-004 | P0 | Restore drill | Completed locally: S1-QA-003 `.dump` restored into clean disposable PostgreSQL DB, smoke queries passed, restore DB removed; managed staging/prod restore, encrypted off-host storage, production RPO/RTO and Remnawave backup evidence remain required | `93_STAGE1_QA_004_RESTORE_DRILL_EVIDENCE.md` |
+| S1-REL-006 | P0 | Rollback dry-run or proof | Completed locally: release-pointer rollback dry-run passed, rollback target compose config validated, Mini App/admin rollback controls and registration/payment/provisioning safety tests pass; repeat on staging/prod RC artifacts before go-live | `90_STAGE1_REL_006_ROLLBACK_DRY_RUN_EVIDENCE.md` |
+| S1-REL-007 | P0 | Evidence pack assembled | Completed locally: Stage 1 evidence pack index and category README structure assembled under `evidence_pack/stage1/`; all known local evidence is mapped and missing provider/staging/prod/backup/observability/go-live evidence remains explicit | `91_STAGE1_REL_007_EVIDENCE_PACK_INDEX.md`, `evidence_pack/stage1/README.md` |
+
+## Backlog items that must remain P3/out-of-scope in Stage 1 unless re-approved
+
+| ID | Component | Reason |
+|---|---|---|
+| S1-P3-PARTNER-001 | Partner portal public launch | Should be Stage 3 after B2C proof |
+| S1-P3-PARTNER-002 | Partner payouts | Requires finance readiness and anti-fraud |
+| S1-P3-NATIVE-001 | Mobile store release | Requires Apple/Google accounts and store process |
+| S1-P3-NATIVE-002 | Desktop production release | Requires updater/support/security review |
+| S1-P3-TV-001 | Android TV release | Device expansion, not core beta |
+| S1-P3-HELIX-001 | Helix as production transport | Requires separate security/privacy/legal review |
+| S1-P3-ABTEST-001 | A/B testing | Not needed before traffic/stability |
+| S1-P3-GITOPS-001 | Full Talos/Kubernetes migration | Useful later, but not a B2C launch gate unless already ready |

@@ -91,16 +91,11 @@ describe('MiniAppProfilePage', () => {
     });
   });
 
-  it('test_displays_referral_section', async () => {
+  it('test_hides_referral_section_during_s1_beta', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
-    const referralSection = await screen.findByRole('button', { name: /referral/i });
-
-    fireEvent.click(referralSection);
-
     await waitFor(() => {
-      expect(screen.getByText('REF2024')).toBeInTheDocument();
-      expect(screen.getByText('yourReferralCode')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /referral/i })).not.toBeInTheDocument();
     });
   });
 

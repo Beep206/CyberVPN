@@ -143,7 +143,9 @@ class TestEnums:
         assert UserStatus.DISABLED == "disabled"
 
     def test_admin_role_values(self):
+        assert AdminRole.OWNER_SUPER_ADMIN == "owner/super_admin"
         assert AdminRole.SUPER_ADMIN == "super_admin"
+        assert AdminRole.FINANCE == "finance"
         assert AdminRole.VIEWER == "viewer"
 
     def test_payment_status(self):

@@ -5,7 +5,7 @@ Settings are cached as a singleton using lru_cache for performance.
 """
 
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import SecretStr, field_validator, model_validator
 
@@ -24,6 +24,22 @@ except (
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables and .env file."""
+
+    PROVIDER_SECRET_PLACEHOLDER_PATTERNS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "<",
+            "changeme",
+            "dev",
+            "dummy",
+            "example",
+            "local",
+            "placeholder",
+            "redacted",
+            "replace",
+            "test",
+            "your_",
+        }
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -50,6 +66,7 @@ class Settings(BaseSettings):
     # Bot Tokens
     telegram_bot_token: SecretStr
     cryptobot_token: SecretStr
+    cryptobot_network: Literal["mainnet", "testnet"] = "mainnet"
 
     # Admin Configuration — env var is comma-separated string, parsed to list[int]
     admin_telegram_ids: Annotated[list[int], NoDecode] = []
@@ -170,6 +187,18 @@ class Settings(BaseSettings):
             self.backend_internal_secret is not None
             and bool(self.backend_internal_secret.get_secret_value().strip())
         )
+        if self.environment.lower() == "production" and self.cryptobot_network != "mainnet":
+            msg = "CRYPTOBOT_NETWORK=testnet is not allowed in production"
+            raise ValueError(msg)
+        if self.environment.lower() == "production":
+            cryptobot_token = self.cryptobot_token.get_secret_value().strip()
+            if len(cryptobot_token) < 16:
+                msg = "CRYPTOBOT_TOKEN must be a real provider token in production"
+                raise ValueError(msg)
+            token_lower = cryptobot_token.lower()
+            if any(marker in token_lower for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+                msg = "CRYPTOBOT_TOKEN must not be a placeholder/test value in production"
+                raise ValueError(msg)
         if has_backend_url != has_backend_secret:
             msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"
             raise ValueError(msg)

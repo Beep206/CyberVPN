@@ -164,6 +164,118 @@
                 "notifications": "Оставьте критические уведомления по доставке и оплатам включёнными."
             },
             "cta": "Открыть настройки безопасности"
+        },
+        "stage1States": {
+            "ariaLabel": "Состояния доступа, оплаты и provisioning для Stage 1",
+            "access": {
+                "eyebrow": "Доступ",
+                "active": {
+                    "title": "Доступ активен",
+                    "description": "Оплаченный VPN-доступ активен и готов к штатной выдаче подключения."
+                },
+                "trial_active": {
+                    "title": "Trial активен",
+                    "description": "Пробный доступ активен. Проверьте дату окончания до закрытия trial-окна."
+                },
+                "grace": {
+                    "title": "Grace-период",
+                    "description": "VPN-доступ остаётся доступным в течение 72-часового grace-окна. Продлите вручную до его закрытия."
+                },
+                "expired": {
+                    "title": "Доступ истёк",
+                    "description": "VPN-доступ истёк или отключён. Продлите тариф или обратитесь в поддержку перед подключением."
+                },
+                "payment_pending": {
+                    "title": "Оплата ожидается",
+                    "description": "Оплата ещё не финальна. Доступ будет выдан после подтверждения и сверки платежа."
+                },
+                "provisioning_pending": {
+                    "title": "Provisioning ожидается",
+                    "description": "Тариф есть, но выдача VPN ещё готовит credential или канал доступа."
+                },
+                "no_access": {
+                    "title": "Доступа пока нет",
+                    "description": "Активных прав доступа нет. Запустите trial или выберите тариф для запроса VPN-доступа."
+                },
+                "checking": {
+                    "title": "Проверяем доступ",
+                    "description": "Dashboard загружает последний снимок прав доступа перед показом финального состояния."
+                }
+            },
+            "payment": {
+                "eyebrow": "Оплата",
+                "paid": {
+                    "title": "Оплата принята",
+                    "description": "Billing-состояние закрыто для текущего окна доступа."
+                },
+                "not_started": {
+                    "title": "Оплата не начата",
+                    "description": "К текущему состоянию доступа не привязан live-платёж."
+                },
+                "pending": {
+                    "title": "Оплата ожидается",
+                    "description": "Подтверждение провайдера ещё ожидается. Платёж должен оставаться на контроле до финального статуса."
+                },
+                "processing": {
+                    "title": "Оплата обрабатывается",
+                    "description": "Провайдер ещё обрабатывает платёж. Не повторяйте тот же checkout до финального статуса."
+                },
+                "failed": {
+                    "title": "Оплата не прошла",
+                    "description": "Платёж отклонён или завершился ошибкой. Создайте новый checkout или обратитесь в поддержку, если средства были зарезервированы."
+                },
+                "expired": {
+                    "title": "Оплата истекла",
+                    "description": "Окно оплаты истекло. Создайте новый invoice для продления или тарифа."
+                },
+                "refunded": {
+                    "title": "Возврат зафиксирован",
+                    "description": "По billing-состоянию зафиксирован refund. Доступ может требовать ручной проверки поддержки."
+                },
+                "reconciliation_required": {
+                    "title": "Нужна ручная сверка",
+                    "description": "Оплата и доступ требуют ручной сверки. Поддержка должна закрыть это в рамках S1-политики 24 часов."
+                },
+                "checking": {
+                    "title": "Проверяем оплату",
+                    "description": "Dashboard загружает billing-сигналы перед показом финального состояния оплаты."
+                }
+            },
+            "provisioning": {
+                "eyebrow": "Provisioning",
+                "ready": {
+                    "title": "VPN готов",
+                    "description": "В Remnawave delivery есть service identity, credential, profile и access channel."
+                },
+                "pending": {
+                    "title": "Provisioning ожидается",
+                    "description": "VPN credentials или delivery channel ещё не готовы. Повторите проверку или дождитесь worker-сверки."
+                },
+                "retrying": {
+                    "title": "Provisioning повторяется",
+                    "description": "Backend повторяет выдачу VPN. Обратитесь в поддержку, если состояние быстро не исправится."
+                },
+                "failed": {
+                    "title": "Provisioning не прошёл",
+                    "description": "Выдача VPN завершилась ошибкой. Поддержка должна повторить provisioning или выполнить ручное исправление."
+                },
+                "remnawave_unavailable": {
+                    "title": "Remnawave недоступен",
+                    "description": "Dashboard не может получить состояние provisioning. Повторите проверку перед изменением доступа или оплаты."
+                },
+                "reconciliation_required": {
+                    "title": "Нужна проверка provisioning",
+                    "description": "Оплата/доступ и VPN delivery расходятся. Поддержка должна сверить состояние до прохождения go-live evidence."
+                },
+                "not_required": {
+                    "title": "Пока не требуется",
+                    "description": "Provisioning начинается после активации trial или финального решения по платному доступу."
+                },
+                "checking": {
+                    "title": "Проверяем provisioning",
+                    "description": "Dashboard загружает сигналы VPN delivery перед показом финального состояния provisioning."
+                }
+            }
         }
     }
 }

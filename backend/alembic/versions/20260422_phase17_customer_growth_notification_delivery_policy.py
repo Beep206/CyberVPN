@@ -6,8 +6,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260422_phase17_customer_growth_notification_delivery_policy"
-down_revision = "20260422_phase16_customer_growth_notification_read_states"
+revision = "20260422_p17_cust_notif_policy"
+down_revision = "20260422_notification_queue"
 branch_labels = None
 depends_on = None
 
@@ -80,12 +80,12 @@ def upgrade() -> None:
         ["delivery_status"],
     )
     op.create_index(
-        "ix_customer_growth_notification_deliveries_notification_queue_id",
+        "ix_cust_growth_notif_deliv_queue_id",
         "customer_growth_notification_deliveries",
         ["notification_queue_id"],
     )
     op.create_index(
-        "ix_customer_growth_notification_deliveries_created_by_admin_user_id",
+        "ix_cust_growth_notif_deliv_admin_id",
         "customer_growth_notification_deliveries",
         ["created_by_admin_user_id"],
     )
@@ -93,11 +93,11 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        "ix_customer_growth_notification_deliveries_created_by_admin_user_id",
+        "ix_cust_growth_notif_deliv_admin_id",
         table_name="customer_growth_notification_deliveries",
     )
     op.drop_index(
-        "ix_customer_growth_notification_deliveries_notification_queue_id",
+        "ix_cust_growth_notif_deliv_queue_id",
         table_name="customer_growth_notification_deliveries",
     )
     op.drop_index(

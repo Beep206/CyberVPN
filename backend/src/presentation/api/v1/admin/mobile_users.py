@@ -13,7 +13,6 @@ from src.application.use_cases.growth_notifications.automation import (
 )
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
-from src.infrastructure.database.repositories.audit_log_repo import AuditLogRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
@@ -24,6 +23,7 @@ from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
 
+from .audit import write_required_admin_audit_entry
 from .mobile_users_schemas import (
     AdminMobileUserDetailResponse,
     AdminMobileUserListItemResponse,
@@ -128,19 +128,15 @@ async def _write_audit_entry(
     request: Request,
     details: dict[str, object] | None = None,
 ) -> None:
-    audit_repo = AuditLogRepository(db)
-    try:
-        await audit_repo.create(
-            event_type=action,
-            actor_id=actor.id,
-            resource_type="mobile_user",
-            resource_id=str(user_id),
-            details=details,
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception:
-        return
+    await write_required_admin_audit_entry(
+        db=db,
+        action=action,
+        resource_type="mobile_user",
+        resource_id=user_id,
+        actor=actor,
+        request=request,
+        details=details,
+    )
 
 
 @router.get("", response_model=AdminMobileUsersListResponse)

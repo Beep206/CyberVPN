@@ -2,6 +2,7 @@
 
 import hmac
 import logging
+import re
 import secrets
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -14,7 +15,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
-from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
+from src.application.services.stage1_plan_policy import (
+    filter_stage1_public_addons,
+    filter_stage1_public_paid_plans,
+)
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.auth_realms import RealmResolution
@@ -26,14 +31,17 @@ from src.application.use_cases.service_access import GetCurrentServiceStateUseCa
 from src.application.use_cases.subscriptions import GenerateConfigUseCase
 from src.application.use_cases.subscriptions.get_current_entitlements import GetCurrentEntitlementsUseCase
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
+from src.application.use_cases.trial.stage1_trial_policy import STAGE1_TRIAL_DURATION_DAYS
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
+from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
@@ -78,6 +86,8 @@ from src.presentation.api.v1.telegram.schemas import (
     TelegramBotPlanResponse,
     TelegramBotReferralStatsResponse,
     TelegramBotSubscriptionResponse,
+    TelegramBotSupportEscalationRequest,
+    TelegramBotSupportEscalationResponse,
     TelegramBotTrialStatusResponse,
     TelegramBotUserCreateRequest,
     TelegramBotUserResponse,
@@ -99,6 +109,10 @@ from src.presentation.dependencies.services import get_auth_service, get_crypto_
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 logger = logging.getLogger(__name__)
+_SUPPORT_CONFIG_URL_PATTERN = re.compile(r"\b(?:vless|vmess|trojan|ss|wireguard)://[^\s<>]+", re.IGNORECASE)
+_SUPPORT_HTTP_URL_PATTERN = re.compile(r"\bhttps?://[^\s<>]+", re.IGNORECASE)
+_SUPPORT_TELEGRAM_TOKEN_PATTERN = re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{20,}\b")
+_SUPPORT_LONG_SECRET_PATTERN = re.compile(r"\b[A-Za-z0-9_-]{40,}\b")
 
 
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
@@ -154,6 +168,31 @@ def _extract_telegram_stars_amount(features: dict | None) -> int | None:
             return value
 
     return None
+
+
+def _redact_support_note_value(value: str) -> str:
+    redacted = _SUPPORT_CONFIG_URL_PATTERN.sub("[vpn-config-url]", value)
+    redacted = _SUPPORT_TELEGRAM_TOKEN_PATTERN.sub("[telegram-token]", redacted)
+    redacted = _SUPPORT_HTTP_URL_PATTERN.sub("[url]", redacted)
+    return _SUPPORT_LONG_SECRET_PATTERN.sub("[secret]", redacted)
+
+
+def _format_bot_support_note(telegram_id: int, body: TelegramBotSupportEscalationRequest) -> str:
+    username_line = (
+        f"Telegram username: @{body.telegram_username}" if body.telegram_username else "Telegram username: unknown"
+    )
+    return "\n".join(
+        [
+            "Telegram bot support escalation",
+            f"Reference: {body.support_reference}",
+            f"Telegram ID: {telegram_id}",
+            username_line,
+            f"Category: {body.category}",
+            f"Priority: {body.priority}",
+            f"First-line reply key: {body.first_line_reply_key}",
+            f"Safe summary: {_redact_support_note_value(body.safe_summary)}",
+        ]
+    )
 
 
 def _serialize_plan(plan) -> PlanResponse:
@@ -402,7 +441,7 @@ async def _build_mobile_trial_status(
         trial_start=mobile_user.trial_activated_at,
         trial_end=mobile_user.trial_expires_at,
         days_remaining=days_remaining,
-        duration_days=EntitlementsService.TRIAL_PERIOD_DAYS,
+        duration_days=STAGE1_TRIAL_DURATION_DAYS,
         expires_at=mobile_user.trial_expires_at,
         entitlements_snapshot=TelegramBotEntitlementsResponse(**entitlements),
     )
@@ -555,6 +594,7 @@ def _build_bot_trial_status(
         trial_start=user.trial_activated_at,
         trial_end=user.trial_expires_at,
         days_remaining=days_remaining,
+        duration_days=STAGE1_TRIAL_DURATION_DAYS,
     )
 
 
@@ -675,7 +715,7 @@ async def get_bot_plans(
         active_only=True,
     )
     route_operations_total.labels(route="telegram_bot", action="list_plans", status="success").inc()
-    return [_serialize_plan(plan) for plan in plans]
+    return [_serialize_plan(plan) for plan in filter_stage1_public_paid_plans(plans, sale_channel="telegram_bot")]
 
 
 @router.get("/bot/addons/catalog", response_model=list[TelegramBotAddonResponse])
@@ -688,7 +728,14 @@ async def get_bot_addons_catalog(
     repo = PlanAddonRepository(db)
     addons = await repo.list_catalog(active_only=True, sale_channel="telegram_bot")
     route_operations_total.labels(route="telegram_bot", action="list_addons", status="success").inc()
-    return [_serialize_addon(addon) for addon in addons]
+    return [
+        _serialize_addon(addon)
+        for addon in filter_stage1_public_addons(
+            addons,
+            sale_channel="telegram_bot",
+            enabled=settings.stage1_addons_enabled,
+        )
+    ]
 
 
 @router.get("/bot/user/{telegram_id}", response_model=TelegramBotUserResponse)
@@ -759,6 +806,19 @@ async def create_or_bootstrap_bot_user(
         entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
         route_operations_total.labels(route="telegram_bot", action="upsert_user", status="success").inc()
         return _build_bot_user_response(existing, entitlements_snapshot=entitlements_snapshot)
+
+    try:
+        ensure_public_registration_enabled(
+            channel="telegram_bot",
+            registration_enabled=settings.registration_enabled,
+        )
+    except ValueError as exc:
+        route_operations_total.labels(route="telegram_bot", action="create_user", status="blocked").inc()
+        detail = exc.public_detail() if hasattr(exc, "public_detail") else {"message": str(exc)}
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=detail,
+        ) from exc
 
     login = OAuthLoginUseCase._generate_telegram_login(
         username=request.username,
@@ -968,6 +1028,38 @@ async def get_bot_user_service_state(
             credential_type=DeviceCredentialType.TELEGRAM_BOT,
             credential_subject_key=f"telegram-bot:{telegram_id}",
         ),
+    )
+
+
+@router.post(
+    "/bot/user/{telegram_id}/support/escalations",
+    response_model=TelegramBotSupportEscalationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_bot_user_support_escalation(
+    telegram_id: int,
+    body: TelegramBotSupportEscalationRequest,
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> TelegramBotSupportEscalationResponse:
+    """Create an admin-visible support escalation from Telegram bot first-line triage."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    mobile_user = await _get_mobile_user_or_404(db, telegram_id)
+    note = await CustomerStaffNoteRepository(db).create(
+        CustomerStaffNoteModel(
+            user_id=mobile_user.id,
+            admin_id=None,
+            category="support",
+            note=_format_bot_support_note(telegram_id, body),
+        )
+    )
+
+    route_operations_total.labels(route="telegram_bot", action="support_escalation", status=body.priority).inc()
+    return TelegramBotSupportEscalationResponse(
+        support_reference=body.support_reference,
+        user_uuid=mobile_user.id,
+        note_id=note.id,
     )
 
 

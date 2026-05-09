@@ -1,0 +1,368 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-INFRA-008",
+  "status": "local_baseline_only_external_enablement_required",
+  "provider": "cloudflare_or_equivalent_edge",
+  "created_at": "2026-05-08",
+  "decision_context": {
+    "primary_public_domain": "cyber-vpn.net",
+    "public_mirror_domain": "cyber-vpn.org",
+    "primary_admin_domain": "admin.cyber-vpn.net",
+    "admin_mirror_domain": "admin.cyber-vpn.org",
+    "stage1_topology": "Simple Controlled Hybrid Container Topology",
+    "production_public_entrypoints_must_be_external": true,
+    "home_lab_allowed_for_non_critical_evidence_only": true
+  },
+  "official_references": [
+    {
+      "name": "Cloudflare WAF custom rules",
+      "url": "https://developers.cloudflare.com/waf/custom-rules/"
+    },
+    {
+      "name": "Cloudflare WAF managed rules",
+      "url": "https://developers.cloudflare.com/waf/managed-rules/"
+    },
+    {
+      "name": "Cloudflare rate limiting rules",
+      "url": "https://developers.cloudflare.com/waf/rate-limiting-rules/"
+    },
+    {
+      "name": "Cloudflare WAF phases",
+      "url": "https://developers.cloudflare.com/waf/reference/phases/"
+    },
+    {
+      "name": "Cloudflare Access self-hosted applications",
+      "url": "https://developers.cloudflare.com/cloudflare-one/access-controls/applications/choose-application-type/"
+    }
+  ],
+  "zones": [
+    {
+      "domain": "cyber-vpn.net",
+      "role": "primary",
+      "dns_mode": "proxied_for_http_surfaces",
+      "required_before_go_live": true
+    },
+    {
+      "domain": "cyber-vpn.org",
+      "role": "mirror_redirect",
+      "dns_mode": "proxied_for_redirect_surfaces",
+      "required_before_go_live": true
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "public_web",
+      "hosts": ["cyber-vpn.net", "www.cyber-vpn.net"],
+      "public": true,
+      "edge_controls": ["managed_waf", "custom_sensitive_path_block", "basic_request_rate_limits"],
+      "origin_expectation": "public ingress to frontend/web cabinet only"
+    },
+    {
+      "id": "public_mirror_redirect",
+      "hosts": ["cyber-vpn.org", "www.cyber-vpn.org"],
+      "public": true,
+      "edge_controls": ["https_redirect_to_primary", "managed_waf"],
+      "origin_expectation": "redirect only to cyber-vpn.net"
+    },
+    {
+      "id": "api",
+      "hosts": ["api.cyber-vpn.net"],
+      "public": true,
+      "edge_controls": ["managed_waf", "custom_sensitive_path_block", "route_rate_limits"],
+      "origin_expectation": "controlled public API ingress; Swagger disabled in production"
+    },
+    {
+      "id": "admin",
+      "hosts": ["admin.cyber-vpn.net"],
+      "public": false,
+      "edge_controls": ["cloudflare_access_or_ip_allowlist_required", "managed_waf", "admin_rate_limits"],
+      "origin_expectation": "admin ingress protected before any go-live"
+    },
+    {
+      "id": "admin_mirror_redirect",
+      "hosts": ["admin.cyber-vpn.org"],
+      "public": false,
+      "edge_controls": ["https_redirect_to_primary_admin"],
+      "origin_expectation": "redirect only to admin.cyber-vpn.net; no independent admin session surface"
+    },
+    {
+      "id": "telegram_webhook",
+      "hosts": ["api.cyber-vpn.net"],
+      "paths": ["/api/v1/telegram/webhook", "/api/v1/telegram/webhooks/*"],
+      "public": true,
+      "edge_controls": ["no_browser_challenge", "conservative_rate_limit", "backend_signature_or_secret_validation_required"],
+      "origin_expectation": "Telegram webhook must not be blocked by interactive challenges"
+    },
+    {
+      "id": "payment_webhooks",
+      "hosts": ["api.cyber-vpn.net"],
+      "paths": [
+        "/api/v1/webhooks/payments/*",
+        "/api/v1/payments/webhooks/*",
+        "/api/v1/payments/callbacks/*"
+      ],
+      "public": true,
+      "edge_controls": ["no_browser_challenge", "conservative_rate_limit", "backend_signature_recheck_idempotency_required"],
+      "origin_expectation": "provider retries must be accepted and handled idempotently by backend"
+    },
+    {
+      "id": "oauth_callbacks",
+      "hosts": ["api.cyber-vpn.net", "cyber-vpn.net"],
+      "paths": ["/api/v1/oauth/*", "/auth/callback/*"],
+      "public": true,
+      "edge_controls": ["no_interactive_challenge_on_callback", "state_validation_required"],
+      "origin_expectation": "Google/GitHub callbacks only for S1"
+    }
+  ],
+  "not_proxied_or_not_edge_protected": [
+    {
+      "id": "vpn_transport_ports",
+      "reason": "VPN node transport is not a normal HTTP surface and must use provider/node controls instead of HTTP WAF."
+    },
+    {
+      "id": "remnawave_private_api",
+      "reason": "Production Remnawave API is private/internal only and should not be exposed through public edge."
+    },
+    {
+      "id": "managed_postgresql",
+      "reason": "Managed PostgreSQL must be private-only and never public edge exposed."
+    },
+    {
+      "id": "private_valkey",
+      "reason": "Valkey/Redis must be private-only and never public edge exposed."
+    }
+  ],
+  "managed_rules": [
+    {
+      "id": "s1-managed-waf",
+      "phase": "http_request_firewall_managed",
+      "enabled": true,
+      "mode_before_rc": "log_or_managed_challenge",
+      "mode_before_go_live": "block_high_confidence_after_false_positive_review",
+      "scope": "public_web_api_admin_http_hosts",
+      "notes": "Use Cloudflare Free Managed Ruleset if only Free plan is available; use Cloudflare Managed Ruleset/OWASP CRS where plan allows."
+    }
+  ],
+  "custom_rules": [
+    {
+      "id": "s1-block-sensitive-and-scanner-paths",
+      "phase": "http_request_firewall_custom",
+      "action": "block",
+      "match": {
+        "hosts": ["cyber-vpn.net", "www.cyber-vpn.net", "api.cyber-vpn.net", "admin.cyber-vpn.net"],
+        "path_prefixes": [
+          "/.env",
+          "/.git",
+          "/.svn",
+          "/wp-admin",
+          "/wp-login.php",
+          "/phpmyadmin",
+          "/adminer",
+          "/server-status",
+          "/debug",
+          "/actuator"
+        ],
+        "path_suffixes": [".bak", ".old", ".sql", ".sqlite", ".sqlite3"]
+      },
+      "exclusions": [
+        "/_next/*",
+        "/assets/*",
+        "/favicon.ico",
+        "/api/v1/webhooks/payments/*",
+        "/api/v1/telegram/webhook",
+        "/api/v1/oauth/*"
+      ]
+    },
+    {
+      "id": "s1-admin-requires-access-or-allowlist",
+      "phase": "http_request_firewall_custom",
+      "action": "block_or_access_challenge",
+      "match": {
+        "hosts": ["admin.cyber-vpn.net"],
+        "paths": ["/*"]
+      },
+      "required_controls": [
+        "Cloudflare Access self-hosted application policy or equivalent",
+        "IP allowlist fallback if Access is unavailable",
+        "backend admin host guard",
+        "admin 2FA"
+      ]
+    },
+    {
+      "id": "s1-admin-org-redirect-only",
+      "phase": "http_request_firewall_custom",
+      "action": "redirect",
+      "match": {
+        "hosts": ["admin.cyber-vpn.org"],
+        "paths": ["/*"]
+      },
+      "target": "https://admin.cyber-vpn.net/$request_uri"
+    }
+  ],
+  "rate_limits": [
+    {
+      "id": "s1-auth-sensitive",
+      "surface": "api",
+      "paths": [
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/verify-email",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
+        "/api/v1/auth/magic-link",
+        "/api/v1/auth/otp"
+      ],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 30,
+      "mitigation_timeout_seconds": 300,
+      "action": "managed_challenge_or_429",
+      "backend_rate_limit_must_remain_enabled": true
+    },
+    {
+      "id": "s1-admin-sensitive",
+      "surface": "admin",
+      "paths": [
+        "/api/v1/admin/auth/*",
+        "/api/v1/admin/two-factor/*",
+        "/api/v1/two-factor/*"
+      ],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 20,
+      "mitigation_timeout_seconds": 600,
+      "action": "block_or_managed_challenge",
+      "backend_rate_limit_must_remain_enabled": true
+    },
+    {
+      "id": "s1-trial-and-checkout",
+      "surface": "api",
+      "paths": [
+        "/api/v1/trial/*",
+        "/api/v1/payments/checkout",
+        "/api/v1/orders/*"
+      ],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 20,
+      "mitigation_timeout_seconds": 300,
+      "action": "429_or_managed_challenge",
+      "backend_rate_limit_must_remain_enabled": true
+    },
+    {
+      "id": "s1-payment-webhooks-conservative",
+      "surface": "payment_webhooks",
+      "paths": [
+        "/api/v1/webhooks/payments/*",
+        "/api/v1/payments/webhooks/*",
+        "/api/v1/payments/callbacks/*"
+      ],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 300,
+      "mitigation_timeout_seconds": 60,
+      "action": "log_then_429_only_after_provider_retry_evidence",
+      "backend_rate_limit_must_remain_enabled": true,
+      "notes": "Do not use interactive challenge on provider webhooks. Provider retries and backend idempotency are the source of truth."
+    },
+    {
+      "id": "s1-telegram-webhook-conservative",
+      "surface": "telegram_webhook",
+      "paths": ["/api/v1/telegram/webhook", "/api/v1/telegram/webhooks/*"],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 600,
+      "mitigation_timeout_seconds": 60,
+      "action": "log_then_429_only_after_botfather_webhook_evidence",
+      "backend_rate_limit_must_remain_enabled": true,
+      "notes": "Do not use browser challenge on Telegram webhook or Mini App bootstrap paths."
+    },
+    {
+      "id": "s1-support-and-privacy-requests",
+      "surface": "api",
+      "paths": [
+        "/api/v1/support/*",
+        "/api/v1/auth/me/privacy-requests"
+      ],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 30,
+      "mitigation_timeout_seconds": 300,
+      "action": "429_or_managed_challenge",
+      "backend_rate_limit_must_remain_enabled": true
+    },
+    {
+      "id": "s1-public-web-abuse",
+      "surface": "public_web",
+      "paths": ["/*"],
+      "characteristics": ["ip"],
+      "period_seconds": 60,
+      "requests_per_period": 1200,
+      "mitigation_timeout_seconds": 120,
+      "action": "managed_challenge_for_non_verified_bots",
+      "backend_rate_limit_must_remain_enabled": false
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "s1-no-interactive-challenge-payment-webhooks",
+      "applies_to": "payment_webhooks",
+      "reason": "Payment providers must be able to retry callbacks; backend signature/status recheck/idempotency must decide final state."
+    },
+    {
+      "id": "s1-no-interactive-challenge-telegram-webhook",
+      "applies_to": "telegram_webhook",
+      "reason": "Telegram webhook delivery and Mini App bootstrap must not receive a browser challenge."
+    },
+    {
+      "id": "s1-no-interactive-challenge-oauth-callback",
+      "applies_to": "oauth_callbacks",
+      "reason": "OAuth callbacks must complete state validation and account linking without edge challenge loops."
+    },
+    {
+      "id": "s1-next-static-assets",
+      "applies_to": "public_web",
+      "reason": "Next.js static assets must not be blocked by sensitive-path rules."
+    }
+  ],
+  "evidence_required_before_go_live": [
+    "Cloudflare or equivalent edge account and zone IDs recorded outside repo",
+    "DNS records for cyber-vpn.net and cyber-vpn.org are proxied where applicable",
+    "TLS certificate evidence for primary and mirror domains",
+    "cyber-vpn.org redirects to cyber-vpn.net",
+    "admin.cyber-vpn.org redirects to admin.cyber-vpn.net",
+    "admin.cyber-vpn.net protected by Cloudflare Access, IP allowlist, or equivalent before login page exposure",
+    "WAF managed rules are enabled and false-positive review is captured",
+    "custom sensitive-path block rule evidence shows expected 403 or block event",
+    "auth/admin/trial/support rate-limit transcript shows expected 429/challenge without breaking normal flow",
+    "payment webhook callback transcript shows no interactive challenge and backend idempotency remains effective",
+    "Telegram webhook transcript shows no interactive challenge and bot webhook remains healthy",
+    "Cloudflare Security Events or equivalent redacted export includes matching rule IDs and cf-ray/request IDs",
+    "origin logs preserve safe request correlation without leaking secrets, config URLs, payment payloads or Telegram initData"
+  ],
+  "go_live_blockers_if_missing": [
+    "admin access protection",
+    "DNS/TLS/redirect proof",
+    "payment webhook no-challenge proof for the enabled provider",
+    "Telegram webhook no-challenge proof if bot/Mini App is enabled",
+    "rate-limit proof for auth/trial/support/admin sensitive paths",
+    "WAF/custom-rule event evidence"
+  ],
+  "deferred_to_later_stages": [
+    {
+      "item": "account_level_waf_rulesets",
+      "stage": "S7",
+      "reason": "Cloudflare account-level WAF/rate limiting is Enterprise-oriented and not required for S1."
+    },
+    {
+      "item": "advanced_bot_management",
+      "stage": "S2_or_S7",
+      "reason": "Could break Telegram/OAuth/payment callbacks if enabled before traffic evidence."
+    },
+    {
+      "item": "full_gitops_edge_policy_rollout",
+      "stage": "S7",
+      "reason": "Useful for platform maturity, not a blocker for S1 controlled beta."
+    }
+  ]
+}

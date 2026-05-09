@@ -15,8 +15,8 @@ vi.mock('@sentry/nextjs', () => ({
 
 function createRequest(
   body: unknown,
-  origin = 'https://vpn.ozoxy.ru',
-  nextOrigin = 'https://vpn.ozoxy.ru',
+  origin = 'https://cyber-vpn.net',
+  nextOrigin = 'https://cyber-vpn.net',
 ) {
   return {
     headers: new Headers({

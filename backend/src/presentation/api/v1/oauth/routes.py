@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.oauth_state_service import OAuthStateService
+from src.application.services.public_registration_policy import PublicRegistrationDisabledError
 from src.application.use_cases.auth.account_linking import AccountLinkingUseCase
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.config.settings import settings
@@ -81,6 +82,7 @@ router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 _OAUTH_CALLBACK_PATH_RE = re.compile(r"^/(?:[a-z]{2,3}-[A-Z]{2}/)?oauth/callback/?$")
 _OAUTH_WEB_CALLBACK_PREFIX = "/api/oauth/callback"
+S1_OAUTH_LOGIN_PROVIDER_ALLOWLIST = frozenset({"google", "github"})
 
 # Provider class map: provider_name -> (ProviderClass, requires_pkce)
 _OAUTH_PROVIDERS: dict[str, tuple[type, bool]] = {
@@ -176,7 +178,19 @@ def _resolve_oauth_login_redirect_uri(provider: str, redirect_uri: str | None) -
 
 
 def _is_oauth_login_provider_enabled(provider: str) -> bool:
-    return provider in settings.oauth_enabled_login_providers
+    provider_name = provider.strip().lower()
+    configured_providers = {item.strip().lower() for item in settings.oauth_enabled_login_providers if item.strip()}
+    return provider_name in S1_OAUTH_LOGIN_PROVIDER_ALLOWLIST and provider_name in configured_providers
+
+
+def _validate_code_oauth_link_provider(provider_name: str) -> None:
+    if _is_oauth_login_provider_enabled(provider_name):
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Provider '{provider_name}' is currently disabled.",
+    )
 
 
 def _validate_oauth_login_provider(provider: OAuthProvider) -> None:
@@ -288,15 +302,21 @@ async def _complete_code_oauth_link(
         )
 
     uc = AccountLinkingUseCase(db)
-    await uc.link_account(
-        user_id=user.id,
-        provider=provider_name,
-        provider_user_id=str(user_info["id"]),
-        provider_username=user_info.get("username"),
-        provider_email=user_info.get("email"),
-        access_token=user_info.get("access_token", ""),
-        refresh_token=user_info.get("refresh_token"),
-    )
+    try:
+        await uc.link_account(
+            user_id=user.id,
+            provider=provider_name,
+            provider_user_id=str(user_info["id"]),
+            provider_username=user_info.get("username"),
+            provider_email=user_info.get("email"),
+            access_token=user_info.get("access_token", ""),
+            refresh_token=user_info.get("refresh_token"),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
 
     logger.info(
         "%s account linked",
@@ -352,6 +372,7 @@ async def github_authorize(
 
     The state token must be included in the callback request.
     """
+    _validate_code_oauth_link_provider("github")
     return await _build_code_oauth_authorize_response(
         provider_name="github",
         provider_class=GitHubOAuthProvider,
@@ -374,6 +395,7 @@ async def facebook_authorize(
 
     The state token must be included in the callback request.
     """
+    _validate_code_oauth_link_provider("facebook")
     return await _build_code_oauth_authorize_response(
         provider_name="facebook",
         provider_class=FacebookOAuthProvider,
@@ -447,11 +469,17 @@ async def telegram_callback(
 
     # Link the account
     uc = AccountLinkingUseCase(db)
-    await uc.link_account(
-        user_id=user.id,
-        provider="telegram",
-        provider_user_id=str(user_info["id"]),
-    )
+    try:
+        await uc.link_account(
+            user_id=user.id,
+            provider="telegram",
+            provider_user_id=str(user_info["id"]),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
 
     logger.info(
         "Telegram account linked",
@@ -595,6 +623,7 @@ async def check_telegram_magic_link_status(
         auth_service=auth_service,
         session=db,
         remnawave_gateway=remnawave_adapter,
+        allow_new_users=settings.registration_enabled,
     )
 
     try:
@@ -604,6 +633,23 @@ async def check_telegram_magic_link_status(
             client_fingerprint=generate_client_fingerprint(request),
             client_ip=_get_client_ip(request),
         )
+    except PublicRegistrationDisabledError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("registration_disabled")
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="register",
+            status="failure",
+        )
+        observe_auth_request_duration("telegram", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=e.public_detail(),
+        ) from e
     except ValueError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("invalid_credentials")
@@ -725,6 +771,7 @@ async def github_callback(
     2. Exchanges code for access token via GitHub API
     3. Fetches user info from GitHub API
     """
+    _validate_code_oauth_link_provider("github")
     return await _complete_code_oauth_link(
         provider_name="github",
         provider_class=GitHubOAuthProvider,
@@ -746,6 +793,7 @@ async def facebook_callback(
     redis_client: redis.Redis = Depends(get_redis),
 ) -> OAuthLinkResponse:
     """Process Facebook OAuth callback and link account."""
+    _validate_code_oauth_link_provider("facebook")
     return await _complete_code_oauth_link(
         provider_name="facebook",
         provider_class=FacebookOAuthProvider,
@@ -946,6 +994,7 @@ async def oauth_login_callback(
         auth_service=auth_service,
         session=db,
         remnawave_gateway=remnawave_adapter,
+        allow_new_users=settings.registration_enabled,
     )
 
     try:
@@ -955,6 +1004,32 @@ async def oauth_login_callback(
             client_fingerprint=generate_client_fingerprint(request),
             client_ip=_get_client_ip(request),
         )
+    except PublicRegistrationDisabledError as e:
+        track_oauth_attempt(provider=provider.value, success=False)
+        track_auth_attempt(method="oauth", success=False)
+        track_auth_error("registration_disabled")
+        track_auth_flow_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            client_context=client_context,
+            step="register",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="oauth",
+            provider=provider.value,
+            locale="unknown",
+            error_type="registration_disabled",
+        )
+        track_oauth_callback_failure(channel="web", provider=provider.value, reason="registration_disabled")
+        observe_auth_request_duration("oauth", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=e.public_detail(),
+        ) from e
     except ValueError as e:
         track_oauth_attempt(provider=provider.value, success=False)
         track_auth_attempt(method="oauth", success=False)

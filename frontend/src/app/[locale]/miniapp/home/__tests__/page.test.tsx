@@ -113,6 +113,9 @@ function createBootstrap(overrides: Record<string, unknown> = {}) {
       periodStart: '2026-02-01T00:00:00Z',
       periodEnd: '2026-03-01T00:00:00Z',
       lastConnectionAt: '2026-02-11T10:00:00Z',
+      usageAvailable: true,
+      usageSource: 'remnawave',
+      usageUnavailableReason: null,
     },
     serviceState: {
       providerName: null,

@@ -21,6 +21,14 @@
     "liability": "Всего в кошельке",
     "pendingWithdrawals": "Ожидают вывода"
   },
+  "recentPayments": {
+    "eyebrow": "Квитанции клиента",
+    "title": "Последние платежи",
+    "description": "Безопасный платежный срез только для текущего пользователя. Raw provider identifiers, checkout URLs и provider payloads не попадают в UI кошелька.",
+    "paymentSuffix": "платеж",
+    "empty": "Последние платежи не найдены.",
+    "openFull": "Открыть всю историю"
+  },
   "withdrawForm": {
     "eyebrow": "Заявка на вывод",
     "title": "Запросить выплату",

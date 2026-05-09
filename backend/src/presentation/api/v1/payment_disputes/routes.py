@@ -9,9 +9,9 @@ from src.application.use_cases.payment_disputes import (
     ListPaymentDisputesUseCase,
     UpsertPaymentDisputeUseCase,
 )
-from src.domain.enums import AdminRole
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.presentation.api.shared.stage1_refund_dispute_process import require_stage1_refund_dispute_reviewer
 from src.presentation.dependencies.database import get_db
-from src.presentation.dependencies.roles import require_role
 
 from .schemas import PaymentDisputeResponse, UpsertPaymentDisputeRequest
 
@@ -48,7 +48,7 @@ async def upsert_payment_dispute(
     payload: UpsertPaymentDisputeRequest,
     http_response: Response,
     db: AsyncSession = Depends(get_db),
-    _current_admin=Depends(require_role(AdminRole.ADMIN)),
+    _current_admin: AdminUserModel = Depends(require_stage1_refund_dispute_reviewer),
 ) -> PaymentDisputeResponse:
     use_case = UpsertPaymentDisputeUseCase(db)
     try:
@@ -84,7 +84,7 @@ async def upsert_payment_dispute(
 async def list_payment_disputes(
     order_id: UUID = Query(...),
     db: AsyncSession = Depends(get_db),
-    _current_admin=Depends(require_role(AdminRole.ADMIN)),
+    _current_admin: AdminUserModel = Depends(require_stage1_refund_dispute_reviewer),
 ) -> list[PaymentDisputeResponse]:
     disputes = await ListPaymentDisputesUseCase(db).execute(order_id=order_id)
     return [_serialize_payment_dispute(dispute) for dispute in disputes]
@@ -94,7 +94,7 @@ async def list_payment_disputes(
 async def get_payment_dispute(
     payment_dispute_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _current_admin=Depends(require_role(AdminRole.ADMIN)),
+    _current_admin: AdminUserModel = Depends(require_stage1_refund_dispute_reviewer),
 ) -> PaymentDisputeResponse:
     dispute = await GetPaymentDisputeUseCase(db).execute(payment_dispute_id=payment_dispute_id)
     if dispute is None:

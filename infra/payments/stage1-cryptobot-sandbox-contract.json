@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-PAY-002",
+  "status": "local_sandbox_runtime_contract_complete_external_testnet_evidence_required",
+  "provider": "cryptobot",
+  "provider_display_name": "CryptoBot / Crypto Pay",
+  "selected_first_live_path_candidate": true,
+  "decision_references": [
+    "DEC-S1-008",
+    "DEC-S1-009",
+    "DEC-S1-010",
+    "DEC-S1-013",
+    "DEC-S1-017",
+    "DEC-S1-020"
+  ],
+  "official_source": {
+    "url": "https://help.send.tg/en/articles/10279948-crypto-pay-api",
+    "checked_on": "2026-05-08",
+    "mainnet_bot": "@CryptoBot",
+    "testnet_bot": "@CryptoTestnetBot",
+    "mainnet_base_url": "https://pay.crypt.bot/api",
+    "testnet_base_url": "https://testnet-pay.crypt.bot/api",
+    "invoice_statuses": [
+      "active",
+      "paid",
+      "expired"
+    ],
+    "webhook_update_type_for_paid_invoice": "invoice_paid"
+  },
+  "runtime_network_modes": [
+    {
+      "network": "mainnet",
+      "base_url": "https://pay.crypt.bot/api",
+      "allowed_environments": [
+        "local",
+        "development",
+        "test",
+        "staging",
+        "production"
+      ],
+      "production_allowed": true,
+      "requires_real_provider_credentials": true
+    },
+    {
+      "network": "testnet",
+      "base_url": "https://testnet-pay.crypt.bot/api",
+      "allowed_environments": [
+        "local",
+        "development",
+        "test",
+        "staging"
+      ],
+      "production_allowed": false,
+      "requires_real_provider_credentials": true
+    }
+  ],
+  "runtime_components": [
+    {
+      "component": "backend_api",
+      "config_key": "CRYPTOBOT_NETWORK",
+      "default_network": "mainnet",
+      "testnet_runtime_selectable": true,
+      "production_rejects_testnet": true,
+      "arbitrary_base_url_allowed": false,
+      "evidence": [
+        "backend/src/config/settings.py",
+        "backend/src/infrastructure/payments/cryptobot/client.py",
+        "backend/tests/security/test_stage1_cryptobot_sandbox_runtime.py"
+      ]
+    },
+    {
+      "component": "task_worker",
+      "config_key": "CRYPTOBOT_NETWORK",
+      "default_network": "mainnet",
+      "testnet_runtime_selectable": true,
+      "production_rejects_testnet": true,
+      "arbitrary_base_url_allowed": false,
+      "evidence": [
+        "services/task-worker/src/config.py",
+        "services/task-worker/src/services/cryptobot_client.py",
+        "services/task-worker/tests/test_services.py",
+        "services/task-worker/tests/test_stage1_cryptobot_sandbox_config.py"
+      ]
+    },
+    {
+      "component": "telegram_bot",
+      "config_key": "CRYPTOBOT_NETWORK",
+      "default_network": "mainnet",
+      "testnet_runtime_selectable": true,
+      "production_rejects_testnet": "not_applicable_bot_delegates_checkout_to_backend",
+      "arbitrary_base_url_allowed": false,
+      "evidence": [
+        "services/telegram-bot/src/config.py",
+        "services/telegram-bot/.env.example",
+        "services/telegram-bot/README.md"
+      ]
+    }
+  ],
+  "local_contract_evidence": {
+    "testnet_endpoint_selectable_without_real_credentials": true,
+    "mainnet_endpoint_remains_default": true,
+    "production_testnet_guard": true,
+    "unknown_network_rejected": true,
+    "real_testnet_credentials_available": false,
+    "real_testnet_invoice_success_evidence_available": false,
+    "real_testnet_invoice_failure_evidence_available": false,
+    "real_testnet_invoice_expiry_or_cancel_equivalent_evidence_available": false,
+    "real_testnet_webhook_signature_evidence_available": false
+  },
+  "test_payment_interpretation": {
+    "success": "A real @CryptoTestnetBot invoice reaches provider status paid and CyberVPN maps it to paid only after signature/status verification.",
+    "failure": "A real provider failure or invalid-token/status-recheck sample is captured and CyberVPN does not grant VPN access.",
+    "cancel": "Crypto Pay invoices expose active/paid/expired statuses; for S1-PAY-002, expired is the provider-backed no-payment/cancel-equivalent sample unless Crypto Pay adds an explicit cancel status later."
+  },
+  "minimum_external_evidence_before_paid_beta": [
+    "@CryptoTestnetBot app/account ownership proof without secret values",
+    "redacted testnet credential inventory through approved secret process",
+    "successful testnet createInvoice sample with invoice URL redacted as needed",
+    "testnet paid invoice status sample",
+    "testnet expired invoice status sample as cancel-equivalent",
+    "testnet invalid token or provider failure sample with no access granted",
+    "valid crypto-pay-api-signature callback sample",
+    "invalid signature rejection sample",
+    "duplicate callback/idempotency proof against durable storage",
+    "payment paid -> order/subscription -> Remnawave provisioning proof",
+    "paid-but-no-access/orphan manual review proof within 24 hours"
+  ],
+  "not_allowed": [
+    "enable_paid_beta_without_real_cryptobot_testnet_credentials",
+    "enable_paid_beta_from_documentation_only_samples",
+    "use_testnet_in_production",
+    "allow_arbitrary_cryptobot_base_url_from_env",
+    "commit_provider_secret_values_or_full_unredacted_invoice_urls",
+    "map_active_or_expired_to_paid_access",
+    "skip_webhook_signature_or_status_recheck_evidence",
+    "leave_paid_but_no_access_orphan_payment_unreviewed_over_24h"
+  ],
+  "paid_beta_clearance": false,
+  "production_enablement_allowed": false,
+  "next_backlog_id": "S1-PAY-003"
+}

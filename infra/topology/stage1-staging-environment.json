@@ -1,0 +1,238 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-INFRA-002",
+  "status": "local_staging_contract_external_environment_required",
+  "environment_name": "Stage 1 Staging",
+  "created_at": "2026-05-08",
+  "depends_on": ["S1-INFRA-001"],
+  "decision_references": [
+    "DEC-S1-001",
+    "DEC-S1-002",
+    "DEC-S1-003",
+    "DEC-S1-004",
+    "DEC-S1-005",
+    "DEC-S1-006",
+    "DEC-S1-007",
+    "DEC-S1-014",
+    "DEC-S1-015",
+    "DEC-S1-017"
+  ],
+  "authority": {
+    "go_live_clearance": false,
+    "paid_beta_clearance": false,
+    "purpose": "full S1 end-to-end proof with disposable data before controlled public beta",
+    "must_not_use_production_credentials": true,
+    "must_not_share_state_with_production": true,
+    "may_use_home_lab_as_authority": false
+  },
+  "known_missing_external_inputs": [
+    "staging_host_or_cloud_provider_account",
+    "staging_region",
+    "staging_public_origins",
+    "staging_origin_public_ips",
+    "staging_private_network_cidr",
+    "staging_managed_postgresql_provider",
+    "staging_private_valkey_provider",
+    "staging_remnawave_control_plane_url",
+    "staging_remnawave_test_node",
+    "staging_botfather_bot",
+    "staging_payment_sandbox_accounts",
+    "staging_oauth_apps",
+    "staging_email_provider",
+    "staging_observability_projects",
+    "staging_container_registry",
+    "staging_image_digests",
+    "staging_deploy_user_policy"
+  ],
+  "required_services": [
+    {
+      "id": "staging_edge",
+      "component_ref": "edge_tls_waf",
+      "must_be_separate_from_production": true,
+      "public": true,
+      "external_required": true,
+      "health_evidence": ["dns_resolves", "tls_valid", "security_headers", "waf_or_rate_limit_mode_recorded"]
+    },
+    {
+      "id": "staging_frontend_web",
+      "component_ref": "frontend_web",
+      "must_be_separate_from_production": true,
+      "public": true,
+      "external_required": true,
+      "health_evidence": ["http_200_or_3xx", "frontend_bundle_env_scan", "login_page_loads"]
+    },
+    {
+      "id": "staging_admin_web",
+      "component_ref": "admin_web",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["admin_origin_reachable_only_through_protection", "admin_2fa_required", "rbac_persona_smoke"]
+    },
+    {
+      "id": "staging_backend_api",
+      "component_ref": "backend_api",
+      "must_be_separate_from_production": true,
+      "public": true,
+      "external_required": true,
+      "health_evidence": ["readiness_ok", "swagger_disabled_in_production_mode", "cors_cookie_csrf_proof", "rate_limit_proof"]
+    },
+    {
+      "id": "staging_worker_scheduler",
+      "component_ref": "worker_scheduler",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["worker_alive", "scheduled_jobs_registered", "critical_jobs_recover_from_postgresql"]
+    },
+    {
+      "id": "staging_telegram_bot",
+      "component_ref": "telegram_bot",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["botfather_getme", "commands_set", "webhook_registered", "miniapp_domain_registered"]
+    },
+    {
+      "id": "staging_postgresql",
+      "component_ref": "managed_postgresql",
+      "version_family": "17.x",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["private_access_only", "clean_migration_transcript", "separate_cybervpn_db_user", "separate_remnawave_db_user", "backup_config_recorded"]
+    },
+    {
+      "id": "staging_valkey",
+      "component_ref": "private_valkey",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "durable_source_of_truth": false,
+      "external_required": true,
+      "health_evidence": ["private_access_only", "memory_policy_recorded", "monitoring_target_recorded", "fail_closed_or_recovery_behavior_recorded"]
+    },
+    {
+      "id": "staging_remnawave_control_plane",
+      "component_ref": "remnawave_control_plane",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "external_required": true,
+      "data_lifecycle": "disposable",
+      "health_evidence": ["private_internal_api", "health_ok", "api_smoke", "test_profile_inbound_recorded", "backup_export_or_rebuild_plan_recorded"]
+    },
+    {
+      "id": "staging_vpn_test_node",
+      "component_ref": "vpn_nodes",
+      "must_be_separate_from_production": true,
+      "public": true,
+      "external_required": true,
+      "customer_production_traffic_allowed": false,
+      "health_evidence": ["connected_to_staging_remnawave", "test_protocol_profile_active", "node_monitoring_target_recorded"]
+    },
+    {
+      "id": "staging_observability",
+      "component_ref": "observability_stack",
+      "must_be_separate_from_production": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["sentry_test_event", "grafana_dashboard_or_equivalent", "alert_delivery_test", "pii_scrubbing_proof"]
+    }
+  ],
+  "required_environment_separation": [
+    "database_instances_or_databases_are_not_shared_with_production",
+    "database_users_are_not_shared_with_production",
+    "valkey_instance_or_namespace_is_not_shared_with_production",
+    "remnawave_instance_is_not_shared_with_production",
+    "telegram_bot_token_is_not_shared_with_production",
+    "oauth_apps_are_not_shared_with_production",
+    "payment_provider_credentials_are_sandbox_or_test_mode",
+    "jwt_totp_encryption_webhook_secrets_are_unique_to_staging",
+    "sentry_or_observability_dsn_is_not_shared_with_production",
+    "backup_bucket_or_prefix_is_not_shared_with_production_without_separate_prefix_and_access_policy"
+  ],
+  "staging_public_ingress": [
+    {
+      "id": "staging_site",
+      "host_status": "to_be_selected_before_external_staging",
+      "target_component": "staging_frontend_web",
+      "required_controls": ["tls", "security_headers", "registration_kill_switch_visible_to_operator"]
+    },
+    {
+      "id": "staging_api",
+      "host_status": "to_be_selected_before_external_staging",
+      "target_component": "staging_backend_api",
+      "required_controls": ["tls", "swagger_disabled_in_production_like_mode", "cors_allowlist", "csrf_for_cookie_flows", "rate_limits"]
+    },
+    {
+      "id": "staging_admin",
+      "host_status": "to_be_selected_before_external_staging",
+      "target_component": "staging_admin_web",
+      "required_controls": ["tls", "cloudflare_access_or_ip_allowlist_or_equivalent", "admin_2fa", "rbac", "audit_log"]
+    },
+    {
+      "id": "staging_telegram_webhook",
+      "host_status": "to_be_selected_before_external_staging",
+      "target_component": "staging_telegram_bot",
+      "required_controls": ["tls", "no_interactive_edge_challenge", "bot_secret_or_telegram_validation"]
+    },
+    {
+      "id": "staging_payment_webhooks",
+      "host_status": "to_be_selected_before_external_staging",
+      "target_component": "staging_backend_api",
+      "required_controls": ["tls", "sandbox_or_test_provider_only", "provider_signature_or_recheck", "idempotency", "no_interactive_edge_challenge"]
+    }
+  ],
+  "required_stage1_e2e_flows": [
+    "registration_or_login",
+    "trial_activation",
+    "trial_to_remnawave_provisioning",
+    "qr_subscription_url_config_delivery",
+    "vpn_client_connection_or_documented_equivalent",
+    "sandbox_or_test_payment_success",
+    "duplicate_webhook_no_duplicate_side_effects",
+    "payment_success_remnawave_failure_retry",
+    "expiry_grace_worker_behavior",
+    "telegram_bot_miniapp_equivalent_flow",
+    "admin_support_safe_inspection",
+    "alert_delivery_for_payment_or_provisioning_failure",
+    "logs_sentry_no_secret_config_link_leak"
+  ],
+  "existing_repo_scaffolds": [
+    "infra/terraform/live/staging/foundation",
+    "infra/terraform/live/staging/edge",
+    "infra/terraform/live/staging/dns",
+    "infra/terraform/live/staging/control-plane",
+    "infra/scripts/remnawave-staging-smoke.sh",
+    "infra/docker-compose.yml"
+  ],
+  "evidence_required_to_close_external_staging": [
+    "provider_or_hosting_account_recorded_without_secrets",
+    "staging_public_origins_recorded",
+    "staging_private_network_boundary_recorded",
+    "staging_dns_tls_redirect_evidence",
+    "staging_backend_health_and_readiness_evidence",
+    "staging_postgresql_private_access_clean_migration_backup_evidence",
+    "staging_valkey_private_access_memory_monitoring_evidence",
+    "staging_remnawave_health_node_profile_inbound_evidence",
+    "staging_botfather_webhook_miniapp_evidence",
+    "staging_payment_sandbox_callback_signature_idempotency_evidence",
+    "staging_observability_alert_delivery_evidence",
+    "staging_rollback_dry_run_evidence",
+    "redacted_staging_secrets_inventory_without_values"
+  ],
+  "not_allowed_for_staging": [
+    "production_user_data",
+    "production_payment_credentials",
+    "production_telegram_bot_token",
+    "production_remnawave_api_token",
+    "production_database_restore_as_routine_seed",
+    "production_customer_traffic",
+    "home_lab_as_staging_authority",
+    "floating_main_deploy"
+  ],
+  "acceptance_result": {
+    "local_contract_complete": true,
+    "external_staging_created": false,
+    "reason_external_staging_open": "requires external host or accepted staging infrastructure, public origins, provider/test credentials and live health evidence"
+  }
+}

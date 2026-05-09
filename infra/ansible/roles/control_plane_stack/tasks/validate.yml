@@ -77,6 +77,9 @@
             'REMNAWAVE_WEBHOOK_SECRET',
             'JWT_SECRET',
             'CRYPTOBOT_TOKEN',
+            'TELEGRAM_BOT_TOKEN',
+            'TELEGRAM_BOT_USERNAME',
+            'TELEGRAM_BOT_INTERNAL_SECRET',
             'ENVIRONMENT',
             'CORS_ORIGINS'
           ] | difference(control_plane_stack_backend_env.keys() | list)

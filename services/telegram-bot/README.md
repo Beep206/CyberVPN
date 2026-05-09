@@ -131,7 +131,10 @@ cp .env.example .env
 **Required variables:**
 
 ```env
-BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+BOT_TOKEN=replace-with-staging-bot-token
+BOT_USERNAME=CyberVPNStageBot
+TELEGRAM_BOT_STAGING_USERNAME=CyberVPNStageBot
+TELEGRAM_BOT_PRODUCTION_USERNAME=CyberVPNBot
 BOT_MODE=polling
 BACKEND_API_URL=http://localhost:8000/api/v1
 BACKEND_API_KEY=your-backend-api-key
@@ -164,9 +167,20 @@ All configuration is managed via environment variables (see `.env.example` for f
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BOT_TOKEN` | *required* | Telegram bot token from BotFather |
+| `BOT_USERNAME` | *(empty)* | Active bot username for referral/deep-link generation and S1 identity checks |
+| `TELEGRAM_BOT_STAGING_USERNAME` | *(empty)* | Staging bot username; must differ from production bot username when both are set |
+| `TELEGRAM_BOT_PRODUCTION_USERNAME` | *(empty)* | Production bot username; must differ from staging bot username when both are set |
 | `BOT_MODE` | `polling` | Bot mode: `polling` or `webhook` |
+| `TELEGRAM_BOT_MENU_BUTTON` | `commands` | Default Telegram menu button: `commands`, `miniapp`, or `default` |
+| `TELEGRAM_MINIAPP_URL` | *(empty)* | Required only when `TELEGRAM_BOT_MENU_BUTTON=miniapp` |
 | `TELEGRAM_BOT_SKIP_NETWORK_CALLS` | `false` | Smoke-only override that skips Telegram API calls on startup/shutdown |
 | `TELEGRAM_BOT_OBSERVABILITY_INTERNAL_SECRET` | *(empty)* | Internal secret for `/observability/sentry-contract` |
+| `TELEGRAM_THROTTLE_ENABLED` | `true` | Enable Redis-backed Telegram Bot anti-spam throttling |
+| `TELEGRAM_THROTTLE_FAIL_OPEN` | `false` | Allow events when Redis throttling fails; keep `false` for S1 staging/production |
+| `TELEGRAM_MESSAGE_RATE_WINDOW_SECONDS` | `10` | Per-user message throttle window |
+| `TELEGRAM_MESSAGE_RATE_MAX_REQUESTS` | `5` | Max messages per user per message window |
+| `TELEGRAM_CALLBACK_RATE_WINDOW_SECONDS` | `3` | Per-user callback throttle window |
+| `TELEGRAM_CALLBACK_RATE_MAX_REQUESTS` | `3` | Max callbacks per user per callback window |
 | `ENVIRONMENT` | `development` | Environment: `development`, `staging`, `production` |
 
 ### Backend API

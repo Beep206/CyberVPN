@@ -4,9 +4,10 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
+from aiogram.filters import Command
 
 if TYPE_CHECKING:
-    from aiogram.types import CallbackQuery
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -25,6 +26,49 @@ def _trial_reason_key(reason: str | None) -> str:
     if normalized in {"unavailable", "disabled", "not_available"}:
         return "trial-not-eligible-unavailable"
     return "trial-not-eligible-unknown"
+
+
+@router.message(Command("trial"))
+async def activate_trial_command_handler(
+    message: Message,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+) -> None:
+    """Activate trial subscription from the Telegram command list."""
+    if message.from_user is None:
+        return
+
+    user_id = message.from_user.id
+
+    try:
+        eligibility = await api_client.check_trial_eligibility(user_id)
+        if not eligibility.get("eligible", False):
+            reason = eligibility.get("reason", "unknown")
+            await message.answer(i18n.get(_trial_reason_key(reason)))
+            return
+
+        trial = await api_client.activate_trial(user_id)
+        trial_duration = int(trial.get("duration_days", 7) or 7)
+        expires_at = trial.get("expires_at") or trial.get("trial_end") or "N/A"
+
+        await message.answer(
+            text=i18n.get(
+                "trial-activated",
+                duration=trial_duration,
+                expires=expires_at,
+            ),
+        )
+
+        from src.keyboards.config import config_delivery_keyboard
+
+        await message.answer(
+            text=i18n.get("config-delivery-prompt"),
+            reply_markup=config_delivery_keyboard(i18n),
+        )
+        logger.info("trial_activated", user_id=user_id, trial_id=trial.get("id"), entrypoint="command")
+    except Exception as e:
+        logger.error("trial_command_error", user_id=user_id, error=str(e))
+        await message.answer(i18n.get("error-trial-activation-failed"))
 
 
 @router.callback_query(F.data == "trial:activate")

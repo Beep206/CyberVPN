@@ -14,6 +14,9 @@ vault_control_plane_backend_remnawave_token: "replace-with-backend-remnawave-tok
 vault_control_plane_backend_remnawave_webhook_secret: "replace-with-backend-remnawave-webhook-secret"
 vault_control_plane_backend_jwt_secret: "replace-with-backend-jwt-secret"
 vault_control_plane_backend_cryptobot_token: ""
+vault_control_plane_backend_telegram_bot_token: ""
+vault_control_plane_backend_telegram_bot_username: ""
+vault_control_plane_backend_telegram_bot_internal_secret: ""
 vault_control_plane_backend_totp_encryption_key: "replace-with-backend-totp-encryption-key"
 vault_control_plane_backend_oauth_token_encryption_key: "replace-with-backend-oauth-token-encryption-key"
 

@@ -3,6 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_plan_policy import filter_stage1_public_addons
+from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
@@ -39,7 +41,14 @@ async def list_addon_catalog(
 ) -> list[AddonResponse]:
     repo = PlanAddonRepository(db)
     addons = await repo.list_catalog(active_only=True, sale_channel=channel)
-    return [_serialize_addon(addon) for addon in addons]
+    return [
+        _serialize_addon(addon)
+        for addon in filter_stage1_public_addons(
+            addons,
+            sale_channel=channel,
+            enabled=settings.stage1_addons_enabled,
+        )
+    ]
 
 
 @router.get("", response_model=list[AddonResponse])

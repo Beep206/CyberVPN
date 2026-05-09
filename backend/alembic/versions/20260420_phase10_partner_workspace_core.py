@@ -6,8 +6,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260420_phase10_partner_workspace_core"
-down_revision = "20260420_phase9_partner_application_onboarding"
+revision = "20260420_p10_partner_core"
+down_revision = "20260420_p9_partner_onboarding"
 branch_labels = None
 depends_on = None
 
@@ -73,7 +73,7 @@ def upgrade() -> None:
         ["document_kind"],
     )
     op.create_index(
-        "ix_partner_workspace_legal_acceptances_accepted_by_admin_user_id",
+        "ix_partner_legal_accept_admin_id",
         "partner_workspace_legal_acceptances",
         ["accepted_by_admin_user_id"],
     )
@@ -81,7 +81,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        "ix_partner_workspace_legal_acceptances_accepted_by_admin_user_id",
+        "ix_partner_legal_accept_admin_id",
         table_name="partner_workspace_legal_acceptances",
     )
     op.drop_index(

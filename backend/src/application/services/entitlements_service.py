@@ -5,6 +5,10 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_DEVICE_LIMIT,
+    STAGE1_TRIAL_DURATION_DAYS,
+)
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository, SubscriptionAddonRepository
@@ -13,7 +17,7 @@ from src.infrastructure.database.repositories.subscription_plan_repo import Subs
 
 
 class EntitlementsService:
-    TRIAL_PERIOD_DAYS = 7
+    TRIAL_PERIOD_DAYS = STAGE1_TRIAL_DURATION_DAYS
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -89,7 +93,7 @@ class EntitlementsService:
             "period_days": self.TRIAL_PERIOD_DAYS,
             "expires_at": expires_at.isoformat() if expires_at else None,
             "effective_entitlements": {
-                "device_limit": 1,
+                "device_limit": STAGE1_TRIAL_DEVICE_LIMIT,
                 "traffic_policy": "fair_use",
                 "display_traffic_label": "Unlimited",
                 "connection_modes": ["standard"],

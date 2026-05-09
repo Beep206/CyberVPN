@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID
 
+from src.config.settings import settings
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 
 MiniAppRuntimeMode = Literal["live", "canary", "maintenance", "rollback"]
@@ -110,8 +111,10 @@ class ConfigService:
     # --- Referral config ---
 
     async def is_referral_enabled(self) -> bool:
-        val = await self._repo.get_value("referral.enabled", {"enabled": True})
-        return bool(val.get("enabled", True))
+        if not settings.referral_enabled:
+            return False
+        val = await self._repo.get_value("referral.enabled", {"enabled": False})
+        return bool(val.get("enabled", False))
 
     async def get_referral_commission_rate(self) -> float:
         val = await self._repo.get_value("referral.commission_rate", {"rate": 0.10})
@@ -154,8 +157,8 @@ class ConfigService:
         )
 
     async def is_withdrawal_enabled(self) -> bool:
-        val = await self._repo.get_value("wallet.withdrawal_enabled", {"enabled": True})
-        return bool(val.get("enabled", True))
+        val = await self._repo.get_value("wallet.withdrawal_enabled", {"enabled": False})
+        return bool(val.get("enabled", False))
 
     async def get_withdrawal_fee_pct(self) -> float:
         val = await self._repo.get_value("wallet.withdrawal_fee_pct", {"pct": 0})

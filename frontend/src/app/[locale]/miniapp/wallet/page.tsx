@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { walletApi } from '@/lib/api';
+import { isStage1WalletWithdrawalUiEnabled } from '@/shared/lib/stage1-growth-flags';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Wallet,
@@ -27,6 +28,7 @@ export default function MiniAppWalletPage() {
   const t = useTranslations('MiniApp.wallet');
   const { webApp, haptic, hapticNotification, colorScheme } = useTelegramWebApp();
   const [showWithdrawSheet, setShowWithdrawSheet] = useState(false);
+  const walletWithdrawalsEnabled = isStage1WalletWithdrawalUiEnabled();
 
   const showError = (msg: string) => {
     hapticNotification('error');
@@ -116,15 +118,17 @@ export default function MiniAppWalletPage() {
               )}
             </div>
 
-            <button
-              onClick={() => {
-                haptic('medium');
-                setShowWithdrawSheet(true);
-              }}
-              className="w-full py-3 px-4 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation"
-            >
-              {t('withdraw')}
-            </button>
+            {walletWithdrawalsEnabled && (
+              <button
+                onClick={() => {
+                  haptic('medium');
+                  setShowWithdrawSheet(true);
+                }}
+                className="w-full py-3 px-4 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation"
+              >
+                {t('withdraw')}
+              </button>
+            )}
           </>
         )}
       </motion.div>
@@ -189,16 +193,18 @@ export default function MiniAppWalletPage() {
       )}
 
       {/* Withdraw Bottom Sheet */}
-      <WithdrawSheet
-        isOpen={showWithdrawSheet}
-        onClose={() => setShowWithdrawSheet(false)}
-        balance={walletData?.balance || 0}
-        colorScheme={colorScheme}
-        haptic={haptic}
-        showError={showError}
-        t={t}
-        formatCurrency={formatCurrency}
-      />
+      {walletWithdrawalsEnabled && (
+        <WithdrawSheet
+          isOpen={showWithdrawSheet}
+          onClose={() => setShowWithdrawSheet(false)}
+          balance={walletData?.balance || 0}
+          colorScheme={colorScheme}
+          haptic={haptic}
+          showError={showError}
+          t={t}
+          formatCurrency={formatCurrency}
+        />
+      )}
     </div>
   );
 }

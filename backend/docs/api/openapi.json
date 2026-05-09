@@ -224,6 +224,49 @@
         ]
       }
     },
+    "/api/v1/auth/me/privacy-requests": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create Privacy Request",
+        "description": "Open a manual S1 privacy request for account deletion or data export.\n\nThis endpoint creates a safe support/escalation reference only. S1 does not\nautomatically export raw data or perform destructive deletion from this\nrequest path.",
+        "operationId": "create_privacy_request_api_v1_auth_me_privacy_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/verify-email": {
       "post": {
         "tags": [
@@ -17050,7 +17093,7 @@
           "usage"
         ],
         "summary": "Get current user usage statistics",
-        "description": "Returns VPN usage statistics for the currently authenticated user. If the VPN backend is unavailable or the user has no upstream record yet, the endpoint falls back to an empty usage snapshot.",
+        "description": "Returns VPN usage statistics for the currently authenticated user. If the VPN backend is unavailable or the user has no upstream record yet, the endpoint returns an explicit unavailable snapshot so clients do not display zero usage as accurate data.",
         "operationId": "get_usage_api_v1_users_me_usage_get",
         "responses": {
           "200": {
@@ -17077,7 +17120,7 @@
           "trial"
         ],
         "summary": "Activate trial period",
-        "description": "Activate a 7-day trial period for the authenticated user.",
+        "description": "Activate an S1 trial period for the authenticated user.",
         "operationId": "activate_trial_api_v1_trial_activate_post",
         "responses": {
           "200": {
@@ -17237,7 +17280,7 @@
           "payments"
         ],
         "summary": "Get Payment History",
-        "description": "Get payment history with optional user filter.",
+        "description": "Return safe payment history for the authenticated customer.",
         "operationId": "get_payment_history_api_v1_payments_history_get",
         "security": [
           {
@@ -17245,25 +17288,6 @@
           }
         ],
         "parameters": [
-          {
-            "name": "user_uuid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by user UUID",
-              "title": "User Uuid"
-            },
-            "description": "Filter by user UUID"
-          },
           {
             "name": "offset",
             "in": "query",
@@ -17503,6 +17527,70 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/api/v1/payments/internal/reconciliation/run": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Run Stage1 Payment Reconciliation",
+        "description": "Run the internal S1 payment reconciliation scan.\n\nThe response is intentionally redacted so it can be stored as launch\nevidence without raw provider ids, payment ids, order ids or idempotency\nkeys.",
+        "operationId": "run_stage1_payment_reconciliation_api_v1_payments_internal_reconciliation_run_post",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 250,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Run Stage1 Payment Reconciliation Api V1 Payments Internal Reconciliation Run Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/payments/{payment_id}": {
@@ -22580,6 +22668,63 @@
         }
       }
     },
+    "/api/v1/partner-workspaces/{workspace_id}/realtime/feed": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Stream Partner Workspace Feed",
+        "operationId": "stream_partner_workspace_feed_api_v1_partner_workspaces__workspace_id__realtime_feed_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/wallet/balance": {
       "get": {
         "tags": [
@@ -26690,6 +26835,295 @@
         }
       }
     },
+    "/api/v1/admin/payment-attempts": {
+      "get": {
+        "tags": [
+          "admin",
+          "payment-attempts"
+        ],
+        "summary": "List Admin Payment Attempts",
+        "operationId": "list_admin_payment_attempts_api_v1_admin_payment_attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by customer account id",
+              "title": "User Id"
+            },
+            "description": "Filter by customer account id"
+          },
+          {
+            "name": "order_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by order id",
+              "title": "Order Id"
+            },
+            "description": "Filter by order id"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 30
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPaymentAttemptListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/payment-attempts/{payment_attempt_id}": {
+      "get": {
+        "tags": [
+          "admin",
+          "payment-attempts"
+        ],
+        "summary": "Get Admin Payment Attempt",
+        "operationId": "get_admin_payment_attempt_api_v1_admin_payment_attempts__payment_attempt_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payment_attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Payment Attempt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPaymentAttemptResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/payment-attempts": {
+      "get": {
+        "tags": [
+          "admin",
+          "payment-attempts"
+        ],
+        "summary": "List Customer Payment Attempts For Support",
+        "operationId": "list_customer_payment_attempts_for_support_api_v1_admin_mobile_users__user_id__payment_attempts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 30
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPaymentAttemptListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/mobile-users/{user_id}/notes": {
       "get": {
         "tags": [
@@ -26973,6 +27407,124 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminCustomerVpnUserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user/regenerate-credentials": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Regenerate Customer Vpn Credentials",
+        "operationId": "regenerate_customer_vpn_credentials_api_v1_admin_mobile_users__user_id__vpn_user_regenerate_credentials_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerCredentialRegenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerCredentialRegenerationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/subscription/manual-grant": {
+      "post": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "Apply Manual Customer Subscription",
+        "operationId": "apply_manual_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_manual_grant_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCustomerManualSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCustomerManualSubscriptionResponse"
                 }
               }
             }
@@ -28431,6 +28983,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CurrentServiceStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telegram/bot/user/{telegram_id}/support/escalations": {
+      "post": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Create Bot User Support Escalation",
+        "description": "Create an admin-visible support escalation from Telegram bot first-line triage.",
+        "operationId": "create_bot_user_support_escalation_api_v1_telegram_bot_user__telegram_id__support_escalations_post",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramBotSupportEscalationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramBotSupportEscalationResponse"
                 }
               }
             }
@@ -33884,6 +34505,212 @@
         ],
         "title": "AdminCreateInviteRequest",
         "description": "Request body for admin-created invite codes."
+      },
+      "AdminCustomerCredentialRegenerationRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "revoke_only_passwords": {
+            "type": "boolean",
+            "title": "Revoke Only Passwords",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "AdminCustomerCredentialRegenerationRequest"
+      },
+      "AdminCustomerCredentialRegenerationResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "remnawave_uuid": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Remnawave Uuid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "short_uuid_changed": {
+            "type": "boolean",
+            "title": "Short Uuid Changed",
+            "default": false
+          },
+          "subscription_url_changed": {
+            "type": "boolean",
+            "title": "Subscription Url Changed",
+            "default": false
+          },
+          "revoke_only_passwords": {
+            "type": "boolean",
+            "title": "Revoke Only Passwords",
+            "default": false
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "regenerated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Regenerated At"
+          },
+          "config_delivery_required": {
+            "type": "boolean",
+            "title": "Config Delivery Required",
+            "default": true
+          },
+          "audit_action": {
+            "type": "string",
+            "title": "Audit Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "remnawave_uuid",
+          "status",
+          "regenerated_at",
+          "audit_action"
+        ],
+        "title": "AdminCustomerCredentialRegenerationResponse"
+      },
+      "AdminCustomerManualSubscriptionRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Reason"
+          },
+          "duration_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Duration Days"
+          },
+          "device_limit": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Device Limit",
+            "default": 1
+          },
+          "traffic_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Traffic Limit Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "duration_days"
+        ],
+        "title": "AdminCustomerManualSubscriptionRequest"
+      },
+      "AdminCustomerManualSubscriptionResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "remnawave_uuid": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Remnawave Uuid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "grant",
+              "extend"
+            ],
+            "title": "Operation"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days"
+          },
+          "previous_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Expires At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created",
+            "default": false
+          },
+          "subscription_url_changed": {
+            "type": "boolean",
+            "title": "Subscription Url Changed",
+            "default": false
+          },
+          "config_delivery_required": {
+            "type": "boolean",
+            "title": "Config Delivery Required",
+            "default": true
+          },
+          "audit_action": {
+            "type": "string",
+            "title": "Audit Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "remnawave_uuid",
+          "status",
+          "operation",
+          "duration_days",
+          "expires_at",
+          "audit_action"
+        ],
+        "title": "AdminCustomerManualSubscriptionResponse"
       },
       "AdminCustomerOperationsActionKind": {
         "type": "string",
@@ -39532,6 +40359,268 @@
         ],
         "title": "AdminPartnersListResponse"
       },
+      "AdminPaymentAttemptListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAttemptResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "offset"
+        ],
+        "title": "AdminPaymentAttemptListResponse"
+      },
+      "AdminPaymentAttemptResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "order_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Order Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "support",
+              "finance"
+            ],
+            "title": "Visibility"
+          },
+          "payment_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Id"
+          },
+          "payment_record_present": {
+            "type": "boolean",
+            "title": "Payment Record Present"
+          },
+          "attempt_number": {
+            "type": "integer",
+            "title": "Attempt Number"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "sale_channel": {
+            "type": "string",
+            "title": "Sale Channel"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "stage1_payment_state": {
+            "$ref": "#/components/schemas/Stage1PaymentState"
+          },
+          "displayed_amount": {
+            "type": "number",
+            "title": "Displayed Amount"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "wallet_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wallet Amount"
+          },
+          "gateway_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gateway Amount"
+          },
+          "provider_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Status"
+          },
+          "external_reference_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Reference Fingerprint"
+          },
+          "idempotency_key_present": {
+            "type": "boolean",
+            "title": "Idempotency Key Present"
+          },
+          "invoice_present": {
+            "type": "boolean",
+            "title": "Invoice Present"
+          },
+          "invoice_expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Expires At"
+          },
+          "order_status": {
+            "type": "string",
+            "title": "Order Status"
+          },
+          "settlement_status": {
+            "type": "string",
+            "title": "Settlement Status"
+          },
+          "age_minutes": {
+            "type": "integer",
+            "title": "Age Minutes"
+          },
+          "review_state": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "manual_review",
+              "alert_15m",
+              "p1_escalation",
+              "p0_blocker"
+            ],
+            "title": "Review State"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "manual_review_required": {
+            "type": "boolean",
+            "title": "Manual Review Required"
+          },
+          "support_escalation": {
+            "type": "boolean",
+            "title": "Support Escalation"
+          },
+          "launch_blocker": {
+            "type": "boolean",
+            "title": "Launch Blocker"
+          },
+          "terminal_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terminal At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "redacted_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Redacted Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "order_id",
+          "user_id",
+          "visibility",
+          "payment_record_present",
+          "attempt_number",
+          "provider",
+          "sale_channel",
+          "status",
+          "stage1_payment_state",
+          "displayed_amount",
+          "currency_code",
+          "idempotency_key_present",
+          "invoice_present",
+          "order_status",
+          "settlement_status",
+          "age_minutes",
+          "review_state",
+          "manual_review_required",
+          "support_escalation",
+          "launch_blocker",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminPaymentAttemptResponse",
+        "description": "Admin-safe payment attempt row.\n\nProvider snapshots, request snapshots, idempotency keys, checkout URLs and\nraw external references are intentionally excluded."
+      },
       "AdminProcessWithdrawalRequest": {
         "properties": {
           "admin_note": {
@@ -39826,9 +40915,11 @@
       "AdminRole": {
         "type": "string",
         "enum": [
+          "owner/super_admin",
           "super_admin",
           "admin",
           "operator",
+          "finance",
           "support",
           "viewer"
         ],
@@ -53058,6 +54149,33 @@
       },
       "MiniAppBootstrapUsageResponse": {
         "properties": {
+          "usageAvailable": {
+            "type": "boolean",
+            "title": "Usageavailable"
+          },
+          "usageSource": {
+            "type": "string",
+            "enum": [
+              "remnawave",
+              "unavailable"
+            ],
+            "title": "Usagesource"
+          },
+          "usageUnavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "upstream_user_not_found",
+                  "upstream_unavailable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usageunavailablereason"
+          },
           "bandwidthUsedBytes": {
             "type": "integer",
             "title": "Bandwidthusedbytes"
@@ -53113,6 +54231,8 @@
         },
         "type": "object",
         "required": [
+          "usageAvailable",
+          "usageSource",
           "bandwidthUsedBytes",
           "bandwidthLimitBytes",
           "connectionsActive",
@@ -61758,6 +62878,123 @@
         ],
         "title": "PrincipalClass"
       },
+      "PrivacyRequestCreate": {
+        "properties": {
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "account_deletion",
+              "data_export"
+            ],
+            "title": "Request Type",
+            "description": "S1 privacy request type."
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 700
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes",
+            "description": "Optional user-provided context; secrets and configs are redacted before staff use."
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_type"
+        ],
+        "title": "PrivacyRequestCreate",
+        "description": "Request to open an S1 manual privacy review item."
+      },
+      "PrivacyRequestResponse": {
+        "properties": {
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "account_deletion",
+              "data_export"
+            ],
+            "title": "Request Type"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "ticket_reference": {
+            "type": "string",
+            "title": "Ticket Reference"
+          },
+          "target_contact": {
+            "type": "string",
+            "title": "Target Contact"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "support_state": {
+            "type": "string",
+            "title": "Support State"
+          },
+          "ack_sla_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ack Sla Minutes"
+          },
+          "customer_response_sla_minutes": {
+            "type": "integer",
+            "title": "Customer Response Sla Minutes"
+          },
+          "manual_fulfillment_target_days": {
+            "type": "integer",
+            "title": "Manual Fulfillment Target Days"
+          },
+          "required_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Actions"
+          },
+          "forbidden_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Forbidden Actions"
+          },
+          "audit_required": {
+            "type": "boolean",
+            "title": "Audit Required"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_type",
+          "message",
+          "ticket_reference",
+          "target_contact",
+          "priority",
+          "support_state",
+          "customer_response_sla_minutes",
+          "manual_fulfillment_target_days",
+          "required_actions",
+          "forbidden_actions",
+          "audit_required"
+        ],
+        "title": "PrivacyRequestResponse",
+        "description": "Response for an accepted S1 manual privacy request."
+      },
       "ProfileResponse": {
         "properties": {
           "id": {
@@ -67859,6 +69096,24 @@
           "payload": "data_to_sign"
         }
       },
+      "Stage1PaymentState": {
+        "type": "string",
+        "enum": [
+          "not_started",
+          "quote_ready",
+          "pending",
+          "processing",
+          "paid",
+          "failed",
+          "cancelled",
+          "expired",
+          "refunded",
+          "orphan_review_required",
+          "reconciliation_required"
+        ],
+        "title": "Stage1PaymentState",
+        "description": "Canonical payment state for web, Telegram, admin and support views."
+      },
       "StatementAdjustmentDirection": {
         "type": "string",
         "enum": [
@@ -68733,6 +69988,111 @@
         "title": "TelegramBotSubscriptionResponse",
         "description": "Bot-facing subscription summary."
       },
+      "TelegramBotSupportEscalationRequest": {
+        "properties": {
+          "support_reference": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 8,
+            "pattern": "^[a-z0-9:_-]+$",
+            "title": "Support Reference"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "payment",
+              "provisioning",
+              "connectivity",
+              "account",
+              "legal_abuse",
+              "general"
+            ],
+            "title": "Category"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "p0",
+              "p1",
+              "p2",
+              "p3"
+            ],
+            "title": "Priority"
+          },
+          "safe_summary": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Safe Summary"
+          },
+          "first_line_reply_key": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Line Reply Key"
+          },
+          "source": {
+            "type": "string",
+            "const": "telegram_bot",
+            "title": "Source",
+            "default": "telegram_bot"
+          },
+          "telegram_username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Username"
+          }
+        },
+        "type": "object",
+        "required": [
+          "support_reference",
+          "category",
+          "priority",
+          "safe_summary",
+          "first_line_reply_key"
+        ],
+        "title": "TelegramBotSupportEscalationRequest",
+        "description": "Support escalation payload created by the Telegram bot first-line triage."
+      },
+      "TelegramBotSupportEscalationResponse": {
+        "properties": {
+          "support_reference": {
+            "type": "string",
+            "title": "Support Reference"
+          },
+          "status": {
+            "type": "string",
+            "const": "accepted",
+            "title": "Status",
+            "default": "accepted"
+          },
+          "user_uuid": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Uuid"
+          },
+          "note_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Note Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "support_reference",
+          "user_uuid",
+          "note_id"
+        ],
+        "title": "TelegramBotSupportEscalationResponse",
+        "description": "Bot-facing response for an accepted support escalation."
+      },
       "TelegramBotTrialStatusResponse": {
         "properties": {
           "eligible": {
@@ -68787,7 +70147,22 @@
           "duration_days": {
             "type": "integer",
             "title": "Duration Days",
-            "default": 0
+            "default": 3
+          },
+          "device_limit": {
+            "type": "integer",
+            "title": "Device Limit",
+            "default": 1
+          },
+          "traffic_limit_bytes": {
+            "type": "integer",
+            "title": "Traffic Limit Bytes",
+            "default": 2147483648
+          },
+          "one_trial_per_account": {
+            "type": "boolean",
+            "title": "One Trial Per Account",
+            "default": true
           },
           "expires_at": {
             "anyOf": [
@@ -70685,6 +72060,30 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable status message"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days",
+            "description": "Canonical S1 trial duration in days",
+            "default": 3
+          },
+          "device_limit": {
+            "type": "integer",
+            "title": "Device Limit",
+            "description": "Canonical S1 trial device limit",
+            "default": 1
+          },
+          "traffic_limit_bytes": {
+            "type": "integer",
+            "title": "Traffic Limit Bytes",
+            "description": "Canonical S1 trial traffic limit in bytes",
+            "default": 2147483648
+          },
+          "one_trial_per_account": {
+            "type": "boolean",
+            "title": "One Trial Per Account",
+            "description": "Whether S1 allows only one trial per account",
+            "default": true
           }
         },
         "type": "object",
@@ -70739,6 +72138,30 @@
             "type": "boolean",
             "title": "Is Eligible",
             "description": "Whether user is eligible for trial (hasn't used one)"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days",
+            "description": "Canonical S1 trial duration in days",
+            "default": 3
+          },
+          "device_limit": {
+            "type": "integer",
+            "title": "Device Limit",
+            "description": "Canonical S1 trial device limit",
+            "default": 1
+          },
+          "traffic_limit_bytes": {
+            "type": "integer",
+            "title": "Traffic Limit Bytes",
+            "description": "Canonical S1 trial traffic limit in bytes",
+            "default": 2147483648
+          },
+          "one_trial_per_account": {
+            "type": "boolean",
+            "title": "One Trial Per Account",
+            "description": "Whether S1 allows only one trial per account",
+            "default": true
           }
         },
         "type": "object",
@@ -72557,6 +73980,36 @@
       },
       "UsageResponse": {
         "properties": {
+          "usage_available": {
+            "type": "boolean",
+            "title": "Usage Available",
+            "description": "True when aggregate usage was fetched from the authoritative VPN backend"
+          },
+          "usage_source": {
+            "type": "string",
+            "enum": [
+              "remnawave",
+              "unavailable"
+            ],
+            "title": "Usage Source",
+            "description": "Authoritative source for this usage snapshot"
+          },
+          "usage_unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "upstream_user_not_found",
+                  "upstream_unavailable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Unavailable Reason",
+            "description": "Reason usage is unavailable when usage_available is false"
+          },
           "bandwidth_used_bytes": {
             "type": "integer",
             "title": "Bandwidth Used Bytes",
@@ -72601,16 +74054,25 @@
             ],
             "title": "Last Connection At",
             "description": "Timestamp of last VPN connection"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At",
+            "description": "Timestamp when this usage snapshot was generated"
           }
         },
         "type": "object",
         "required": [
+          "usage_available",
+          "usage_source",
           "bandwidth_used_bytes",
           "bandwidth_limit_bytes",
           "connections_active",
           "connections_limit",
           "period_start",
-          "period_end"
+          "period_end",
+          "generated_at"
         ],
         "title": "UsageResponse",
         "description": "Response schema for user VPN usage statistics."

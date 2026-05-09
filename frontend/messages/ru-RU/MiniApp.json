@@ -18,7 +18,7 @@
     "expires": "Expires",
     "never": "Never",
     "unknown": "Unknown",
-    "trialPlan": "7-Day Free Trial",
+    "trialPlan": "3-Day Free Trial",
     "daysRemaining": "Days Remaining",
     "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
     "usage": "Usage Statistics",
@@ -26,7 +26,7 @@
     "connections": "Connections",
     "lastConnected": "Last Connected",
     "trialAvailable": "Free Trial Available",
-    "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
+    "trialDescription": "Try CyberVPN free for 3 days on 1 device.",
     "activateTrial": "Activate Trial",
     "quickActions": "Quick Actions",
     "viewPlans": "View Plans",
@@ -81,11 +81,11 @@
     "withdrawError": "Withdrawal request failed. Please try again."
   },
   "plans": {
-    "freeTrialTitle": "7-дневный trial",
+    "freeTrialTitle": "3-дневный trial",
     "freeTrialDescription": "1 устройство, только shared pool, без dedicated IP и без premium узлов. Этого достаточно, чтобы оценить продукт без жирного trial-перекоса.",
     "activateTrial": "Активировать trial",
     "activating": "Активация...",
-    "trialActivated": "Trial активирован. У вас есть 7 дней входного доступа.",
+    "trialActivated": "Trial активирован. У вас есть 3 дня входного доступа.",
     "trialError": "Не удалось активировать trial. Попробуйте ещё раз.",
     "availablePlans": "Выберите план",
     "catalogHint": "Показывается только публичный каталог: Basic, Plus, Pro, Max. Hidden-планы не попадают сюда, пока backend не откроет их явно.",
@@ -172,7 +172,9 @@
     "trialTemporarilyUnavailable": "Активация trial временно недоступна. Попробуйте позже.",
     "checkoutTemporarilyUnavailable": "Checkout временно недоступен. Попробуйте позже.",
     "limitedRolloutDescription": "Mini App сейчас работает в ограниченном canary rollout. Доступ открыт только для одобренных Telegram-пользователей.",
-    "rollbackDescription": "Trial и checkout временно приостановлены, пока выполняется rollback."
+    "rollbackDescription": "Trial и checkout временно приостановлены, пока выполняется rollback.",
+    "billingCurrencyNotice": "Списание в {currency}",
+    "localEstimate": "Примерно {price}, только для отображения"
   },
   "profile": {
     "guest": "Guest User",

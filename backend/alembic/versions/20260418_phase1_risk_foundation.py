@@ -1,7 +1,7 @@
 """Add phase 1 risk graph foundation.
 
-Revision ID: 20260418_phase1_risk_foundation
-Revises: 20260417_phase1_policy_versions_and_legal_docs
+Revision ID: 20260418_p1_risk_foundation
+Revises: 20260417_p1_policy_legal_docs
 Create Date: 2026-04-18 03:40:00.000000
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260418_phase1_risk_foundation"
-down_revision: str | None = "20260417_phase1_policy_versions_and_legal_docs"
+revision: str = "20260418_p1_risk_foundation"
+down_revision: str | None = "20260417_p1_policy_legal_docs"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -19,6 +19,7 @@
     "inactive": "Неактивен",
     "lastLogin": "Последний вход",
     "limit": "Лимит",
+    "no": "Нет",
     "none": "Нет",
     "note": "Заметка",
     "payments": "Платежи",
@@ -39,7 +40,8 @@
     "traffic": "Трафик",
     "used": "Использовано",
     "username": "Имя пользователя",
-    "wallet": "Кошелёк"
+    "wallet": "Кошелёк",
+    "yes": "Да"
   },
   "directory": {
     "metaTitle": "Клиенты - Ozoxy Admin",
@@ -167,6 +169,17 @@
     "vpnDisableTitle": "Отключить VPN-доступ",
     "vpnDisableDescription": "Немедленно отключить VPN-доступ для связанного пользователя Remnawave.",
     "vpnDisableSuccess": "VPN-доступ отключён.",
+    "regenerateVpnCredentials": "Перегенерировать credentials",
+    "regenerateVpnCredentialsTitle": "Перегенерировать VPN credentials",
+    "regenerateVpnCredentialsDescription": "Сменить связанные Remnawave credentials после подтверждённого support recovery. Ответ в админке намеренно ограничен audit-safe статусными полями.",
+    "credentialRegenerationReasonPlaceholder": "Клиент сообщил о потерянном устройстве; сменить VPN credentials после проверки личности",
+    "credentialRegenerationReasonRequired": "Для перегенерации credentials нужна support-причина не короче 3 символов.",
+    "credentialRegenerationSuccess": "VPN credentials перегенерированы. Передавайте клиенту только одобренный delivery link или config path после support-проверки.",
+    "credentialRegenerationResultTitle": "Evidence смены credentials",
+    "credentialRegenerationResultDescription": "Только безопасная сводка; raw subscription URLs, config links и short UUID secrets это действие не возвращает.",
+    "revokeOnlyVpnPasswords": "Отозвать только protocol passwords и сохранить subscription short UUID, если Remnawave это поддерживает.",
+    "revokeOnlyVpnPasswordsMode": "Смена паролей",
+    "fullVpnCredentialRotationMode": "Полная смена",
     "notesTitle": "Заметки команды",
     "notesDescription": "Фиксируйте операционный контекст, billing-комментарии и support-след прямо в карточке клиента.",
     "notesEmpty": "Заметок команды пока нет.",
@@ -354,7 +367,13 @@
       "ssConfigLinks": "SS config links",
       "userAgent": "User agent",
       "download": "Скачано",
-      "upload": "Загружено"
+      "upload": "Загружено",
+      "auditAction": "Audit action",
+      "regeneratedAt": "Перегенерировано",
+      "subscriptionUrlChanged": "Subscription URL изменён",
+      "shortUuidChanged": "Short UUID изменён",
+      "configDeliveryRequired": "Нужна доставка конфига",
+      "regenerationMode": "Режим перегенерации"
     },
     "deviceSessionsClearedYes": "Да, регистрация устройств была очищена.",
     "deviceSessionsClearedNo": "Нет, текущая регистрация устройств была сохранена."

@@ -54,6 +54,8 @@ from src.presentation.exception_handlers import (
     user_not_found_handler,
     validation_exception_handler,
 )
+from src.presentation.middleware.admin_host_guard import AdminHostGuardMiddleware
+from src.presentation.middleware.csrf import CSRFMiddleware
 from src.presentation.middleware.logging import LoggingMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
 from src.presentation.middleware.request_id import RequestIDMiddleware
@@ -279,13 +281,24 @@ tags_metadata = [
     {"name": "websocket", "description": "Real-time WebSocket channels"},
 ]
 
-# MED-7: Conditionally disable Swagger UI in production
-openapi_url = "/openapi.json" if settings.swagger_enabled else None
-docs_url = "/docs" if settings.swagger_enabled else None
-redoc_url = "/redoc" if settings.swagger_enabled else None
 
-if not settings.swagger_enabled:
-    logger.info("Swagger UI disabled (SWAGGER_ENABLED=false)")
+def _swagger_enabled_for_environment() -> bool:
+    """Return whether public OpenAPI/Swagger routes may be mounted."""
+    if settings.environment.lower() == "production":
+        if settings.swagger_enabled:
+            logger.warning("Swagger/OpenAPI forced off in production despite SWAGGER_ENABLED=true")
+        return False
+    return settings.swagger_enabled
+
+
+# MED-7 / S1-BE-004: disable public OpenAPI/Swagger routes in production.
+swagger_enabled_for_environment = _swagger_enabled_for_environment()
+openapi_url = "/openapi.json" if swagger_enabled_for_environment else None
+docs_url = "/docs" if swagger_enabled_for_environment else None
+redoc_url = "/redoc" if swagger_enabled_for_environment else None
+
+if not swagger_enabled_for_environment:
+    logger.info("Swagger/OpenAPI public routes disabled")
 
 app = FastAPI(
     title="CyberVPN Backend API",
@@ -355,7 +368,17 @@ if settings.rate_limit_enabled:
     app.add_middleware(
         RateLimitMiddleware,
         requests_per_minute=settings.rate_limit_requests,
+        window_seconds=settings.rate_limit_window,
+        auth_sensitive_requests_per_minute=settings.rate_limit_auth_sensitive_requests,
+        payment_write_requests_per_minute=settings.rate_limit_payment_write_requests,
+        trial_activate_requests_per_minute=settings.rate_limit_trial_activate_requests,
+        growth_sensitive_requests_per_minute=settings.rate_limit_growth_sensitive_requests,
+        support_write_requests_per_minute=settings.rate_limit_support_write_requests,
     )
+
+# Add CSRF guard for production-like cookie-auth browser flows.
+if settings.csrf_protection_enabled and settings.environment in {"production", "staging"}:
+    app.add_middleware(CSRFMiddleware, allowed_origins=settings.cors_origins)
 
 # Add CORSMiddleware last (runs FIRST to handle preflight OPTIONS requests)
 allow_credentials = True
@@ -384,6 +407,17 @@ app.add_middleware(
     cors_middleware_cls,
     **cors_middleware_kwargs,
 )
+
+# S1-ADM-001: keep interactive admin API routes on the canonical admin host.
+# Added after CORS so it executes first and wrong-host admin preflights do not
+# get a successful CORS response.
+if settings.admin_host_protection_enabled:
+    app.add_middleware(
+        AdminHostGuardMiddleware,
+        allowed_hosts=settings.admin_allowed_hosts,
+        environment=settings.environment,
+        trust_proxy_headers=settings.trust_proxy_headers,
+    )
 
 
 def register_exception_handler(exc: type[Exception], handler: Callable[..., Any]) -> None:

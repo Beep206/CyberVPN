@@ -19,6 +19,7 @@ from src.application.dto.mobile_auth import (
     TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.telegram_auth import TelegramAuthService
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.config.settings import settings
@@ -47,6 +48,7 @@ class MobileTelegramAuthUseCase:
     auth_service: AuthService
     telegram_auth_service: TelegramAuthService
     subscription_client: CachedSubscriptionClient | None = None
+    allow_new_users: bool = True
 
     async def execute(self, request: TelegramAuthRequestDTO) -> tuple[AuthResponseDTO, bool]:
         """Authenticate a user via Telegram OAuth.
@@ -70,6 +72,10 @@ class MobileTelegramAuthUseCase:
 
         if not user:
             # Create new user from Telegram data
+            ensure_public_registration_enabled(
+                channel="mobile_telegram",
+                registration_enabled=self.allow_new_users,
+            )
             user = await self._create_user_from_telegram(telegram_data)
             is_new_user = True
         else:

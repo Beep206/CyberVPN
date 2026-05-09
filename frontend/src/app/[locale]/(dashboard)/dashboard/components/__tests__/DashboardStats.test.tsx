@@ -75,6 +75,14 @@ describe('DashboardStats', () => {
         bandwidth_used_bytes: 2 * 1024 ** 3,
         bandwidth_limit_bytes: 10 * 1024 ** 3,
         connections_active: 3,
+        connections_limit: 5,
+        generated_at: '2026-04-24T10:00:05Z',
+        last_connection_at: '2026-04-24T10:00:00Z',
+        period_end: '2026-05-24T00:00:00Z',
+        period_start: '2026-04-24T00:00:00Z',
+        usage_available: true,
+        usage_source: 'remnawave',
+        usage_unavailable_reason: null,
       },
     } as never);
   });
@@ -88,5 +96,30 @@ describe('DashboardStats', () => {
     expect(screen.getByText('9.0 TB')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText(/thisMonth: 120 \/ 1.0 TB/)).toBeInTheDocument();
+  });
+
+  it('marks VPN usage unavailable when backend has no authoritative snapshot', async () => {
+    const { usageApi } = await import('@/lib/api/usage');
+    vi.mocked(usageApi.getMyUsage).mockResolvedValueOnce({
+      data: {
+        bandwidth_used_bytes: 0,
+        bandwidth_limit_bytes: 0,
+        connections_active: 0,
+        connections_limit: 0,
+        generated_at: '2026-04-24T10:00:05Z',
+        last_connection_at: null,
+        period_end: '2026-04-24T10:00:05Z',
+        period_start: '2026-04-24T10:00:05Z',
+        usage_available: false,
+        usage_source: 'unavailable',
+        usage_unavailable_reason: 'upstream_unavailable',
+      },
+    } as never);
+
+    renderWithQueryClient(<DashboardStats />);
+
+    expect(await screen.findByText('Usage unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+    expect(screen.getByText('--')).toBeInTheDocument();
   });
 });

@@ -4,7 +4,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_growth_policy import (
+    Stage1GrowthPolicyError,
+    assert_stage1_checkout_codes_enabled,
+)
 from src.application.use_cases.growth_codes import ResolveGrowthCodeUseCase
+from src.config.settings import settings
+from src.domain.enums import GrowthCodeActionContext
 from src.infrastructure.database.repositories.storefront_repo import StorefrontRepository
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
@@ -21,6 +27,15 @@ async def resolve_growth_code(
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> ResolveGrowthCodeResponse:
+    if payload.action_context == GrowthCodeActionContext.CHECKOUT:
+        try:
+            assert_stage1_checkout_codes_enabled(
+                code_input=payload.code,
+                enabled=settings.checkout_code_discounts_enabled,
+            )
+        except Stage1GrowthPolicyError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
     storefront_id = None
     storefront_repo = StorefrontRepository(db)
     if payload.storefront_key:

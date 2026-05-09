@@ -1,0 +1,231 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-INFRA-004",
+  "status": "local_dns_tls_contract_external_dns_required",
+  "created_at": "2026-05-08",
+  "provider": "cloudflare_or_equivalent_dns_tls_edge",
+  "depends_on": ["S1-INFRA-001", "S1-INFRA-003", "S1-INFRA-008", "S1-BE-005", "S1-ADM-001"],
+  "decision_references": [
+    "DEC-S1-001",
+    "DEC-S1-002",
+    "DEC-S1-003",
+    "DEC-S1-014",
+    "DEC-S1-017"
+  ],
+  "authority": {
+    "go_live_clearance": false,
+    "external_dns_configured": false,
+    "external_tls_configured": false,
+    "must_not_point_to_staging_origins": true,
+    "must_not_point_to_home_lab_origins": true,
+    "must_not_use_staging_certificates": true,
+    "requires_live_dns_tls_evidence_before_traffic": true
+  },
+  "zones": [
+    {
+      "domain": "cyber-vpn.net",
+      "role": "primary_public_zone",
+      "required_before_go_live": true,
+      "dnssec": "enable_or_record_risk_acceptance_before_go_live",
+      "caa": "record_policy_or_risk_acceptance_before_go_live"
+    },
+    {
+      "domain": "cyber-vpn.org",
+      "role": "mirror_redirect_zone",
+      "required_before_go_live": true,
+      "dnssec": "enable_or_record_risk_acceptance_before_go_live",
+      "caa": "record_policy_or_risk_acceptance_before_go_live"
+    }
+  ],
+  "records": [
+    {
+      "id": "public_apex_primary",
+      "host": "cyber-vpn.net",
+      "zone": "cyber-vpn.net",
+      "record_policy": "A_AAAA_CNAME_or_provider_alias_to_production_web_edge",
+      "proxied_or_edge_terminated": true,
+      "target_component": "production_frontend_web",
+      "behavior": "serve_public_site_and_customer_cabinet"
+    },
+    {
+      "id": "public_www_primary",
+      "host": "www.cyber-vpn.net",
+      "zone": "cyber-vpn.net",
+      "record_policy": "CNAME_or_provider_alias_to_public_apex_primary",
+      "proxied_or_edge_terminated": true,
+      "target_component": "production_frontend_web",
+      "behavior": "redirect_to_https_cyber_vpn_net_preserve_path"
+    },
+    {
+      "id": "public_api_primary",
+      "host": "api.cyber-vpn.net",
+      "zone": "cyber-vpn.net",
+      "record_policy": "A_AAAA_CNAME_or_provider_alias_to_production_api_edge",
+      "proxied_or_edge_terminated": true,
+      "target_component": "production_backend_api",
+      "behavior": "serve_api_webhooks_and_oauth_callbacks_without_interactive_challenge"
+    },
+    {
+      "id": "admin_primary",
+      "host": "admin.cyber-vpn.net",
+      "zone": "cyber-vpn.net",
+      "record_policy": "A_AAAA_CNAME_or_provider_alias_to_protected_admin_edge",
+      "proxied_or_edge_terminated": true,
+      "target_component": "production_admin_web",
+      "behavior": "serve_admin_only_after_access_protection_and_admin_2fa"
+    },
+    {
+      "id": "public_apex_mirror",
+      "host": "cyber-vpn.org",
+      "zone": "cyber-vpn.org",
+      "record_policy": "A_AAAA_CNAME_or_provider_alias_to_redirect_edge",
+      "proxied_or_edge_terminated": true,
+      "target_component": "public_mirror_redirect",
+      "behavior": "redirect_to_https_cyber_vpn_net_preserve_path"
+    },
+    {
+      "id": "public_www_mirror",
+      "host": "www.cyber-vpn.org",
+      "zone": "cyber-vpn.org",
+      "record_policy": "CNAME_or_provider_alias_to_public_apex_mirror",
+      "proxied_or_edge_terminated": true,
+      "target_component": "public_mirror_redirect",
+      "behavior": "redirect_to_https_cyber_vpn_net_preserve_path"
+    },
+    {
+      "id": "admin_mirror",
+      "host": "admin.cyber-vpn.org",
+      "zone": "cyber-vpn.org",
+      "record_policy": "A_AAAA_CNAME_or_provider_alias_to_redirect_edge",
+      "proxied_or_edge_terminated": true,
+      "target_component": "admin_mirror_redirect",
+      "behavior": "redirect_to_https_admin_cyber_vpn_net_preserve_path_no_independent_session"
+    }
+  ],
+  "status_endpoint": {
+    "canonical_url": "https://cyber-vpn.net/status",
+    "host": "cyber-vpn.net",
+    "path": "/status",
+    "separate_status_subdomain_required_for_s1": false,
+    "optional_future_status_subdomain": "status.cyber-vpn.net",
+    "required_behavior": ["https_200_or_3xx", "no_secret_values", "no_internal_metrics_dump", "safe_public_or_semipublic_incident_summary"]
+  },
+  "tls_requirements": {
+    "edge_tls_required": true,
+    "origin_tls_required_when_origin_https_is_used": true,
+    "full_strict_or_equivalent_required_before_go_live": true,
+    "minimum_tls_version": "1.2",
+    "tls_1_3_preferred": true,
+    "certificate_hosts_required": [
+      "cyber-vpn.net",
+      "www.cyber-vpn.net",
+      "api.cyber-vpn.net",
+      "admin.cyber-vpn.net",
+      "cyber-vpn.org",
+      "www.cyber-vpn.org",
+      "admin.cyber-vpn.org"
+    ],
+    "hsts": "enable_only_after_dns_tls_redirects_and_subdomains_are_verified",
+    "certificate_transparency_monitoring": "recommended"
+  },
+  "redirect_requirements": [
+    {
+      "source": "http://cyber-vpn.net/*",
+      "target": "https://cyber-vpn.net/$path",
+      "status": "301_or_308"
+    },
+    {
+      "source": "http://www.cyber-vpn.net/*",
+      "target": "https://cyber-vpn.net/$path",
+      "status": "301_or_308"
+    },
+    {
+      "source": "https://www.cyber-vpn.net/*",
+      "target": "https://cyber-vpn.net/$path",
+      "status": "301_or_308"
+    },
+    {
+      "source": "http_or_https://cyber-vpn.org/*",
+      "target": "https://cyber-vpn.net/$path",
+      "status": "301_or_308"
+    },
+    {
+      "source": "http_or_https://www.cyber-vpn.org/*",
+      "target": "https://cyber-vpn.net/$path",
+      "status": "301_or_308"
+    },
+    {
+      "source": "http_or_https://admin.cyber-vpn.org/*",
+      "target": "https://admin.cyber-vpn.net/$path",
+      "status": "301_or_308"
+    }
+  ],
+  "admin_dns_tls_controls": [
+    "admin_canonical_host_is_admin_cyber_vpn_net",
+    "admin_mirror_redirects_to_primary_admin",
+    "admin_mirror_must_not_set_independent_session_cookie",
+    "admin_primary_requires_cloudflare_access_ip_allowlist_or_equivalent_before_login",
+    "admin_primary_requires_backend_admin_host_guard",
+    "admin_primary_requires_admin_2fa"
+  ],
+  "webhook_and_callback_controls": [
+    "api_cyber_vpn_net_tls_valid",
+    "payment_webhook_paths_must_not_receive_interactive_edge_challenges",
+    "telegram_webhook_paths_must_not_receive_interactive_edge_challenges",
+    "oauth_callback_paths_must_not_receive_interactive_edge_challenges",
+    "payment_webhooks_still_require_provider_signature_or_status_recheck",
+    "telegram_webhooks_still_require_bot_secret_or_telegram_validation"
+  ],
+  "evidence_commands_required_before_go_live": [
+    "dig_or_equivalent_for_each_required_host",
+    "curl_head_http_to_https_redirect_for_each_public_host",
+    "curl_head_www_and_org_redirects_to_canonical",
+    "curl_head_admin_org_redirects_to_admin_cyber_vpn_net",
+    "openssl_or_equivalent_tls_certificate_check_for_each_required_host",
+    "curl_status_route_https_check_for_https_cyber_vpn_net_status",
+    "admin_access_protection_browser_or_curl_proof",
+    "payment_webhook_no_interactive_challenge_probe",
+    "telegram_webhook_no_interactive_challenge_probe",
+    "oauth_callback_no_interactive_challenge_probe"
+  ],
+  "known_missing_external_inputs": [
+    "dns_provider_account",
+    "zone_access_for_cyber_vpn_net",
+    "zone_access_for_cyber_vpn_org",
+    "production_web_edge_target",
+    "production_api_edge_target",
+    "protected_admin_edge_target",
+    "redirect_edge_target",
+    "tls_certificate_issuer_or_edge_certificate_status",
+    "origin_tls_certificate_status",
+    "admin_access_policy_id_or_equivalent",
+    "live_dns_command_output",
+    "live_tls_command_output"
+  ],
+  "existing_repo_scaffolds": [
+    "infra/edge/stage1-cloudflare-waf-baseline.json",
+    "infra/terraform/live/production/dns",
+    "infra/topology/stage1-production-environment.json",
+    "docs/cybervpn_stage1_launch_docs/119_STAGE1_INFRA_008_EDGE_WAF_RATE_LIMITING_EVIDENCE.md",
+    "docs/cybervpn_stage1_launch_docs/122_STAGE1_INFRA_003_PRODUCTION_ENVIRONMENT_EVIDENCE.md"
+  ],
+  "not_allowed": [
+    "dns_records_pointing_to_staging_origins",
+    "dns_records_pointing_to_home_lab_origins_for_customer_path",
+    "wildcard_dns_records_without_explicit_review",
+    "admin_cyber_vpn_org_serving_independent_admin_session",
+    "public_remnawave_api_dns_record",
+    "public_postgresql_dns_record",
+    "public_valkey_dns_record",
+    "payment_or_telegram_webhooks_behind_interactive_browser_challenge",
+    "production_tls_using_staging_or_local_only_certificate",
+    "committed_dns_provider_tokens_zone_ids_or_origin_ips"
+  ],
+  "acceptance_result": {
+    "local_contract_complete": true,
+    "external_dns_configured": false,
+    "external_tls_configured": false,
+    "go_live_ready": false,
+    "reason": "Repository now contains the S1 DNS/TLS contract; real DNS/TLS/redirect/admin-protection evidence is still required before go-live."
+  }
+}

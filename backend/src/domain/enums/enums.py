@@ -234,9 +234,11 @@ class PayoutExecutionStatus(StrEnum):
 
 
 class AdminRole(StrEnum):
+    OWNER_SUPER_ADMIN = "owner/super_admin"
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     OPERATOR = "operator"
+    FINANCE = "finance"
     SUPPORT = "support"
     VIEWER = "viewer"
 

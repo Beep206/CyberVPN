@@ -1,5 +1,5 @@
-import { getTranslations } from 'next-intl/server';
-import { PartnerClient } from './components/PartnerClient';
+import { notFound } from 'next/navigation';
+import { canStage1CustomerDashboardSurfaceAccess } from '@/shared/lib/stage1-customer-surface-policy';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
 interface PartnerPageProps {
@@ -10,11 +10,10 @@ interface PartnerPageProps {
 
 export async function generateMetadata({ params }: PartnerPageProps) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Partner' });
 
   return withSiteMetadata({
-    title: t('pageTitle') || 'Partner Dashboard - CyberVPN',
-    description: t('pageDescription') || 'Manage your partner codes and track earnings',
+    title: 'Not Found',
+    description: 'This customer dashboard surface is not available during Stage 1.',
   }, {
     locale,
     canonicalPath: '/partner',
@@ -23,21 +22,11 @@ export async function generateMetadata({ params }: PartnerPageProps) {
 }
 
 export default async function PartnerPage({ params }: PartnerPageProps) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Partner' });
+  if (!canStage1CustomerDashboardSurfaceAccess('partner')) {
+    notFound();
+  }
 
-  return (
-    <div className="max-w-7xl mx-auto w-full space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-display text-neon-cyan mb-2 tracking-wider">
-          {t('title') || 'PARTNER_DASHBOARD'}
-        </h1>
-        <p className="text-muted-foreground font-mono text-sm">
-          {t('subtitle') || 'Manage codes, track earnings, grow your network'}
-        </p>
-      </div>
+  await params;
 
-      <PartnerClient />
-    </div>
-  );
+  return null;
 }

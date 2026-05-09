@@ -5,21 +5,19 @@ import type {
   PricingPlanPeriod,
   PricingTierCode,
 } from '@/widgets/pricing/types';
+import {
+  formatMoney,
+  getPricePresentation,
+} from '@/shared/lib/pricing-display';
 
-export function getPreferredCurrency(locale: string, period: PricingPlanPeriod) {
-  if (locale.startsWith('ru') && typeof period.price_rub === 'number' && period.price_rub > 0) {
-    return { amount: period.price_rub, currency: 'RUB' };
-  }
+export { formatMoney, getPricePresentation };
 
-  return { amount: period.price_usd, currency: 'USD' };
+export function getBillingPrice(locale: string, period: PricingPlanPeriod) {
+  return getPricePresentation(locale, period).billing;
 }
 
-export function formatMoney(locale: string, amount: number, currency: string) {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-  }).format(amount);
+export function getLocalPriceEstimate(locale: string, period: PricingPlanPeriod) {
+  return getPricePresentation(locale, period).localEstimate;
 }
 
 export function getPlanPeriod(

@@ -150,5 +150,19 @@ class RemnawaveUserGateway:
         data = await self._client.patch_validated("/api/users", RemnawaveUserResponse, json=payload)
         return map_remnawave_user(self._dump_validated_model(data))
 
+    async def revoke_subscription(
+        self,
+        uuid: UUID,
+        *,
+        revoke_only_passwords: bool = False,
+    ) -> User:
+        payload = {"revokeOnlyPasswords": revoke_only_passwords}
+        data = await self._client.post_validated(
+            f"/api/users/{uuid}/actions/revoke",
+            RemnawaveUserResponse,
+            json=payload,
+        )
+        return map_remnawave_user(self._dump_validated_model(data))
+
     async def delete(self, uuid: UUID) -> None:
         await self._client.delete_validated(f"/api/users/{uuid}", RemnawaveDeleteResponse)

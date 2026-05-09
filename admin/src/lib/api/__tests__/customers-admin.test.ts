@@ -11,6 +11,7 @@ const MATCH_ANY_API_ORIGIN = {
   mobileUserVpn: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/vpn-user$/,
   mobileUserVpnEnable: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/vpn-user\/enable$/,
   mobileUserVpnDisable: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/vpn-user\/disable$/,
+  mobileUserVpnRegenerateCredentials: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/vpn-user\/regenerate-credentials$/,
   mobileUserDeviceById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/devices\/[^/]+$/,
   mobileUserDevicesRevokeAll: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/devices\/revoke-all$/,
   mobileUserPasswordReset: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/mobile-users\/[^/]+\/credentials\/reset-password$/,
@@ -25,12 +26,16 @@ const MATCH_ANY_API_ORIGIN = {
 };
 
 beforeEach(() => {
-  localStorage.clear();
-  window.location.href = 'http://localhost:3000';
+  globalThis.localStorage?.clear();
+  if (typeof window !== 'undefined') {
+    window.location.href = 'http://localhost:3000';
+  }
 });
 
 afterEach(() => {
-  window.location.href = 'http://localhost:3000';
+  if (typeof window !== 'undefined') {
+    window.location.href = 'http://localhost:3000';
+  }
 });
 
 describe('customersApi mobile user admin operations', () => {
@@ -279,7 +284,7 @@ describe('customersApi mobile user admin operations', () => {
                   },
                 },
               },
-              auth_realm_id: 'd6cc27a6-3560-4ca7-85f1-6c4f7ef39335',
+              auth_realm_id: 'auth-realm-fixture',
               storefront_id: 'c3f4a9f0-9a7b-4dd6-8b32-48fa66014d23',
               attribution_result: null,
               payment_disputes: [],
@@ -686,6 +691,46 @@ describe('customersApi mobile user admin operations', () => {
       generate_temporary_password: true,
       revoke_all_devices: true,
       reason: 'Customer lost access after suspected credential reuse',
+    });
+  });
+
+  it('regenerates customer VPN credentials through the admin support endpoint', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.mobileUserVpnRegenerateCredentials, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+
+        return HttpResponse.json({
+          user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+          remnawave_uuid: '56b5f2d9-2c79-4826-a6fe-ccbbcfb3ca22',
+          status: 'active',
+          short_uuid_changed: true,
+          subscription_url_changed: true,
+          revoke_only_passwords: false,
+          expires_at: '2026-06-03T09:30:00Z',
+          regenerated_at: '2026-05-04T09:30:00Z',
+          config_delivery_required: true,
+          audit_action: 'customer_vpn_credentials_regenerated',
+        });
+      }),
+    );
+
+    const response = await customersApi.regenerateVpnCredentials(
+      '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+      {
+        reason: 'Verified lost-device recovery with the customer',
+        revoke_only_passwords: false,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.data.audit_action).toBe('customer_vpn_credentials_regenerated');
+    expect(response.data.short_uuid_changed).toBe(true);
+    expect(response.data.config_delivery_required).toBe(true);
+    expect(capturedBody).toMatchObject({
+      reason: 'Verified lost-device recovery with the customer',
+      revoke_only_passwords: false,
     });
   });
 

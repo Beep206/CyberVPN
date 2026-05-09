@@ -75,7 +75,7 @@ def _override_dependencies() -> None:
 
 
 @pytest.mark.asyncio
-async def test_facebook_authorize_returns_authorize_url_and_state():
+async def test_facebook_authorize_is_disabled_for_s1():
     _override_dependencies()
 
     with (
@@ -83,11 +83,11 @@ async def test_facebook_authorize_returns_authorize_url_and_state():
         patch(
             "src.presentation.api.v1.oauth.routes.OAuthStateService.generate",
             new=AsyncMock(return_value=("facebook_state", None)),
-        ),
+        ) as mock_generate,
         patch(
             "src.presentation.api.v1.oauth.routes.FacebookOAuthProvider.authorize_url",
             return_value="https://facebook.example/auth?state=facebook_state",
-        ),
+        ) as mock_authorize_url,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
@@ -95,15 +95,14 @@ async def test_facebook_authorize_returns_authorize_url_and_state():
                 params={"redirect_uri": "cybervpn://oauth/callback?provider=facebook"},
             )
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "authorize_url": "https://facebook.example/auth?state=facebook_state",
-        "state": "facebook_state",
-    }
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Provider 'facebook' is currently disabled."
+    mock_generate.assert_not_awaited()
+    mock_authorize_url.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_facebook_callback_links_account_on_success():
+async def test_facebook_callback_is_disabled_for_s1():
     _override_dependencies()
 
     with (
@@ -111,7 +110,7 @@ async def test_facebook_callback_links_account_on_success():
         patch(
             "src.presentation.api.v1.oauth.routes.OAuthStateService.validate_and_consume",
             new=AsyncMock(return_value=True),
-        ),
+        ) as mock_validate_state,
         patch(
             "src.presentation.api.v1.oauth.routes.FacebookOAuthProvider.exchange_code",
             new=AsyncMock(
@@ -123,7 +122,7 @@ async def test_facebook_callback_links_account_on_success():
                     "refresh_token": None,
                 }
             ),
-        ),
+        ) as mock_exchange_code,
         patch(
             "src.presentation.api.v1.oauth.routes.AccountLinkingUseCase.link_account",
             new=AsyncMock(return_value=SimpleNamespace()),
@@ -139,17 +138,15 @@ async def test_facebook_callback_links_account_on_success():
                 },
             )
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "status": "linked",
-        "provider": "facebook",
-        "provider_user_id": "facebook_user_123",
-    }
-    mock_link.assert_awaited_once()
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Provider 'facebook' is currently disabled."
+    mock_validate_state.assert_not_awaited()
+    mock_exchange_code.assert_not_awaited()
+    mock_link.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_facebook_callback_rejects_invalid_state():
+async def test_facebook_callback_get_alias_is_disabled_for_s1_before_state_validation():
     _override_dependencies()
 
     with (
@@ -160,17 +157,18 @@ async def test_facebook_callback_rejects_invalid_state():
         patch(
             "src.presentation.api.v1.oauth.routes.OAuthStateService.validate_and_consume",
             new=AsyncMock(return_value=False),
-        ),
+        ) as mock_validate_state,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post(
+            response = await client.get(
                 "/api/v1/oauth/facebook/callback",
-                json={
+                params={
                     "code": "facebook_code",
                     "state": "bad_state",
                     "redirect_uri": "cybervpn://oauth/callback?provider=facebook",
                 },
             )
 
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid or expired OAuth state."
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Provider 'facebook' is currently disabled."
+    mock_validate_state.assert_not_awaited()

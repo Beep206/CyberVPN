@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   authMe: vi.fn(),
   clipboardWriteText: vi.fn(),
   getAntiphishingCode: vi.fn(),
+  getCurrentEntitlement: vi.fn(),
   getGrowthPreferences: vi.fn(),
   getNotificationPreferences: vi.fn(),
   getProfile: vi.fn(),
@@ -100,6 +101,9 @@ vi.mock('@/lib/api', () => ({
     logoutDevice: apiMocks.logoutDevice,
     me: apiMocks.authMe,
   },
+  entitlementsApi: {
+    getCurrent: apiMocks.getCurrentEntitlement,
+  },
   growthNotificationsApi: {
     getPreferences: apiMocks.getGrowthPreferences,
     updatePreferences: apiMocks.updateGrowthPreferences,
@@ -188,6 +192,21 @@ const devices = {
   total: 2,
 };
 
+const entitlement = {
+  addons: [],
+  display_name: 'CyberVPN Plus',
+  effective_entitlements: {
+    device_limit: 3,
+  },
+  expires_at: '2026-05-24T10:00:00Z',
+  invite_bundle: {},
+  is_trial: false,
+  period_days: 30,
+  plan_code: 'plus',
+  plan_uuid: 'plan-plus',
+  status: 'active',
+};
+
 describe('SettingsCabinetDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -210,6 +229,7 @@ describe('SettingsCabinetDashboard', () => {
     apiMocks.getAntiphishingCode.mockResolvedValue({ data: { code: 'CYBER-ALPHA' } });
     apiMocks.getNotificationPreferences.mockResolvedValue({ data: corePreferences });
     apiMocks.getGrowthPreferences.mockResolvedValue({ data: growthPreferences });
+    apiMocks.getCurrentEntitlement.mockResolvedValue({ data: entitlement });
     apiMocks.listDevices.mockResolvedValue({ data: devices });
     apiMocks.updateProfile.mockImplementation((payload) => ({
       data: {
@@ -242,6 +262,14 @@ describe('SettingsCabinetDashboard', () => {
     expect(screen.getByText(/identity.telegramLinked/)).toBeInTheDocument();
     expect(screen.getByText(/Chrome \/ Windows NT 10.0/)).toBeInTheDocument();
     expect(screen.getByText(/Safari \/ Unknown OS/)).toBeInTheDocument();
+    expect(await screen.findByText(/devices\.limitUsed/)).toHaveTextContent('"used":2');
+    expect(screen.getByText(/devices\.limitHelp\.available/)).toHaveTextContent(
+      '"remaining":1',
+    );
+    expect(screen.getByRole('link', { name: 'devices.managePlan' })).toHaveAttribute(
+      'href',
+      '/subscriptions',
+    );
   });
 
   it('updates profile fields and records a performance mark', async () => {
@@ -302,6 +330,7 @@ describe('SettingsCabinetDashboard', () => {
       expect(apiMocks.getAntiphishingCode).toHaveBeenCalledTimes(2);
       expect(apiMocks.getNotificationPreferences).toHaveBeenCalledTimes(2);
       expect(apiMocks.getGrowthPreferences).toHaveBeenCalledTimes(2);
+      expect(apiMocks.getCurrentEntitlement).toHaveBeenCalledTimes(2);
       expect(apiMocks.listDevices).toHaveBeenCalledTimes(2);
     });
   });
@@ -455,6 +484,21 @@ describe('SettingsCabinetDashboard', () => {
     expect(screen.getByRole('button', { name: 'devices.revokeOthers' })).toBeDisabled();
   });
 
+  it('keeps device actions usable when the plan device limit is unavailable', async () => {
+    apiMocks.getCurrentEntitlement.mockResolvedValueOnce({
+      data: {
+        ...entitlement,
+        effective_entitlements: {},
+      },
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText('devices.limitUnknown {"used":2}')).toBeInTheDocument();
+    expect(screen.getByText('devices.limitStates.unknown')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.revokeOthers' })).toBeEnabled();
+  });
+
   it('copies account id and records privacy-safe telemetry', async () => {
     const user = setupUserWithMockedClipboard();
     renderDashboard();
@@ -529,6 +573,14 @@ describe('SettingsCabinetDashboard', () => {
         push_connection: false,
         push_payment: false,
         push_subscription: false,
+      },
+    });
+    apiMocks.getCurrentEntitlement.mockResolvedValueOnce({
+      data: {
+        ...entitlement,
+        effective_entitlements: {
+          device_limit: 2,
+        },
       },
     });
     apiMocks.listDevices.mockResolvedValueOnce({

@@ -7,6 +7,14 @@ import { withSentryConfig } from "@sentry/nextjs";
 const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
 const ADMIN_PUBLIC_ORIGIN = "admin.ozoxy.ru";
 const ADMIN_LOCAL_ORIGINS = ["localhost:3001", "127.0.0.1:3001"];
+const publicSentryRelease =
+  process.env.NEXT_PUBLIC_SENTRY_RELEASE?.trim() ||
+  process.env.GITHUB_SHA?.trim() ||
+  process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
+  "cybervpn-admin-local";
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+const sentryOrg = process.env.SENTRY_ORG?.trim();
+const sentryProject = process.env.SENTRY_PROJECT?.trim();
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
@@ -73,7 +81,16 @@ const withNextIntl = createNextIntlPlugin();
 
 export default withSentryConfig(withNextIntl(config), {
   // Suppress source map upload warnings when SENTRY_AUTH_TOKEN is not set
-  silent: !process.env.SENTRY_AUTH_TOKEN,
+  silent: !sentryAuthToken,
+
+  ...(sentryAuthToken ? { authToken: sentryAuthToken } : {}),
+  ...(sentryOrg ? { org: sentryOrg } : {}),
+  ...(sentryProject ? { project: sentryProject } : {}),
+
+  // Sentry injects the release into the browser bundle. Keep it explicitly public.
+  release: {
+    name: publicSentryRelease,
+  },
 
   // Upload source maps for readable stack traces
   widenClientFileUpload: true,

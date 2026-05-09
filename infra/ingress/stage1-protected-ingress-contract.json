@@ -1,0 +1,300 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-INFRA-005",
+  "status": "local_protected_ingress_contract_external_deploy_required",
+  "provider": "cloudflare_or_equivalent_edge_plus_reverse_proxy",
+  "created_at": "2026-05-08",
+  "depends_on": [
+    "S1-INFRA-001",
+    "S1-INFRA-003",
+    "S1-INFRA-004",
+    "S1-INFRA-008",
+    "S1-BE-003",
+    "S1-BE-004",
+    "S1-BE-005",
+    "S1-ADM-001",
+    "S1-AUTH-004"
+  ],
+  "decision_references": [
+    "DEC-S1-001",
+    "DEC-S1-002",
+    "DEC-S1-003",
+    "DEC-S1-014",
+    "DEC-S1-017"
+  ],
+  "authority": {
+    "go_live_clearance": false,
+    "external_ingress_deployed": false,
+    "backend_direct_public_access_allowed": false,
+    "admin_public_without_access_allowed": false,
+    "admin_mirror_independent_session_allowed": false,
+    "remnawave_api_public_allowed": false,
+    "postgresql_public_allowed": false,
+    "valkey_public_allowed": false,
+    "metrics_public_allowed": false,
+    "home_lab_customer_ingress_allowed": false,
+    "deploy_by_immutable_tag_or_commit_sha_only": true,
+    "floating_main_allowed": false
+  },
+  "public_entrypoints": [
+    {
+      "id": "public_site_primary",
+      "host": "cyber-vpn.net",
+      "target_component": "production_frontend_web",
+      "surface": "customer_web",
+      "public": true,
+      "required_controls": [
+        "tls",
+        "security_headers",
+        "managed_waf_or_equivalent",
+        "basic_rate_limits",
+        "canonical_host",
+        "no_admin_routes",
+        "no_internal_routes"
+      ]
+    },
+    {
+      "id": "public_site_www",
+      "host": "www.cyber-vpn.net",
+      "target_component": "edge_redirect",
+      "surface": "customer_web_redirect",
+      "public": true,
+      "required_controls": ["tls", "redirect_to_primary_site"]
+    },
+    {
+      "id": "public_site_mirror",
+      "host": "cyber-vpn.org",
+      "target_component": "edge_redirect",
+      "surface": "customer_web_mirror_redirect",
+      "public": true,
+      "required_controls": [
+        "tls",
+        "redirect_to_primary_site",
+        "no_duplicate_cookie_scope"
+      ]
+    },
+    {
+      "id": "public_site_mirror_www",
+      "host": "www.cyber-vpn.org",
+      "target_component": "edge_redirect",
+      "surface": "customer_web_mirror_redirect",
+      "public": true,
+      "required_controls": ["tls", "redirect_to_primary_site"]
+    },
+    {
+      "id": "public_api",
+      "host": "api.cyber-vpn.net",
+      "target_component": "production_backend_api",
+      "surface": "customer_api",
+      "public": true,
+      "required_controls": [
+        "tls",
+        "security_headers",
+        "cors_allowlist",
+        "csrf_for_cookie_flows",
+        "swagger_disabled",
+        "application_rate_limits",
+        "edge_rate_limits",
+        "admin_api_host_guard",
+        "no_internal_routes"
+      ]
+    },
+    {
+      "id": "payment_webhooks",
+      "host": "api.cyber-vpn.net",
+      "paths": [
+        "/api/v1/webhooks/payments/*",
+        "/api/v1/payments/webhooks/*",
+        "/api/v1/payments/callbacks/*"
+      ],
+      "target_component": "production_backend_api",
+      "surface": "provider_callback",
+      "public": true,
+      "required_controls": [
+        "tls",
+        "provider_signature_or_status_recheck",
+        "idempotency",
+        "no_interactive_edge_challenge",
+        "provider_enabled_only_after_evidence",
+        "conservative_rate_limits",
+        "redacted_request_logging"
+      ]
+    },
+    {
+      "id": "telegram_webhook",
+      "host": "api.cyber-vpn.net",
+      "paths": [
+        "/api/v1/telegram/webhook",
+        "/api/v1/telegram/webhooks/*"
+      ],
+      "target_component": "production_telegram_bot",
+      "surface": "telegram_callback",
+      "public": true,
+      "required_controls": [
+        "tls",
+        "telegram_secret_or_signature_validation",
+        "no_interactive_edge_challenge",
+        "conservative_rate_limits",
+        "redacted_request_logging"
+      ]
+    },
+    {
+      "id": "oauth_callbacks",
+      "host": "api.cyber-vpn.net",
+      "paths": ["/api/v1/oauth/*", "/auth/callback/*"],
+      "target_component": "production_backend_api",
+      "surface": "oauth_callback",
+      "public": true,
+      "required_controls": [
+        "tls",
+        "google_and_github_only",
+        "state_nonce_validation",
+        "callback_allowlist",
+        "no_interactive_edge_challenge"
+      ]
+    },
+    {
+      "id": "admin_primary",
+      "host": "admin.cyber-vpn.net",
+      "target_component": "production_admin_web",
+      "surface": "admin_web",
+      "public": false,
+      "required_controls": [
+        "tls",
+        "cloudflare_access_or_ip_allowlist_or_private_vpn",
+        "admin_host_guard",
+        "mandatory_admin_2fa",
+        "rbac",
+        "privileged_audit_log",
+        "admin_rate_limits",
+        "no_public_login_before_access_gate"
+      ]
+    },
+    {
+      "id": "admin_mirror",
+      "host": "admin.cyber-vpn.org",
+      "target_component": "edge_redirect",
+      "surface": "admin_redirect",
+      "public": false,
+      "required_controls": [
+        "tls",
+        "redirect_to_admin_primary",
+        "no_independent_session_cookie",
+        "no_admin_backend_origin"
+      ]
+    }
+  ],
+  "blocked_public_paths": [
+    {
+      "id": "block_admin_paths_on_customer_web",
+      "hosts": ["cyber-vpn.net", "www.cyber-vpn.net", "cyber-vpn.org", "www.cyber-vpn.org"],
+      "paths": ["/admin/*", "/api/v1/admin/*", "/operator/*", "/internal/*"],
+      "expected_action": "404_or_redirect_to_canonical_public_route"
+    },
+    {
+      "id": "block_docs_in_production",
+      "hosts": ["api.cyber-vpn.net"],
+      "paths": ["/docs", "/redoc", "/openapi.json"],
+      "expected_action": "404_or_disabled_response"
+    },
+    {
+      "id": "block_internal_api_publicly",
+      "hosts": ["api.cyber-vpn.net"],
+      "paths": ["/api/v1/internal/*", "/api/v1/worker/*", "/api/v1/debug/*"],
+      "expected_action": "404_or_403_without_side_effects"
+    }
+  ],
+  "private_only_components": [
+    {
+      "id": "backend_container_port",
+      "component": "production_backend_api",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["edge_reverse_proxy", "private_operator_network"]
+    },
+    {
+      "id": "admin_container_port",
+      "component": "production_admin_web",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["edge_reverse_proxy_after_access_gate", "private_operator_network"]
+    },
+    {
+      "id": "worker_scheduler",
+      "component": "production_worker_scheduler",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["private_operator_network"]
+    },
+    {
+      "id": "telegram_bot_runtime",
+      "component": "production_telegram_bot",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["private_operator_network", "telegram_webhook_route"]
+    },
+    {
+      "id": "remnawave_control_plane_api",
+      "component": "production_remnawave_control_plane",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["production_backend_api", "private_operator_network"]
+    },
+    {
+      "id": "postgresql",
+      "component": "production_postgresql",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["production_backend_api", "production_worker_scheduler", "production_remnawave_control_plane"]
+    },
+    {
+      "id": "valkey",
+      "component": "production_valkey",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["production_backend_api", "production_worker_scheduler", "production_telegram_bot"]
+    },
+    {
+      "id": "metrics_and_traces",
+      "component": "production_observability",
+      "public_dns_allowed": false,
+      "public_port_allowed": false,
+      "reachable_only_from": ["private_operator_network", "alert_delivery_integrations"]
+    }
+  ],
+  "required_live_evidence_before_go_live": [
+    "edge route inventory for every public entrypoint",
+    "redacted reverse proxy configuration",
+    "origin firewall or security-group proof showing backend/admin container ports are not directly public",
+    "admin.cyber-vpn.net Access/IP allowlist/private VPN proof before login page",
+    "admin.cyber-vpn.org redirect proof to admin.cyber-vpn.net",
+    "public customer domains cannot serve admin paths",
+    "api.cyber-vpn.net Swagger/OpenAPI disabled proof",
+    "api.cyber-vpn.net CORS/cookie/CSRF proof for approved domains only",
+    "payment webhook no interactive challenge proof",
+    "Telegram webhook no interactive challenge proof",
+    "OAuth callback no interactive challenge proof",
+    "Remnawave API private/internal proof",
+    "PostgreSQL private-only proof",
+    "Valkey/Redis private-only proof",
+    "admin 2FA/RBAC/audit smoke through deployed ingress",
+    "edge or reverse proxy log correlation for at least one customer request and one webhook request",
+    "rollback route or release pointer proof for ingress changes"
+  ],
+  "not_allowed": [
+    "direct_public_backend_origin",
+    "direct_public_admin_origin_without_access_gate",
+    "independent_admin_session_on_admin_cyber_vpn_org",
+    "admin_api_served_from_customer_domain_without_host_guard",
+    "public_remnawave_api",
+    "public_postgresql",
+    "public_valkey",
+    "public_metrics_or_traces",
+    "interactive_challenge_on_payment_webhooks",
+    "interactive_challenge_on_telegram_webhook",
+    "interactive_challenge_on_oauth_callbacks",
+    "staging_origin_for_customer_production_traffic",
+    "home_lab_origin_for_customer_production_traffic",
+    "floating_main_ingress_deploy"
+  ]
+}

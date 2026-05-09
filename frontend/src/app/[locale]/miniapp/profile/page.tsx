@@ -30,6 +30,7 @@ import {
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from '../components/MiniAppBottomSheet';
 import { VpnConfigCard } from '../components/VpnConfigCard';
+import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 
 /**
  * Mini App Profile page
@@ -67,6 +68,7 @@ export default function MiniAppProfilePage() {
       const { data } = await referralApi.getCode();
       return data;
     },
+    enabled: STAGE1_REFERRAL_UI_ENABLED,
   });
 
   const { data: referralStats } = useQuery({
@@ -75,6 +77,7 @@ export default function MiniAppProfilePage() {
       const { data } = await referralApi.getStats();
       return data;
     },
+    enabled: STAGE1_REFERRAL_UI_ENABLED,
   });
 
   // Fetch 2FA status
@@ -334,58 +337,59 @@ export default function MiniAppProfilePage() {
       {/* VPN Config Card */}
       <VpnConfigCard colorScheme={colorScheme} page="profile" />
 
-      {/* Referral Section */}
-      <CollapsibleSection
-        title={t('referral')}
-        icon={Gift}
-        isExpanded={expandedSections['referral']}
-        onToggle={() => toggleSection('referral')}
-        colorScheme={colorScheme}
-      >
-        <div className="space-y-4">
-          {referralCode && (
-            <div>
-              <label className="text-xs text-muted-foreground font-mono block mb-2">
-                {t('yourReferralCode')}
-              </label>
-              <div className="flex gap-2">
-                <div className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-lg">
-                  {referralCode.referral_code}
+      {STAGE1_REFERRAL_UI_ENABLED ? (
+        <CollapsibleSection
+          title={t('referral')}
+          icon={Gift}
+          isExpanded={expandedSections['referral']}
+          onToggle={() => toggleSection('referral')}
+          colorScheme={colorScheme}
+        >
+          <div className="space-y-4">
+            {referralCode && (
+              <div>
+                <label className="text-xs text-muted-foreground font-mono block mb-2">
+                  {t('yourReferralCode')}
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-lg">
+                    {referralCode.referral_code}
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(referralCode.referral_code, t('codeCopied'))}
+                    className="p-2 bg-neon-cyan text-black rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation"
+                    aria-label={t('copy')}
+                  >
+                    <Copy className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={shareReferralCode}
+                    className="p-2 bg-neon-purple text-white rounded-lg hover:bg-neon-purple/90 transition-colors touch-manipulation"
+                    aria-label={t('share')}
+                  >
+                    <Share2 className="h-5 w-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => copyToClipboard(referralCode.referral_code, t('codeCopied'))}
-                  className="p-2 bg-neon-cyan text-black rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation"
-                  aria-label={t('copy')}
-                >
-                  <Copy className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={shareReferralCode}
-                  className="p-2 bg-neon-purple text-white rounded-lg hover:bg-neon-purple/90 transition-colors touch-manipulation"
-                  aria-label={t('share')}
-                >
-                  <Share2 className="h-5 w-5" />
-                </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {referralStats && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-display text-neon-cyan">{referralStats.total_referrals || 0}</div>
-                <div className="text-xs text-muted-foreground font-mono">{t('totalReferrals')}</div>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-display text-neon-cyan">
-                  ${(referralStats.total_earned || 0).toFixed(2)}
+            {referralStats && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-muted rounded-lg">
+                  <div className="text-2xl font-display text-neon-cyan">{referralStats.total_referrals || 0}</div>
+                  <div className="text-xs text-muted-foreground font-mono">{t('totalReferrals')}</div>
                 </div>
-                <div className="text-xs text-muted-foreground font-mono">{t('totalEarnings')}</div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <div className="text-2xl font-display text-neon-cyan">
+                    ${(referralStats.total_earned || 0).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono">{t('totalEarnings')}</div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
+            )}
+          </div>
+        </CollapsibleSection>
+      ) : null}
 
       {/* Security Section */}
       <CollapsibleSection

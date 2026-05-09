@@ -1,0 +1,438 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-INFRA-001",
+  "status": "local_topology_spec_external_evidence_required",
+  "topology_name": "Simple Controlled Hybrid Container Topology",
+  "created_at": "2026-05-08",
+  "decision_references": [
+    "DEC-S1-001",
+    "DEC-S1-002",
+    "DEC-S1-003",
+    "DEC-S1-004",
+    "DEC-S1-005",
+    "DEC-S1-006",
+    "DEC-S1-007",
+    "DEC-S1-014",
+    "DEC-S1-015",
+    "DEC-S1-017"
+  ],
+  "unknown_until_external_infra": [
+    "cloud_or_hosting_provider_account",
+    "managed_postgresql_provider",
+    "managed_valkey_provider",
+    "production_region",
+    "staging_region",
+    "origin_public_ips",
+    "private_network_cidr",
+    "cloudflare_or_equivalent_zone_ids",
+    "production_container_registry",
+    "production_image_digests",
+    "production_ssh_or_deploy_user_policy"
+  ],
+  "environments": [
+    {
+      "id": "local",
+      "purpose": "developer iteration and no-cost evidence only",
+      "authoritative_for_go_live": false,
+      "must_not_store_production_secrets": true,
+      "may_use_home_lab": true
+    },
+    {
+      "id": "staging",
+      "purpose": "full S1 E2E proof with disposable data",
+      "authoritative_for_go_live": false,
+      "must_be_separate_from": ["production"],
+      "required_before_go_live": true,
+      "may_use_home_lab": false
+    },
+    {
+      "id": "production",
+      "purpose": "S1 Controlled Public Beta",
+      "authoritative_for_go_live": true,
+      "must_be_separate_from": ["staging", "local"],
+      "required_before_go_live": true,
+      "may_use_home_lab": false
+    }
+  ],
+  "network_zones": [
+    {
+      "id": "public_edge",
+      "description": "DNS/TLS/WAF/rate limiting/reverse proxy for public HTTP surfaces",
+      "allowed_public_ports": [80, 443],
+      "must_have_evidence": ["S1-INFRA-004", "S1-INFRA-005", "S1-INFRA-008"]
+    },
+    {
+      "id": "container_runtime",
+      "description": "Containerized app services behind controlled ingress",
+      "public_by_default": false,
+      "must_have_evidence": ["S1-INFRA-003", "S1-REL-006"]
+    },
+    {
+      "id": "private_data",
+      "description": "Managed database/cache and private service dependencies",
+      "public_by_default": false,
+      "must_have_evidence": ["S1-INFRA-003", "S1-QA-003", "S1-QA-004"]
+    },
+    {
+      "id": "vpn_control",
+      "description": "Private Remnawave control-plane API and node-management path",
+      "public_by_default": false,
+      "must_have_evidence": ["S1-VPN-001", "S1-VPN-002"]
+    },
+    {
+      "id": "vpn_transport",
+      "description": "Customer VPN node transport ports; not an HTTP WAF surface",
+      "public_by_default": true,
+      "must_have_evidence": ["S1-VPN-010", "S1-VPN-011"]
+    },
+    {
+      "id": "observability",
+      "description": "Metrics, logs, errors and alert routing",
+      "public_by_default": false,
+      "must_have_evidence": ["S1-OBS-001", "S1-OBS-002", "S1-OBS-003", "S1-OBS-004"]
+    }
+  ],
+  "components": [
+    {
+      "id": "edge_tls_waf",
+      "name": "Cloudflare or equivalent edge",
+      "placement": "external_edge_provider",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": true,
+      "network_zone": "public_edge"
+    },
+    {
+      "id": "frontend_web",
+      "name": "Marketing site and customer cabinet",
+      "placement": "containerized_web_runtime",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": true,
+      "network_zone": "container_runtime"
+    },
+    {
+      "id": "admin_web",
+      "name": "Admin workspace",
+      "placement": "containerized_web_runtime_behind_admin_protection",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "container_runtime"
+    },
+    {
+      "id": "backend_api",
+      "name": "CyberVPN backend API",
+      "placement": "containerized_api_runtime",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": true,
+      "network_zone": "container_runtime"
+    },
+    {
+      "id": "telegram_bot",
+      "name": "Telegram Bot service",
+      "placement": "containerized_service_runtime",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "container_runtime"
+    },
+    {
+      "id": "worker_scheduler",
+      "name": "Worker and scheduler",
+      "placement": "containerized_private_runtime",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "container_runtime"
+    },
+    {
+      "id": "managed_postgresql",
+      "name": "Managed PostgreSQL",
+      "placement": "managed_private_database",
+      "version_family": "17.x",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "private_data",
+      "requirements": [
+        "private_only",
+        "staging_separate_from_production",
+        "separate_db_and_users_for_cybervpn_and_remnawave",
+        "daily_encrypted_backups_14_days",
+        "pre_deploy_backup_before_migrations",
+        "rpo_le_24h",
+        "rto_le_4h"
+      ]
+    },
+    {
+      "id": "private_valkey",
+      "name": "Private Valkey/Redis",
+      "placement": "managed_or_dedicated_private_cache_queue",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "private_data",
+      "durable_source_of_truth": false,
+      "requirements": [
+        "private_only",
+        "staging_separate_from_production",
+        "memory_policy_defined",
+        "monitoring_enabled",
+        "critical_jobs_recover_from_postgresql"
+      ]
+    },
+    {
+      "id": "remnawave_control_plane",
+      "name": "Remnawave production control-plane",
+      "placement": "dedicated_containerized_or_managed_private_runtime",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "vpn_control",
+      "requirements": [
+        "production_separate_from_staging",
+        "private_internal_api",
+        "provisioning_evidence_required",
+        "backup_export_rebuild_evidence_required"
+      ]
+    },
+    {
+      "id": "vpn_nodes",
+      "name": "VPN exit nodes",
+      "placement": "external_datacenter_or_vps_nodes",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": true,
+      "network_zone": "vpn_transport",
+      "requirements": [
+        "provider_approved",
+        "node_monitoring_enabled",
+        "traffic_policy_evidence",
+        "no_home_server_nodes_for_s1"
+      ]
+    },
+    {
+      "id": "observability_stack",
+      "name": "Sentry, metrics, dashboards and alerts",
+      "placement": "external_or_production_private_observability_runtime",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "observability",
+      "requirements": [
+        "sentry_projects_or_equivalent",
+        "pii_scrubbing",
+        "stage1_grafana_dashboard_or_equivalent",
+        "alerts_to_private_telegram_and_backup_email"
+      ]
+    },
+    {
+      "id": "backup_storage",
+      "name": "Encrypted off-host backup storage",
+      "placement": "managed_or_external_backup_storage",
+      "production_critical": true,
+      "home_lab_allowed": false,
+      "public": false,
+      "network_zone": "private_data",
+      "requirements": [
+        "encrypted",
+        "off_host",
+        "retention_14_days",
+        "restore_drill_required"
+      ]
+    }
+  ],
+  "public_ingress": [
+    {
+      "id": "public_site_primary",
+      "hosts": ["cyber-vpn.net", "www.cyber-vpn.net"],
+      "target_component": "frontend_web",
+      "allowed_paths": ["/", "/pricing", "/features", "/devices", "/help", "/status", "/legal", "/dashboard", "/settings", "/wallet"],
+      "required_controls": ["tls", "security_headers", "managed_waf_if_available", "frontend_bundle_env_scan"]
+    },
+    {
+      "id": "public_site_mirror",
+      "hosts": ["cyber-vpn.org", "www.cyber-vpn.org"],
+      "target_component": "edge_tls_waf",
+      "allowed_paths": ["redirect_only_to_cyber-vpn.net"],
+      "required_controls": ["tls", "301_or_308_redirect", "no_independent_auth_surface"]
+    },
+    {
+      "id": "api_public",
+      "hosts": ["api.cyber-vpn.net"],
+      "target_component": "backend_api",
+      "allowed_paths": [
+        "/api/v1/auth/*",
+        "/api/v1/oauth/*",
+        "/api/v1/trial/*",
+        "/api/v1/plans/*",
+        "/api/v1/payments/*",
+        "/api/v1/webhooks/*",
+        "/api/v1/telegram/*",
+        "/api/v1/support/*",
+        "/api/v1/status"
+      ],
+      "required_controls": ["tls", "waf_rate_limits", "swagger_disabled", "cors_allowlist", "csrf_for_cookie_flows"]
+    },
+    {
+      "id": "oauth_web_callbacks",
+      "hosts": ["cyber-vpn.net"],
+      "target_component": "frontend_web",
+      "allowed_paths": ["/api/oauth/callback/google", "/api/oauth/callback/github"],
+      "required_controls": ["tls", "oauth_state_validation", "no_interactive_edge_challenge"]
+    },
+    {
+      "id": "admin_primary",
+      "hosts": ["admin.cyber-vpn.net"],
+      "target_component": "admin_web",
+      "allowed_paths": ["/*"],
+      "required_controls": ["tls", "cloudflare_access_or_ip_allowlist_or_equivalent", "admin_host_guard", "admin_2fa", "rbac", "audit_log"]
+    },
+    {
+      "id": "admin_mirror",
+      "hosts": ["admin.cyber-vpn.org"],
+      "target_component": "edge_tls_waf",
+      "allowed_paths": ["redirect_only_to_admin.cyber-vpn.net"],
+      "required_controls": ["tls", "301_or_308_redirect", "no_independent_admin_session_surface"]
+    },
+    {
+      "id": "telegram_webhook",
+      "hosts": ["api.cyber-vpn.net"],
+      "target_component": "telegram_bot",
+      "allowed_paths": ["<final Telegram webhook path from S1-TG-001/S1-TG-002>"],
+      "required_controls": ["tls", "bot_secret_or_telegram_validation", "no_interactive_edge_challenge", "rate_limit_without_breaking_telegram_retries"]
+    },
+    {
+      "id": "payment_webhooks",
+      "hosts": ["api.cyber-vpn.net"],
+      "target_component": "backend_api",
+      "allowed_paths": ["<enabled provider webhook paths from S1-PAY-002/S1-PAY-003>"],
+      "required_controls": ["tls", "provider_signature_or_recheck", "idempotency", "no_interactive_edge_challenge", "orphan_payment_policy"]
+    }
+  ],
+  "private_dependencies": [
+    {
+      "from": "backend_api",
+      "to": "managed_postgresql",
+      "purpose": "auth, payments, subscriptions, support, audit and provisioning state"
+    },
+    {
+      "from": "backend_api",
+      "to": "private_valkey",
+      "purpose": "cache, rate limits and non-durable queue acceleration"
+    },
+    {
+      "from": "backend_api",
+      "to": "remnawave_control_plane",
+      "purpose": "VPN provisioning and usage reads through private/internal API"
+    },
+    {
+      "from": "worker_scheduler",
+      "to": "managed_postgresql",
+      "purpose": "durable job recovery source for payments, provisioning, expiry and reconciliation"
+    },
+    {
+      "from": "worker_scheduler",
+      "to": "private_valkey",
+      "purpose": "queue/cache coordination only"
+    },
+    {
+      "from": "telegram_bot",
+      "to": "backend_api",
+      "purpose": "customer, trial, plan, payment, support and config operations"
+    },
+    {
+      "from": "remnawave_control_plane",
+      "to": "managed_postgresql",
+      "purpose": "Remnawave state using separate DB/user"
+    },
+    {
+      "from": "observability_stack",
+      "to": "backend_api",
+      "purpose": "metrics, health and alerting"
+    }
+  ],
+  "data_authority": [
+    {
+      "data": "user_account_auth_payment_subscription_support_audit",
+      "source_of_truth": "managed_postgresql"
+    },
+    {
+      "data": "critical_payment_and_provisioning_jobs",
+      "source_of_truth": "managed_postgresql",
+      "not_source_of_truth": "private_valkey"
+    },
+    {
+      "data": "vpn_access_runtime",
+      "source_of_truth": "remnawave_control_plane"
+    },
+    {
+      "data": "customer_config_delivery_state",
+      "source_of_truth": "backend_api_sanitized_state_plus_remnawave"
+    }
+  ],
+  "home_lab_boundary": {
+    "allowed": [
+      "local_development",
+      "local_docker_smoke",
+      "restore_drill_sandbox",
+      "secondary_monitoring_copy",
+      "security_scans",
+      "device_lab",
+      "evidence_archive_copy"
+    ],
+    "forbidden_for_s1_production": [
+      "public_site",
+      "customer_cabinet",
+      "backend_api",
+      "telegram_production_webhook",
+      "payment_webhook",
+      "production_postgresql",
+      "production_valkey",
+      "production_remnawave_control_plane",
+      "admin_production",
+      "dns_tls_edge",
+      "vpn_exit_node",
+      "primary_monitoring_alerting",
+      "only_backup_copy"
+    ]
+  },
+  "out_of_scope_runtime": [
+    "partner_portal_public_launch",
+    "partner_payouts",
+    "mobile_store_release",
+    "desktop_release",
+    "android_tv_release",
+    "browser_extension",
+    "helix_verta_beep_production_transport",
+    "kubernetes_talos_gitops_required_path",
+    "home_server_production_critical_path"
+  ],
+  "deployment_rules": [
+    "deploy_by_immutable_tag_or_commit_sha_only",
+    "do_not_deploy_floating_main",
+    "production_secrets_outside_repo",
+    "staging_and_production_credentials_never_shared",
+    "public_registration_payments_trial_and_provisioning_have_kill_switches",
+    "rollback_command_or_procedure_required_before_go_live"
+  ],
+  "evidence_required_before_go_live": [
+    "provider_or_hosting_account_selected_and_recorded_without_secrets",
+    "staging_environment_health_evidence",
+    "production_environment_deployability_checklist",
+    "dns_tls_redirect_evidence_for_primary_and_mirror_domains",
+    "protected_admin_ingress_evidence",
+    "cloudflare_or_equivalent_edge_waf_rate_limit_evidence",
+    "managed_postgresql_private_access_backup_restore_evidence",
+    "private_valkey_memory_policy_monitoring_evidence",
+    "separate_staging_and_production_remnawave_health_evidence",
+    "trial_and_paid_provisioning_evidence",
+    "payment_webhook_no_challenge_signature_idempotency_evidence",
+    "telegram_webhook_no_challenge_botfather_evidence",
+    "observability_live_target_dashboard_alert_delivery_evidence",
+    "rollback_dry_run_on_final_rc_artifacts",
+    "dirty_worktree_scope_map_rerun_before_rc"
+  ]
+}

@@ -1,14 +1,128 @@
 {
-  "title": "IBI ÀṢẸ VPN",
-  "statusLabel": "IPÒ ỆRỌ:",
-  "statusValue": "Ó DÁRA JÙLỌ",
-  "connectionStatus": "ÀSOPỌ̀ ALÁÀBÒ TI MULẸ̀",
-  "encryptionStatus": "ÌPAMỌ́: ÀÀBÒ-QUANTUM",
-  "serverStatus": "IPÒ OLÙPÍN",
-  "nodesOnline": "ÀWỌN OJÚPỌ̀ TÓ ŃṢIṢẸ́",
-  "activeSessions": "ÀWỌN ÌGBÀ TÓ ŃṢIṢẸ́",
-  "currentConnections": "Àwọn àsopọ̀ lọ́wọ́lọ́wọ́",
-  "networkLoad": "ÌRÙ NẸTIWỌỌKÌ",
-  "aggregateThroughput": "Àpapọ̀ ìsàn dátà",
-  "serverMatrix": "ÀTÒJỌ OLÙPÍN"
+    "title": "IBI ÀṢẸ VPN",
+    "statusLabel": "IPÒ ỆRỌ:",
+    "statusValue": "Ó DÁRA JÙLỌ",
+    "connectionStatus": "ÀSOPỌ̀ ALÁÀBÒ TI MULẸ̀",
+    "encryptionStatus": "ÌPAMỌ́: ÀÀBÒ-QUANTUM",
+    "serverStatus": "IPÒ OLÙPÍN",
+    "nodesOnline": "ÀWỌN OJÚPỌ̀ TÓ ŃṢIṢẸ́",
+    "activeSessions": "ÀWỌN ÌGBÀ TÓ ŃṢIṢẸ́",
+    "currentConnections": "Àwọn àsopọ̀ lọ́wọ́lọ́wọ́",
+    "networkLoad": "ÌRÙ NẸTIWỌỌKÌ",
+    "aggregateThroughput": "Àpapọ̀ ìsàn dátà",
+    "serverMatrix": "ÀTÒJỌ OLÙPÍN",
+    "cabinet": {
+        "stage1States": {
+            "ariaLabel": "Stage 1 access, payment, and provisioning states",
+            "access": {
+                "eyebrow": "Access",
+                "active": {
+                    "title": "Access active",
+                    "description": "Paid VPN access is active and ready for normal connection delivery."
+                },
+                "trial_active": {
+                    "title": "Trial active",
+                    "description": "Trial access is active. Review the expiry date before the trial window closes."
+                },
+                "grace": {
+                    "title": "Grace period",
+                    "description": "VPN access remains available during the 72-hour grace window. Renew manually before it closes."
+                },
+                "expired": {
+                    "title": "Access expired",
+                    "description": "VPN access is expired or disabled. Renew the plan or contact support before connecting."
+                },
+                "payment_pending": {
+                    "title": "Payment pending",
+                    "description": "Payment is not final yet. Access will be issued after payment confirmation and reconciliation."
+                },
+                "provisioning_pending": {
+                    "title": "Provisioning pending",
+                    "description": "The plan exists, but VPN delivery is still preparing credentials or an access channel."
+                },
+                "no_access": {
+                    "title": "No access yet",
+                    "description": "No active entitlement is available. Start trial or choose a plan to request VPN access."
+                },
+                "checking": {
+                    "title": "Checking access",
+                    "description": "The dashboard is loading the latest entitlement snapshot before showing the final access state."
+                }
+            },
+            "payment": {
+                "eyebrow": "Payment",
+                "paid": {
+                    "title": "Payment accepted",
+                    "description": "Billing state is settled for the current access window."
+                },
+                "not_started": {
+                    "title": "Payment not started",
+                    "description": "No live payment is attached to the current access state."
+                },
+                "pending": {
+                    "title": "Payment pending",
+                    "description": "Provider confirmation is still pending. Keep this payment under review until it becomes final."
+                },
+                "processing": {
+                    "title": "Payment processing",
+                    "description": "Provider processing is in progress. Do not retry the same checkout until the status is final."
+                },
+                "failed": {
+                    "title": "Payment failed",
+                    "description": "Payment failed or was rejected. Use a new checkout or contact support if funds were reserved."
+                },
+                "expired": {
+                    "title": "Payment expired",
+                    "description": "The payment window has expired. Create a new renewal or plan invoice."
+                },
+                "refunded": {
+                    "title": "Refund recorded",
+                    "description": "A refund is recorded for this billing state. Access may need manual support review."
+                },
+                "reconciliation_required": {
+                    "title": "Manual review required",
+                    "description": "Payment and access state need manual reconciliation. Support should resolve it within the S1 24-hour policy."
+                },
+                "checking": {
+                    "title": "Checking payment",
+                    "description": "The dashboard is loading billing signals before showing the final payment state."
+                }
+            },
+            "provisioning": {
+                "eyebrow": "Provisioning",
+                "ready": {
+                    "title": "VPN ready",
+                    "description": "Remnawave delivery has a service identity, credential, profile, and access channel."
+                },
+                "pending": {
+                    "title": "Provisioning pending",
+                    "description": "VPN credentials or delivery channel are not ready yet. Retry or wait for worker reconciliation."
+                },
+                "retrying": {
+                    "title": "Provisioning retrying",
+                    "description": "The backend is retrying VPN delivery. Contact support if this does not resolve quickly."
+                },
+                "failed": {
+                    "title": "Provisioning failed",
+                    "description": "VPN delivery failed. Support must re-run provisioning or issue manual remediation."
+                },
+                "remnawave_unavailable": {
+                    "title": "Remnawave unavailable",
+                    "description": "The dashboard cannot reach the provisioning state. Retry before changing access or payment data."
+                },
+                "reconciliation_required": {
+                    "title": "Provisioning review required",
+                    "description": "Payment/access and VPN delivery disagree. Support must reconcile before go-live evidence can pass."
+                },
+                "not_required": {
+                    "title": "Not required yet",
+                    "description": "Provisioning starts after trial activation or a final paid access decision."
+                },
+                "checking": {
+                    "title": "Checking provisioning",
+                    "description": "The dashboard is loading VPN delivery signals before showing the final provisioning state."
+                }
+            }
+        }
+    }
 }

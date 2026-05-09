@@ -23,6 +23,7 @@ from src.application.dto.mobile_auth import (
 )
 from src.application.services.auth_service import AuthService
 from src.application.services.cache_service import CacheService
+from src.application.services.public_registration_policy import PublicRegistrationDisabledError
 from src.application.services.telegram_auth import (
     InvalidTelegramAuthError,
     TelegramAuthExpiredError,
@@ -48,6 +49,7 @@ from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAu
 from src.application.use_cases.mobile_auth.telegram_oidc_auth import MobileTelegramOIDCAuthUseCase
 from src.application.use_cases.mobile_auth.telegram_oidc_link import MobileTelegramOIDCLinkUseCase
 from src.application.use_cases.mobile_auth.telegram_oidc_unlink import MobileTelegramOIDCUnlinkUseCase
+from src.config.settings import settings
 from src.domain.exceptions import (
     DuplicateUsernameError,
     InvalidCredentialsError,
@@ -261,6 +263,7 @@ async def register(
         user_repo=user_repo,
         device_repo=device_repo,
         auth_service=auth_service,
+        allow_new_users=settings.registration_enabled,
     )
 
     try:
@@ -312,6 +315,14 @@ async def register(
         observe_auth_request_duration("mobile_register", started_at)
         return _auth_response_from_dto(result)
 
+    except PublicRegistrationDisabledError as exc:
+        observe_auth_request_duration("mobile_register", started_at)
+        track_auth_error("registration_disabled")
+        route_operations_total.labels(route="mobile_auth", action="register", status="blocked").inc()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=exc.public_detail(),
+        ) from exc
     except DuplicateUsernameError:
         observe_auth_request_duration("mobile_register", started_at)
         raise HTTPException(
@@ -857,6 +868,7 @@ async def telegram_callback(
         auth_service=auth_service,
         telegram_auth_service=telegram_auth_service,
         subscription_client=sub_client,
+        allow_new_users=settings.registration_enabled,
     )
 
     try:
@@ -925,6 +937,30 @@ async def telegram_callback(
         observe_auth_request_duration("telegram", started_at)
         return _auth_response_from_dto(result)
 
+    except PublicRegistrationDisabledError as exc:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("registration_disabled")
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="register",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="registration_disabled",
+        )
+        observe_auth_request_duration("telegram", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=exc.public_detail(),
+        ) from exc
     except InvalidTelegramAuthError as e:
         track_auth_attempt(method="telegram", success=False)
         track_auth_error("invalid_credentials")
@@ -1018,6 +1054,7 @@ async def telegram_oidc(
         auth_service=auth_service,
         telegram_oidc_service=telegram_oidc_service,
         subscription_client=sub_client,
+        allow_new_users=settings.registration_enabled,
     )
 
     track_telegram_native_login_started(platform=platform)
@@ -1106,6 +1143,35 @@ async def telegram_oidc(
         observe_auth_request_duration("telegram_oidc", started_at)
         return _auth_response_from_dto(result)
 
+    except PublicRegistrationDisabledError as exc:
+        track_telegram_native_login_failed(platform=platform, reason="registration_disabled")
+        track_auth_attempt(method="telegram_oidc", success=False)
+        track_auth_error("registration_disabled")
+        track_auth_flow_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="register",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="mobile",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="registration_disabled",
+        )
+        logger.warning(
+            "telegram_oidc_registration_blocked",
+            extra={"platform": platform},
+        )
+        observe_auth_request_duration("telegram_oidc", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=exc.public_detail(),
+        ) from exc
     except InvalidTelegramOIDCTokenError as exc:
         track_telegram_native_login_failed(platform=platform, reason=exc.reason)
         track_telegram_oidc_token_validation_failure(reason=exc.reason)

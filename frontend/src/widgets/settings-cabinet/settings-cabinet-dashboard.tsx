@@ -23,6 +23,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
 import {
   authApi,
+  entitlementsApi,
   growthNotificationsApi,
   profileApi,
   securityApi,
@@ -38,13 +39,16 @@ import {
   CORE_NOTIFICATION_PREFERENCES,
   formatDateTime,
   formatShortId,
+  getDeviceLimitSummary,
   getDeviceKind,
   getEnabledCount,
   getSecurityPosture,
   GROWTH_NOTIFICATION_PREFERENCES,
   maskAntiphishingCode,
   parseDeviceLabel,
+  readDeviceLimit,
   type CoreNotificationPreferenceKey,
+  type DeviceLimitState,
   type GrowthNotificationPreferenceKey,
   type ProfileUpdate,
   type StatusTone,
@@ -143,6 +147,10 @@ function getDeviceIcon(kind: 'desktop' | 'mobile' | 'tablet') {
   return Laptop;
 }
 
+function getLimitHelpKey(state: DeviceLimitState) {
+  return `devices.limitHelp.${state}` as const;
+}
+
 export function SettingsCabinetDashboard() {
   const t = useTranslations('Settings.cabinet');
   const locale = useLocale();
@@ -221,6 +229,16 @@ export function SettingsCabinetDashboard() {
     staleTime: SECURITY_STALE_MS,
   });
 
+  const entitlementQuery = useQuery({
+    queryKey: ['settings', 'entitlement'],
+    queryFn: async () => {
+      const response = await entitlementsApi.getCurrent();
+      return response.data;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: PROFILE_STALE_MS,
+  });
+
   const profile = profileQuery.data ?? null;
   const user = userQuery.data ?? null;
   const twoFactorStatus = twoFactorQuery.data ?? null;
@@ -228,8 +246,30 @@ export function SettingsCabinetDashboard() {
   const coreNotifications = coreNotificationsQuery.data ?? null;
   const growthNotifications = growthNotificationsQuery.data ?? null;
   const devices = devicesQuery.data?.devices ?? [];
+  const entitlement = entitlementQuery.data ?? null;
   const currentDevice = devices.find((device) => device.is_current) ?? null;
   const otherDevices = devices.filter((device) => !device.is_current && device.device_id);
+  const deviceLimitSummary = getDeviceLimitSummary({
+    active: devices.length,
+    limit: readDeviceLimit(entitlement),
+  });
+  const deviceLimitText =
+    entitlementQuery.isPending
+      ? t('labels.loading')
+      : deviceLimitSummary.limit === null
+        ? t('devices.limitUnknown', { used: deviceLimitSummary.active })
+        : t('devices.limitUsed', {
+            limit: deviceLimitSummary.limit,
+            used: deviceLimitSummary.active,
+          });
+  const deviceRemainingText =
+    entitlementQuery.isPending || deviceLimitSummary.remaining === null
+      ? t('labels.notAvailable')
+      : String(Math.max(0, deviceLimitSummary.remaining));
+  const deviceLimitHelp = t(getLimitHelpKey(deviceLimitSummary.state), {
+    count: Math.abs(deviceLimitSummary.remaining ?? 0),
+    remaining: Math.max(0, deviceLimitSummary.remaining ?? 0),
+  });
   const posture = getSecurityPosture({
     antiPhishingCode: antiphishingCode,
     devices,
@@ -243,6 +283,7 @@ export function SettingsCabinetDashboard() {
     antiphishingQuery.isError ||
     coreNotificationsQuery.isError ||
     growthNotificationsQuery.isError ||
+    entitlementQuery.isError ||
     devicesQuery.isError;
 
   const updateProfileMutation = useMutation({
@@ -384,6 +425,7 @@ export function SettingsCabinetDashboard() {
       antiphishingQuery.refetch(),
       coreNotificationsQuery.refetch(),
       growthNotificationsQuery.refetch(),
+      entitlementQuery.refetch(),
       devicesQuery.refetch(),
     ]);
 
@@ -505,8 +547,12 @@ export function SettingsCabinetDashboard() {
         <MetricCard
           icon={<Laptop className="h-5 w-5" aria-hidden="true" />}
           label={t('summary.devices')}
-          tone={otherDevices.length > 2 ? 'amber' : 'purple'}
-          value={String(devices.length)}
+          tone={deviceLimitSummary.tone === 'muted' ? 'purple' : deviceLimitSummary.tone}
+          value={
+            deviceLimitSummary.limit === null
+              ? String(devices.length)
+              : `${devices.length}/${deviceLimitSummary.limit}`
+          }
         />
       </section>
 
@@ -744,7 +790,10 @@ export function SettingsCabinetDashboard() {
           </div>
         </article>
 
-        <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
+        <article
+          id="devices"
+          className="scroll-mt-24 rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur"
+        >
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-pink">
@@ -764,6 +813,72 @@ export function SettingsCabinetDashboard() {
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               {t('devices.revokeOthers')}
             </button>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-grid-line/30 bg-black/20 p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  {t('devices.limitTitle')}
+                </p>
+                <p className="mt-2 text-3xl font-display text-white">{deviceLimitText}</p>
+                <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground">
+                  {t('devices.limitDescription')}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusPill tone={deviceLimitSummary.tone}>
+                  {t(`devices.limitStates.${deviceLimitSummary.state}`)}
+                </StatusPill>
+                <Link
+                  href="/subscriptions"
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-cyan transition hover:bg-neon-cyan/15"
+                >
+                  {t('devices.managePlan')}
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {t('devices.activeCount')}
+                </p>
+                <p className="mt-2 font-mono text-xl text-white">{devices.length}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {t('devices.planLimit')}
+                </p>
+                <p className="mt-2 font-mono text-xl text-white">
+                  {entitlementQuery.isPending
+                    ? t('labels.loading')
+                    : deviceLimitSummary.limit ?? t('labels.notAvailable')}
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {t('devices.remainingSlots')}
+                </p>
+                <p className="mt-2 font-mono text-xl text-white">{deviceRemainingText}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-grid-line/30">
+              <div
+                className={`h-full rounded-full ${
+                  deviceLimitSummary.tone === 'pink'
+                    ? 'bg-neon-pink'
+                    : deviceLimitSummary.tone === 'amber'
+                      ? 'bg-amber-300'
+                      : 'bg-matrix-green'
+                }`}
+                style={{ width: `${deviceLimitSummary.percent}%` }}
+              />
+            </div>
+            <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
+              {deviceLimitHelp}
+            </p>
           </div>
 
           {devicesQuery.isPending ? (

@@ -171,11 +171,11 @@ class TestOAuthLoginUseCase:
         use_case = OAuthLoginUseCase(mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session)
 
         result = await use_case.execute(
-            provider="discord",
+            provider="google",
             user_info={
-                "id": "d456",
+                "id": "g456",
                 "email": "existing@example.com",
-                "username": "discorduser",
+                "username": "googleuser",
                 "access_token": "tok",
             },
         )
@@ -186,9 +186,39 @@ class TestOAuthLoginUseCase:
 
         # Verify the OAuth account was created with correct provider info
         created_account = mock_oauth_repo.create.call_args.args[0]
-        assert created_account.provider == "discord"
-        assert created_account.provider_user_id == "d456"
+        assert created_account.provider == "google"
+        assert created_account.provider_user_id == "g456"
         assert created_account.user_id == user.id
+
+    @pytest.mark.unit
+    async def test_non_s1_provider_cannot_auto_link_even_if_misconfigured_as_trusted(
+        self, mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session, make_user, monkeypatch
+    ):
+        """S1 trusted-email auto-linking remains locked to Google/GitHub."""
+        user = make_user(email="existing@example.com")
+
+        mock_oauth_repo.get_by_provider_and_user_id.return_value = None
+        mock_user_repo.get_by_email.return_value = user
+        monkeypatch.setattr(
+            "src.application.use_cases.auth.oauth_login.settings.oauth_trusted_email_link_providers",
+            ["discord"],
+        )
+
+        use_case = OAuthLoginUseCase(mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session)
+
+        with pytest.raises(ValueError, match="Automatic account linking is disabled"):
+            await use_case.execute(
+                provider="discord",
+                user_info={
+                    "id": "d456",
+                    "email": "existing@example.com",
+                    "username": "discorduser",
+                    "email_verified": True,
+                    "access_token": "tok",
+                },
+            )
+
+        mock_oauth_repo.create.assert_not_called()
 
     @pytest.mark.unit
     async def test_auto_link_commits_session(
@@ -436,7 +466,7 @@ class TestOAuthLoginUseCase:
 
         # Override create_access_token for 2FA pending token
         tfa_access_exp = datetime.now(UTC) + timedelta(minutes=5)
-        mock_auth_service.create_access_token.return_value = ("2fa_pending_tok", "jti_2fa", tfa_access_exp)
+        mock_auth_service.create_access_token.return_value = ("pending-2fa-session-value", "jti_2fa", tfa_access_exp)
 
         use_case = OAuthLoginUseCase(mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session)
 
@@ -446,7 +476,7 @@ class TestOAuthLoginUseCase:
         )
 
         assert result.requires_2fa is True
-        assert result.tfa_token == "2fa_pending_tok"
+        assert result.tfa_token == "pending-2fa-session-value"
         assert result.access_token == ""
         assert result.refresh_token == ""
         assert result.expires_in == 0
@@ -903,6 +933,69 @@ class TestTelegramOAuthLogin:
         mock_user_repo.get_by_telegram_id.assert_awaited_once_with(123456789)
         mock_user_repo.create.assert_not_called()
         mock_oauth_repo.create.assert_called_once()
+
+    @pytest.mark.unit
+    async def test_telegram_does_not_silent_merge_by_email(
+        self, mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session, make_user
+    ):
+        """Telegram OAuth must use telegram_id, not email, for automatic linking."""
+        existing_email_user = make_user(login="email_owner", email="owner@example.com")
+        new_telegram_user = make_user(login="new_tg_user", email=None)
+
+        mock_oauth_repo.get_by_provider_and_user_id.return_value = None
+        mock_user_repo.get_by_email.return_value = existing_email_user
+        mock_user_repo.get_by_telegram_id.return_value = None
+        mock_user_repo.get_by_login.return_value = None
+        mock_user_repo.create.return_value = new_telegram_user
+
+        use_case = OAuthLoginUseCase(mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session)
+
+        result = await use_case.execute(
+            provider="telegram",
+            user_info={
+                "id": "987654321",
+                "email": "owner@example.com",
+                "username": "safe_tg",
+                "first_name": "Safe",
+                "access_token": "",
+            },
+        )
+
+        assert result.is_new_user is True
+        assert result.user is new_telegram_user
+        mock_user_repo.get_by_email.assert_not_awaited()
+        mock_user_repo.get_by_telegram_id.assert_awaited_once_with(987654321)
+
+        created_user = mock_user_repo.create.call_args.args[0]
+        assert created_user.email is None
+        assert created_user.telegram_id == 987654321
+
+        created_oauth = mock_oauth_repo.create.call_args.args[0]
+        assert created_oauth.user_id == new_telegram_user.id
+        assert created_oauth.provider == "telegram"
+        assert created_oauth.provider_user_id == "987654321"
+
+    @pytest.mark.unit
+    async def test_telegram_invalid_user_id_is_rejected(
+        self, mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session
+    ):
+        """Malformed Telegram IDs do not create or link accounts."""
+        use_case = OAuthLoginUseCase(mock_user_repo, mock_oauth_repo, mock_auth_service, mock_session)
+
+        with pytest.raises(ValueError, match="Invalid Telegram user id"):
+            await use_case.execute(
+                provider="telegram",
+                user_info={
+                    "id": "not-a-number",
+                    "username": "bad",
+                    "access_token": "",
+                },
+            )
+
+        mock_user_repo.get_by_email.assert_not_awaited()
+        mock_user_repo.get_by_telegram_id.assert_not_awaited()
+        mock_user_repo.create.assert_not_awaited()
+        mock_oauth_repo.create.assert_not_awaited()
 
     # ------------------------------------------------------------------
     # kpn9.7.5: Non-Telegram providers still follow standard flow (regression)

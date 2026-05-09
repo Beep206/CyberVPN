@@ -18,7 +18,7 @@
     "expires": "Expires",
     "never": "Never",
     "unknown": "Unknown",
-    "trialPlan": "7-Day Free Trial",
+    "trialPlan": "3-Day Free Trial",
     "daysRemaining": "Days Remaining",
     "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
     "usage": "Usage Statistics",
@@ -26,7 +26,7 @@
     "connections": "Connections",
     "lastConnected": "Last Connected",
     "trialAvailable": "Free Trial Available",
-    "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
+    "trialDescription": "Try CyberVPN free for 3 days on 1 device.",
     "activateTrial": "Activate Trial",
     "quickActions": "Quick Actions",
     "viewPlans": "View Plans",
@@ -78,10 +78,10 @@
   },
   "plans": {
     "freeTrialTitle": "Try CyberVPN Free",
-    "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
-    "activateTrial": "Activate 7-Day Trial",
+    "freeTrialDescription": "Get 3 days of access on 1 device. No credit card required.",
+    "activateTrial": "Activate 3-Day Trial",
     "activating": "Activating...",
-    "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+    "trialActivated": "Trial activated successfully! Enjoy 3 days of access.",
     "trialError": "Failed to activate trial. Please try again.",
     "availablePlans": "Subscription Plans",
     "noPlans": "No plans available at the moment",
@@ -107,7 +107,9 @@
     "processing": "Processing...",
     "paymentError": "Payment failed. Please try again.",
     "contactForPrice": "Contact",
-    "planNote": "This is a VPN configuration template. Contact support for pricing and activation."
+    "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
+    "billingCurrencyNotice": "Charged in {currency}",
+    "localEstimate": "Approx. {price} display only"
   },
   "profile": {
     "guest": "Guest User",

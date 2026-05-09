@@ -1,7 +1,7 @@
 """Add attribution touchpoints for Phase 3.
 
-Revision ID: 20260418_phase3_attribution_touchpoints
-Revises: 20260418_phase2_commissionability_scaffolding
+Revision ID: 20260418_p3_attribution
+Revises: 20260418_p2_commissionability
 Create Date: 2026-04-18 19:20:00.000000
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "20260418_phase3_attribution_touchpoints"
-down_revision: str | None = "20260418_phase2_commissionability_scaffolding"
+revision: str = "20260418_p3_attribution"
+down_revision: str | None = "20260418_p2_commissionability"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None
 

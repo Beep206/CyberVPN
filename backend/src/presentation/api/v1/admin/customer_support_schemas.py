@@ -40,6 +40,18 @@ class AdminCustomerSupportActionRequest(BaseModel):
     reason: str | None = Field(None, max_length=1000)
 
 
+class AdminCustomerCredentialRegenerationRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=1000)
+    revoke_only_passwords: bool = False
+
+
+class AdminCustomerManualSubscriptionRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=1000)
+    duration_days: int = Field(..., ge=1, le=365)
+    device_limit: int = Field(1, ge=1, le=10)
+    traffic_limit_bytes: int | None = Field(None, gt=0)
+
+
 class AdminCustomerPasswordResetRequest(BaseModel):
     new_password: str | None = Field(None, min_length=12, max_length=128)
     generate_temporary_password: bool = False
@@ -87,6 +99,33 @@ class AdminCustomerSubscriptionResyncResponse(BaseModel):
     config_available: bool = False
     config_client_type: str | None = None
     links_count: int = 0
+
+
+class AdminCustomerCredentialRegenerationResponse(BaseModel):
+    user_id: UUID
+    remnawave_uuid: UUID
+    status: str
+    short_uuid_changed: bool = False
+    subscription_url_changed: bool = False
+    revoke_only_passwords: bool = False
+    expires_at: datetime | None = None
+    regenerated_at: datetime
+    config_delivery_required: bool = True
+    audit_action: str
+
+
+class AdminCustomerManualSubscriptionResponse(BaseModel):
+    user_id: UUID
+    remnawave_uuid: UUID
+    status: str
+    operation: Literal["grant", "extend"]
+    duration_days: int
+    previous_expires_at: datetime | None = None
+    expires_at: datetime
+    created: bool = False
+    subscription_url_changed: bool = False
+    config_delivery_required: bool = True
+    audit_action: str
 
 
 class AdminCustomerVpnUserResponse(BaseModel):

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 import {
   entitlementsApi,
   growthNotificationsApi,
@@ -40,12 +41,16 @@ import {
   getCabinetActionIds,
   getCabinetHealth,
   getServiceAccessLabel,
+  getStage1DashboardStates,
   getUsagePercentage,
+  isUsageAvailable,
   readEntitlementNumber,
   readEntitlementString,
   readEntitlementStringArray,
   type CabinetActionId,
   type CabinetHealth,
+  type CabinetStateTone,
+  type Stage1DashboardStateCard,
 } from './customer-cabinet-model';
 
 const PROFILE_STALE_MS = 60_000;
@@ -53,7 +58,7 @@ const STATIC_STALE_MS = 120_000;
 const LIVE_REFETCH_MS = 45_000;
 const NOTIFICATION_REFETCH_MS = 30_000;
 
-type Tone = 'cyan' | 'green' | 'pink' | 'purple' | 'amber';
+type Tone = CabinetStateTone;
 
 const toneClasses: Record<
   Tone,
@@ -94,6 +99,12 @@ const toneClasses: Record<
     icon: 'bg-neon-purple/10 text-neon-purple',
     text: 'text-neon-purple',
   },
+};
+
+const stage1StateIcons: Record<Stage1DashboardStateCard['id'], LucideIcon> = {
+  access: ShieldCheck,
+  payment: CreditCard,
+  provisioning: Server,
 };
 
 function visiblePolling(intervalMs: number) {
@@ -210,18 +221,18 @@ function MetricCard({
 }
 
 function ProgressBar({
+  fallbackLabel,
   label,
   percentage,
-  unlimitedLabel,
 }: {
+  fallbackLabel: string;
   label: string;
   percentage: number | null;
-  unlimitedLabel: string;
 }) {
   if (percentage === null) {
     return (
       <div className="rounded-full border border-matrix-green/30 bg-matrix-green/10 px-3 py-1 font-mono text-xs text-matrix-green">
-        {unlimitedLabel}
+        {fallbackLabel}
       </div>
     );
   }
@@ -397,6 +408,7 @@ export function CustomerCabinetDashboard() {
   const referralQuery = useQuery({
     queryFn: async () => (await referralApi.getStats()).data,
     queryKey: ['customer-cabinet', 'referral-stats'],
+    enabled: STAGE1_REFERRAL_UI_ENABLED,
     staleTime: STATIC_STALE_MS,
   });
 
@@ -436,6 +448,7 @@ export function CustomerCabinetDashboard() {
   const latestNotifications = notificationListQuery.data ?? [];
   const serviceState = serviceStateQuery.data;
   const trial = trialQuery.data;
+  const usageIsAvailable = isUsageAvailable(usage);
 
   const knownEntitlement =
     entitlementQuery.isFetched || entitlementQuery.isError
@@ -454,6 +467,12 @@ export function CustomerCabinetDashboard() {
     serviceState: knownServiceState,
     usage,
   });
+  const stage1States = getStage1DashboardStates({
+    entitlement: knownEntitlement,
+    serviceState: knownServiceState,
+    serviceStateError: serviceStateQuery.isError,
+    trial: knownTrial,
+  });
   const healthClasses = toneClasses[healthTone(health)];
   const deviceLimit =
     readEntitlementNumber(entitlement, 'device_limit') ??
@@ -471,8 +490,12 @@ export function CustomerCabinetDashboard() {
     profile?.display_name?.trim() || profile?.email || t('anonymousUser');
   const planName = entitlement?.display_name || entitlement?.plan_code;
   const expiresAt = formatDate(entitlement?.expires_at, locale);
-  const lastConnectionAt = formatDate(usage?.last_connection_at, locale);
-  const periodEnd = formatDate(usage?.period_end, locale);
+  const lastConnectionAt = usageIsAvailable
+    ? formatDate(usage.last_connection_at, locale)
+    : null;
+  const periodEnd = usageIsAvailable
+    ? formatDate(usage.period_end, locale)
+    : null;
   const walletCurrency = wallet?.currency ?? 'USD';
   const channelLabel = getServiceAccessLabel(
     serviceState?.access_delivery_channel?.channel_type ??
@@ -505,6 +528,9 @@ export function CustomerCabinetDashboard() {
     trial: knownTrial,
     usage,
   });
+  const visiblePriorityActions = priorityActions.filter(
+    (actionId) => actionId !== 'inviteFriends' || STAGE1_REFERRAL_UI_ENABLED,
+  );
   const actionMeta: Record<
     CabinetActionId,
     {
@@ -577,7 +603,7 @@ export function CustomerCabinetDashboard() {
     entitlementQuery,
     usageQuery,
     walletQuery,
-    referralQuery,
+    ...(STAGE1_REFERRAL_UI_ENABLED ? [referralQuery] : []),
     notificationQuery,
     notificationListQuery,
     serviceStateQuery,
@@ -621,7 +647,9 @@ export function CustomerCabinetDashboard() {
     void entitlementQuery.refetch();
     void usageQuery.refetch();
     void walletQuery.refetch();
-    void referralQuery.refetch();
+    if (STAGE1_REFERRAL_UI_ENABLED) {
+      void referralQuery.refetch();
+    }
     void notificationQuery.refetch();
     void notificationListQuery.refetch();
     void serviceStateQuery.refetch();
@@ -688,7 +716,7 @@ export function CustomerCabinetDashboard() {
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
-          {priorityActions.map((actionId) => {
+          {visiblePriorityActions.map((actionId) => {
             const action = actionMeta[actionId];
 
             return (
@@ -706,6 +734,61 @@ export function CustomerCabinetDashboard() {
       </section>
 
       <section
+        aria-label={t('stage1States.ariaLabel')}
+        className="grid gap-4 md:grid-cols-3"
+      >
+        {stage1States.map((state) => {
+          const classes = toneClasses[state.tone];
+          const Icon = stage1StateIcons[state.id];
+          const action = state.actionId ? actionMeta[state.actionId] : null;
+          const actionClassName = `mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border ${classes.border} px-4 py-2 font-mono text-xs ${classes.text} transition hover:bg-white/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg`;
+          const actionContent = action ? (
+            <>
+              {action.label}
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </>
+          ) : null;
+
+          return (
+            <article
+              key={state.id}
+              data-testid={`stage1-state-${state.id}`}
+              className={`min-h-48 rounded-[1.25rem] border ${classes.border} ${classes.glow} bg-terminal-surface/50 p-5 backdrop-blur`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${classes.border} ${classes.icon}`}
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-mono text-xs uppercase tracking-[0.26em] text-muted-foreground">
+                    {t(`stage1States.${state.id}.eyebrow`)}
+                  </p>
+                  <h3 className={`mt-2 break-words font-display text-xl ${classes.text}`}>
+                    {t(`stage1States.${state.id}.${state.state}.title`)}
+                  </h3>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                {t(`stage1States.${state.id}.${state.state}.description`)}
+              </p>
+              {action &&
+                (action.href.startsWith('#') ? (
+                  <a href={action.href} className={actionClassName}>
+                    {actionContent}
+                  </a>
+                ) : (
+                  <Link href={action.href} className={actionClassName}>
+                    {actionContent}
+                  </Link>
+                ))}
+            </article>
+          );
+        })}
+      </section>
+
+      <section
         id="cabinet-usage"
         className="grid scroll-mt-24 gap-4 md:grid-cols-2 xl:grid-cols-4"
       >
@@ -714,18 +797,18 @@ export function CustomerCabinetDashboard() {
           loading={usageQuery.isPending}
           title={t('metrics.traffic.title')}
           value={
-            usage
+            usageIsAvailable
               ? formatBytes(usage.bandwidth_used_bytes, locale)
               : t('unavailable')
           }
           meta={
-            usage
+            usageIsAvailable
               ? t('metrics.traffic.meta', {
                   limit: usage.bandwidth_limit_bytes
                     ? formatBytes(usage.bandwidth_limit_bytes, locale)
                     : t('unlimited'),
                 })
-              : t('metrics.traffic.empty')
+              : metricErrorLabel
           }
           errorLabel={usageQuery.isError ? metricErrorLabel : undefined}
           onRetry={() => {
@@ -740,7 +823,7 @@ export function CustomerCabinetDashboard() {
           loading={usageQuery.isPending}
           title={t('metrics.devices.title')}
           value={
-            usage
+            usageIsAvailable
               ? `${usage.connections_active}/${usage.connections_limit}`
               : t('unavailable')
           }
@@ -887,14 +970,18 @@ export function CustomerCabinetDashboard() {
           <div className="mt-6">
             <ProgressBar
               label={
-                usagePercentage === null
+                !usageIsAvailable
+                  ? metricErrorLabel
+                  : usagePercentage === null
                   ? t('metrics.traffic.unmetered')
                   : t('metrics.traffic.percentage', {
                       percentage: usagePercentage,
                     })
               }
               percentage={usagePercentage}
-              unlimitedLabel={t('unlimited')}
+              fallbackLabel={
+                usageIsAvailable ? t('unlimited') : t('unavailable')
+              }
             />
           </div>
         </article>
@@ -1057,6 +1144,7 @@ export function CustomerCabinetDashboard() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
+        {STAGE1_REFERRAL_UI_ENABLED ? (
         <article className="rounded-[1.5rem] border border-matrix-green/25 bg-terminal-surface/55 p-5 backdrop-blur md:p-6">
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-matrix-green">
             {t('rewards.eyebrow')}
@@ -1117,6 +1205,7 @@ export function CustomerCabinetDashboard() {
             />
           </div>
         </article>
+        ) : null}
 
         <article className="rounded-[1.5rem] border border-neon-pink/25 bg-terminal-surface/55 p-5 backdrop-blur md:p-6">
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-neon-pink">

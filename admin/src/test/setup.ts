@@ -1,9 +1,32 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { server } from './mocks/server';
 
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
+
+function installBrowserApiMocks() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: window.navigator,
+  });
+
+  Object.defineProperty(window.navigator, 'sendBeacon', {
+    configurable: true,
+    value: vi.fn(() => true),
+  });
+
+  Object.defineProperty(window, 'open', {
+    configurable: true,
+    value: vi.fn(),
+  });
+}
+
+installBrowserApiMocks();
 
 // ---------------------------------------------------------------------------
 // MSW Server Lifecycle
@@ -15,6 +38,10 @@ process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8000';
 // the registered handlers.
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'bypass' });
+});
+
+beforeEach(() => {
+  installBrowserApiMocks();
 });
 
 // Reset any per-test handler overrides so tests stay isolated.

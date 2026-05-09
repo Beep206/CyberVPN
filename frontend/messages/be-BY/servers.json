@@ -3,5 +3,15 @@
   "subtitle": "Кіраванне VPN-вузламі, пратаколамі і рэгіёнамі разгортвання.",
   "globalStatus": "ГЛАБАЛЬНЫ СТАТУС: {status}",
   "globalStatusValue": "РАЗГОРНУТА",
-  "lastSync": "АПОШНЯЯ СІНХРАНІЗАЦЫЯ: {time} ТАМУ"
+  "lastSync": "АПОШНЯЯ СІНХРАНІЗАЦЫЯ: {time} ТАМУ",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

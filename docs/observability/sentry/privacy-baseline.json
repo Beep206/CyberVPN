@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-04-25",
+  "last_updated": "2026-05-06",
   "org_defaults": {
     "sdk_default_pii": false,
     "prevent_storing_ip_addresses": true,
@@ -34,7 +34,13 @@
     "openbao",
     "opentofu",
     "nats",
-    "payment"
+    "payment",
+    "oauth",
+    "totp",
+    "initdata",
+    "init_data",
+    "checkout",
+    "invoice"
   ],
   "strict_endpoint_classes": [
     "auth",
@@ -69,6 +75,24 @@
         "maskAllText: true",
         "blockAllMedia: true",
         "beforeSend(event)"
+      ]
+    },
+    {
+      "path": "frontend/src/shared/lib/sentry-privacy.ts",
+      "must_contain": [
+        "SENSITIVE_FIELD_MARKERS",
+        "SENSITIVE_STRING_PATTERNS",
+        "scrubSensitiveMapping",
+        "x-telegram-bot-api-secret-token"
+      ]
+    },
+    {
+      "path": "admin/src/shared/lib/sentry-privacy.ts",
+      "must_contain": [
+        "SENSITIVE_FIELD_MARKERS",
+        "SENSITIVE_STRING_PATTERNS",
+        "scrubSensitiveMapping",
+        "x-telegram-bot-api-secret-token"
       ]
     },
     {

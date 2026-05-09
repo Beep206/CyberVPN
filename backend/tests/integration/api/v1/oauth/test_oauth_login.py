@@ -119,7 +119,7 @@ class TestOAuthLoginRoutes:
         oauth_route_dependencies,
     ):
         with (
-            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://cyber-vpn.net"),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.generate",
                 new=AsyncMock(return_value=("csrf_state_123", "pkce_challenge_123")),
@@ -137,7 +137,7 @@ class TestOAuthLoginRoutes:
             "state": "csrf_state_123",
         }
         mock_authorize_url.assert_called_once_with(
-            "https://vpn.ozoxy.ru/api/oauth/callback/google",
+            "https://cyber-vpn.net/api/oauth/callback/google",
             state="csrf_state_123",
             code_challenge="pkce_challenge_123",
             code_challenge_method="S256",
@@ -163,7 +163,7 @@ class TestOAuthLoginRoutes:
         )
 
         with (
-            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://cyber-vpn.net"),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
                 new=AsyncMock(return_value={"code_verifier": "verifier_123"}),
@@ -200,7 +200,7 @@ class TestOAuthLoginRoutes:
         assert f"access_token={access_token}" in "\n".join(response.headers.get_list("set-cookie"))
         mock_exchange_code.assert_awaited_once_with(
             code="google_code_123",
-            redirect_uri="https://vpn.ozoxy.ru/api/oauth/callback/google",
+            redirect_uri="https://cyber-vpn.net/api/oauth/callback/google",
             code_verifier="verifier_123",
         )
 
@@ -223,7 +223,7 @@ class TestOAuthLoginRoutes:
         )
 
         with (
-            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://cyber-vpn.net"),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
                 new=AsyncMock(return_value={"code_verifier": "verifier_123"}),
@@ -263,7 +263,7 @@ class TestOAuthLoginRoutes:
         oauth_route_dependencies,
     ):
         with (
-            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://cyber-vpn.net"),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
                 new=AsyncMock(return_value=None),
@@ -278,40 +278,43 @@ class TestOAuthLoginRoutes:
         assert response.json()["detail"] == "Invalid or expired OAuth state."
 
     @pytest.mark.integration
-    async def test_callback_returns_collision_for_untrusted_auto_link(
+    async def test_callback_blocks_non_s1_provider_before_state_exchange(
         self,
         async_client: AsyncClient,
         oauth_route_dependencies,
     ):
+        mock_validate_state = AsyncMock(return_value={"validated": True})
+        mock_exchange_code = AsyncMock(
+            return_value={
+                "id": "facebook_123",
+                "email": "existing@example.com",
+                "username": "neo",
+                "access_token": "provider_access",
+            }
+        )
+        mock_execute = AsyncMock(
+            side_effect=ValueError(
+                "Automatic account linking is disabled for this provider email. "
+                "Sign in with your existing account and link the provider manually."
+            )
+        )
         with (
-            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://cyber-vpn.net"),
             patch(
                 "src.presentation.api.v1.oauth.routes.settings.oauth_enabled_login_providers",
                 ["google", "github", "discord", "facebook"],
             ),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
-                new=AsyncMock(return_value={"validated": True}),
+                new=mock_validate_state,
             ),
             patch(
                 "src.infrastructure.oauth.facebook.FacebookOAuthProvider.exchange_code",
-                new=AsyncMock(
-                    return_value={
-                        "id": "facebook_123",
-                        "email": "existing@example.com",
-                        "username": "neo",
-                        "access_token": "provider_access",
-                    }
-                ),
+                new=mock_exchange_code,
             ),
             patch(
                 "src.presentation.api.v1.oauth.routes.OAuthLoginUseCase.execute",
-                new=AsyncMock(
-                    side_effect=ValueError(
-                        "Automatic account linking is disabled for this provider email. "
-                        "Sign in with your existing account and link the provider manually."
-                    )
-                ),
+                new=mock_execute,
             ),
         ):
             response = await async_client.post(
@@ -319,8 +322,11 @@ class TestOAuthLoginRoutes:
                 json={"code": "facebook_code_123", "state": "csrf_state_123"},
             )
 
-        assert response.status_code == 409
-        assert "Automatic account linking is disabled" in response.json()["detail"]
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Provider 'facebook' is currently disabled."
+        mock_validate_state.assert_not_awaited()
+        mock_exchange_code.assert_not_awaited()
+        mock_execute.assert_not_awaited()
 
     @pytest.mark.integration
     async def test_callback_returns_503_when_google_is_temporarily_unavailable(
@@ -329,7 +335,7 @@ class TestOAuthLoginRoutes:
         oauth_route_dependencies,
     ):
         with (
-            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://vpn.ozoxy.ru"),
+            patch("src.presentation.api.v1.oauth.routes.settings.oauth_web_base_url", "https://cyber-vpn.net"),
             patch(
                 "src.application.services.oauth_state_service.OAuthStateService.validate_and_consume",
                 new=AsyncMock(return_value={"code_verifier": "verifier_123"}),

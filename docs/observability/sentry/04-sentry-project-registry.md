@@ -2,7 +2,7 @@
 
 Status: draft
 Owner: platform (proposed)
-Last updated: 2026-04-25
+Last updated: 2026-05-06
 Scope: all direct Sentry projects in the monorepo
 Depends on: `01-target-architecture-and-scope.md`, `05-environment-and-release-contract.md`
 Related paths: `surfaces/`, `../../plans/2026-04-24-sentry-rollout-tracker.md`
@@ -26,6 +26,20 @@ Production acceptance is tracked separately in `production-acceptance-registry.j
 | `node-fleet-controller` | control-plane FastAPI | `services/node-fleet-controller/` | platform | `SENTRY_DSN` | `node-fleet-controller@<git-sha>` | 2 | baseline_complete |
 | `helix-adapter` | Rust/Axum adapter | `services/helix-adapter/` | platform | `SENTRY_DSN` | `helix-adapter@<git-sha>` | 3 | baseline_complete |
 | `helix-node` | Rust node daemon | `services/helix-node/` | platform | `SENTRY_DSN` | `helix-node@<git-sha>` | 3 | baseline_complete |
+
+## S1 critical subset
+
+For S1 Controlled Public Beta, only these projects are launch-critical:
+
+| Project | S1 reason | Local contract evidence |
+|---|---|---|
+| `web-frontend` | Customer web/Mini App runtime, auth, checkout, config display | `../../cybervpn_stage1_launch_docs/94_STAGE1_OBS_001_SENTRY_PROJECTS_CONFIG_EVIDENCE.md` |
+| `web-admin` | Support/admin incident handling, manual operations, payment attempts | `../../cybervpn_stage1_launch_docs/94_STAGE1_OBS_001_SENTRY_PROJECTS_CONFIG_EVIDENCE.md` |
+| `backend-api` | Auth, payment, provisioning and support APIs | `../../cybervpn_stage1_launch_docs/94_STAGE1_OBS_001_SENTRY_PROJECTS_CONFIG_EVIDENCE.md` |
+| `telegram-bot` | Telegram sales/support/Mini App entrypoint | `../../cybervpn_stage1_launch_docs/94_STAGE1_OBS_001_SENTRY_PROJECTS_CONFIG_EVIDENCE.md` |
+| `task-worker` | Provisioning/reconciliation/notification jobs | `../../cybervpn_stage1_launch_docs/94_STAGE1_OBS_001_SENTRY_PROJECTS_CONFIG_EVIDENCE.md` |
+
+The local contract is complete for S1. Live project provisioning, DSN injection, org privacy rules, test events, source-map proof and alert routing remain go-live evidence.
 
 ## Registry rules
 

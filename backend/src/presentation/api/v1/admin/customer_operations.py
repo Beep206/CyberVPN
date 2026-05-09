@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,6 +60,7 @@ from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_permission, require_role
 
+from .audit import write_required_admin_audit_entry
 from .customer_operations_schemas import (
     AdminCustomerOperationsActionKind,
     AdminCustomerOperationsActionRequest,
@@ -670,6 +671,7 @@ async def export_customer_payout_execution_evidence(
 async def perform_customer_operations_action(
     user_id: UUID,
     payload: AdminCustomerOperationsActionRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_admin: AdminUserModel = Depends(require_role(AdminRole.ADMIN)),
 ) -> AdminCustomerOperationsActionResponse:
@@ -794,4 +796,21 @@ async def perform_customer_operations_action(
         action="operations_action",
         status="success",
     ).inc()
+    await write_required_admin_audit_entry(
+        db=db,
+        action=f"customer_operations.{payload.action_kind.value}",
+        resource_type="mobile_user",
+        resource_id=user_id,
+        actor=current_admin,
+        request=request,
+        details={
+            "action_kind": payload.action_kind.value,
+            "target_kind": response.target_kind,
+            "target_id": str(response.target_id),
+            "payout_account_id": str(payload.payout_account_id) if payload.payout_account_id else None,
+            "payout_instruction_id": str(payload.payout_instruction_id) if payload.payout_instruction_id else None,
+            "reason_code_present": bool(payload.reason_code),
+            "reason_code_length": len(payload.reason_code.strip()) if payload.reason_code else 0,
+        },
+    )
     return response

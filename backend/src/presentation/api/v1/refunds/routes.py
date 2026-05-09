@@ -12,12 +12,11 @@ from src.application.use_cases.refunds import (
     RefundProviderExecutionError,
     UpdateRefundUseCase,
 )
-from src.domain.enums import AdminRole
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.presentation.api.shared.stage1_refund_dispute_process import require_stage1_refund_dispute_reviewer
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
-from src.presentation.dependencies.roles import require_role
 
 from .schemas import CreateRefundRequest, RefundResponse, UpdateRefundRequest
 
@@ -110,7 +109,7 @@ async def update_refund(
     refund_id: UUID,
     payload: UpdateRefundRequest,
     db: AsyncSession = Depends(get_db),
-    current_admin: AdminUserModel = Depends(require_role(AdminRole.OPERATOR)),
+    current_admin: AdminUserModel = Depends(require_stage1_refund_dispute_reviewer),
 ) -> RefundResponse:
     use_case = UpdateRefundUseCase(db)
     try:

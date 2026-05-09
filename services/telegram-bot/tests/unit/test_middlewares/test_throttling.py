@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.types import CallbackQuery, Message, User
 
+from src.middlewares import register_middlewares
 from src.middlewares.throttling import ThrottlingMiddleware
 
 if TYPE_CHECKING:
@@ -74,6 +76,27 @@ class TestThrottlingMiddleware:
         result3 = await middleware(handler, message, data)
         assert result3 is None  # Throttled
         assert handler.call_count == 2  # Handler not called for 3rd
+
+    async def test_uses_settings_backed_message_limit(
+        self,
+        mock_settings: BotSettings,
+        fake_redis: fakeredis.aioredis.FakeRedis,
+    ) -> None:
+        """Test that default middleware limits come from BotSettings."""
+        object.__setattr__(mock_settings, "telegram_message_rate_window_seconds", 10)
+        object.__setattr__(mock_settings, "telegram_message_rate_max_requests", 1)
+
+        middleware = ThrottlingMiddleware(settings=mock_settings, redis=fake_redis)
+
+        user = User(id=123456, is_bot=False, first_name="Test")
+        message = MagicMock(spec=Message)
+        message.from_user = user
+
+        handler = AsyncMock(return_value="ok")
+
+        assert await middleware(handler, message, {}) == "ok"
+        assert await middleware(handler, message, {}) is None
+        assert handler.call_count == 1
 
     async def test_rate_limits_callbacks_separately(
         self,
@@ -167,6 +190,31 @@ class TestThrottlingMiddleware:
         result = await middleware(handler, message2, {})
         assert result == "ok"
 
+    async def test_same_timestamp_events_still_count_separately(
+        self,
+        mock_settings: BotSettings,
+        fake_redis: fakeredis.aioredis.FakeRedis,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test that high-speed events with identical timestamps do not collapse in Redis ZSET."""
+        monkeypatch.setattr("src.middlewares.throttling.time.time", lambda: 1_000.0)
+        middleware = ThrottlingMiddleware(
+            settings=mock_settings,
+            redis=fake_redis,
+            message_limit=(10, 2),
+        )
+
+        user = User(id=123456, is_bot=False, first_name="Test")
+        message = MagicMock(spec=Message)
+        message.from_user = user
+
+        handler = AsyncMock(return_value="ok")
+
+        assert await middleware(handler, message, {}) == "ok"
+        assert await middleware(handler, message, {}) == "ok"
+        assert await middleware(handler, message, {}) is None
+        assert handler.call_count == 2
+
     async def test_handles_no_user(
         self,
         mock_settings: BotSettings,
@@ -249,16 +297,17 @@ class TestThrottlingMiddleware:
         # Message should NOT have been answered (no spam)
         assert not message.answer.called
 
-    async def test_redis_error_fails_open(
+    async def test_redis_error_fails_open_when_configured(
         self,
         mock_settings: BotSettings,
         fake_redis: fakeredis.aioredis.FakeRedis,
     ) -> None:
-        """Test that Redis errors fail open (allow request)."""
+        """Test that Redis errors can fail open when explicitly configured."""
         from typing import Any
 
         from redis.exceptions import RedisError
 
+        object.__setattr__(mock_settings, "telegram_throttle_fail_open", True)
         middleware = ThrottlingMiddleware(
             settings=mock_settings, redis=fake_redis
         )
@@ -285,14 +334,77 @@ class TestThrottlingMiddleware:
         # Restore
         fake_redis.pipeline = original_pipeline  # type: ignore[method-assign]
 
+    async def test_redis_error_fails_closed_by_default(
+        self,
+        mock_settings: BotSettings,
+        fake_redis: fakeredis.aioredis.FakeRedis,
+    ) -> None:
+        """Test that production default blocks user events if Redis throttling fails."""
+        from typing import Any
+
+        from redis.exceptions import RedisError
+
+        middleware = ThrottlingMiddleware(settings=mock_settings, redis=fake_redis)
+
+        user = User(id=123, is_bot=False, first_name="Test")
+        callback = MagicMock(spec=CallbackQuery)
+        callback.from_user = user
+        callback.answer = AsyncMock()
+
+        handler = AsyncMock(return_value="ok")
+        original_pipeline = fake_redis.pipeline
+
+        def failing_pipeline(*args: Any, **kwargs: Any) -> None:
+            raise RedisError("Connection lost")
+
+        fake_redis.pipeline = failing_pipeline  # type: ignore[method-assign]
+
+        result = await middleware(handler, callback, {})
+
+        assert result is None
+        assert not handler.called
+        callback.answer.assert_awaited_once()
+
+        fake_redis.pipeline = original_pipeline  # type: ignore[method-assign]
+
+    async def test_throttling_can_be_disabled_for_local_smoke(
+        self,
+        mock_settings: BotSettings,
+        fake_redis: fakeredis.aioredis.FakeRedis,
+    ) -> None:
+        """Test that explicit local smoke override bypasses Redis throttling."""
+        from typing import Any
+
+        from redis.exceptions import RedisError
+
+        object.__setattr__(mock_settings, "telegram_throttle_enabled", False)
+        middleware = ThrottlingMiddleware(settings=mock_settings, redis=fake_redis)
+
+        user = User(id=123, is_bot=False, first_name="Test")
+        message = MagicMock(spec=Message)
+        message.from_user = user
+
+        handler = AsyncMock(return_value="ok")
+        original_pipeline = fake_redis.pipeline
+
+        def failing_pipeline(*args: Any, **kwargs: Any) -> None:
+            raise RedisError("Connection lost")
+
+        fake_redis.pipeline = failing_pipeline  # type: ignore[method-assign]
+
+        result = await middleware(handler, message, {})
+
+        assert result == "ok"
+        handler.assert_awaited_once()
+
+        fake_redis.pipeline = original_pipeline  # type: ignore[method-assign]
+
     async def test_sliding_window_cleanup(
         self,
         mock_settings: BotSettings,
         fake_redis: fakeredis.aioredis.FakeRedis,
     ) -> None:
         """Test that old entries are removed from sliding window."""
-        import time
-
         middleware = ThrottlingMiddleware(
             settings=mock_settings,
             redis=fake_redis,
@@ -314,8 +426,56 @@ class TestThrottlingMiddleware:
         assert result is None
 
         # Wait for window to expire
-        time.sleep(1.1)
+        await asyncio.sleep(1.1)
 
         # Should be able to send again
         result = await middleware(handler, message, {})
         assert result == "ok"
+
+
+class _Observer:
+    def __init__(self) -> None:
+        self.middlewares: list[object] = []
+
+    def middleware(self, middleware: object) -> None:
+        self.middlewares.append(middleware)
+
+    def outer_middleware(self, middleware: object) -> None:
+        self.middlewares.append(middleware)
+
+
+class _DispatcherStub:
+    def __init__(self) -> None:
+        self.update = _Observer()
+        self.message = _Observer()
+        self.callback_query = _Observer()
+
+
+def test_register_middlewares_attaches_throttling_to_messages_and_callbacks(
+    mock_settings: BotSettings,
+    fake_redis: fakeredis.aioredis.FakeRedis,
+) -> None:
+    """Feature-level proof that dispatcher wiring includes Telegram throttling."""
+    object.__setattr__(mock_settings, "telegram_message_rate_window_seconds", 11)
+    object.__setattr__(mock_settings, "telegram_message_rate_max_requests", 6)
+    object.__setattr__(mock_settings, "telegram_callback_rate_window_seconds", 4)
+    object.__setattr__(mock_settings, "telegram_callback_rate_max_requests", 2)
+
+    dispatcher = _DispatcherStub()
+
+    register_middlewares(
+        dispatcher,  # type: ignore[arg-type]
+        mock_settings,
+        bot=MagicMock(),
+        api_client=MagicMock(),
+        cache=MagicMock(),
+        redis=fake_redis,
+    )
+
+    message_throttles = [m for m in dispatcher.message.middlewares if isinstance(m, ThrottlingMiddleware)]
+    callback_throttles = [m for m in dispatcher.callback_query.middlewares if isinstance(m, ThrottlingMiddleware)]
+
+    assert len(message_throttles) == 1
+    assert len(callback_throttles) == 1
+    assert message_throttles[0]._message_limit == (11, 6)
+    assert callback_throttles[0]._callback_limit == (4, 2)

@@ -4,6 +4,77 @@
     "mainContent": "Main content",
     "skipToMainContent": "Skip to main content"
   },
+  "AcceptableUse": {
+    "intro": "This Acceptable Use Policy is a Stage 1 candidate for the CyberVPN Controlled Public Beta. It explains how the service may and may not be used across cyber-vpn.net, cyber-vpn.org, Telegram Bot, Telegram Mini App, customer web interfaces and VPN access provisioned through CyberVPN. It must be reviewed and approved by the project owner and legal reviewer before it is treated as final public legal copy.",
+    "lastUpdated": "S1 candidate updated May 5, 2026",
+    "meta": {
+      "description": "Stage 1 Acceptable Use Policy candidate for CyberVPN Controlled Public Beta.",
+      "title": "Acceptable Use Policy"
+    },
+    "sections": {
+      "allowedUse": {
+        "items": {
+          "personalSubscription": "Use only the accounts, devices, subscription URLs, QR codes and configuration files that CyberVPN issued to you or explicitly authorized for your plan.",
+          "privateAccess": "Use CyberVPN for lawful private network access, personal privacy, safer access on untrusted networks and availability of ordinary internet services where allowed by applicable law.",
+          "support": "Contact support when a connection, payment, trial, renewal or provisioning issue prevents normal use."
+        },
+        "title": "2. Intended Use"
+      },
+      "changes": {
+        "content": "This S1 candidate may change before public go-live. Final publication requires owner/legal approval, abuse mailbox proof, node/provider torrent policy evidence and support/admin enforcement evidence.",
+        "title": "7. Changes Before Go-Live"
+      },
+      "enforcement": {
+        "items": {
+          "controls": "CyberVPN may warn, rate limit, throttle, block provisioning, suspend VPN access, revoke credentials, disable trials, terminate accounts or refuse renewal when abuse is detected or credibly reported.",
+          "evidence": "CyberVPN may preserve account, payment, support, security and operational evidence needed to investigate abuse, comply with provider requirements, process disputes or satisfy legal obligations.",
+          "refunds": "Refund handling is governed by the Refund Policy and support process. Abuse, fraud or policy violations may affect refund eligibility where allowed by applicable law.",
+          "review": "Paid-but-no-access and abuse-related support cases must be reviewed through the S1 manual review or support escalation process. CyberVPN should avoid permanent action without enough evidence unless immediate action is needed to prevent harm."
+        },
+        "title": "5. Enforcement"
+      },
+      "network": {
+        "items": {
+          "automation": "Automated high-volume traffic, mining, bot automation, scraping, port scanning, brute force workflows and load patterns that degrade the service may be limited or suspended.",
+          "configSafety": "Do not publish raw subscription URLs, QR codes, private keys or configuration files in public channels. If credentials are exposed, CyberVPN may revoke and reissue them.",
+          "fairUse": "Stage 1 plans may be subject to fair-use limits, rate limits, device limits, traffic limits and anti-abuse controls to protect the beta service and other users.",
+          "nodeRules": "Node-specific rules may be stricter than this public policy. If a provider, jurisdiction or beta rollout requires a node to block a traffic category, CyberVPN may enforce that rule without treating it as a breach of service.",
+          "torrent": "CyberVPN does not promise that torrent or P2P traffic is available on every node. Torrent or P2P traffic may be blocked, throttled or restricted on nodes where provider policy, law, abuse risk or operational evidence requires it."
+        },
+        "title": "4. Network, Torrent and Resource Rules"
+      },
+      "prohibited": {
+        "intro": "You may not use CyberVPN, CyberVPN accounts, VPN nodes, subscription URLs, QR codes or configuration files for any activity that harms CyberVPN, other users, providers or third parties. Prohibited activities include:",
+        "items": {
+          "attacks": "DDoS attacks, flooding, intrusion attempts, vulnerability exploitation, unauthorized port scanning, network reconnaissance or traffic intended to disrupt another service.",
+          "credentialStuffing": "Credential stuffing, password spraying, brute force login attempts, automated account checking or any attack against authentication systems.",
+          "illegalContent": "Accessing, storing, transmitting or helping distribute illegal content, child sexual abuse material, material exploiting minors, terrorist content or content that is unlawful in the relevant jurisdiction.",
+          "malware": "Creating, hosting, distributing, controlling or helping malware, ransomware, botnets, command-and-control systems, exploit kits or malicious payloads.",
+          "phishing": "Phishing, impersonation, social engineering, credential theft, account takeover, payment fraud, scams or attempts to collect sensitive data without authorization.",
+          "publicProxy": "Running public proxies, open relays, exit nodes, reverse proxies, hosting services, crypto-mining infrastructure or server workloads through a personal CyberVPN account.",
+          "resale": "Reselling, sharing, publicly posting or commercially redistributing accounts, subscription URLs, QR codes, configs or credentials unless CyberVPN explicitly approved that use in writing.",
+          "rightsAbuse": "Copyright infringement, trademark abuse, counterfeit activity or other use that violates third-party rights where CyberVPN receives a valid complaint or provider requirement.",
+          "sanctions": "Using the service in a way that violates applicable sanctions, export controls, payment-provider rules, hosting-provider rules or legal restrictions that apply to CyberVPN.",
+          "scraping": "High-volume scraping, abusive crawling, spam SEO automation, ticket buying automation, fake engagement, content abuse or activity that violates another service's terms or rate limits.",
+          "spam": "Sending spam, bulk unsolicited messages, abusive advertising, robocalls, mass account creation or similar messaging abuse."
+        },
+        "title": "3. Prohibited Activities"
+      },
+      "reporting": {
+        "items": {
+          "abuseEmail": "Report abuse to abuse@cyber-vpn.net. This mailbox must have delivery evidence before go-live.",
+          "details": "Reports should include timestamps, affected IPs or domains, relevant logs, message headers, account identifiers and a concise description of the suspected abuse where available.",
+          "supportEmail": "For ordinary account, billing, trial or connection issues, contact support@cyber-vpn.net."
+        },
+        "title": "6. Reporting Abuse"
+      },
+      "scope": {
+        "content": "This policy applies to all CyberVPN accounts, trials, paid subscriptions, support flows, configuration links, QR codes, subscription URLs and VPN credentials issued during Stage 1. If this policy conflicts with a final approved Terms of Service, Privacy Policy or provider-specific node rule, the stricter operational rule may be enforced until the documents are reconciled.",
+        "title": "1. Scope"
+      }
+    },
+    "title": "Acceptable Use Policy"
+  },
   "Analytics": {},
   "Api": {},
   "Auth": {
@@ -184,9 +255,190 @@
     "subtitle": "Global encrypted relay",
     "title": "SECURE COMMS"
   },
+  "CookiePolicy": {
+    "intro": "This Cookie Policy is a Stage 1 candidate for the CyberVPN Controlled Public Beta. It explains cookies, local storage, session storage, telemetry and similar browser storage used or prepared in the CyberVPN web site, web cabinet, Telegram Mini App, backend API flows and admin/support surfaces. It is not final legal advice and must be approved by the project owner and legal reviewer before it is treated as final public legal copy.",
+    "lastUpdated": "S1 candidate updated May 5, 2026",
+    "meta": {
+      "description": "Stage 1 Cookie Policy candidate for CyberVPN Controlled Public Beta.",
+      "title": "Cookie Policy"
+    },
+    "sections": {
+      "changes": {
+        "content": "This S1 candidate may change before public go-live. Final publication requires owner/legal approval, deployed cookie inventory, Set-Cookie evidence, consent evidence where non-essential storage is used and alignment with the Privacy Policy, Terms of Service, Acceptable Use Policy and Refund Policy.",
+        "title": "7. Changes Before Go-Live"
+      },
+      "consent": {
+        "items": {
+          "changes": "If CyberVPN adds a new cookie, storage mechanism, SDK or tracking provider, the owner must approve the change and attach updated cookie inventory evidence before public use.",
+          "marketing": "S1 does not approve marketing pixels, advertising retargeting or cross-site profiling by default. If enabled later, the Cookie Policy, Privacy Policy, consent UI and evidence pack must be updated first.",
+          "necessary": "Strictly necessary cookies and storage may be used to provide login, security, checkout return handling, fraud prevention, language routing, support and VPN provisioning flows requested by the user.",
+          "nonEssential": "Non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default for S1 until the project has a consent mechanism, cookie inventory, legal approval and evidence."
+        },
+        "title": "3. Consent and Default State"
+      },
+      "controls": {
+        "items": {
+          "browser": "Users can control cookies, local storage and session storage in their browser or device settings. Blocking strictly necessary storage may prevent login, checkout, VPN provisioning, support/admin access or Telegram Mini App flows from working.",
+          "logout": "Logging out should clear CyberVPN auth cookies. Some provider-side cookies, browser cache, locale preference or Telegram-controlled storage may need to be cleared through the browser, Telegram app or the third-party provider.",
+          "support": "Cookie/privacy questions can be sent to support@cyber-vpn.net. Refund-related payment questions can be sent to refund@cyber-vpn.net."
+        },
+        "title": "5. User Controls"
+      },
+      "goLiveBlockers": {
+        "items": {
+          "browserInventory": "Attach deployed browser cookie inventory for public site, web cabinet, login/register, OAuth, Telegram Mini App, checkout, logout and admin flows.",
+          "consent": "If non-essential analytics or marketing storage is enabled, attach consent banner/settings evidence proving default-off behavior and withdrawal controls.",
+          "legal": "Owner/legal review must approve this Cookie Policy together with Terms of Service, Privacy Policy, Acceptable Use Policy and Refund Policy.",
+          "pii": "Attach Sentry/observability PII scrubbing evidence, analytics payload review and proof that cookies, Set-Cookie headers and secrets are filtered from logs.",
+          "setCookie": "Attach redacted Set-Cookie evidence proving Secure, HttpOnly where applicable, SameSite, domain, path and expiry/max-age for production HTTPS responses."
+        },
+        "title": "6. Required Evidence Before Go-Live"
+      },
+      "inventory": {
+        "intro": "The S1 inventory is based on the current monorepo and local source review. Deployed browser evidence, including DevTools/curl Set-Cookie output, must still be attached before go-live.",
+        "items": {
+          "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. The configured S1 behavior is HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days.",
+          "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime must be confirmed in browser cookie inventory evidence.",
+          "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing, but production PII evidence is still required.",
+          "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
+          "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. For S1, PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced.",
+          "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP and 2FA redirect handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests."
+        },
+        "title": "2. Cookie and Storage Inventory"
+      },
+      "retention": {
+        "items": {
+          "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
+          "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
+          "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the approved Privacy Policy, provider settings and the S1 observability evidence pack.",
+          "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow."
+        },
+        "title": "4. Retention"
+      },
+      "scope": {
+        "content": "This policy covers cyber-vpn.net as the primary S1 domain, cyber-vpn.org as a mirror/redirect domain, admin.cyber-vpn.net as the primary admin domain and admin.cyber-vpn.org as a redirect to the primary admin domain. The S1 rule is to prefer canonical cookies on cyber-vpn.net/admin.cyber-vpn.net and keep .org mirrors redirect-only unless a separate domain/cookie evidence pack approves otherwise.",
+        "title": "1. Scope"
+      }
+    },
+    "title": "Cookie Policy"
+  },
   "Dashboard": {
     "activeSessions": "الجَلَسات النَّشِطَة",
     "aggregateThroughput": "مُعَدَّل النَّقْل الإجْمالِي",
+    "cabinet": {
+      "stage1States": {
+        "access": {
+          "active": {
+            "description": "Paid VPN access is active and ready for normal connection delivery.",
+            "title": "Access active"
+          },
+          "checking": {
+            "description": "The dashboard is loading the latest entitlement snapshot before showing the final access state.",
+            "title": "Checking access"
+          },
+          "expired": {
+            "description": "VPN access is expired or disabled. Renew the plan or contact support before connecting.",
+            "title": "Access expired"
+          },
+          "eyebrow": "Access",
+          "grace": {
+            "description": "VPN access remains available during the 72-hour grace window. Renew manually before it closes.",
+            "title": "Grace period"
+          },
+          "no_access": {
+            "description": "No active entitlement is available. Start trial or choose a plan to request VPN access.",
+            "title": "No access yet"
+          },
+          "payment_pending": {
+            "description": "Payment is not final yet. Access will be issued after payment confirmation and reconciliation.",
+            "title": "Payment pending"
+          },
+          "provisioning_pending": {
+            "description": "The plan exists, but VPN delivery is still preparing credentials or an access channel.",
+            "title": "Provisioning pending"
+          },
+          "trial_active": {
+            "description": "Trial access is active. Review the expiry date before the trial window closes.",
+            "title": "Trial active"
+          }
+        },
+        "ariaLabel": "Stage 1 access, payment, and provisioning states",
+        "payment": {
+          "checking": {
+            "description": "The dashboard is loading billing signals before showing the final payment state.",
+            "title": "Checking payment"
+          },
+          "expired": {
+            "description": "The payment window has expired. Create a new renewal or plan invoice.",
+            "title": "Payment expired"
+          },
+          "eyebrow": "Payment",
+          "failed": {
+            "description": "Payment failed or was rejected. Use a new checkout or contact support if funds were reserved.",
+            "title": "Payment failed"
+          },
+          "not_started": {
+            "description": "No live payment is attached to the current access state.",
+            "title": "Payment not started"
+          },
+          "paid": {
+            "description": "Billing state is settled for the current access window.",
+            "title": "Payment accepted"
+          },
+          "pending": {
+            "description": "Provider confirmation is still pending. Keep this payment under review until it becomes final.",
+            "title": "Payment pending"
+          },
+          "processing": {
+            "description": "Provider processing is in progress. Do not retry the same checkout until the status is final.",
+            "title": "Payment processing"
+          },
+          "reconciliation_required": {
+            "description": "Payment and access state need manual reconciliation. Support should resolve it within the S1 24-hour policy.",
+            "title": "Manual review required"
+          },
+          "refunded": {
+            "description": "A refund is recorded for this billing state. Access may need manual support review.",
+            "title": "Refund recorded"
+          }
+        },
+        "provisioning": {
+          "checking": {
+            "description": "The dashboard is loading VPN delivery signals before showing the final provisioning state.",
+            "title": "Checking provisioning"
+          },
+          "eyebrow": "Provisioning",
+          "failed": {
+            "description": "VPN delivery failed. Support must re-run provisioning or issue manual remediation.",
+            "title": "Provisioning failed"
+          },
+          "not_required": {
+            "description": "Provisioning starts after trial activation or a final paid access decision.",
+            "title": "Not required yet"
+          },
+          "pending": {
+            "description": "VPN credentials or delivery channel are not ready yet. Retry or wait for worker reconciliation.",
+            "title": "Provisioning pending"
+          },
+          "ready": {
+            "description": "Remnawave delivery has a service identity, credential, profile, and access channel.",
+            "title": "VPN ready"
+          },
+          "reconciliation_required": {
+            "description": "Payment/access and VPN delivery disagree. Support must reconcile before go-live evidence can pass.",
+            "title": "Provisioning review required"
+          },
+          "remnawave_unavailable": {
+            "description": "The dashboard cannot reach the provisioning state. Retry before changing access or payment data.",
+            "title": "Remnawave unavailable"
+          },
+          "retrying": {
+            "description": "The backend is retrying VPN delivery. Contact support if this does not resolve quickly.",
+            "title": "Provisioning retrying"
+          }
+        }
+      }
+    },
     "connectionStatus": "تَمَّ إنْشاء اتِّصال آمِن",
     "currentConnections": "الاتِّصالات الحالِيَّة",
     "encryptionStatus": "التَّشْفِير: آمِن كَمِّيًّا",
@@ -202,7 +454,7 @@
     "contact": {
       "description": "If you have questions about account deletion or data privacy:",
       "email": "Email",
-      "emailAddress": "privacy@cybervpn.app",
+      "emailAddress": "privacy@cyber-vpn.net",
       "title": "Need help?"
     },
     "error": {
@@ -279,7 +531,7 @@
           "accountData": "Your account information and profile",
           "configs": "VPN configurations and connection history",
           "referrals": "Referral data and earned rewards",
-          "subscriptions": "All active subscriptions (no refunds)",
+          "subscriptions": "Active subscription handling, including any refund request, follows the Refund Policy and provider rules.",
           "support": "Support tickets and communication history"
         },
         "title": "What will be deleted"
@@ -428,8 +680,8 @@
       "subscriptionActive": "Subscription Active",
       "trial": "TRIAL",
       "trialAvailable": "Free Trial Available",
-      "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
-      "trialPlan": "7-Day Free Trial",
+      "trialDescription": "Try CyberVPN free for 3 days on 1 device.",
+      "trialPlan": "3-Day Free Trial",
       "unknown": "Unknown",
       "usage": "Usage Statistics",
       "viewPlans": "View Plans",
@@ -460,15 +712,16 @@
       "total": "total"
     },
     "plans": {
-      "activateTrial": "Activate 7-Day Trial",
+      "activateTrial": "Activate 3-Day Trial",
       "activating": "Activating...",
       "apply": "Apply",
       "availablePlans": "Subscription Plans",
+      "billingCurrencyNotice": "Charged in {currency}",
       "contactForPrice": "Contact",
       "daysCount": "{count} days",
       "discountApplied": "Discount applied: ${amount}",
       "free": "Free",
-      "freeTrialDescription": "Get 7 days of full access to all features. No credit card required.",
+      "freeTrialDescription": "Get 3 days of access on 1 device. No credit card required.",
       "freeTrialTitle": "Try CyberVPN Free",
       "haveInviteCode": "Have an Invite Code?",
       "havePromoCode": "Have a Promo Code?",
@@ -476,6 +729,7 @@
       "inviteCodePlaceholder": "INVITE123",
       "inviteInvalid": "Invalid or already used invite code",
       "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
+      "localEstimate": "Approx. {price} display only",
       "monthly": "per month",
       "noPlans": "No plans available at the moment",
       "paymentError": "Payment failed. Please try again.",
@@ -488,7 +742,7 @@
       "quarterly": "per quarter",
       "redeem": "Redeem",
       "selectPlanFirst": "Please select a plan first",
-      "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
+      "trialActivated": "Trial activated successfully! Enjoy 3 days of access.",
       "trialError": "Failed to activate trial. Please try again.",
       "yearly": "per year"
     },
@@ -701,7 +955,17 @@
       "q3": "Do you accept crypto?",
       "title": "DECRYPTED ARCHIVES"
     },
-    "subtitle": "Network Power Allocation",
+    "introPills": {
+      "addons": "Options"
+    },
+    "labels": {
+      "chargedInBillingCurrency": "Charged in {currency}",
+      "localDisplayEstimate": "Approx. {price} display only"
+    },
+    "periods": {
+      "helper": "Choose the term that fits your setup; checkout stays simple and predictable."
+    },
+    "subtitle": "4 plans, 4 billing terms. One full VPN baseline on every paid plan.",
     "tiers": {
       "basic": {
         "button": "INITIATE STEALTH",
@@ -748,105 +1012,203 @@
     },
     "title": "ACCESS TIERS"
   },
-  "Privacy": {},
+  "Privacy": {
+    "description": "S1 CONTROLLED PUBLIC BETA PRIVACY SUMMARY",
+    "sections": {
+      "dataCollection": {
+        "content": "CyberVPN processes account, authentication, Telegram/OAuth linking, payment, subscription, wallet, provisioning, support, security, audit, notification, webhook and observability data needed to operate the beta. The exact public list must match the deployed backend, Remnawave, provider and support evidence.",
+        "radarLabels": {
+          "blocked": "BROWSING CONTENT",
+          "collected": "S1 SERVICE DATA"
+        },
+        "title": "02. DATA CATEGORIES"
+      },
+      "encryption": {
+        "content": "S1 security relies on hashed passwords, hashed refresh tokens, encrypted selected secrets/tokens where implemented, production admin 2FA, RBAC, audit logs, private PostgreSQL, private Valkey/Redis, private Remnawave API and HTTPS-only public ingress. Stronger crypto or no-logs claims require evidence.",
+        "title": "04. SECURITY CONTROLS"
+      },
+      "introduction": {
+        "content": "This page summarizes the S1 privacy posture and links conceptually to the full Privacy Policy. It is a controlled-beta candidate, not a final legal approval. Final public seller display, jurisdiction, processor list and retention wording must be approved before go-live.",
+        "title": "01. S1 PRIVACY SUMMARY"
+      },
+      "noLogs": {
+        "content": "CyberVPN does not intend to store browsing content or raw VPN traffic content in app/backend systems. Do not treat this as a final audited no-logs claim: IP address, user-agent, timestamps, provider IDs, support records and provisioning metadata may exist in security, payment, support, node or observability systems until validated.",
+        "title": "03. NO-LOGS LIMITS"
+      },
+      "thirdParties": {
+        "content": "S1 may use payment providers, Telegram, Google/GitHub OAuth, Remnawave, VPN node hosts, email/support tooling and observability providers. Each enabled provider needs privacy/refund wording, credentials, webhook/status evidence and PII controls before public launch.",
+        "title": "05. PROVIDER BOUNDARIES"
+      }
+    },
+    "status": {
+      "decrypted": "REVIEWED",
+      "decrypting": "ACTIVE",
+      "encrypted": "PENDING"
+    },
+    "title": "PRIVACY READINESS"
+  },
   "PrivacyPolicy": {
-    "lastUpdated": "Last Updated",
+    "lastUpdated": "Last Updated: 2026-05-05 (S1 candidate; final legal review required before go-live)",
     "meta": {
-      "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices.",
+      "description": "Controlled Public Beta privacy notice covering data categories, retention criteria, no-logs limits, providers and privacy contacts.",
       "title": "Privacy Policy - CyberVPN"
     },
     "sections": {
       "changes": {
-        "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date.",
+        "description": "This S1 candidate may change before go-live. Material public changes must be reflected in the approved legal pack, linked Terms, AUP, Refund Policy and Cookie Policy, and must not contradict the actual deployment evidence.",
         "title": "Changes to This Policy"
       },
       "contact": {
-        "address": "Address",
-        "addressLine": "CyberVPN Privacy Team, [Your Company Address]",
+        "address": "Public seller and jurisdiction",
+        "addressLine": "S1 legal seller category: individual founder/owner. Final public seller display, legal address and jurisdiction/country must be approved before public go-live and are intentionally not committed to this repository.",
         "email": "Email",
-        "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
-        "title": "Contact Information"
+        "emailAddress": "privacy@cyber-vpn.net",
+        "intro": "For privacy questions, deletion/export requests or privacy-related complaints, contact us through the approved S1 privacy route:",
+        "title": "Privacy Contact"
       },
       "dataCollection": {
-        "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+        "intro": "CyberVPN processes the data needed to operate the S1 Controlled Public Beta, authenticate users, provision VPN access, process payments, prevent abuse and provide support:",
         "items": {
-          "accountInfo": "Account information (email address, username)",
-          "deviceInfo": "Device and connection metadata (device type, operating system)",
-          "paymentInfo": "Payment information (processed securely by third-party providers)",
-          "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+          "accountInfo": "Account and authentication data: email, username/display name, password hash, 2FA/TOTP state, Telegram ID/username where linked, OAuth provider identifiers and profile email where used.",
+          "deviceInfo": "Device, access and provisioning data: session identifiers, refresh-token metadata, device ID where provided, IP address and user-agent in auth/security logs, Remnawave user reference, subscription URL state and device credential state.",
+          "paymentInfo": "Commercial and payment data: plan, trial, subscription, wallet state, provider name, provider transaction identifiers, payment status, refund/dispute metadata and reconciliation records.",
+          "usageStats": "Operational data: support tickets/staff notes, notification delivery state, audit logs, webhook payload snapshots, security/rate-limit events, backup presence and aggregated service health/traffic counters where enabled."
         },
-        "title": "Data Collection"
+        "title": "Data We Process"
       },
       "dataRetention": {
-        "description": "We retain data only as long as necessary:",
+        "description": "Retention periods depend on account status, security needs, provider obligations and final legal review. S1 uses these operating rules unless a stricter final policy is approved:",
         "policies": {
-          "accountData": "Account data: retained while your account is active",
-          "deletedAccounts": "Deleted account data: permanently erased within 30 days",
-          "paymentRecords": "Payment records: 7 years for legal compliance",
-          "supportLogs": "Support logs: 90 days after ticket closure"
+          "accountData": "Account, authentication and subscription data: retained while the account is active and for the period needed to handle security, abuse, accounting, support, deletion and backup windows.",
+          "deletedAccounts": "Validated deletion requests: operational account deletion target is 30 days, except records that must be retained for payment, security, legal, fraud, backup or abuse handling. S1 PostgreSQL backups are retained for 14 days under the approved backup policy.",
+          "paymentRecords": "Payment, refund, dispute and reconciliation records: retained for provider, finance, tax, fraud-prevention and legal obligations; final period depends on the legal seller jurisdiction and enabled provider rules.",
+          "supportLogs": "Support tickets, staff notes and notification records: target retention is 90 days after closure unless needed for fraud, abuse, paid-no-access, legal, safety or accounting reasons."
         },
-        "title": "Data Retention"
+        "title": "Retention Criteria"
       },
       "dataSecurity": {
-        "description": "We implement industry-standard security measures:",
+        "description": "CyberVPN uses security controls appropriate for a controlled beta, but no public security claim is final until deployment evidence exists:",
         "measures": {
-          "accessControl": "Strict access controls and authentication",
-          "encryption": "End-to-end encryption for all VPN traffic",
-          "regularAudits": "Regular security audits and vulnerability assessments",
-          "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)"
+          "accessControl": "Admin access is role-gated, requires 2FA in production mode and writes audit events for privileged operations.",
+          "encryption": "Passwords and refresh tokens are stored as hashes; selected OAuth/TOTP/provider tokens are encrypted or handled through the approved secret process where implemented.",
+          "regularAudits": "S1 requires evidence for secret scanning, dependency checks, backup/restore, rollback, observability, webhook idempotency and support escalation before go-live.",
+          "secureProtocols": "Production topology requires private PostgreSQL, private Valkey/Redis, private Remnawave API and HTTPS-only public ingress where required."
         },
-        "title": "Data Security"
+        "title": "Security Controls"
       },
       "gdprRights": {
-        "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+        "intro": "Depending on your location and applicable law, you may have rights to request access, correction, deletion, portability, objection or restriction. S1 may handle some rights manually through the support/privacy process until automated export/delete flows are finished.",
         "rights": {
           "access": {
-            "description": "Request a copy of your personal data",
-            "title": "Right to Access"
+            "description": "Request a copy or summary of personal data associated with your account.",
+            "title": "Access"
           },
           "erasure": {
-            "description": "Request deletion of your personal data",
-            "title": "Right to Erasure"
+            "description": "Request account deletion subject to payment, security, legal, fraud, backup and abuse-retention limits.",
+            "title": "Deletion"
           },
           "objection": {
-            "description": "Object to processing of your data",
-            "title": "Right to Object"
+            "description": "Object to or request restriction of optional processing where applicable. Service-critical processing may be required to provide VPN access.",
+            "title": "Objection or Restriction"
           },
           "portability": {
-            "description": "Receive your data in a machine-readable format",
-            "title": "Right to Data Portability"
+            "description": "Request a portable account-data export where technically available or a manual support export during S1.",
+            "title": "Portability"
           },
           "rectification": {
-            "description": "Correct inaccurate or incomplete data",
-            "title": "Right to Rectification"
+            "description": "Request correction of inaccurate account, Telegram/OAuth or support data.",
+            "title": "Correction"
           }
         },
-        "title": "Your GDPR Rights"
+        "title": "Privacy Rights"
       },
       "noLogPolicy": {
-        "details": "This means:",
+        "details": "Do not treat this as a final audited no-logs claim. The final public no-logs wording must be validated against backend logs, Remnawave behavior, VPN node logs, support tooling, payment providers and observability tools before go-live. Security, payment, support and provisioning records may still contain personal data such as account identifiers, IP address, user-agent, provider IDs or timestamps.",
         "notLogged": {
-          "browsing": "No browsing history or website visits",
-          "connections": "No connection timestamps or session duration",
-          "dns": "No DNS queries or IP addresses",
-          "traffic": "No traffic data or content inspection"
+          "browsing": "Browsing content and visited website content are not intended to be stored by the CyberVPN app/backend.",
+          "connections": "Connection/session metadata must be validated against Remnawave and node configuration before any stronger public claim is made.",
+          "dns": "DNS query logging must be validated against the actual node and resolver configuration before final publication.",
+          "traffic": "Raw VPN traffic content is not intended to be inspected by CyberVPN support/admin tooling."
         },
-        "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
-        "title": "No-Log Policy"
+        "statement": "For S1, CyberVPN does not intentionally store browsing content, visited websites or raw VPN traffic content in the CyberVPN app/backend.",
+        "title": "VPN Activity and No-Logs Limits"
       },
       "thirdParty": {
-        "description": "We work with trusted third-party providers:",
+        "description": "S1 may use the following provider categories. Each provider must have credentials, webhook/status evidence and provider-aligned privacy/refund wording before it is enabled:",
         "services": {
-          "analytics": "Anonymous analytics (no personally identifiable information)",
-          "infrastructure": "Cloud infrastructure providers (servers and network)",
-          "payment": "Payment processing (Stripe, cryptocurrency gateways)"
+          "analytics": "Operational analytics/observability such as Sentry, PostHog or metrics/logging tools only where enabled and configured with PII controls.",
+          "infrastructure": "Infrastructure and service providers: managed PostgreSQL, private Valkey/Redis, Remnawave, VPN node hosts, Telegram, Google/GitHub OAuth and email/support tooling.",
+          "payment": "Payment providers: PayRam, NOWPayments, CryptoBot, Telegram Stars for Telegram, Digiseller and YooKassa where approved for the relevant user segment."
         },
-        "title": "Third-Party Services"
+        "title": "Processors and Providers"
       }
     },
     "title": "Privacy Policy"
   },
   "Referral": {},
+  "RefundPolicy": {
+    "intro": "This Refund Policy is a Stage 1 candidate for the CyberVPN Controlled Public Beta. It explains how refund requests are handled for CyberVPN accounts, trial-to-paid flows, Telegram Bot, Telegram Mini App, web checkout and VPN access provisioned through CyberVPN. It is not final legal advice and must be approved by the project owner and legal reviewer before it is treated as final public legal copy.",
+    "lastUpdated": "S1 candidate updated May 5, 2026",
+    "meta": {
+      "description": "Stage 1 Refund Policy candidate for CyberVPN Controlled Public Beta.",
+      "title": "Refund Policy"
+    },
+    "sections": {
+      "access": {
+        "items": {
+          "fullRefund": "A full refund normally cancels or disables the paid subscription period associated with that payment.",
+          "partialRefund": "A partial refund may reduce subscription time, quota, wallet balance or other paid entitlement, depending on the approved correction.",
+          "pending": "A pending refund request does not automatically pause, extend or disable VPN access unless support/ops applies a separate correction.",
+          "trial": "Trial access remains governed by the trial policy and does not create a cash refund entitlement."
+        },
+        "title": "5. Effect on VPN Access"
+      },
+      "changes": {
+        "content": "This S1 candidate may change before public go-live. Final publication requires owner/legal approval, provider-specific refund evidence, refund@cyber-vpn.net mailbox proof, support/admin workflow evidence and alignment with Terms, Privacy Policy, Acceptable Use Policy and Cookie Policy.",
+        "title": "8. Changes Before Go-Live"
+      },
+      "evidence": {
+        "content": "CyberVPN may keep payment, refund, support, audit and provider evidence needed to review the request, prevent fraud, reconcile provider records, respond to disputes and satisfy legal or tax obligations. This must align with the approved Privacy Policy and data-retention evidence.",
+        "title": "7. Evidence and Records"
+      },
+      "providerRules": {
+        "items": {
+          "cryptobot": "CryptoBot/Crypto Pay: paid invoices are final provider states for access, but refunds require manual support/finance action, transfer/check evidence or another approved provider workflow. No automatic refund is promised.",
+          "digiseller": "Digiseller: refund handling follows Digiseller purchase/dispute flow, seller balance rules and provider status evidence. Digital goods and delivered credentials require manual review before any refund decision.",
+          "nowpayments": "NOWPayments: completed and partially paid crypto transactions generally leave provider custody; CyberVPN must review merchant-side refund responsibility, wrong-asset/wrong-network/minimum-amount exceptions and any NOWPayments validation requirements.",
+          "payram": "PayRam: crypto refunds are not automatic chargebacks. Refunds must be handled manually through the merchant-controlled dashboard/API or direct wallet transfer, with wallet-address validation and finance approval.",
+          "telegramStars": "Telegram Stars: refund handling is available only for Telegram Bot/Mini App paid flow after CyberVPN stores the Telegram payment charge ID and proves the refundStarPayment path. The bot must support /paysupport for payment issues.",
+          "yookassa": "YooKassa: refunds can be created for successful payments where the payment method supports it. Full or partial refund handling must use provider evidence, idempotency controls, receipt/fiscalization rules where required and finance approval."
+        },
+        "title": "4. Provider-Specific Rules"
+      },
+      "request": {
+        "content": "Send refund requests to refund@cyber-vpn.net or through the approved Telegram/support flow. Include your CyberVPN account email or Telegram ID, payment ID or provider invoice ID, payment date, payment method/provider and a short reason for the request. Do not send passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs or raw VPN configuration files.",
+        "title": "2. How to Request a Refund"
+      },
+      "review": {
+        "items": {
+          "abuse": "Fraud, chargeback abuse, policy violations, account resale, credential sharing, malware/spam abuse or other Acceptable Use Policy violations may reduce or remove refund eligibility where allowed by applicable law.",
+          "duplicate": "Duplicate charges, confirmed overpayments, wrong amount or provider-confirmed processing errors are reviewable cases.",
+          "fees": "Blockchain network fees, provider fees, conversion spread, exchange fees, bank fees, fiscal/receipt obligations and third-party fees may be non-refundable unless a provider or applicable law requires otherwise.",
+          "manualReview": "S1 refunds are handled through manual finance/support review unless a provider-specific automated path has separate staging and production evidence.",
+          "noGuarantee": "Submitting a request does not guarantee a refund. CyberVPN must verify the payment status, provider rules, provisioning status and support evidence before a refund is approved or denied.",
+          "paidNoAccess": "Paid-but-no-access or orphan payment cases must be escalated for manual review. No unresolved paid-but-no-access/orphan payment may be older than 24 hours without owner/support escalation.",
+          "serviceFault": "If CyberVPN cannot provision or restore paid VPN access after reasonable support and retry steps, CyberVPN may provide a refund, service extension or another correction approved by finance/ops."
+        },
+        "title": "3. Review Rules"
+      },
+      "scope": {
+        "content": "This policy applies to S1 B2C purchases and payment attempts made through PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller and YooKassa where those providers are enabled. Refunds are reviewed against the payment provider status, CyberVPN subscription state, provisioning state, support evidence, abuse checks and applicable legal requirements.",
+        "title": "1. Scope"
+      },
+      "timing": {
+        "content": "CyberVPN aims to acknowledge refund/payment support requests within the S1 support targets. Actual refund timing depends on manual review, provider status, blockchain or bank settlement, provider validation and any additional information required from the user.",
+        "title": "6. Timing"
+      }
+    },
+    "title": "Refund Policy"
+  },
   "Security": {},
   "ServerCard": {
     "ip": "عُنْوان IP",
@@ -854,6 +1216,16 @@
     "protocol": "البُروتوكول"
   },
   "Servers": {
+    "config": {
+      "downloadConfig": "Download config file",
+      "downloadFile": "Config file",
+      "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+      "qrCode": "QR code",
+      "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+    },
+    "copy": {
+      "download": "Config file downloaded."
+    },
     "globalStatus": "الحالَة العامَّة: {status}",
     "globalStatusValue": "مُجَهَّز",
     "lastSync": "آخِر مُزامَنَة: مُنْذُ {time}",
@@ -909,7 +1281,49 @@
     "title": "SYSTEM TELEMETRY"
   },
   "Subscriptions": {},
-  "Terms": {},
+  "Terms": {
+    "description": "Controlled Public Beta service terms. Final legal seller display and jurisdiction must be approved before go-live.",
+    "sections": {
+      "acceptance": {
+        "content": "These Terms govern access to CyberVPN through cyber-vpn.net, cyber-vpn.org, Telegram Bot, Telegram Mini App and related customer interfaces. By creating an account, starting a trial, paying for a plan or using the VPN service, you agree to these Terms and the linked Privacy Policy, Acceptable Use Policy and Refund Policy. For Stage 1 the legal seller is the individual founder/owner of CyberVPN; the public seller display name, contact details and governing jurisdiction must be approved by owner/legal review before these Terms are published as final.",
+        "title": "01. Agreement and seller"
+      },
+      "liability": {
+        "content": "You are responsible for how you use the service, for complying with laws that apply to you, and for keeping your account, devices and configuration links secure. The service is provided as-is and as-available during Stage 1. To the maximum extent permitted by applicable law, CyberVPN is not responsible for indirect, incidental, special, consequential or lost-profit damages, provider outages, third-party blocking, device issues or unlawful user conduct. Nothing in these Terms limits rights or liabilities that cannot legally be limited.",
+        "title": "04. Responsibility and limitations"
+      },
+      "prohibited": {
+        "content": "CyberVPN is provided for lawful private network access, privacy protection and resilience against censorship. You must not use the service to harm other systems, abuse third parties, violate applicable law or bypass provider restrictions. The following activity is prohibited:",
+        "rules": {
+          "abuse": "Attacks against networks, services, devices or accounts, including DDoS, flooding and unauthorized scanning",
+          "illegal": "Illegal activity, rights infringement or activity that exposes CyberVPN, its users or providers to legal or network abuse risk",
+          "malware": "Malware distribution, botnet command and control, exploit hosting or other malicious infrastructure",
+          "minorSafety": "Child sexual abuse material or any content exploiting minors",
+          "restrictedTraffic": "Traffic prohibited by a specific node, provider, payment method, sanctions/export restriction or published node policy",
+          "spam": "Spam, phishing, credential stuffing, fraud, impersonation or bulk unsolicited messaging"
+        },
+        "title": "02. Acceptable use"
+      },
+      "service": {
+        "content": "Stage 1 is a Controlled Public Beta. Features, regions, nodes, speeds, payment methods, Telegram flows and provisioning paths may be limited, changed, paused or removed while the service is being stabilized. Trial access and paid access are provisioned through the approved CyberVPN flow and Remnawave-backed VPN access. Paid access starts only after a provider final-success payment state is verified. CyberVPN does not promise automatic renewal in Stage 1; renewal is manual unless a later approved recurring-billing flow is introduced with explicit consent. Do not rely on any uptime, speed, location, no-logs, privacy or unblock claim unless it is supported by the final public policy and evidence.",
+        "title": "03. Service, trial and billing"
+      },
+      "termination": {
+        "content": "CyberVPN may suspend, limit or terminate access for non-payment, abuse, security risk, provider requirement, violation of these Terms or emergency operational need. Where practical, support will use the approved support path before final action, but urgent abuse, legal or infrastructure-risk cases may be escalated immediately. Refund requests are handled through refund@cyber-vpn.net under the final Refund Policy and provider-specific rules. General support is available through support@cyber-vpn.net and Telegram support flows. Do not share passwords, 2FA codes, full card numbers, CVV/CVC, raw QR codes, raw subscription URLs or raw config files in support chats.",
+        "title": "05. Suspension, termination and support"
+      }
+    },
+    "status": {
+      "acknowledged": "ACKNOWLEDGED",
+      "unverified": "UNREVIEWED"
+    },
+    "terminal": {
+      "command": "ACCEPT TERMS",
+      "prompt": "Review the beta Terms before continuing.",
+      "verified": "Terms acknowledged for this session."
+    },
+    "title": "Terms of Service"
+  },
   "Users": {
     "newToday": "جُدُد اليَوْم: {count}",
     "subtitle": "التَّحَكُّم بالوُصول ومُراقَبَة الاشْتِراكات.",

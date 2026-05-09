@@ -299,6 +299,37 @@ export const authHandlers = [
   }),
 
   /**
+   * POST /auth/me/privacy-requests
+   * Opens a manual S1 privacy review item.
+   */
+  http.post(`${API_BASE}/auth/me/privacy-requests`, async ({ request }) => {
+    const body = (await request.json()) as {
+      request_type?: 'account_deletion' | 'data_export';
+    };
+    const requestType = body.request_type ?? 'data_export';
+
+    return HttpResponse.json(
+      {
+        request_type: requestType,
+        message: requestType === 'account_deletion'
+          ? 'Account deletion request accepted for manual privacy review.'
+          : 'Data export request accepted for manual privacy review.',
+        ticket_reference: `s1sup-web-p1-${requestType}`,
+        target_contact: 'privacy@cyber-vpn.net',
+        priority: 'p1',
+        support_state: 'support_review',
+        ack_sla_minutes: 60,
+        customer_response_sla_minutes: 720,
+        manual_fulfillment_target_days: 30,
+        required_actions: ['verify_identity_before_export'],
+        forbidden_actions: ['do_not_request_password_or_2fa_totp'],
+        audit_required: true,
+      },
+      { status: 202 },
+    );
+  }),
+
+  /**
    * POST /auth/forgot-password
    * Always returns success to prevent email enumeration.
    */

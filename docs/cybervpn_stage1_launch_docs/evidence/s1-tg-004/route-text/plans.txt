@@ -1,0 +1,70 @@
+Skip to main content
+Skip to main content
+
+CURRENT ENTITLEMENTS
+
+PLUS BETA
+
+Expires at: 2026-06-03T00:00:00Z
+
+CURRENT PLAN
+Devices
+5
+Traffic
+Unlimited
+Dedicated IP
+0
+CHOOSE YOUR PLAN
+
+Public catalog only: Basic, Plus, Pro, Max. Hidden plans stay hidden unless the backend exposes them intentionally.
+
+BASIC
+
+2 devices
+
+standard
+
+PLUS
+
+5 devices
+
+standard · stealth
+
+PRO
+
+10 devices
+
+standard · stealth · premium
+
+MAX
+
+20 devices
+
+standard · stealth · premium
+
+CHOOSE PERIOD
+
+Plus · $14.99
+
+CURRENT PLAN
+30 DAYS
+$14.99
+180 DAYS
+$69.99
+2 invites · 14 friend days
+QUOTE & ENTITLEMENTS
+
+The snapshot below is the source of truth for what the user will receive after purchase.
+
+CURRENT PLAN
+You already have this plan. Add extras or switch to another term to continue.
+Open Payment
+HAVE AN INVITE CODE?
+Redeem
+
+Invite redemption stays separate from the paid checkout flow.
+
+Home
+Plans
+Wallet
+Profile

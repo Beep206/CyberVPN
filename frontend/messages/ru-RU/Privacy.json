@@ -1,35 +1,35 @@
 {
-    "title": "ПРОТОКОЛ ПРОЗРАЧНОСТИ",
-    "description": "СОВЕРШЕННО СЕКРЕТНО. РАСШИФРОВКА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ...",
-    "sections": {
-        "introduction": {
-            "title": "01. ВВЕДЕНИЕ & ОБЗОР",
-            "content": "Данный документ представляет собой официальную Политику Конфиденциальности сети CyberVPN. Наш главный принцип: мы не можем выдать то, чего у нас нет. Мы создали инфраструктуру, которая физически не способна хранить ваши личные данные, логи активности или историю посещений."
-        },
-        "dataCollection": {
-            "title": "02. СБОР ДАННЫХ",
-            "content": "Для поддержания работы протокола нам необходим абсолютный минимум информации. Мы собираем только: учетные данные для авторизации (хэш пароля) и метаданные подписки (срок действия токена).",
-            "radarLabels": {
-                "collected": "АВТОРИЗАЦИЯ",
-                "blocked": "TRAFFIC LOGS"
-            }
-        },
-        "noLogs": {
-            "title": "03. ПОЛИТИКА ZERO-LOGS",
-            "content": "Вся наша сеть работает на базе RAM-дисков (оперативной памяти). Как только сервер перезагружается, любые следы вашего присутствия уничтожаются безвозвратно. Мы не ведем журналы DNS-запросов, IP-адресов или временных меток сессий."
-        },
-        "encryption": {
-            "title": "04. КРИПТОГРАФИЯ",
-            "content": "Ваш трафик защищен по стандарту AES-256-GCM с использованием совершенной прямой секретности (PFS). Это означает, что даже если квантовый компьютер будущего взломает текущий ключ, ваши прошлые сессии останутся в безопасности."
-        },
-        "thirdParties": {
-            "title": "05. ТРЕТЬИ СТОРОНЫ",
-            "content": "CyberVPN не передает, не продает и не обменивает ваши данные. Мы не сотрудничаем с рекламными сетями или дата-брокерами. Наш единственный источник дохода — оплата подписки пользователями."
-        }
+  "title": "PRIVACY READINESS",
+  "description": "S1 CONTROLLED PUBLIC BETA PRIVACY SUMMARY",
+  "sections": {
+    "introduction": {
+      "title": "01. S1 PRIVACY SUMMARY",
+      "content": "Эта страница кратко описывает S1 privacy posture и связана по смыслу с полной Privacy Policy. Это controlled-beta candidate, а не final legal approval. Final public seller display, jurisdiction, processor list и retention wording должны быть утверждены before go-live."
     },
-    "status": {
-        "encrypted": "ЗАШИФРОВАНО",
-        "decrypted": "РАСШИФРОВАНО",
-        "decrypting": "РАСШИФРОВКА..."
+    "dataCollection": {
+      "title": "02. DATA CATEGORIES",
+      "content": "CyberVPN обрабатывает account, authentication, Telegram/OAuth linking, payment, subscription, wallet, provisioning, support, security, audit, notification, webhook и observability data, необходимые для beta. Финальный публичный список должен совпадать с deployed backend, Remnawave, provider и support evidence.",
+      "radarLabels": {
+        "collected": "S1 SERVICE DATA",
+        "blocked": "BROWSING CONTENT"
+      }
+    },
+    "noLogs": {
+      "title": "03. NO-LOGS LIMITS",
+      "content": "CyberVPN не намерен хранить browsing content или raw VPN traffic content в app/backend systems. Не считайте это final audited no-logs claim: IP address, user-agent, timestamps, provider IDs, support records и provisioning metadata могут существовать в security, payment, support, node или observability systems до проверки."
+    },
+    "encryption": {
+      "title": "04. SECURITY CONTROLS",
+      "content": "S1 security опирается на hashed passwords, hashed refresh tokens, encrypted selected secrets/tokens where implemented, production admin 2FA, RBAC, audit logs, private PostgreSQL, private Valkey/Redis, private Remnawave API и HTTPS-only public ingress. Более сильные crypto или no-logs claims требуют evidence."
+    },
+    "thirdParties": {
+      "title": "05. PROVIDER BOUNDARIES",
+      "content": "S1 может использовать payment providers, Telegram, Google/GitHub OAuth, Remnawave, VPN node hosts, email/support tooling и observability providers. Каждый enabled provider требует privacy/refund wording, credentials, webhook/status evidence и PII controls before public launch."
     }
+  },
+  "status": {
+    "encrypted": "PENDING",
+    "decrypted": "REVIEWED",
+    "decrypting": "ACTIVE"
+  }
 }

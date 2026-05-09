@@ -1,23 +1,23 @@
 {
-  "title": "СИСТЕМНАЯ РАДАР",
-  "subtitle": "Глобальный центр управления сетью",
+  "title": "S1 STATUS",
+  "subtitle": "Controlled Public Beta monitoring surface",
   "metrics": {
-    "uptime": "99.99% АПТАЙМ",
-    "status_nominal": "СИСТЕМЫ В НОРМЕ",
-    "status_warning": "СНИЖЕНИЕ ПРОИЗВОДИТЕЛЬНОСТИ",
-    "status_outage": "ЗАФИКСИРОВАН СБОЙ",
-    "active_nodes": "АКТИВНЫЕ ЯДРА",
-    "bandwidth": "ПРОПУСКНАЯ СПОСОБНОСТЬ",
+    "uptime": "AVAILABILITY WINDOW",
+    "status_nominal": "READY SIGNALS NOMINAL",
+    "status_warning": "DEGRADED SIGNALS",
+    "status_outage": "INCIDENT REVIEW REQUIRED",
+    "active_nodes": "ENABLED REGIONS",
+    "bandwidth": "OBSERVED TRAFFIC",
     "latency": "СРЕДНИЙ ПИНГ"
   },
   "history": {
-    "title": "История за 90 дней",
+    "title": "Beta evidence window",
     "tooltip_date": "Дата",
     "tooltip_status": "Статус"
   },
   "incidents": {
     "title": "ЛОГ ИНЦИДЕНТОВ",
-    "empty": "Инцидентов нет. Сеть защищена.",
+    "empty": "В этом local status snapshot активных incidents не записано.",
     "view_all": "СМОТРЕТЬ АРХИВ"
   }
 }

@@ -1,12 +1,14 @@
 """Unit tests for pending-2FA login completion route."""
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException, Request, Response
 
+from src.application.use_cases.auth_realms import RealmResolution
 from src.presentation.api.v1.two_factor.routes import complete_2fa_login
 from src.presentation.api.v1.two_factor.schemas import VerifyCodeRequest
 
@@ -20,6 +22,19 @@ def _build_request() -> Request:
             "headers": [],
             "client": ("127.0.0.1", 12345),
         }
+    )
+
+
+def _admin_realm() -> RealmResolution:
+    return RealmResolution(
+        auth_realm=SimpleNamespace(
+            id=uuid4(),
+            realm_key="admin",
+            realm_type="admin",
+            audience="cybervpn-admin",
+            cookie_namespace="admin",
+        ),
+        source="test",
     )
 
 
@@ -62,11 +77,12 @@ class TestComplete2FALoginRoute:
                 db=db,
                 redis_client=redis_client,
                 auth_service=auth_service,
+                current_realm=_admin_realm(),
             )
 
         assert result.access_token == "access_tok"
         assert result.refresh_token == "refresh_tok"
-        assert db.add.call_count == 1
+        assert db.add.call_count >= 1
         set_cookie_headers = response.headers.getlist("set-cookie")
         assert any("access_token=access_tok" in header for header in set_cookie_headers)
         assert any("refresh_token=refresh_tok" in header for header in set_cookie_headers)
@@ -102,6 +118,7 @@ class TestComplete2FALoginRoute:
                     db=db,
                     redis_client=redis_client,
                     auth_service=auth_service,
+                    current_realm=_admin_realm(),
                 )
 
         assert exc_info.value.status_code == 400

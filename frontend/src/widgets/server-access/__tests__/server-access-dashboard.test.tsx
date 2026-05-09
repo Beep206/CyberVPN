@@ -10,6 +10,9 @@ const {
   getServerStatsMock,
   getServersMock,
   getServiceStateMock,
+  openMock,
+  createObjectURLMock,
+  revokeObjectURLMock,
   writeTextMock,
 } = vi.hoisted(() => ({
   getConfigMock: vi.fn(),
@@ -18,6 +21,9 @@ const {
   getServerStatsMock: vi.fn(),
   getServersMock: vi.fn(),
   getServiceStateMock: vi.fn(),
+  openMock: vi.fn(),
+  createObjectURLMock: vi.fn(),
+  revokeObjectURLMock: vi.fn(),
   writeTextMock: vi.fn(),
 }));
 
@@ -66,6 +72,12 @@ vi.mock('@/lib/api', () => ({
   },
   subscriptionsApi: {
     getConfig: getConfigMock,
+  },
+}));
+
+vi.mock('next/dynamic', () => ({
+  default: () => function MockQrCode() {
+    return <div data-testid="mock-qr-code" />;
   },
 }));
 
@@ -193,6 +205,19 @@ function mockSuccessfulResponses() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  createObjectURLMock.mockReturnValue('blob:cybervpn-config');
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value: createObjectURLMock,
+  });
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value: revokeObjectURLMock,
+  });
+  Object.defineProperty(window, 'open', {
+    configurable: true,
+    value: openMock,
+  });
   writeTextMock.mockResolvedValue(undefined);
   vi.stubGlobal('navigator', {
     clipboard: {
@@ -218,20 +243,26 @@ describe('ServerAccessDashboard', () => {
     });
     expect(screen.getByRole('button', { name: /config\.copySubscription/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /config\.copyConfig/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /config\.openSubscription/i })).toHaveAttribute(
-      'href',
-      'https://vpn.example/sub/user-1',
-    );
+    expect(screen.getByRole('button', { name: /config\.downloadConfig/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /config\.openSubscription/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /config\.qrCode/i })).toBeInTheDocument();
+    expect(screen.getByTestId('mock-qr-code')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /restart/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /stop/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('labels.load')).not.toBeInTheDocument();
+    expect(screen.queryByText('labels.onlineUsers')).not.toBeInTheDocument();
+    expect(screen.queryByText('labels.traffic')).not.toBeInTheDocument();
+    expect(screen.queryByText('labels.inbounds')).not.toBeInTheDocument();
+    expect(screen.queryByText('labels.nodeVersion')).not.toBeInTheDocument();
+    expect(getServerStatsMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(getConfigMock).toHaveBeenCalledWith('user-1');
     });
   });
 
-  it('copies subscription and raw config values without rendering the full secret', async () => {
-    renderWithQueryClient(<ServerAccessDashboard />);
+  it('copies, opens, and downloads delivery values without rendering the full secret', async () => {
+    const { container } = renderWithQueryClient(<ServerAccessDashboard />);
 
     fireEvent.click(await screen.findByRole('button', { name: /config\.copySubscription/i }));
     await waitFor(() => {
@@ -244,6 +275,26 @@ describe('ServerAccessDashboard', () => {
       expect(writeTextMock).toHaveBeenCalledWith('vless://raw-config-value-for-user-1');
     });
     expect(screen.queryByText('vless://raw-config-value-for-user-1')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /config\.openSubscription/i }));
+    expect(openMock).toHaveBeenCalledWith(
+      'https://vpn.example/sub/user-1',
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /config\.downloadConfig/i }));
+    await waitFor(() => {
+      expect(createObjectURLMock).toHaveBeenCalledWith(expect.any(Blob));
+    });
+    await expect(createObjectURLMock.mock.calls[0][0].text()).resolves.toBe(
+      'vless://raw-config-value-for-user-1\n',
+    );
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:cybervpn-config');
+    expect(await screen.findByText('copy.download')).toBeInTheDocument();
+
+    expect(container.textContent).not.toContain('https://vpn.example/sub/user-1');
+    expect(container.textContent).not.toContain('vless://raw-config-value-for-user-1');
   });
 
   it('shows plan and settings recovery links when provisioning is incomplete', async () => {

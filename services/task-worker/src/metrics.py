@@ -59,6 +59,32 @@ WORKER_INFO = Info(
     "Worker service information",
 )
 
+# Stage 1 payment reconciliation metrics for paid-but-no-access visibility.
+STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL = Counter(
+    "cybervpn_stage1_payment_reconciliation_runs_total",
+    "Total Stage 1 payment reconciliation runs",
+    ["result"],
+)
+
+STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT = Gauge(
+    "cybervpn_stage1_payment_reconciliation_items_current",
+    "Current Stage 1 payment reconciliation findings by severity",
+    ["severity"],
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
+STAGE1_PAYMENT_RECONCILIATION_MAX_AGE_MINUTES = Gauge(
+    "cybervpn_stage1_payment_reconciliation_max_age_minutes",
+    "Maximum age in minutes of current Stage 1 payment reconciliation findings",
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
+STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED = Gauge(
+    "cybervpn_stage1_payment_reconciliation_launch_blocked",
+    "Whether Stage 1 payment reconciliation currently blocks launch or paid beta",
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
 # OTP Email metrics (for Grafana monitoring per PRD requirements)
 OTP_EMAILS_SENT = Counter(
     "cybervpn_otp_emails_sent_total",

@@ -77,9 +77,13 @@ export default function MiniAppHomePage() {
     return null;
   })();
   const usageData = bootstrap?.usage;
-  const usagePercentage = usageData?.bandwidthLimitBytes
-    ? Math.round((usageData.bandwidthUsedBytes / usageData.bandwidthLimitBytes) * 100)
+  const usageIsAvailable = usageData?.usageAvailable === true;
+  const usagePercentage = usageIsAvailable && usageData?.bandwidthLimitBytes
+    ? Math.round(
+        (usageData.bandwidthUsedBytes / usageData.bandwidthLimitBytes) * 100,
+      )
     : 0;
+  const usageUnavailableLabel = 'Usage unavailable';
   const isLoading = bootstrapQuery.isLoading;
 
   useEffect(() => {
@@ -247,46 +251,55 @@ export default function MiniAppHomePage() {
             <h3 className="font-display">{t('usage')}</h3>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm font-mono mb-2">
-                <span className="text-muted-foreground">{t('dataUsed')}</span>
-                <span className="text-foreground">
-                  {formatBytes(usageData.bandwidthUsedBytes)} / {formatBytes(usageData.bandwidthLimitBytes)}
-                </span>
+          {usageIsAvailable ? (
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm font-mono mb-2">
+                  <span className="text-muted-foreground">{t('dataUsed')}</span>
+                  <span className="text-foreground">
+                    {formatBytes(usageData.bandwidthUsedBytes)} /{' '}
+                    {formatBytes(usageData.bandwidthLimitBytes)}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${usagePercentage}%` }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className={`h-full ${
+                      usagePercentage >= 80 ? 'bg-destructive' : 'bg-neon-cyan'
+                    }`}
+                  />
+                </div>
               </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${usagePercentage}%` }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  className={`h-full ${usagePercentage >= 80 ? 'bg-destructive' : 'bg-neon-cyan'}`}
-                />
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between text-sm font-mono">
-              <div className="flex items-center gap-2">
-                <Server className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">{t('connections')}</span>
-              </div>
-              <span className="text-foreground">
-                {usageData.connectionsActive} / {usageData.connectionsLimit}
-              </span>
-            </div>
-
-            {usageData.lastConnectionAt && (
               <div className="flex items-center justify-between text-sm font-mono">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{t('lastConnected')}</span>
+                  <Server className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">{t('connections')}</span>
                 </div>
                 <span className="text-foreground">
-                  {new Date(usageData.lastConnectionAt).toLocaleString()}
+                  {usageData.connectionsActive} / {usageData.connectionsLimit}
                 </span>
               </div>
-            )}
-          </div>
+
+              {usageData.lastConnectionAt && (
+                <div className="flex items-center justify-between text-sm font-mono">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{t('lastConnected')}</span>
+                  </div>
+                  <span className="text-foreground">
+                    {new Date(usageData.lastConnectionAt).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 font-mono text-sm text-amber-100">
+              {usageUnavailableLabel}
+            </div>
+          )}
         </motion.div>
       )}
 

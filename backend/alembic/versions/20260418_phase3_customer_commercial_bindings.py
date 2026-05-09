@@ -1,7 +1,7 @@
 """Add customer commercial bindings for Phase 3.
 
-Revision ID: 20260418_phase3_customer_commercial_bindings
-Revises: 20260418_phase3_attribution_touchpoints
+Revision ID: 20260418_p3_customer_bindings
+Revises: 20260418_p3_attribution
 Create Date: 2026-04-18 20:10:00.000000
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "20260418_phase3_customer_commercial_bindings"
-down_revision: str | None = "20260418_phase3_attribution_touchpoints"
+revision: str = "20260418_p3_customer_bindings"
+down_revision: str | None = "20260418_p3_attribution"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None
 

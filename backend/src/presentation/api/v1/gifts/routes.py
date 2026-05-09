@@ -4,12 +4,17 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_growth_policy import (
+    Stage1GrowthPolicyError,
+    assert_stage1_gift_codes_enabled,
+)
 from src.application.use_cases.gifts import (
     CommitGiftPurchaseUseCase,
     ListGiftCodesUseCase,
     QuoteGiftPurchaseUseCase,
     RedeemGiftCodeUseCase,
 )
+from src.config.settings import settings
 from src.infrastructure.database.models.growth_code_model import (
     GiftCodePolicyModel,
     GrowthCodeIssuanceModel,
@@ -35,6 +40,13 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/gifts", tags=["gifts"])
+
+
+def _assert_gift_public_flow_enabled() -> None:
+    try:
+        assert_stage1_gift_codes_enabled(enabled=settings.gift_codes_enabled)
+    except Stage1GrowthPolicyError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
 
 def _serialize_gift_code(
@@ -72,6 +84,7 @@ async def quote_gift_purchase(
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> GiftPurchaseQuoteResponse:
+    _assert_gift_public_flow_enabled()
     use_case = QuoteGiftPurchaseUseCase(db)
     try:
         result = await use_case.execute(
@@ -98,6 +111,7 @@ async def commit_gift_purchase(
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> GiftPurchaseCommitResponse:
+    _assert_gift_public_flow_enabled()
     quote_use_case = QuoteGiftPurchaseUseCase(db)
     try:
         quote_result = await quote_use_case.execute(
@@ -152,6 +166,7 @@ async def list_my_gifts(
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> list[GiftCodeResponse]:
+    _assert_gift_public_flow_enabled()
     items = await ListGiftCodesUseCase(db).execute(owner_user_id=user_id)
     return [
         _serialize_gift_code(code, policy, issuance, redemption)
@@ -166,6 +181,7 @@ async def redeem_gift(
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> GiftRedeemResponse:
+    _assert_gift_public_flow_enabled()
     use_case = RedeemGiftCodeUseCase(db)
     try:
         result = await use_case.execute(

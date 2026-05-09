@@ -173,7 +173,7 @@ def mock_settings() -> BotSettings:
         ),
         backend=BackendSettings(
             api_url="https://api.test.cybervpn.local",
-            api_key=SecretStr("test_api_key_12345"),
+            api_key=SecretStr("fixture"),
             timeout=30,
             max_retries=3,
             retry_backoff=0.5,
@@ -269,6 +269,7 @@ class MockCyberVPNAPIClient:
         self.verify_payment = AsyncMock(return_value={})
         self.process_webhook = AsyncMock(return_value={})
         self.get_subscription = AsyncMock(return_value={})
+        self.create_support_escalation = AsyncMock(return_value={})
 
         # Health check
         self.health_check = AsyncMock(return_value=True)

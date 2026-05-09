@@ -27,7 +27,7 @@ describe('structured-data helpers', () => {
     });
 
     expect(data['@type']).toBe('FAQPage');
-    expect(data.url).toBe('https://vpn.ozoxy.ru/ru-RU/help');
+    expect(data.url).toBe('https://cyber-vpn.net/ru-RU/help');
     expect(data.inLanguage).toBe('ru-RU');
     expect(data.mainEntity).toHaveLength(2);
     expect(Array.isArray(data.mainEntity)).toBe(true);
@@ -53,13 +53,13 @@ describe('structured-data helpers', () => {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://vpn.ozoxy.ru/en-EN',
+        item: 'https://cyber-vpn.net/en-EN',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Docs',
-        item: 'https://vpn.ozoxy.ru/en-EN/docs',
+        item: 'https://cyber-vpn.net/en-EN/docs',
       },
     ]);
   });
@@ -74,7 +74,7 @@ describe('structured-data helpers', () => {
     });
 
     expect(data['@type']).toBe('TechArticle');
-    expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/docs');
+    expect(data.url).toBe('https://cyber-vpn.net/en-EN/docs');
     expect(data.articleSection).toEqual([
       'INITIALIZATION',
       'SIGNAL ROUTING',
@@ -101,7 +101,7 @@ describe('structured-data helpers', () => {
       name: 'CYBER_PRO',
       price: '8.99',
       priceCurrency: 'USD',
-      url: 'https://vpn.ozoxy.ru/en-EN/pricing',
+      url: 'https://cyber-vpn.net/en-EN/pricing',
     });
   });
 
@@ -126,8 +126,8 @@ describe('structured-data helpers', () => {
     });
 
     expect(data['@type']).toBe('SoftwareApplication');
-    expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/download');
-    expect(data.downloadUrl).toBe('https://vpn.ozoxy.ru/en-EN/download');
+    expect(data.url).toBe('https://cyber-vpn.net/en-EN/download');
+    expect(data.downloadUrl).toBe('https://cyber-vpn.net/en-EN/download');
     expect(data.featureList).toEqual([
       'Reality masking',
       '10 Gbps backbone',
@@ -137,7 +137,7 @@ describe('structured-data helpers', () => {
       {
         '@type': 'Offer',
         price: '0',
-        url: 'https://vpn.ozoxy.ru/en-EN/pricing',
+        url: 'https://cyber-vpn.net/en-EN/pricing',
       },
     ]);
   });

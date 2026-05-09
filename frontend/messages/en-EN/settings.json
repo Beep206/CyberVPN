@@ -109,6 +109,28 @@
       "eyebrow": "Session perimeter",
       "title": "Active devices",
       "description": "Review sessions and revoke stale devices without touching the current one.",
+      "limitTitle": "Plan device limit",
+      "limitDescription": "The limit comes from the current entitlement snapshot. Revoke stale sessions before connecting a new device.",
+      "limitUsed": "{used} of {limit}",
+      "limitUnknown": "{used} active / limit unavailable",
+      "activeCount": "Active",
+      "planLimit": "Plan limit",
+      "remainingSlots": "Available slots",
+      "managePlan": "Manage plan",
+      "limitStates": {
+        "available": "Capacity available",
+        "near_limit": "Near limit",
+        "at_limit": "At limit",
+        "over_limit": "Over limit",
+        "unknown": "Limit unknown"
+      },
+      "limitHelp": {
+        "available": "{remaining} device slots are still available on this plan.",
+        "near_limit": "Only {remaining} device slots remain. Revoke stale sessions before adding more devices.",
+        "at_limit": "The plan limit is fully used. Revoke stale devices or change the plan before adding a new device.",
+        "over_limit": "This account is over the current plan limit by {count}. Revoke stale devices or contact support.",
+        "unknown": "The active session list is available, but the plan limit could not be loaded from entitlements."
+      },
       "empty": "No active devices found.",
       "current": "Current",
       "currentHint": "This session is protected from remote revoke controls.",

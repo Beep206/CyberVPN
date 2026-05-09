@@ -7,15 +7,20 @@ Prevents abuse with different limits for messages vs callbacks. Admin bypass.
 from __future__ import annotations
 
 import time
-from typing import Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 import structlog
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
-from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from src.config import BotSettings
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from redis.asyncio import Redis
+
+    from src.config import BotSettings
 
 logger = structlog.get_logger(__name__)
 
@@ -41,13 +46,20 @@ class ThrottlingMiddleware(BaseMiddleware):
         self,
         settings: BotSettings,
         redis: Redis,
-        message_limit: tuple[int, int] = MESSAGE_RATE_LIMIT,
-        callback_limit: tuple[int, int] = CALLBACK_RATE_LIMIT,
+        message_limit: tuple[int, int] | None = None,
+        callback_limit: tuple[int, int] | None = None,
     ) -> None:
         self._settings = settings
         self._redis = redis
-        self._message_limit = message_limit
-        self._callback_limit = callback_limit
+        self._message_limit = message_limit or (
+            settings.telegram_message_rate_window_seconds,
+            settings.telegram_message_rate_max_requests,
+        )
+        self._callback_limit = callback_limit or (
+            settings.telegram_callback_rate_window_seconds,
+            settings.telegram_callback_rate_max_requests,
+        )
+        self._fail_open = settings.telegram_throttle_fail_open
         self._key_prefix = "throttle:"
 
     async def __call__(
@@ -70,6 +82,9 @@ class ThrottlingMiddleware(BaseMiddleware):
         """
         user_id = self._get_user_id(event)
         if user_id is None:
+            return await handler(event, data)
+
+        if not self._settings.telegram_throttle_enabled:
             return await handler(event, data)
 
         # Admin bypass
@@ -138,7 +153,7 @@ class ThrottlingMiddleware(BaseMiddleware):
                 # Count current requests in window
                 pipe.zcard(key)
                 # Add current request with timestamp as score
-                pipe.zadd(key, {str(now): now})
+                pipe.zadd(key, {f"{now}:{uuid4().hex}": now})
                 # Set TTL to window size (auto-cleanup)
                 pipe.expire(key, window_seconds)
                 results = await pipe.execute()
@@ -152,9 +167,9 @@ class ThrottlingMiddleware(BaseMiddleware):
                 "throttle_redis_error",
                 user_id=user_id,
                 event_type=event_type,
+                fail_open=self._fail_open,
             )
-            # Fail open: allow request if Redis is down
-            return True
+            return self._fail_open
 
     @staticmethod
     def _get_user_id(event: TelegramObject) -> int | None:

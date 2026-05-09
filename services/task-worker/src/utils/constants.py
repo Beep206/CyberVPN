@@ -71,6 +71,7 @@ SCHEDULE_DAILY_STATS: Final[str] = "5 0 * * *"  # Daily at 00:05 UTC
 SCHEDULE_HOURLY_BANDWIDTH: Final[str] = "5 * * * *"  # At :05 every hour
 INTERVAL_REALTIME_METRICS_SECONDS: Final[int] = 30  # Every 30 seconds
 SCHEDULE_PAYMENT_VERIFY: Final[str] = "*/5 * * * *"  # Every 5 minutes
+SCHEDULE_STAGE1_PAYMENT_RECONCILIATION: Final[str] = "*/15 * * * *"  # Every 15 minutes
 SCHEDULE_TELEGRAM_STARS_RECONCILIATION: Final[str] = "*/10 * * * *"  # Every 10 minutes
 SCHEDULE_PARTNER_BOT_PROVISIONING: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_WEBHOOK_RETRY: Final[str] = "*/30 * * * *"  # Every 30 minutes
@@ -195,6 +196,8 @@ NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRING: Final[str] = "subscription_expiring"
 NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRED: Final[str] = "subscription_expired"
 NOTIFICATION_TYPE_PAYMENT_RECEIVED: Final[str] = "payment_received"
 NOTIFICATION_TYPE_PAYMENT_FAILED: Final[str] = "payment_failed"
+NOTIFICATION_TYPE_PROVISIONING_READY: Final[str] = "provisioning_ready"
+NOTIFICATION_TYPE_PROVISIONING_FAILED: Final[str] = "provisioning_failed"
 NOTIFICATION_TYPE_SERVER_DOWN: Final[str] = "server_down"
 NOTIFICATION_TYPE_SERVER_RECOVERED: Final[str] = "server_recovered"
 NOTIFICATION_TYPE_TRAFFIC_WARNING: Final[str] = "traffic_warning"
@@ -301,6 +304,8 @@ __all__ = [  # noqa: RUF022
     "NOTIFICATION_TYPE_SUBSCRIPTION_EXPIRED",
     "NOTIFICATION_TYPE_PAYMENT_RECEIVED",
     "NOTIFICATION_TYPE_PAYMENT_FAILED",
+    "NOTIFICATION_TYPE_PROVISIONING_READY",
+    "NOTIFICATION_TYPE_PROVISIONING_FAILED",
     "NOTIFICATION_TYPE_SERVER_DOWN",
     "NOTIFICATION_TYPE_SERVER_RECOVERED",
     "NOTIFICATION_TYPE_TRAFFIC_WARNING",

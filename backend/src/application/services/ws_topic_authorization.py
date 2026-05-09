@@ -35,22 +35,31 @@ class WSTopicAuthorizationService:
     TOPIC_PERMISSIONS: ClassVar[dict[str, TopicPermission]] = {
         "servers": TopicPermission(
             topic="servers",
-            allowed_roles=frozenset({AdminRole.ADMIN, AdminRole.SUPER_ADMIN, AdminRole.OPERATOR}),
+            allowed_roles=frozenset(
+                {AdminRole.ADMIN, AdminRole.SUPER_ADMIN, AdminRole.OWNER_SUPER_ADMIN, AdminRole.OPERATOR}
+            ),
             description="Server status and metrics",
         ),
         "users": TopicPermission(
             topic="users",
-            allowed_roles=frozenset({AdminRole.SUPER_ADMIN}),
+            allowed_roles=frozenset({AdminRole.SUPER_ADMIN, AdminRole.OWNER_SUPER_ADMIN}),
             description="User activity and session data",
         ),
         "system": TopicPermission(
             topic="system",
-            allowed_roles=frozenset({AdminRole.SUPER_ADMIN}),
+            allowed_roles=frozenset({AdminRole.SUPER_ADMIN, AdminRole.OWNER_SUPER_ADMIN}),
             description="System metrics and alerts",
         ),
         "payments": TopicPermission(
             topic="payments",
-            allowed_roles=frozenset({AdminRole.ADMIN, AdminRole.SUPER_ADMIN}),
+            allowed_roles=frozenset(
+                {
+                    AdminRole.FINANCE,
+                    AdminRole.ADMIN,
+                    AdminRole.SUPER_ADMIN,
+                    AdminRole.OWNER_SUPER_ADMIN,
+                }
+            ),
             description="Payment notifications",
         ),
         "general": TopicPermission(
@@ -61,7 +70,9 @@ class WSTopicAuthorizationService:
     }
 
     # Default permission for unknown topics (deny by default)
-    DEFAULT_ALLOWED_ROLES: ClassVar[frozenset[AdminRole]] = frozenset({AdminRole.SUPER_ADMIN})
+    DEFAULT_ALLOWED_ROLES: ClassVar[frozenset[AdminRole]] = frozenset(
+        {AdminRole.SUPER_ADMIN, AdminRole.OWNER_SUPER_ADMIN}
+    )
 
     def can_subscribe(self, topic: str, role: AdminRole) -> bool:
         """Check if a role can subscribe to a topic.

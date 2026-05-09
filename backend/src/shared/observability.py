@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 from urllib.parse import urlparse
 
@@ -8,6 +9,7 @@ SENSITIVE_HEADER_NAMES = {
     "cookie",
     "set-cookie",
     "x-observability-secret",
+    "x-telegram-bot-api-secret-token",
 }
 SENSITIVE_FIELD_MARKERS = (
     "token",
@@ -25,8 +27,43 @@ SENSITIVE_FIELD_MARKERS = (
     "vmess",
     "remnawave",
     "openbao",
+    "opentofu",
+    "nats",
     "payment",
+    "oauth",
+    "totp",
+    "initdata",
+    "init_data",
+    "checkout",
+    "invoice",
 )
+SENSITIVE_STRING_PATTERNS = (
+    re.compile(r"\b(?:vless|vmess|trojan|wireguard|ss)://", re.IGNORECASE),
+    re.compile(
+        r"(?:access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?code|otp|totp|secret|password|telegram[_-]?init[_-]?data|initdata|tgWebAppData)=",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"/api/v1/(?:vpn|xray|provisioning|subscriptions?)/(?:config|credentials|subscription)",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _scrub_sensitive_value(value: Any) -> Any:
+    if isinstance(value, str):
+        if any(pattern.search(value) for pattern in SENSITIVE_STRING_PATTERNS):
+            return "[Filtered]"
+        return value
+
+    if isinstance(value, dict):
+        _scrub_sensitive_mapping(value)
+        return value
+
+    if isinstance(value, list):
+        return [_scrub_sensitive_value(item) for item in value]
+
+    return value
 
 
 def _scrub_sensitive_mapping(payload: dict[str, Any]) -> None:
@@ -36,12 +73,7 @@ def _scrub_sensitive_mapping(payload: dict[str, Any]) -> None:
             payload[key] = "[Filtered]"
             continue
 
-        if isinstance(value, dict):
-            _scrub_sensitive_mapping(value)
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    _scrub_sensitive_mapping(item)
+        payload[key] = _scrub_sensitive_value(value)
 
 
 def _scrub_request_headers(headers: Any) -> None:

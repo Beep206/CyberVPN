@@ -33,23 +33,9 @@ class TestOAuthAuthorizeEndpoints:
         `code_challenge_method=S256`."""
         ...
 
-    async def test_discord_login_authorize_uses_state_only_contract(self, async_client: AsyncClient):
-        """Discord authorize responses stay aligned with the current state-based
-        rollout contract and exact web callback URI."""
-        ...
-
-    async def test_facebook_login_authorize_uses_exact_callback(self, async_client: AsyncClient):
-        """Facebook authorize responses resolve the canonical non-localized web
-        callback URI and never a locale-prefixed callback path."""
-        ...
-
-    async def test_microsoft_login_authorize_includes_pkce(self, async_client: AsyncClient):
-        """Microsoft authorize responses include PKCE and the exact web callback URI."""
-        ...
-
-    async def test_twitter_login_authorize_uses_internal_twitter_slug(self, async_client: AsyncClient):
-        """X uses the internal backend slug `twitter`, so the callback URI ends with
-        `/api/oauth/callback/twitter`."""
+    async def test_deferred_provider_authorize_is_disabled_for_s1(self, async_client: AsyncClient):
+        """Discord/Facebook/Microsoft/X/Apple login authorize endpoints return
+        disabled-provider responses during S1 even if provider classes exist."""
         ...
 
 
@@ -71,17 +57,9 @@ class TestOAuthCallbackOutcomes:
         claims satisfy the trusted-email policy."""
         ...
 
-    async def test_discord_callback_rejects_unverified_email(self, async_client: AsyncClient):
-        """Discord login fails when the provider email is missing or unverified."""
-        ...
-
-    async def test_facebook_callback_returns_collision_for_existing_local_email(self, async_client: AsyncClient):
-        """Facebook must not auto-link by email; existing local accounts surface a
-        collision or linking-required response."""
-        ...
-
-    async def test_twitter_callback_returns_collision_for_existing_local_email(self, async_client: AsyncClient):
-        """X must not auto-link by email in the current rollout."""
+    async def test_deferred_provider_callback_is_disabled_before_state_exchange(self, async_client: AsyncClient):
+        """Deferred OAuth provider callbacks are rejected before state validation,
+        provider token exchange, account creation, or auto-linking."""
         ...
 
     async def test_callback_with_tampered_state_returns_401(self, async_client: AsyncClient):

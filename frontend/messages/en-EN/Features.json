@@ -1,66 +1,66 @@
 {
-  "title": "Core Capabilities",
-  "description": "Military-grade encryption algorithms and quantum-resistant infrastructure. Explore the modular components that protect your digital existence.",
+  "title": "Stage 1 Capabilities",
+  "description": "The Controlled Public Beta feature set focuses on login, trial or payment, Remnawave provisioning, config delivery, support recovery, and monitored operations.",
   "features": {
     "quantum": {
-      "title": "Quantum Resistance",
-      "subtitle": "Post-Quantum Cryptography",
-      "description": "Prepared for the cryptographic apocalypse. Utilizes lattice-based algorithms to secure handshakes against quantum decryption attacks before they happen.",
+      "title": "S1 Protocol Baseline",
+      "subtitle": "VLESS Reality RAW + XHTTP",
+      "description": "Stage 1 keeps the VPN transport surface narrow: VLESS Reality RAW is the default profile and VLESS Reality XHTTP is the alternate path after evidence.",
       "specs": [
-        "Algorithm: Kyber-1024 / NTRU",
-        "Key Exchange: Hybrid ECDHE + PQ",
-        "Threat Model: Harvest Now, Decrypt Later"
+        "Default: VLESS Reality RAW",
+        "Alternate: VLESS Reality XHTTP",
+        "Out of S1: Helix, Verta, Beep production"
       ]
     },
     "multihop": {
-      "title": "Multi-Hop Cascading",
-      "subtitle": "Distributed Node Routing",
-      "description": "Your traffic is fragmented, encrypted, and routed through multiple sovereign jurisdictions. Even if one node is compromised, your origin remains mathematical impossible to trace.",
+      "title": "Evidence-Gated Regions",
+      "subtitle": "Country-level startup inventory",
+      "description": "Regions are not public promises until staging or production node evidence exists. The S1 catalogue starts with country-level slots and hides unavailable nodes.",
       "specs": [
-        "Hops: Custom 2-4 Node Chains",
-        "Jurisdictions: Pan-Global Spread",
-        "Re-encryption: At every tunnel exit"
+        "Startup inventory: 12 region slots",
+        "Public display: only enabled nodes",
+        "Required proof: health, profile, monitoring"
       ]
     },
     "obfuscation": {
-      "title": "Shadow Obfuscation",
-      "subtitle": "DPI Evasion Engine",
-      "description": "Bypasses Deep Packet Inspection in highly restricted environments (China, Iran). VPN traffic is steganographically disguised as standard HTTPS web traffic.",
+      "title": "DPI-Resistant Profiles",
+      "subtitle": "No universal unblock promise",
+      "description": "Reality-based profiles are designed for restricted networks, but S1 copy stays bounded: performance and access depend on the user's network and current node evidence.",
       "specs": [
-        "Protocol: V2Ray / Shadowsocks / XTLS",
-        "Signature: Indistinguishable from TLS 1.3",
-        "Resilience: Automated fallback rotation"
+        "Profile: HTTPS-like Reality transport",
+        "Fallback: XHTTP where configured",
+        "Claim boundary: evidence required"
       ]
     },
     "killswitch": {
-      "title": "Neural Kill Switch",
-      "subtitle": "System-Level Isolation",
-      "description": "Constantly monitors the encrypted tunnel integrity. If the connection drops for a microsecond, all external traffic is physically severed at the OS level to prevent IP leaks.",
+      "title": "Support Recovery Path",
+      "subtitle": "Payment and provisioning safeguards",
+      "description": "The S1 product surface prioritizes recoverability: paid-but-no-access cases, provisioning failures, expired access, and support escalation have explicit handling.",
       "specs": [
-        "Level: OS Kernel space routing rules",
-        "Reaction Time: < 1ms",
-        "Leak Prevention: DNS, IPv6, WebRTC"
+        "SLA: paid orphan review within 24h",
+        "Provisioning: retry and support escalation",
+        "Admin: audited manual recovery actions"
       ]
     }
   },
   "secondary": {
-    "title": "Auxiliary Systems",
+    "title": "S1 Operating Boundaries",
     "items": [
       {
-        "title": "Strict No-Logs Policy",
-        "desc": "RAM-only servers. Rebooted daily. Data never touches a hard drive."
+        "title": "Bounded Privacy Copy",
+        "desc": "CyberVPN does not make an absolute privacy claim in S1. Operational metadata may exist for security, billing, support, and provisioning."
       },
       {
-        "title": "10 Simultaneous Devices",
-        "desc": "Protect your entire arsenal of hardware with a single access key."
+        "title": "Plan-Based Device Limits",
+        "desc": "Device counts depend on the selected plan and must be enforced by the backend and support process."
       },
       {
-        "title": "Ad & Tracker Blocker",
-        "desc": "DNS-level filtering neutralizes malicious scripts before they load."
+        "title": "Manual Renewal First",
+        "desc": "S1 does not promise automatic renewal. Renewal reminders and invoice links are allowed only after evidence."
       },
       {
-        "title": "P2P Optimized",
-        "desc": "Dedicated high-bandwidth nodes specifically hardware-accelerated for torrenting."
+        "title": "P2P Restricted by Default",
+        "desc": "Torrent/P2P access is not advertised as broadly available. Node policy and provider rules control what is enabled."
       }
     ]
   }

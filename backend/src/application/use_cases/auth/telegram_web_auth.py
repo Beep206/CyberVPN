@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.telegram_auth import (
     InvalidTelegramAuthError,
     TelegramAuthExpiredError,
@@ -57,12 +58,14 @@ class TelegramWebAuthUseCase:
         session: AsyncSession,
         telegram_service: TelegramAuthService,
         remnawave_gateway: RemnawaveGateway | None = None,
+        allow_new_users: bool = True,
     ) -> None:
         self._user_repo = user_repo
         self._auth_service = auth_service
         self._session = session
         self._telegram_service = telegram_service
         self._remnawave_gateway = remnawave_gateway
+        self._allow_new_users = allow_new_users
 
     async def execute(self, payload: dict) -> TelegramWebLoginResult:
         """Validate Telegram hash, extract user, auto-login or auto-register.
@@ -93,6 +96,10 @@ class TelegramWebAuthUseCase:
 
         if not user:
             # Auto-register with Telegram-first onboarding
+            ensure_public_registration_enabled(
+                channel="telegram_web",
+                registration_enabled=self._allow_new_users,
+            )
             login = OAuthLoginUseCase._generate_telegram_login(
                 username=username,
                 first_name=first_name,

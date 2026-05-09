@@ -1,10 +1,17 @@
 """Telegram API schemas."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_DEVICE_LIMIT,
+    STAGE1_TRIAL_DURATION_DAYS,
+    STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+)
 from src.presentation.api.v1.access_delivery_channels.schemas import CurrentServiceStateResponse
 from src.presentation.api.v1.addons.schemas import AddonResponse
 from src.presentation.api.v1.orders.schemas import OrderResponse
@@ -174,7 +181,10 @@ class TelegramBotTrialStatusResponse(BaseModel):
     trial_start: datetime | None = None
     trial_end: datetime | None = None
     days_remaining: int = 0
-    duration_days: int = 0
+    duration_days: int = STAGE1_TRIAL_DURATION_DAYS
+    device_limit: int = STAGE1_TRIAL_DEVICE_LIMIT
+    traffic_limit_bytes: int = STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
+    one_trial_per_account: bool = STAGE1_TRIAL_ONE_PER_ACCOUNT
     expires_at: datetime | None = None
     entitlements_snapshot: CurrentEntitlementsResponse | None = None
 
@@ -290,6 +300,27 @@ class TelegramBotPaymentStatusResponse(BaseModel):
     currency: str
     created_at: datetime
     updated_at: datetime
+
+
+class TelegramBotSupportEscalationRequest(BaseModel):
+    """Support escalation payload created by the Telegram bot first-line triage."""
+
+    support_reference: str = Field(..., min_length=8, max_length=100, pattern=r"^[a-z0-9:_-]+$")
+    category: Literal["payment", "provisioning", "connectivity", "account", "legal_abuse", "general"]
+    priority: Literal["p0", "p1", "p2", "p3"]
+    safe_summary: str = Field(..., min_length=1, max_length=1000)
+    first_line_reply_key: str = Field(..., min_length=1, max_length=100)
+    source: Literal["telegram_bot"] = "telegram_bot"
+    telegram_username: str | None = Field(default=None, max_length=255)
+
+
+class TelegramBotSupportEscalationResponse(BaseModel):
+    """Bot-facing response for an accepted support escalation."""
+
+    support_reference: str
+    status: Literal["accepted"] = "accepted"
+    user_uuid: UUID
+    note_id: UUID
 
 
 TelegramBotPlanResponse = PlanResponse

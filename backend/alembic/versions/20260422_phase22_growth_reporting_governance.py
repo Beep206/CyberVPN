@@ -1,7 +1,7 @@
 """phase22_growth_reporting_governance
 
-Revision ID: 20260422_phase22_growth_reporting_governance
-Revises: 20260422_phase21_growth_reporting_distribution
+Revision ID: 20260422_p22_growth_governance
+Revises: 20260422_p21_growth_distribution
 Create Date: 2026-04-22 23:58:00.000000
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260422_phase22_growth_reporting_governance"
-down_revision = "20260422_phase21_growth_reporting_distribution"
+revision = "20260422_p22_growth_governance"
+down_revision = "20260422_p21_growth_distribution"
 branch_labels = None
 depends_on = None
 

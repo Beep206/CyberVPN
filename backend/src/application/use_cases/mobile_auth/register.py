@@ -14,6 +14,7 @@ from src.application.dto.mobile_auth import (
     TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
@@ -37,6 +38,7 @@ class MobileRegisterUseCase:
     user_repo: MobileUserRepository
     device_repo: MobileDeviceRepository
     auth_service: AuthService
+    allow_new_users: bool = True
 
     async def execute(self, request: RegisterRequestDTO) -> AuthResponseDTO:
         """Register a new mobile user.
@@ -50,6 +52,11 @@ class MobileRegisterUseCase:
         Raises:
             DuplicateUsernameError: If email already exists.
         """
+        ensure_public_registration_enabled(
+            channel="mobile_password",
+            registration_enabled=self.allow_new_users,
+        )
+
         # Check email uniqueness
         existing_user = await self.user_repo.get_by_email(request.email)
         if existing_user:

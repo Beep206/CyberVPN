@@ -1,7 +1,7 @@
 """Add quote sessions and checkout sessions for Phase 2.
 
-Revision ID: 20260418_phase2_quote_checkout_sessions
-Revises: 20260418_phase2_merchant_billing_foundation
+Revision ID: 20260418_p2_quote_checkout
+Revises: 20260418_p2_merchant_billing
 Create Date: 2026-04-18 03:30:00.000000
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260418_phase2_quote_checkout_sessions"
-down_revision: str | None = "20260418_phase2_merchant_billing_foundation"
+revision: str = "20260418_p2_quote_checkout"
+down_revision: str | None = "20260418_p2_merchant_billing"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

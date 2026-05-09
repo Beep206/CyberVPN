@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_plan_policy import filter_stage1_public_paid_plans
 from src.domain.enums import AdminRole, CatalogVisibility
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -11,8 +12,7 @@ from src.infrastructure.remnawave.contracts import StatusMessageResponse
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
 
-from .schemas import CreatePlanRequest, UpdatePlanRequest
-from .schemas import PlanResponse
+from .schemas import CreatePlanRequest, PlanResponse, UpdatePlanRequest
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -56,7 +56,7 @@ async def list_plans(
         sale_channel=channel,
         active_only=True,
     )
-    return [_serialize_plan(plan) for plan in plans]
+    return [_serialize_plan(plan) for plan in filter_stage1_public_paid_plans(plans, sale_channel=channel)]
 
 
 @router.get("/admin", response_model=list[PlanResponse])

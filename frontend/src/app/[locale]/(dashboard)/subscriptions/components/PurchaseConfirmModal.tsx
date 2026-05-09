@@ -24,6 +24,7 @@ import {
   canOfficialWebSurfaceAccess,
   shouldRenderOfficialQuoteAdjustmentBanner,
 } from '@/shared/lib/surface-policy';
+import { getLocalDisplayEstimate } from '@/shared/lib/pricing-display';
 import {
   formatConnectionModes,
   formatDurationLabel,
@@ -288,6 +289,8 @@ export function PurchaseConfirmModal({
   const quotedBase = quote?.base_price ?? plan.price_usd;
   const hasDiscount = (quote?.discount_amount ?? 0) > 0;
   const quotedGateway = quote?.gateway_amount ?? plan.price_usd;
+  const quotedLocalEstimate = getLocalDisplayEstimate(locale, quotedTotal);
+  const gatewayLocalEstimate = getLocalDisplayEstimate(locale, quotedGateway);
   const showPromoControls = canOfficialWebSurfaceAccess('promo_codes');
   const showQuoteAdjustmentBanner = appliedCodeInput && quote
     ? shouldRenderOfficialQuoteAdjustmentBanner({
@@ -358,6 +361,14 @@ export function PurchaseConfirmModal({
                   <p className="text-2xl font-display text-matrix-green">
                     {formatMoney(locale, quotedTotal, 'USD')}
                   </p>
+                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
+                    Charged in USD
+                  </p>
+                  {quotedLocalEstimate ? (
+                    <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-neon-cyan/70">
+                      Approx. {formatMoney(locale, quotedLocalEstimate.amount, quotedLocalEstimate.currency)} display only
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -365,6 +376,9 @@ export function PurchaseConfirmModal({
             {planPrice && quote == null && !quoteLoading && (
               <p className="mt-3 text-xs font-mono text-white/45">
                 Catalog price: {planPrice.formatted}
+                {planPrice.localEstimate
+                  ? ` / approx. ${planPrice.localEstimate.formatted} display only`
+                  : ''}
               </p>
             )}
           </div>
@@ -443,6 +457,9 @@ export function PurchaseConfirmModal({
                 </p>
                 <p className="text-xs font-mono text-white/55">
                   Gateway amount: {formatMoney(locale, quotedGateway, 'USD')}
+                  {gatewayLocalEstimate
+                    ? ` / approx. ${formatMoney(locale, gatewayLocalEstimate.amount, gatewayLocalEstimate.currency)} display only`
+                    : ''}. Charged in USD.
                 </p>
               </div>
             </div>

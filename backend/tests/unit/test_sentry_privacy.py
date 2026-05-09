@@ -8,9 +8,10 @@ class TestSentryPrivacy:
                 "url": "https://api.cybervpn.io/api/v1/auth/login?token=secret",
                 "headers": {
                     "Authorization": "Bearer top-secret",
-                    "Cookie": "session=secret",
-                    "X-Request-Id": "req-1",
-                },
+                "Cookie": "session=secret",
+                "X-Telegram-Bot-Api-Secret-Token": "telegram-secret",
+                "X-Request-Id": "req-1",
+            },
                 "data": {"password": "secret"},
                 "cookies": {"session": "secret"},
             },
@@ -22,7 +23,17 @@ class TestSentryPrivacy:
             },
             "extra": {
                 "payment_token": "secret",
+                "oauth_access_token": "oauth-secret",
+                "totp_secret": "totp-secret",
+                "support_excerpt": "user pasted vless://sensitive-config",
+                "provider_name": "cryptobot",
                 "safe_value": "ok",
+            },
+            "contexts": {
+                "provisioning": {
+                    "subscription_url": "https://cyber-vpn.net/api/v1/vpn/config/user",
+                    "region": "nl",
+                },
             },
         }
 
@@ -31,13 +42,20 @@ class TestSentryPrivacy:
         assert scrubbed is event
         assert scrubbed["request"]["headers"]["Authorization"] == "[Filtered]"
         assert scrubbed["request"]["headers"]["Cookie"] == "[Filtered]"
+        assert scrubbed["request"]["headers"]["X-Telegram-Bot-Api-Secret-Token"] == "[Filtered]"
         assert scrubbed["request"]["headers"]["X-Request-Id"] == "req-1"
         assert scrubbed["request"]["url"] == "https://api.cybervpn.io/api/v1/auth/login"
         assert scrubbed["request"]["data"] == "[Filtered]"
         assert scrubbed["request"]["cookies"] == "[Filtered]"
         assert scrubbed["user"] == {"id": "internal-user-id"}
         assert scrubbed["extra"]["payment_token"] == "[Filtered]"
+        assert scrubbed["extra"]["oauth_access_token"] == "[Filtered]"
+        assert scrubbed["extra"]["totp_secret"] == "[Filtered]"
+        assert scrubbed["extra"]["support_excerpt"] == "[Filtered]"
+        assert scrubbed["extra"]["provider_name"] == "cryptobot"
         assert scrubbed["extra"]["safe_value"] == "ok"
+        assert scrubbed["contexts"]["provisioning"]["subscription_url"] == "[Filtered]"
+        assert scrubbed["contexts"]["provisioning"]["region"] == "nl"
 
     def test_before_send_transaction_drops_health_and_metrics(self) -> None:
         assert (

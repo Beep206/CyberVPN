@@ -89,10 +89,10 @@ describe('guides pages', () => {
       }),
     });
 
-    expect(hubMetadata.alternates?.canonical).toBe('https://vpn.ozoxy.ru/ru-RU/guides');
+    expect(hubMetadata.alternates?.canonical).toBe('https://cyber-vpn.net/ru-RU/guides');
     expect(hubMetadata.robots).toBeUndefined();
     expect(detailMetadata.alternates?.canonical).toBe(
-      'https://vpn.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(detailMetadata.robots).toBeUndefined();
   });

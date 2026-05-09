@@ -11,6 +11,7 @@ export type PaymentHistoryResponse =
   operations['get_payment_history_api_v1_payments_history_get']['responses'][200]['content']['application/json'];
 export type PaymentHistoryParams =
   operations['get_payment_history_api_v1_payments_history_get']['parameters']['query'];
+export type CustomerPaymentHistoryParams = PaymentHistoryParams;
 export type CheckoutQuoteRequest =
   operations['quote_checkout_api_v1_payments_checkout_quote_post']['requestBody']['content']['application/json'];
 export type CheckoutQuoteResponse =
@@ -109,6 +110,6 @@ export const paymentsApi = {
    *
    * Ordered by most recent first.
    */
-  getHistory: (params?: PaymentHistoryParams) =>
+  getHistory: (params?: CustomerPaymentHistoryParams) =>
     apiClient.get<PaymentHistoryResponse>('/payments/history', { params }),
 };

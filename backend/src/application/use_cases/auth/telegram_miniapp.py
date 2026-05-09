@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.verify_otp import RemnawaveGateway
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -54,12 +55,14 @@ class TelegramMiniAppUseCase:
         session: AsyncSession,
         telegram_provider: TelegramOAuthProvider,
         remnawave_gateway: RemnawaveGateway | None = None,
+        allow_new_users: bool = True,
     ) -> None:
         self._user_repo = user_repo
         self._auth_service = auth_service
         self._session = session
         self._telegram = telegram_provider
         self._remnawave_gateway = remnawave_gateway
+        self._allow_new_users = allow_new_users
 
     async def execute(self, init_data: str) -> TelegramMiniAppResult:
         """Validate initData, extract Telegram user, auto-login or auto-register.
@@ -91,6 +94,10 @@ class TelegramMiniAppUseCase:
 
         if not user:
             # Step 3: Auto-register with Telegram-first onboarding
+            ensure_public_registration_enabled(
+                channel="telegram_miniapp",
+                registration_enabled=self._allow_new_users,
+            )
             login = OAuthLoginUseCase._generate_telegram_login(
                 username=username,
                 first_name=first_name,

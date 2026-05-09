@@ -4,7 +4,7 @@ import {
   isLocaleIndexableForPath,
 } from '@/shared/lib/locale-rollout-policy';
 
-export const SITE_URL = 'https://vpn.ozoxy.ru';
+export const SITE_URL = 'https://cyber-vpn.net';
 
 export type LocalizedPathInfo = {
   locale?: (typeof locales)[number];

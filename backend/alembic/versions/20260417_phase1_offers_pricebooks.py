@@ -1,7 +1,7 @@
 """Add offer, pricebook, and program eligibility foundations.
 
-Revision ID: 20260417_phase1_offers_pricebooks
-Revises: 20260417_phase1_partner_workspace
+Revision ID: 20260417_p1_offers_pricebooks
+Revises: 20260417_p1_partner_workspace
 Create Date: 2026-04-17 23:59:00.000000
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260417_phase1_offers_pricebooks"
-down_revision: str | None = "20260417_phase1_partner_workspace"
+revision: str = "20260417_p1_offers_pricebooks"
+down_revision: str | None = "20260417_p1_partner_workspace"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

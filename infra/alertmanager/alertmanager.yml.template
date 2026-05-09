@@ -1,107 +1,146 @@
-# AlertManager configuration with severity-based routing
+# Alertmanager configuration for CyberVPN Stage 1 Controlled Public Beta.
 #
-# IMPORTANT: To use a custom webhook URL, set ALERTMANAGER_WEBHOOK_URL in .env
-# Example: ALERTMANAGER_WEBHOOK_URL=https://your-telegram-bot.example.com/webhook
+# Runtime secrets are read from files created by docker-entrypoint.sh:
+# - SMTP password
 #
-# For production, you'll need to:
-# 1. Set up a Telegram bot webhook relay service
-# 2. Configure the ALERTMANAGER_WEBHOOK_URL environment variable
-# 3. Run: docker compose --profile monitoring up -d alertmanager --force-recreate
+# Alertmanager v0.28.1 does not support telegram bot_token_file/chat_id_file,
+# so Telegram token and chat id are rendered into the ephemeral runtime config.
 #
-# The config uses envsubst preprocessing via entrypoint to inject the URL.
+# Local validation uses placeholders. Staging/production must set
+# ALERTMANAGER_REQUIRE_LIVE_RECEIVERS=true and provide real Telegram/SMTP values
+# before S1 go-live evidence can be accepted.
 
 global:
   resolve_timeout: 5m
+  smtp_from: '${ALERTMANAGER_SMTP_FROM}'
+  smtp_smarthost: '${ALERTMANAGER_SMTP_SMARTHOST}'
+  smtp_hello: '${ALERTMANAGER_SMTP_HELLO}'
+  smtp_auth_username: '${ALERTMANAGER_SMTP_AUTH_USERNAME}'
+  smtp_auth_password_file: '${ALERTMANAGER_SMTP_PASSWORD_FILE}'
+  smtp_require_tls: ${ALERTMANAGER_SMTP_REQUIRE_TLS}
 
 templates:
   - '/etc/alertmanager/templates/*.tmpl'
 
-# Root route with default receiver
 route:
-  receiver: 'telegram-default'
-  group_by: ['alertname', 'severity', 'service']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-
-  # Child routes with severity-based routing
+  receiver: 'stage1-default'
+  group_by: ['alertname', 'severity', 'priority', 'service', 'stage']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
   routes:
-    # Critical alerts - immediate notification, no grouping delay
-    - match:
-        severity: critical
-      receiver: 'telegram-critical'
+    - receiver: 'stage1-p0'
+      matchers:
+        - priority="p0"
+      group_wait: 0s
+      group_interval: 2m
+      repeat_interval: 30m
+      continue: false
+
+    - receiver: 'stage1-p1'
+      matchers:
+        - priority="p1"
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 1h
+      continue: false
+
+    - receiver: 'stage1-critical'
+      matchers:
+        - severity="critical"
       group_wait: 0s
       group_interval: 5m
       repeat_interval: 30m
       continue: false
 
-    # Warning alerts - grouped with slight delay
-    - match:
-        severity: warning
-      receiver: 'telegram-warning'
-      group_wait: 30s
+    - receiver: 'stage1-warning'
+      matchers:
+        - severity="warning"
+      group_wait: 1m
       group_interval: 10m
       repeat_interval: 2h
       continue: false
 
-    # Info alerts - heavily grouped, less frequent
-    - match:
-        severity: info
-      receiver: 'telegram-info'
-      group_wait: 2m
-      group_interval: 15m
-      repeat_interval: 4h
-      continue: false
-
 receivers:
-  # Critical severity receiver - immediate notifications
-  - name: 'telegram-critical'
-    webhook_configs:
-      - url: '${ALERTMANAGER_WEBHOOK_URL}'
-        send_resolved: true
-        http_config:
-          follow_redirects: true
-        max_alerts: 0
+  - name: 'stage1-p0'
+    telegram_configs:
+      - send_resolved: true
+        bot_token: '${ALERTMANAGER_TELEGRAM_BOT_TOKEN}'
+        chat_id: ${ALERTMANAGER_TELEGRAM_CHAT_ID}
+        parse_mode: ''
+        message: '{{ template "telegram.stage1.message" . }}'
+    email_configs:
+      - send_resolved: true
+        to: '${ALERTMANAGER_BACKUP_EMAIL}'
+        headers:
+          Subject: '[CyberVPN S1 P0 {{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: '{{ template "email.stage1.text" . }}'
 
-  # Warning severity receiver
-  - name: 'telegram-warning'
-    webhook_configs:
-      - url: '${ALERTMANAGER_WEBHOOK_URL}'
-        send_resolved: true
-        http_config:
-          follow_redirects: true
-        max_alerts: 0
+  - name: 'stage1-p1'
+    telegram_configs:
+      - send_resolved: true
+        bot_token: '${ALERTMANAGER_TELEGRAM_BOT_TOKEN}'
+        chat_id: ${ALERTMANAGER_TELEGRAM_CHAT_ID}
+        parse_mode: ''
+        message: '{{ template "telegram.stage1.message" . }}'
+    email_configs:
+      - send_resolved: true
+        to: '${ALERTMANAGER_BACKUP_EMAIL}'
+        headers:
+          Subject: '[CyberVPN S1 P1 {{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: '{{ template "email.stage1.text" . }}'
 
-  # Info severity receiver
-  - name: 'telegram-info'
-    webhook_configs:
-      - url: '${ALERTMANAGER_WEBHOOK_URL}'
-        send_resolved: true
-        http_config:
-          follow_redirects: true
-        max_alerts: 0
+  - name: 'stage1-critical'
+    telegram_configs:
+      - send_resolved: true
+        bot_token: '${ALERTMANAGER_TELEGRAM_BOT_TOKEN}'
+        chat_id: ${ALERTMANAGER_TELEGRAM_CHAT_ID}
+        parse_mode: ''
+        message: '{{ template "telegram.stage1.message" . }}'
+    email_configs:
+      - send_resolved: true
+        to: '${ALERTMANAGER_BACKUP_EMAIL}'
+        headers:
+          Subject: '[CyberVPN S1 CRITICAL {{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: '{{ template "email.stage1.text" . }}'
 
-  # Default receiver for alerts without severity label
-  - name: 'telegram-default'
-    webhook_configs:
-      - url: '${ALERTMANAGER_WEBHOOK_URL}'
-        send_resolved: true
-        http_config:
-          follow_redirects: true
-        max_alerts: 0
+  - name: 'stage1-warning'
+    telegram_configs:
+      - send_resolved: true
+        bot_token: '${ALERTMANAGER_TELEGRAM_BOT_TOKEN}'
+        chat_id: ${ALERTMANAGER_TELEGRAM_CHAT_ID}
+        parse_mode: ''
+        message: '{{ template "telegram.stage1.message" . }}'
+    email_configs:
+      - send_resolved: true
+        to: '${ALERTMANAGER_BACKUP_EMAIL}'
+        headers:
+          Subject: '[CyberVPN S1 WARNING {{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: '{{ template "email.stage1.text" . }}'
 
-# Inhibition rules - suppress lower severity alerts when higher severity is firing
+  - name: 'stage1-default'
+    telegram_configs:
+      - send_resolved: true
+        bot_token: '${ALERTMANAGER_TELEGRAM_BOT_TOKEN}'
+        chat_id: ${ALERTMANAGER_TELEGRAM_CHAT_ID}
+        parse_mode: ''
+        message: '{{ template "telegram.stage1.message" . }}'
+    email_configs:
+      - send_resolved: true
+        to: '${ALERTMANAGER_BACKUP_EMAIL}'
+        headers:
+          Subject: '[CyberVPN S1 {{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: '{{ template "email.stage1.text" . }}'
+
 inhibit_rules:
-  # Inhibit warning/info alerts if critical alert for same service is firing
-  - source_match:
-      severity: 'critical'
-    target_match_re:
-      severity: 'warning|info'
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity=~"warning|info"
     equal: ['service', 'instance']
 
-  # Inhibit info alerts if warning alert for same service is firing
-  - source_match:
-      severity: 'warning'
-    target_match:
-      severity: 'info'
-    equal: ['service', 'instance']
+  - source_matchers:
+      - priority="p0"
+    target_matchers:
+      - priority=~"p1|p2"
+    equal: ['service', 'stage']

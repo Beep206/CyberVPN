@@ -634,6 +634,17 @@ class CyberVPNAPIClient:
     async def get_current_service_state(self, telegram_id: int) -> dict[str, Any]:
         return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/service-state")
 
+    async def create_support_escalation(
+        self,
+        telegram_id: int,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return await self._request_auth_backend_dict(
+            "POST",
+            f"/telegram/bot/user/{telegram_id}/support/escalations",
+            json=payload,
+        )
+
     async def check_trial_eligibility(self, telegram_id: int) -> dict[str, Any]:
         trial_status = await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/trial-status")
         return {

@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "20260418_phase7_event_outbox"
-down_revision = "20260418_phase5_device_credentials_and_delivery_channels"
+down_revision = "20260418_p5_device_delivery"
 branch_labels = None
 depends_on = None
 

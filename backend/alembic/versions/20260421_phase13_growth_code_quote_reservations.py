@@ -1,7 +1,7 @@
 """phase13 growth code quote reservations
 
-Revision ID: 20260421_phase13_growth_code_quote_reservations
-Revises: 20260421_phase12_growth_codes_backbone
+Revision ID: 20260421_p13_code_quote_res
+Revises: 20260421_p12_growth_codes
 Create Date: 2026-04-21 11:30:00.000000
 """
 
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "20260421_phase13_growth_code_quote_reservations"
-down_revision = "20260421_phase12_growth_codes_backbone"
+revision = "20260421_p13_code_quote_res"
+down_revision = "20260421_p12_growth_codes"
 branch_labels = None
 depends_on = None
 

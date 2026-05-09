@@ -24,9 +24,6 @@ from src.services.api_client import (
 )
 
 if TYPE_CHECKING:
-    from pydantic import SecretStr
-
-    from src.config import AuthBackendSettings
     from src.config import BotSettings
 
 
@@ -691,3 +688,34 @@ class TestAPIClientCleanup:
             pass
         finally:
             await client._client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_create_support_escalation_posts_to_telegram_bot_endpoint(mock_settings: BotSettings) -> None:
+    client = CyberVPNAPIClient(settings=mock_settings.backend)
+    payload = {
+        "support_reference": "tg-payment-p1-abc123def456",
+        "category": "payment",
+        "priority": "p1",
+        "safe_summary": "Paid but no access",
+        "first_line_reply_key": "support-first-line-payment",
+        "source": "telegram_bot",
+        "telegram_username": "tester",
+    }
+
+    with respx.mock:
+        route = respx.post(
+            "https://api.test.cybervpn.local/telegram/bot/user/123456/support/escalations"
+        ).mock(
+            return_value=httpx.Response(
+                201,
+                json={"status": "accepted", "support_reference": payload["support_reference"]},
+            )
+        )
+
+        result = await client.create_support_escalation(123456, payload)
+
+    assert result["status"] == "accepted"
+    assert route.call_count == 1
+    assert json.loads(route.calls[0].request.content) == payload
+    await client.close()

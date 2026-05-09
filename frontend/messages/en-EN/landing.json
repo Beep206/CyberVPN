@@ -1,9 +1,9 @@
 {
   "hero": {
-    "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
-    "title": "INVISIBLE VPN. POWERED BY VLESS-REALITY",
-    "titleHighlight": "INVISIBLE VPN",
-    "subtitle": "Bypass DPI blocking of any complexity. Masquerade traffic as standard HTTPS. Up to 10 Gbps speeds without encapsulation loss.",
+    "protocol_badge": "S1 PROTOCOLS: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
+    "title": "CONTROLLED BETA VPN. POWERED BY VLESS REALITY",
+    "titleHighlight": "CONTROLLED BETA VPN",
+    "subtitle": "Controlled Public Beta access with S1-approved transports, evidence-gated regions, manual renewal, and support recovery paths.",
     "cta_telegram": "LAUNCH IN TELEGRAM",
     "cta_app": "DOWNLOAD APP"
   },
@@ -12,40 +12,40 @@
     "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
     "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
     "stats": {
-      "locations": "locations",
-      "bandwidth": "Gbit/s",
-      "uptime": "uptime",
-      "logs": "logs"
+      "locations": "startup regions",
+      "bandwidth": "approved transports",
+      "uptime": "beta status",
+      "logs": "bounded claims"
     },
     "stealth": {
       "title": "Stealth Mode (Reality)",
-      "desc": "Traffic is indistinguishable from visiting Google/Microsoft/Apple. No VPN fingerprinting."
+      "desc": "VLESS Reality is the S1 default path for networks where standard VPN fingerprints are unreliable. Availability depends on real node evidence."
     },
     "backbone": {
       "title": "Backbone Performance",
-      "desc": "Native 10 Gbit/s uplinks in Tier-3 data centers. Optimized for 4K/8K streaming and low-ping gaming."
+      "desc": "Startup regions are enabled only after Remnawave node evidence, monitoring, support recovery, and rollback proof are available."
     },
     "ram": {
-      "title": "RAM-Only Infrastructure",
-      "desc": "No disks, no logs, no persistence. Infrastructure is wiped on every restart."
+      "title": "Privacy-Bounded Operations",
+      "desc": "Public privacy wording is limited to what S1 evidence can support. Operational metadata may exist for security, billing, support, and provisioning."
     },
     "routing": {
       "title": "Intelligent Routing",
-      "desc": "Global mesh of 100+ nodes with automated latency-based selection."
+      "desc": "Region visibility is evidence-gated: a location is shown only when node health, profile mapping, and support handling are ready."
     },
     "multiplatform": {
       "title": "Native Multi-Platform",
-      "desc": "One subscription for Telegram Bot, iOS, Android, Windows, macOS, and Linux."
+      "desc": "S1 supports web cabinet, Telegram Bot/Mini App, and standard third-party client import instructions for Android, iOS, Windows, macOS, and Linux."
     },
     "protocols": {
       "title": "Advanced Protocols",
-      "desc": "Full support for VLESS, Trojan, and Shadowsocks-2022. Native XHTTP support to bypass the strictest corporate and state firewalls—your traffic looks indistinguishable from standard HTTP requests to trusted resources."
+      "desc": "S1 exposes VLESS Reality RAW as default and VLESS Reality XHTTP as the alternate path. Other transports stay out of scope until separately approved."
     }
   },
   "how_it_works": {
     "badge": "ANTI-DPI ENGINE",
     "title": "How Reality Works",
-    "desc": "Your ISP sees a request to microsoft.com or google.com. They don't see an encrypted tunnel. They see a normal user browsing the web. Access granted. Includes intelligent transport selection—automatically failing over to XHTTP if non-standard protocols are blocked."
+    "desc": "Reality-based profiles are configured to resemble ordinary HTTPS flows while keeping the rollout evidence-driven. XHTTP is treated as the S1 alternate path, not as a universal bypass promise."
   },
   "comparison_table": {
     "title": "Legacy vs Next-Gen",
@@ -58,32 +58,32 @@
       "dpi": {
         "feature": "DPI Detection",
         "legacy": "Easily fingerprinted and blocked",
-        "cybervpn": "Indistinguishable from HTTPS"
+        "cybervpn": "HTTPS-like Reality profile"
       },
       "speed": {
         "feature": "Speed under Load",
         "legacy": "Throttled by ISP deep inspection",
-        "cybervpn": "Full backbone speed (10Gbps)"
+        "cybervpn": "Measured per enabled node"
       },
       "ip_blocking": {
         "feature": "IP Blocking Risk",
         "legacy": "High (static patterns)",
-        "cybervpn": "Zero (dynamic Reality masking)"
+        "cybervpn": "Lower when node evidence is current"
       },
       "privacy": {
         "feature": "Privacy Layer",
         "legacy": "Standard encryption",
-        "cybervpn": "RAM-only encryption (Zero-trace)"
+        "cybervpn": "Bounded privacy claims tied to evidence"
       }
     }
   },
   "status_board": {
     "title": "Node Status Dashboard",
-    "item_online": "ONLINE",
-    "live": "LIVE",
+    "item_online": "EVIDENCE OK",
+    "live": "S1 READY",
     "protocols": {
       "reality": "Reality",
-      "vless_grpc": "VLESS-gRPC"
+      "xhttp": "Reality XHTTP"
     }
   },
   "technical": {
@@ -94,42 +94,42 @@
       "network": "Network"
     },
     "networkLabels": {
-      "bandwidth": "Bandwidth",
-      "nodes": "Active Nodes",
+      "bandwidth": "Beta capacity",
+      "nodes": "Enabled regions",
       "coverage": "Coverage",
-      "uptime": "Network Availability"
+      "uptime": "Monitoring posture"
     }
   },
   "quick_start": {
     "badge": "Fast Track",
     "title": "30-Second Path",
     "step1": "Launch the bot (@CyberVPN_Bot)",
-    "step2": "One-tap Trial Activation (2 days / 2GB)",
-    "step3": "Import config to any app and stay free",
+    "step2": "One-tap Trial Activation (3 days / 1 device)",
+    "step3": "Import QR, subscription URL, or config into a supported client",
     "terminalTitle": "Deploy Connection",
     "terminalComment": "# Auto-provisioning VPN tunnel...",
-    "terminalStatus": "> Tunnel Established. DPI bypassed. Securing transport..."
+    "terminalStatus": "> VPN access ready when provisioning evidence and support recovery pass."
   },
   "network_stats": {
     "title": "Network Infrastructure",
-    "bandwidth": "1.2 Tbps Backbone capacity",
-    "nodes": "100+ Active high-performance nodes",
-    "coverage": "50+ Countries, 100+ Cities",
-    "uptime": "99.9% Network availability"
+    "bandwidth": "Capacity shown after node evidence",
+    "nodes": "12 startup regions, enabled by evidence",
+    "coverage": "Country-level regions only for S1",
+    "uptime": "Monitoring and alerts required before go-live"
   },
   "tech_specs": {
     "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
     "transport": "Transport: XHTTP (Next-Gen), gRPC, Reality-TCP",
-    "network": "Network: 10Gbps Uplinks, Global IPv6 Support"
+    "network": "Network: S1 startup regions, monitored node evidence"
   },
   "speed_tunnel": {
     "titleStart": "GLOBAL",
     "titleHighlight": "ULTRASPEED",
     "titleEnd": "NETWORK",
-    "subtitle": "100+ Locations. 10 Gbit/s Channels. Zero Limits.",
-    "online": "ONLINE",
-    "featureTorrent": "Torrent",
-    "featureNoAds": "No-Ads YT",
+    "subtitle": "S1 startup regions. Evidence-gated nodes. Fair-use policy.",
+    "online": "S1 SLOT",
+    "featureTorrent": "P2P restricted",
+    "featureNoAds": "HTTPS-like profile",
     "servers": {
       "newYork": { "country": "USA", "city": "New York" },
       "frankfurt": { "country": "Germany", "city": "Frankfurt" },

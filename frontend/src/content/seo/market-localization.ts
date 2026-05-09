@@ -813,19 +813,22 @@ export const COMPARE_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
 export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, LocalizedHubCopy>> = {
   'en-EN': {
     badge: 'Setup playbooks',
-    title: 'Device-specific VPN setup guides for Android, iPhone, iPad, and desktop clients',
+    title: 'Device-specific VPN setup guides for Android, iOS, Windows, macOS, Linux, and Telegram',
     description:
-      'Setup pages built to reduce support friction, align the right client to the right device, and move users toward working installs instead of generic troubleshooting loops.',
+      'Setup pages built to reduce support friction, align the right compatible client to the right device, and move users from trial or payment to working VPN access.',
     bullets: [
-      'Device-specific setup guidance with explicit fallback paths.',
+      'Device-specific setup guidance with explicit fallback and support paths.',
       'Linked to download, help, compare, pricing, trust, and status surfaces.',
-      'Structured as server-rendered acquisition pages instead of app-only flows.',
+      'Structured as server-rendered acquisition pages without promising native mobile or desktop releases inside S1.',
     ],
-    proofPoints: ['3 setup guides', 'SoftwareApplication schema', 'Support-first linking'],
+    proofPoints: ['6 S1 setup guides', 'SoftwareApplication schema', 'Support-first linking'],
     cards: [
       { eyebrow: 'Android setup', title: 'Android VPN setup with CyberVPN for restrictive Wi-Fi and mobile data', description: 'Set up Android clients with a stable default route and a restrictive-network fallback.' },
       { eyebrow: 'iPhone and iPad setup', title: 'iOS VPN setup for stable roaming between home, work, and public hotspots', description: 'Build a clean iOS route with an obvious fallback when the network degrades.' },
       { eyebrow: 'Desktop setup', title: 'Windows VPN setup for workstations that need speed, fallback, and support clarity', description: 'Deploy workstation clients with clean packaging and a clear recovery path.' },
+      { eyebrow: 'macOS setup', title: 'macOS VPN setup without waiting for a native desktop app', description: 'Import CyberVPN access into a compatible macOS client and keep recovery support-safe.' },
+      { eyebrow: 'Linux setup', title: 'Linux VPN setup with transparent config import and support-safe diagnostics', description: 'Keep Linux user access separate from operator infrastructure and raw secrets.' },
+      { eyebrow: 'Telegram setup', title: 'Telegram Mini App VPN setup from trial or payment to a working config', description: 'Use Telegram for onboarding, then import the issued config into the target device client.' },
     ],
     ctaLinks: [
       { label: 'Open download center', description: 'Get the right client bundle before you start manual setup.' },
@@ -835,19 +838,22 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
   },
   'ru-RU': {
     badge: 'Сценарии настройки',
-    title: 'Гайды по настройке VPN для Android, iPhone, iPad и desktop-клиентов',
+    title: 'Гайды по настройке VPN для Android, iOS, Windows, macOS, Linux и Telegram',
     description:
-      'Setup-страницы, которые уменьшают нагрузку на поддержку, подбирают правильный клиент под устройство и ведут пользователя к рабочей установке, а не к бесконечному troubleshooting.',
+      'Setup-страницы, которые уменьшают нагрузку на поддержку, подбирают совместимый клиент под устройство и ведут пользователя от trial или оплаты к рабочему VPN-доступу.',
     bullets: [
-      'Пошаговая настройка под конкретное устройство и явные fallback-маршруты.',
+      'Пошаговая настройка под конкретное устройство с явными fallback и support-маршрутами.',
       'Связки с download, help, compare, pricing, trust и status.',
-      'Серверные acquisition-страницы вместо app-only flow.',
+      'Серверные acquisition-страницы без обещаний native mobile или desktop release внутри S1.',
     ],
-    proofPoints: ['3 setup-гайда', 'SoftwareApplication schema', 'Support-first linking'],
+    proofPoints: ['6 S1 setup-гайдов', 'SoftwareApplication schema', 'Support-first linking'],
     cards: [
       { eyebrow: 'Настройка Android', title: 'Настройка VPN на Android для жёсткого Wi‑Fi и мобильных сетей', description: 'Соберите стабильный default route и fallback для агрессивных сетей.' },
       { eyebrow: 'Настройка iPhone и iPad', title: 'Настройка VPN на iOS для роуминга между домом, офисом и публичными точками', description: 'Постройте чистый iOS-маршрут с понятным резервным сценарием.' },
       { eyebrow: 'Настройка desktop', title: 'Настройка VPN на Windows для рабочих станций со скоростью и fallback-сценарием', description: 'Разверните desktop-клиент с предсказуемой упаковкой и recovery-путём.' },
+      { eyebrow: 'Настройка macOS', title: 'Настройка VPN на macOS без ожидания native desktop app', description: 'Импортируйте доступ CyberVPN в совместимый macOS-клиент и держите recovery support-safe.' },
+      { eyebrow: 'Настройка Linux', title: 'Настройка VPN на Linux с прозрачным импортом config и safe diagnostics', description: 'Отделите пользовательский доступ Linux от operator infrastructure и raw secrets.' },
+      { eyebrow: 'Настройка Telegram', title: 'Telegram Mini App: от trial или оплаты к рабочему VPN-config', description: 'Используйте Telegram для onboarding, а затем импортируйте выданный config в клиент устройства.' },
     ],
     ctaLinks: [
       { label: 'Открыть download center', description: 'Скачайте правильный клиентский пакет до ручной настройки.' },
@@ -857,19 +863,22 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
   },
   'zh-CN': {
     badge: '配置手册',
-    title: '面向 Android、iPhone、iPad 与桌面客户端的设备 VPN 配置指南',
+    title: '面向 Android、iOS、Windows、macOS、Linux 与 Telegram 的 VPN 配置指南',
     description:
-      '这些配置页面用于减少支持摩擦，让正确的客户端匹配正确的设备，并把用户导向真正可用的安装结果，而不是泛泛的故障排查。',
+      '这些配置页面用于减少支持摩擦，让兼容客户端匹配正确设备，并把用户从试用或支付导向可用的 VPN 访问。',
     bullets: [
-      '按设备拆分的配置说明，并提供明确的 fallback 路径。',
+      '按设备拆分的配置说明，并提供明确的 fallback 与支持路径。',
       '连接到下载、帮助、对比、价格、信任与状态页面。',
-      '作为服务端渲染的获客页面，而不是仅限应用内流程。',
+      '作为服务端渲染页面存在，不在 S1 中承诺原生移动端或桌面端发布。',
     ],
-    proofPoints: ['3 个配置指南', 'SoftwareApplication schema', '以支持为先的链接结构'],
+    proofPoints: ['6 个 S1 配置指南', 'SoftwareApplication schema', '以支持为先的链接结构'],
     cards: [
       { eyebrow: 'Android 配置', title: 'Android VPN 配置：适用于受限 Wi‑Fi 和移动网络', description: '准备稳定的默认路由与受限网络备用路由。' },
       { eyebrow: 'iPhone 与 iPad 配置', title: 'iOS VPN 配置：适用于家庭、办公室与公共热点之间漫游', description: '构建干净的 iOS 路径，并为劣化网络准备明显的后备方案。' },
       { eyebrow: '桌面配置', title: 'Windows VPN 配置：面向需要速度、fallback 与支持清晰度的工作站', description: '以清晰的客户端打包和恢复路径部署桌面端。' },
+      { eyebrow: 'macOS 配置', title: 'macOS VPN 配置：无需等待原生桌面应用', description: '把 CyberVPN 访问导入兼容 macOS 客户端，并保持支持恢复路径安全。' },
+      { eyebrow: 'Linux 配置', title: 'Linux VPN 配置：透明导入配置并使用安全诊断', description: '把 Linux 用户访问与运营基础设施、原始密钥材料分离。' },
+      { eyebrow: 'Telegram 配置', title: 'Telegram Mini App：从试用或支付到可用 VPN 配置', description: '通过 Telegram 完成 onboarding，然后把配置导入目标设备客户端。' },
     ],
     ctaLinks: [
       { label: '打开下载中心', description: '在手动配置前先获取正确的客户端包。' },
@@ -887,7 +896,7 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
       'Download, help, compare, pricing, trust और status से जुड़ी हुई.',
       'App-only flow के बजाय SSR acquisition pages के रूप में बनी.',
     ],
-    proofPoints: ['3 setup guides', 'SoftwareApplication schema', 'Support-first linking'],
+    proofPoints: ['6 S1 setup guides', 'SoftwareApplication schema', 'Support-first linking'],
     cards: [
       { eyebrow: 'Android setup', title: 'Restrictive Wi-Fi और mobile data के लिए Android VPN setup', description: 'Stable default route और fallback path के साथ Android setup करें.' },
       { eyebrow: 'iPhone और iPad setup', title: 'Home, work और hotspot roaming के लिए iOS VPN setup', description: 'एक साफ iOS route बनाएँ जिसमें fallback स्पष्ट हो.' },
@@ -909,7 +918,7 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
       'Terhubung ke download, help, compare, pricing, trust, dan status.',
       'Disusun sebagai halaman akuisisi SSR, bukan flow yang hanya hidup di aplikasi.',
     ],
-    proofPoints: ['3 panduan setup', 'SoftwareApplication schema', 'Linking yang ramah support'],
+    proofPoints: ['6 panduan setup S1', 'SoftwareApplication schema', 'Linking yang ramah support'],
     cards: [
       { eyebrow: 'Setup Android', title: 'Setup VPN Android untuk Wi-Fi ketat dan mobile data', description: 'Siapkan default route yang stabil dan fallback untuk jaringan agresif.' },
       { eyebrow: 'Setup iPhone dan iPad', title: 'Setup VPN iOS untuk roaming stabil antara rumah, kantor, dan hotspot', description: 'Bangun jalur iOS yang bersih dengan fallback yang jelas.' },
@@ -931,7 +940,7 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
       'Liên kết tới download, help, compare, pricing, trust và status.',
       'Được xây dựng như các trang SSR phục vụ acquisition, không chỉ là flow trong app.',
     ],
-    proofPoints: ['3 hướng dẫn setup', 'SoftwareApplication schema', 'Liên kết ưu tiên support'],
+    proofPoints: ['6 hướng dẫn setup S1', 'SoftwareApplication schema', 'Liên kết ưu tiên support'],
     cards: [
       { eyebrow: 'Thiết lập Android', title: 'Thiết lập VPN Android cho Wi-Fi bị kiểm soát và mạng di động', description: 'Chuẩn bị default route ổn định và fallback cho mạng khó.' },
       { eyebrow: 'Thiết lập iPhone và iPad', title: 'Thiết lập VPN iOS cho việc chuyển đổi giữa nhà, công ty và hotspot', description: 'Xây dựng tuyến iOS gọn gàng với fallback rõ ràng.' },
@@ -953,7 +962,7 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
       'เชื่อมต่อกับ download, help, compare, pricing, trust และ status.',
       'สร้างเป็นหน้า SSR สำหรับ acquisition ไม่ใช่ flow ที่อยู่แค่ในแอป.',
     ],
-    proofPoints: ['3 คู่มือตั้งค่า', 'SoftwareApplication schema', 'Linking ที่เน้น support'],
+    proofPoints: ['6 คู่มือตั้งค่า S1', 'SoftwareApplication schema', 'Linking ที่เน้น support'],
     cards: [
       { eyebrow: 'ตั้งค่า Android', title: 'ตั้งค่า VPN บน Android สำหรับ Wi‑Fi ที่เข้มงวดและเครือข่ายมือถือ', description: 'เตรียม default route ที่เสถียรและ fallback สำหรับเครือข่ายที่ยาก.' },
       { eyebrow: 'ตั้งค่า iPhone และ iPad', title: 'ตั้งค่า VPN บน iOS สำหรับการสลับระหว่างบ้าน ที่ทำงาน และ hotspot', description: 'สร้างเส้นทาง iOS ที่สะอาดและมี fallback ชัดเจน.' },
@@ -975,7 +984,7 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
       'download、help、compare、pricing、trust、status と接続。',
       'アプリ内限定ではなく SSR の獲得ページとして構成。',
     ],
-    proofPoints: ['セットアップガイド 3 本', 'SoftwareApplication schema', 'Support-first linking'],
+    proofPoints: ['S1 セットアップガイド 6 本', 'SoftwareApplication schema', 'Support-first linking'],
     cards: [
       { eyebrow: 'Android 設定', title: '制限の強い Wi‑Fi とモバイル回線向け Android VPN 設定', description: '安定したデフォルト経路と制限ネットワーク用 fallback を準備します。' },
       { eyebrow: 'iPhone / iPad 設定', title: '自宅、職場、公共ホットスポットをまたぐ iOS VPN 設定', description: '明確な fallback を持つクリーンな iOS ルートを構築します。' },
@@ -997,7 +1006,7 @@ export const DEVICES_HUB_LOCALIZATION: Partial<Record<SeoPriorityMarketLocale, L
       'download, help, compare, pricing, trust, status와 연결.',
       '앱 내부 전용 흐름이 아니라 SSR 획득 페이지로 구성.',
     ],
-    proofPoints: ['설정 가이드 3개', 'SoftwareApplication schema', 'Support-first linking'],
+    proofPoints: ['S1 설정 가이드 6개', 'SoftwareApplication schema', 'Support-first linking'],
     cards: [
       { eyebrow: 'Android 설정', title: '제한적인 Wi‑Fi와 모바일 데이터를 위한 Android VPN 설정', description: '안정적인 기본 경로와 공격적인 네트워크용 fallback을 준비합니다.' },
       { eyebrow: 'iPhone / iPad 설정', title: '집, 회사, 공용 핫스팟 사이를 이동하는 iOS VPN 설정', description: '명확한 fallback이 있는 깔끔한 iOS 경로를 구성합니다.' },

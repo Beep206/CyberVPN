@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 from aiogram import F, Router
+from aiogram.filters import Command
 
 from src.keyboards.subscription import (
     addons_keyboard,
@@ -289,6 +290,48 @@ async def buy_subscription_handler(
         await callback.answer(i18n.get("error-generic"), show_alert=True)
 
     await callback.answer()
+
+
+@router.message(Command("plans"))
+async def plans_command_handler(
+    message: Message,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+    state: FSMContext,
+) -> None:
+    """Open the public S1 subscription plan catalog from the command list."""
+    if message.from_user is None:
+        return
+
+    user_id = message.from_user.id
+    try:
+        plans = await api_client.get_plans()
+        plan_catalog = _group_plan_catalog(
+            [
+                plan
+                for plan in plans
+                if isinstance(plan, dict)
+                and str(plan.get("catalog_visibility") or "public") == "public"
+                and _is_telegram_sellable(plan)
+                and bool(plan.get("is_active", True))
+            ]
+        )
+
+        if not plan_catalog:
+            await message.answer(i18n.get("error-no-plans"))
+            return
+
+        await state.clear()
+        await state.update_data(plan_catalog=plan_catalog)
+        await message.answer(
+            text=i18n.get("subscription-select-plan"),
+            reply_markup=plans_keyboard(i18n, plan_catalog),
+        )
+        await state.set_state(SubscriptionState.selecting_plan)
+        logger.info("subscription_flow_started", user_id=user_id, entrypoint="command")
+    except Exception as exc:
+        logger.error("plans_command_error", user_id=user_id, error=str(exc))
+        await message.answer(i18n.get("error-generic"))
 
 
 @router.callback_query(SubscriptionState.selecting_plan, F.data.startswith("plan:select:"))

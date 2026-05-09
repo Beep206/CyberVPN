@@ -3,5 +3,15 @@
   "subtitle": "የVPN መስቀለኛ መንገዶችን፣ ፕሮቶኮሎችን እና የማሰማራት ክልሎችን ያስተዳድሩ።",
   "globalStatus": "ዓለም አቀፍ ሁኔታ: {status}",
   "globalStatusValue": "ተዘጋጅቷል",
-  "lastSync": "የመጨረሻ ማመሳሰል: ከ{time} በፊት"
+  "lastSync": "የመጨረሻ ማመሳሰል: ከ{time} በፊት",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

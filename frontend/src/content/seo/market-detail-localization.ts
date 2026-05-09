@@ -1391,4 +1391,289 @@ export const DEVICE_DETAIL_LOCALIZATION: Record<string, LocalizedEntryRecord<Loc
       ],
     },
   },
+  'macos-vpn-setup': {
+    'ru-RU': {
+      badge: 'Настройка macOS',
+      title: 'Настройка VPN на macOS без ожидания native desktop app',
+      description:
+        'Импортируйте CyberVPN subscription URL, QR-код или config file в совместимый macOS-клиент и держите support path безопасным для S1 beta.',
+      heroPoints: [
+        'Работает через совместимые клиенты, пока native desktop release остаётся вне S1.',
+        'Subscription URL и QR-код остаются только в доверенных пользовательских поверхностях.',
+        'У support есть понятный recovery path при проблемах маршрута или credentials.',
+      ],
+      sections: [
+        {
+          title: 'Получите access payload из доверенной поверхности',
+          paragraphs: [
+            'Начинайте из web-кабинета CyberVPN или Telegram Mini App после входа. Используйте выданный QR-код, subscription URL или config file только на том устройстве, которое настраиваете.',
+            'Не отправляйте raw subscription URL, QR payload, private keys или полные config files в публичные чаты и support-сообщения. Если credential раскрыт, support должен перевыпустить его.',
+          ],
+          bullets: [
+            'Перед импортом проверьте активный subscription или trial state.',
+            'Используйте QR или copy action из customer cabinet вместо ручного переписывания.',
+            'Держите один default route и один fallback route видимыми для пользователя.',
+          ],
+        },
+        {
+          title: 'Импортируйте доступ в совместимый macOS-клиент',
+          paragraphs: [
+            'S1 не требует CyberVPN native desktop app. Beta setup должен использовать совместимый клиент, который умеет импортировать generated subscription URL или config file.',
+            'После импорта назовите default и fallback profiles так, чтобы support мог понять активный маршрут без запроса секретов.',
+          ],
+        },
+        {
+          title: 'Проверьте подключение и recovery',
+          paragraphs: [
+            'После подключения проверьте выбранный регион и status page до смены профилей. Если маршрут не работает, попробуйте fallback profile до переустановки клиента.',
+            'В support-запросе должны быть account email или Telegram ID, тип устройства, название клиента, видимый текст ошибки и timestamp. Raw configs и credentials отправлять нельзя.',
+          ],
+        },
+      ],
+      relatedLinks: [
+        {
+          label: 'Download center',
+          href: '/download',
+          description: 'Начните с текущей S1-рекомендации по совместимому клиенту.',
+        },
+        {
+          label: 'Customer access',
+          href: '/servers',
+          description: 'Откройте logged-in экран доступа для QR, subscription URL и config delivery.',
+        },
+        {
+          label: 'Help center',
+          href: '/help',
+          description: 'Используйте recovery path, если import или connection не работает.',
+        },
+      ],
+      ctaLinks: [
+        {
+          label: 'Открыть download center',
+          href: '/download',
+          description: 'Получите правильный client bundle до ручной настройки.',
+          seoCta: 'device_download',
+          seoZone: 'devices_content',
+        },
+        {
+          label: 'Открыть help center',
+          href: '/help',
+          description: 'Используйте support docs при онбординге и замене устройства.',
+          seoCta: 'device_help',
+          seoZone: 'devices_content',
+        },
+        {
+          label: 'Сравнить протоколы',
+          href: '/compare',
+          description: 'Выберите tunnel model, который соответствует ограничениям устройства.',
+          seoCta: 'device_compare',
+          seoZone: 'devices_content',
+        },
+      ],
+      featureList: [
+        'Настройка через совместимый клиент без native desktop promise в S1',
+        'Импорт через QR, subscription URL или config file',
+        'Fallback route и support escalation guidance',
+      ],
+      offers: [
+        {
+          name: 'Доступ CyberVPN',
+          description: 'Подписка для macOS и multi-device deployments.',
+          price: '9.99',
+          priceCurrency: 'USD',
+          url: '/pricing',
+        },
+      ],
+    },
+  },
+  'linux-vpn-setup': {
+    'ru-RU': {
+      badge: 'Настройка Linux',
+      title: 'Настройка VPN на Linux с прозрачным импортом config и safe diagnostics',
+      description:
+        'Настройте Linux через совместимый клиент, controlled subscription/config import path и support-safe diagnostics для S1 beta.',
+      heroPoints: [
+        'Linux setup остаётся пользовательским сценарием, а не operator workflow.',
+        'Пользовательские access configs отделены от server-node и Remnawave control-plane материалов.',
+        'Зафиксировано, что support может запросить без сбора секретов.',
+      ],
+      sections: [
+        {
+          title: 'Отделите user setup от operator infrastructure',
+          paragraphs: [
+            'Linux-пользователи могут быть технически сильными, но S1 customer setup должен оставаться отдельно от Remnawave, node и infrastructure operations.',
+            'Единственный customer-facing payload — CyberVPN-issued subscription URL, QR-код или config file для конкретного account и plan.',
+          ],
+          bullets: [
+            'Не раскрывайте node credentials, Remnawave API data или provider-side config.',
+            'Не просите пользователя запускать infrastructure commands для обычной настройки.',
+            'Редактируйте client logs и error text перед support review.',
+          ],
+        },
+        {
+          title: 'Импортируйте generated access config',
+          paragraphs: [
+            'Используйте совместимый Linux-клиент, который умеет импортировать generated subscription URL или config file. Если пользователь в hostile network, импортируйте fallback route как отдельный видимый profile.',
+            'Названия profiles должны совпадать с labels из customer cabinet, чтобы support мог восстановить тот же путь по account state.',
+          ],
+        },
+        {
+          title: 'Собирайте support-safe diagnostics',
+          paragraphs: [
+            'При неуспешном подключении собирайте название клиента, дистрибутив, видимый текст ошибки, выбранный регион и примерное время сбоя.',
+            'Не собирайте raw subscription URLs, QR payloads, private keys, auth tokens, полные config files или complete packet captures в first-line support.',
+          ],
+        },
+      ],
+      relatedLinks: [
+        {
+          label: 'Сравнить протоколы',
+          href: '/compare',
+          description: 'Выберите route model, который соответствует ограничениям Linux-клиента.',
+        },
+        {
+          label: 'Status page',
+          href: '/status',
+          description: 'Проверьте известные проблемы маршрута или node до пересборки profile.',
+        },
+        {
+          label: 'Trust center',
+          href: '/trust',
+          description: 'Посмотрите, что CyberVPN обещает и не обещает в S1.',
+        },
+      ],
+      ctaLinks: [
+        {
+          label: 'Открыть download center',
+          href: '/download',
+          description: 'Получите правильный client bundle до ручной настройки.',
+          seoCta: 'device_download',
+          seoZone: 'devices_content',
+        },
+        {
+          label: 'Открыть help center',
+          href: '/help',
+          description: 'Используйте support docs при онбординге и замене устройства.',
+          seoCta: 'device_help',
+          seoZone: 'devices_content',
+        },
+        {
+          label: 'Сравнить протоколы',
+          href: '/compare',
+          description: 'Выберите tunnel model, который соответствует ограничениям устройства.',
+          seoCta: 'device_compare',
+          seoZone: 'devices_content',
+        },
+      ],
+      featureList: [
+        'Импорт subscription URL или config file через совместимый клиент',
+        'User access отделён от infrastructure operations',
+        'Support-safe diagnostics без raw secrets',
+      ],
+      offers: [
+        {
+          name: 'Доступ CyberVPN',
+          description: 'Подписка для Linux и multi-device deployments.',
+          price: '9.99',
+          priceCurrency: 'USD',
+          url: '/pricing',
+        },
+      ],
+    },
+  },
+  'telegram-mini-app-vpn-setup': {
+    'ru-RU': {
+      badge: 'Настройка Telegram Mini App',
+      title: 'Telegram Mini App: от trial или оплаты к рабочему VPN-config',
+      description:
+        'Используйте Telegram Bot или Mini App для входа, trial или payment flow, получения VPN-доступа и импорта выданного config в совместимый клиент.',
+      heroPoints: [
+        'Покрывает S1 Telegram path, не делая Telegram единственным account identity.',
+        'Paid-but-no-access и provisioning retry states остаются видимыми для support.',
+        'После выдачи доступа Mini App ведёт пользователя к совместимому device setup.',
+      ],
+      sections: [
+        {
+          title: 'Начинайте с официальной Telegram-точки входа',
+          paragraphs: [
+            'Открывайте CyberVPN через утверждённый Telegram Bot или Mini App entry point. Если аккаунт уже существует в web, привязывайте Telegram через явный verified flow вместо silent duplicate.',
+            'После входа пользователь должен видеть те же S1 product states, что и в web cabinet: trial, active paid access, grace, expired, payment issue или provisioning retry.',
+          ],
+        },
+        {
+          title: 'Завершите trial или payment до импорта config',
+          paragraphs: [
+            'Trial или paid access должен перейти в VPN ready до того, как пользователя просят подключаться. Если provisioning still retrying, Mini App должен объяснить, что доступ готовится, а support может эскалировать задержку при нарушении S1 policy.',
+            'Telegram Stars может быть доступен только в Telegram paid flow после evidence. Остальные payment rails должны оставаться скрытыми, пока их provider evidence не approved.',
+          ],
+        },
+        {
+          title: 'Передавайте config из Telegram на target device безопасно',
+          paragraphs: [
+            'Mini App может показывать QR, subscription URL или config download actions, но пользователь всё равно импортирует payload в совместимый device client.',
+            'Не пересылайте raw URLs или config files в Telegram chats. Для расследования support нужны account identifiers, visible status, provider payment ID при наличии и timestamps.',
+          ],
+          bullets: [
+            'Для телефона используйте шаги iOS или Android guide.',
+            'Для desktop используйте шаги Windows, macOS или Linux guide.',
+            'Paid-but-no-access или orphan payments эскалируйте до превышения 24 часов.',
+          ],
+        },
+      ],
+      relatedLinks: [
+        {
+          label: 'Telegram link',
+          href: '/telegram-link',
+          description: 'Используйте явный account-linking path для web и Telegram identities.',
+        },
+        {
+          label: 'Customer access',
+          href: '/servers',
+          description: 'Используйте web cabinet как fallback access surface для config delivery.',
+        },
+        {
+          label: 'Support',
+          href: '/help',
+          description: 'Эскалируйте payment, provisioning или connection проблемы без передачи секретов.',
+        },
+      ],
+      ctaLinks: [
+        {
+          label: 'Открыть download center',
+          href: '/download',
+          description: 'Получите правильный client bundle до ручной настройки.',
+          seoCta: 'device_download',
+          seoZone: 'devices_content',
+        },
+        {
+          label: 'Открыть help center',
+          href: '/help',
+          description: 'Используйте support docs при онбординге и замене устройства.',
+          seoCta: 'device_help',
+          seoZone: 'devices_content',
+        },
+        {
+          label: 'Сравнить протоколы',
+          href: '/compare',
+          description: 'Выберите tunnel model, который соответствует ограничениям устройства.',
+          seoCta: 'device_compare',
+          seoZone: 'devices_content',
+        },
+      ],
+      featureList: [
+        'Sign-in path через Telegram Bot и Mini App',
+        'Trial или payment до VPN-ready delivery flow',
+        'Safe handoff из Telegram config delivery в совместимый device client',
+      ],
+      offers: [
+        {
+          name: 'Доступ CyberVPN',
+          description: 'Подписка для Telegram-led onboarding и multi-device setup.',
+          price: '9.99',
+          priceCurrency: 'USD',
+          url: '/pricing',
+        },
+      ],
+    },
+  },
 };

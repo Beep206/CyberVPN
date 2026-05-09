@@ -245,20 +245,254 @@ const DEVICE_ENTRIES: SeoDeviceEntry[] = [
       },
     ],
   },
+  {
+    slug: 'macos-vpn-setup',
+    path: '/devices/macos-vpn-setup',
+    badge: 'macOS setup',
+    title: 'macOS VPN setup for CyberVPN access without waiting for a native desktop app',
+    description:
+      'Import the CyberVPN subscription URL, QR code, or config file into a compatible macOS client and keep the support path clear for S1 beta users.',
+    readingTime: '6 min read',
+    updatedAt: '2026-05-07',
+    heroPoints: [
+      'Works with compatible clients while the native desktop release stays out of S1.',
+      'Keeps the subscription URL and QR code inside trusted user surfaces.',
+      'Gives support a clean recovery path for route or credential issues.',
+    ],
+    sections: [
+      {
+        title: 'Get the access payload from a trusted surface',
+        paragraphs: [
+          'Start from the CyberVPN web cabinet or Telegram Mini App after login. Use the issued QR code, subscription URL, or config file only on the device you are setting up.',
+          'Do not paste raw subscription URLs, QR payloads, private keys, or full config files into public chats or support messages. If a credential is exposed, support should regenerate it.',
+        ],
+        bullets: [
+          'Use the active subscription or trial state before importing anything.',
+          'Prefer the QR or copy action from the customer cabinet over manual retyping.',
+          'Keep one default route and one fallback route visible to the user.',
+        ],
+      },
+      {
+        title: 'Import into a compatible macOS client',
+        paragraphs: [
+          'S1 does not require a CyberVPN native desktop app. The beta setup should use a compatible client that can import the generated subscription URL or config file.',
+          'After import, name the default and fallback profiles clearly so support can diagnose which route is active without asking for secrets.',
+        ],
+      },
+      {
+        title: 'Verify connection and recovery',
+        paragraphs: [
+          'Once connected, verify the selected region and check the status page before changing profiles. If the route fails, try the fallback profile before reinstalling the client.',
+          'Support requests should include the account email or Telegram ID, device type, client name, visible error text, and timestamp. They should not include raw configs or credentials.',
+        ],
+      },
+    ],
+    relatedLinks: [
+      {
+        label: 'Download center',
+        href: '/download',
+        description: 'Start from the current S1 compatible-client recommendation.',
+      },
+      {
+        label: 'Customer access',
+        href: '/servers',
+        description: 'Open the logged-in access screen for QR, subscription URL, and config delivery.',
+      },
+      {
+        label: 'Help center',
+        href: '/help',
+        description: 'Use the recovery path if import or connection fails.',
+      },
+    ],
+    ctaLinks: [...DEVICE_CTA_LINKS],
+    applicationCategory: 'SecurityApplication',
+    operatingSystems: ['macOS'],
+    featureList: [
+      'Compatible-client setup without a native S1 desktop promise',
+      'QR, subscription URL, and config-file import path',
+      'Fallback route and support escalation guidance',
+    ],
+    downloadPath: '/download',
+    offers: [
+      {
+        name: 'CyberVPN access',
+        description: 'Subscription access for macOS and multi-device deployments.',
+        price: '9.99',
+        priceCurrency: 'USD',
+        url: '/pricing',
+      },
+    ],
+  },
+  {
+    slug: 'linux-vpn-setup',
+    path: '/devices/linux-vpn-setup',
+    badge: 'Linux setup',
+    title: 'Linux VPN setup for CyberVPN users who need transparent config import and support',
+    description:
+      'Set up Linux with a compatible client, a controlled subscription/config import path, and support-safe diagnostics for the S1 beta.',
+    readingTime: '7 min read',
+    updatedAt: '2026-05-07',
+    heroPoints: [
+      'Keeps Linux setup useful without turning it into an unsupported operator workflow.',
+      'Separates user access configs from server-node or Remnawave control-plane material.',
+      'Defines what support can ask for without collecting secrets.',
+    ],
+    sections: [
+      {
+        title: 'Separate user setup from operator infrastructure',
+        paragraphs: [
+          'Linux users may be comfortable with advanced networking, but S1 customer setup must stay separate from Remnawave, node, and infrastructure operations.',
+          'The only customer-facing payload should be the CyberVPN-issued subscription URL, QR code, or config file for that account and plan.',
+        ],
+        bullets: [
+          'Do not expose node credentials, Remnawave API data, or provider-side config.',
+          'Do not ask the user to run infrastructure commands for ordinary setup.',
+          'Do keep client logs and error text redacted before support review.',
+        ],
+      },
+      {
+        title: 'Import the generated access config',
+        paragraphs: [
+          'Use a compatible Linux client that can import the generated subscription URL or config file. If the user is on a hostile network, import the fallback route as a separate visible profile.',
+          'Profile names should match the customer cabinet labels so support can reproduce the same path from the account state.',
+        ],
+      },
+      {
+        title: 'Run support-safe diagnostics',
+        paragraphs: [
+          'For failed connections, collect client name, distribution, visible error text, selected region, and the approximate time of failure.',
+          'Do not collect raw subscription URLs, QR payloads, private keys, auth tokens, full config files, or complete packet captures in first-line support.',
+        ],
+      },
+    ],
+    relatedLinks: [
+      {
+        label: 'Compare protocols',
+        href: '/compare',
+        description: 'Choose the route model that matches the Linux client constraints.',
+      },
+      {
+        label: 'Status page',
+        href: '/status',
+        description: 'Check known route or node issues before rebuilding a profile.',
+      },
+      {
+        label: 'Trust center',
+        href: '/trust',
+        description: 'Review what CyberVPN does and does not claim for S1.',
+      },
+    ],
+    ctaLinks: [...DEVICE_CTA_LINKS],
+    applicationCategory: 'SecurityApplication',
+    operatingSystems: ['Linux'],
+    featureList: [
+      'Compatible-client import for subscription URL or config file',
+      'User access separated from infrastructure operations',
+      'Support-safe diagnostics without raw secrets',
+    ],
+    downloadPath: '/download',
+    offers: [
+      {
+        name: 'CyberVPN access',
+        description: 'Subscription access for Linux and multi-device deployments.',
+        price: '9.99',
+        priceCurrency: 'USD',
+        url: '/pricing',
+      },
+    ],
+  },
+  {
+    slug: 'telegram-mini-app-vpn-setup',
+    path: '/devices/telegram-mini-app-vpn-setup',
+    badge: 'Telegram Mini App setup',
+    title: 'Telegram Mini App VPN setup from trial or payment to a working CyberVPN config',
+    description:
+      'Use the Telegram Bot or Mini App to sign in, start a trial or payment flow, receive VPN access, and import the issued config into a compatible client.',
+    readingTime: '6 min read',
+    updatedAt: '2026-05-07',
+    heroPoints: [
+      'Covers the S1 Telegram path without making Telegram the only account identity.',
+      'Keeps paid-but-no-access and provisioning retry states visible to support.',
+      'Routes users to compatible device setup after the Mini App issues access.',
+    ],
+    sections: [
+      {
+        title: 'Start from the official Telegram entry point',
+        paragraphs: [
+          'Open CyberVPN through the approved Telegram Bot or Mini App entry point. If the account already exists on the web, link Telegram through the explicit verified flow instead of creating a silent duplicate.',
+          'After login, the user should see the same S1 product states as the web cabinet: trial, active paid access, grace, expired, payment issue, or provisioning retry.',
+        ],
+      },
+      {
+        title: 'Complete trial or payment before importing config',
+        paragraphs: [
+          'Trial or paid access should move to VPN ready before the user is asked to connect. If provisioning is still retrying, the Mini App should explain that access is being prepared and support can escalate if the delay breaches the S1 policy.',
+          'Telegram Stars may be available only in the Telegram paid flow after evidence. Other payment rails must stay hidden until their provider evidence is approved.',
+        ],
+      },
+      {
+        title: 'Deliver config safely from Telegram to the target device',
+        paragraphs: [
+          'The Mini App may show QR, subscription URL, or config download actions, but the user still imports that payload into a compatible device client.',
+          'Do not forward raw URLs or config files in Telegram chats. If support needs to investigate, send account identifiers, visible status, provider payment ID if available, and timestamps instead.',
+        ],
+        bullets: [
+          'Use iOS or Android guide steps when connecting from a phone.',
+          'Use Windows, macOS, or Linux guide steps when connecting from a desktop.',
+          'Escalate paid-but-no-access or orphan payments before they exceed 24 hours.',
+        ],
+      },
+    ],
+    relatedLinks: [
+      {
+        label: 'Telegram link',
+        href: '/telegram-link',
+        description: 'Use the explicit account-linking path for web and Telegram identities.',
+      },
+      {
+        label: 'Customer access',
+        href: '/servers',
+        description: 'Use the web cabinet as the fallback access surface for config delivery.',
+      },
+      {
+        label: 'Support',
+        href: '/help',
+        description: 'Escalate payment, provisioning, or connection problems without sharing secrets.',
+      },
+    ],
+    ctaLinks: [...DEVICE_CTA_LINKS],
+    applicationCategory: 'SecurityApplication',
+    operatingSystems: ['Telegram Mini App', 'iOS', 'Android', 'Windows', 'macOS', 'Linux'],
+    featureList: [
+      'Telegram Bot and Mini App sign-in path',
+      'Trial or payment to VPN-ready delivery flow',
+      'Safe handoff from Telegram config delivery to compatible device clients',
+    ],
+    downloadPath: '/download',
+    offers: [
+      {
+        name: 'CyberVPN access',
+        description: 'Subscription access for Telegram-led onboarding and multi-device setup.',
+        price: '9.99',
+        priceCurrency: 'USD',
+        url: '/pricing',
+      },
+    ],
+  },
 ] as const;
 
 const DEVICES_HUB_BASE = {
   path: '/devices',
   badge: 'Setup playbooks',
-  title: 'Device-specific VPN setup guides for Android, iPhone, iPad, and desktop clients',
+  title: 'Device-specific VPN setup guides for Android, iOS, Windows, macOS, Linux, and Telegram',
   description:
-    'Setup pages built to reduce support friction, align the right client to the right device, and move users toward working installs instead of generic troubleshooting loops.',
+    'Setup pages built to reduce support friction, align the right compatible client to the right device, and move users from trial or payment to working VPN access.',
   bullets: [
-    'Device-specific setup guidance with explicit fallback paths.',
+    'Device-specific setup guidance with explicit fallback and support paths.',
     'Linked to download, help, compare, pricing, trust, and status surfaces.',
-    'Structured as server-rendered acquisition pages instead of app-only flows.',
+    'Structured as server-rendered acquisition pages without promising native mobile or desktop releases inside S1.',
   ],
-  proofPoints: ['3 setup guides', 'SoftwareApplication schema', 'Support-first linking'],
+  proofPoints: ['6 S1 setup guides', 'SoftwareApplication schema', 'Support-first linking'],
 } as const;
 
 function toHubCard(entry: SeoDeviceEntry, locale?: string): SeoHubCard {

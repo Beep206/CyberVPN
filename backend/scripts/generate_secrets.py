@@ -78,10 +78,10 @@ def main() -> None:
     print(f"REMNAWAVE_WEBHOOK_SECRET={remnawave_webhook_secret}")
     print()
 
-    # CryptoBot Payment Token
-    cryptobot_token = generate_api_token(48)
+    # CryptoBot Payment Token (must come from Crypto Pay provider app)
     print("# CryptoBot Payment Gateway")
-    print(f"CRYPTOBOT_TOKEN={cryptobot_token}")
+    print("# CRYPTOBOT_TOKEN=<get-from-cryptobot-crypto-pay-app>")
+    print("# CRYPTOBOT_NETWORK=mainnet")
     print()
 
     # Telegram Bot Token (note: real token comes from BotFather)

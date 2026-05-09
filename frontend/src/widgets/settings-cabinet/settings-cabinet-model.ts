@@ -13,10 +13,21 @@ export type TwoFactorStatus = components['schemas']['TwoFactorStatusResponse'];
 export type AntiphishingCode = components['schemas']['AntiPhishingCodeResponse'];
 export type DeviceSession =
   components['schemas']['src__presentation__api__v1__auth__schemas__DeviceSessionResponse'];
+export type CurrentEntitlementState =
+  components['schemas']['CurrentEntitlementStateResponse'];
 
 export type CoreNotificationPreferenceKey = keyof CoreNotificationPreferences;
 export type GrowthNotificationPreferenceKey = keyof GrowthNotificationPreferences;
 export type StatusTone = 'amber' | 'cyan' | 'green' | 'muted' | 'pink' | 'purple';
+export type DeviceLimitState = 'available' | 'at_limit' | 'near_limit' | 'over_limit' | 'unknown';
+export type DeviceLimitSummary = {
+  active: number;
+  limit: number | null;
+  percent: number;
+  remaining: number | null;
+  state: DeviceLimitState;
+  tone: StatusTone;
+};
 
 export type PreferenceDescriptor<T extends string> = {
   key: T;
@@ -86,6 +97,20 @@ export const GROWTH_NOTIFICATION_PREFERENCES: Array<
 
 const MOBILE_PATTERNS = ['android', 'iphone', 'mobile'];
 const TABLET_PATTERNS = ['ipad', 'tablet'];
+const DEVICE_LIMIT_ENTITLEMENT_KEYS = ['device_limit', 'devices', 'max_devices'] as const;
+
+function readNumericValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
 
 export function formatDateTime(value: string | null | undefined, locale = 'en-EN'): string {
   if (!value) {
@@ -169,6 +194,92 @@ export function getEnabledCount(preferences: object | null | undefined): number 
   }
 
   return Object.values(preferences).filter((value) => value === true).length;
+}
+
+export function readDeviceLimit(
+  entitlement: CurrentEntitlementState | null | undefined,
+): number | null {
+  for (const key of DEVICE_LIMIT_ENTITLEMENT_KEYS) {
+    const value = readNumericValue(entitlement?.effective_entitlements[key]);
+
+    if (value !== null && value >= 0) {
+      return Math.floor(value);
+    }
+  }
+
+  return null;
+}
+
+export function getDeviceLimitSummary({
+  active,
+  limit,
+}: {
+  active: number;
+  limit: number | null;
+}): DeviceLimitSummary {
+  const normalizedActive = Math.max(0, Math.floor(active));
+
+  if (limit === null) {
+    return {
+      active: normalizedActive,
+      limit: null,
+      percent: 0,
+      remaining: null,
+      state: 'unknown',
+      tone: 'muted',
+    };
+  }
+
+  const normalizedLimit = Math.max(0, Math.floor(limit));
+  const remaining = normalizedLimit - normalizedActive;
+  const percent =
+    normalizedLimit === 0
+      ? normalizedActive > 0
+        ? 100
+        : 0
+      : Math.min(100, Math.round((normalizedActive / normalizedLimit) * 100));
+
+  if (remaining < 0) {
+    return {
+      active: normalizedActive,
+      limit: normalizedLimit,
+      percent: 100,
+      remaining,
+      state: 'over_limit',
+      tone: 'pink',
+    };
+  }
+
+  if (remaining === 0) {
+    return {
+      active: normalizedActive,
+      limit: normalizedLimit,
+      percent,
+      remaining,
+      state: 'at_limit',
+      tone: 'amber',
+    };
+  }
+
+  if (percent >= 80) {
+    return {
+      active: normalizedActive,
+      limit: normalizedLimit,
+      percent,
+      remaining,
+      state: 'near_limit',
+      tone: 'amber',
+    };
+  }
+
+  return {
+    active: normalizedActive,
+    limit: normalizedLimit,
+    percent,
+    remaining,
+    state: 'available',
+    tone: 'green',
+  };
 }
 
 export function getSecurityPosture({

@@ -1,7 +1,7 @@
 """Add orders and order items for Phase 2.
 
-Revision ID: 20260418_phase2_orders_foundation
-Revises: 20260418_phase2_quote_checkout_sessions
+Revision ID: 20260418_p2_orders_foundation
+Revises: 20260418_p2_quote_checkout
 Create Date: 2026-04-18 10:05:00.000000
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260418_phase2_orders_foundation"
-down_revision: str | None = "20260418_phase2_quote_checkout_sessions"
+revision: str = "20260418_p2_orders_foundation"
+down_revision: str | None = "20260418_p2_quote_checkout"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -5,13 +5,18 @@ by the CyberVPN task worker. All templates use Telegram-safe HTML tags:
 <b>, <i>, <code>, <pre>, <a>.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from html import escape
 
 from src.utils.converters import format_bytes, format_duration
 
 
+def _html(value: object) -> str:
+    return escape(str(value), quote=True)
+
+
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
 # =============================================================================
@@ -24,12 +29,12 @@ def subscription_expiring(username: str, days_left: int, expire_at: str, renew_u
     urgency = "🔴" if days_left <= 1 else "🟡" if days_left <= 3 else "🟢"
     msg = (
         f"{urgency} <b>Subscription Expiring</b>\n\n"
-        f"User: <code>{username}</code>\n"
+        f"User: <code>{_html(username)}</code>\n"
         f"Expires in: <b>{days_left} day{'s' if days_left != 1 else ''}</b>\n"
-        f"Expiry date: {expire_at}\n"
+        f"Expiry date: {_html(expire_at)}\n"
     )
     if renew_url:
-        msg += f'\n<a href="{renew_url}">Renew subscription</a>'
+        msg += f'\n<a href="{_html(renew_url)}">Renew subscription</a>'
     return msg
 
 
@@ -37,8 +42,8 @@ def subscription_expired(username: str, expire_at: str) -> str:
     """Notification for expired subscription (user disabled)."""
     return (
         "⛔ <b>Subscription Expired</b>\n\n"
-        f"User: <code>{username}</code>\n"
-        f"Expired at: {expire_at}\n"
+        f"User: <code>{_html(username)}</code>\n"
+        f"Expired at: {_html(expire_at)}\n"
         "Your VPN access has been disabled.\n"
         "Please renew your subscription to restore access."
     )
@@ -48,8 +53,8 @@ def traffic_reset(username: str, plan_name: str) -> str:
     """Notification for monthly traffic reset."""
     return (
         "🔄 <b>Monthly Traffic Reset</b>\n\n"
-        f"User: <code>{username}</code>\n"
-        f"Plan: {plan_name}\n"
+        f"User: <code>{_html(username)}</code>\n"
+        f"Plan: {_html(plan_name)}\n"
         "Your traffic counter has been reset to zero."
     )
 
@@ -63,9 +68,9 @@ def payment_received(username: str, amount: float, currency: str, plan_name: str
     """Notification for successful payment."""
     return (
         "✅ <b>Payment Received</b>\n\n"
-        f"User: <code>{username}</code>\n"
-        f"Amount: <b>{amount} {currency}</b>\n"
-        f"Plan: {plan_name} ({days} days)\n"
+        f"User: <code>{_html(username)}</code>\n"
+        f"Amount: <b>{amount} {_html(currency)}</b>\n"
+        f"Plan: {_html(plan_name)} ({days} days)\n"
         f"Time: {_utc_now()}\n"
         "Your subscription has been activated."
     )
@@ -75,11 +80,11 @@ def payment_failed(username: str, amount: float, currency: str, reason: str = ""
     """Notification for failed payment."""
     msg = (
         "❌ <b>Payment Failed</b>\n\n"
-        f"User: <code>{username}</code>\n"
-        f"Amount: {amount} {currency}\n"
+        f"User: <code>{_html(username)}</code>\n"
+        f"Amount: {amount} {_html(currency)}\n"
     )
     if reason:
-        msg += f"Reason: {reason}\n"
+        msg += f"Reason: {_html(reason)}\n"
     msg += "Please try again or contact support."
     return msg
 
@@ -88,10 +93,40 @@ def auto_renew_invoice(username: str, amount: float, currency: str, pay_url: str
     """Notification for auto-renewal invoice created."""
     return (
         "💳 <b>Auto-Renewal Invoice</b>\n\n"
-        f"User: <code>{username}</code>\n"
-        f"Amount: <b>{amount} {currency}</b>\n\n"
-        f'<a href="{pay_url}">Pay now</a> to continue your subscription.'
+        f"User: <code>{_html(username)}</code>\n"
+        f"Amount: <b>{amount} {_html(currency)}</b>\n\n"
+        f'<a href="{_html(pay_url)}">Pay now</a> to continue your subscription.'
     )
+
+
+def provisioning_ready(username: str, plan_name: str = "", cabinet_url: str = "") -> str:
+    """Notification for VPN access ready after trial/payment provisioning."""
+    msg = (
+        "🟢 <b>VPN Access Ready</b>\n\n"
+        f"User: <code>{_html(username)}</code>\n"
+        "Your CyberVPN access is ready.\n"
+        "Open CyberVPN to get your QR code, subscription URL or config file."
+    )
+    if plan_name:
+        msg += f"\nPlan: {_html(plan_name)}"
+    if cabinet_url:
+        msg += f'\n\n<a href="{_html(cabinet_url)}">Open CyberVPN</a>'
+    return msg
+
+
+def provisioning_failed(username: str, support_reference: str = "", retry_hint: str = "") -> str:
+    """Notification for delayed VPN provisioning after trial/payment."""
+    msg = (
+        "🟠 <b>VPN Access Delayed</b>\n\n"
+        f"User: <code>{_html(username)}</code>\n"
+        "Your payment or trial was accepted, but VPN access is not ready yet.\n"
+        "We are retrying automatically and support has been notified."
+    )
+    if retry_hint:
+        msg += f"\nRetry status: {_html(retry_hint)}"
+    if support_reference:
+        msg += f"\nSupport reference: <code>{_html(support_reference)}</code>"
+    return msg
 
 
 # =============================================================================
@@ -247,7 +282,7 @@ def weekly_report(
 
 def anomaly_alert(metric: str, current_value: str, threshold: str, severity: str = "warning") -> str:
     """Alert for anomalous metric values."""
-    emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(severity, "⚠️")
+    emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(severity, "⚠️")  # noqa: RUF001
     return (
         f"{emoji} <b>Anomaly Detected</b> [{severity.upper()}]\n\n"
         f"Metric: <code>{metric}</code>\n"

@@ -22,6 +22,8 @@ rule_files:
   - /etc/prometheus/rules/customer_growth_reporting_alerts.yml
   - /etc/prometheus/rules/nats_alerts.yml
   - /etc/prometheus/rules/control_plane_alerts.yml
+  - /etc/prometheus/rules/stage1_dashboard_recording_rules.yml
+  - /etc/prometheus/rules/stage1_alerts.yml
 
 scrape_configs:
   - job_name: 'cybervpn-local-backend'

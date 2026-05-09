@@ -71,6 +71,9 @@ control_plane_stack_backend_env: >-
       'HELIX_ADAPTER_TOKEN': vault_control_plane_helix_internal_auth_token,
       'JWT_SECRET': vault_control_plane_backend_jwt_secret,
       'CRYPTOBOT_TOKEN': vault_control_plane_backend_cryptobot_token,
+      'TELEGRAM_BOT_TOKEN': vault_control_plane_backend_telegram_bot_token,
+      'TELEGRAM_BOT_USERNAME': vault_control_plane_backend_telegram_bot_username,
+      'TELEGRAM_BOT_INTERNAL_SECRET': vault_control_plane_backend_telegram_bot_internal_secret,
       'ENVIRONMENT': control_plane_stack_environment,
       'LOG_LEVEL': 'INFO',
       'CORS_ORIGINS': control_plane_public_base_url,
@@ -131,6 +134,7 @@ control_plane_stack_db_backup_env:
   POSTGRES_USER: "{{ control_plane_postgres_user }}"
   POSTGRES_PASSWORD: "{{ control_plane_postgres_password }}"
   POSTGRES_EXTRA_OPTS: --format=custom --compress=6
+  BACKUP_SUFFIX: .dump
   SCHEDULE: "{{ control_plane_stack_db_backup_schedule }}"
   BACKUP_KEEP_DAYS: "{{ control_plane_stack_db_backup_keep_days | string }}"
   TZ: UTC

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import MiniAppReferralPage from '../page';
 import {
   cleanupTelegramWebAppMock,
@@ -199,10 +198,9 @@ describe('MiniAppReferralPage', () => {
   const requestRecoveryMutate = vi.fn();
   const requestSupportEscalationMutate = vi.fn();
   const updatePreferencesMutate = vi.fn();
-  let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
 
   beforeEach(() => {
-    telegramMock = setupTelegramWebAppMock();
+    setupTelegramWebAppMock();
     vi.clearAllMocks();
     clipboardWriteTextMock.mockClear();
 
@@ -425,104 +423,11 @@ describe('MiniAppReferralPage', () => {
     cleanupTelegramWebAppMock();
   });
 
-  it('renders the mini app growth hub with qr, invites, gifts, and activity', () => {
+  it('renders the S1 paused state without calling growth hooks', () => {
     render(<MiniAppReferralPage />);
 
-    expect(screen.getByText('Rewards Hub')).toBeInTheDocument();
-    expect(screen.getByText('CYBER-REF')).toBeInTheDocument();
-    expect(screen.getByTestId('qr-code')).toHaveAttribute(
-      'data-value',
-      'https://t.me/cybervpn_bot?start=CYBER-REF',
-    );
-    expect(screen.getByText('Active invites')).toBeInTheDocument();
-    expect(screen.getByText('Growth notifications')).toBeInTheDocument();
-    expect(screen.getByText('Gift code available')).toBeInTheDocument();
-    expect(screen.getByText('Delivery preferences')).toBeInTheDocument();
-    expect(screen.getByText('INVITE-AAA')).toBeInTheDocument();
-    expect(screen.getByText('My gifts')).toBeInTheDocument();
-    expect(screen.getByText('GIFT-AAA')).toBeInTheDocument();
-    expect(screen.getByText(/Reward entry \$12/i)).toBeInTheDocument();
-  });
-
-  it('shares the referral link through Telegram and redeems growth codes', async () => {
-    const user = userEvent.setup();
-
-    render(<MiniAppReferralPage />);
-
-    await user.click(screen.getByRole('button', { name: 'Share link' }));
-    expect(telegramMock.openTelegramLink).toHaveBeenCalledWith(
-      expect.stringContaining(encodeURIComponent('https://t.me/cybervpn_bot?start=CYBER-REF')),
-    );
-
-    const inviteInput = screen.getByLabelText('Invite or gift code');
-    fireEvent.change(inviteInput, { target: { value: 'newcode' } });
-
-    await user.click(screen.getByRole('button', { name: 'Redeem code' }));
-
-    await waitFor(() => {
-      expect(redeemMutateAsync).toHaveBeenCalledWith('NEWCODE');
-    });
-
-    expect(
-      screen.getByText('Invite redeemed. Added 7 free days to your account.'),
-    ).toBeInTheDocument();
-  });
-
-  it('creates a gift checkout inside Telegram', async () => {
-    const user = userEvent.setup();
-
-    render(<MiniAppReferralPage />);
-
-    await user.selectOptions(screen.getByLabelText('Gift plan'), 'plan-max-365');
-    fireEvent.change(screen.getByLabelText('Recipient hint'), {
-      target: { value: 'friend@example.com' },
-    });
-    await user.click(screen.getByRole('button', { name: 'Create gift checkout' }));
-
-    await waitFor(() => {
-      expect(purchaseMutateAsync).toHaveBeenCalledWith({
-        plan_id: 'plan-max-365',
-        recipient_hint: 'friend@example.com',
-        gift_message: null,
-        channel: 'miniapp',
-      });
-    });
-
-    expect(telegramMock.openInvoice).toHaveBeenCalledWith('https://payments.example/gift-1');
-    expect(screen.getByText('Gift checkout created. Complete payment in Telegram.')).toBeInTheDocument();
-  });
-
-  it('updates growth delivery preferences inside Telegram', async () => {
-    const user = userEvent.setup();
-
-    render(<MiniAppReferralPage />);
-
-    await user.click(screen.getAllByRole('button', { name: 'Email' })[0]);
-
-    expect(updatePreferencesMutate).toHaveBeenCalledWith({
-      growth_email_invites: true,
-    });
-    expect(telegramMock.HapticFeedback.impactOccurred).toHaveBeenCalled();
-  });
-
-  it('opens Telegram support escalation for blocked deliveries', async () => {
-    const user = userEvent.setup();
-
-    render(<MiniAppReferralPage />);
-
-    await user.click(screen.getByRole('button', { name: 'Details' }));
-    await user.click(screen.getByRole('button', { name: 'Open Telegram support' }));
-
-    expect(requestSupportEscalationMutate).toHaveBeenCalledWith(
-      {
-        notificationId: 'gift-issued:gift-1',
-        deliveryChannel: 'telegram',
-        escalationChannel: 'telegram_support',
-      },
-      expect.objectContaining({
-        onSuccess: expect.any(Function),
-        onError: expect.any(Function),
-      }),
-    );
+    expect(screen.getByText('Rewards hub is paused')).toBeInTheDocument();
+    expect(growthHooks.useReferralCode).not.toHaveBeenCalled();
+    expect(growthHooks.useGiftPurchase).not.toHaveBeenCalled();
   });
 });

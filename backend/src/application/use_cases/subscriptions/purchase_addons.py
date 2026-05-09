@@ -8,12 +8,15 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.stage1_growth_policy import assert_stage1_checkout_codes_enabled
+from src.application.services.stage1_plan_policy import assert_stage1_addons_enabled
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
     CheckoutResult,
     CheckoutUseCase,
 )
+from src.config.settings import settings
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -42,6 +45,16 @@ class PurchaseAddonsUseCase:
         use_wallet: Decimal = Decimal("0"),
         sale_channel: str = "web",
     ) -> CheckoutResult:
+        assert_stage1_addons_enabled(
+            addon_count=max(1, len(addons)),
+            enabled=settings.stage1_addons_enabled,
+        )
+        assert_stage1_checkout_codes_enabled(
+            code_input=None,
+            promo_code=promo_code,
+            enabled=settings.checkout_code_discounts_enabled,
+        )
+
         payment = await self._payments.get_latest_active_plan_payment(user_id)
         if payment is None or payment.plan_id is None:
             raise ValueError("No active subscription to attach add-ons to")

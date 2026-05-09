@@ -1,7 +1,7 @@
 """partner event backbone runtime tables
 
-Revision ID: 20260423_phase27_partner_event_backbone_runtime
-Revises: 20260422_phase18_partner_bot_foundation, 20260422_phase26_growth_reporting_governance_followups
+Revision ID: 20260423_p27_partner_events
+Revises: 20260422_p18_partner_bot, 20260422_p26_growth_gov_fups
 Create Date: 2026-04-23 12:00:00.000000
 """
 
@@ -13,10 +13,10 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "20260423_phase27_partner_event_backbone_runtime"
+revision: str = "20260423_p27_partner_events"
 down_revision: Union[str, Sequence[str], None] = (
-    "20260422_phase18_partner_bot_foundation",
-    "20260422_phase26_growth_reporting_governance_followups",
+    "20260422_p18_partner_bot",
+    "20260422_p26_growth_gov_fups",
 )
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

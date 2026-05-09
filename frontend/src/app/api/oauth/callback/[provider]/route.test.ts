@@ -232,7 +232,7 @@ describe('GET /api/oauth/callback/[provider]', () => {
       {
         headers: new Headers({
           host: '0.0.0.0:9001',
-          'x-forwarded-host': 'vpn.ozoxy.ru',
+          'x-forwarded-host': 'cyber-vpn.net',
           'x-forwarded-proto': 'https',
         }),
       },
@@ -244,7 +244,7 @@ describe('GET /api/oauth/callback/[provider]', () => {
     });
 
     expect(response.headers.get('location')).toBe(
-      'https://vpn.ozoxy.ru/ru-RU/login?oauth_error=provider_denied&oauth_provider=google',
+      'https://cyber-vpn.net/ru-RU/login?oauth_error=provider_denied&oauth_provider=google',
     );
   });
 });

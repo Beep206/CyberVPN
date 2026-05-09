@@ -89,10 +89,10 @@ describe('compare pages', () => {
       }),
     });
 
-    expect(metadata.alternates?.canonical).toBe('https://vpn.ozoxy.ru/en-EN/compare');
+    expect(metadata.alternates?.canonical).toBe('https://cyber-vpn.net/en-EN/compare');
     expect(metadata.robots).toBeUndefined();
     expect(detailMetadata.alternates?.canonical).toBe(
-      'https://vpn.ozoxy.ru/zh-CN/compare/vless-reality-vs-wireguard',
+      'https://cyber-vpn.net/zh-CN/compare/vless-reality-vs-wireguard',
     );
     expect(detailMetadata.robots).toBeUndefined();
   });

@@ -54,7 +54,8 @@ class TestRegistrationDisabled:
                 )
 
             assert exc_info.value.status_code == 403
-            assert "disabled" in exc_info.value.detail.lower()
+            assert exc_info.value.detail["code"] == "REGISTRATION_DISABLED"
+            assert "paused" in exc_info.value.detail["message"].lower()
 
 
 class TestInviteTokenValidation:

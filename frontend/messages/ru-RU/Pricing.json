@@ -1,14 +1,14 @@
 {
   "title": "Прайсинг без перегруза",
-  "subtitle": "4 плана, 4 периода, 2 add-on’а. Полноценный базовый VPN-слой есть на каждом платном плане.",
+  "subtitle": "4 плана, 4 периода оплаты. Полноценный базовый VPN-слой есть на каждом платном плане.",
   "introPills": {
     "plans": "4 плана",
     "periods": "4 периода",
-    "addons": "2 add-on’а"
+    "addons": "Опции"
   },
   "periods": {
     "label": "Выберите срок подписки",
-    "helper": "Add-ons наследуют тот же срок, поэтому checkout остаётся чистым и без размножения SKU.",
+    "helper": "Выберите срок, который подходит под ваш сценарий; checkout остаётся простым и предсказуемым.",
     "best": "Лучшая ценность",
     "term": "Доступный срок",
     "options": {
@@ -54,13 +54,15 @@
   },
   "labels": {
     "devices": "{count} устройств",
-    "unlimitedFairUse": "Unlimited / fair use",
+    "trafficFairUse": "Fair-use policy",
     "perSelectedTerm": "за {days}-дневный срок",
     "monthlyEquivalent": "{price} / 30 дней в эквиваленте",
     "inviteBundle": "{count} invite’ов · {days} дней другу",
     "inviteNone": "Без invite bundle",
     "includedDedicatedIp": "{count} dedicated IP включён",
-    "dedicatedIpAddon": "Dedicated IP как add-on"
+    "dedicatedIpAddon": "Dedicated IP как add-on",
+    "chargedInBillingCurrency": "Списание в {currency}",
+    "localDisplayEstimate": "Примерно {price}, только для отображения"
   },
   "modeNames": {
     "standard": "Standard",
@@ -119,8 +121,8 @@
         "a": "Да. Базовая VPN-защита не режется по tier’ам. Платные планы отличаются количеством устройств, routing modes, качеством server pool, доступом к dedicated IP и уровнем поддержки."
       },
       {
-        "q": "Почему на витрине написано Unlimited / fair use?",
-        "a": "Потому что именно так рынок consumer VPN сейчас объясняет продукт. Реальная экономика и ограничения остаются внутри fair-use policy и правил серверных пулов, а не в публичных жёстких data cap."
+        "q": "Что означает Fair-use policy?",
+        "a": "S1 не даёт absolute unlimited claim. Traffic handling зависит от fair-use rules, node policy, abuse controls и выбранного плана, а не от публичного обещания без лимитов."
       },
       {
         "q": "Когда появляются invite bundles?",

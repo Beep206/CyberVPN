@@ -13,6 +13,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_plan_policy import S1_PAID_PLAN_DURATIONS, S1_PAID_PLAN_POLICY_ID
 from src.domain.enums import CatalogVisibility, PlanCode, SaleChannel, SupportSLA
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
@@ -26,7 +27,7 @@ PUBLIC_CHANNELS = [
     SaleChannel.ADMIN.value,
 ]
 ADMIN_ONLY_CHANNELS = [SaleChannel.ADMIN.value]
-STANDARD_DURATIONS = [30, 90, 180, 365]
+STANDARD_DURATIONS = list(S1_PAID_PLAN_DURATIONS)
 
 
 @dataclass(frozen=True)
@@ -284,6 +285,7 @@ def _invite_bundle(plan_code: str, duration_days: int) -> dict[str, int]:
         (PlanCode.PRO.value, 365): {"count": 2, "friend_days": 14, "expiry_days": 60},
         (PlanCode.MAX.value, 180): {"count": 1, "friend_days": 14, "expiry_days": 60},
         (PlanCode.MAX.value, 365): {"count": 3, "friend_days": 14, "expiry_days": 60},
+        (PlanCode.TEST.value, 180): {"count": 1, "friend_days": 14, "expiry_days": 60},
         (PlanCode.TEST.value, 365): {"count": 3, "friend_days": 14, "expiry_days": 60},
     }
     return bundles.get((plan_code, duration_days), {"count": 0, "friend_days": 0, "expiry_days": 0})
@@ -324,7 +326,7 @@ def build_plan_seed_specs() -> list[PlanSeedSpec]:
                     trial_eligible=bool(config["trial_eligible"]),
                     features={
                         **dict(config["features"]),
-                        "bootstrap_seed_version": "phase1_v1",
+                        "bootstrap_seed_version": S1_PAID_PLAN_POLICY_ID,
                         "period_days": duration_days,
                     },
                     is_active=bool(config["is_active"]),
@@ -439,6 +441,7 @@ async def seed_pricing_catalog(session: AsyncSession) -> dict[str, int]:
     summary = {
         "plans_created": 0,
         "plans_updated": 0,
+        "plans_retired": 0,
         "addons_created": 0,
         "addons_updated": 0,
     }
@@ -476,6 +479,22 @@ async def seed_pricing_catalog(session: AsyncSession) -> dict[str, int]:
         if _apply_plan_spec(existing, spec):
             await plan_repo.update(existing)
             summary["plans_updated"] += 1
+
+    canonical_plan_codes = set(PLAN_FAMILY_CONFIG)
+    for plan in await plan_repo.get_all(active_only=True, include_untyped=False):
+        if plan.plan_code not in canonical_plan_codes:
+            continue
+        if plan.duration_days in STANDARD_DURATIONS:
+            continue
+        if plan.name != f"{plan.plan_code}_{plan.duration_days}":
+            continue
+        plan.is_active = False
+        features = dict(plan.features or {})
+        features["retired_by_seed_version"] = S1_PAID_PLAN_POLICY_ID
+        features["retired_reason"] = "unsupported_s1_duration"
+        plan.features = features
+        await plan_repo.update(plan)
+        summary["plans_retired"] += 1
 
     for spec in build_addon_seed_specs():
         existing = await addon_repo.get_by_code(spec.code)

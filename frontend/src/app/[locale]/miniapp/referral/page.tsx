@@ -10,6 +10,7 @@ import {
   Gift,
   Link2,
   Loader2,
+  LockKeyhole,
   Percent,
   QrCode,
   Sparkles,
@@ -43,6 +44,7 @@ import {
   useReferralStatus,
   useUpdateGrowthNotificationPreferences,
 } from '@/features/customer-growth/hooks/useCustomerGrowth';
+import { STAGE1_GROWTH_HUB_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
@@ -101,7 +103,44 @@ function formatGiftStatus(status: string): 'active' | 'redeemed' | 'expired' | '
   return 'active';
 }
 
+function MiniAppReferralPaused() {
+  const { colorScheme } = useTelegramWebApp();
+  const cardBg = colorScheme === 'dark' ? 'bg-card/70' : 'bg-white/85';
+  const borderColor = colorScheme === 'dark' ? 'border-border' : 'border-gray-200';
+
+  return (
+    <main className="min-h-screen px-4 py-6 pb-24">
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-5`}>
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 p-3">
+            <LockKeyhole className="h-5 w-5 text-neon-cyan" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-neon-cyan">
+              S1 beta
+            </p>
+            <h1 className="mt-2 font-display text-lg uppercase tracking-[0.12em]">
+              Rewards hub is paused
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground font-mono">
+              Referral, gift, and promo-code screens are not available during the controlled beta.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function MiniAppReferralPage() {
+  if (!STAGE1_GROWTH_HUB_UI_ENABLED) {
+    return <MiniAppReferralPaused />;
+  }
+
+  return <MiniAppReferralExperience />;
+}
+
+function MiniAppReferralExperience() {
   const t = useTranslations('MiniApp.referral');
   const locale = useLocale();
   const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();

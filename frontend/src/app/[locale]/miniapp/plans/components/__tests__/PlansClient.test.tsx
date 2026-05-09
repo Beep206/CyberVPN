@@ -55,6 +55,8 @@ vi.mock('next-intl', () => ({
       redeem: 'Redeem',
       quoteTitle: 'Quote',
       quoteSubtitle: 'Quote subtitle',
+      billingCurrencyNotice: 'Charged in {currency}',
+      localEstimate: 'Approx. {price} display only',
       selectPlanToQuote: 'Select plan to quote',
       processing: 'Processing',
       freeTrialTitle: 'Free trial',
@@ -312,6 +314,14 @@ describe('MiniApp Plans Page', () => {
     });
   });
 
+  it('hides_addon_controls_when_stage1_addons_are_not_offered', async () => {
+    render(<MiniAppPlansPage />, { wrapper: createWrapper() });
+
+    await screen.findByText('Available plans');
+
+    expect(screen.queryByText('Add-ons description')).not.toBeInTheDocument();
+  });
+
   it('test_opens_payment_after_checkout_commit', async () => {
     const user = userEvent.setup();
 
@@ -364,26 +374,13 @@ describe('MiniApp Plans Page', () => {
     });
   });
 
-  it('test_resolves_uppercased_checkout_code', async () => {
-    const user = userEvent.setup();
-
+  it('test_hides_checkout_code_controls_during_s1_beta', async () => {
     render(<MiniAppPlansPage />, { wrapper: createWrapper() });
 
     await screen.findByText('Available plans');
-    await user.type(screen.getByPlaceholderText('Promo code'), 'save5');
-    await user.click(screen.getByRole('button', { name: 'Apply' }));
 
-    await waitFor(() => {
-      expect(apiMocks.codesApi.resolve).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: 'SAVE5',
-          action_context: 'checkout',
-          plan_id: 'plan-plus-365',
-          channel: 'miniapp',
-        }),
-      );
-      expect(screen.getByText('Code accepted SAVE5')).toBeInTheDocument();
-    });
+    expect(screen.queryByPlaceholderText('Promo code')).not.toBeInTheDocument();
+    expect(apiMocks.codesApi.resolve).not.toHaveBeenCalled();
   });
 
   it('test_redeems_invite_code', async () => {

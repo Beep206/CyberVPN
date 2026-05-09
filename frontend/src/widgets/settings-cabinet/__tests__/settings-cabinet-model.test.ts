@@ -5,12 +5,14 @@ import {
   CORE_NOTIFICATION_PREFERENCES,
   formatDateTime,
   formatShortId,
+  getDeviceLimitSummary,
   getDeviceKind,
   getEnabledCount,
   GROWTH_NOTIFICATION_PREFERENCES,
   getSecurityPosture,
   maskAntiphishingCode,
   parseDeviceLabel,
+  readDeviceLimit,
 } from '../settings-cabinet-model';
 
 describe('settings-cabinet-model', () => {
@@ -77,6 +79,68 @@ describe('settings-cabinet-model', () => {
     expect(maskAntiphishingCode('  CYBER-ALPHA  ')).toBe('CY*******HA');
     expect(maskAntiphishingCode(null)).toBe('not-set');
     expect(maskAntiphishingCode('   ')).toBe('not-set');
+  });
+
+  it('reads and summarizes plan device limits from entitlements', () => {
+    expect(
+      readDeviceLimit({
+        addons: [],
+        effective_entitlements: { device_limit: '5' },
+        invite_bundle: {},
+        is_trial: false,
+        status: 'active',
+      }),
+    ).toBe(5);
+    expect(
+      readDeviceLimit({
+        addons: [],
+        effective_entitlements: { devices: 3.8 },
+        invite_bundle: {},
+        is_trial: false,
+        status: 'active',
+      }),
+    ).toBe(3);
+    expect(
+      readDeviceLimit({
+        addons: [],
+        effective_entitlements: { device_limit: 'not-a-number' },
+        invite_bundle: {},
+        is_trial: false,
+        status: 'active',
+      }),
+    ).toBeNull();
+
+    expect(getDeviceLimitSummary({ active: 2, limit: 5 })).toEqual({
+      active: 2,
+      limit: 5,
+      percent: 40,
+      remaining: 3,
+      state: 'available',
+      tone: 'green',
+    });
+    expect(getDeviceLimitSummary({ active: 4, limit: 5 })).toMatchObject({
+      percent: 80,
+      remaining: 1,
+      state: 'near_limit',
+      tone: 'amber',
+    });
+    expect(getDeviceLimitSummary({ active: 5, limit: 5 })).toMatchObject({
+      remaining: 0,
+      state: 'at_limit',
+      tone: 'amber',
+    });
+    expect(getDeviceLimitSummary({ active: 6, limit: 5 })).toMatchObject({
+      percent: 100,
+      remaining: -1,
+      state: 'over_limit',
+      tone: 'pink',
+    });
+    expect(getDeviceLimitSummary({ active: 2, limit: null })).toMatchObject({
+      percent: 0,
+      remaining: null,
+      state: 'unknown',
+      tone: 'muted',
+    });
   });
 
   it('calculates security posture from backend-owned signals', () => {

@@ -6,10 +6,11 @@ import { useTranslations } from 'next-intl';
 import { Database, Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function FAQAccordion() {
+export function FAQAccordion({ showAddonFaq = true }: { showAddonFaq?: boolean }) {
   const t = useTranslations('Pricing.faq');
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const faqs = t.raw('items') as Array<{ q: string; a: string }>;
+  const allFaqs = t.raw('items') as Array<{ q: string; a: string }>;
+  const faqs = showAddonFaq ? allFaqs : allFaqs.slice(0, -1);
 
   return (
     <div className="flex w-full flex-col gap-6">

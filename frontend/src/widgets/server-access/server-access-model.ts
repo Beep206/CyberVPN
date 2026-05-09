@@ -22,6 +22,14 @@ export type ConfigLink = {
   value: string;
 };
 
+export type ConfigDeliveryBundle = {
+  configFile: ConfigLink | null;
+  fileName: string;
+  qrLink: ConfigLink | null;
+  rawConfigLink: ConfigLink | null;
+  subscriptionLink: ConfigLink | null;
+};
+
 export type ServerAccessSummary = {
   connected: number;
   countries: string[];
@@ -45,6 +53,48 @@ function normalizeLabel(value: string | null | undefined): string | null {
 
 function unique(values: string[]): string[] {
   return Array.from(new Set(values));
+}
+
+function isStringRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function payloadString(payload: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function payloadStringArray(payload: Record<string, unknown>, keys: string[]): string[] {
+  for (const key of keys) {
+    const value = payload[key];
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()));
+    }
+  }
+
+  return [];
+}
+
+function payloadStringMap(payload: Record<string, unknown>, keys: string[]): Record<string, string> {
+  for (const key of keys) {
+    const value = payload[key];
+    if (isStringRecord(value)) {
+      return Object.fromEntries(
+        Object.entries(value).filter((entry): entry is [string, string] => {
+          const [, item] = entry;
+          return typeof item === 'string' && Boolean(item.trim());
+        }),
+      );
+    }
+  }
+
+  return {};
 }
 
 export function clampPercentage(value: number | null | undefined): number {
@@ -192,19 +242,15 @@ export function getConfigAvailability({
     return 'not_found';
   }
 
-  if (!config) {
-    return 'missing_config';
-  }
-
-  const links = extractConfigLinks(config);
-  return config.config.trim().length > 0 || links.length > 0 ? 'ready' : 'missing_config';
+  const links = extractConfigLinks(config, serviceState);
+  const rawConfigReady = Boolean(config?.config.trim());
+  return rawConfigReady || links.length > 0 ? 'ready' : 'missing_config';
 }
 
-export function extractConfigLinks(config: UserConfig | null | undefined): ConfigLink[] {
-  if (!config) {
-    return [];
-  }
-
+export function extractConfigLinks(
+  config: UserConfig | null | undefined,
+  serviceState?: CurrentServiceState | null,
+): ConfigLink[] {
   const links: ConfigLink[] = [];
   const addLink = (link: ConfigLink) => {
     if (!link.value.trim() || links.some((existing) => existing.value === link.value)) {
@@ -214,7 +260,7 @@ export function extractConfigLinks(config: UserConfig | null | undefined): Confi
     links.push(link);
   };
 
-  if (config.subscriptionUrl) {
+  if (config?.subscriptionUrl) {
     addLink({
       id: 'subscription-url',
       kind: 'subscription',
@@ -223,7 +269,29 @@ export function extractConfigLinks(config: UserConfig | null | undefined): Confi
     });
   }
 
-  config.links?.forEach((value, index) => {
+  const payload = serviceState?.access_delivery_channel?.delivery_payload;
+
+  if (isStringRecord(payload)) {
+    const subscriptionUrl = payloadString(payload, [
+      'subscription_url',
+      'subscriptionUrl',
+      'subscription_uri',
+      'subscriptionUri',
+      'delivery_url',
+      'deliveryUrl',
+    ]);
+
+    if (subscriptionUrl) {
+      addLink({
+        id: 'delivery-subscription-url',
+        kind: 'subscription',
+        label: 'Subscription URL',
+        value: subscriptionUrl,
+      });
+    }
+  }
+
+  config?.links?.forEach((value, index) => {
     addLink({
       id: `link-${index}`,
       kind: 'link',
@@ -232,7 +300,20 @@ export function extractConfigLinks(config: UserConfig | null | undefined): Confi
     });
   });
 
-  Object.entries(config.ssConfLinks ?? {}).forEach(([label, value], index) => {
+  if (isStringRecord(payload)) {
+    payloadStringArray(payload, ['links', 'connection_links', 'connectionLinks']).forEach(
+      (value, index) => {
+        addLink({
+          id: `delivery-link-${index}`,
+          kind: 'link',
+          label: `Connection link ${index + 1}`,
+          value,
+        });
+      },
+    );
+  }
+
+  Object.entries(config?.ssConfLinks ?? {}).forEach(([label, value], index) => {
     addLink({
       id: `ss-${index}`,
       kind: 'shadowSocks',
@@ -241,7 +322,40 @@ export function extractConfigLinks(config: UserConfig | null | undefined): Confi
     });
   });
 
-  if (config.config.trim()) {
+  if (isStringRecord(payload)) {
+    Object.entries(payloadStringMap(payload, ['ssConfLinks', 'ss_conf_links'])).forEach(
+      ([label, value], index) => {
+        addLink({
+          id: `delivery-ss-${index}`,
+          kind: 'shadowSocks',
+          label: normalizeLabel(label) ?? `Shadowsocks ${index + 1}`,
+          value,
+        });
+      },
+    );
+  }
+
+  if (isStringRecord(payload)) {
+    const connectionUri = payloadString(payload, [
+      'connection_uri',
+      'connectionUri',
+      'client_uri',
+      'clientUri',
+      'vless_uri',
+      'vlessUri',
+    ]);
+
+    if (connectionUri) {
+      addLink({
+        id: 'delivery-connection-uri',
+        kind: 'link',
+        label: 'Connection link',
+        value: connectionUri,
+      });
+    }
+  }
+
+  if (config?.config.trim()) {
     addLink({
       id: 'raw-config',
       kind: 'config',
@@ -250,17 +364,72 @@ export function extractConfigLinks(config: UserConfig | null | undefined): Confi
     });
   }
 
+  if (isStringRecord(payload)) {
+    const rawConfig = payloadString(payload, [
+      'config',
+      'raw_config',
+      'rawConfig',
+      'client_config',
+      'clientConfig',
+      'config_file',
+      'configFile',
+    ]);
+
+    if (rawConfig) {
+      addLink({
+        id: 'delivery-raw-config',
+        kind: 'config',
+        label: 'Raw config',
+        value: rawConfig,
+      });
+    }
+  }
+
   return links;
+}
+
+export function getConfigDeliveryBundle(links: ConfigLink[]): ConfigDeliveryBundle {
+  const subscriptionLink = links.find((link) => link.kind === 'subscription') ?? null;
+  const rawConfigLink = links.find((link) => link.kind === 'config') ?? null;
+  const primaryLink = subscriptionLink ?? links[0] ?? null;
+  const configFile =
+    rawConfigLink ??
+    links.find((link) => link.kind === 'link') ??
+    subscriptionLink ??
+    primaryLink ??
+    null;
+
+  return {
+    configFile,
+    fileName: 'cybervpn-access-config.txt',
+    qrLink: subscriptionLink ?? primaryLink ?? configFile,
+    rawConfigLink,
+    subscriptionLink,
+  };
 }
 
 export function maskConfigValue(value: string): string {
   const normalized = value.trim();
 
-  if (normalized.length <= 24) {
+  if (!normalized) {
     return '********';
   }
 
-  return `${normalized.slice(0, 16)}...${normalized.slice(-8)}`;
+  const schemeMatch = normalized.match(/^([a-z][a-z0-9+.-]*:\/\/)/i);
+  if (schemeMatch && !/^https?:\/\//i.test(normalized)) {
+    return `${schemeMatch[1]}...${normalized.slice(-6)}`;
+  }
+
+  try {
+    const url = new URL(normalized);
+    return `${url.protocol}//${url.host}/...`;
+  } catch {
+    if (normalized.length <= 12) {
+      return '********';
+    }
+
+    return `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
+  }
 }
 
 export function formatServiceStatus(

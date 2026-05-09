@@ -4,6 +4,7 @@ from src.application.services.pricing_catalog_seed import (
     build_addon_seed_specs,
     build_plan_seed_specs,
 )
+from src.application.services.stage1_plan_policy import S1_PAID_PLAN_DURATIONS, S1_PAID_PLAN_POLICY_ID
 
 
 def test_plan_seed_contains_full_canonical_matrix() -> None:
@@ -19,7 +20,22 @@ def test_plan_seed_contains_full_canonical_matrix() -> None:
         "test",
         "development",
     }
-    assert {spec.duration_days for spec in specs} == {30, 90, 180, 365}
+    assert {spec.duration_days for spec in specs} == set(S1_PAID_PLAN_DURATIONS)
+
+
+def test_public_plan_seed_matches_stage1_beta_matrix() -> None:
+    public_specs = [
+        spec for spec in build_plan_seed_specs() if spec.catalog_visibility == "public" and spec.is_active
+    ]
+
+    assert len(public_specs) == 16
+    assert {spec.plan_code for spec in public_specs} == {"basic", "plus", "pro", "max"}
+    assert {spec.duration_days for spec in public_specs} == {30, 90, 180, 365}
+    assert all("web" in spec.sale_channels for spec in public_specs)
+    assert all("miniapp" in spec.sale_channels for spec in public_specs)
+    assert all("telegram_bot" in spec.sale_channels for spec in public_specs)
+    assert all(spec.price_usd > Decimal("0") for spec in public_specs)
+    assert all(spec.features["bootstrap_seed_version"] == S1_PAID_PLAN_POLICY_ID for spec in public_specs)
 
 
 def test_plan_seed_matches_public_and_hidden_examples() -> None:
@@ -29,6 +45,10 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
     assert specs["plus_365"].catalog_visibility == "public"
     assert specs["plus_365"].device_limit == 5
     assert specs["plus_365"].invite_bundle == {"count": 2, "friend_days": 14, "expiry_days": 60}
+
+    assert specs["plus_180"].price_usd == Decimal("39.99")
+    assert specs["plus_180"].catalog_visibility == "public"
+    assert specs["plus_180"].invite_bundle == {"count": 1, "friend_days": 7, "expiry_days": 30}
 
     assert specs["max_365"].price_usd == Decimal("99.00")
     assert specs["max_365"].dedicated_ip == {"included": 1, "eligible": True}

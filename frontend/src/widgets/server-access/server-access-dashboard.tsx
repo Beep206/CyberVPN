@@ -6,20 +6,22 @@ import {
   CheckCircle2,
   Clipboard,
   Copy,
+  Download,
   ExternalLink,
   Gauge,
   Globe2,
   KeyRound,
+  QrCode,
   RadioTower,
   RefreshCw,
   Route,
-  Server,
   Settings,
   ShieldCheck,
   Signal,
   Wifi,
   Zap,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -32,12 +34,11 @@ import {
 } from '@/lib/api';
 import {
   extractConfigLinks,
-  formatBytes,
   formatDateTime,
   formatServiceStatus,
+  getConfigDeliveryBundle,
   getConfigAvailability,
   getRecommendedServer,
-  getServerLoad,
   getServerLocation,
   getServerProtocol,
   isServiceStateActive,
@@ -55,7 +56,9 @@ const PROFILE_STALE_MS = 60_000;
 const DPI_STALE_MS = 120_000;
 const LIVE_REFETCH_MS = 45_000;
 
-type CopyState = 'config' | 'subscription' | 'unavailable' | 'error' | null;
+const QRCodeComponent = dynamic(() => import('react-qr-code'), { ssr: false });
+
+type CopyState = 'config' | 'download' | 'subscription' | 'unavailable' | 'error' | null;
 type Tone = 'amber' | 'cyan' | 'green' | 'pink' | 'purple';
 
 const toneClasses: Record<
@@ -202,16 +205,13 @@ function getCopyText(state: CopyState, t: ReturnType<typeof useTranslations>) {
   return t(`copy.${state}`);
 }
 
-function ServerCard({
-  locale,
+function RouteCard({
   server,
   t,
 }: {
-  locale: string;
   server: RawServer;
   t: ReturnType<typeof useTranslations>;
 }) {
-  const load = getServerLoad(server);
   const usable = isUsableServer(server);
 
   return (
@@ -226,36 +226,6 @@ function ServerCard({
         <StatusPill
           label={t(usable ? 'status.ready' : `status.${server.status}`)}
           tone={usable ? 'green' : server.status === 'maintenance' ? 'amber' : 'pink'}
-        />
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {t('labels.load')}
-          </p>
-          <p className="mt-1 text-xl font-display text-neon-cyan">{load}%</p>
-        </div>
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {t('labels.onlineUsers')}
-          </p>
-          <p className="mt-1 text-xl font-display text-foreground">{server.users_online}</p>
-        </div>
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {t('labels.traffic')}
-          </p>
-          <p className="mt-1 text-xl font-display text-foreground">
-            {formatBytes(server.traffic_used_bytes, locale)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-matrix-green via-neon-cyan to-neon-pink"
-          style={{ width: `${load}%` }}
         />
       </div>
     </article>
@@ -281,18 +251,6 @@ export function ServerAccessDashboard() {
     queryKey: ['servers'],
     queryFn: async () => {
       const response = await serversApi.list();
-      return response.data;
-    },
-    staleTime: LIVE_STALE_MS,
-    refetchInterval: visiblePolling(LIVE_REFETCH_MS),
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const statsQuery = useQuery({
-    queryKey: ['server-access', 'stats'],
-    queryFn: async () => {
-      const response = await serversApi.getStats();
       return response.data;
     },
     staleTime: LIVE_STALE_MS,
@@ -345,10 +303,12 @@ export function ServerAccessDashboard() {
   const rankedServers = rankServers(servers).slice(0, 6);
   const recommendedServer = getRecommendedServer(servers);
   const summary = summarizeServers(servers);
-  const configLinks = extractConfigLinks(configQuery.data);
-  const subscriptionLink =
-    configLinks.find((link) => link.kind === 'subscription') ?? configLinks[0] ?? null;
-  const rawConfigLink = configLinks.find((link) => link.kind === 'config') ?? null;
+  const configLinks = extractConfigLinks(configQuery.data, serviceStateQuery.data);
+  const deliveryBundle = getConfigDeliveryBundle(configLinks);
+  const subscriptionLink = deliveryBundle.subscriptionLink;
+  const configFileLink = deliveryBundle.configFile;
+  const primaryDeliveryLink = subscriptionLink ?? deliveryBundle.configFile;
+  const rawConfigLink = deliveryBundle.rawConfigLink;
   const availability = getConfigAvailability({
     config: configQuery.data,
     profile: profileQuery.data,
@@ -357,7 +317,6 @@ export function ServerAccessDashboard() {
   const serviceActive = isServiceStateActive(serviceStateQuery.data);
   const latestSync = Math.max(
     serversQuery.dataUpdatedAt,
-    statsQuery.dataUpdatedAt,
     serviceStateQuery.dataUpdatedAt,
     configQuery.dataUpdatedAt,
   );
@@ -366,7 +325,6 @@ export function ServerAccessDashboard() {
     : t('sync.neverSynced');
   const hasAnyError =
     serversQuery.isError ||
-    statsQuery.isError ||
     serviceStateQuery.isError ||
     configQuery.isError ||
     dpiQuery.isError;
@@ -385,10 +343,46 @@ export function ServerAccessDashboard() {
     }
   };
 
+  const openDeliveryLink = (link: ConfigLink) => {
+    if (typeof window === 'undefined' || typeof window.open !== 'function') {
+      setCopyState('unavailable');
+      return;
+    }
+
+    window.open(link.value, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadConfigFile = (link: ConfigLink) => {
+    if (
+      typeof document === 'undefined' ||
+      typeof window === 'undefined' ||
+      !window.URL?.createObjectURL
+    ) {
+      setCopyState('unavailable');
+      return;
+    }
+
+    try {
+      const content = link.value.endsWith('\n') ? link.value : `${link.value}\n`;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = deliveryBundle.fileName;
+      anchor.rel = 'noreferrer';
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+      setCopyState('download');
+    } catch {
+      setCopyState('error');
+    }
+  };
+
   const retryAll = () => {
     void profileQuery.refetch();
     void serversQuery.refetch();
-    void statsQuery.refetch();
     void serviceStateQuery.refetch();
     void configQuery.refetch();
     void dpiQuery.refetch();
@@ -450,7 +444,7 @@ export function ServerAccessDashboard() {
       </section>
 
       <section
-        className="grid gap-4 md:grid-cols-4"
+        className="grid gap-4 md:grid-cols-3"
         aria-label={t('summary.ariaLabel')}
       >
         <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
@@ -459,16 +453,7 @@ export function ServerAccessDashboard() {
             {t('summary.countries')}
           </p>
           <p className="mt-2 text-2xl font-display text-white">
-            {summary.countries.length || statsQuery.data?.online || 0}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
-          <Server className="h-5 w-5 text-matrix-green" aria-hidden="true" />
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {t('summary.online')}
-          </p>
-          <p className="mt-2 text-2xl font-display text-white">
-            {statsQuery.data?.online ?? summary.online}
+            {summary.countries.length}
           </p>
         </article>
         <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
@@ -483,10 +468,10 @@ export function ServerAccessDashboard() {
         <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
           <Wifi className="h-5 w-5 text-neon-purple" aria-hidden="true" />
           <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {t('summary.connected')}
+            {t('summary.access')}
           </p>
           <p className="mt-2 text-2xl font-display text-white">
-            {summary.connected}/{statsQuery.data?.total ?? summary.total}
+            {summary.connected > 0 ? t('status.ready') : t('status.pending')}
           </p>
         </article>
       </section>
@@ -523,32 +508,9 @@ export function ServerAccessDashboard() {
                   />
                 </div>
 
-                <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {t('labels.load')}
-                    </p>
-                    <p className="mt-1 text-2xl font-display text-matrix-green">
-                      {getServerLoad(recommendedServer)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {t('labels.inbounds')}
-                    </p>
-                    <p className="mt-1 text-2xl font-display text-white">
-                      {recommendedServer.inbound_count}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {t('labels.nodeVersion')}
-                    </p>
-                    <p className="mt-1 truncate text-2xl font-display text-white">
-                      {recommendedServer.node_version ?? t('labels.unknown')}
-                    </p>
-                  </div>
-                </div>
+                <p className="mt-6 font-mono text-sm leading-7 text-muted-foreground">
+                  {t('recommended.customerSafeReason')}
+                </p>
               </div>
 
               <p className="font-mono text-sm leading-7 text-muted-foreground">
@@ -583,40 +545,84 @@ export function ServerAccessDashboard() {
 
           {profileQuery.isPending || serviceStateQuery.isPending || configQuery.isPending ? (
             <LoadingBlock className="mt-6 min-h-52" />
-          ) : availability === 'ready' && subscriptionLink ? (
+          ) : availability === 'ready' && primaryDeliveryLink ? (
             <div className="mt-6 space-y-5">
-              <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {subscriptionLink.kind === 'config' ? t('config.rawConfig') : t('config.subscriptionUrl')}
-                </p>
-                <p className="mt-3 break-all rounded-xl border border-grid-line/20 bg-black/30 p-3 font-mono text-sm text-foreground">
-                  {maskConfigValue(subscriptionLink.value)}
-                </p>
+              <div className="grid gap-5 lg:grid-cols-[180px_1fr]">
+                <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4 text-neon-cyan" aria-hidden="true" />
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {t('config.qrCode')}
+                    </p>
+                  </div>
+                  <div
+                    aria-label={t('config.qrCode')}
+                    className="mt-4 flex justify-center rounded-2xl bg-white p-4"
+                    role="img"
+                  >
+                    <QRCodeComponent
+                      bgColor="#FFFFFF"
+                      fgColor="#000000"
+                      level="M"
+                      size={160}
+                      value={deliveryBundle.qrLink?.value ?? primaryDeliveryLink.value}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {primaryDeliveryLink.kind === 'config' ? t('config.rawConfig') : t('config.subscriptionUrl')}
+                    </p>
+                    <p className="mt-3 break-all rounded-xl border border-grid-line/20 bg-black/30 p-3 font-mono text-sm text-foreground">
+                      {maskConfigValue(primaryDeliveryLink.value)}
+                    </p>
+                    <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
+                      {t('config.safeDelivery')}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {t('config.downloadFile')}
+                    </p>
+                    <p className="mt-2 font-mono text-sm text-foreground">
+                      {deliveryBundle.fileName}
+                    </p>
+                    <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground">
+                      {t('config.downloadNote')}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <ActionButton
-                  onClick={() => copyToClipboard(subscriptionLink, 'subscription')}
-                >
-                  <Copy className="h-4 w-4" aria-hidden="true" />
-                  {t('config.copySubscription')}
-                </ActionButton>
+                {subscriptionLink && (
+                  <ActionButton
+                    onClick={() => copyToClipboard(subscriptionLink, 'subscription')}
+                  >
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    {t('config.copySubscription')}
+                  </ActionButton>
+                )}
                 {rawConfigLink && (
                   <ActionButton onClick={() => copyToClipboard(rawConfigLink, 'config')}>
                     <Clipboard className="h-4 w-4" aria-hidden="true" />
                     {t('config.copyConfig')}
                   </ActionButton>
                 )}
-                {subscriptionLink.kind !== 'config' && (
-                  <a
-                    href={subscriptionLink.value}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-white/[0.03] px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-foreground transition hover:border-matrix-green/40 hover:text-matrix-green focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
-                  >
+                {configFileLink && (
+                  <ActionButton onClick={() => downloadConfigFile(configFileLink)}>
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                    {t('config.downloadConfig')}
+                  </ActionButton>
+                )}
+                {subscriptionLink && (
+                  <ActionButton onClick={() => openDeliveryLink(subscriptionLink)}>
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
                     {t('config.openSubscription')}
-                  </a>
+                  </ActionButton>
                 )}
               </div>
 
@@ -669,9 +675,8 @@ export function ServerAccessDashboard() {
           ) : rankedServers.length > 0 ? (
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {rankedServers.map((server) => (
-                <ServerCard
+                <RouteCard
                   key={server.uuid}
-                  locale={locale}
                   server={server}
                   t={t}
                 />
@@ -788,7 +793,6 @@ export function ServerAccessDashboard() {
           <RefreshCw
             className={`h-4 w-4 ${
               serversQuery.isFetching ||
-              statsQuery.isFetching ||
               serviceStateQuery.isFetching ||
               configQuery.isFetching ||
               dpiQuery.isFetching

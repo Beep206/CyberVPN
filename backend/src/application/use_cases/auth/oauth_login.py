@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.use_cases.auth.verify_otp import RemnawaveGateway
 from src.config.settings import settings
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -17,6 +18,7 @@ from src.infrastructure.database.repositories.oauth_account_repo import OAuthAcc
 from src.shared.security.oauth_token_store import build_stored_oauth_tokens
 
 logger = logging.getLogger(__name__)
+S1_TRUSTED_EMAIL_LINK_PROVIDER_ALLOWLIST = frozenset({"google", "github"})
 
 
 class OAuthLoginResult:
@@ -53,12 +55,14 @@ class OAuthLoginUseCase:
         auth_service: AuthService,
         session: AsyncSession,
         remnawave_gateway: RemnawaveGateway | None = None,
+        allow_new_users: bool = True,
     ) -> None:
         self._user_repo = user_repo
         self._oauth_repo = oauth_repo
         self._auth_service = auth_service
         self._session = session
         self._remnawave_gateway = remnawave_gateway
+        self._allow_new_users = allow_new_users
 
     @staticmethod
     def _generate_telegram_login(
@@ -119,7 +123,10 @@ class OAuthLoginUseCase:
             access_token=provider_access_token,
             refresh_token=provider_refresh_token,
         )
-        trusted_provider = provider in settings.oauth_trusted_email_link_providers
+        trusted_provider = (
+            provider in S1_TRUSTED_EMAIL_LINK_PROVIDER_ALLOWLIST
+            and provider in settings.oauth_trusted_email_link_providers
+        )
         email_verified = bool(
             user_info.get("email_verified", bool(email and trusted_provider))
         )
@@ -134,6 +141,8 @@ class OAuthLoginUseCase:
                 telegram_user_id = int(provider_user_id)
             except (TypeError, ValueError):
                 telegram_user_id = None
+            if telegram_user_id is None:
+                raise ValueError("Invalid Telegram user id")
         is_new_user = False
 
         # Step 1: Check if OAuth account already exists (provider + provider_user_id)
@@ -159,12 +168,14 @@ class OAuthLoginUseCase:
                 extra={"provider": provider, "user_id": str(user.id)},
             )
         else:
-            # Step 2: Check if user exists by email (auto-link)
+            # Step 2: Check if user exists by a trusted account key.
+            # Telegram identity must never be silently merged by email because
+            # Telegram auth data does not prove ownership of a CyberVPN email.
             user = None
-            if email:
-                user = await self._user_repo.get_by_email(email)
-            elif telegram_user_id is not None:
+            if is_telegram:
                 user = await self._user_repo.get_by_telegram_id(telegram_user_id)
+            elif email:
+                user = await self._user_repo.get_by_email(email)
 
             if user:
                 if is_telegram and telegram_user_id is not None:
@@ -172,7 +183,7 @@ class OAuthLoginUseCase:
                         "Auto-linking Telegram OAuth to existing user by telegram_id",
                         extra={"provider": provider, "telegram_id": telegram_user_id, "user_id": str(user.id)},
                     )
-                elif not (is_telegram or (email_trusted and email_verified)):
+                elif not (email_trusted and email_verified):
                     logger.warning(
                         "Rejected automatic OAuth email linking due to untrusted provider email",
                         extra={"provider": provider, "email": email, "user_id": str(user.id)},
@@ -182,13 +193,17 @@ class OAuthLoginUseCase:
                         "Sign in with your existing account and link the provider manually."
                     )
 
-                # Auto-link OAuth to existing user
-                logger.info(
-                    "Auto-linking OAuth to existing user by email",
-                    extra={"provider": provider, "email": email, "user_id": str(user.id)},
-                )
+                if not is_telegram:
+                    logger.info(
+                        "Auto-linking OAuth to existing user by verified email",
+                        extra={"provider": provider, "email": email, "user_id": str(user.id)},
+                    )
             else:
                 # Step 3: Create new user
+                ensure_public_registration_enabled(
+                    channel=f"oauth:{provider}",
+                    registration_enabled=self._allow_new_users,
+                )
                 if is_telegram:
                     # Telegram-specific username generation:
                     # prefer @telegram_username, fallback to first_name, then tg_{id}
@@ -208,9 +223,10 @@ class OAuthLoginUseCase:
                 password_hash = await self._auth_service.hash_password(secrets.token_urlsafe(32))
                 user = AdminUserModel(
                     login=login,
-                    email=email,
+                    email=None if is_telegram else email,
                     password_hash=password_hash,
                     role="viewer",
+                    telegram_id=telegram_user_id if is_telegram else None,
                     language=provider_locale or "en-EN",
                     is_active=True,
                     # Telegram is possession-based; other providers must explicitly

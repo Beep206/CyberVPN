@@ -267,6 +267,45 @@ promocode-cancelled = ✅ Ввод промокода отменён.
 support-message = 🆘 <b>Поддержка</b>
 
     По всем вопросам: { $contact }
+    Чтобы создать обращение, отправьте: <code>/support ваш вопрос</code>
+
+support-first-line-payment = 💳 <b>Поддержка по оплате</b>
+
+    Я зафиксировал вопрос как платёжный. В следующем сообщении поддержке укажите способ оплаты и примерное время платежа.
+
+support-first-line-provisioning = 🔐 <b>Поддержка по доступу</b>
+
+    Я зафиксировал вопрос как проблему выдачи доступа/конфига. Не отправляйте полный VPN config link здесь; поддержка найдёт обращение по reference.
+
+support-first-line-connectivity = 🌐 <b>Поддержка подключения</b>
+
+    Попробуйте сменить сервер/локацию и перезапустить VPN-приложение. Если проблема останется, поддержке понадобятся ОС, приложение и текст ошибки.
+
+support-first-line-account = 👤 <b>Поддержка аккаунта</b>
+
+    Я зафиксировал вопрос как проблему аккаунта/логина. Поддержка может попросить подтвердить Telegram-аккаунт или email.
+
+support-first-line-legal_abuse = ⚠️ <b>Нужна эскалация</b>
+
+    Такой запрос должен пройти owner/support review.
+
+support-first-line-general = 🆘 <b>Поддержка</b>
+
+    Здесь я могу ответить только на базовые вопросы launch-beta. По вопросам аккаунта обращайтесь в поддержку.
+
+support-first-line-without-escalation = { $first_line }
+
+    Reference: <code>{ $reference }</code>
+    Контакт: { $contact }
+
+support-escalation-created = ✅ Передано в поддержку.
+
+    Reference: <code>{ $reference }</code>
+    Контакт: { $contact }
+
+support-escalation-fallback = ⚠️ Не удалось автоматически создать запись поддержки.
+
+    Отправьте этот reference в { $contact }: <code>{ $reference }</code>
 
 # ── Устройства / Конфиг ──────────────────────────────────────────────────
 config-title = 📱 <b>Подключение</b>

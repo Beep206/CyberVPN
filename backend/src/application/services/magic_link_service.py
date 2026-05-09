@@ -6,7 +6,6 @@ Also generates a 6-digit OTP code that can be used as an alternative to clicking
 
 import json
 import logging
-import random
 import secrets
 from datetime import UTC, datetime
 
@@ -115,8 +114,8 @@ class MagicLinkService:
 
         # Generate new token: 48 bytes -> 64 URL-safe characters, 288 bits entropy
         token = secrets.token_urlsafe(48)
-        # Generate 6-digit OTP code
-        otp_code = str(random.randint(100000, 999999))  # noqa: S311
+        # Generate 6-digit OTP code with cryptographically secure randomness.
+        otp_code = f"{secrets.randbelow(900_000) + 100_000:06d}"
         key = f"{self.PREFIX}{token}"
         data = {
             "email": email,

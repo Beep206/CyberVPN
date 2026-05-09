@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiogram import Bot, Dispatcher
 from aiohttp.test_utils import TestClient, TestServer
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 
 from src.config import (
     BackendSettings,
@@ -52,7 +52,7 @@ def build_settings(**overrides: Any) -> BotSettings:
         ),
         "backend": BackendSettings(
             api_url="https://api.test.cybervpn.local",
-            api_key=SecretStr("test_api_key_12345"),
+            api_key=SecretStr("fixture"),
             timeout=30,
             max_retries=3,
             retry_backoff=0.5,
@@ -78,6 +78,36 @@ def build_settings(**overrides: Any) -> BotSettings:
     }
     base.update(overrides)
     return BotSettings(**base)
+
+
+def test_production_rejects_placeholder_cryptobot_token() -> None:
+    with pytest.raises(ValidationError, match="CRYPTOBOT_TOKEN must not be a placeholder/test value"):
+        build_settings(
+            environment="production",
+            bot_username="CyberVPNBot",
+            production_bot_username="CyberVPNBot",
+            cryptobot=CryptoBotSettings(
+                enabled=True,
+                token=SecretStr("your-cryptobot-token"),
+                network="mainnet",
+            ),
+        )
+
+
+def test_production_accepts_non_placeholder_cryptobot_token() -> None:
+    settings = build_settings(
+        environment="production",
+        bot_username="CyberVPNBot",
+        production_bot_username="CyberVPNBot",
+        cryptobot=CryptoBotSettings(
+            enabled=True,
+            token=SecretStr("ValidProviderTokenValueForChecksOnly"),
+            network="mainnet",
+        ),
+    )
+
+    assert settings.cryptobot.token is not None
+    assert settings.cryptobot.token.get_secret_value() == "ValidProviderTokenValueForChecksOnly"
 
 
 def test_setup_sentry_skips_init_without_dsn() -> None:
@@ -118,6 +148,7 @@ def test_setup_sentry_uses_minimal_pii_contract() -> None:
 def test_before_send_scrubs_sensitive_fields() -> None:
     event = {
         "request": {
+            "url": "https://bot.cyber-vpn.net/webhook/telegram?token=secret#hash",
             "headers": {
                 "Authorization": "Bearer secret",
                 "X-Observability-Secret": "internal-secret",
@@ -135,8 +166,10 @@ def test_before_send_scrubs_sensitive_fields() -> None:
         },
         "extra": {
             "telegram_payload": {"message": "secret"},
-            "payment_provider": "cryptobot",
+            "payment_provider_id": "pay_123",
+            "provider_name": "cryptobot",
             "wireguard_config": "sensitive-config",
+            "support_excerpt": "user pasted vless://sensitive-config",
         },
         "contexts": {
             "bot": {
@@ -153,14 +186,17 @@ def test_before_send_scrubs_sensitive_fields() -> None:
     assert event["request"]["headers"]["X-Observability-Secret"] == "[Filtered]"
     assert event["request"]["headers"]["X-Telegram-Bot-Api-Secret-Token"] == "[Filtered]"
     assert event["request"]["headers"]["X-Request-Id"] == "req-1"
+    assert event["request"]["url"] == "https://bot.cyber-vpn.net/webhook/telegram"
     assert event["request"]["data"] == "[Filtered]"
     assert event["request"]["cookies"] == "[Filtered]"
     assert "email" not in event["user"]
     assert "username" not in event["user"]
     assert "ip_address" not in event["user"]
     assert event["extra"]["telegram_payload"] == "[Filtered]"
-    assert event["extra"]["payment_provider"] == "cryptobot"
+    assert event["extra"]["payment_provider_id"] == "[Filtered]"
+    assert event["extra"]["provider_name"] == "cryptobot"
     assert event["extra"]["wireguard_config"] == "[Filtered]"
+    assert event["extra"]["support_excerpt"] == "[Filtered]"
     assert event["contexts"]["bot"]["bot_token"] == "[Filtered]"
     assert event["contexts"]["bot"]["flow_step"] == "checkout"
 
@@ -173,8 +209,14 @@ def test_get_settings_loads_sentry_contract_from_environment(monkeypatch) -> Non
     monkeypatch.setenv("SENTRY_RELEASE", "telegram-bot@testsha")
     monkeypatch.setenv("TELEGRAM_BOT_SKIP_NETWORK_CALLS", "true")
     monkeypatch.setenv("TELEGRAM_BOT_OBSERVABILITY_INTERNAL_SECRET", "telegram-observability-secret")
+    monkeypatch.setenv("TELEGRAM_THROTTLE_ENABLED", "true")
+    monkeypatch.setenv("TELEGRAM_THROTTLE_FAIL_OPEN", "false")
+    monkeypatch.setenv("TELEGRAM_MESSAGE_RATE_WINDOW_SECONDS", "12")
+    monkeypatch.setenv("TELEGRAM_MESSAGE_RATE_MAX_REQUESTS", "4")
+    monkeypatch.setenv("TELEGRAM_CALLBACK_RATE_WINDOW_SECONDS", "5")
+    monkeypatch.setenv("TELEGRAM_CALLBACK_RATE_MAX_REQUESTS", "2")
     monkeypatch.setenv("BACKEND_API_URL", "https://api.test.cybervpn.local")
-    monkeypatch.setenv("BACKEND_API_KEY", "test_api_key_12345")
+    monkeypatch.setenv("BACKEND_API_KEY", "fixture")
     monkeypatch.setenv("CRYPTOBOT_TOKEN", "test_cryptobot_token")
     monkeypatch.setenv("PROMETHEUS_ENABLED", "false")
     monkeypatch.setenv("PROMETHEUS_PROTECT", "false")
@@ -189,6 +231,12 @@ def test_get_settings_loads_sentry_contract_from_environment(monkeypatch) -> Non
     assert settings.skip_telegram_network_calls is True
     assert settings.observability_internal_secret is not None
     assert settings.observability_internal_secret.get_secret_value() == "telegram-observability-secret"
+    assert settings.telegram_throttle_enabled is True
+    assert settings.telegram_throttle_fail_open is False
+    assert settings.telegram_message_rate_window_seconds == 12
+    assert settings.telegram_message_rate_max_requests == 4
+    assert settings.telegram_callback_rate_window_seconds == 5
+    assert settings.telegram_callback_rate_max_requests == 2
 
     get_settings.cache_clear()
 
@@ -198,7 +246,7 @@ def test_get_settings_accepts_comma_separated_list_envs(monkeypatch) -> None:
     monkeypatch.setenv("BOT_MODE", "polling")
     monkeypatch.setenv("ENVIRONMENT", "staging")
     monkeypatch.setenv("BACKEND_API_URL", "https://api.test.cybervpn.local")
-    monkeypatch.setenv("BACKEND_API_KEY", "test_api_key_12345")
+    monkeypatch.setenv("BACKEND_API_KEY", "fixture")
     monkeypatch.setenv("CRYPTOBOT_TOKEN", "test_cryptobot_token")
     monkeypatch.setenv("PROMETHEUS_ENABLED", "false")
     monkeypatch.setenv("PROMETHEUS_PROTECT", "false")
@@ -232,6 +280,24 @@ async def test_on_startup_skips_telegram_calls_when_configured() -> None:
 
     bot.get_me.assert_not_awaited()
     bot.set_webhook.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_on_startup_configures_stage1_commands_and_menu() -> None:
+    settings = build_settings(skip_telegram_network_calls=False)
+    bot = AsyncMock()
+    bot.get_me = AsyncMock(return_value=type("BotInfo", (), {"username": "CyberVPNStageBot", "id": 12345})())
+    bot.set_my_commands = AsyncMock()
+    bot.set_chat_menu_button = AsyncMock()
+
+    await on_startup(bot, settings)
+
+    bot.get_me.assert_awaited_once()
+    bot.set_my_commands.assert_awaited_once()
+    command_names = [command.command for command in bot.set_my_commands.await_args.kwargs["commands"]]
+    assert command_names == ["start", "menu", "connect", "plans", "trial", "support", "paysupport"]
+    bot.set_chat_menu_button.assert_awaited_once()
+    assert bot.set_chat_menu_button.await_args.kwargs["menu_button"].type.value == "commands"
 
 
 @pytest.mark.asyncio

@@ -1,10 +1,10 @@
 # Stage 1: Builder — install dependencies
-FROM python:3.13.13-slim-bookworm AS builder
+FROM python:3.13.13-alpine AS builder
 
 WORKDIR /app
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache build-base
 
 COPY pyproject.toml ./
 
@@ -12,7 +12,7 @@ COPY pyproject.toml ./
 RUN pip install --no-cache-dir --prefix=/install .
 
 # Stage 2: Runtime — minimal image
-FROM python:3.13.13-slim-bookworm AS runtime
+FROM python:3.13.13-alpine AS runtime
 
 WORKDIR /app
 

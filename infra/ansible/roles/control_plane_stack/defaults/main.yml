@@ -68,7 +68,7 @@ control_plane_stack_helix_adapter_metrics_prefix: helix
 control_plane_stack_postgres_data_dir: /var/lib/cybervpn/control-plane/postgres
 control_plane_stack_db_backup_dir: /var/backups/cybervpn/postgres
 control_plane_stack_db_backup_schedule: "@daily"
-control_plane_stack_db_backup_keep_days: 7
+control_plane_stack_db_backup_keep_days: 14
 
 control_plane_stack_manage_notifications_config: false
 control_plane_stack_notifications_dir: "{{ control_plane_stack_root }}/notifications"

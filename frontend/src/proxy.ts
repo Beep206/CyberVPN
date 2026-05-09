@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { locales, defaultLocale } from '@/i18n/config';
 
@@ -7,6 +7,13 @@ const intlMiddleware = createMiddleware({
   defaultLocale,
   localePrefix: 'always',
 });
+
+const ADMIN_PRIMARY_HOST = 'admin.cyber-vpn.net';
+const ADMIN_REDIRECT_ONLY_HOST = 'admin.cyber-vpn.org';
+
+function normalizedHostname(request: NextRequest): string {
+  return request.nextUrl.hostname.toLowerCase();
+}
 
 /**
  * Next.js 16 proxy function for routing.
@@ -20,6 +27,13 @@ const intlMiddleware = createMiddleware({
  * handlers instead."
  */
 export function proxy(request: NextRequest) {
+  if (normalizedHostname(request) === ADMIN_REDIRECT_ONLY_HOST) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.protocol = 'https:';
+    redirectUrl.hostname = ADMIN_PRIMARY_HOST;
+    return NextResponse.redirect(redirectUrl);
+  }
+
   return intlMiddleware(request);
 }
 

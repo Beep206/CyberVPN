@@ -13,6 +13,7 @@ os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 
 from src.tasks.payments.verify_pending import verify_pending_payments
 from src.tasks.payments.process_completion import process_payment_completion
+from src.tasks.payments.reconcile_stage1 import reconcile_stage1_payments
 from src.tasks.payments.reconcile_telegram_stars import reconcile_telegram_stars_refunds
 from src.tasks.payments.retry_webhooks import retry_failed_webhooks
 
@@ -21,6 +22,10 @@ def _scalar_result(value: int) -> MagicMock:
     result = MagicMock()
     result.scalar.return_value = value
     return result
+
+
+def _metric_value(metric, **labels) -> float:
+    return metric.labels(**labels)._value.get()
 
 
 @pytest.mark.asyncio
@@ -278,6 +283,78 @@ async def test_reconcile_telegram_stars_refunds_skips_without_backend_config(moc
 
     with patch("src.tasks.payments.reconcile_telegram_stars.get_settings", return_value=mock_settings):
         result = await reconcile_telegram_stars_refunds()
+
+    assert result["skipped"] is True
+    assert result["reason"] == "backend_api_not_configured"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_stage1_payments_calls_internal_backend_job(mock_settings):
+    """Test S1 payment reconciliation asks backend for a safe mismatch report."""
+    from src.metrics import (
+        STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT,
+        STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED,
+        STAGE1_PAYMENT_RECONCILIATION_MAX_AGE_MINUTES,
+        STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL,
+    )
+
+    before_success_runs = _metric_value(
+        STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL,
+        result="success",
+    )
+    mock_backend = AsyncMock()
+    mock_backend.enabled = True
+    mock_backend.run_stage1_payment_reconciliation = AsyncMock(
+        return_value={
+            "report_version": "stage1-payment-reconciliation-v1",
+            "generated_at": "2026-05-05T12:00:00+00:00",
+            "summary": {
+                "total_items": 2,
+                "manual_review_items": 2,
+                "alert_15m_items": 1,
+                "p1_escalation_items": 0,
+                "p0_blocker_items": 0,
+                "max_age_minutes": 70,
+                "launch_blocked": False,
+                "mismatch_counts": {"stale_active_attempt": 2},
+            },
+            "items": [{"safe_reference": "s1:payment-reconciliation:test"}],
+        }
+    )
+
+    with (
+        patch("src.tasks.payments.reconcile_stage1.get_settings", return_value=mock_settings),
+        patch("src.tasks.payments.reconcile_stage1.BackendAPIClient") as mock_backend_cls,
+    ):
+        mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
+        mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await reconcile_stage1_payments()
+
+    assert result["report_version"] == "stage1-payment-reconciliation-v1"
+    assert result["summary"]["total_items"] == 2
+    assert result["items_count"] == 1
+    mock_backend.run_stage1_payment_reconciliation.assert_awaited_once_with({"limit": 250})
+    assert (
+        _metric_value(STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL, result="success")
+        == before_success_runs + 1
+    )
+    assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="manual_review") == 2
+    assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="alert_15m") == 1
+    assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="p1_escalation") == 0
+    assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="p0_blocker") == 0
+    assert STAGE1_PAYMENT_RECONCILIATION_MAX_AGE_MINUTES._value.get() == 70
+    assert STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED._value.get() == 0
+
+
+@pytest.mark.asyncio
+async def test_reconcile_stage1_payments_skips_without_backend_config(mock_settings):
+    """Test S1 payment reconciliation is skipped when backend hook is not configured."""
+    mock_settings.backend_api_url = None
+    mock_settings.backend_internal_secret = None
+
+    with patch("src.tasks.payments.reconcile_stage1.get_settings", return_value=mock_settings):
+        result = await reconcile_stage1_payments()
 
     assert result["skipped"] is True
     assert result["reason"] == "backend_api_not_configured"

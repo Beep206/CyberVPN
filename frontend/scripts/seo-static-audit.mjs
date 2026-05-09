@@ -13,7 +13,7 @@ const FRONTEND_ROOT = resolve(SCRIPT_DIR, '..');
 const require = createRequire(import.meta.url);
 const NEXT_CLI_PATH = require.resolve('next/dist/bin/next');
 
-const SITE_URL = 'https://vpn.ozoxy.ru';
+const SITE_URL = 'https://cyber-vpn.net';
 const DEFAULT_LOCALE = 'en-EN';
 const RTL_LOCALE = 'ar-SA';
 const PRIORITY_LOCALE = 'ru-RU';
@@ -152,7 +152,7 @@ async function runBuild() {
   const logCollector = createLogCollector();
   const child = spawn(
     process.execPath,
-    [NEXT_CLI_PATH, 'build', '--webpack'],
+    [NEXT_CLI_PATH, 'build', '--turbopack'],
     {
       cwd: FRONTEND_ROOT,
       env: {

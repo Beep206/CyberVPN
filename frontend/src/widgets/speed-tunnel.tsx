@@ -59,16 +59,16 @@ export async function SpeedTunnel() {
                       <span className="text-xs text-muted-foreground font-mono uppercase">{t(`servers.${server.id}.city`)}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-bold text-green-500 font-mono">{t('online')}</span>
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/20">
+                    <div className="w-2 h-2 rounded-full bg-neon-cyan" />
+                    <span className="text-xs font-bold text-neon-cyan font-mono">{t('online')}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="p-3 rounded-lg bg-black/20 border border-white/5 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-neon-cyan" />
-                    <span className="text-sm font-mono font-bold text-foreground">10 Gbit/s</span>
+                    <span className="text-sm font-mono font-bold text-foreground">S1</span>
                   </div>
                   <div className="p-3 rounded-lg bg-black/20 border border-white/5 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-neon-purple" />

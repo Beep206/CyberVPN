@@ -16,8 +16,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_growth_policy import (
+    Stage1GrowthPolicyError,
+    assert_stage1_promo_codes_enabled,
+)
 from src.application.use_cases.promo_codes.admin_manage_promo import AdminManagePromoUseCase
 from src.application.use_cases.promo_codes.validate_promo import ValidatePromoUseCase
+from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.domain.exceptions import (
     PromoCodeExhaustedError,
@@ -64,6 +69,12 @@ async def validate_promo(
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> ValidatePromoResponse:
     """Validate a promo code and calculate the discount for the authenticated mobile user."""
+    try:
+        assert_stage1_promo_codes_enabled(enabled=settings.promo_codes_enabled)
+    except Stage1GrowthPolicyError as exc:
+        track_promo_operation(operation="validate", success=False)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
     repo = PromoCodeRepository(db)
     use_case = ValidatePromoUseCase(repo)
 

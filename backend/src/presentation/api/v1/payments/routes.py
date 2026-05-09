@@ -1,13 +1,15 @@
 """Payment and checkout routes."""
 
+import hmac
 import logging
 from dataclasses import asdict
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.stage1_growth_policy import Stage1GrowthPolicyError
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
@@ -16,6 +18,13 @@ from src.application.use_cases.payments.checkout import (
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
 from src.application.use_cases.payments.crypto_payment import CreateCryptoInvoiceUseCase
 from src.application.use_cases.payments.payment_history import PaymentHistoryUseCase
+from src.application.use_cases.payments.stage1_reconciliation import (
+    DEFAULT_RECONCILIATION_LIMIT,
+    MAX_RECONCILIATION_LIMIT,
+    Stage1PaymentReconciliationUseCase,
+    assert_stage1_payment_reconciliation_output_is_redacted,
+)
+from src.config.settings import settings
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
@@ -32,8 +41,8 @@ from src.presentation.api.v1.payments.schemas import (
     CreateInvoiceRequest,
     EntitlementsSnapshotResponse,
     InvoiceResponse,
-    PaymentStatusResponse,
     PaymentHistoryResponse,
+    PaymentStatusResponse,
 )
 from src.presentation.api.v1.payments.telegram_stars import create_telegram_stars_checkout
 from src.presentation.dependencies.auth import get_current_mobile_user_id
@@ -44,6 +53,19 @@ from src.presentation.dependencies.services import get_crypto_client
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
+    configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_telegram_bot_secret(secret: str | None) -> None:
+    if _is_valid_telegram_bot_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
 
 
 def _serialize_quote(result) -> CheckoutQuoteResponse:
@@ -131,6 +153,8 @@ async def _build_quote(
             ],
             sale_channel=body.channel,
         )
+    except Stage1GrowthPolicyError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from None
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
 
@@ -201,17 +225,16 @@ async def get_crypto_invoice(
 @router.get("/history", response_model=PaymentHistoryResponse)
 async def get_payment_history(
     db: AsyncSession = Depends(get_db),
-    user_uuid: UUID | None = Query(None, description="Filter by user UUID"),
+    user_id: UUID = Depends(get_current_mobile_user_id),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     limit: int = Query(50, ge=1, le=100, description="Pagination limit"),
-    _: None = Depends(require_permission(Permission.PAYMENT_READ)),
 ) -> PaymentHistoryResponse:
-    """Get payment history with optional user filter."""
+    """Return safe payment history for the authenticated customer."""
     payment_repo = PaymentRepository(db)
     use_case = PaymentHistoryUseCase(repo=payment_repo)
 
-    payments = await use_case.execute(
-        user_uuid=user_uuid,
+    payments = await use_case.get_by_user(
+        user_uuid=user_id,
         offset=offset,
         limit=limit,
     )
@@ -290,7 +313,10 @@ async def commit_telegram_stars_checkout(
     if body.currency.upper() != "XTR":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars checkout requires XTR")
     if body.use_wallet > 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wallet is not supported for Telegram Stars")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Wallet is not supported for Telegram Stars",
+        )
     if body.addons:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -338,6 +364,34 @@ async def checkout_alias(
 ) -> CheckoutCommitResponse:
     """Backward-compatible alias for commit checkout."""
     return await commit_checkout(body=body, db=db, crypto_client=crypto_client, user_id=user_id)
+
+
+@router.post("/internal/reconciliation/run")
+async def run_stage1_payment_reconciliation(
+    limit: int = Query(DEFAULT_RECONCILIATION_LIMIT, ge=1, le=MAX_RECONCILIATION_LIMIT),
+    db: AsyncSession = Depends(get_db),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+) -> dict:
+    """Run the internal S1 payment reconciliation scan.
+
+    The response is intentionally redacted so it can be stored as launch
+    evidence without raw provider ids, payment ids, order ids or idempotency
+    keys.
+    """
+
+    _require_telegram_bot_secret(telegram_bot_secret)
+    report = await Stage1PaymentReconciliationUseCase(db).execute(limit=limit)
+    payload = report.to_api_dict()
+    assert_stage1_payment_reconciliation_output_is_redacted(payload)
+    logger.info(
+        "stage1_payment_reconciliation_completed",
+        extra={
+            "total_items": payload["summary"]["total_items"],
+            "p0_blocker_items": payload["summary"]["p0_blocker_items"],
+            "launch_blocked": payload["summary"]["launch_blocked"],
+        },
+    )
+    return payload
 
 
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)

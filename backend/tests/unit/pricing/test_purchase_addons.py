@@ -7,13 +7,31 @@ from uuid import uuid4
 import pytest
 
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
+from src.application.use_cases.subscriptions import purchase_addons as purchase_addons_module
 from src.application.use_cases.subscriptions.purchase_addons import (
     PurchaseAddonsUseCase,
 )
 
 
 @pytest.mark.asyncio
-async def test_purchase_addons_builds_quote_from_active_subscription() -> None:
+async def test_purchase_addons_rejects_when_stage1_addons_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(purchase_addons_module.settings, "stage1_addons_enabled", False)
+    use_case = PurchaseAddonsUseCase(SimpleNamespace())
+
+    with pytest.raises(ValueError, match="Add-ons are disabled for S1 beta"):
+        await use_case.execute(
+            user_id=uuid4(),
+            addons=[CheckoutAddonInput(code="extra_device", qty=1)],
+        )
+
+
+@pytest.mark.asyncio
+async def test_purchase_addons_builds_quote_from_active_subscription(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(purchase_addons_module.settings, "stage1_addons_enabled", True)
     session = SimpleNamespace()
     use_case = PurchaseAddonsUseCase(session)
     plan_id = uuid4()

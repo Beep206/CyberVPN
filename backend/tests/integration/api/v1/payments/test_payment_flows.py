@@ -27,7 +27,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.dto.payment_dto import InvoiceResponseDTO
 from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.payment_model import PaymentModel
 from src.main import app
+from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.services import get_crypto_client
 
 
@@ -167,22 +169,51 @@ class TestPaymentHistory:
         db: AsyncSession,
     ):
         """
-        Test GET /api/v1/payments/history with auth -> 200 + list.
+        Test GET /api/v1/payments/history is scoped to the current customer.
 
-        Uses a fresh test database so the payment list should be empty.
+        The customer-facing route must not return platform-wide payment rows
+        or provider raw references.
         """
-        _user_id, password, email = await _create_admin_user(db)
-        access_token = await _login(async_client, email, password)
-
-        response = await async_client.get(
-            "/api/v1/payments/history",
-            headers={"Authorization": f"Bearer {access_token}"},
+        customer_id = uuid4()
+        other_customer_id = uuid4()
+        db.add_all(
+            [
+                PaymentModel(
+                    user_uuid=customer_id,
+                    amount=Decimal("9.99"),
+                    currency="USD",
+                    status="completed",
+                    provider="cryptobot",
+                    subscription_days=30,
+                    external_id="customer-provider-reference",
+                ),
+                PaymentModel(
+                    user_uuid=other_customer_id,
+                    amount=Decimal("199.99"),
+                    currency="USD",
+                    status="completed",
+                    provider="cryptobot",
+                    subscription_days=30,
+                    external_id="other-provider-reference",
+                ),
+            ]
         )
+        await db.commit()
+
+        app.dependency_overrides[get_current_mobile_user_id] = lambda: customer_id
+
+        try:
+            response = await async_client.get("/api/v1/payments/history?limit=10")
+        finally:
+            app.dependency_overrides.pop(get_current_mobile_user_id, None)
 
         assert response.status_code == 200
         data = response.json()
         assert "payments" in data
-        assert isinstance(data["payments"], list)
+        assert len(data["payments"]) == 1
+        assert data["payments"][0]["amount"] == 9.99
+        assert data["payments"][0]["provider"] == "cryptobot"
+        assert "external_id" not in data["payments"][0]
 
 
 class TestCryptobotWebhook:
@@ -238,9 +269,9 @@ class TestCryptobotWebhook:
         db: AsyncSession,
     ):
         """
-        Test POST /api/v1/webhooks/cryptobot with bad signature -> 200 with invalid_signature status.
+        Test POST /api/v1/webhooks/cryptobot with bad signature -> 401.
 
-        The webhook handler logs invalid signatures but returns 200 to prevent retries.
+        S1 payment webhooks fail closed before payment/provisioning side effects.
         """
         test_api_token = "test-webhook-token"
 
@@ -268,9 +299,9 @@ class TestCryptobotWebhook:
                 },
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 401
         data = response.json()
-        assert data["status"] == "invalid_signature"
+        assert data["detail"] == "Invalid webhook signature"
 
 
 class TestPaymentAuth:

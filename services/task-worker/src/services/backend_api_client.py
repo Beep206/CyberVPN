@@ -69,6 +69,23 @@ class BackendAPIClient:
             raise BackendAPIError(f"Backend reconciliation failed: {response.status_code} {response.text}")
         return response.json()
 
+    async def run_stage1_payment_reconciliation(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if not self._enabled:
+            raise BackendAPIError("Internal backend reconciliation API is not configured")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post("payments/internal/reconciliation/run", params=payload)
+        if response.status_code >= 400:
+            logger.error(
+                "backend_stage1_payment_reconciliation_failed",
+                status_code=response.status_code,
+            )
+            raise BackendAPIError(
+                f"Stage 1 payment reconciliation failed: {response.status_code}"
+            )
+        return response.json()
+
     async def get_public_network_regions(self) -> dict[str, Any]:
         if not self._enabled:
             raise BackendAPIError("Internal backend reconciliation API is not configured")

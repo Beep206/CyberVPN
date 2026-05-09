@@ -72,6 +72,8 @@ vi.mock('next-intl', () => ({
       redeem: 'Redeem',
       quoteTitle: 'Quote & entitlements',
       quoteSubtitle: 'Quote subtitle',
+      billingCurrencyNotice: 'Charged in {currency}',
+      localEstimate: 'Approx. {price} display only',
       quoteError: 'Unable to calculate a quote with the current selections.',
       selectPlanToQuote: 'Select a plan to quote first.',
       processing: 'Processing',
@@ -282,69 +284,27 @@ afterEach(() => {
 });
 
 describe('MiniAppPlansPage checkout code box', () => {
-  it('shows typed invite wrong-context feedback', async () => {
-    const user = userEvent.setup();
-    apiMocks.codesApi.resolve.mockResolvedValue({
-      data: {
-        accepted: false,
-        code_type: 'invite',
-        action_context: 'checkout',
-        result: 'rejected',
-        reject_reason: 'code_wrong_context',
-        conflict_code: null,
-        wrong_context_target: 'redeem',
-        issuer_type: 'admin',
-        owner_type: 'customer',
-        resolved_code_id: 'invite-1',
-        promo_code_id: null,
-        partner_code_id: null,
-        user_message_key: 'growth_codes.invite.redeem_required',
-      },
-    });
-
+  it('hides checkout code entry while S1 growth flows are disabled', async () => {
     render(<MiniAppPlansPage />, { wrapper: createWrapper() });
 
     await screen.findByText('Available plans');
-    await user.type(screen.getByPlaceholderText('SAVE20'), 'invite-aaa');
-    await user.click(screen.getByRole('button', { name: 'Apply code' }));
 
-    expect(
-      await screen.findByText('Invite codes redeem outside checkout. Open the rewards hub instead.'),
-    ).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('SAVE20')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply code' })).not.toBeInTheDocument();
+    expect(apiMocks.codesApi.resolve).not.toHaveBeenCalled();
   });
 
-  it('re-quotes checkout with canonical code_input after accepted promo resolution', async () => {
-    const user = userEvent.setup();
-    apiMocks.codesApi.resolve.mockResolvedValue({
-      data: {
-        accepted: true,
-        code_type: 'promo',
-        action_context: 'checkout',
-        result: 'accepted',
-        reject_reason: null,
-        conflict_code: null,
-        wrong_context_target: null,
-        issuer_type: 'admin',
-        owner_type: 'admin_campaign',
-        resolved_code_id: 'promo-1',
-        promo_code_id: 'promo-1',
-        partner_code_id: null,
-        user_message_key: 'growth_codes.promo.accepted',
-      },
-    });
-
+  it('does not send checkout code fields in S1 quote requests', async () => {
     render(<MiniAppPlansPage />, { wrapper: createWrapper() });
 
     await screen.findByText('Available plans');
-    await user.type(screen.getByPlaceholderText('SAVE20'), 'save20');
-    await user.click(screen.getByRole('button', { name: 'Apply code' }));
 
     await waitFor(() => {
-      expect(apiMocks.miniappApi.quoteCheckout).toHaveBeenLastCalledWith(
+      expect(apiMocks.miniappApi.quoteCheckout).toHaveBeenCalledWith(
         expect.objectContaining({
           flow: 'checkout',
           plan_id: 'plan-plus-365',
-          code_input: 'SAVE20',
+          code_input: undefined,
           promo_code: undefined,
           currency: 'USD',
         }),
@@ -430,17 +390,11 @@ describe('MiniAppPlansPage checkout code box', () => {
         },
       },
     });
-    const user = userEvent.setup();
-
     render(<MiniAppPlansPage />, { wrapper: createWrapper() });
 
     const openPaymentButton = await screen.findByRole('button', { name: 'Open payment' });
     expect(openPaymentButton).toBeDisabled();
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Apply code' })).toBeDisabled();
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Apply code' }));
+    expect(screen.queryByRole('button', { name: 'Apply code' })).not.toBeInTheDocument();
 
     expect(apiMocks.miniappApi.quoteCheckout).not.toHaveBeenCalled();
     expect(apiMocks.miniappApi.commitCheckout).not.toHaveBeenCalled();

@@ -164,6 +164,7 @@ const order = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
   Object.defineProperty(window, 'open', {
     configurable: true,
     value: openMock,
@@ -239,11 +240,65 @@ beforeEach(() => {
 });
 
 describe('WalletCabinetDashboard', () => {
-  it('renders wallet balance, ledger and creates withdrawal request', async () => {
+  it('shows safe recent payment history on the wallet page without raw provider fields', async () => {
+    getHistoryMock.mockResolvedValueOnce({
+      data: {
+        payments: [
+          {
+            amount: 39,
+            created_at: '2026-04-24T13:00:00Z',
+            currency: 'USD',
+            external_id: 'raw-wallet-provider-id-should-not-render',
+            id: 'payment-wallet-safe-1',
+            idempotency_key: 'wallet-idempotency-key-should-not-render',
+            payment_url: 'https://pay.example/wallet-secret-invoice',
+            provider: 'cryptobot',
+            provider_snapshot: { secret: 'wallet-provider-snapshot-should-not-render' },
+            request_snapshot: { secret: 'wallet-request-snapshot-should-not-render' },
+            status: 'completed',
+          },
+        ],
+      },
+    });
+
+    renderWithQueryClient(<WalletCabinetDashboard />);
+
+    expect(await screen.findByText('Cryptobot recentPayments.paymentSuffix')).toBeInTheDocument();
+    expect(getHistoryMock).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 0,
+    });
+    expect(screen.getByRole('link', { name: /recentPayments.openFull/i })).toHaveAttribute(
+      'href',
+      '/payment-history',
+    );
+    expect(screen.queryByText('raw-wallet-provider-id-should-not-render')).not.toBeInTheDocument();
+    expect(screen.queryByText('wallet-idempotency-key-should-not-render')).not.toBeInTheDocument();
+    expect(screen.queryByText('https://pay.example/wallet-secret-invoice')).not.toBeInTheDocument();
+    expect(screen.queryByText('wallet-provider-snapshot-should-not-render')).not.toBeInTheDocument();
+    expect(screen.queryByText('wallet-request-snapshot-should-not-render')).not.toBeInTheDocument();
+  });
+
+  it('keeps S1 withdrawal UI and withdrawal data fetches disabled by default', async () => {
     renderWithQueryClient(<WalletCabinetDashboard />);
 
     expect(await screen.findAllByText('$50')).not.toHaveLength(0);
     expect(screen.getByText('Referral reward')).toBeInTheDocument();
+    expect(screen.queryByText('summary.pendingWithdrawals')).not.toBeInTheDocument();
+    expect(screen.queryByText('withdrawForm.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('withdrawals.title')).not.toBeInTheDocument();
+    expect(getWithdrawalsMock).not.toHaveBeenCalled();
+    expect(requestWithdrawalMock).not.toHaveBeenCalled();
+  });
+
+  it('renders wallet balance, ledger and creates withdrawal request when enabled', async () => {
+    vi.stubEnv('NEXT_PUBLIC_STAGE1_WALLET_WITHDRAWALS_ENABLED', 'true');
+
+    renderWithQueryClient(<WalletCabinetDashboard />);
+
+    expect(await screen.findAllByText('$50')).not.toHaveLength(0);
+    expect(screen.getByText('Referral reward')).toBeInTheDocument();
+    expect(screen.getByText('summary.pendingWithdrawals')).toBeInTheDocument();
     expect(screen.getByText('withdrawals.title')).toBeInTheDocument();
 
     const amountInput = screen.getByLabelText('withdrawForm.amount');
@@ -264,6 +319,7 @@ describe('WalletCabinetDashboard', () => {
   });
 
   it('keeps available wallet sections usable when one backend source fails', async () => {
+    vi.stubEnv('NEXT_PUBLIC_STAGE1_WALLET_WITHDRAWALS_ENABLED', 'true');
     getWithdrawalsMock.mockRejectedValueOnce(new Error('withdrawals unavailable'));
 
     renderWithQueryClient(<WalletCabinetDashboard />);
@@ -276,6 +332,8 @@ describe('WalletCabinetDashboard', () => {
   });
 
   it('validates withdrawal amount before calling the wallet API', async () => {
+    vi.stubEnv('NEXT_PUBLIC_STAGE1_WALLET_WITHDRAWALS_ENABLED', 'true');
+
     renderWithQueryClient(<WalletCabinetDashboard />);
 
     const amountInput = await screen.findByLabelText('withdrawForm.amount');
@@ -303,6 +361,8 @@ describe('WalletCabinetDashboard', () => {
   });
 
   it('records withdrawal telemetry and clears the form after a successful payout request', async () => {
+    vi.stubEnv('NEXT_PUBLIC_STAGE1_WALLET_WITHDRAWALS_ENABLED', 'true');
+
     renderWithQueryClient(<WalletCabinetDashboard />);
 
     const amountInput = await screen.findByLabelText('withdrawForm.amount');
@@ -344,6 +404,7 @@ describe('WalletCabinetDashboard', () => {
   });
 
   it('shows a withdrawal submission error when the wallet API rejects the request', async () => {
+    vi.stubEnv('NEXT_PUBLIC_STAGE1_WALLET_WITHDRAWALS_ENABLED', 'true');
     requestWithdrawalMock.mockRejectedValueOnce(new Error('withdrawal failed'));
 
     renderWithQueryClient(<WalletCabinetDashboard />);
@@ -449,6 +510,41 @@ describe('WalletCabinetDashboard', () => {
 });
 
 describe('PaymentHistoryDashboard', () => {
+  it('requests customer-scoped payment history and hides raw provider fields', async () => {
+    getHistoryMock.mockResolvedValueOnce({
+      data: {
+        payments: [
+          {
+            amount: 29,
+            created_at: '2026-04-24T10:00:00Z',
+            currency: 'USD',
+            external_id: 'raw-provider-charge-should-not-render',
+            id: 'payment-safe-1',
+            idempotency_key: 'idem-key-should-not-render',
+            payment_url: 'https://pay.example/secret-invoice',
+            provider: 'cryptobot',
+            provider_snapshot: { secret: 'provider-snapshot-should-not-render' },
+            request_snapshot: { secret: 'request-snapshot-should-not-render' },
+            status: 'completed',
+          },
+        ],
+      },
+    });
+
+    renderWithQueryClient(<PaymentHistoryDashboard />);
+
+    expect(await screen.findByText('Cryptobot timeline.paymentSuffix')).toBeInTheDocument();
+    expect(getHistoryMock).toHaveBeenCalledWith({
+      limit: 20,
+      offset: 0,
+    });
+    expect(screen.queryByText('raw-provider-charge-should-not-render')).not.toBeInTheDocument();
+    expect(screen.queryByText('idem-key-should-not-render')).not.toBeInTheDocument();
+    expect(screen.queryByText('https://pay.example/secret-invoice')).not.toBeInTheDocument();
+    expect(screen.queryByText('provider-snapshot-should-not-render')).not.toBeInTheDocument();
+    expect(screen.queryByText('request-snapshot-should-not-render')).not.toBeInTheDocument();
+  });
+
   it('renders merged billing timeline and retries a pending order payment', async () => {
     renderWithQueryClient(<PaymentHistoryDashboard />);
 

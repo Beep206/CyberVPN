@@ -7,6 +7,7 @@ import {
   getCabinetActionIds,
   getCabinetHealth,
   getServiceAccessLabel,
+  getStage1DashboardStates,
   getUsagePercentage,
   readEntitlementNumber,
   readEntitlementString,
@@ -39,9 +40,13 @@ const usage: UsageResponse = {
   bandwidth_used_bytes: 50,
   connections_active: 1,
   connections_limit: 5,
+  generated_at: '2026-04-24T10:00:05Z',
   last_connection_at: '2026-04-24T10:00:00Z',
   period_end: '2026-05-24T00:00:00Z',
   period_start: '2026-04-24T00:00:00Z',
+  usage_available: true,
+  usage_source: 'remnawave',
+  usage_unavailable_reason: null,
 };
 
 const serviceState: CurrentServiceState = {
@@ -152,6 +157,14 @@ describe('customer cabinet model', () => {
       'Shared Client',
     );
     expect(getUsagePercentage(usage)).toBe(50);
+    expect(
+      getUsagePercentage({
+        ...usage,
+        usage_available: false,
+        usage_source: 'unavailable',
+        usage_unavailable_reason: 'upstream_unavailable',
+      }),
+    ).toBeNull();
   });
 
   it('marks a complete account as healthy', () => {
@@ -164,6 +177,112 @@ describe('customer cabinet model', () => {
         now: new Date('2026-04-24T00:00:00Z'),
       }),
     ).toBe('healthy');
+  });
+
+  it('derives S1 dashboard state cards for active paid access', () => {
+    expect(
+      getStage1DashboardStates({
+        entitlement,
+        serviceState,
+        trial: null,
+        now: new Date('2026-04-24T00:00:00Z'),
+      }),
+    ).toEqual([
+      {
+        actionId: 'getConfig',
+        id: 'access',
+        state: 'active',
+        tone: 'green',
+      },
+      {
+        actionId: null,
+        id: 'payment',
+        state: 'paid',
+        tone: 'green',
+      },
+      {
+        actionId: 'getConfig',
+        id: 'provisioning',
+        state: 'ready',
+        tone: 'green',
+      },
+    ]);
+  });
+
+  it('uses neutral S1 checking states before entitlement data is known', () => {
+    expect(getStage1DashboardStates({}).map((state) => [state.id, state.state, state.actionId])).toEqual([
+      ['access', 'checking', null],
+      ['payment', 'checking', null],
+      ['provisioning', 'checking', null],
+    ]);
+  });
+
+  it('keeps grace period as attention instead of critical', () => {
+    const graceEntitlement: CurrentEntitlementState = {
+      ...entitlement,
+      expires_at: '2026-04-23T00:00:00Z',
+      status: 'grace_period',
+    };
+
+    expect(
+      getCabinetHealth({
+        entitlement: graceEntitlement,
+        notifications,
+        serviceState,
+        usage,
+        now: new Date('2026-04-24T00:00:00Z'),
+      }),
+    ).toBe('attention');
+
+    expect(
+      getStage1DashboardStates({
+        entitlement: graceEntitlement,
+        serviceState,
+        now: new Date('2026-04-24T00:00:00Z'),
+      })[0],
+    ).toMatchObject({
+      actionId: 'managePlan',
+      id: 'access',
+      state: 'grace',
+      tone: 'amber',
+    });
+  });
+
+  it('renders trial, payment failure, and provisioning failure states explicitly', () => {
+    expect(
+      getStage1DashboardStates({
+        entitlement: { ...entitlement, is_trial: true, status: 'trial_active' },
+        serviceState,
+        trial: {
+          days_remaining: 2,
+          is_eligible: false,
+          is_trial_active: true,
+          trial_end: '2026-04-26T00:00:00Z',
+          trial_start: '2026-04-24T00:00:00Z',
+        },
+      }).map((state) => [state.id, state.state, state.tone]),
+    ).toEqual([
+      ['access', 'trial_active', 'green'],
+      ['payment', 'not_started', 'cyan'],
+      ['provisioning', 'ready', 'green'],
+    ]);
+
+    expect(
+      getStage1DashboardStates({
+        entitlement: {
+          ...entitlement,
+          effective_entitlements: {
+            stage1_payment_state: 'failed',
+            stage1_provisioning_state: 'failed',
+          },
+        },
+        serviceState,
+      }).map((state) => [state.id, state.state, state.actionId]),
+    ).toEqual([
+      ['access', 'active', 'getConfig'],
+      ['payment', 'failed', 'managePlan'],
+      ['provisioning', 'failed', 'finishProvisioning'],
+    ]);
   });
 
   it('does not degrade health before service state is known', () => {

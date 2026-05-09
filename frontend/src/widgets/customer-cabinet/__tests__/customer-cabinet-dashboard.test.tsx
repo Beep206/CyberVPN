@@ -138,9 +138,13 @@ const usageSnapshot = {
   bandwidth_used_bytes: 50,
   connections_active: 1,
   connections_limit: 5,
+  generated_at: '2026-04-24T10:00:05Z',
   last_connection_at: '2026-04-24T10:00:00Z',
   period_end: '2026-05-24T00:00:00Z',
   period_start: '2026-04-24T00:00:00Z',
+  usage_available: true,
+  usage_source: 'remnawave',
+  usage_unavailable_reason: null,
 };
 
 const rewardNotification = {
@@ -221,6 +225,21 @@ describe('CustomerCabinetDashboard', () => {
 
     expect(await screen.findByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Pro')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-access')).getByText(
+        'stage1States.access.active.title',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-payment')).getByText(
+        'stage1States.payment.paid.title',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-provisioning')).getByText(
+        'stage1States.provisioning.ready.title',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('50 B')).toBeInTheDocument();
     expect(screen.getByText('$12.50')).toBeInTheDocument();
     expect(screen.getByText('Shared Client')).toBeInTheDocument();
@@ -232,16 +251,81 @@ describe('CustomerCabinetDashboard', () => {
       screen.getByRole('link', { name: /actions\.managePlan/i }),
     ).toHaveAttribute('href', '/subscriptions');
     expect(
-      screen.getByRole('link', { name: /actions\.getConfig/i }),
+      screen.getAllByRole('link', { name: /actions\.getConfig/i })[0],
     ).toHaveAttribute('href', '/servers');
     expect(
       screen.getByRole('link', { name: /actions\.secureAccount/i }),
     ).toHaveAttribute('href', '/settings');
-    expect(screen.getByRole('link', { name: /actions\.invite/i })).toHaveAttribute(
-      'href',
-      '/referral',
-    );
+    expect(screen.queryByRole('link', { name: /actions\.invite/i })).not.toBeInTheDocument();
+    expect(getReferralStatsMock).not.toHaveBeenCalled();
     expect(listNotificationsMock).toHaveBeenCalledWith(false);
+  });
+
+  it('renders S1 grace, payment pending, and provisioning retry states', async () => {
+    getCurrentEntitlementMock.mockResolvedValueOnce({
+      data: {
+        ...activeEntitlement,
+        effective_entitlements: {
+          ...activeEntitlement.effective_entitlements,
+          stage1_payment_state: 'pending',
+          stage1_provisioning_state: 'retrying',
+        },
+        expires_at: '2026-04-23T00:00:00Z',
+        status: 'grace_period',
+      },
+    });
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    expect(await screen.findByText('health.attention.title')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-access')).getByText(
+        'stage1States.access.grace.title',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-payment')).getByText(
+        'stage1States.payment.pending.title',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-provisioning')).getByText(
+        'stage1States.provisioning.retrying.title',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('renders S1 expired access with failed payment and provisioning states', async () => {
+    getCurrentEntitlementMock.mockResolvedValueOnce({
+      data: {
+        ...activeEntitlement,
+        effective_entitlements: {
+          stage1_payment_state: 'failed',
+          stage1_provisioning_state: 'failed',
+        },
+        expires_at: '2026-04-01T00:00:00Z',
+        status: 'expired',
+      },
+    });
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    expect(await screen.findByText('health.critical.title')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-access')).getByText(
+        'stage1States.access.expired.title',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-payment')).getByText(
+        'stage1States.payment.failed.title',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stage1-state-provisioning')).getByText(
+        'stage1States.provisioning.failed.title',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('surfaces degraded backend state and retries failed cabinet resources', async () => {
@@ -342,7 +426,7 @@ describe('CustomerCabinetDashboard', () => {
       screen.getByRole('link', { name: /actions\.startTrial/i }),
     ).toHaveAttribute('href', '/subscriptions');
     expect(
-      screen.getByRole('link', { name: /actions\.finishProvisioning/i }),
+      screen.getAllByRole('link', { name: /actions\.finishProvisioning/i })[0],
     ).toHaveAttribute('href', '/servers');
     expect(
       screen.getByRole('link', { name: /actions\.watchTraffic/i }),
@@ -390,6 +474,9 @@ describe('CustomerCabinetDashboard', () => {
         bandwidth_used_bytes: 0,
         last_connection_at: null,
         period_end: null,
+        usage_available: false,
+        usage_source: 'unavailable',
+        usage_unavailable_reason: 'upstream_user_not_found',
       },
     });
 
@@ -401,6 +488,9 @@ describe('CustomerCabinetDashboard', () => {
     expect(screen.getAllByText('pendingProvisioning')).not.toHaveLength(0);
     expect(screen.getByText('plan.defaultSecurity')).toBeInTheDocument();
     expect(screen.getByText('plan.standardSupport')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText('metricUnavailable')).not.toHaveLength(0);
+    });
     expect(screen.getAllByText('unlimited')).not.toHaveLength(0);
   });
 
@@ -487,25 +577,7 @@ describe('CustomerCabinetDashboard', () => {
     expect(inboxCard).not.toBeNull();
     fireEvent.click(within(inboxCard!).getByRole('button', { name: 'retry' }));
 
-    const referralCard = screen.getByText('rewards.referrals').closest('article');
-    expect(referralCard).not.toBeNull();
-    fireEvent.click(within(referralCard!).getByRole('button', { name: 'retry' }));
-
-    await waitFor(() => {
-      expect(getReferralStatsMock).toHaveBeenCalledTimes(2);
-    });
-
-    const availableRewardCard = screen.getByText('rewards.available').closest('article');
-    expect(availableRewardCard).not.toBeNull();
-    fireEvent.click(within(availableRewardCard!).getByRole('button', { name: 'retry' }));
-
-    await waitFor(() => {
-      expect(getReferralStatsMock).toHaveBeenCalledTimes(3);
-    });
-
-    const pendingRewardCard = screen.getByText('rewards.pending').closest('article');
-    expect(pendingRewardCard).not.toBeNull();
-    fireEvent.click(within(pendingRewardCard!).getByRole('button', { name: 'retry' }));
+    expect(screen.queryByText('rewards.referrals')).not.toBeInTheDocument();
 
     const readinessPanel = screen.getByText('readiness.title').closest('article');
     expect(readinessPanel).not.toBeNull();
@@ -517,9 +589,9 @@ describe('CustomerCabinetDashboard', () => {
 
     await waitFor(() => {
       expect(getBalanceMock).toHaveBeenCalledTimes(2);
-      expect(getCountersMock).toHaveBeenCalledTimes(3);
+      expect(getCountersMock).toHaveBeenCalledTimes(2);
       expect(getCurrentServiceStateMock).toHaveBeenCalledTimes(2);
-      expect(getReferralStatsMock).toHaveBeenCalledTimes(4);
+      expect(getReferralStatsMock).not.toHaveBeenCalled();
       expect(listNotificationsMock).toHaveBeenCalledTimes(2);
     });
     expect(screen.getByText('notifications.actionRequired')).toBeInTheDocument();

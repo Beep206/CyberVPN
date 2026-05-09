@@ -2,7 +2,7 @@
 
 Status: draft
 Owner: platform + security
-Last updated: 2026-04-25
+Last updated: 2026-05-06
 Scope: all Sentry SDKs, org-level scrubbing and replay usage
 Depends on: `00-current-state-and-discovery.md`, `06-secrets-and-config-matrix.md`
 Related paths: `privacy-baseline.json`, `../../../scripts/validate-sentry-privacy.py`, `surfaces/`, `runbooks/privacy-and-data-exposure-response.md`
@@ -12,6 +12,7 @@ Related paths: `privacy-baseline.json`, `../../../scripts/validate-sentry-privac
 - `privacy-baseline.json` is the machine-readable contract for scrub headers, scrub markers, strict endpoint classes, approval checkpoints and minimum code expectations.
 - `scripts/validate-sentry-privacy.py` validates that contract in CI and proves the required privacy hooks are still present in the direct runtime surfaces.
 - This repo-local baseline is authoritative for code review and rollout. Live self-hosted Sentry settings must match it, but they are tracked as an operational follow-up rather than a code gap.
+- S1 local redaction proof is tracked in `../../cybervpn_stage1_launch_docs/95_STAGE1_OBS_002_PII_SCRUBBING_EVIDENCE.md`.
 
 ## Baseline policy
 
@@ -38,6 +39,9 @@ Related paths: `privacy-baseline.json`, `../../../scripts/validate-sentry-privac
 - payment provider secrets and checkout payload secrets
 - Remnawave/OpenBao credentials
 - VPN configuration material and QR payload contents
+- OAuth access/refresh/id tokens, magic/auth codes and TOTP secrets
+- Telegram Mini App `initData` / `tgWebAppData`
+- provider payment identifiers, invoices, checkout payloads and payment callback secrets
 
 ## Endpoint classes requiring strict redaction
 

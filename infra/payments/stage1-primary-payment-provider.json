@@ -1,0 +1,314 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-PAY-001",
+  "status": "primary_provider_selected_locally_external_evidence_required",
+  "created_at": "2026-05-08",
+  "decision_references": [
+    "DEC-S1-008",
+    "DEC-S1-009",
+    "DEC-S1-010",
+    "DEC-S1-011",
+    "DEC-S1-013",
+    "DEC-S1-014",
+    "DEC-S1-017",
+    "DEC-S1-020"
+  ],
+  "selected_first_live_path_candidate": "cryptobot",
+  "selected_first_live_path_display_name": "CryptoBot / Crypto Pay",
+  "selected_first_live_path_reason": "CryptoBot is the safest S1 first paid-path candidate from the current monorepo because checkout creation, webhook routing, signature verification, idempotency, orphan-payment policy, reconciliation and paid-provisioning failure handling already have local CyberVPN contracts. Real provider account credentials and provider callback samples are still mandatory before enablement.",
+  "live_payment_path_proven": false,
+  "paid_beta_clearance": false,
+  "production_enablement_allowed": false,
+  "primary_live_path_gate": "S1-PAY-002 and S1-PAY-003 must attach real CryptoBot testnet/production account, credential, invoice, callback, duplicate, refund/reconciliation and payment-to-provisioning evidence before paid beta can be enabled.",
+  "official_sources_checked": [
+    {
+      "provider": "cryptobot",
+      "source": "https://help.send.tg/en/articles/10279948-crypto-pay-api",
+      "checked_at": "2026-05-08",
+      "notes": "Crypto Pay invoices expose active/paid/expired status and webhook delivery for invoice updates."
+    },
+    {
+      "provider": "telegram_stars",
+      "source": "https://core.telegram.org/bots/payments-stars",
+      "checked_at": "2026-05-08",
+      "notes": "Digital goods and services inside Telegram Bot/Mini App must use Telegram Stars with XTR and successful_payment before delivery."
+    },
+    {
+      "provider": "nowpayments",
+      "source": "https://nowpayments.zendesk.com/hc/en-us/articles/21345824322717-API-and-endpoint-description",
+      "checked_at": "2026-05-08",
+      "notes": "NOWPayments invoices/payments require API keys, IPN callback URLs and explicit payment status handling."
+    },
+    {
+      "provider": "yookassa",
+      "source": "https://yookassa.ru/developers/using-api/webhooks",
+      "checked_at": "2026-05-08",
+      "notes": "YooKassa webhook events use object.status transitions such as payment.succeeded and require provider-status/IP authenticity checks."
+    }
+  ],
+  "provider_matrix": [
+    {
+      "provider": "cryptobot",
+      "display_name": "CryptoBot / Crypto Pay",
+      "s1_role": "primary_live_path_candidate",
+      "channel_scope": "web_checkout_and_telegram_external_payment_url",
+      "checkout_runtime_support": true,
+      "webhook_runtime_support": true,
+      "provider_status_mapping_local": true,
+      "signature_or_authenticity_local": true,
+      "idempotency_local": true,
+      "orphan_policy_local": true,
+      "reconciliation_local": true,
+      "payment_to_provisioning_failure_local": true,
+      "real_account_evidence_available": false,
+      "credentials_available": false,
+      "sandbox_or_testnet_evidence_available": false,
+      "production_callback_evidence_available": false,
+      "production_enablement_allowed": false,
+      "doc_statuses": [
+        "active",
+        "paid",
+        "expired",
+        "invoice_paid"
+      ],
+      "local_evidence": [
+        "36_STAGE1_PAY_004_PROVIDER_STATUS_MAPPING_EVIDENCE.md",
+        "37_STAGE1_PAY_006_WEBHOOK_IDEMPOTENCY_EVIDENCE.md",
+        "38_STAGE1_PAY_007_ORPHAN_PAYMENT_POLICY_EVIDENCE.md",
+        "45_STAGE1_PAY_008_PAYMENT_PROVISIONING_FAILURE_EVIDENCE.md",
+        "46_STAGE1_PAY_005_WEBHOOK_SIGNATURE_VERIFICATION_EVIDENCE.md",
+        "83_STAGE1_PAY_012_RECONCILIATION_JOB_EVIDENCE.md",
+        "84_STAGE1_PAY_017_PROVIDER_PLACEHOLDER_REPLACEMENT_EVIDENCE.md"
+      ],
+      "external_evidence_required_before_enablement": [
+        "CryptoBot app/account ownership proof without secret values",
+        "@CryptoTestnetBot or provider testnet invoice success/fail/expired samples",
+        "production app credential storage inventory without values",
+        "production callback/webhook registration proof",
+        "real crypto-pay-api-signature callback proof",
+        "duplicate callback proof under durable persistence",
+        "payment paid -> subscription -> Remnawave provisioning proof",
+        "refund or manual finance reconciliation proof",
+        "paid-but-no-access alert/manual review proof"
+      ],
+      "recommendation": "Use as the first provider to prove because it has the smallest runtime gap in the current repository."
+    },
+    {
+      "provider": "telegram_stars",
+      "display_name": "Telegram Stars",
+      "s1_role": "telegram_only_secondary_path",
+      "channel_scope": "telegram_bot_and_mini_app_only",
+      "general_web_checkout_allowed": false,
+      "checkout_runtime_support": true,
+      "webhook_runtime_support": false,
+      "provider_status_mapping_local": true,
+      "signature_or_authenticity_local": true,
+      "idempotency_local": true,
+      "orphan_policy_local": true,
+      "reconciliation_local": true,
+      "payment_to_provisioning_failure_local": true,
+      "real_account_evidence_available": false,
+      "credentials_available": false,
+      "sandbox_or_testnet_evidence_available": false,
+      "production_callback_evidence_available": false,
+      "production_enablement_allowed": false,
+      "doc_statuses": [
+        "pre_checkout_query",
+        "successful_payment",
+        "refund"
+      ],
+      "local_evidence": [
+        "108_STAGE1_PAY_011_TELEGRAM_STARS_READINESS_EVIDENCE.md"
+      ],
+      "external_evidence_required_before_enablement": [
+        "real BotFather/Stars setup",
+        "XTR tariff approval",
+        "successful_payment sample",
+        "telegram_payment_charge_id storage proof",
+        "/paysupport proof",
+        "refundStarPayment proof",
+        "payment -> provisioning proof"
+      ],
+      "recommendation": "Enable only for paid digital-service purchases inside Telegram after Stars evidence; do not use as the universal web checkout path."
+    },
+    {
+      "provider": "yookassa",
+      "display_name": "YooKassa",
+      "s1_role": "russia_path_later",
+      "channel_scope": "russia_customer_path_after_seller_and_receipt_evidence",
+      "checkout_runtime_support": true,
+      "webhook_runtime_support": false,
+      "provider_status_mapping_local": true,
+      "signature_or_authenticity_local": true,
+      "idempotency_local": true,
+      "orphan_policy_local": true,
+      "reconciliation_local": true,
+      "payment_to_provisioning_failure_local": true,
+      "real_account_evidence_available": false,
+      "credentials_available": false,
+      "sandbox_or_testnet_evidence_available": false,
+      "production_callback_evidence_available": false,
+      "production_enablement_allowed": false,
+      "doc_statuses": [
+        "pending",
+        "waiting_for_capture",
+        "succeeded",
+        "canceled",
+        "payment.succeeded",
+        "payment.canceled"
+      ],
+      "local_evidence": [
+        "112_STAGE1_PAY_016_YOOKASSA_READINESS_EVIDENCE.md"
+      ],
+      "external_evidence_required_before_enablement": [
+        "real shop/account proof",
+        "shop id/credential storage inventory without values",
+        "webhook registration",
+        "status recheck or IP allowlist proof",
+        "receipt/fiscalization decision",
+        "refund/reconciliation proof",
+        "payment -> provisioning proof"
+      ],
+      "recommendation": "Keep out of the first live path until Russia-path legal, seller, receipt and provider evidence are attached."
+    },
+    {
+      "provider": "digiseller",
+      "display_name": "Digiseller",
+      "s1_role": "russia_path_later",
+      "channel_scope": "russia_customer_path_after_seller_product_and_callback_evidence",
+      "checkout_runtime_support": false,
+      "webhook_runtime_support": false,
+      "provider_status_mapping_local": true,
+      "signature_or_authenticity_local": true,
+      "idempotency_local": true,
+      "orphan_policy_local": true,
+      "reconciliation_local": true,
+      "payment_to_provisioning_failure_local": true,
+      "real_account_evidence_available": false,
+      "credentials_available": false,
+      "sandbox_or_testnet_evidence_available": false,
+      "production_callback_evidence_available": false,
+      "production_enablement_allowed": false,
+      "doc_statuses": [
+        "paid",
+        "wait",
+        "canceled",
+        "refunded",
+        "error"
+      ],
+      "local_evidence": [
+        "111_STAGE1_PAY_015_DIGISELLER_READINESS_EVIDENCE.md"
+      ],
+      "external_evidence_required_before_enablement": [
+        "seller account proof",
+        "product setup proof",
+        "callback/status samples",
+        "signature proof",
+        "refund/dispute proof",
+        "payment -> provisioning proof"
+      ],
+      "recommendation": "Do not select as the first provider because runtime checkout/webhook integration still needs provider-account implementation evidence."
+    },
+    {
+      "provider": "payram",
+      "display_name": "PayRam",
+      "s1_role": "crypto_alternative_later",
+      "channel_scope": "web_crypto_alternative_after_runtime_and_provider_evidence",
+      "checkout_runtime_support": false,
+      "webhook_runtime_support": false,
+      "provider_status_mapping_local": true,
+      "signature_or_authenticity_local": true,
+      "idempotency_local": true,
+      "orphan_policy_local": true,
+      "reconciliation_local": true,
+      "payment_to_provisioning_failure_local": true,
+      "real_account_evidence_available": false,
+      "credentials_available": false,
+      "sandbox_or_testnet_evidence_available": false,
+      "production_callback_evidence_available": false,
+      "production_enablement_allowed": false,
+      "doc_statuses": [
+        "OPEN",
+        "CANCELLED",
+        "FILLED",
+        "PARTIALLY_FILLED",
+        "OVER_FILLED"
+      ],
+      "local_evidence": [
+        "109_STAGE1_PAY_013_PAYRAM_READINESS_EVIDENCE.md"
+      ],
+      "external_evidence_required_before_enablement": [
+        "real provider account proof",
+        "credential storage inventory without values",
+        "callback/status-poll samples",
+        "underpaid/overpaid/refund/reconciliation proof",
+        "payment -> provisioning proof"
+      ],
+      "recommendation": "Keep as an approved provider candidate, not the first S1 live path, until runtime checkout and real provider evidence exist."
+    },
+    {
+      "provider": "nowpayments",
+      "display_name": "NOWPayments",
+      "s1_role": "crypto_alternative_later",
+      "channel_scope": "web_crypto_alternative_after_runtime_and_provider_evidence",
+      "checkout_runtime_support": false,
+      "webhook_runtime_support": false,
+      "provider_status_mapping_local": true,
+      "signature_or_authenticity_local": true,
+      "idempotency_local": true,
+      "orphan_policy_local": true,
+      "reconciliation_local": true,
+      "payment_to_provisioning_failure_local": true,
+      "real_account_evidence_available": false,
+      "credentials_available": false,
+      "sandbox_or_testnet_evidence_available": false,
+      "production_callback_evidence_available": false,
+      "production_enablement_allowed": false,
+      "doc_statuses": [
+        "waiting",
+        "confirming",
+        "confirmed",
+        "finished",
+        "failed",
+        "expired",
+        "partially_paid"
+      ],
+      "local_evidence": [
+        "110_STAGE1_PAY_014_NOWPAYMENTS_READINESS_EVIDENCE.md"
+      ],
+      "external_evidence_required_before_enablement": [
+        "real provider account proof",
+        "x-api-key and IPN storage inventory without values",
+        "signed IPN/status-poll samples",
+        "partial/wrong-asset/refund/reconciliation proof",
+        "payment -> provisioning proof"
+      ],
+      "recommendation": "Keep as a later crypto rail after runtime checkout integration and real IPN/status evidence are attached."
+    }
+  ],
+  "minimum_evidence_to_enable_primary": [
+    "S1-PAY-002 sandbox/testnet success, failure and expiry samples for CryptoBot",
+    "S1-PAY-003 production credential inventory without values",
+    "provider callback/webhook URL registration for staging and production",
+    "valid signature proof and invalid signature rejection proof",
+    "duplicate callback proof under durable PostgreSQL/Valkey persistence",
+    "payment paid -> subscription -> Remnawave provisioning proof",
+    "paid-but-no-access/orphan alert and manual review proof",
+    "refund or manual reconciliation proof",
+    "admin/support payment-attempt visibility proof without raw provider secrets",
+    "rollback and kill-switch proof for paid flow"
+  ],
+  "not_allowed": [
+    "enable_all_providers_at_once",
+    "documentation_only_provider_enablement",
+    "enable_paid_beta_without_provider_credentials",
+    "enable_provider_without_sandbox_or_testnet_evidence",
+    "enable_provider_without_production_callback_evidence",
+    "enable_paid_access_from_pending_or_pre_checkout_status",
+    "enable_telegram_stars_for_general_web_checkout",
+    "promise_autoprolongation_or_recurring_billing_in_s1",
+    "store_provider_secret_values_in_repo_or_evidence_docs",
+    "leave_paid_but_no_access_orphan_payment_unreviewed_over_24h"
+  ],
+  "next_backlog_id": "S1-PAY-002"
+}

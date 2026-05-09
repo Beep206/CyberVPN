@@ -1,28 +1,10 @@
-import { getTranslations } from 'next-intl/server';
-import { AnalyticsClient } from './components/AnalyticsClient';
+import { notFound } from 'next/navigation';
+import { canStage1CustomerDashboardSurfaceAccess } from '@/shared/lib/stage1-customer-surface-policy';
 
-export default async function AnalyticsPage({
-    params,
-}: {
-    params: Promise<{ locale: string }>;
-}) {
-    const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: 'Analytics' });
+export default function AnalyticsPage() {
+  if (!canStage1CustomerDashboardSurfaceAccess('analytics')) {
+    notFound();
+  }
 
-    return (
-        <div className="max-w-7xl mx-auto w-full space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-display text-neon-cyan mb-2">
-                        {t('title') || 'Analytics Dashboard'}
-                    </h1>
-                    <p className="text-muted-foreground font-mono">
-                        {t('subtitle') || 'Monitor your platform performance and growth metrics'}
-                    </p>
-                </div>
-            </div>
-
-            <AnalyticsClient />
-        </div>
-    );
+  return null;
 }

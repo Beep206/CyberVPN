@@ -15,6 +15,8 @@ import type {
 
 const PUBLIC_PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
 const DEFAULT_PERIODS = [30, 90, 180, 365];
+const STAGE1_ADDONS_DISPLAY_ENABLED =
+  process.env.NEXT_PUBLIC_STAGE1_ADDONS_ENABLED === 'true';
 
 type FallbackPlanSeed = {
   display_name: string;
@@ -35,7 +37,7 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     devices_included: 2,
     traffic_policy: {
       mode: 'fair_use',
-      display_label: 'Unlimited',
+      display_label: 'Fair use',
       enforcement_profile: 'consumer_entry',
     },
     connection_modes: ['standard'],
@@ -56,7 +58,7 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     devices_included: 5,
     traffic_policy: {
       mode: 'fair_use',
-      display_label: 'Unlimited',
+      display_label: 'Fair use',
       enforcement_profile: 'mainstream',
     },
     connection_modes: ['standard', 'stealth'],
@@ -77,7 +79,7 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     devices_included: 10,
     traffic_policy: {
       mode: 'fair_use',
-      display_label: 'Unlimited',
+      display_label: 'Fair use',
       enforcement_profile: 'power_user',
     },
     connection_modes: ['standard', 'stealth', 'manual_config'],
@@ -98,7 +100,7 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     devices_included: 15,
     traffic_policy: {
       mode: 'fair_use',
-      display_label: 'Unlimited',
+      display_label: 'Fair use',
       enforcement_profile: 'premium_consumer',
     },
     connection_modes: ['standard', 'stealth', 'manual_config', 'dedicated_ip'],
@@ -172,6 +174,18 @@ function normalizePlanFamilies(records: PlanRecord[]): PricingPlanFamily[] {
     }
 
     if (!record.is_active) {
+      continue;
+    }
+
+    if (record.catalog_visibility !== 'public') {
+      continue;
+    }
+
+    if (!record.sale_channels.includes('web')) {
+      continue;
+    }
+
+    if (!DEFAULT_PERIODS.includes(record.duration_days)) {
       continue;
     }
 
@@ -249,7 +263,7 @@ function buildFallbackCatalog(): PricingCatalogData {
 
   return {
     plans,
-    addons: FALLBACK_ADDONS,
+    addons: STAGE1_ADDONS_DISPLAY_ENABLED ? FALLBACK_ADDONS : [],
     periods: DEFAULT_PERIODS,
     source: 'fallback',
   };
@@ -280,10 +294,10 @@ export async function getPublicPricingCatalog(): Promise<PricingCatalogData> {
   }
 
   try {
-    const [plans, addons] = await Promise.all([
-      fetchJson<PlanRecord[]>(`${baseUrl}/api/v1/plans?channel=web`),
-      fetchJson<AddonRecord[]>(`${baseUrl}/api/v1/addons/catalog?channel=web`),
-    ]);
+    const plans = await fetchJson<PlanRecord[]>(`${baseUrl}/api/v1/plans?channel=web`);
+    const addons = STAGE1_ADDONS_DISPLAY_ENABLED
+      ? await fetchJson<AddonRecord[]>(`${baseUrl}/api/v1/addons/catalog?channel=web`)
+      : [];
     const normalizedPlans = normalizePlanFamilies(plans);
 
     if (normalizedPlans.length === 0) {
@@ -296,7 +310,9 @@ export async function getPublicPricingCatalog(): Promise<PricingCatalogData> {
 
     return {
       plans: normalizedPlans,
-      addons: addons.filter((addon) => addon.is_active),
+      addons: STAGE1_ADDONS_DISPLAY_ENABLED
+        ? addons.filter((addon) => addon.is_active)
+        : [],
       periods: periods.length > 0 ? periods : DEFAULT_PERIODS,
       source: 'api',
     };

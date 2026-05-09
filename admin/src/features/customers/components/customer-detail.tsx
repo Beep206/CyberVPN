@@ -26,6 +26,8 @@ import { adminWalletApi } from '@/lib/api/wallet';
 import {
   customersApi,
   type AdminCreateCustomerStaffNoteRequest,
+  type AdminCustomerCredentialRegenerationRequest,
+  type AdminCustomerCredentialRegenerationResponse,
   type AdminCustomerPasswordResetRequest,
   type AdminUpdateMobileUserRequest,
 } from '@/lib/api/customers';
@@ -171,6 +173,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
   const [deviceToRevoke, setDeviceToRevoke] = useState<DeviceRevokeCandidate | null>(null);
   const [revokeAllDevicesDialogOpen, setRevokeAllDevicesDialogOpen] = useState(false);
   const [subscriptionResyncDialogOpen, setSubscriptionResyncDialogOpen] = useState(false);
+  const [credentialRegenerationDialogOpen, setCredentialRegenerationDialogOpen] = useState(false);
+  const [revokeOnlyVpnPasswords, setRevokeOnlyVpnPasswords] = useState(false);
+  const [credentialRegenerationResult, setCredentialRegenerationResult] =
+    useState<AdminCustomerCredentialRegenerationResponse | null>(null);
 
   const noteCategoryLabels: Record<StaffNoteCategory, string> = {
     general: t('detail.categories.general'),
@@ -414,6 +420,24 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
           ? t('detail.passwordResetGeneratedSuccess', { count: response.data.devices_revoked })
           : t('detail.passwordResetSuccess', { count: response.data.devices_revoked }),
       );
+    },
+    onError: (error) => {
+      setFeedback(getErrorMessage(error, t('common.actionFailed')));
+    },
+  });
+
+  const regenerateVpnCredentialsMutation = useMutation({
+    mutationFn: (payload: AdminCustomerCredentialRegenerationRequest) =>
+      customersApi.regenerateVpnCredentials(userId, payload),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'vpn'] });
+      await queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'subscription'] });
+      await queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'timeline'] });
+      setCredentialRegenerationDialogOpen(false);
+      setRevokeOnlyVpnPasswords(false);
+      setCredentialRegenerationResult(response.data);
+      setFeedback(t('detail.credentialRegenerationSuccess'));
     },
     onError: (error) => {
       setFeedback(getErrorMessage(error, t('common.actionFailed')));
@@ -1619,7 +1643,17 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
                   </div>
                 </div>
 
-                <div className="mt-5 flex justify-end">
+                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                  <Button
+                    type="button"
+                    magnetic={false}
+                    variant="ghost"
+                    disabled={regenerateVpnCredentialsMutation.isPending}
+                    onClick={() => setCredentialRegenerationDialogOpen(true)}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    {t('detail.regenerateVpnCredentials')}
+                  </Button>
                   <Button
                     type="button"
                     magnetic={false}
@@ -1633,6 +1667,62 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
                       : t('detail.vpnEnableTitle')}
                   </Button>
                 </div>
+
+                {credentialRegenerationResult ? (
+                  <div className="mt-5 rounded-2xl border border-matrix-green/25 bg-matrix-green/10 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-display uppercase tracking-[0.14em] text-white">
+                          {t('detail.credentialRegenerationResultTitle')}
+                        </p>
+                        <p className="mt-2 text-sm font-mono leading-6 text-matrix-green">
+                          {t('detail.credentialRegenerationResultDescription')}
+                        </p>
+                      </div>
+                      <CustomerStatusChip
+                        label={humanizeToken(credentialRegenerationResult.status)}
+                        tone={getVpnStatusTone(credentialRegenerationResult.status)}
+                      />
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {[
+                        [t('common.remnawaveUuid'), credentialRegenerationResult.remnawave_uuid],
+                        [t('detail.labels.auditAction'), credentialRegenerationResult.audit_action],
+                        [t('detail.labels.regeneratedAt'), formatDateTime(credentialRegenerationResult.regenerated_at, locale)],
+                        [t('common.expiresAt'), formatDateTime(credentialRegenerationResult.expires_at, locale)],
+                        [
+                          t('detail.labels.subscriptionUrlChanged'),
+                          credentialRegenerationResult.subscription_url_changed ? t('common.yes') : t('common.no'),
+                        ],
+                        [
+                          t('detail.labels.shortUuidChanged'),
+                          credentialRegenerationResult.short_uuid_changed ? t('common.yes') : t('common.no'),
+                        ],
+                        [
+                          t('detail.labels.configDeliveryRequired'),
+                          credentialRegenerationResult.config_delivery_required ? t('common.yes') : t('common.no'),
+                        ],
+                        [
+                          t('detail.labels.regenerationMode'),
+                          credentialRegenerationResult.revoke_only_passwords
+                            ? t('detail.revokeOnlyVpnPasswordsMode')
+                            : t('detail.fullVpnCredentialRotationMode'),
+                        ],
+                      ].map(([label, value]) => (
+                        <div
+                          key={String(label)}
+                          className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"
+                        >
+                          <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                            {label}
+                          </p>
+                          <p className="mt-2 break-all text-sm font-mono text-white">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </>
             )}
           </section>
@@ -2107,6 +2197,58 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         onClose={() => setSubscriptionResyncDialogOpen(false)}
         onConfirm={async (reason) => {
           await resyncSubscriptionMutation.mutateAsync(reason);
+        }}
+      />
+
+      <AdminActionDialog
+        isOpen={credentialRegenerationDialogOpen}
+        isPending={regenerateVpnCredentialsMutation.isPending}
+        title={t('detail.regenerateVpnCredentialsTitle')}
+        description={t('detail.regenerateVpnCredentialsDescription')}
+        confirmLabel={t('detail.regenerateVpnCredentials')}
+        cancelLabel={t('common.cancel')}
+        confirmVariant="default"
+        tone="warning"
+        subjectLabel={t('common.remnawaveUuid')}
+        subject={(
+          <div className="space-y-4">
+            <p className="break-all text-sm font-mono">
+              {vpnUser?.remnawave_uuid ?? customer.remnawave_uuid ?? '--'}
+            </p>
+            <label className="flex items-start gap-3 rounded-xl border border-grid-line/20 bg-terminal-bg/55 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={revokeOnlyVpnPasswords}
+                disabled={regenerateVpnCredentialsMutation.isPending}
+                onChange={(event) => setRevokeOnlyVpnPasswords(event.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-input bg-transparent text-neon-cyan"
+              />
+              <span className="text-xs font-mono leading-5 text-muted-foreground">
+                {t('detail.revokeOnlyVpnPasswords')}
+              </span>
+            </label>
+          </div>
+        )}
+        reasonLabel={t('detail.dialogs.reasonLabel')}
+        reasonPlaceholder={t('detail.credentialRegenerationReasonPlaceholder')}
+        reasonRequired
+        reasonValidationMessage={t('detail.credentialRegenerationReasonRequired')}
+        onClose={() => {
+          setCredentialRegenerationDialogOpen(false);
+          setRevokeOnlyVpnPasswords(false);
+        }}
+        onConfirm={async (reason) => {
+          const normalizedReason = reason?.trim() ?? '';
+
+          if (normalizedReason.length < 3) {
+            setFeedback(t('detail.credentialRegenerationReasonRequired'));
+            return;
+          }
+
+          await regenerateVpnCredentialsMutation.mutateAsync({
+            reason: normalizedReason,
+            revoke_only_passwords: revokeOnlyVpnPasswords,
+          });
         }}
       />
     </CustomersPageShell>

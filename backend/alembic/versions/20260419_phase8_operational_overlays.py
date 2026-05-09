@@ -6,8 +6,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260419_phase8_operational_overlays"
-down_revision = "20260419_phase8_risk_governance_workflows"
+revision = "20260419_p8_ops_overlays"
+down_revision = "20260419_p8_risk_governance"
 branch_labels = None
 depends_on = None
 

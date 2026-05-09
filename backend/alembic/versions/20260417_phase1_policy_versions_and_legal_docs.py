@@ -1,7 +1,7 @@
 """Add policy version, legal document, and acceptance evidence foundations.
 
-Revision ID: 20260417_phase1_policy_versions_and_legal_docs
-Revises: 20260417_phase1_offers_pricebooks
+Revision ID: 20260417_p1_policy_legal_docs
+Revises: 20260417_p1_offers_pricebooks
 Create Date: 2026-04-18 00:35:00.000000
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20260417_phase1_policy_versions_and_legal_docs"
-down_revision: str | None = "20260417_phase1_offers_pricebooks"
+revision: str = "20260417_p1_policy_legal_docs"
+down_revision: str | None = "20260417_p1_offers_pricebooks"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

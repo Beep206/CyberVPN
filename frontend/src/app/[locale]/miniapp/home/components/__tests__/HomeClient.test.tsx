@@ -117,6 +117,9 @@ const baseBootstrap = {
     periodStart: null,
     periodEnd: null,
     lastConnectionAt: null,
+    usageAvailable: true,
+    usageSource: 'remnawave',
+    usageUnavailableReason: null,
   },
   serviceState: {
     providerName: null,
@@ -288,6 +291,32 @@ describe('MiniApp Home Page', () => {
       expect(screen.getByText(/2\.00 GB \/ 10\.00 GB/)).toBeInTheDocument();
       expect(screen.getByText('3 / 5')).toBeInTheDocument();
     });
+  });
+
+  it('test_marks_usage_unavailable_without_showing_zero_usage_as_authoritative', async () => {
+    mockGetBootstrap.mockResolvedValue({
+      data: bootstrap({
+        subscription: { status: 'active' },
+        usage: {
+          bandwidthUsedBytes: 0,
+          bandwidthLimitBytes: 0,
+          connectionsActive: 0,
+          connectionsLimit: 0,
+          lastConnectionAt: null,
+          usageAvailable: false,
+          usageSource: 'unavailable',
+          usageUnavailableReason: 'upstream_unavailable',
+        },
+      }),
+    });
+
+    renderWithProviders(<MiniAppHomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('usage')).toBeInTheDocument();
+      expect(screen.getByText('Usage unavailable')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/0\.00 GB \/ 0 GB/)).not.toBeInTheDocument();
   });
 
   it('test_uses_cyan_progress_bar_under_80_percent', async () => {

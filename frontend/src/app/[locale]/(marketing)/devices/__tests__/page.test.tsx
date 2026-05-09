@@ -4,6 +4,7 @@ import DevicesPage from '../page';
 import DeviceDetailPage, {
   generateMetadata as generateDeviceDetailMetadata,
 } from '../[slug]/page';
+import { getDeviceEntries } from '@/content/seo/devices';
 
 vi.mock('next/cache', () => ({
   cacheLife: vi.fn(),
@@ -47,12 +48,66 @@ describe('devices pages', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: /Гайды по настройке VPN для Android, iPhone, iPad и desktop-клиентов/i,
+        name: /Гайды по настройке VPN для Android, iOS, Windows, macOS, Linux и Telegram/i,
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /Открыть страницу/i })[0]).toHaveAttribute(
       'href',
       '/devices/android-vpn-setup',
+    );
+  });
+
+  it('keeps every S1 platform guide available and avoids unsupported native-app promises', async () => {
+    const entries = await getDeviceEntries('en-EN');
+    const slugs = entries.map((entry) => entry.slug);
+    const renderedCopy = entries
+      .flatMap((entry) => [
+        entry.title,
+        entry.description,
+        ...entry.heroPoints,
+        ...entry.sections.flatMap((section) => [
+          section.title,
+          ...section.paragraphs,
+          ...(section.bullets ?? []),
+        ]),
+      ])
+      .join('\n');
+
+    expect(slugs).toEqual([
+      'android-vpn-setup',
+      'ios-vpn-setup',
+      'windows-vpn-setup',
+      'macos-vpn-setup',
+      'linux-vpn-setup',
+      'telegram-mini-app-vpn-setup',
+    ]);
+    expect(renderedCopy).toMatch(/subscription URL/i);
+    expect(renderedCopy).toMatch(/Do not paste raw subscription URLs/i);
+    expect(renderedCopy).toMatch(/S1 does not require a CyberVPN native desktop app/i);
+    expect(renderedCopy).not.toMatch(/download CyberVPN from the App Store/i);
+    expect(renderedCopy).not.toMatch(/download CyberVPN from Google Play/i);
+    expect(renderedCopy).not.toMatch(/automatic renewal/i);
+  });
+
+  it('renders the Russian macOS platform guide with safe config-delivery wording', async () => {
+    render(
+      await DeviceDetailPage({
+        params: Promise.resolve({
+          locale: 'ru-RU',
+          slug: 'macos-vpn-setup',
+        }),
+      }),
+    );
+
+    expect(
+      screen.getByRole('heading', {
+        name: /Настройка VPN на macOS без ожидания native desktop app/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Не отправляйте raw subscription URL/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Открыть download center/i })).toHaveAttribute(
+      'href',
+      '/download',
     );
   });
 
@@ -93,11 +148,11 @@ describe('devices pages', () => {
     });
 
     expect(metadata.alternates?.canonical).toBe(
-      'https://vpn.ozoxy.ru/zh-CN/devices/android-vpn-setup',
+      'https://cyber-vpn.net/zh-CN/devices/android-vpn-setup',
     );
     expect(metadata.robots).toBeUndefined();
     expect(blockedMetadata.alternates?.canonical).toBe(
-      'https://vpn.ozoxy.ru/en-EN/devices/android-vpn-setup',
+      'https://cyber-vpn.net/en-EN/devices/android-vpn-setup',
     );
     expect(blockedMetadata.robots).toMatchObject({ index: false, follow: false });
   });

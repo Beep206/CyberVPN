@@ -6,6 +6,11 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 from src.application.services.config_service import MiniAppRuntimeConfig
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_DEVICE_LIMIT,
+    STAGE1_TRIAL_DURATION_DAYS,
+    STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+)
 from src.domain.entities.user import User
 from src.domain.enums import UserStatus
 from src.presentation.api.v1.miniapp import routes as miniapp_routes
@@ -111,11 +116,26 @@ def test_build_usage_snapshot_maps_remnawave_user() -> None:
 
     usage = _build_usage_snapshot(remnawave_user)
 
+    assert usage.usage_available is True
+    assert usage.usage_source == "remnawave"
+    assert usage.usage_unavailable_reason is None
     assert usage.bandwidth_used_bytes == 512
     assert usage.bandwidth_limit_bytes == 1024
     assert usage.connections_active == 1
     assert usage.connections_limit == 3
     assert usage.last_connection_at == datetime(2026, 4, 22, 8, 0, tzinfo=UTC)
+
+
+def test_build_usage_snapshot_marks_missing_remnawave_user_unavailable() -> None:
+    usage = _build_usage_snapshot(None)
+
+    assert usage.usage_available is False
+    assert usage.usage_source == "unavailable"
+    assert usage.usage_unavailable_reason == "upstream_user_not_found"
+    assert usage.bandwidth_used_bytes == 0
+    assert usage.bandwidth_limit_bytes == 0
+    assert usage.connections_active == 0
+    assert usage.last_connection_at is None
 
 
 def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) -> None:
@@ -145,6 +165,24 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
         is_active=True,
         sort_order=20,
     )
+    semiannual_plan = SimpleNamespace(
+        **{
+            **plan.__dict__,
+            "id": uuid4(),
+            "name": "plus_180",
+            "duration_days": 180,
+            "sort_order": 19,
+        }
+    )
+    unsupported_plan = SimpleNamespace(
+        **{
+            **plan.__dict__,
+            "id": uuid4(),
+            "name": "plus_60",
+            "duration_days": 60,
+            "sort_order": 18,
+        }
+    )
     addon = SimpleNamespace(
         id=uuid4(),
         code="extra_device",
@@ -166,7 +204,7 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
             pass
 
         async def list_catalog(self, **_kwargs):
-            return [plan]
+            return [unsupported_plan, semiannual_plan, plan]
 
     class FakeAddonRepo:
         def __init__(self, _db) -> None:
@@ -211,6 +249,7 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
     monkeypatch.setattr(miniapp_routes, "PlanAddonRepository", FakeAddonRepo)
     monkeypatch.setattr(miniapp_routes, "GetTrialStatusUseCase", FakeTrialUseCase)
     monkeypatch.setattr(miniapp_routes, "GetCurrentEntitlementsUseCase", FakeEntitlementsUseCase)
+    monkeypatch.setattr(miniapp_routes.settings, "stage1_addons_enabled", False)
 
     response = asyncio.run(
         get_miniapp_offers(
@@ -221,7 +260,9 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
     )
 
     assert response.plans[0].plan_code == "plus"
-    assert response.addons[0].code == "extra_device"
+    assert [offer.duration_days for offer in response.plans] == [180, 365]
+    assert len(response.plans) == 2
+    assert response.addons == []
     assert response.trial.is_eligible is True
     assert response.current_entitlements.status == "none"
 
@@ -405,6 +446,9 @@ def test_activate_miniapp_trial_preserves_rate_limit_and_activation(monkeypatch)
     )
 
     assert response.activated is True
+    assert response.duration_days == STAGE1_TRIAL_DURATION_DAYS
+    assert response.device_limit == STAGE1_TRIAL_DEVICE_LIMIT
+    assert response.traffic_limit_bytes == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
     assert tracked["called"] is True
 
 

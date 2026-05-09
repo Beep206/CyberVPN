@@ -19,7 +19,7 @@ from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_c
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_active_user
 
-from .schemas import UsageResponse
+from .schemas import UsageResponse, UsageUnavailableReason
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,8 @@ router = APIRouter(prefix="/users/me", tags=["usage"])
     description=(
         "Returns VPN usage statistics for the currently authenticated user. "
         "If the VPN backend is unavailable or the user has no upstream record yet, "
-        "the endpoint falls back to an empty usage snapshot."
+        "the endpoint returns an explicit unavailable snapshot so clients do not "
+        "display zero usage as accurate data."
     ),
 )
 async def get_usage(
@@ -43,8 +44,8 @@ async def get_usage(
     """Return usage statistics for the authenticated user from Remnawave.
 
     Fetches real bandwidth, connection, and billing period data from the VPN backend.
-    When upstream data cannot be retrieved, returns an empty usage snapshot instead
-    of failing the dashboard.
+    When upstream data cannot be retrieved, returns an explicitly unavailable
+    snapshot instead of failing the dashboard or implying that zero usage is accurate.
     """
     logger.info(
         "Usage statistics requested",
@@ -57,9 +58,13 @@ async def get_usage(
 
         try:
             usage_data = await use_case.execute(current_user.id)
+            now = datetime.now(UTC)
 
             route_operations_total.labels(route="usage", action="get_usage", status="success").inc()
             return UsageResponse(
+                usage_available=True,
+                usage_source="remnawave",
+                usage_unavailable_reason=None,
                 bandwidth_used_bytes=usage_data.bandwidth_used_bytes,
                 bandwidth_limit_bytes=usage_data.bandwidth_limit_bytes,
                 connections_active=usage_data.connections_active,
@@ -67,15 +72,26 @@ async def get_usage(
                 period_start=usage_data.period_start,
                 period_end=usage_data.period_end,
                 last_connection_at=usage_data.last_connection_at,
+                generated_at=now,
             ).model_dump(mode="json")
         except Exception as exc:
+            unavailable_reason: UsageUnavailableReason = (
+                "upstream_user_not_found" if isinstance(exc, ValueError) else "upstream_unavailable"
+            )
             logger.warning(
-                "Could not fetch usage from Remnawave, returning empty usage",
-                extra={"user_id": str(current_user.id), "error": str(exc)},
+                "Could not fetch usage from Remnawave, returning unavailable usage snapshot",
+                extra={
+                    "user_id": str(current_user.id),
+                    "reason": unavailable_reason,
+                    "error": str(exc),
+                },
             )
             now = datetime.now(UTC)
             route_operations_total.labels(route="usage", action="get_usage", status="fallback").inc()
             return UsageResponse(
+                usage_available=False,
+                usage_source="unavailable",
+                usage_unavailable_reason=unavailable_reason,
                 bandwidth_used_bytes=0,
                 bandwidth_limit_bytes=0,
                 connections_active=0,
@@ -83,6 +99,7 @@ async def get_usage(
                 period_start=now,
                 period_end=now,
                 last_connection_at=None,
+                generated_at=now,
             ).model_dump(mode="json")
 
     return await response_cache.get_or_fetch(f"usage:{current_user.id}", 30, _fetch)

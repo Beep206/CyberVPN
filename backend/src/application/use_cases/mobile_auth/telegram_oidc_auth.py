@@ -19,6 +19,7 @@ from src.application.dto.mobile_auth import (
     TokenResponseDTO,
 )
 from src.application.services.auth_service import AuthService
+from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.telegram_oidc_auth import TelegramOIDCAuthService, TelegramOIDCUserInfo
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.config.settings import settings
@@ -51,6 +52,7 @@ class MobileTelegramOIDCAuthUseCase:
     auth_service: AuthService
     telegram_oidc_service: TelegramOIDCAuthService
     subscription_client: CachedSubscriptionClient | None = None
+    allow_new_users: bool = True
 
     async def execute(self, request: TelegramOIDCAuthRequestDTO) -> tuple[AuthResponseDTO, bool]:
         """Validate Telegram OIDC token, resolve user, and issue mobile tokens."""
@@ -66,6 +68,10 @@ class MobileTelegramOIDCAuthUseCase:
                 resolution_path = "legacy_telegram_id"
 
         if not user:
+            ensure_public_registration_enabled(
+                channel="mobile_telegram_oidc",
+                registration_enabled=self.allow_new_users,
+            )
             user = await self._create_user_from_telegram(telegram_user)
             resolution_path = "new_user"
             is_new_user = True

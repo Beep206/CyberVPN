@@ -50,6 +50,7 @@ class TestScheduleRegistration:
             SCHEDULE_NOTIFICATION_QUEUE,
             SCHEDULE_PAYMENT_VERIFY,
             SCHEDULE_REALTIME_METRICS,
+            SCHEDULE_STAGE1_PAYMENT_RECONCILIATION,
             SCHEDULE_SUBSCRIPTION_CHECK,
         )
 
@@ -77,6 +78,9 @@ class TestScheduleRegistration:
 
         assert isinstance(SCHEDULE_PAYMENT_VERIFY, str)
         assert len(SCHEDULE_PAYMENT_VERIFY) > 0
+
+        assert isinstance(SCHEDULE_STAGE1_PAYMENT_RECONCILIATION, str)
+        assert len(SCHEDULE_STAGE1_PAYMENT_RECONCILIATION) > 0
 
         assert isinstance(SCHEDULE_CLEANUP, str)
         assert len(SCHEDULE_CLEANUP) > 0

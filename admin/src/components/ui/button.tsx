@@ -69,19 +69,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             />
         )
 
-        if (magnetic) {
-            return (
-                <InceptionButton wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
-                    <MagneticButton className="inline-block w-full" strength={20}>
-                        {button}
-                    </MagneticButton>
-                </InceptionButton>
-            )
+        if (!magnetic) {
+            return button;
         }
 
         return (
             <InceptionButton wrapperClassName={cn("inline-block", className?.includes("w-full") ? "w-full" : "")}>
-                {button}
+                <MagneticButton className="inline-block w-full" strength={20}>
+                    {button}
+                </MagneticButton>
             </InceptionButton>
         )
     }

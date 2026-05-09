@@ -7,9 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
+from src.application.services.stage1_growth_policy import (
+    Stage1GrowthPolicyError,
+    assert_stage1_referral_enabled,
+)
 from src.application.use_cases.referrals.get_referral_code import GetReferralCodeUseCase
 from src.application.use_cases.referrals.get_referral_stats import GetReferralStatsUseCase
 from src.application.use_cases.referrals.list_referral_rewards import ListReferralRewardsUseCase
+from src.config.settings import settings
 from src.domain.exceptions import DomainError
 from src.infrastructure.database.repositories.growth_reward_allocation_repo import (
     GrowthRewardAllocationRepository,
@@ -34,6 +39,13 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/referral", tags=["referral"])
+
+
+def _assert_referral_public_flow_enabled() -> None:
+    try:
+        assert_stage1_referral_enabled(enabled=settings.referral_enabled)
+    except Stage1GrowthPolicyError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
 
 def _serialize_referral_reward(model) -> ReferralRewardResponse:
@@ -90,14 +102,14 @@ async def get_referral_status(
     config_service = ConfigService(config_repo)
 
     enabled = await config_service.is_referral_enabled()
-    commission_rate = await config_service.get_referral_commission_rate()
+    commission_rate = await config_service.get_referral_commission_rate() if enabled else 0.0
 
     track_referral_operation(operation="status")
     return ReferralStatusResponse(
         enabled=enabled,
         commission_rate=commission_rate,
         friend_discount_pct=commission_rate,
-        reward_hold_days=14,
+        reward_hold_days=14 if enabled else 0,
     )
 
 
@@ -107,6 +119,7 @@ async def get_referral_code(
     db: AsyncSession = Depends(get_db),
 ) -> ReferralCodeResponse:
     """Get or generate the authenticated user's referral code."""
+    _assert_referral_public_flow_enabled()
     use_case = GetReferralCodeUseCase(db)
     try:
         code = await use_case.execute(user_id)
@@ -124,6 +137,7 @@ async def get_referral_stats(
     db: AsyncSession = Depends(get_db),
 ) -> ReferralStatsResponse:
     """Return aggregated referral statistics for the authenticated user."""
+    _assert_referral_public_flow_enabled()
     config_repo = SystemConfigRepository(db)
     config_service = ConfigService(config_repo)
     commission_repo = ReferralCommissionRepository(db)
@@ -162,6 +176,7 @@ async def get_recent_commissions(
     db: AsyncSession = Depends(get_db),
 ) -> list[ReferralCommissionResponse]:
     """Return recent referral activity with compatibility fields for legacy clients."""
+    _assert_referral_public_flow_enabled()
     commission_repo = ReferralCommissionRepository(db)
     reward_repo = GrowthRewardAllocationRepository(db)
 
@@ -197,6 +212,7 @@ async def get_referral_rewards(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
 ) -> list[ReferralRewardResponse]:
+    _assert_referral_public_flow_enabled()
     rewards = await ListReferralRewardsUseCase(db).execute(
         beneficiary_user_id=user_id,
         limit=20,

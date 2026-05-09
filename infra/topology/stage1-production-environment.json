@@ -1,0 +1,314 @@
+{
+  "schema_version": "1.0",
+  "backlog_id": "S1-INFRA-003",
+  "status": "local_production_deployability_contract_external_environment_required",
+  "environment_name": "Stage 1 Production",
+  "created_at": "2026-05-08",
+  "depends_on": ["S1-INFRA-001", "S1-INFRA-002", "S1-REL-006", "S1-REL-007"],
+  "decision_references": [
+    "DEC-S1-001",
+    "DEC-S1-002",
+    "DEC-S1-003",
+    "DEC-S1-004",
+    "DEC-S1-005",
+    "DEC-S1-006",
+    "DEC-S1-007",
+    "DEC-S1-014",
+    "DEC-S1-015",
+    "DEC-S1-017"
+  ],
+  "authority": {
+    "production_authority_when_evidence_complete": true,
+    "go_live_clearance": false,
+    "paid_beta_clearance": false,
+    "purpose": "controlled public beta production environment deployability without staging credentials",
+    "external_production_created": false,
+    "requires_go_no_go_before_traffic": true,
+    "must_not_use_staging_credentials": true,
+    "must_not_share_state_with_staging": true,
+    "may_use_home_lab_as_authority": false,
+    "deploy_by_immutable_tag_or_commit_sha_only": true,
+    "floating_main_allowed": false
+  },
+  "known_missing_external_inputs": [
+    "production_host_or_cloud_provider_account",
+    "production_region",
+    "production_public_origins",
+    "production_origin_public_ips",
+    "production_private_network_cidr",
+    "managed_postgresql_provider",
+    "private_valkey_provider",
+    "production_remnawave_control_plane_url",
+    "production_remnawave_node_inventory",
+    "production_botfather_bot",
+    "live_payment_provider_accounts",
+    "live_payment_provider_credentials",
+    "production_oauth_apps",
+    "production_email_provider",
+    "production_observability_projects",
+    "production_container_registry",
+    "production_image_digests",
+    "production_deploy_user_policy",
+    "production_backup_storage",
+    "cloudflare_or_equivalent_zone_records",
+    "admin_access_protection_policy"
+  ],
+  "required_services": [
+    {
+      "id": "production_edge",
+      "component_ref": "edge_tls_waf",
+      "must_be_separate_from_staging": true,
+      "public": true,
+      "external_required": true,
+      "health_evidence": ["dns_resolves", "tls_valid", "security_headers", "waf_or_rate_limit_mode_recorded", "no_challenge_webhook_paths_recorded"]
+    },
+    {
+      "id": "production_frontend_web",
+      "component_ref": "frontend_web",
+      "must_be_separate_from_staging": true,
+      "public": true,
+      "external_required": true,
+      "health_evidence": ["http_200_or_3xx", "frontend_bundle_env_scan", "pricing_devices_help_status_legal_routes_load", "canonical_and_mirror_behavior_recorded"]
+    },
+    {
+      "id": "production_admin_web",
+      "component_ref": "admin_web",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["admin_origin_reachable_only_through_protection", "admin_2fa_required", "rbac_persona_smoke", "admin_mirror_redirects_to_primary"]
+    },
+    {
+      "id": "production_backend_api",
+      "component_ref": "backend_api",
+      "must_be_separate_from_staging": true,
+      "public": true,
+      "external_required": true,
+      "health_evidence": ["readiness_ok", "swagger_disabled", "cors_cookie_csrf_proof", "rate_limit_proof", "status_error_contract_smoke"]
+    },
+    {
+      "id": "production_worker_scheduler",
+      "component_ref": "worker_scheduler",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["worker_alive", "scheduled_jobs_registered", "critical_jobs_recover_from_postgresql", "dead_letter_or_manual_review_queue_recorded"]
+    },
+    {
+      "id": "production_telegram_bot",
+      "component_ref": "telegram_bot",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["botfather_getme", "commands_set", "webhook_registered", "miniapp_domain_registered", "telegram_stars_disabled_until_evidence"]
+    },
+    {
+      "id": "production_postgresql",
+      "component_ref": "managed_postgresql",
+      "version_family": "17.x",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["private_access_only", "clean_migration_transcript", "separate_cybervpn_db_user", "separate_remnawave_db_user", "encrypted_backup_config_recorded", "restore_drill_transcript"]
+    },
+    {
+      "id": "production_valkey",
+      "component_ref": "private_valkey",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "durable_source_of_truth": false,
+      "external_required": true,
+      "health_evidence": ["private_access_only", "memory_policy_recorded", "monitoring_target_recorded", "critical_job_recovery_from_postgresql_recorded"]
+    },
+    {
+      "id": "production_remnawave_control_plane",
+      "component_ref": "remnawave_control_plane",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "data_lifecycle": "authoritative_production",
+      "health_evidence": ["private_internal_api", "health_ok", "api_smoke", "production_profile_inbound_recorded", "backup_export_or_rebuild_plan_recorded"]
+    },
+    {
+      "id": "production_vpn_nodes",
+      "component_ref": "vpn_nodes",
+      "must_be_separate_from_staging": true,
+      "public": true,
+      "external_required": true,
+      "customer_production_traffic_allowed": true,
+      "home_lab_allowed": false,
+      "health_evidence": ["connected_to_production_remnawave", "production_protocol_profile_active", "node_monitoring_target_recorded", "region_inventory_recorded"]
+    },
+    {
+      "id": "production_observability",
+      "component_ref": "observability_stack",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "health_evidence": ["sentry_test_event", "grafana_dashboard_or_equivalent", "alert_delivery_test", "pii_scrubbing_proof", "critical_payment_provisioning_alerts_enabled"]
+    },
+    {
+      "id": "production_backup_storage",
+      "component_ref": "encrypted_off_host_backup_storage",
+      "must_be_separate_from_staging": true,
+      "public": false,
+      "external_required": true,
+      "encrypted": true,
+      "off_host": true,
+      "retention_days": 14,
+      "health_evidence": ["postgresql_backup_created", "postgresql_restore_drill", "remnawave_backup_or_rebuild_evidence", "backup_access_policy_recorded"]
+    }
+  ],
+  "required_environment_separation": [
+    "database_instances_or_databases_are_not_shared_with_staging",
+    "database_users_are_not_shared_with_staging",
+    "valkey_instance_or_namespace_is_not_shared_with_staging",
+    "remnawave_instance_is_not_shared_with_staging",
+    "telegram_bot_token_is_not_shared_with_staging",
+    "oauth_apps_are_not_shared_with_staging",
+    "enabled_payment_provider_credentials_are_not_staging_sandbox_credentials",
+    "jwt_totp_encryption_webhook_secrets_are_unique_to_production",
+    "sentry_or_observability_dsn_is_not_shared_with_staging",
+    "backup_bucket_or_prefix_is_not_shared_with_staging_without_separate_prefix_and_access_policy",
+    "container_images_are_referenced_by_immutable_tag_or_digest",
+    "feature_flags_default_to_safe_or_disabled_for_risky_flows"
+  ],
+  "production_public_ingress": [
+    {
+      "id": "production_site_primary",
+      "host": "cyber-vpn.net",
+      "target_component": "production_frontend_web",
+      "required_controls": ["tls", "security_headers", "canonical_origin", "registration_kill_switch_visible_to_operator"]
+    },
+    {
+      "id": "production_site_primary_www",
+      "host": "www.cyber-vpn.net",
+      "target_component": "production_frontend_web",
+      "required_controls": ["tls", "redirect_or_canonical_to_primary"]
+    },
+    {
+      "id": "production_site_mirror",
+      "host": "cyber-vpn.org",
+      "target_component": "production_frontend_web",
+      "required_controls": ["tls", "redirect_or_mirror_policy_recorded", "no_duplicate_cookie_scope"]
+    },
+    {
+      "id": "production_site_mirror_www",
+      "host": "www.cyber-vpn.org",
+      "target_component": "production_frontend_web",
+      "required_controls": ["tls", "redirect_or_mirror_policy_recorded"]
+    },
+    {
+      "id": "production_api",
+      "host": "api.cyber-vpn.net",
+      "target_component": "production_backend_api",
+      "required_controls": ["tls", "swagger_disabled", "cors_allowlist", "csrf_for_cookie_flows", "rate_limits"]
+    },
+    {
+      "id": "production_admin_primary",
+      "host": "admin.cyber-vpn.net",
+      "target_component": "production_admin_web",
+      "required_controls": ["tls", "cloudflare_access_or_ip_allowlist_or_equivalent", "admin_2fa", "rbac", "audit_log"]
+    },
+    {
+      "id": "production_admin_mirror",
+      "host": "admin.cyber-vpn.org",
+      "target_component": "production_admin_web",
+      "required_controls": ["tls", "redirect_to_admin_primary", "no_independent_session_cookie"]
+    },
+    {
+      "id": "production_telegram_webhook",
+      "host": "api.cyber-vpn.net",
+      "target_component": "production_telegram_bot",
+      "required_controls": ["tls", "no_interactive_edge_challenge", "bot_secret_or_telegram_validation", "rate_limits"]
+    },
+    {
+      "id": "production_payment_webhooks",
+      "host": "api.cyber-vpn.net",
+      "target_component": "production_backend_api",
+      "required_controls": ["tls", "provider_signature_or_recheck", "idempotency", "no_interactive_edge_challenge", "provider_enabled_only_after_evidence"]
+    },
+    {
+      "id": "production_oauth_callbacks",
+      "host": "api.cyber-vpn.net",
+      "target_component": "production_backend_api",
+      "required_controls": ["tls", "google_and_github_only", "state_nonce_validation", "callback_allowlist"]
+    }
+  ],
+  "deployability_preflight": [
+    "fresh_dirty_worktree_scope_map_approved",
+    "immutable_release_tag_or_commit_sha_selected",
+    "production_image_digests_recorded",
+    "production_config_rendered_without_staging_secrets",
+    "redacted_production_secret_inventory_without_values",
+    "production_environment_contract_validates",
+    "clean_migration_plan_and_pre_deploy_backup_recorded",
+    "rollback_command_and_release_pointer_recorded",
+    "registration_payments_trial_provisioning_kill_switches_validated",
+    "dns_tls_redirect_plan_recorded",
+    "observability_targets_and_alert_routes_recorded",
+    "backup_restore_drill_plan_recorded"
+  ],
+  "kill_switches_required": [
+    "registration",
+    "payments",
+    "trial",
+    "provisioning",
+    "telegram_stars",
+    "referral",
+    "promo",
+    "gift",
+    "addons",
+    "oauth",
+    "magic_link_otp"
+  ],
+  "existing_repo_scaffolds": [
+    "infra/terraform/live/production/foundation",
+    "infra/terraform/live/production/prod-mgmt",
+    "infra/terraform/live/production/edge",
+    "infra/terraform/live/production/dns",
+    "infra/terraform/live/production/control-plane",
+    "infra/scripts/prod_mgmt_bootstrap.py",
+    "infra/topology/stage1-production-topology.json",
+    "infra/topology/stage1-staging-environment.json",
+    "docs/cybervpn_stage1_launch_docs/90_STAGE1_REL_006_ROLLBACK_DRY_RUN_EVIDENCE.md",
+    "docs/cybervpn_stage1_launch_docs/91_STAGE1_REL_007_EVIDENCE_PACK_INDEX.md"
+  ],
+  "evidence_required_to_close_external_production": [
+    "provider_or_hosting_account_recorded_without_secrets",
+    "production_public_origins_recorded",
+    "production_private_network_boundary_recorded",
+    "production_dns_tls_redirect_evidence",
+    "production_backend_health_and_readiness_evidence",
+    "production_postgresql_private_access_clean_migration_backup_restore_evidence",
+    "production_valkey_private_access_memory_monitoring_evidence",
+    "production_remnawave_health_node_profile_inbound_evidence",
+    "production_botfather_webhook_miniapp_evidence",
+    "live_payment_provider_callback_signature_idempotency_evidence",
+    "production_observability_alert_delivery_evidence",
+    "production_rollback_dry_run_evidence",
+    "redacted_production_secrets_inventory_without_values",
+    "production_first_admin_bootstrap_2fa_audit_evidence",
+    "final_rc_artifact_security_scan_evidence"
+  ],
+  "not_allowed_for_production": [
+    "staging_user_data",
+    "staging_payment_credentials",
+    "staging_telegram_bot_token",
+    "staging_remnawave_api_token",
+    "staging_oauth_client_credentials",
+    "sandbox_payment_credentials_for_enabled_live_payment_path",
+    "home_lab_as_production_authority",
+    "floating_main_deploy",
+    "production_secrets_in_repository",
+    "production_customer_traffic_before_go_no_go",
+    "experimental_out_of_scope_runtime_components"
+  ],
+  "acceptance_result": {
+    "local_contract_complete": true,
+    "external_production_created": false,
+    "staging_credentials_allowed": false,
+    "go_live_ready": false,
+    "reason": "Repository now contains a production deployability contract; real external production evidence is still required before go-live."
+  }
+}

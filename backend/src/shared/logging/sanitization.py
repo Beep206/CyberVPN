@@ -19,13 +19,25 @@ SENSITIVE_PARAMS = frozenset(
         "api-key",
         "access_token",
         "refresh_token",
+        "id_token",
         "bearer",
         "auth",
         "authorization",
         "key",
         "code",
+        "state",
         "otp",
+        "totp",
         "pin",
+        "initdata",
+        "init_data",
+        "tgwebappdata",
+        "hash",
+        "payment_id",
+        "provider_payment_id",
+        "invoice_id",
+        "checkout_id",
+        "subscription_url",
         "ssn",
         "credit_card",
         "card_number",
@@ -47,6 +59,8 @@ SENSITIVE_HEADERS = frozenset(
         "set-cookie",
         "x-csrf-token",
         "x-xsrf-token",
+        "x-observability-secret",
+        "x-telegram-bot-api-secret-token",
         "api-key",
         "bearer",
     }
@@ -152,6 +166,7 @@ def sanitize_path_params(path: str, *, patterns: list[str] | None = None) -> str
         patterns = [
             r"/users/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
             r"/tokens/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            r"/api/v1/(?:vpn|xray|provisioning|subscriptions?)/(?:config|credentials|subscription)/[^/?#]+",
         ]
 
     sanitized = path

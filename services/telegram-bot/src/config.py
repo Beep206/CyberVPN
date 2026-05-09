@@ -9,7 +9,7 @@ from __future__ import annotations
 import ipaddress
 import json
 from functools import lru_cache
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import (
     AliasChoices,
@@ -232,11 +232,55 @@ class BotSettings(BaseSettings):
         validate_default=True,
         extra="ignore",
     )
+    PROVIDER_SECRET_PLACEHOLDER_PATTERNS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "<",
+            "changeme",
+            "dev",
+            "dummy",
+            "example",
+            "local",
+            "placeholder",
+            "redacted",
+            "replace",
+            "test",
+            "your-",
+            "your_",
+        }
+    )
 
     # ── Bot core ─────────────────────────────────────────────────────────
     bot_token: SecretStr
     bot_username: str | None = None
+    staging_bot_username: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "staging_bot_username",
+            "TELEGRAM_BOT_STAGING_USERNAME",
+        ),
+    )
+    production_bot_username: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "production_bot_username",
+            "TELEGRAM_BOT_PRODUCTION_USERNAME",
+        ),
+    )
     bot_mode: Literal["webhook", "polling"] = "polling"
+    bot_menu_button: Literal["commands", "miniapp", "default"] = Field(
+        default="commands",
+        validation_alias=AliasChoices(
+            "bot_menu_button",
+            "TELEGRAM_BOT_MENU_BUTTON",
+        ),
+    )
+    miniapp_url: AnyHttpUrl | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "miniapp_url",
+            "TELEGRAM_MINIAPP_URL",
+        ),
+    )
     skip_telegram_network_calls: bool = Field(
         default=False,
         validation_alias=AliasChoices(
@@ -252,6 +296,48 @@ class BotSettings(BaseSettings):
         validation_alias=AliasChoices(
             "observability_internal_secret",
             "TELEGRAM_BOT_OBSERVABILITY_INTERNAL_SECRET",
+        ),
+    )
+    telegram_throttle_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "telegram_throttle_enabled",
+            "TELEGRAM_THROTTLE_ENABLED",
+        ),
+    )
+    telegram_throttle_fail_open: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "telegram_throttle_fail_open",
+            "TELEGRAM_THROTTLE_FAIL_OPEN",
+        ),
+    )
+    telegram_message_rate_window_seconds: Annotated[int, Field(gt=0, le=3600)] = Field(
+        default=10,
+        validation_alias=AliasChoices(
+            "telegram_message_rate_window_seconds",
+            "TELEGRAM_MESSAGE_RATE_WINDOW_SECONDS",
+        ),
+    )
+    telegram_message_rate_max_requests: Annotated[int, Field(gt=0, le=1000)] = Field(
+        default=5,
+        validation_alias=AliasChoices(
+            "telegram_message_rate_max_requests",
+            "TELEGRAM_MESSAGE_RATE_MAX_REQUESTS",
+        ),
+    )
+    telegram_callback_rate_window_seconds: Annotated[int, Field(gt=0, le=3600)] = Field(
+        default=3,
+        validation_alias=AliasChoices(
+            "telegram_callback_rate_window_seconds",
+            "TELEGRAM_CALLBACK_RATE_WINDOW_SECONDS",
+        ),
+    )
+    telegram_callback_rate_max_requests: Annotated[int, Field(gt=0, le=1000)] = Field(
+        default=3,
+        validation_alias=AliasChoices(
+            "telegram_callback_rate_max_requests",
+            "TELEGRAM_CALLBACK_RATE_MAX_REQUESTS",
         ),
     )
 
@@ -358,6 +444,65 @@ class BotSettings(BaseSettings):
                 msg = "WEBHOOK_SECRET_TOKEN is required when BOT_MODE=webhook"
                 raise ValueError(msg)
         return self
+
+    @model_validator(mode="after")
+    def _validate_stage1_bot_identity(self) -> BotSettings:
+        """Keep staging and production Telegram bot identities separate."""
+        staging_username = self._normalize_bot_username(self.staging_bot_username)
+        production_username = self._normalize_bot_username(self.production_bot_username)
+        active_username = self._normalize_bot_username(self.bot_username)
+
+        if staging_username and production_username and staging_username == production_username:
+            msg = "TELEGRAM_BOT_STAGING_USERNAME and TELEGRAM_BOT_PRODUCTION_USERNAME must be different"
+            raise ValueError(msg)
+
+        if (
+            self.environment == "staging"
+            and active_username
+            and staging_username
+            and active_username != staging_username
+        ):
+            msg = "BOT_USERNAME must match TELEGRAM_BOT_STAGING_USERNAME when ENVIRONMENT=staging"
+            raise ValueError(msg)
+
+        if (
+            self.environment == "production"
+            and active_username
+            and production_username
+            and active_username != production_username
+        ):
+            msg = "BOT_USERNAME must match TELEGRAM_BOT_PRODUCTION_USERNAME when ENVIRONMENT=production"
+            raise ValueError(msg)
+
+        if self.bot_menu_button == "miniapp" and self.miniapp_url is None:
+            msg = "TELEGRAM_MINIAPP_URL is required when TELEGRAM_BOT_MENU_BUTTON=miniapp"
+            raise ValueError(msg)
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_production_payment_credentials(self) -> BotSettings:
+        """Reject placeholder payment provider tokens in production."""
+        if self.environment != "production" or not self.cryptobot.enabled:
+            return self
+
+        token = self.cryptobot.token.get_secret_value().strip() if self.cryptobot.token else ""
+        if len(token) < 16:
+            msg = "CRYPTOBOT_TOKEN must be a real provider token in production"
+            raise ValueError(msg)
+        token_lower = token.lower()
+        if any(marker in token_lower for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+            msg = "CRYPTOBOT_TOKEN must not be a placeholder/test value in production"
+            raise ValueError(msg)
+
+        return self
+
+    @staticmethod
+    def _normalize_bot_username(username: str | None) -> str:
+        raw = (username or "").strip()
+        if raw.startswith("@"):
+            raw = raw[1:]
+        return raw.lower()
 
     @property
     def is_development(self) -> bool:

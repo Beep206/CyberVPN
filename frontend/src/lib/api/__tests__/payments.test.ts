@@ -117,7 +117,6 @@ describe('paymentsApi.createInvoice', () => {
       user_uuid: "user_001",
       plan_id: "plan_monthly",
       currency: "USD",
-      
     });
 
     // Assert
@@ -421,7 +420,9 @@ describe('paymentsApi.getHistory', () => {
       http.get(`${API_BASE}/payments/history`, ({ request }) => {
         const url = new URL(request.url);
         capturedParams = url.searchParams;
-        return HttpResponse.json([MOCK_PAYMENT_HISTORY.payments[0]]);
+        return HttpResponse.json({
+          payments: [MOCK_PAYMENT_HISTORY.payments[0]],
+        });
       }),
     );
 
@@ -432,13 +433,14 @@ describe('paymentsApi.getHistory', () => {
     expect(capturedParams).not.toBeNull();
     expect(capturedParams!.get('offset')).toBe('5');
     expect(capturedParams!.get('limit')).toBe('10');
+    expect(capturedParams!.has('user_uuid')).toBe(false);
   });
 
   it('test_get_history_empty_list_returns_empty_array', async () => {
     // Arrange
     server.use(
       http.get(`${API_BASE}/payments/history`, () => {
-        return HttpResponse.json([]);
+        return HttpResponse.json({ payments: [] });
       }),
     );
 
@@ -447,7 +449,7 @@ describe('paymentsApi.getHistory', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data).toHaveLength(0);
+    expect(response.data.payments).toHaveLength(0);
   });
 
   it('test_get_history_unauthenticated_rejects_with_401', async () => {

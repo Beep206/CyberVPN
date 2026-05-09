@@ -9,6 +9,7 @@ import {
   extractConfigLinks,
   formatBytes,
   getConfigAvailability,
+  getConfigDeliveryBundle,
   getRecommendedServer,
   isServiceStateActive,
   isUsableServer,
@@ -131,6 +132,39 @@ describe('server access model', () => {
     ]);
   });
 
+  it('uses access delivery payload as a fallback config source', () => {
+    const deliveryState = {
+      ...serviceState,
+      access_delivery_channel: {
+        channel_status: 'active',
+        delivery_payload: {
+          connection_links: ['vless://payload-link'],
+          raw_config: 'vless://payload-raw-config',
+          subscription_url: 'https://delivery.example/sub/token',
+        },
+      },
+    } as CurrentServiceState;
+
+    const links = extractConfigLinks(null, deliveryState);
+    const bundle = getConfigDeliveryBundle(links);
+
+    expect(links.map((link) => link.value)).toEqual([
+      'https://delivery.example/sub/token',
+      'vless://payload-link',
+      'vless://payload-raw-config',
+    ]);
+    expect(bundle.subscriptionLink?.value).toBe('https://delivery.example/sub/token');
+    expect(bundle.qrLink?.value).toBe('https://delivery.example/sub/token');
+    expect(bundle.configFile?.value).toBe('vless://payload-raw-config');
+    expect(
+      getConfigAvailability({
+        config: null,
+        profile,
+        serviceState: deliveryState,
+      }),
+    ).toBe('ready');
+  });
+
   it('derives config availability from profile, service state, and upstream response', () => {
     expect(
       getConfigAvailability({
@@ -164,8 +198,11 @@ describe('server access model', () => {
 
   it('formats public values without leaking full config secrets', () => {
     expect(formatBytes(1536, 'en-EN')).toBe('1.5 KB');
+    expect(maskConfigValue('https://vpn.example/sub/user-1?token=secret')).toBe(
+      'https://vpn.example/...',
+    );
     expect(maskConfigValue('vless://abcdefghijklmnopqrstuvwxyz1234567890')).toBe(
-      'vless://abcdefgh...34567890',
+      'vless://...567890',
     );
     expect(isServiceStateActive(serviceState)).toBe(true);
   });

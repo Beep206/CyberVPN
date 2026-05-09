@@ -6,8 +6,15 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_DEVICE_LIMIT,
+    STAGE1_TRIAL_DURATION_DAYS,
+    STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+)
 from src.infrastructure.cache.redis_client import get_redis
 from src.main import app
 from src.presentation.dependencies.auth import get_current_mobile_user_id
@@ -16,6 +23,10 @@ from src.presentation.dependencies.database import get_db
 
 def _mock_current_mobile_user_id():
     return uuid4()
+
+
+async def _mock_auth_failure():
+    raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 async def _mock_db():
@@ -85,6 +96,10 @@ async def test_get_trial_status_success() -> None:
     assert data["days_remaining"] == 0
     assert data["trial_start"] is None
     assert data["trial_end"] is None
+    assert data["duration_days"] == STAGE1_TRIAL_DURATION_DAYS
+    assert data["device_limit"] == STAGE1_TRIAL_DEVICE_LIMIT
+    assert data["traffic_limit_bytes"] == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
+    assert data["one_trial_per_account"] is STAGE1_TRIAL_ONE_PER_ACCOUNT
 
 
 @pytest.mark.asyncio
@@ -109,6 +124,10 @@ async def test_activate_trial_success() -> None:
     assert data["activated"] is True
     assert "trial_end" in data
     assert "message" in data
+    assert data["duration_days"] == STAGE1_TRIAL_DURATION_DAYS
+    assert data["device_limit"] == STAGE1_TRIAL_DEVICE_LIMIT
+    assert data["traffic_limit_bytes"] == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
+    assert data["one_trial_per_account"] is STAGE1_TRIAL_ONE_PER_ACCOUNT
 
     # trial_end should be in the future
     parsed_trial_end = datetime.fromisoformat(data["trial_end"])
@@ -116,15 +135,20 @@ async def test_activate_trial_success() -> None:
 
 
 @pytest.mark.asyncio
-async def test_activate_trial_idempotency() -> None:
-    """POST /api/v1/trial/activate called twice should both succeed (placeholder behavior)."""
+async def test_activate_trial_duplicate_is_rejected() -> None:
+    """POST /api/v1/trial/activate rejects a second activation for the same account."""
     activate_result = SimpleNamespace(
         activated=True,
         trial_end=datetime.now(UTC),
         message="Trial activated successfully",
     )
     with patch("src.presentation.api.v1.trial.routes.ActivateTrialUseCase") as mock_use_case:
-        mock_use_case.return_value.execute = AsyncMock(return_value=activate_result)
+        mock_use_case.return_value.execute = AsyncMock(
+            side_effect=[
+                activate_result,
+                ValueError("Trial already activated. Only one trial per user is allowed."),
+            ]
+        )
         async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url="http://test",
@@ -133,15 +157,15 @@ async def test_activate_trial_idempotency() -> None:
             second = await client.post("/api/v1/trial/activate")
 
     assert first.status_code == 200
-    assert second.status_code == 200
+    assert second.status_code == 400
     assert first.json()["activated"] is True
-    assert second.json()["activated"] is True
+    assert "only one trial per user" in second.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_trial_status_requires_auth() -> None:
     """GET /api/v1/trial/status returns 401/403 without auth."""
-    app.dependency_overrides.pop(get_current_mobile_user_id, None)
+    app.dependency_overrides[get_current_mobile_user_id] = _mock_auth_failure
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app),
@@ -157,7 +181,7 @@ async def test_trial_status_requires_auth() -> None:
 @pytest.mark.asyncio
 async def test_activate_trial_requires_auth() -> None:
     """POST /api/v1/trial/activate returns 401/403 without auth."""
-    app.dependency_overrides.pop(get_current_mobile_user_id, None)
+    app.dependency_overrides[get_current_mobile_user_id] = _mock_auth_failure
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app),

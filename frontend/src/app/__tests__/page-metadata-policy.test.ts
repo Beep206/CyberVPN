@@ -43,11 +43,11 @@ describe('page metadata policy', () => {
       generateHelpMetadata({ params: Promise.resolve({ locale: 'en-EN' }) }),
     ]);
 
-    expect(homeMetadata.alternates?.canonical).toBe('https://vpn.ozoxy.ru/en-EN');
+    expect(homeMetadata.alternates?.canonical).toBe('https://cyber-vpn.net/en-EN');
     expect(pricingMetadata.alternates?.canonical).toBe(
-      'https://vpn.ozoxy.ru/en-EN/pricing',
+      'https://cyber-vpn.net/en-EN/pricing',
     );
-    expect(helpMetadata.alternates?.canonical).toBe('https://vpn.ozoxy.ru/en-EN/help');
+    expect(helpMetadata.alternates?.canonical).toBe('https://cyber-vpn.net/en-EN/help');
 
     expect(homeMetadata.title).toBe('Landing.hero.title Landing.hero.titleHighlight | CyberVPN');
     expect(pricingMetadata.title).toBe('Pricing.title | CyberVPN');

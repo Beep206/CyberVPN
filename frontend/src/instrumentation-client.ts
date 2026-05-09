@@ -2,12 +2,8 @@ import * as Sentry from "@sentry/nextjs";
 import { scrubSentryEvent } from "@/shared/lib/sentry-privacy";
 
 const environment =
-  process.env.NEXT_PUBLIC_APP_ENV ??
-  process.env.APP_ENV ??
-  process.env.NODE_ENV ??
-  "development";
-const release =
-  process.env.NEXT_PUBLIC_SENTRY_RELEASE ?? process.env.SENTRY_RELEASE;
+  process.env.NEXT_PUBLIC_APP_ENV ?? process.env.NODE_ENV ?? "development";
+const release = process.env.NEXT_PUBLIC_SENTRY_RELEASE;
 const isProduction = environment === "production";
 
 function initSentry() {

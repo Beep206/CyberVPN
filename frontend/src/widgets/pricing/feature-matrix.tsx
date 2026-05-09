@@ -5,7 +5,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Check, Dot, Minus, PlugZap } from 'lucide-react';
 import { MobileDataList } from '@/shared/ui/mobile-data-list';
 import type { PricingAddon, PricingPlanFamily, PricingTierCode } from './types';
-import { formatMoney, formatPlanLimitSummary, getPlanPeriod, getPreferredCurrency } from './utils';
+import {
+  formatMoney,
+  formatPlanLimitSummary,
+  getPlanPeriod,
+  getPricePresentation,
+} from './utils';
 
 const PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
 const PLAN_TEXT_STYLES: Record<PricingTierCode, string> = {
@@ -44,9 +49,14 @@ function formatServerPool(
 function formatDedicatedIp(
   t: ReturnType<typeof useTranslations>,
   plan: PricingPlanFamily,
+  dedicatedIpAddonAvailable: boolean,
 ) {
   if (plan.dedicated_ip.included > 0) {
     return t('labels.includedDedicatedIp', { count: plan.dedicated_ip.included });
+  }
+
+  if (!dedicatedIpAddonAvailable) {
+    return false;
   }
 
   return plan.dedicated_ip.eligible ? t('labels.dedicatedIpAddon') : false;
@@ -80,6 +90,9 @@ export function FeatureMatrix({
 }) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
+  const extraDeviceAddon = addons.find((addon) => addon.code === 'extra_device');
+  const dedicatedIpAddon = addons.find((addon) => addon.code === 'dedicated_ip');
+  const dedicatedIpAddonAvailable = Boolean(dedicatedIpAddon);
 
   const rows = [
     {
@@ -105,7 +118,7 @@ export function FeatureMatrix({
     {
       key: 'dedicated-ip',
       name: t('matrix.rows.dedicatedIp'),
-      values: plans.map((plan) => formatDedicatedIp(t, plan)),
+      values: plans.map((plan) => formatDedicatedIp(t, plan, dedicatedIpAddonAvailable)),
     },
     {
       key: 'support',
@@ -119,8 +132,6 @@ export function FeatureMatrix({
     },
   ];
 
-  const extraDeviceAddon = addons.find((addon) => addon.code === 'extra_device');
-  const dedicatedIpAddon = addons.find((addon) => addon.code === 'dedicated_ip');
   const addonCards = [extraDeviceAddon, dedicatedIpAddon].filter(
     (addon): addon is PricingAddon => Boolean(addon),
   );
@@ -198,67 +209,76 @@ export function FeatureMatrix({
         </table>
       </div>
 
-      <div className="mt-10 rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 md:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <PlugZap className="h-5 w-5 text-neon-cyan" />
-          <div>
-            <h4 className="font-display text-xl font-bold uppercase tracking-[0.18em] text-white">
-              {t('addons.title')}
-            </h4>
-            <p className="mt-1 text-sm font-mono text-white/62">
-              {t('addons.subtitle')}
-            </p>
+      {addonCards.length > 0 ? (
+        <div className="mt-10 rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 md:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <PlugZap className="h-5 w-5 text-neon-cyan" />
+            <div>
+              <h4 className="font-display text-xl font-bold uppercase tracking-[0.18em] text-white">
+                {t('addons.title')}
+              </h4>
+              <p className="mt-1 text-sm font-mono text-white/62">
+                {t('addons.subtitle')}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {addonCards.map((addon) => {
+              const pricePresentation = getPricePresentation(locale, addon);
+              const availability = addon.code === 'extra_device'
+                ? t('addons.extra_device.availability', {
+                    limits: formatPlanLimitSummary(extraDeviceAddon, PLAN_ORDER),
+                  })
+                : t('addons.dedicated_ip.availability');
+
+              return (
+                <div
+                  key={addon.code}
+                  className="rounded-[1.5rem] border border-white/10 bg-black/35 p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-display text-lg uppercase tracking-[0.14em] text-white">
+                        {t(`addons.${addon.code}.title`)}
+                      </p>
+                      <p className="mt-3 text-sm font-mono leading-relaxed text-white/66">
+                        {t(`addons.${addon.code}.description`)}
+                      </p>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+                      {t('addons.priceLabel', {
+                        price: formatMoney(
+                          locale,
+                          pricePresentation.billing.amount,
+                          pricePresentation.billing.currency,
+                        ),
+                      })}
+                    </div>
+                  </div>
+
+                  {pricePresentation.localEstimate ? (
+                    <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-neon-cyan/70">
+                      {t('labels.localDisplayEstimate', {
+                        price: formatMoney(
+                          locale,
+                          pricePresentation.localEstimate.amount,
+                          pricePresentation.localEstimate.currency,
+                        ),
+                      })}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-4 flex items-start gap-2 text-sm font-mono text-white/75">
+                    <Dot className="mt-0.5 h-4 w-4 shrink-0 text-neon-cyan" />
+                    <span>{availability}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {addonCards.map((addon) => {
-            const price = getPreferredCurrency(locale, {
-              uuid: addon.uuid,
-              name: addon.display_name,
-              duration_days: selectedPeriod,
-              price_usd: addon.price_usd,
-              price_rub: addon.price_rub ?? null,
-              invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
-              trial_eligible: false,
-              sort_order: 0,
-            });
-            const availability = addon.code === 'extra_device'
-              ? t('addons.extra_device.availability', {
-                  limits: formatPlanLimitSummary(extraDeviceAddon, PLAN_ORDER),
-                })
-              : t('addons.dedicated_ip.availability');
-
-            return (
-              <div
-                key={addon.code}
-                className="rounded-[1.5rem] border border-white/10 bg-black/35 p-5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-display text-lg uppercase tracking-[0.14em] text-white">
-                      {t(`addons.${addon.code}.title`)}
-                    </p>
-                    <p className="mt-3 text-sm font-mono leading-relaxed text-white/66">
-                      {t(`addons.${addon.code}.description`)}
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
-                    {t('addons.priceLabel', {
-                      price: formatMoney(locale, price.amount, price.currency),
-                    })}
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-start gap-2 text-sm font-mono text-white/75">
-                  <Dot className="mt-0.5 h-4 w-4 shrink-0 text-neon-cyan" />
-                  <span>{availability}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

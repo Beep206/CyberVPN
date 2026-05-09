@@ -18,7 +18,7 @@ const watcher = spawn(process.execPath, [path.join(__dirname, 'generate-message-
   stdio: 'inherit',
 });
 
-const nextDev = spawn(process.execPath, [NEXT_BIN, 'dev', '-p', '9001', '-H', '0.0.0.0'], {
+const nextDev = spawn(process.execPath, [NEXT_BIN, 'dev', '--turbopack', '-p', '9001', '-H', '0.0.0.0'], {
   cwd: PROJECT_ROOT,
   env: sharedEnv,
   stdio: 'inherit',

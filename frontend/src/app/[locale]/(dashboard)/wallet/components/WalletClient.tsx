@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { walletApi } from '@/lib/api';
+import { isStage1WalletWithdrawalUiEnabled } from '@/shared/lib/stage1-growth-flags';
 import { Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { WithdrawalModal } from './WithdrawalModal';
 
@@ -18,6 +19,7 @@ export function WalletClient() {
   const [page, setPage] = useState(0);
   const limit = 20;
   const queryClient = useQueryClient();
+  const walletWithdrawalsEnabled = isStage1WalletWithdrawalUiEnabled();
 
   const { data: balance, isLoading: balanceLoading } = useQuery({
     queryKey: ['wallet', 'balance'],
@@ -54,14 +56,16 @@ export function WalletClient() {
             <Wallet className="h-8 w-8 text-neon-cyan" />
             <h2 className="text-2xl font-display text-neon-cyan">{t('balance') || 'Available Balance'}</h2>
           </div>
-          <button
-            onClick={() => setShowWithdraw(true)}
-            className="px-6 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors flex items-center gap-2"
-            aria-label={t('withdraw') || 'Withdraw'}
-          >
-            <ArrowUpRight className="h-4 w-4" />
-            {t('withdraw') || 'Withdraw'}
-          </button>
+          {walletWithdrawalsEnabled && (
+            <button
+              onClick={() => setShowWithdraw(true)}
+              className="px-6 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors flex items-center gap-2"
+              aria-label={t('withdraw') || 'Withdraw'}
+            >
+              <ArrowUpRight className="h-4 w-4" />
+              {t('withdraw') || 'Withdraw'}
+            </button>
+          )}
         </div>
 
         {balanceLoading ? (
@@ -139,14 +143,16 @@ export function WalletClient() {
       </section>
 
       {/* Withdrawal Modal */}
-      <WithdrawalModal
-        isOpen={showWithdraw}
-        onClose={() => setShowWithdraw(false)}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['wallet'] });
-        }}
-        currentBalance={balance?.balance || 0}
-      />
+      {walletWithdrawalsEnabled && (
+        <WithdrawalModal
+          isOpen={showWithdraw}
+          onClose={() => setShowWithdraw(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          }}
+          currentBalance={balance?.balance || 0}
+        />
+      )}
     </div>
   );
 }

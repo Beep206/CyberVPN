@@ -1,7 +1,7 @@
 """Add mobile TOTP fields for pending Telegram 2FA logins.
 
-Revision ID: 20260421_phase15_mobile_telegram_pending_2fa
-Revises: 20260421_phase14_mobile_telegram_oidc_subject
+Revision ID: 20260421_p15_tg_pending_2fa
+Revises: 20260421_p14_tg_oidc_subject
 Create Date: 2026-04-21 23:10:00.000000
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260421_phase15_mobile_telegram_pending_2fa"
-down_revision = "20260421_phase14_mobile_telegram_oidc_subject"
+revision = "20260421_p15_tg_pending_2fa"
+down_revision = "20260421_p14_tg_oidc_subject"
 branch_labels = None
 depends_on = None
 

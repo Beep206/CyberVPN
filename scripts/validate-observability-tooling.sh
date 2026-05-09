@@ -31,19 +31,41 @@ require_command() {
 
 render_alertmanager_config() {
   local output_file="$1"
-  local webhook_url
-  webhook_url="${ALERTMANAGER_WEBHOOK_URL:-https://your-telegram-relay.example.com/alert}"
+  local secret_dir="$2"
+  local smtp_password_file="${secret_dir}/smtp_password"
 
-  ALERTMANAGER_WEBHOOK_URL_RENDER="${webhook_url}" \
+  printf '%s' "${ALERTMANAGER_SMTP_PASSWORD:-}" >"${smtp_password_file}"
+
+  ALERTMANAGER_TELEGRAM_BOT_TOKEN_RENDER="${ALERTMANAGER_TELEGRAM_BOT_TOKEN:-000000000:stage1-local-placeholder}" \
+  ALERTMANAGER_TELEGRAM_CHAT_ID_RENDER="${ALERTMANAGER_TELEGRAM_CHAT_ID:--5173727789}" \
+  ALERTMANAGER_SMTP_PASSWORD_FILE_RENDER="${smtp_password_file}" \
+  ALERTMANAGER_SMTP_FROM_RENDER="${ALERTMANAGER_SMTP_FROM:-alerts@cyber-vpn.net}" \
+  ALERTMANAGER_SMTP_SMARTHOST_RENDER="${ALERTMANAGER_SMTP_SMARTHOST:-mailpit-1:1025}" \
+  ALERTMANAGER_SMTP_HELLO_RENDER="${ALERTMANAGER_SMTP_HELLO:-cyber-vpn.net}" \
+  ALERTMANAGER_SMTP_AUTH_USERNAME_RENDER="${ALERTMANAGER_SMTP_AUTH_USERNAME:-}" \
+  ALERTMANAGER_SMTP_REQUIRE_TLS_RENDER="${ALERTMANAGER_SMTP_REQUIRE_TLS:-false}" \
+  ALERTMANAGER_BACKUP_EMAIL_RENDER="${ALERTMANAGER_BACKUP_EMAIL:-backup@cyber-vpn.net}" \
   ALERTMANAGER_TEMPLATES_DIR_RENDER="${REPO_ROOT}/infra/alertmanager/templates" \
   python3 - <<'PY' >"${output_file}"
 import os
 from pathlib import Path
 
 template = Path("infra/alertmanager/alertmanager.yml.template").read_text(encoding="utf-8")
-webhook_url = os.environ["ALERTMANAGER_WEBHOOK_URL_RENDER"]
-template = template.replace("/etc/alertmanager/templates", os.environ["ALERTMANAGER_TEMPLATES_DIR_RENDER"])
-print(template.replace("${ALERTMANAGER_WEBHOOK_URL}", webhook_url), end="")
+replacements = {
+    "${ALERTMANAGER_TELEGRAM_BOT_TOKEN}": os.environ["ALERTMANAGER_TELEGRAM_BOT_TOKEN_RENDER"],
+    "${ALERTMANAGER_TELEGRAM_CHAT_ID}": os.environ["ALERTMANAGER_TELEGRAM_CHAT_ID_RENDER"],
+    "${ALERTMANAGER_SMTP_PASSWORD_FILE}": os.environ["ALERTMANAGER_SMTP_PASSWORD_FILE_RENDER"],
+    "${ALERTMANAGER_SMTP_FROM}": os.environ["ALERTMANAGER_SMTP_FROM_RENDER"],
+    "${ALERTMANAGER_SMTP_SMARTHOST}": os.environ["ALERTMANAGER_SMTP_SMARTHOST_RENDER"],
+    "${ALERTMANAGER_SMTP_HELLO}": os.environ["ALERTMANAGER_SMTP_HELLO_RENDER"],
+    "${ALERTMANAGER_SMTP_AUTH_USERNAME}": os.environ["ALERTMANAGER_SMTP_AUTH_USERNAME_RENDER"],
+    "${ALERTMANAGER_SMTP_REQUIRE_TLS}": os.environ["ALERTMANAGER_SMTP_REQUIRE_TLS_RENDER"],
+    "${ALERTMANAGER_BACKUP_EMAIL}": os.environ["ALERTMANAGER_BACKUP_EMAIL_RENDER"],
+    "/etc/alertmanager/templates": os.environ["ALERTMANAGER_TEMPLATES_DIR_RENDER"],
+}
+for needle, value in replacements.items():
+    template = template.replace(needle, value)
+print(template, end="")
 PY
 }
 
@@ -66,6 +88,7 @@ PY
 
 main() {
   local rendered_alertmanager_config
+  local rendered_alertmanager_secret_dir
   local rendered_prometheus_config
   local rendered_prometheus_targets_dir
 
@@ -76,8 +99,9 @@ main() {
 
   rendered_prometheus_config="$(mktemp)"
   rendered_alertmanager_config="$(mktemp)"
+  rendered_alertmanager_secret_dir="$(mktemp -d)"
   rendered_prometheus_targets_dir="$(mktemp -d)"
-  trap "rm -f '${rendered_prometheus_config}' '${rendered_alertmanager_config}'; rm -rf '${rendered_prometheus_targets_dir}'" EXIT
+  trap "rm -f '${rendered_prometheus_config}' '${rendered_alertmanager_config}'; rm -rf '${rendered_prometheus_targets_dir}' '${rendered_alertmanager_secret_dir}'" EXIT
 
   if compgen -G "${PROMETHEUS_TARGETS_DIR}/*.json" >/dev/null; then
     cp "${PROMETHEUS_TARGETS_DIR}"/*.json "${rendered_prometheus_targets_dir}/"
@@ -86,7 +110,7 @@ main() {
   fi
 
   render_prometheus_config "${rendered_prometheus_config}" "${rendered_prometheus_targets_dir}"
-  render_alertmanager_config "${rendered_alertmanager_config}"
+  render_alertmanager_config "${rendered_alertmanager_config}" "${rendered_alertmanager_secret_dir}"
 
   info "Checking Prometheus config with promtool..."
   promtool check config "${rendered_prometheus_config}" --lint=all --lint-fatal

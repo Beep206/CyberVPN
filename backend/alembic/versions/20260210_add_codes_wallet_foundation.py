@@ -3,7 +3,7 @@ Add referral/partner columns to mobile_users.
 Add codes/wallet columns to payments.
 
 Revision ID: 20260210_codes_wallet
-Revises: 20260210_deleted_at
+Revises: 20260210_billing_core
 Create Date: 2026-02-10
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "20260210_codes_wallet"
-down_revision: str | None = "20260210_deleted_at"
+down_revision: str | None = "20260210_billing_core"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -195,14 +195,14 @@ def upgrade() -> None:
         INSERT INTO system_config (key, value, description) VALUES
         ('invite.plan_rules', '{"rules": []}', 'Invite generation rules per plan'),
         ('invite.default_expiry_days', '{"days": 30}', 'Invite code validity period in days'),
-        ('referral.enabled', '{"enabled": true}', 'Whether referral system is enabled'),
+        ('referral.enabled', '{"enabled": false}', 'Whether referral system is enabled'),
         ('referral.commission_rate', '{"rate": 0.10}', 'Referral commission rate (0.10 = 10%)'),
         ('referral.duration_mode', '{"mode": "indefinite"}', 'Referral commission duration mode'),
         ('partner.max_markup_pct', '{"max_pct": 300}', 'Maximum partner markup percentage'),
         ('partner.base_commission_pct', '{"pct": 10}', 'Default partner commission on base price'),
         ('partner.tiers', '{"tiers": [{"min_clients": 0, "commission_pct": 20}]}', 'Partner commission tiers'),
         ('wallet.min_withdrawal', '{"amount": 5.0, "currency": "USD"}', 'Minimum withdrawal amount'),
-        ('wallet.withdrawal_enabled', '{"enabled": true}', 'Whether withdrawals are enabled'),
+        ('wallet.withdrawal_enabled', '{"enabled": false}', 'Whether withdrawals are enabled'),
         ('wallet.withdrawal_fee_pct', '{"pct": 0}', 'Withdrawal fee percentage')
         """
     )

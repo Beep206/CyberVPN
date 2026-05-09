@@ -38,10 +38,17 @@ const formatDataUsage = (bytes: number | undefined) => {
   return `${gb.toFixed(2)} GB`;
 };
 
-const getBandwidthPercentage = (used: number | undefined, limit: number | undefined) => {
+const getBandwidthPercentage = (
+  used: number | undefined,
+  limit: number | undefined,
+) => {
   if (!used || !limit) return 0;
   return Math.min((used / limit) * 100, 100);
 };
+
+const isUsageAvailable = (
+  usage: { usage_available?: boolean } | null | undefined,
+) => usage?.usage_available === true;
 
 // --- Atomic Components ---
 const ServerStatusCard = memo(() => {
@@ -178,22 +185,34 @@ const VpnUsageCard = memo(() => {
     staleTime: 30 * 1000,
   });
 
-  const percentage = getBandwidthPercentage(usage?.bandwidth_used_bytes, usage?.bandwidth_limit_bytes);
+  const usageAvailable = isUsageAvailable(usage);
+  const percentage = usageAvailable
+    ? getBandwidthPercentage(
+        usage?.bandwidth_used_bytes,
+        usage?.bandwidth_limit_bytes,
+      )
+    : 0;
 
   return (
     <div className="cyber-card p-6 rounded-xl">
       <h2 className="text-xl font-mono text-neon-pink mb-2">{t('vpnUsage') || 'VPN Usage'}</h2>
       {isLoading ? (
-        <div className="text-2xl font-display text-muted-foreground animate-pulse">Loading...</div>
+        <div className="text-2xl font-display text-muted-foreground animate-pulse">
+          Loading...
+        </div>
       ) : (
         <div className="space-y-4">
           <div>
             <div className="flex justify-between items-baseline mb-2">
               <span className="text-2xl font-display text-neon-cyan drop-shadow-glow">
-                {formatDataUsage(usage?.bandwidth_used_bytes)}
+                {usageAvailable
+                  ? formatDataUsage(usage?.bandwidth_used_bytes)
+                  : 'Unavailable'}
               </span>
               <span className="text-sm text-muted-foreground font-mono">
-                / {formatDataUsage(usage?.bandwidth_limit_bytes)}
+                {usageAvailable
+                  ? `/ ${formatDataUsage(usage?.bandwidth_limit_bytes)}`
+                  : ''}
               </span>
             </div>
             <div className="h-2 bg-grid-line/30 rounded-full overflow-hidden">
@@ -203,12 +222,16 @@ const VpnUsageCard = memo(() => {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-mono">
-              {percentage.toFixed(1)}% used
+              {usageAvailable
+                ? `${percentage.toFixed(1)}% used`
+                : 'Usage unavailable'}
             </p>
           </div>
           <div className="pt-2 border-t border-grid-line/30">
             <div className="text-3xl font-display text-neon-purple drop-shadow-glow">
-              {usage?.connections_active?.toLocaleString() ?? '0'}
+              {usageAvailable
+                ? usage?.connections_active?.toLocaleString() ?? '0'
+                : '--'}
             </div>
             <p className="text-xs text-muted-foreground mt-1">{t('activeConnections') || 'Active Connections'}</p>
           </div>

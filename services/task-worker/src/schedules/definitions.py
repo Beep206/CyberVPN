@@ -42,6 +42,7 @@ from src.utils.constants import (
     SCHEDULE_REPORT_DAILY,
     SCHEDULE_REPORT_WEEKLY,
     SCHEDULE_SERVICES_HEALTH,
+    SCHEDULE_STAGE1_PAYMENT_RECONCILIATION,
     SCHEDULE_SUBSCRIPTION_CHECK,
     SCHEDULE_SYNC_GEOLOCATIONS,
     SCHEDULE_SYNC_NODE_CONFIGS,
@@ -263,6 +264,12 @@ verify_pending_payments = _schedule_task(
     verify_pending_payments, [{"cron": SCHEDULE_PAYMENT_VERIFY}]
 )
 
+from src.tasks.payments.reconcile_stage1 import reconcile_stage1_payments
+
+reconcile_stage1_payments = _schedule_task(
+    reconcile_stage1_payments, [{"cron": SCHEDULE_STAGE1_PAYMENT_RECONCILIATION}]
+)
+
 from src.tasks.payments.reconcile_telegram_stars import (
     reconcile_telegram_stars_refunds,
 )
@@ -372,7 +379,7 @@ def register_schedules() -> None:
     """Log schedule registration. Tasks are auto-discovered via labels."""
     logger.info(
         "schedules_registered",
-        total=31,
+        total=32,
         categories=[
             "notifications",
             "monitoring",

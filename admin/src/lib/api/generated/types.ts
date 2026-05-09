@@ -4763,7 +4763,7 @@ export interface paths {
         put?: never;
         /**
          * Activate trial period
-         * @description Activate a 7-day trial period for the authenticated user.
+         * @description Activate an S1 trial period for the authenticated user.
          */
         post: operations["activate_trial_api_v1_trial_activate_post"];
         delete?: never;
@@ -6434,6 +6434,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/partner-workspaces/{workspace_id}/realtime/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream Partner Workspace Feed */
+        get: operations["stream_partner_workspace_feed_api_v1_partner_workspaces__workspace_id__realtime_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wallet/balance": {
         parameters: {
             query?: never;
@@ -7903,6 +7920,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/payment-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Payment Attempts */
+        get: operations["list_admin_payment_attempts_api_v1_admin_payment_attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/payment-attempts/{payment_attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Payment Attempt */
+        get: operations["get_admin_payment_attempt_api_v1_admin_payment_attempts__payment_attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/payment-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Customer Payment Attempts For Support */
+        get: operations["list_customer_payment_attempts_for_support_api_v1_admin_mobile_users__user_id__payment_attempts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/mobile-users/{user_id}/notes": {
         parameters: {
             query?: never;
@@ -7966,6 +8034,40 @@ export interface paths {
         put?: never;
         /** Disable Customer Vpn User */
         post: operations["disable_customer_vpn_user_api_v1_admin_mobile_users__user_id__vpn_user_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/vpn-user/regenerate-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenerate Customer Vpn Credentials */
+        post: operations["regenerate_customer_vpn_credentials_api_v1_admin_mobile_users__user_id__vpn_user_regenerate_credentials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mobile-users/{user_id}/subscription/manual-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Manual Customer Subscription */
+        post: operations["apply_manual_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_manual_grant_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8437,6 +8539,26 @@ export interface paths {
         get: operations["get_bot_user_service_state_api_v1_telegram_bot_user__telegram_id__service_state_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/telegram/bot/user/{telegram_id}/support/escalations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Bot User Support Escalation
+         * @description Create an admin-visible support escalation from Telegram bot first-line triage.
+         */
+        post: operations["create_bot_user_support_escalation_api_v1_telegram_bot_user__telegram_id__support_escalations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10378,6 +10500,120 @@ export interface components {
              */
             plan_id?: string | null;
         };
+        /** AdminCustomerCredentialRegenerationRequest */
+        AdminCustomerCredentialRegenerationRequest: {
+            /** Reason */
+            reason: string;
+            /**
+             * Revoke Only Passwords
+             * @default false
+             */
+            revoke_only_passwords: boolean;
+        };
+        /** AdminCustomerCredentialRegenerationResponse */
+        AdminCustomerCredentialRegenerationResponse: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Remnawave Uuid
+             * Format: uuid
+             */
+            remnawave_uuid: string;
+            /** Status */
+            status: string;
+            /**
+             * Short Uuid Changed
+             * @default false
+             */
+            short_uuid_changed: boolean;
+            /**
+             * Subscription Url Changed
+             * @default false
+             */
+            subscription_url_changed: boolean;
+            /**
+             * Revoke Only Passwords
+             * @default false
+             */
+            revoke_only_passwords: boolean;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Regenerated At
+             * Format: date-time
+             */
+            regenerated_at: string;
+            /**
+             * Config Delivery Required
+             * @default true
+             */
+            config_delivery_required: boolean;
+            /** Audit Action */
+            audit_action: string;
+        };
+        /** AdminCustomerManualSubscriptionRequest */
+        AdminCustomerManualSubscriptionRequest: {
+            /** Reason */
+            reason: string;
+            /** Duration Days */
+            duration_days: number;
+            /**
+             * Device Limit
+             * @default 1
+             */
+            device_limit: number;
+            /** Traffic Limit Bytes */
+            traffic_limit_bytes?: number | null;
+        };
+        /** AdminCustomerManualSubscriptionResponse */
+        AdminCustomerManualSubscriptionResponse: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Remnawave Uuid
+             * Format: uuid
+             */
+            remnawave_uuid: string;
+            /** Status */
+            status: string;
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "grant" | "extend";
+            /** Duration Days */
+            duration_days: number;
+            /** Previous Expires At */
+            previous_expires_at?: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Created
+             * @default false
+             */
+            created: boolean;
+            /**
+             * Subscription Url Changed
+             * @default false
+             */
+            subscription_url_changed: boolean;
+            /**
+             * Config Delivery Required
+             * @default true
+             */
+            config_delivery_required: boolean;
+            /** Audit Action */
+            audit_action: string;
+        };
         /**
          * AdminCustomerOperationsActionKind
          * @enum {string}
@@ -12248,6 +12484,108 @@ export interface components {
             /** Limit */
             limit: number;
         };
+        /** AdminPaymentAttemptListResponse */
+        AdminPaymentAttemptListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminPaymentAttemptResponse"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /**
+         * AdminPaymentAttemptResponse
+         * @description Admin-safe payment attempt row.
+         *
+         *     Provider snapshots, request snapshots, idempotency keys, checkout URLs and
+         *     raw external references are intentionally excluded.
+         */
+        AdminPaymentAttemptResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Visibility
+             * @enum {string}
+             */
+            visibility: "support" | "finance";
+            /** Payment Id */
+            payment_id?: string | null;
+            /** Payment Record Present */
+            payment_record_present: boolean;
+            /** Attempt Number */
+            attempt_number: number;
+            /** Provider */
+            provider: string;
+            /** Sale Channel */
+            sale_channel: string;
+            /** Status */
+            status: string;
+            stage1_payment_state: components["schemas"]["Stage1PaymentState"];
+            /** Displayed Amount */
+            displayed_amount: number;
+            /** Currency Code */
+            currency_code: string;
+            /** Wallet Amount */
+            wallet_amount?: number | null;
+            /** Gateway Amount */
+            gateway_amount?: number | null;
+            /** Provider Status */
+            provider_status?: string | null;
+            /** External Reference Fingerprint */
+            external_reference_fingerprint?: string | null;
+            /** Idempotency Key Present */
+            idempotency_key_present: boolean;
+            /** Invoice Present */
+            invoice_present: boolean;
+            /** Invoice Expires At */
+            invoice_expires_at?: string | null;
+            /** Order Status */
+            order_status: string;
+            /** Settlement Status */
+            settlement_status: string;
+            /** Age Minutes */
+            age_minutes: number;
+            /**
+             * Review State
+             * @enum {string}
+             */
+            review_state: "ok" | "manual_review" | "alert_15m" | "p1_escalation" | "p0_blocker";
+            /** Review Reason */
+            review_reason?: string | null;
+            /** Manual Review Required */
+            manual_review_required: boolean;
+            /** Support Escalation */
+            support_escalation: boolean;
+            /** Launch Blocker */
+            launch_blocker: boolean;
+            /** Terminal At */
+            terminal_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Redacted Fields */
+            redacted_fields?: string[];
+        };
         /** AdminProcessWithdrawalRequest */
         AdminProcessWithdrawalRequest: {
             /** Admin Note */
@@ -12343,7 +12681,7 @@ export interface components {
          * AdminRole
          * @enum {string}
          */
-        AdminRole: "super_admin" | "admin" | "operator" | "support" | "viewer";
+        AdminRole: "owner/super_admin" | "super_admin" | "admin" | "operator" | "finance" | "support" | "viewer";
         /** AdminSupportActorSummary */
         AdminSupportActorSummary: {
             /** Id */
@@ -23902,6 +24240,12 @@ export interface components {
             algorithm: string | null;
         };
         /**
+         * Stage1PaymentState
+         * @description Canonical payment state for web, Telegram, admin and support views.
+         * @enum {string}
+         */
+        Stage1PaymentState: "not_started" | "quote_ready" | "pending" | "processing" | "paid" | "failed" | "cancelled" | "expired" | "refunded" | "orphan_review_required" | "reconciliation_required";
+        /**
          * StatementAdjustmentDirection
          * @enum {string}
          */
@@ -24335,6 +24679,60 @@ export interface components {
             auto_renew: boolean;
         };
         /**
+         * TelegramBotSupportEscalationRequest
+         * @description Support escalation payload created by the Telegram bot first-line triage.
+         */
+        TelegramBotSupportEscalationRequest: {
+            /** Support Reference */
+            support_reference: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "payment" | "provisioning" | "connectivity" | "account" | "legal_abuse" | "general";
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "p0" | "p1" | "p2" | "p3";
+            /** Safe Summary */
+            safe_summary: string;
+            /** First Line Reply Key */
+            first_line_reply_key: string;
+            /**
+             * Source
+             * @default telegram_bot
+             * @constant
+             */
+            source: "telegram_bot";
+            /** Telegram Username */
+            telegram_username?: string | null;
+        };
+        /**
+         * TelegramBotSupportEscalationResponse
+         * @description Bot-facing response for an accepted support escalation.
+         */
+        TelegramBotSupportEscalationResponse: {
+            /** Support Reference */
+            support_reference: string;
+            /**
+             * Status
+             * @default accepted
+             * @constant
+             */
+            status: "accepted";
+            /**
+             * User Uuid
+             * Format: uuid
+             */
+            user_uuid: string;
+            /**
+             * Note Id
+             * Format: uuid
+             */
+            note_id: string;
+        };
+        /**
          * TelegramBotTrialStatusResponse
          * @description Bot-facing trial status and eligibility.
          */
@@ -24359,9 +24757,24 @@ export interface components {
             days_remaining: number;
             /**
              * Duration Days
-             * @default 0
+             * @default 3
              */
             duration_days: number;
+            /**
+             * Device Limit
+             * @default 1
+             */
+            device_limit: number;
+            /**
+             * Traffic Limit Bytes
+             * @default 2147483648
+             */
+            traffic_limit_bytes: number;
+            /**
+             * One Trial Per Account
+             * @default true
+             */
+            one_trial_per_account: boolean;
             /** Expires At */
             expires_at?: string | null;
             entitlements_snapshot?: components["schemas"]["CurrentEntitlementsResponse"] | null;
@@ -25247,6 +25660,30 @@ export interface components {
              * @description Human-readable status message
              */
             message: string;
+            /**
+             * Duration Days
+             * @description Canonical S1 trial duration in days
+             * @default 3
+             */
+            duration_days: number;
+            /**
+             * Device Limit
+             * @description Canonical S1 trial device limit
+             * @default 1
+             */
+            device_limit: number;
+            /**
+             * Traffic Limit Bytes
+             * @description Canonical S1 trial traffic limit in bytes
+             * @default 2147483648
+             */
+            traffic_limit_bytes: number;
+            /**
+             * One Trial Per Account
+             * @description Whether S1 allows only one trial per account
+             * @default true
+             */
+            one_trial_per_account: boolean;
         };
         /**
          * TrialStatusResponse
@@ -25279,6 +25716,30 @@ export interface components {
              * @description Whether user is eligible for trial (hasn't used one)
              */
             is_eligible: boolean;
+            /**
+             * Duration Days
+             * @description Canonical S1 trial duration in days
+             * @default 3
+             */
+            duration_days: number;
+            /**
+             * Device Limit
+             * @description Canonical S1 trial device limit
+             * @default 1
+             */
+            device_limit: number;
+            /**
+             * Traffic Limit Bytes
+             * @description Canonical S1 trial traffic limit in bytes
+             * @default 2147483648
+             */
+            traffic_limit_bytes: number;
+            /**
+             * One Trial Per Account
+             * @description Whether S1 allows only one trial per account
+             * @default true
+             */
+            one_trial_per_account: boolean;
         };
         /**
          * TwoFactorDisableRequest
@@ -40172,6 +40633,37 @@ export interface operations {
             };
         };
     };
+    stream_partner_workspace_feed_api_v1_partner_workspaces__workspace_id__realtime_feed_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_wallet_api_v1_wallet_balance_get: {
         parameters: {
             query?: never;
@@ -42686,6 +43178,111 @@ export interface operations {
             };
         };
     };
+    list_admin_payment_attempts_api_v1_admin_payment_attempts_get: {
+        parameters: {
+            query?: {
+                /** @description Filter by customer account id */
+                user_id?: string | null;
+                /** @description Filter by order id */
+                order_id?: string | null;
+                status?: string | null;
+                provider?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentAttemptListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_payment_attempt_api_v1_admin_payment_attempts__payment_attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentAttemptResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_customer_payment_attempts_for_support_api_v1_admin_mobile_users__user_id__payment_attempts_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                provider?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPaymentAttemptListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_customer_staff_notes_api_v1_admin_mobile_users__user_id__notes_get: {
         parameters: {
             query?: {
@@ -42843,6 +43440,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminCustomerVpnUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_customer_vpn_credentials_api_v1_admin_mobile_users__user_id__vpn_user_regenerate_credentials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerCredentialRegenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerCredentialRegenerationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_manual_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_manual_grant_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCustomerManualSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCustomerManualSubscriptionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -43681,6 +44348,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentServiceStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_bot_user_support_escalation_api_v1_telegram_bot_user__telegram_id__support_escalations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path: {
+                telegram_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramBotSupportEscalationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramBotSupportEscalationResponse"];
                 };
             };
             /** @description Validation Error */

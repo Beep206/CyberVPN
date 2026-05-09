@@ -3,5 +3,15 @@
   "subtitle": "Ṣàkóso àwọn ojúpọ̀ VPN, ìlànà, àti àwọn agbègbè ìránṣẹ́.",
   "globalStatus": "IPÒ ÀGBÁYÉ: {status}",
   "globalStatusValue": "TI PÈSÈ",
-  "lastSync": "ÌṢỌ̀KAN ÌKẸYÌN: {time} SẸYÌN"
+  "lastSync": "ÌṢỌ̀KAN ÌKẸYÌN: {time} SẸYÌN",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

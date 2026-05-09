@@ -1,0 +1,96 @@
+{
+  "backlog_id": "S1-TG-004",
+  "base_url": "http://localhost:3000",
+  "telegram_runtime_injected": true,
+  "telegram_init_data_injected": false,
+  "telegram_identity_scope": "S1-TG-005",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "device_scale_factor": 2
+  },
+  "routes": [
+    {
+      "name": "home",
+      "url": "http://localhost:3000/en-EN/miniapp/home",
+      "screenshot": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/screenshots/home.png",
+      "text_dump": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/route-text/home.txt",
+      "required_text": [
+        "Subscription Active",
+        "Plus Beta",
+        "VPN Configuration",
+        "Usage Statistics"
+      ],
+      "console_errors": [],
+      "page_errors": []
+    },
+    {
+      "name": "plans",
+      "url": "http://localhost:3000/en-EN/miniapp/plans",
+      "screenshot": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/screenshots/plans.png",
+      "text_dump": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/route-text/plans.txt",
+      "required_text": [
+        "Choose Your Plan",
+        "Basic",
+        "Plus",
+        "180 days"
+      ],
+      "console_errors": [],
+      "page_errors": []
+    },
+    {
+      "name": "payments",
+      "url": "http://localhost:3000/en-EN/miniapp/payments",
+      "screenshot": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/screenshots/payments.png",
+      "text_dump": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/route-text/payments.txt",
+      "required_text": [
+        "Payment History",
+        "Plus Beta 30 days",
+        "$14.99"
+      ],
+      "console_errors": [],
+      "page_errors": []
+    },
+    {
+      "name": "devices",
+      "url": "http://localhost:3000/en-EN/miniapp/devices",
+      "screenshot": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/screenshots/devices.png",
+      "text_dump": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/route-text/devices.txt",
+      "required_text": [
+        "Active Devices",
+        "Chrome on Windows",
+        "Current"
+      ],
+      "console_errors": [],
+      "page_errors": []
+    },
+    {
+      "name": "profile",
+      "url": "http://localhost:3000/en-EN/miniapp/profile",
+      "screenshot": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/screenshots/profile.png",
+      "text_dump": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/route-text/profile.txt",
+      "required_text": [
+        "s1_tg_004",
+        "Security",
+        "Payment History",
+        "Partner Dashboard"
+      ],
+      "console_errors": [],
+      "page_errors": []
+    },
+    {
+      "name": "wallet",
+      "url": "http://localhost:3000/en-EN/miniapp/wallet",
+      "screenshot": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/screenshots/wallet.png",
+      "text_dump": "docs/cybervpn_stage1_launch_docs/evidence/s1-tg-004/route-text/wallet.txt",
+      "required_text": [
+        "Wallet Balance",
+        "$27.50",
+        "Transaction History",
+        "S1 local wallet deposit"
+      ],
+      "console_errors": [],
+      "page_errors": []
+    }
+  ]
+}

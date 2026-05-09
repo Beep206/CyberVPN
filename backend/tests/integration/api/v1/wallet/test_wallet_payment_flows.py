@@ -10,6 +10,7 @@ These scenarios exercise the current mobile-user wallet and payments contract:
 import secrets
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -21,6 +22,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
+from src.infrastructure.database.models.system_config_model import SystemConfigModel
 from src.infrastructure.database.models.wallet_model import WalletModel
 from src.infrastructure.database.models.withdrawal_request_model import WithdrawalRequestModel
 from src.main import app
@@ -42,6 +44,21 @@ def _override_admin_user(user: AdminUserModel) -> None:
 
 def _override_mobile_user(user_id) -> None:
     app.dependency_overrides[get_current_mobile_user_id] = lambda: user_id
+
+
+async def _set_wallet_withdrawals_enabled(db: AsyncSession, *, enabled: bool) -> None:
+    config = await db.get(SystemConfigModel, "wallet.withdrawal_enabled")
+    if config is None:
+        db.add(
+            SystemConfigModel(
+                key="wallet.withdrawal_enabled",
+                value={"enabled": enabled},
+                description="Whether withdrawals are enabled",
+            )
+        )
+    else:
+        config.value = {"enabled": enabled}
+    await db.commit()
 
 
 async def _create_admin_user(db: AsyncSession, *, role: str = "admin") -> AdminUserModel:
@@ -127,6 +144,7 @@ class TestWalletFlow:
     ):
         admin = await _create_admin_user(db)
         mobile_user, _wallet = await _create_mobile_user(db, balance="0.00")
+        await _set_wallet_withdrawals_enabled(db, enabled=True)
 
         _override_admin_user(admin)
         topup_response = await async_client.post(
@@ -175,6 +193,7 @@ class TestWalletFlow:
         db: AsyncSession,
     ):
         mobile_user, _wallet = await _create_mobile_user(db, balance="100.00")
+        await _set_wallet_withdrawals_enabled(db, enabled=True)
         _override_mobile_user(mobile_user.id)
 
         withdraw_response = await async_client.post(
@@ -186,12 +205,34 @@ class TestWalletFlow:
         assert "minimum" in withdraw_response.json()["detail"].lower()
 
     @pytest.mark.integration
+    async def test_withdrawal_requests_are_disabled_by_default_for_s1(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+    ):
+        mobile_user, wallet = await _create_mobile_user(db, balance="100.00")
+        await _set_wallet_withdrawals_enabled(db, enabled=False)
+        _override_mobile_user(mobile_user.id)
+
+        withdraw_response = await async_client.post(
+            "/api/v1/wallet/withdraw",
+            json={"amount": "50.00", "method": "cryptobot"},
+        )
+
+        assert withdraw_response.status_code == 400
+        assert withdraw_response.json()["detail"] == "Withdrawals are currently disabled"
+        await db.refresh(wallet)
+        assert wallet.balance == Decimal("100.00")
+        assert wallet.frozen == Decimal("0.00")
+
+    @pytest.mark.integration
     async def test_withdrawal_insufficient_balance(
         self,
         async_client: AsyncClient,
         db: AsyncSession,
     ):
         mobile_user, _wallet = await _create_mobile_user(db, balance="10.00")
+        await _set_wallet_withdrawals_enabled(db, enabled=True)
         _override_mobile_user(mobile_user.id)
 
         withdraw_response = await async_client.post(
@@ -210,6 +251,7 @@ class TestWalletFlow:
     ):
         admin = await _create_admin_user(db)
         mobile_user, _wallet = await _create_mobile_user(db, balance="100.00")
+        await _set_wallet_withdrawals_enabled(db, enabled=True)
 
         _override_mobile_user(mobile_user.id)
         withdraw_response = await async_client.post(
@@ -407,12 +449,12 @@ class TestPaymentHistory:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        admin = await _create_admin_user(db)
-        mobile_user, _wallet = await _create_mobile_user(db, balance="0.00")
+        mobile_user_id = uuid4()
+        other_user_id = uuid4()
 
         for idx in range(5):
             payment = PaymentModel(
-                user_uuid=mobile_user.id,
+                user_uuid=mobile_user_id,
                 amount=Decimal(f"{(idx + 1) * 10}.00"),
                 currency="USD",
                 status="completed",
@@ -422,17 +464,30 @@ class TestPaymentHistory:
             )
             db.add(payment)
 
+        db.add(
+            PaymentModel(
+                user_uuid=other_user_id,
+                amount=Decimal("999.00"),
+                currency="USD",
+                status="completed",
+                provider="cryptobot",
+                subscription_days=30,
+                external_id="pay-other-user-raw-reference",
+            )
+        )
         await db.commit()
 
-        _override_admin_user(admin)
+        _override_mobile_user(mobile_user_id)
         history_response = await async_client.get(
-            f"/api/v1/payments/history?user_uuid={mobile_user.id}&limit=3"
+            f"/api/v1/payments/history?user_uuid={other_user_id}&limit=3"
         )
 
         assert history_response.status_code == 200
         history_data = history_response.json()
         assert "payments" in history_data
-        assert len(history_data["payments"]) <= 3
+        assert len(history_data["payments"]) == 3
+        assert {payment["amount"] for payment in history_data["payments"]} <= {10.0, 20.0, 30.0, 40.0, 50.0}
+        assert all("external_id" not in payment for payment in history_data["payments"])
 
 
 class TestAdminWalletOperations:

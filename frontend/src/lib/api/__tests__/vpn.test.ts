@@ -39,9 +39,13 @@ const MOCK_USAGE = {
   bandwidth_limit_bytes: 10737418240, // 10 GB
   connections_active: 2,
   connections_limit: 5,
+  generated_at: '2025-01-15T10:30:05Z',
   period_start: '2025-01-01T00:00:00Z',
   period_end: '2025-01-31T23:59:59Z',
   last_connection_at: '2025-01-15T10:30:00Z',
+  usage_available: true,
+  usage_source: 'remnawave',
+  usage_unavailable_reason: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -82,6 +86,8 @@ describe('vpnApi.getUsage', () => {
     expect(response.data.period_start).toBe('2025-01-01T00:00:00Z');
     expect(response.data.period_end).toBe('2025-01-31T23:59:59Z');
     expect(response.data.last_connection_at).toBe('2025-01-15T10:30:00Z');
+    expect(response.data.usage_available).toBe(true);
+    expect(response.data.usage_source).toBe('remnawave');
   });
 
   it('test_get_usage_unauthenticated_rejects_with_401', async () => {

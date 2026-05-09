@@ -33,6 +33,10 @@ type AdminCustomerPasswordResetRequest =
   operations['reset_customer_password_api_v1_admin_mobile_users__user_id__credentials_reset_password_post']['requestBody']['content']['application/json'];
 type AdminCustomerPasswordResetResponse =
   operations['reset_customer_password_api_v1_admin_mobile_users__user_id__credentials_reset_password_post']['responses'][200]['content']['application/json'];
+type AdminCustomerCredentialRegenerationRequest =
+  operations['regenerate_customer_vpn_credentials_api_v1_admin_mobile_users__user_id__vpn_user_regenerate_credentials_post']['requestBody']['content']['application/json'];
+type AdminCustomerCredentialRegenerationResponse =
+  operations['regenerate_customer_vpn_credentials_api_v1_admin_mobile_users__user_id__vpn_user_regenerate_credentials_post']['responses'][200]['content']['application/json'];
 type AdminCustomerSubscriptionResyncResponse =
   operations['resync_customer_subscription_api_v1_admin_mobile_users__user_id__subscription_resync_post']['responses'][200]['content']['application/json'];
 type AdminCustomerTimelineParams =
@@ -131,6 +135,12 @@ export const customersApi = {
   resetPassword: (userId: string, data: AdminCustomerPasswordResetRequest) =>
     apiClient.post<AdminCustomerPasswordResetResponse>(`/admin/mobile-users/${userId}/credentials/reset-password`, data),
 
+  regenerateVpnCredentials: (userId: string, data: AdminCustomerCredentialRegenerationRequest) =>
+    apiClient.post<AdminCustomerCredentialRegenerationResponse>(
+      `/admin/mobile-users/${userId}/vpn-user/regenerate-credentials`,
+      data,
+    ),
+
   resyncSubscription: (userId: string, data: AdminCustomerSupportActionRequest = {}) =>
     apiClient.post<AdminCustomerSubscriptionResyncResponse>(`/admin/mobile-users/${userId}/subscription/resync`, data),
 
@@ -173,6 +183,8 @@ export type {
   AdminCreateCustomerStaffNoteResponse,
   AdminCustomerPasswordResetRequest,
   AdminCustomerPasswordResetResponse,
+  AdminCustomerCredentialRegenerationRequest,
+  AdminCustomerCredentialRegenerationResponse,
   AdminCustomerStaffNotesParams,
   AdminCustomerStaffNotesResponse,
   AdminCustomerSubscriptionResyncResponse,

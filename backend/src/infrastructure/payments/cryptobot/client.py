@@ -5,16 +5,23 @@ from src.config.settings import settings
 
 
 class CryptoBotClient:
-    BASE_URL = "https://pay.crypt.bot/api"
+    NETWORK_BASE_URLS = {
+        "mainnet": "https://pay.crypt.bot/api",
+        "testnet": "https://testnet-pay.crypt.bot/api",
+    }
 
-    def __init__(self, token: SecretStr | None = None) -> None:
+    def __init__(self, token: SecretStr | None = None, network: str | None = None) -> None:
         self._token = token or getattr(settings, "cryptobot_token", None)
+        self.network = network or getattr(settings, "cryptobot_network", "mainnet")
+        if self.network not in self.NETWORK_BASE_URLS:
+            raise ValueError("Unsupported CryptoBot network. Expected 'mainnet' or 'testnet'.")
+        self.base_url = self.NETWORK_BASE_URLS[self.network]
         self._client: AsyncClient | None = None
 
     async def _get_client(self) -> AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = AsyncClient(
-                base_url=self.BASE_URL,
+                base_url=self.base_url,
                 headers={"Crypto-Pay-API-Token": self._token.get_secret_value() if self._token else ""},
                 timeout=30.0,
             )

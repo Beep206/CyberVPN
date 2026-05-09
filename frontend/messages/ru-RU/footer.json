@@ -33,6 +33,9 @@
         "documentation": "Документация",
         "privacy": "Политика конфиденциальности",
         "terms": "Условия использования",
+        "acceptableUse": "Правила использования",
+        "refundPolicy": "Политика возвратов",
+        "cookiePolicy": "Политика cookies",
         "security": "Безопасность"
     }
 }

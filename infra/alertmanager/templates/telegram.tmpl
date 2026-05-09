@@ -2,6 +2,76 @@
 [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.alertname }}
 {{- end }}
 
+{{ define "telegram.stage1.message" -}}
+CyberVPN S1 alert: {{ .Status | toUpper }}
+Receiver: {{ .Receiver }}
+Group: {{ .GroupLabels }}
+Firing: {{ len .Alerts.Firing }}
+Resolved: {{ len .Alerts.Resolved }}
+
+{{ if gt (len .Alerts.Firing) 0 -}}
+FIRING
+{{ range .Alerts.Firing }}
+- {{ .Labels.alertname }} | severity={{ .Labels.severity }} | priority={{ .Labels.priority }} | service={{ .Labels.service }}
+  Summary: {{ .Annotations.summary }}
+  Description: {{ .Annotations.description }}
+  Dashboard: {{ .Annotations.dashboard_path }}
+  Runbook: {{ .Annotations.runbook_path }}
+  Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+{{ end }}
+{{- end }}
+
+{{ if gt (len .Alerts.Resolved) 0 -}}
+RESOLVED
+{{ range .Alerts.Resolved }}
+- {{ .Labels.alertname }} | severity={{ .Labels.severity }} | priority={{ .Labels.priority }} | service={{ .Labels.service }}
+  Summary: {{ .Annotations.summary }}
+  Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+  Resolved: {{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}
+{{ end }}
+{{- end }}
+
+Alertmanager: {{ .ExternalURL }}
+{{- end }}
+
+{{ define "email.stage1.text" -}}
+CyberVPN S1 alert: {{ .Status | toUpper }}
+Receiver: {{ .Receiver }}
+Group: {{ .GroupLabels }}
+Firing: {{ len .Alerts.Firing }}
+Resolved: {{ len .Alerts.Resolved }}
+
+{{ if gt (len .Alerts.Firing) 0 -}}
+FIRING
+{{ range .Alerts.Firing }}
+- Alert: {{ .Labels.alertname }}
+  Severity: {{ .Labels.severity }}
+  Priority: {{ .Labels.priority }}
+  Service: {{ .Labels.service }}
+  Summary: {{ .Annotations.summary }}
+  Description: {{ .Annotations.description }}
+  Dashboard: {{ .Annotations.dashboard_path }}
+  Runbook: {{ .Annotations.runbook_path }}
+  Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+{{ end }}
+{{- end }}
+
+{{ if gt (len .Alerts.Resolved) 0 -}}
+RESOLVED
+{{ range .Alerts.Resolved }}
+- Alert: {{ .Labels.alertname }}
+  Severity: {{ .Labels.severity }}
+  Priority: {{ .Labels.priority }}
+  Service: {{ .Labels.service }}
+  Summary: {{ .Annotations.summary }}
+  Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+  Resolved: {{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}
+{{ end }}
+{{- end }}
+
+Alertmanager: {{ .ExternalURL }}
+{{- end }}
+
 {{ define "telegram.message" -}}
 {{ if gt (len .Alerts.Firing) 0 -}}
 🔥 *FIRING ALERTS* ({{ .Alerts.Firing | len }})

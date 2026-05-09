@@ -102,6 +102,11 @@ class MiniAppBootstrapDevicesResponse(BaseModel):
 
 
 class MiniAppBootstrapUsageResponse(BaseModel):
+    usage_available: bool = Field(..., alias="usageAvailable")
+    usage_source: Literal["remnawave", "unavailable"] = Field(..., alias="usageSource")
+    usage_unavailable_reason: Literal["upstream_user_not_found", "upstream_unavailable"] | None = Field(
+        None, alias="usageUnavailableReason"
+    )
     bandwidth_used_bytes: int = Field(..., alias="bandwidthUsedBytes")
     bandwidth_limit_bytes: int = Field(..., alias="bandwidthLimitBytes")
     connections_active: int = Field(..., alias="connectionsActive")
@@ -159,8 +164,7 @@ class MiniAppBootstrapRolloutResponse(BaseModel):
     access_granted: bool = Field(..., alias="accessGranted")
     is_canary_user: bool = Field(False, alias="isCanaryUser")
     gate_reason_code: (
-        Literal["runtime_disabled", "maintenance", "rollback", "feature_disabled", "canary_not_allowed"]
-        | None
+        Literal["runtime_disabled", "maintenance", "rollback", "feature_disabled", "canary_not_allowed"] | None
     ) = Field(None, alias="gateReasonCode")
     maintenance_message: str | None = Field(None, alias="maintenanceMessage")
 

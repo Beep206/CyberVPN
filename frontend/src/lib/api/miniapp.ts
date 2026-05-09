@@ -79,6 +79,9 @@ export type MiniAppBootstrap = {
     hasConfig: boolean;
   };
   usage: {
+    usageAvailable: boolean;
+    usageSource: 'remnawave' | 'unavailable';
+    usageUnavailableReason?: 'upstream_user_not_found' | 'upstream_unavailable' | null;
     bandwidthUsedBytes: number;
     bandwidthLimitBytes: number;
     connectionsActive: number;

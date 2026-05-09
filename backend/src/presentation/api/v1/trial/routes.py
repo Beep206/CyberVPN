@@ -1,7 +1,7 @@
 """Trial period management endpoints.
 
 Provides:
-- ``POST /api/v1/trial/activate`` -- activate a 7-day trial
+- ``POST /api/v1/trial/activate`` -- activate an S1 trial
 - ``GET  /api/v1/trial/status``   -- check current trial status
 
 Both endpoints require authentication and track trial usage in the database.
@@ -16,8 +16,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
 from src.application.use_cases.trial.get_trial_status import GetTrialStatusUseCase
+from src.application.use_cases.trial.stage1_trial_policy import (
+    STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX,
+    STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS,
+)
+from src.application.use_cases.trial.stage1_trial_provisioning import Stage1TrialProvisioningGateway
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.monitoring.instrumentation.routes import track_trial_activation
+from src.infrastructure.remnawave.client import remnawave_client
+from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.database import get_db
 
@@ -28,11 +37,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trial", tags=["trial"])
 
 
+async def get_stage1_trial_provisioning_gateway() -> Stage1TrialProvisioningGateway | None:
+    """Return the Remnawave trial provisioning gateway when S1 gate is enabled."""
+
+    if not settings.stage1_trial_provisioning_enabled:
+        return None
+    return RemnawaveStage1TrialProvisioningGateway(RemnawaveUserGateway(remnawave_client))
+
+
 @router.post(
     "/activate",
     response_model=TrialActivateResponse,
     summary="Activate trial period",
-    description="Activate a 7-day trial period for the authenticated user.",
+    description="Activate an S1 trial period for the authenticated user.",
     responses={
         400: {"description": "Trial already activated or currently active"},
         404: {"description": "User not found"},
@@ -43,18 +60,18 @@ async def activate_trial(
     current_user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
+    provisioning_gateway: Stage1TrialProvisioningGateway | None = Depends(get_stage1_trial_provisioning_gateway),
 ) -> TrialActivateResponse:
     """Activate a trial period for the authenticated user.
 
     Checks eligibility (user hasn't used a trial before), then activates
-    a 7-day trial period and records it in the database.
+    an S1 trial period and records it in the database.
 
-    Rate limited to 3 requests per hour per user to prevent abuse.
+    Rate limited to S1 policy values per user to prevent abuse.
     """
-    # Rate limiting: 3 requests per hour per user
     rate_limit_key = f"trial_activate:{current_user_id}"
-    rate_limit_window = 3600  # 1 hour in seconds
-    rate_limit_max = 3
+    rate_limit_window = STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS
+    rate_limit_max = STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX
 
     # Check current request count
     current_count = await redis_client.get(rate_limit_key)
@@ -65,7 +82,7 @@ async def activate_trial(
             detail=f"Rate limit exceeded. Try again in {ttl} seconds.",
         )
 
-    use_case = ActivateTrialUseCase(db)
+    use_case = ActivateTrialUseCase(db, provisioning_gateway=provisioning_gateway)
 
     try:
         result = await use_case.execute(current_user_id)

@@ -1,9 +1,7 @@
 # Stage 1: Builder — compiles C-extensions (argon2-cffi, asyncpg, etc.)
-FROM python:3.13.13-slim-bookworm AS builder
+FROM python:3.13.13-alpine AS builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache build-base
 
 WORKDIR /app
 
@@ -14,10 +12,10 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0"
 RUN pip install --no-cache-dir .
 
 # Stage 2: Runtime — lean image without build-essential
-FROM python:3.13.13-slim-bookworm
+FROM python:3.13.13-alpine
 
 # SEC-002: Create non-root user for security
-RUN groupadd -r cybervpn && useradd -r -g cybervpn cybervpn
+RUN addgroup -S cybervpn && adduser -S -G cybervpn cybervpn
 
 WORKDIR /app
 

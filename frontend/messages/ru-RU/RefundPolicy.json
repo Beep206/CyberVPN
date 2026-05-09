@@ -1,0 +1,63 @@
+{
+    "meta": {
+        "title": "Политика возвратов",
+        "description": "S1 candidate Refund Policy для CyberVPN Controlled Public Beta."
+    },
+    "title": "Политика возвратов",
+    "lastUpdated": "S1 candidate обновлён 5 мая 2026",
+    "intro": "Этот документ является S1 candidate для CyberVPN Controlled Public Beta. Он объясняет, как обрабатываются refund requests для CyberVPN accounts, trial-to-paid flows, Telegram Bot, Telegram Mini App, web checkout и VPN access, выданного через CyberVPN. Это не финальная юридическая консультация; документ должен пройти owner/legal review до публикации как final public legal copy.",
+    "sections": {
+        "scope": {
+            "title": "1. Область действия",
+            "content": "Политика применяется к S1 B2C purchases и payment attempts через PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller и YooKassa, если эти провайдеры включены. Возвраты рассматриваются с учётом payment provider status, CyberVPN subscription state, provisioning state, support evidence, abuse checks и applicable legal requirements."
+        },
+        "request": {
+            "title": "2. Как запросить возврат",
+            "content": "Отправляйте refund requests на refund@cyber-vpn.net или через approved Telegram/support flow. Укажите CyberVPN account email или Telegram ID, payment ID или provider invoice ID, дату оплаты, payment method/provider и короткую причину обращения. Не отправляйте passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN configuration files."
+        },
+        "review": {
+            "title": "3. Правила рассмотрения",
+            "items": {
+                "noGuarantee": "Запрос не гарантирует возврат. CyberVPN должен проверить payment status, provider rules, provisioning status и support evidence до approval или denial refund.",
+                "manualReview": "В S1 refunds проходят manual finance/support review, если для конкретного provider-specific automated path нет отдельного staging и production evidence.",
+                "paidNoAccess": "Paid-but-no-access или orphan payment cases должны уходить в manual review. Ни один unresolved paid-but-no-access/orphan payment не должен быть старше 24 часов без owner/support escalation.",
+                "duplicate": "Duplicate charges, confirmed overpayments, wrong amount или provider-confirmed processing errors являются reviewable cases.",
+                "serviceFault": "Если CyberVPN не может provision или restore paid VPN access после разумных support и retry steps, CyberVPN может предоставить refund, service extension или другую correction, approved by finance/ops.",
+                "abuse": "Fraud, chargeback abuse, policy violations, account resale, credential sharing, malware/spam abuse или другие нарушения Acceptable Use Policy могут уменьшить или исключить refund eligibility там, где это разрешено applicable law.",
+                "fees": "Blockchain network fees, provider fees, conversion spread, exchange fees, bank fees, fiscal/receipt obligations и third-party fees могут быть non-refundable, если provider или applicable law не требуют иного."
+            }
+        },
+        "providerRules": {
+            "title": "4. Правила по провайдерам",
+            "items": {
+                "payram": "PayRam: crypto refunds не являются automatic chargebacks. Refunds должны выполняться manual через merchant-controlled dashboard/API или direct wallet transfer, с wallet-address validation и finance approval.",
+                "nowpayments": "NOWPayments: completed и partially paid crypto transactions обычно выходят из provider custody; CyberVPN должен рассматривать merchant-side refund responsibility, wrong-asset/wrong-network/minimum-amount exceptions и validation requirements NOWPayments.",
+                "cryptobot": "CryptoBot/Crypto Pay: paid invoices являются final provider states для access, но refunds требуют manual support/finance action, transfer/check evidence или другой approved provider workflow. Automatic refund не обещается.",
+                "telegramStars": "Telegram Stars: refund handling доступен только для Telegram Bot/Mini App paid flow после сохранения Telegram payment charge ID и evidence для refundStarPayment path. Bot должен поддерживать /paysupport для payment issues.",
+                "digiseller": "Digiseller: refund handling следует Digiseller purchase/dispute flow, seller balance rules и provider status evidence. Digital goods и delivered credentials требуют manual review до refund decision.",
+                "yookassa": "YooKassa: refunds можно создавать для successful payments, если payment method поддерживает возврат. Full или partial refund handling должен использовать provider evidence, idempotency controls, receipt/fiscalization rules где требуется и finance approval."
+            }
+        },
+        "access": {
+            "title": "5. Влияние на VPN-доступ",
+            "items": {
+                "fullRefund": "Full refund обычно отменяет или отключает paid subscription period, связанный с этим payment.",
+                "partialRefund": "Partial refund может уменьшить subscription time, quota, wallet balance или другое paid entitlement, в зависимости от approved correction.",
+                "trial": "Trial access регулируется trial policy и не создаёт cash refund entitlement.",
+                "pending": "Pending refund request автоматически не pause, extend или disable VPN access, если support/ops не применил отдельную correction."
+            }
+        },
+        "timing": {
+            "title": "6. Сроки",
+            "content": "CyberVPN aims to acknowledge refund/payment support requests within the S1 support targets. Actual refund timing depends on manual review, provider status, blockchain or bank settlement, provider validation and any additional information required from the user."
+        },
+        "evidence": {
+            "title": "7. Evidence and records",
+            "content": "CyberVPN may keep payment, refund, support, audit and provider evidence needed to review the request, prevent fraud, reconcile provider records, respond to disputes and satisfy legal or tax obligations. This must align with the approved Privacy Policy and data-retention evidence."
+        },
+        "changes": {
+            "title": "8. Изменения до go-live",
+            "content": "Этот S1 candidate может измениться до public go-live. Финальная публикация требует owner/legal approval, provider-specific refund evidence, refund@cyber-vpn.net mailbox proof, support/admin workflow evidence и alignment with Terms, Privacy Policy, Acceptable Use Policy and Cookie Policy."
+        }
+    }
+}

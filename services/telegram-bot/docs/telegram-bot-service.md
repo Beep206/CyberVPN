@@ -1787,7 +1787,18 @@ CMD ["python", "-m", "src.main"]
 |------------|-------------|--------------|----------|
 | **Бот** | | | |
 | `BOT_TOKEN` | ✅ | — | Telegram Bot API token |
+| `BOT_USERNAME` | ❌ | — | Active bot username for links and S1 identity checks |
+| `TELEGRAM_BOT_STAGING_USERNAME` | ❌ | — | Staging bot username; must differ from production when both are set |
+| `TELEGRAM_BOT_PRODUCTION_USERNAME` | ❌ | — | Production bot username; must differ from staging when both are set |
 | `BOT_MODE` | ❌ | `polling` | Режим работы: `webhook` / `polling` |
+| `TELEGRAM_BOT_MENU_BUTTON` | ❌ | `commands` | Default menu button: `commands`, `miniapp`, `default` |
+| `TELEGRAM_MINIAPP_URL` | ❌ | — | Required when `TELEGRAM_BOT_MENU_BUTTON=miniapp` |
+| `TELEGRAM_THROTTLE_ENABLED` | ❌ | `true` | Redis-backed anti-spam throttling for messages/callbacks |
+| `TELEGRAM_THROTTLE_FAIL_OPEN` | ❌ | `false` | Allow updates if Redis throttling fails; keep disabled for S1 production |
+| `TELEGRAM_MESSAGE_RATE_WINDOW_SECONDS` | ❌ | `10` | Per-user message throttle window |
+| `TELEGRAM_MESSAGE_RATE_MAX_REQUESTS` | ❌ | `5` | Max messages per user per message window |
+| `TELEGRAM_CALLBACK_RATE_WINDOW_SECONDS` | ❌ | `3` | Per-user callback throttle window |
+| `TELEGRAM_CALLBACK_RATE_MAX_REQUESTS` | ❌ | `3` | Max callbacks per user per callback window |
 | `BOT_SECRET_TOKEN` | ❌ | — | Secret token для webhook verification |
 | `WEBHOOK_URL` | ❌ | — | Публичный URL для webhook (https://...) |
 | `WEBHOOK_PATH` | ❌ | `/webhook/telegram` | Path для webhook endpoint |

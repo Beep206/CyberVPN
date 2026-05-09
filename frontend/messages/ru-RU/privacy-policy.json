@@ -1,97 +1,98 @@
 {
   "meta": {
     "title": "Privacy Policy - CyberVPN",
-    "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices."
+    "description": "Privacy notice для Controlled Public Beta: категории данных, retention criteria, limits no-logs claims, providers и privacy contacts."
   },
   "title": "Privacy Policy",
-  "lastUpdated": "Last Updated",
+  "lastUpdated": "Last Updated: 2026-05-05 (S1 candidate; final legal review required before go-live)",
   "sections": {
     "dataCollection": {
-      "title": "Data Collection",
-      "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+      "title": "Какие данные мы обрабатываем",
+      "intro": "CyberVPN обрабатывает данные, необходимые для S1 Controlled Public Beta: входа в аккаунт, выдачи VPN-доступа, платежей, защиты от abuse и поддержки пользователей:",
       "items": {
-        "accountInfo": "Account information (email address, username)",
-        "paymentInfo": "Payment information (processed securely by third-party providers)",
-        "deviceInfo": "Device and connection metadata (device type, operating system)",
-        "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+        "accountInfo": "Account и authentication data: email, username/display name, password hash, 2FA/TOTP state, Telegram ID/username при привязке, OAuth provider identifiers и profile email при использовании.",
+        "paymentInfo": "Commercial и payment data: plan, trial, subscription, wallet state, provider name, provider transaction identifiers, payment status, refund/dispute metadata и reconciliation records.",
+        "deviceInfo": "Device, access и provisioning data: session identifiers, refresh-token metadata, device ID если передан, IP address и user-agent в auth/security logs, Remnawave user reference, subscription URL state и device credential state.",
+        "usageStats": "Operational data: support tickets/staff notes, notification delivery state, audit logs, webhook payload snapshots, security/rate-limit events, backup presence и aggregated service health/traffic counters where enabled."
       }
     },
     "noLogPolicy": {
-      "title": "No-Log Policy",
-      "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
-      "details": "This means:",
+      "title": "VPN activity и limits no-logs claims",
+      "statement": "Для S1 CyberVPN не намерен хранить browsing content, visited websites или raw VPN traffic content в CyberVPN app/backend.",
+      "details": "Не считайте это финальным audited no-logs claim. Финальная публичная формулировка no-logs должна быть проверена по backend logs, Remnawave behavior, VPN node logs, support tooling, payment providers и observability tools до go-live. Security, payment, support и provisioning records всё ещё могут содержать personal data: account identifiers, IP address, user-agent, provider IDs или timestamps.",
       "notLogged": {
-        "browsing": "No browsing history or website visits",
-        "connections": "No connection timestamps or session duration",
-        "traffic": "No traffic data or content inspection",
-        "dns": "No DNS queries or IP addresses"
+        "browsing": "Browsing content и visited website content не должны сохраняться CyberVPN app/backend.",
+        "connections": "Connection/session metadata должны быть проверены по Remnawave и node configuration до любых более сильных публичных claims.",
+        "traffic": "Raw VPN traffic content не должен просматриваться CyberVPN support/admin tooling.",
+        "dns": "DNS query logging должен быть проверен по фактической node и resolver configuration до финальной публикации."
       }
     },
     "dataRetention": {
-      "title": "Data Retention",
-      "description": "We retain data only as long as necessary:",
+      "title": "Retention criteria",
+      "description": "Сроки хранения зависят от статуса аккаунта, security needs, provider obligations и final legal review. Для S1 действуют такие operating rules, если финальная policy не утвердит более строгие правила:",
       "policies": {
-        "accountData": "Account data: retained while your account is active",
-        "paymentRecords": "Payment records: 7 years for legal compliance",
-        "supportLogs": "Support logs: 90 days after ticket closure",
-        "deletedAccounts": "Deleted account data: permanently erased within 30 days"
+        "accountData": "Account, authentication и subscription data: хранится, пока аккаунт активен, и далее в период, необходимый для security, abuse, accounting, support, deletion и backup windows.",
+        "paymentRecords": "Payment, refund, dispute и reconciliation records: хранятся для provider, finance, tax, fraud-prevention и legal obligations; финальный срок зависит от legal seller jurisdiction и enabled provider rules.",
+        "supportLogs": "Support tickets, staff notes и notification records: целевой срок 90 дней после закрытия, если записи не нужны для fraud, abuse, paid-no-access, legal, safety или accounting reasons.",
+        "deletedAccounts": "Validated deletion requests: operational account deletion target — 30 дней, кроме records, которые нужно хранить для payment, security, legal, fraud, backup или abuse handling. S1 PostgreSQL backups хранятся 14 дней по утверждённой backup policy."
       }
     },
     "gdprRights": {
-      "title": "Your GDPR Rights",
-      "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+      "title": "Privacy rights",
+      "intro": "В зависимости от вашей локации и применимого закона у вас могут быть права на access, correction, deletion, portability, objection или restriction. В S1 часть запросов может обрабатываться вручную через support/privacy process, пока automated export/delete flows не завершены.",
       "rights": {
         "access": {
-          "title": "Right to Access",
-          "description": "Request a copy of your personal data"
+          "title": "Access",
+          "description": "Запросить копию или summary personal data, связанных с вашим аккаунтом."
         },
         "rectification": {
-          "title": "Right to Rectification",
-          "description": "Correct inaccurate or incomplete data"
+          "title": "Correction",
+          "description": "Запросить исправление неточных account, Telegram/OAuth или support data."
         },
         "erasure": {
-          "title": "Right to Erasure",
-          "description": "Request deletion of your personal data"
+          "title": "Deletion",
+          "description": "Запросить удаление аккаунта с учётом payment, security, legal, fraud, backup и abuse-retention limits."
         },
         "portability": {
-          "title": "Right to Data Portability",
-          "description": "Receive your data in a machine-readable format"
+          "title": "Portability",
+          "description": "Запросить portable account-data export, если технически доступно, или manual support export во время S1."
         },
         "objection": {
-          "title": "Right to Object",
-          "description": "Object to processing of your data"
+          "title": "Objection or Restriction",
+          "description": "Возразить против optional processing или запросить restriction where applicable. Service-critical processing может быть необходим для выдачи VPN access."
         }
       }
     },
     "dataSecurity": {
-      "title": "Data Security",
-      "description": "We implement industry-standard security measures:",
+      "title": "Security controls",
+      "description": "CyberVPN использует security controls для controlled beta, но ни один public security claim не считается финальным без deployment evidence:",
       "measures": {
-        "encryption": "End-to-end encryption for all VPN traffic",
-        "accessControl": "Strict access controls and authentication",
-        "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)",
-        "regularAudits": "Regular security audits and vulnerability assessments"
+        "encryption": "Passwords и refresh tokens хранятся как hashes; selected OAuth/TOTP/provider tokens шифруются или проходят через approved secret process where implemented.",
+        "accessControl": "Admin access role-gated, требует 2FA в production mode и пишет audit events для privileged operations.",
+        "secureProtocols": "Production topology требует private PostgreSQL, private Valkey/Redis, private Remnawave API и HTTPS-only public ingress where required.",
+        "regularAudits": "Для S1 нужны evidence по secret scanning, dependency checks, backup/restore, rollback, observability, webhook idempotency и support escalation before go-live."
       }
     },
     "thirdParty": {
-      "title": "Third-Party Services",
-      "description": "We work with trusted third-party providers:",
+      "title": "Processors and providers",
+      "description": "В S1 могут использоваться следующие provider categories. Каждый provider должен иметь credentials, webhook/status evidence и provider-aligned privacy/refund wording before enablement:",
       "services": {
-        "payment": "Payment processing (Stripe, cryptocurrency gateways)",
-        "analytics": "Anonymous analytics (no personally identifiable information)",
-        "infrastructure": "Cloud infrastructure providers (servers and network)"
+        "payment": "Payment providers: PayRam, NOWPayments, CryptoBot, Telegram Stars for Telegram, Digiseller и YooKassa where approved для соответствующего user segment.",
+        "analytics": "Operational analytics/observability: Sentry, PostHog или metrics/logging tools только where enabled и configured with PII controls.",
+        "infrastructure": "Infrastructure and service providers: managed PostgreSQL, private Valkey/Redis, Remnawave, VPN node hosts, Telegram, Google/GitHub OAuth и email/support tooling."
       }
     },
     "contact": {
-      "title": "Contact Information",
-      "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
+      "title": "Privacy contact",
+      "intro": "По вопросам privacy, deletion/export requests или privacy complaints используйте утверждённый S1 privacy route:",
       "email": "Email",
-      "address": "Address",
-      "addressLine": "CyberVPN Privacy Team, [Your Company Address]"
+      "emailAddress": "privacy@cyber-vpn.net",
+      "address": "Public seller and jurisdiction",
+      "addressLine": "S1 legal seller category: individual founder/owner. Final public seller display, legal address и jurisdiction/country должны быть утверждены before public go-live и намеренно не коммитятся в repository."
     },
     "changes": {
-      "title": "Changes to This Policy",
-      "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date."
+      "title": "Policy changes",
+      "description": "Этот S1 candidate может измениться до go-live. Material public changes должны быть отражены в approved legal pack, linked Terms, AUP, Refund Policy и Cookie Policy, и не должны противоречить actual deployment evidence."
     }
   }
 }

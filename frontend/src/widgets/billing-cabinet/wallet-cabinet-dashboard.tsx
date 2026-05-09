@@ -17,7 +17,8 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
-import { walletApi } from '@/lib/api';
+import { paymentsApi, walletApi } from '@/lib/api';
+import { isStage1WalletWithdrawalUiEnabled } from '@/shared/lib/stage1-growth-flags';
 import { markPerformance, measurePerformance, PerformanceMarks } from '@/shared/lib/web-vitals';
 import {
   formatDateTime,
@@ -26,11 +27,13 @@ import {
   formatShortId,
   getPendingWithdrawals,
   getRecentTransaction,
+  getStatusTone,
   getSortedTransactions,
   getSortedWithdrawals,
   getTransactionDirection,
   getTransactionTone,
   getWalletLiability,
+  type PaymentRecord,
   type StatusTone,
   type TransactionDirection,
   type WalletTransactionRecord,
@@ -39,6 +42,7 @@ import {
 type DirectionFilter = 'all' | TransactionDirection;
 
 const PAGE_LIMIT = 12;
+const RECENT_PAYMENTS_LIMIT = 5;
 const LIVE_STALE_MS = 30_000;
 const LIVE_REFETCH_MS = 45_000;
 
@@ -149,6 +153,10 @@ function getDirectionSign(transaction: WalletTransactionRecord) {
   return '';
 }
 
+function getPaymentTitle(payment: PaymentRecord, fallback: string, suffix: string) {
+  return `${formatLabel(payment.provider, fallback)} ${suffix}`;
+}
+
 export function WalletCabinetDashboard() {
   const t = useTranslations('Wallet');
   const locale = useLocale();
@@ -158,6 +166,7 @@ export function WalletCabinetDashboard() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('cryptobot');
   const [formError, setFormError] = useState('');
+  const walletWithdrawalsEnabled = isStage1WalletWithdrawalUiEnabled();
 
   const walletQuery = useQuery({
     queryKey: ['wallet', 'balance'],
@@ -186,12 +195,28 @@ export function WalletCabinetDashboard() {
     staleTime: LIVE_STALE_MS,
   });
 
+  const recentPaymentsQuery = useQuery({
+    queryKey: ['wallet', 'recent-payments'],
+    queryFn: async () => {
+      const response = await paymentsApi.getHistory({
+        limit: RECENT_PAYMENTS_LIMIT,
+        offset: 0,
+      });
+      return response.data;
+    },
+    refetchInterval: visiblePolling(LIVE_REFETCH_MS),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    staleTime: LIVE_STALE_MS,
+  });
+
   const withdrawalsQuery = useQuery({
     queryKey: ['wallet', 'withdrawals'],
     queryFn: async () => {
       const response = await walletApi.getWithdrawals();
       return response.data;
     },
+    enabled: walletWithdrawalsEnabled,
     refetchInterval: visiblePolling(LIVE_REFETCH_MS),
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
@@ -224,7 +249,8 @@ export function WalletCabinetDashboard() {
 
   const wallet = walletQuery.data ?? null;
   const transactions = getSortedTransactions(transactionsQuery.data ?? []);
-  const withdrawals = getSortedWithdrawals(withdrawalsQuery.data ?? []);
+  const recentPayments = recentPaymentsQuery.data?.payments ?? [];
+  const withdrawals = walletWithdrawalsEnabled ? getSortedWithdrawals(withdrawalsQuery.data ?? []) : [];
   const pendingWithdrawals = getPendingWithdrawals(withdrawals);
   const filteredTransactions =
     filter === 'all'
@@ -232,7 +258,11 @@ export function WalletCabinetDashboard() {
       : transactions.filter((transaction) => getTransactionDirection(transaction) === filter);
   const recentTransaction = getRecentTransaction(transactions);
   const currency = wallet?.currency ?? 'USD';
-  const hasAnyError = walletQuery.isError || transactionsQuery.isError || withdrawalsQuery.isError;
+  const hasAnyError =
+    walletQuery.isError ||
+    transactionsQuery.isError ||
+    recentPaymentsQuery.isError ||
+    (walletWithdrawalsEnabled && withdrawalsQuery.isError);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -255,12 +285,19 @@ export function WalletCabinetDashboard() {
     });
   };
 
-  const refetchAll = () =>
-    Promise.all([
+  const refetchAll = () => {
+    const refetches: Array<Promise<unknown>> = [
+      recentPaymentsQuery.refetch(),
       walletQuery.refetch(),
       transactionsQuery.refetch(),
-      withdrawalsQuery.refetch(),
-    ]);
+    ];
+
+    if (walletWithdrawalsEnabled) {
+      refetches.push(withdrawalsQuery.refetch());
+    }
+
+    return Promise.all(refetches);
+  };
 
   return (
     <div className="space-y-8">
@@ -330,7 +367,10 @@ export function WalletCabinetDashboard() {
         </section>
       )}
 
-      <section className="grid gap-4 md:grid-cols-4" aria-label={t('summary.ariaLabel')}>
+      <section
+        className={`grid gap-4 ${walletWithdrawalsEnabled ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}
+        aria-label={t('summary.ariaLabel')}
+      >
         <MetricCard
           icon={<Wallet className="h-5 w-5" aria-hidden="true" />}
           label={t('summary.balance')}
@@ -349,147 +389,228 @@ export function WalletCabinetDashboard() {
           tone="cyan"
           value={formatMoney(locale, getWalletLiability(wallet), currency)}
         />
-        <MetricCard
-          icon={<Clock3 className="h-5 w-5" aria-hidden="true" />}
-          label={t('summary.pendingWithdrawals')}
-          tone={pendingWithdrawals.length ? 'amber' : 'green'}
-          value={String(pendingWithdrawals.length)}
-        />
+        {walletWithdrawalsEnabled && (
+          <MetricCard
+            icon={<Clock3 className="h-5 w-5" aria-hidden="true" />}
+            label={t('summary.pendingWithdrawals')}
+            tone={pendingWithdrawals.length ? 'amber' : 'green'}
+            value={String(pendingWithdrawals.length)}
+          />
+        )}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl border border-neon-purple/30 bg-neon-purple/10 p-3">
-              <ArrowUpRight className="h-6 w-6 text-neon-purple" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
-                {t('withdrawForm.eyebrow')}
-              </p>
-              <h2 className="mt-2 text-2xl font-display text-white">{t('withdrawForm.title')}</h2>
-              <p className="mt-2 font-mono text-sm leading-7 text-muted-foreground">
-                {t('withdrawForm.description')}
-              </p>
-            </div>
+      <section className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-cyan">
+              {t('recentPayments.eyebrow')}
+            </p>
+            <h2 className="mt-2 text-2xl font-display text-white">{t('recentPayments.title')}</h2>
+            <p className="mt-2 max-w-2xl font-mono text-sm leading-7 text-muted-foreground">
+              {t('recentPayments.description')}
+            </p>
           </div>
+          <Link
+            href="/payment-history"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-cyan transition hover:bg-neon-cyan/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+          >
+            {t('recentPayments.openFull')}
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
 
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label className="block font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground" htmlFor="wallet-withdraw-amount">
-                {t('withdrawForm.amount')}
-              </label>
-              <input
-                id="wallet-withdraw-amount"
-                inputMode="decimal"
-                min="0"
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                type="number"
-                value={amount}
-                className="min-h-12 w-full rounded-xl border border-grid-line/40 bg-terminal-bg px-4 py-3 font-mono text-sm text-white outline-hidden transition focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/30"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground" htmlFor="wallet-withdraw-method">
-                {t('withdrawForm.method')}
-              </label>
-              <select
-                id="wallet-withdraw-method"
-                onChange={(event) => setMethod(event.target.value)}
-                value={method}
-                className="min-h-12 w-full rounded-xl border border-grid-line/40 bg-terminal-bg px-4 py-3 font-mono text-sm text-white outline-hidden transition focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/30"
-              >
-                <option value="cryptobot">{t('withdrawForm.methods.cryptobot')}</option>
-                <option value="manual">{t('withdrawForm.methods.manual')}</option>
-              </select>
-            </div>
-
-            <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4 font-mono text-xs leading-6 text-muted-foreground">
-              {t('withdrawForm.notice')}
-            </div>
-
-            {(formError || withdrawalMutation.isError) && (
-              <p className="font-mono text-sm text-neon-pink" role="alert">
-                {formError || t('withdrawForm.errors.submit')}
-              </p>
-            )}
-            {withdrawalMutation.isSuccess && (
-              <p className="font-mono text-sm text-matrix-green" role="status">
-                {t('withdrawForm.success')}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={withdrawalMutation.isPending || walletQuery.isPending}
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neon-purple/45 bg-neon-purple/15 px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-neon-purple transition hover:bg-neon-purple/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <CreditCard className="h-4 w-4" aria-hidden="true" />
-              {withdrawalMutation.isPending ? t('withdrawForm.submitting') : t('withdrawForm.submit')}
-            </button>
-          </form>
-        </article>
-
-        <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-cyan">
-                {t('withdrawals.eyebrow')}
-              </p>
-              <h2 className="mt-2 text-2xl font-display text-white">{t('withdrawals.title')}</h2>
-              <p className="mt-2 font-mono text-sm leading-7 text-muted-foreground">
-                {recentTransaction
-                  ? t('withdrawals.lastLedger', {
-                      id: formatShortId(recentTransaction.id),
-                    })
-                  : t('withdrawals.description')}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void refetchAll()}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-terminal-bg/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground transition hover:border-neon-cyan/40 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              {t('actions.refresh')}
-            </button>
+        {recentPaymentsQuery.isPending ? (
+          <div className="mt-6 space-y-3">
+            {[0, 1, 2].map((item) => (
+              <LoadingBlock key={item} className="min-h-20" />
+            ))}
           </div>
+        ) : recentPayments.length === 0 ? (
+          <div className="mt-6 rounded-3xl border border-grid-line/30 bg-black/20 p-8 text-center">
+            <CreditCard className="mx-auto h-10 w-10 text-muted-foreground/60" aria-hidden="true" />
+            <p className="mt-3 font-mono text-sm text-muted-foreground">
+              {t('recentPayments.empty')}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-3">
+            {recentPayments.slice(0, RECENT_PAYMENTS_LIMIT).map((payment) => {
+              const tone = getStatusTone(payment.status);
 
-          {withdrawalsQuery.isPending ? (
-            <LoadingBlock className="mt-6 min-h-56" />
-          ) : withdrawals.length === 0 ? (
-            <div className="mt-6 rounded-3xl border border-grid-line/30 bg-black/20 p-8 text-center">
-              <History className="mx-auto h-10 w-10 text-muted-foreground/60" aria-hidden="true" />
-              <p className="mt-3 font-mono text-sm text-muted-foreground">{t('withdrawals.empty')}</p>
-            </div>
-          ) : (
-            <div className="mt-6 space-y-3">
-              {withdrawals.slice(0, 5).map((withdrawal) => (
+              return (
                 <div
-                  key={withdrawal.id}
-                  className="rounded-2xl border border-grid-line/30 bg-black/20 p-4"
+                  key={payment.id}
+                  className="rounded-2xl border border-grid-line/30 bg-black/20 p-4 transition hover:border-neon-cyan/25"
                 >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="font-mono text-sm text-white">
-                        {formatMoney(locale, withdrawal.amount, withdrawal.currency)}
-                      </p>
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
-                        {formatShortId(withdrawal.id)} / {formatDateTime(withdrawal.created_at, locale)}
-                      </p>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className={`rounded-2xl border p-3 ${toneClasses[tone].border} ${toneClasses[tone].fill} ${toneClasses[tone].text}`}>
+                        <CreditCard className="h-5 w-5" aria-hidden="true" />
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-mono text-sm text-white">
+                            {getPaymentTitle(
+                              payment,
+                              t('labels.notAvailable'),
+                              t('recentPayments.paymentSuffix'),
+                            )}
+                          </p>
+                          <StatusPill tone={tone}>
+                            {formatLabel(payment.status, t('labels.notAvailable'))}
+                          </StatusPill>
+                        </div>
+                        <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground">
+                          {formatDateTime(payment.created_at, locale)} / {formatShortId(payment.id)}
+                        </p>
+                      </div>
                     </div>
-                    <StatusPill tone={withdrawal.status === 'completed' ? 'green' : 'amber'}>
-                      {formatLabel(withdrawal.status, t('labels.notAvailable'))}
-                    </StatusPill>
+                    <p className={`font-display text-xl ${toneClasses[tone].text}`}>
+                      {formatMoney(locale, payment.amount, payment.currency)}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </article>
+              );
+            })}
+          </div>
+        )}
       </section>
+
+      {walletWithdrawalsEnabled && (
+        <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+          <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl border border-neon-purple/30 bg-neon-purple/10 p-3">
+                <ArrowUpRight className="h-6 w-6 text-neon-purple" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
+                  {t('withdrawForm.eyebrow')}
+                </p>
+                <h2 className="mt-2 text-2xl font-display text-white">{t('withdrawForm.title')}</h2>
+                <p className="mt-2 font-mono text-sm leading-7 text-muted-foreground">
+                  {t('withdrawForm.description')}
+                </p>
+              </div>
+            </div>
+
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label className="block font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground" htmlFor="wallet-withdraw-amount">
+                  {t('withdrawForm.amount')}
+                </label>
+                <input
+                  id="wallet-withdraw-amount"
+                  inputMode="decimal"
+                  min="0"
+                  onChange={(event) => setAmount(event.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  type="number"
+                  value={amount}
+                  className="min-h-12 w-full rounded-xl border border-grid-line/40 bg-terminal-bg px-4 py-3 font-mono text-sm text-white outline-hidden transition focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground" htmlFor="wallet-withdraw-method">
+                  {t('withdrawForm.method')}
+                </label>
+                <select
+                  id="wallet-withdraw-method"
+                  onChange={(event) => setMethod(event.target.value)}
+                  value={method}
+                  className="min-h-12 w-full rounded-xl border border-grid-line/40 bg-terminal-bg px-4 py-3 font-mono text-sm text-white outline-hidden transition focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/30"
+                >
+                  <option value="cryptobot">{t('withdrawForm.methods.cryptobot')}</option>
+                  <option value="manual">{t('withdrawForm.methods.manual')}</option>
+                </select>
+              </div>
+
+              <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4 font-mono text-xs leading-6 text-muted-foreground">
+                {t('withdrawForm.notice')}
+              </div>
+
+              {(formError || withdrawalMutation.isError) && (
+                <p className="font-mono text-sm text-neon-pink" role="alert">
+                  {formError || t('withdrawForm.errors.submit')}
+                </p>
+              )}
+              {withdrawalMutation.isSuccess && (
+                <p className="font-mono text-sm text-matrix-green" role="status">
+                  {t('withdrawForm.success')}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={withdrawalMutation.isPending || walletQuery.isPending}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-neon-purple/45 bg-neon-purple/15 px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-neon-purple transition hover:bg-neon-purple/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
+                {withdrawalMutation.isPending ? t('withdrawForm.submitting') : t('withdrawForm.submit')}
+              </button>
+            </form>
+          </article>
+
+          <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-cyan">
+                  {t('withdrawals.eyebrow')}
+                </p>
+                <h2 className="mt-2 text-2xl font-display text-white">{t('withdrawals.title')}</h2>
+                <p className="mt-2 font-mono text-sm leading-7 text-muted-foreground">
+                  {recentTransaction
+                    ? t('withdrawals.lastLedger', {
+                        id: formatShortId(recentTransaction.id),
+                      })
+                    : t('withdrawals.description')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void refetchAll()}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-grid-line/40 bg-terminal-bg/60 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground transition hover:border-neon-cyan/40 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                {t('actions.refresh')}
+              </button>
+            </div>
+
+            {withdrawalsQuery.isPending ? (
+              <LoadingBlock className="mt-6 min-h-56" />
+            ) : withdrawals.length === 0 ? (
+              <div className="mt-6 rounded-3xl border border-grid-line/30 bg-black/20 p-8 text-center">
+                <History className="mx-auto h-10 w-10 text-muted-foreground/60" aria-hidden="true" />
+                <p className="mt-3 font-mono text-sm text-muted-foreground">{t('withdrawals.empty')}</p>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-3">
+                {withdrawals.slice(0, 5).map((withdrawal) => (
+                  <div
+                    key={withdrawal.id}
+                    className="rounded-2xl border border-grid-line/30 bg-black/20 p-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="font-mono text-sm text-white">
+                          {formatMoney(locale, withdrawal.amount, withdrawal.currency)}
+                        </p>
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                          {formatShortId(withdrawal.id)} / {formatDateTime(withdrawal.created_at, locale)}
+                        </p>
+                      </div>
+                      <StatusPill tone={withdrawal.status === 'completed' ? 'green' : 'amber'}>
+                        {formatLabel(withdrawal.status, t('labels.notAvailable'))}
+                      </StatusPill>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
+      )}
 
       <section className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

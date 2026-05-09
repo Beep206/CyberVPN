@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -15,11 +15,11 @@ vi.mock('@/shared/ui/modal', () => ({
 }));
 
 const MATCH_ANY_API_ORIGIN = {
-  quoteSessions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/quotes\/?$/,
-  resolveCodes: /https?:\/\/localhost(?::\d+)?\/api\/v1\/codes\/resolve$/,
-  checkoutSessions: /https?:\/\/localhost(?::\d+)?\/api\/v1\/checkout-sessions\/?$/,
-  ordersCommit: /https?:\/\/localhost(?::\d+)?\/api\/v1\/orders\/commit$/,
-  paymentAttempts: /https?:\/\/localhost(?::\d+)?\/api\/v1\/payment-attempts\/?$/,
+  quoteSessions: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/quotes\/?$/,
+  resolveCodes: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/codes\/resolve$/,
+  checkoutSessions: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/checkout-sessions\/?$/,
+  ordersCommit: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/orders\/commit$/,
+  paymentAttempts: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/payment-attempts\/?$/,
 };
 
 function createQueryClient() {
@@ -309,46 +309,10 @@ describe('PurchaseConfirmModal', () => {
     expect(screen.getByText('Checkout total')).toBeInTheDocument();
   });
 
-  it('re-quotes against canonical quote sessions when a checkout code is applied', async () => {
-    const user = userEvent.setup({ delay: null });
-    const capturedCodeInputs: Array<string | null> = [];
-
+  it('hides checkout code entry while S1 growth flows are disabled', async () => {
     server.use(
-      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async () =>
-        HttpResponse.json({
-          accepted: true,
-          code_type: 'promo',
-          action_context: 'checkout',
-          result: 'accepted',
-          reject_reason: null,
-          conflict_code: null,
-          wrong_context_target: null,
-          issuer_type: 'admin',
-          owner_type: 'admin_campaign',
-          resolved_code_id: 'promo_001',
-          promo_code_id: 'promo_001',
-          partner_code_id: null,
-          user_message_key: 'growth_codes.promo.accepted',
-        })),
-      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
-        const body = (await request.json()) as { code_input?: string | null };
-        capturedCodeInputs.push(body.code_input ?? null);
-
-        if (body.code_input === 'SAVE20') {
-          return HttpResponse.json(
-            createQuoteSession({
-              quote: createQuote({
-                displayed_price: 24.99,
-                discount_amount: 5,
-                gateway_amount: 24.99,
-              }),
-            }),
-            { status: 201 },
-          );
-        }
-
-        return HttpResponse.json(createQuoteSession(), { status: 201 });
-      }),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>
+        HttpResponse.json(createQuoteSession(), { status: 201 })),
     );
 
     renderWithProviders(
@@ -361,46 +325,14 @@ describe('PurchaseConfirmModal', () => {
 
     await screen.findByText('Checkout total');
 
-    fireEvent.change(screen.getByLabelText(/Checkout Code/i), { target: { value: 'SAVE20' } });
-    await user.click(screen.getByRole('button', { name: /Apply Code/i }));
-
-    await waitFor(() => {
-      expect(capturedCodeInputs).toContain('SAVE20');
-    });
-
-    expect(await screen.findByText(/SAVE20 applied/i)).toBeInTheDocument();
+    expect(screen.queryByText('Have a Checkout Code?')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Checkout Code/i)).not.toBeInTheDocument();
   });
 
-  it('does not surface partner markup-only quote adjustments on official web', async () => {
+  it('does not render quote adjustment controls when checkout codes are disabled', async () => {
     server.use(
-      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async () =>
-        HttpResponse.json({
-          accepted: true,
-          code_type: 'promo',
-          action_context: 'checkout',
-          result: 'accepted',
-          reject_reason: null,
-          conflict_code: null,
-          wrong_context_target: null,
-          issuer_type: 'admin',
-          owner_type: 'admin_campaign',
-          resolved_code_id: 'promo_001',
-          promo_code_id: 'promo_001',
-          partner_code_id: null,
-          user_message_key: 'growth_codes.promo.accepted',
-        })),
-      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
-        const body = (await request.json()) as { code_input?: string | null };
-
-        return HttpResponse.json(
-          createQuoteSession({
-            quote: createQuote({
-              discount_amount: body.code_input ? 0 : 0,
-              partner_markup: body.code_input ? 6.5 : 0,
-            }),
-          }),
-        );
-      }),
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>
+        HttpResponse.json(createQuoteSession(), { status: 201 })),
     );
 
     renderWithProviders(
@@ -411,38 +343,15 @@ describe('PurchaseConfirmModal', () => {
       />,
     );
 
-    await screen.findByText('Have a Checkout Code?');
+    await screen.findByText('Checkout total');
 
-    const promoInput = screen.getByLabelText('Checkout Code');
-    fireEvent.change(promoInput, { target: { value: 'SAVE20' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Code' }));
-
-    await waitFor(() => {
-      expect(screen.queryByText('Quote Updated')).not.toBeInTheDocument();
-    });
+    expect(screen.queryByText('Quote Updated')).not.toBeInTheDocument();
   });
 
-  it('shows typed wrong-context feedback for invite codes without mutating checkout state', async () => {
-    const user = userEvent.setup({ delay: null });
+  it('does not resolve invite codes through checkout while S1 codes are disabled', async () => {
     const capturedBodies: Record<string, unknown>[] = [];
 
     server.use(
-      http.post(MATCH_ANY_API_ORIGIN.resolveCodes, async () =>
-        HttpResponse.json({
-          accepted: false,
-          code_type: 'invite',
-          action_context: 'checkout',
-          result: 'rejected',
-          reject_reason: 'code_wrong_context',
-          conflict_code: null,
-          wrong_context_target: 'redeem',
-          issuer_type: 'admin',
-          owner_type: 'customer',
-          resolved_code_id: 'invite_001',
-          promo_code_id: null,
-          partner_code_id: null,
-          user_message_key: 'growth_codes.invite.redeem_required',
-        })),
       http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async ({ request }) => {
         capturedBodies.push((await request.json()) as Record<string, unknown>);
         return HttpResponse.json(createQuoteSession(), { status: 201 });
@@ -458,12 +367,8 @@ describe('PurchaseConfirmModal', () => {
     );
 
     await screen.findByText('Checkout total');
-    fireEvent.change(screen.getByLabelText(/Checkout Code/i), { target: { value: 'INVITE-AAA' } });
-    await user.click(screen.getByRole('button', { name: /Apply Code/i }));
 
-    expect(
-      await screen.findByText('Invite codes redeem outside checkout. Open the rewards hub instead.'),
-    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Checkout Code/i)).not.toBeInTheDocument();
     expect(capturedBodies.every((body) => body.code_input == null)).toBe(true);
   });
 

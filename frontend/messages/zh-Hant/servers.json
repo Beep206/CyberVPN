@@ -3,5 +3,15 @@
   "subtitle": "管理VPN节点、协议及部署区域。",
   "globalStatus": "全局状态：{status}",
   "globalStatusValue": "已部署",
-  "lastSync": "上次同步：{time}前"
+  "lastSync": "上次同步：{time}前",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

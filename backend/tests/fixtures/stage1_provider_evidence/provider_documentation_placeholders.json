@@ -1,0 +1,279 @@
+{
+  "version": "s1-pay-017-provider-evidence-v1",
+  "generated_at": "2026-05-05",
+  "note": "Documentation-derived placeholders only. These samples must not enable production payment providers.",
+  "samples": [
+    {
+      "sample_id": "payram-doc-callback-filled",
+      "provider": "payram",
+      "evidence_kind": "callback_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://docs.payram.com/api-integration/payments-api/webhook",
+      "tech_debt_id": "TD-S1-PAY-001",
+      "provider_status": "FILLED",
+      "expected_payment_state": "paid",
+      "automatic_paid_access_allowed": true,
+      "payload_shape": {
+        "customer_id": "redacted-customer",
+        "invoice_id": "redacted-invoice",
+        "reference_id": "redacted-reference",
+        "status": "FILLED",
+        "amount": "1.00",
+        "currency": "USDT",
+        "filled_amount": "1.00",
+        "timestamp": "redacted-timestamp"
+      }
+    },
+    {
+      "sample_id": "payram-doc-status-partial",
+      "provider": "payram",
+      "evidence_kind": "status_poll_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://docs.payram.com/api-integration/payments-api/payment-status",
+      "tech_debt_id": "TD-S1-PAY-001",
+      "provider_status": "PARTIALLY_FILLED",
+      "expected_payment_state": "reconciliation_required",
+      "automatic_paid_access_allowed": false,
+      "payload_shape": {
+        "invoiceID": "redacted-invoice",
+        "customerID": "redacted-customer",
+        "amountInUSD": "1.00",
+        "paymentState": "PARTIALLY_FILLED",
+        "referenceID": "redacted-reference",
+        "createdAt": "redacted-timestamp"
+      }
+    },
+    {
+      "sample_id": "nowpayments-doc-ipn-finished",
+      "provider": "nowpayments",
+      "evidence_kind": "callback_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://nowpayments.zendesk.com/hc/en-us/articles/18395434917149-Payment-statuses",
+      "tech_debt_id": "TD-S1-PAY-003",
+      "provider_status": "finished",
+      "expected_payment_state": "paid",
+      "automatic_paid_access_allowed": true,
+      "payload_shape": {
+        "payment_id": "redacted-payment",
+        "payment_status": "finished",
+        "pay_amount": "1.00",
+        "pay_currency": "USDT",
+        "price_amount": "1.00",
+        "price_currency": "USD",
+        "order_id": "redacted-order"
+      }
+    },
+    {
+      "sample_id": "nowpayments-doc-status-partial",
+      "provider": "nowpayments",
+      "evidence_kind": "status_poll_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://nowpayments.zendesk.com/hc/en-us/articles/18395434917149-Payment-statuses",
+      "tech_debt_id": "TD-S1-PAY-004",
+      "provider_status": "partially_paid",
+      "expected_payment_state": "reconciliation_required",
+      "automatic_paid_access_allowed": false,
+      "payload_shape": {
+        "payment_id": "redacted-payment",
+        "payment_status": "partially_paid",
+        "pay_amount": "0.50",
+        "pay_currency": "USDT",
+        "price_amount": "1.00",
+        "price_currency": "USD",
+        "order_id": "redacted-order"
+      }
+    },
+    {
+      "sample_id": "cryptobot-doc-webhook-invoice-paid",
+      "provider": "cryptobot",
+      "evidence_kind": "callback_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://help.send.tg/en/articles/10279948-crypto-pay-api",
+      "tech_debt_id": "TD-S1-PAY-005",
+      "provider_status": "invoice_paid",
+      "expected_payment_state": "paid",
+      "automatic_paid_access_allowed": true,
+      "payload_shape": {
+        "update_id": "redacted-update",
+        "update_type": "invoice_paid",
+        "request_date": "redacted-timestamp",
+        "payload": {
+          "invoice_id": "redacted-invoice",
+          "status": "paid",
+          "asset": "USDT",
+          "amount": "1.00",
+          "paid_asset": "USDT",
+          "paid_amount": "1.00"
+        }
+      }
+    },
+    {
+      "sample_id": "cryptobot-doc-status-active",
+      "provider": "cryptobot",
+      "evidence_kind": "status_poll_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://help.send.tg/en/articles/10279948-crypto-pay-api",
+      "tech_debt_id": "TD-S1-PAY-005",
+      "provider_status": "active",
+      "expected_payment_state": "pending",
+      "automatic_paid_access_allowed": false,
+      "payload_shape": {
+        "invoice_id": "redacted-invoice",
+        "status": "active",
+        "asset": "USDT",
+        "amount": "1.00",
+        "created_at": "redacted-timestamp"
+      }
+    },
+    {
+      "sample_id": "telegram-stars-doc-successful-payment",
+      "provider": "telegram_stars",
+      "evidence_kind": "callback_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://core.telegram.org/bots/payments-stars",
+      "tech_debt_id": "TD-S1-PAY-007",
+      "provider_status": "successful_payment",
+      "expected_payment_state": "paid",
+      "automatic_paid_access_allowed": true,
+      "payload_shape": {
+        "currency": "XTR",
+        "total_amount": 100,
+        "invoice_payload": "redacted-order",
+        "telegram_payment_charge_id": "redacted-charge",
+        "provider_payment_charge_id": "redacted-provider-charge"
+      }
+    },
+    {
+      "sample_id": "telegram-stars-doc-pre-checkout",
+      "provider": "telegram_stars",
+      "evidence_kind": "status_poll_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://core.telegram.org/bots/payments-stars",
+      "tech_debt_id": "TD-S1-PAY-007",
+      "provider_status": "pre_checkout_query",
+      "expected_payment_state": "processing",
+      "automatic_paid_access_allowed": false,
+      "payload_shape": {
+        "id": "redacted-pre-checkout",
+        "from": "redacted-telegram-user",
+        "currency": "XTR",
+        "total_amount": 100,
+        "invoice_payload": "redacted-order"
+      }
+    },
+    {
+      "sample_id": "digiseller-doc-callback-paid",
+      "provider": "digiseller",
+      "evidence_kind": "callback_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://my.digiseller.com/inside/api_payment.asp",
+      "tech_debt_id": "TD-S1-PAY-009",
+      "provider_status": "paid",
+      "expected_payment_state": "paid",
+      "automatic_paid_access_allowed": true,
+      "payload_shape": {
+        "invoice_id": "redacted-invoice",
+        "amount": "10.00",
+        "currency": "USD",
+        "status": "paid",
+        "integrator": "redacted-integrator",
+        "amount_out": "10.00",
+        "currency_out": "USD"
+      }
+    },
+    {
+      "sample_id": "digiseller-doc-status-wait",
+      "provider": "digiseller",
+      "evidence_kind": "status_poll_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://my.digiseller.com/inside/api_payment.asp",
+      "tech_debt_id": "TD-S1-PAY-009",
+      "provider_status": "wait",
+      "expected_payment_state": "pending",
+      "automatic_paid_access_allowed": false,
+      "payload_shape": {
+        "invoice_id": "redacted-invoice",
+        "amount": "10.00",
+        "currency": "USD",
+        "status": "wait",
+        "seller_id": "redacted-seller"
+      }
+    },
+    {
+      "sample_id": "yookassa-doc-webhook-payment-succeeded",
+      "provider": "yookassa",
+      "evidence_kind": "callback_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://yookassa.ru/developers/using-api/webhooks",
+      "tech_debt_id": "TD-S1-PAY-011",
+      "provider_status": "payment.succeeded",
+      "expected_payment_state": "paid",
+      "automatic_paid_access_allowed": true,
+      "payload_shape": {
+        "type": "notification",
+        "event": "payment.succeeded",
+        "object": {
+          "id": "redacted-payment",
+          "status": "succeeded",
+          "paid": true,
+          "amount": {
+            "value": "100.00",
+            "currency": "RUB"
+          },
+          "metadata": {
+            "order_id": "redacted-order"
+          },
+          "test": true
+        }
+      }
+    },
+    {
+      "sample_id": "yookassa-doc-webhook-waiting-for-capture",
+      "provider": "yookassa",
+      "evidence_kind": "status_poll_sample",
+      "environment": "official_docs",
+      "source": "official_documentation",
+      "captured_at": "2026-05-05",
+      "official_source_url": "https://yookassa.ru/developers/payment-acceptance/getting-started/payment-process",
+      "tech_debt_id": "TD-S1-PAY-011",
+      "provider_status": "waiting_for_capture",
+      "expected_payment_state": "processing",
+      "automatic_paid_access_allowed": false,
+      "payload_shape": {
+        "id": "redacted-payment",
+        "status": "waiting_for_capture",
+        "paid": true,
+        "amount": {
+          "value": "100.00",
+          "currency": "RUB"
+        },
+        "metadata": {
+          "order_id": "redacted-order"
+        },
+        "test": true
+      }
+    }
+  ]
+}

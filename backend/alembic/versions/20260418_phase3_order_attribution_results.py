@@ -6,8 +6,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260418_phase3_order_attribution_results"
-down_revision = "20260418_phase3_customer_commercial_bindings"
+revision = "20260418_p3_order_attr_results"
+down_revision = "20260418_p3_customer_bindings"
 branch_labels = None
 depends_on = None
 

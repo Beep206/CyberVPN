@@ -465,6 +465,38 @@ describe('authApi.deleteAccount', () => {
 });
 
 // ===========================================================================
+// authApi.requestPrivacyAction
+// ===========================================================================
+
+describe('authApi.requestPrivacyAction', () => {
+  it('test_privacy_request_success_returns_manual_review_reference', async () => {
+    // Act
+    const response = await authApi.requestPrivacyAction({
+      request_type: 'data_export',
+      notes: 'Please export portable account data only.',
+    });
+
+    // Assert
+    expect(response.status).toBe(202);
+    expect(response.data.request_type).toBe('data_export');
+    expect(response.data.target_contact).toBe('privacy@cyber-vpn.net');
+    expect(response.data.ticket_reference).toContain('s1sup-web-p1');
+    expect(response.data.manual_fulfillment_target_days).toBe(30);
+    expect(response.data.audit_required).toBe(true);
+  });
+
+  it('test_request_data_export_uses_s1_privacy_request_path', async () => {
+    // Act
+    const response = await authApi.requestDataExport();
+
+    // Assert
+    expect(response.status).toBe(202);
+    expect(response.data.request_type).toBe('data_export');
+    expect(response.data.message).toContain('Data export request accepted');
+  });
+});
+
+// ===========================================================================
 // authApi.refresh
 // ===========================================================================
 

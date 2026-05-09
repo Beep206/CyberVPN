@@ -121,6 +121,24 @@ describe('Sentry Client Configuration', () => {
     );
   });
 
+  it('does not use private APP_ENV or SENTRY_RELEASE in client instrumentation', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', 'https://test@sentry.io/123');
+    vi.stubEnv('APP_ENV', 'production');
+    vi.stubEnv('SENTRY_RELEASE', 'private-release-value');
+    vi.stubEnv('NODE_ENV', 'development');
+    stubBrowser();
+
+    await import('../instrumentation-client');
+
+    expect(mockSentryInit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environment: 'development',
+        release: undefined,
+        tracesSampleRate: 1.0,
+      }),
+    );
+  });
+
   it('passes release from NEXT_PUBLIC_SENTRY_RELEASE when provided', async () => {
     vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', 'https://test@sentry.io/123');
     vi.stubEnv('NEXT_PUBLIC_SENTRY_RELEASE', 'frontend@abc123');

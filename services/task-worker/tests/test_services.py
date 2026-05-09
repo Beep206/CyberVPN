@@ -355,6 +355,35 @@ async def test_cryptobot_client_create_invoice():
 
 
 @pytest.mark.asyncio
+async def test_cryptobot_client_uses_testnet_base_url():
+    """Test CryptoBotClient can be pointed at the official testnet endpoint."""
+    with patch("src.services.cryptobot_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client_cls.return_value = mock_client
+
+        from pydantic import SecretStr
+
+        from src.services.cryptobot_client import CryptoBotClient
+
+        async with CryptoBotClient(token=SecretStr("test-token"), network="testnet") as client:
+            assert client.network == "testnet"
+            assert client.base_url == "https://testnet-pay.crypt.bot/api"
+
+        _, kwargs = mock_client_cls.call_args
+        assert kwargs["base_url"] == "https://testnet-pay.crypt.bot/api"
+
+
+def test_cryptobot_client_rejects_unknown_network():
+    """Test CryptoBotClient does not accept arbitrary payment API endpoints."""
+    from pydantic import SecretStr
+
+    from src.services.cryptobot_client import CryptoBotClient
+
+    with pytest.raises(ValueError, match="Unsupported CryptoBot network"):
+        CryptoBotClient(token=SecretStr("test-token"), network="sandbox")
+
+
+@pytest.mark.asyncio
 async def test_cryptobot_client_health_check():
     """Test CryptoBotClient health_check returns True when healthy."""
     with patch("src.services.cryptobot_client.httpx.AsyncClient") as mock_client_cls:

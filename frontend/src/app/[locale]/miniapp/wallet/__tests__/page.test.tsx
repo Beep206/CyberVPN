@@ -36,6 +36,7 @@ describe('MiniAppWalletPage', () => {
   beforeEach(() => {
     setupTelegramWebAppMock();
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   afterEach(() => {
@@ -76,6 +77,27 @@ describe('MiniAppWalletPage', () => {
       });
 
       expect(screen.getByText(/\$150\.50/)).toBeInTheDocument();
+      expect(screen.queryByText('withdraw')).not.toBeInTheDocument();
+    });
+
+    it('test_keeps_withdraw_button_hidden_by_default_for_s1', async () => {
+      server.use(
+        http.get(`${API_BASE}/wallet`, () => {
+          return HttpResponse.json({ balance: 150.50 });
+        }),
+        http.get(`${API_BASE}/wallet/transactions`, () => {
+          return HttpResponse.json([]);
+        })
+      );
+
+      render(<WalletPage />, { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(screen.getByText('balance')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('withdraw')).not.toBeInTheDocument();
+      expect(screen.queryByText('withdrawFunds')).not.toBeInTheDocument();
     });
   });
 

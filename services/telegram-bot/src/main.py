@@ -12,12 +12,15 @@ import base64
 import hmac
 import ipaddress
 import logging
+import re
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import structlog
 
 from src.bot import create_bot, create_dispatcher
 from src.config import BotSettings, get_settings
+from src.stage1_surface import apply_stage1_telegram_surface
 
 if TYPE_CHECKING:
     from aiogram import Bot, Dispatcher
@@ -47,7 +50,43 @@ SENSITIVE_FIELD_MARKERS = (
     "vmess",
     "remnawave",
     "openbao",
+    "opentofu",
+    "nats",
+    "payment",
+    "oauth",
+    "totp",
+    "initdata",
+    "init_data",
+    "checkout",
+    "invoice",
 )
+SENSITIVE_STRING_PATTERNS = (
+    re.compile(r"\b(?:vless|vmess|trojan|wireguard|ss)://", re.IGNORECASE),
+    re.compile(
+        r"(?:access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?code|otp|totp|secret|password|telegram[_-]?init[_-]?data|initdata|tgWebAppData)=",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"/api/v1/(?:vpn|xray|provisioning|subscriptions?)/(?:config|credentials|subscription)",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _scrub_sensitive_value(value: Any) -> Any:
+    if isinstance(value, str):
+        if any(pattern.search(value) for pattern in SENSITIVE_STRING_PATTERNS):
+            return "[Filtered]"
+        return value
+
+    if isinstance(value, dict):
+        _scrub_sensitive_mapping(value)
+        return value
+
+    if isinstance(value, list):
+        return [_scrub_sensitive_value(item) for item in value]
+
+    return value
 
 
 def _scrub_sensitive_mapping(payload: dict[str, Any]) -> None:
@@ -57,12 +96,7 @@ def _scrub_sensitive_mapping(payload: dict[str, Any]) -> None:
             payload[key] = "[Filtered]"
             continue
 
-        if isinstance(value, dict):
-            _scrub_sensitive_mapping(value)
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    _scrub_sensitive_mapping(item)
+        payload[key] = _scrub_sensitive_value(value)
 
 
 def _scrub_request_headers(headers: Any) -> None:
@@ -74,10 +108,22 @@ def _scrub_request_headers(headers: Any) -> None:
             headers[header_name] = "[Filtered]"
 
 
+def _strip_url_query(url: Any) -> Any:
+    if not isinstance(url, str) or not url:
+        return url
+
+    parsed = urlparse(url)
+    if not parsed.scheme and not parsed.netloc:
+        return parsed.path or "/"
+
+    return parsed._replace(query="", fragment="").geturl()
+
+
 def _before_send(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any] | None:
     request = event.get("request")
     if isinstance(request, dict):
         _scrub_request_headers(request.get("headers"))
+        request["url"] = _strip_url_query(request.get("url"))
         if "data" in request:
             request["data"] = "[Filtered]"
         if "cookies" in request:
@@ -158,6 +204,7 @@ async def on_startup(bot: Bot, settings: BotSettings) -> None:
         mode=settings.bot_mode,
         environment=settings.environment,
     )
+    await apply_stage1_telegram_surface(bot, settings)
 
     if settings.bot_mode == "webhook":
         webhook_url = f"{settings.webhook.url}{settings.webhook.path}"

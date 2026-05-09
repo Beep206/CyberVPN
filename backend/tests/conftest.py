@@ -205,6 +205,13 @@ def ensure_repo_schema(test_settings) -> None:
                                 """
                             )
                         )
+                    if "notification_prefs" not in mobile_user_columns:
+                        await conn.execute(
+                            text(
+                                "alter table mobile_users "
+                                "add column notification_prefs json not null default '{}'::json"
+                            )
+                        )
                     if "partner_account_id" not in mobile_user_columns:
                         await conn.execute(text("alter table mobile_users add column partner_account_id uuid"))
                         await conn.execute(

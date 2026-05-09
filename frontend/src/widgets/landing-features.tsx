@@ -59,10 +59,10 @@ const FEATURE_CONFIG: FeatureConfigItem[] = [
 ] as const;
 
 const STATS = [
-  { value: '100+', labelKey: 'stats.locations' },
-  { value: '10', labelKey: 'stats.bandwidth' },
-  { value: '99.9%', labelKey: 'stats.uptime' },
-  { value: '0', labelKey: 'stats.logs' },
+  { value: '12', labelKey: 'stats.locations' },
+  { value: '2', labelKey: 'stats.bandwidth' },
+  { value: 'S1', labelKey: 'stats.uptime' },
+  { value: 'AUDIT', labelKey: 'stats.logs' },
 ] as const;
 
 export async function LandingFeatures() {

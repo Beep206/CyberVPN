@@ -14,8 +14,8 @@ vi.mock('@/i18n/config', () => ({
 // Import after mocks
 const { proxy } = await import('../proxy');
 
-function createRequest(path: string, cookies?: Record<string, string>): NextRequest {
-  const url = new URL(path, 'http://localhost:3000');
+function createRequest(path: string, cookies?: Record<string, string>, baseUrl = 'http://localhost:3000'): NextRequest {
+  const url = new URL(path, baseUrl);
   const req = new NextRequest(url);
   if (cookies) {
     for (const [name, value] of Object.entries(cookies)) {
@@ -63,5 +63,13 @@ describe('proxy routing', () => {
     const res = proxy(req);
 
     expect(res.status).toBe(200);
+  });
+
+  it('redirects admin mirror host to canonical admin host', () => {
+    const req = createRequest('/en-EN/dashboard?tab=ops', undefined, 'https://admin.cyber-vpn.org');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://admin.cyber-vpn.net/en-EN/dashboard?tab=ops');
   });
 });

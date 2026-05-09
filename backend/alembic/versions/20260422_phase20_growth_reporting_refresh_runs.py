@@ -1,7 +1,7 @@
 """phase20_growth_reporting_refresh_runs
 
-Revision ID: 20260422_phase20_growth_reporting_refresh_runs
-Revises: 20260422_phase19_growth_reporting_rollups
+Revision ID: 20260422_p20_growth_refresh
+Revises: 20260422_p19_growth_rollups
 Create Date: 2026-04-22 22:10:00.000000
 """
 
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260422_phase20_growth_reporting_refresh_runs"
-down_revision = "20260422_phase19_growth_reporting_rollups"
+revision = "20260422_p20_growth_refresh"
+down_revision = "20260422_p19_growth_rollups"
 branch_labels = None
 depends_on = None
 

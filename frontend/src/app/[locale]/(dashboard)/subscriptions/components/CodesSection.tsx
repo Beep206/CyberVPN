@@ -3,9 +3,14 @@
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { ArrowUpRight, Gift, Ticket } from 'lucide-react';
+import { STAGE1_GROWTH_HUB_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 
 export function CodesSection() {
   const t = useTranslations('Subscriptions');
+
+  if (!STAGE1_GROWTH_HUB_UI_ENABLED) {
+    return null;
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">

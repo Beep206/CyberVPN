@@ -8,11 +8,17 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.stage1_growth_policy import assert_stage1_checkout_codes_enabled
+from src.application.services.stage1_plan_policy import (
+    assert_stage1_addons_enabled,
+    assert_stage1_paid_plan_purchasable,
+)
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.growth_codes import (
     GrowthCodeResolutionOutcome,
     ResolveGrowthCodeUseCase,
 )
+from src.config.settings import settings
 from src.domain.enums import (
     CommercialOwnerType,
     GrowthCodeActionContext,
@@ -157,6 +163,11 @@ class CheckoutUseCase:
         discount_amount = Decimal("0")
         promo_code_id = None
         discounts: list[CheckoutAppliedDiscount] = []
+        assert_stage1_checkout_codes_enabled(
+            code_input=normalized_growth_code_input,
+            promo_code=None,
+            enabled=settings.checkout_code_discounts_enabled,
+        )
         if normalized_growth_code_input:
             code_resolution = await self._growth_codes.execute(
                 code=normalized_growth_code_input,
@@ -327,6 +338,7 @@ class CheckoutUseCase:
             raise ValueError("Plan is not available on this channel")
         if plan.sale_channels and sale_channel not in plan.sale_channels:
             raise ValueError("Plan is not available on this channel")
+        assert_stage1_paid_plan_purchasable(plan, sale_channel=sale_channel)
         return plan
 
     async def _resolve_addons(
@@ -339,6 +351,10 @@ class CheckoutUseCase:
     ) -> list[CheckoutAddonLine]:
         if not addon_inputs:
             return []
+        assert_stage1_addons_enabled(
+            addon_count=len(addon_inputs),
+            enabled=settings.stage1_addons_enabled,
+        )
 
         catalog = {
             addon.code: addon

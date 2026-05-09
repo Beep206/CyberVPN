@@ -28,8 +28,10 @@ export const DASHBOARD_CLIENT_NAMESPACES = [
 
 export const MARKETING_CLIENT_NAMESPACES = [
   'A11y',
+  'AcceptableUse',
   'Api',
   'Contact',
+  'CookiePolicy',
   'DeleteAccount',
   'Docs',
   'Download',
@@ -39,6 +41,7 @@ export const MARKETING_CLIENT_NAMESPACES = [
   'Pricing',
   'Privacy',
   'PrivacyPolicy',
+  'RefundPolicy',
   'Security',
   'ServerCard',
   'Status',

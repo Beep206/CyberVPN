@@ -6,8 +6,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "20260420_phase9_partner_application_onboarding"
-down_revision = "20260419_rb002_partner_workspace_workflows"
+revision = "20260420_p9_partner_onboarding"
+down_revision = "20260419_rb002_partner_workflows"
 branch_labels = None
 depends_on = None
 
@@ -137,7 +137,7 @@ def upgrade() -> None:
         ["partner_account_id"],
     )
     op.create_index(
-        "ix_partner_application_review_requests_partner_application_draft_id",
+        "ix_partner_app_review_req_draft_id",
         "partner_application_review_requests",
         ["partner_application_draft_id"],
     )
@@ -157,12 +157,12 @@ def upgrade() -> None:
         ["status"],
     )
     op.create_index(
-        "ix_partner_application_review_requests_requested_by_admin_user_id",
+        "ix_partner_app_review_req_requested_by",
         "partner_application_review_requests",
         ["requested_by_admin_user_id"],
     )
     op.create_index(
-        "ix_partner_application_review_requests_resolved_by_admin_user_id",
+        "ix_partner_app_review_req_resolved_by",
         "partner_application_review_requests",
         ["resolved_by_admin_user_id"],
     )
@@ -264,11 +264,11 @@ def downgrade() -> None:
 
     op.drop_index("ix_partner_application_review_requests_requested_at", table_name="partner_application_review_requests")
     op.drop_index(
-        "ix_partner_application_review_requests_resolved_by_admin_user_id",
+        "ix_partner_app_review_req_resolved_by",
         table_name="partner_application_review_requests",
     )
     op.drop_index(
-        "ix_partner_application_review_requests_requested_by_admin_user_id",
+        "ix_partner_app_review_req_requested_by",
         table_name="partner_application_review_requests",
     )
     op.drop_index("ix_partner_application_review_requests_status", table_name="partner_application_review_requests")
@@ -281,7 +281,7 @@ def downgrade() -> None:
         table_name="partner_application_review_requests",
     )
     op.drop_index(
-        "ix_partner_application_review_requests_partner_application_draft_id",
+        "ix_partner_app_review_req_draft_id",
         table_name="partner_application_review_requests",
     )
     op.drop_index(

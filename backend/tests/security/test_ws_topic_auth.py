@@ -23,6 +23,9 @@ class TestTopicPermissions:
 
         for topic in topics:
             assert self.auth_service.can_subscribe(topic, AdminRole.SUPER_ADMIN), f"SUPER_ADMIN should access {topic}"
+            assert self.auth_service.can_subscribe(topic, AdminRole.OWNER_SUPER_ADMIN), (
+                f"OWNER_SUPER_ADMIN should access {topic}"
+            )
 
     def test_admin_can_access_admin_topics(self):
         """ADMIN can access servers, payments, general but not users or system."""
@@ -45,6 +48,15 @@ class TestTopicPermissions:
         assert not self.auth_service.can_subscribe("system", AdminRole.OPERATOR)
         assert not self.auth_service.can_subscribe("payments", AdminRole.OPERATOR)
 
+    def test_finance_payment_topic_access(self):
+        """FINANCE can access payment notifications without server/system/user topics."""
+        assert self.auth_service.can_subscribe("payments", AdminRole.FINANCE)
+        assert self.auth_service.can_subscribe("general", AdminRole.FINANCE)
+
+        assert not self.auth_service.can_subscribe("servers", AdminRole.FINANCE)
+        assert not self.auth_service.can_subscribe("users", AdminRole.FINANCE)
+        assert not self.auth_service.can_subscribe("system", AdminRole.FINANCE)
+
     def test_viewer_minimal_access(self):
         """VIEWER can only access general topic."""
         assert self.auth_service.can_subscribe("general", AdminRole.VIEWER)
@@ -61,10 +73,12 @@ class TestTopicPermissions:
 
         # SUPER_ADMIN can access unknown topics
         assert self.auth_service.can_subscribe(unknown_topic, AdminRole.SUPER_ADMIN)
+        assert self.auth_service.can_subscribe(unknown_topic, AdminRole.OWNER_SUPER_ADMIN)
 
         # All other roles cannot
         assert not self.auth_service.can_subscribe(unknown_topic, AdminRole.ADMIN)
         assert not self.auth_service.can_subscribe(unknown_topic, AdminRole.OPERATOR)
+        assert not self.auth_service.can_subscribe(unknown_topic, AdminRole.FINANCE)
         assert not self.auth_service.can_subscribe(unknown_topic, AdminRole.SUPPORT)
         assert not self.auth_service.can_subscribe(unknown_topic, AdminRole.VIEWER)
 

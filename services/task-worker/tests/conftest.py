@@ -39,6 +39,7 @@ def mock_settings_for_imports():
     # Bot Tokens
     settings.telegram_bot_token.get_secret_value.return_value = "123:test-bot"
     settings.cryptobot_token.get_secret_value.return_value = "test-crypto"
+    settings.cryptobot_network = "mainnet"
 
     # Admin Configuration
     settings.admin_telegram_ids = [12345]
@@ -114,6 +115,7 @@ def mock_settings():
     # Bot Tokens
     settings.telegram_bot_token.get_secret_value.return_value = "123:test-bot"
     settings.cryptobot_token.get_secret_value.return_value = "test-crypto"
+    settings.cryptobot_network = "mainnet"
 
     # Admin Configuration
     settings.admin_telegram_ids = [12345]

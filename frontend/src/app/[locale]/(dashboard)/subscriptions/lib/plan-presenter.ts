@@ -1,7 +1,14 @@
 import type { components } from '@/lib/api/generated/types';
+import {
+  formatMoney,
+  getPricePresentation,
+  type LocalDisplayEstimate,
+} from '@/shared/lib/pricing-display';
 
 export type SubscriptionPlan = components['schemas']['PlanResponse'];
 export type SubscriptionQuote = components['schemas']['CheckoutQuoteResponse'];
+
+export { formatMoney };
 
 const CONNECTION_MODE_LABELS: Record<string, string> = {
   standard: 'Standard',
@@ -23,27 +30,25 @@ const SUPPORT_LABELS: Record<string, string> = {
   vip: 'VIP support',
 };
 
-export function formatMoney(locale: string, amount: number, currency: string) {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-  }).format(amount);
-}
-
 export function getPlanPrice(plan: SubscriptionPlan, locale: string) {
-  if (locale.startsWith('ru') && typeof plan.price_rub === 'number' && plan.price_rub > 0) {
-    return {
-      amount: plan.price_rub,
-      currency: 'RUB',
-      formatted: formatMoney(locale, plan.price_rub, 'RUB'),
-    };
-  }
+  const price = getPricePresentation(locale, plan);
+  const localEstimate: (LocalDisplayEstimate & { formatted: string }) | null =
+    price.localEstimate
+      ? {
+          ...price.localEstimate,
+          formatted: formatMoney(
+            locale,
+            price.localEstimate.amount,
+            price.localEstimate.currency,
+          ),
+        }
+      : null;
 
   return {
-    amount: plan.price_usd,
-    currency: 'USD',
-    formatted: formatMoney(locale, plan.price_usd, 'USD'),
+    amount: price.billing.amount,
+    currency: price.billing.currency,
+    formatted: formatMoney(locale, price.billing.amount, price.billing.currency),
+    localEstimate,
   };
 }
 

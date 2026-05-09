@@ -1,0 +1,305 @@
+groups:
+  - name: cybervpn_stage1_controlled_public_beta_alerts
+    interval: 30s
+    rules:
+      - alert: Stage1ApiUnavailable
+        expr: stage1:target_up{job="cybervpn-local-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          priority: p0
+          service: api
+          stage: s1
+        annotations:
+          summary: "Stage 1 backend API metrics target is unavailable"
+          description: "Prometheus cannot scrape the Stage 1 backend API target for more than 2 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1WorkerUnavailable
+        expr: stage1:target_up{job="cybervpn-worker"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          priority: p0
+          service: worker
+          stage: s1
+        annotations:
+          summary: "Stage 1 task worker metrics target is unavailable"
+          description: "Worker metrics are unavailable. Payment reconciliation, provisioning retry and expiry/grace jobs may be stalled."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1TelegramBotUnavailable
+        expr: stage1:target_up{job="cybervpn-telegram-bot"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: telegram-bot
+          stage: s1
+        annotations:
+          summary: "Stage 1 Telegram Bot metrics target is unavailable"
+          description: "Telegram Bot scrape target is unavailable. Bot sales/support flow visibility may be degraded."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PostgresUnavailable
+        expr: stage1:target_up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          priority: p0
+          service: postgres
+          stage: s1
+        annotations:
+          summary: "Stage 1 PostgreSQL metrics target is unavailable"
+          description: "PostgreSQL scrape target is unavailable. Verify DB health and exporter connectivity before accepting beta traffic."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1RedisUnavailable
+        expr: stage1:target_up{job="redis"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          priority: p0
+          service: redis
+          stage: s1
+        annotations:
+          summary: "Stage 1 Redis/Valkey metrics target is unavailable"
+          description: "Redis/Valkey scrape target is unavailable. Queues, cache and rate-limit visibility may be degraded."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1RemnawaveUnavailable
+        expr: stage1:target_up{job="remnawave"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          priority: p0
+          service: remnawave
+          stage: s1
+        annotations:
+          summary: "Stage 1 Remnawave metrics target is unavailable"
+          description: "Remnawave metrics are unavailable. Trial/paid provisioning and node health visibility must be checked."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1NoHealthyRemnawaveNodes
+        expr: stage1:remnawave_healthy_nodes:current < 1
+        for: 2m
+        labels:
+          severity: critical
+          priority: p0
+          service: remnawave
+          stage: s1
+        annotations:
+          summary: "Stage 1 has no healthy Remnawave nodes"
+          description: "No healthy Remnawave nodes are visible. Pause paid/trial provisioning until node health is restored or manually verified."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PaidButNoAccessReviewNeeded
+        expr: |
+          sum(cybervpn_stage1_payment_reconciliation_items_current{severity=~"alert_15m|p1_escalation|p0_blocker"}) > 0
+        for: 0m
+        labels:
+          severity: warning
+          priority: p1
+          service: payments
+          stage: s1
+        annotations:
+          summary: "Stage 1 paid-but-no-access review item exists"
+          description: "At least one paid-but-no-access or orphan payment item reached the 15 minute alert threshold."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PaidButNoAccessP1Escalation
+        expr: |
+          sum(cybervpn_stage1_payment_reconciliation_items_current{severity=~"p1_escalation|p0_blocker"}) > 0
+        for: 0m
+        labels:
+          severity: critical
+          priority: p1
+          service: payments
+          stage: s1
+        annotations:
+          summary: "Stage 1 paid-but-no-access P1 escalation exists"
+          description: "At least one paid-but-no-access or orphan payment item reached the 1 hour P1 escalation threshold."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PaidButNoAccessP0Blocker
+        expr: |
+          max(cybervpn_stage1_payment_reconciliation_launch_blocked) > 0
+          or
+          sum(cybervpn_stage1_payment_reconciliation_items_current{severity="p0_blocker"}) > 0
+        for: 0m
+        labels:
+          severity: critical
+          priority: p0
+          service: payments
+          stage: s1
+        annotations:
+          summary: "Stage 1 paid-but-no-access P0 blocker exists"
+          description: "At least one paid-but-no-access or orphan payment item reached the 24 hour P0 threshold. Paid beta must not continue without owner action."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PaymentSuccessRatioLow
+        expr: |
+          stage1:payment_success_ratio:1h < 0.95
+          and
+          sum(increase(payments_total[1h])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: payments
+          stage: s1
+        annotations:
+          summary: "Stage 1 payment success ratio is below 95%"
+          description: "Payment success ratio is below the DEC-S1-013 launch target while payment traffic is present."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1ProvisioningDependencyErrors
+        expr: stage1:remnawave_external_error_ratio:5m > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: provisioning
+          stage: s1
+        annotations:
+          summary: "Stage 1 provisioning dependency errors are elevated"
+          description: "Backend/worker calls to Remnawave are failing above 5%. Pause new paid/trial access if provisioning cannot complete."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1ApiErrorRatioHigh
+        expr: stage1:api_http_error_ratio:5m > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: api
+          stage: s1
+        annotations:
+          summary: "Stage 1 API 5xx ratio is high"
+          description: "Backend API 5xx ratio is above 5% for 5 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1ApiLatencyHigh
+        expr: stage1:api_http_p95_seconds:5m > 2
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: api
+          stage: s1
+        annotations:
+          summary: "Stage 1 API P95 latency is high"
+          description: "Backend API P95 latency is above 2 seconds for 10 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1WorkerQueueBacklog
+        expr: stage1:worker_queue_depth:current > 100
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: worker
+          stage: s1
+        annotations:
+          summary: "Stage 1 worker queue backlog is high"
+          description: "Worker queue depth is above 100 for 15 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1WorkerTaskErrorRatioHigh
+        expr: stage1:worker_task_error_ratio:5m > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: worker
+          stage: s1
+        annotations:
+          summary: "Stage 1 worker task error ratio is high"
+          description: "Worker task error ratio is above 5% for 10 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1RedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          priority: p1
+          service: redis
+          stage: s1
+        annotations:
+          summary: "Stage 1 Redis/Valkey rejected connections"
+          description: "Redis/Valkey rejected one or more connections in the last 5 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PostgresRollbackRatioHigh
+        expr: stage1:postgres_rollback_ratio:5m > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: postgres
+          stage: s1
+        annotations:
+          summary: "Stage 1 PostgreSQL rollback ratio is high"
+          description: "PostgreSQL rollback ratio is above 5% for 10 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1TelegramBotErrorRatioHigh
+        expr: stage1:telegram_bot_error_ratio:5m > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: telegram-bot
+          stage: s1
+        annotations:
+          summary: "Stage 1 Telegram Bot error ratio is high"
+          description: "Telegram Bot error ratio is above 5% for 10 minutes."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1PostgresBackupStale
+        expr: time() - stage1_backup_last_success_unixtime{backup="postgres"} > 90000
+        for: 15m
+        labels:
+          severity: critical
+          priority: p0
+          service: backup
+          stage: s1
+        annotations:
+          summary: "Stage 1 PostgreSQL backup evidence is stale"
+          description: "PostgreSQL backup success metric is older than 25 hours. Go-live requires fresh backup evidence."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1RestoreDrillEvidenceExpired
+        expr: time() - stage1_restore_drill_last_success_unixtime > 604800
+        for: 30m
+        labels:
+          severity: warning
+          priority: p1
+          service: backup
+          stage: s1
+        annotations:
+          summary: "Stage 1 restore drill evidence is older than 7 days"
+          description: "Restore drill evidence should be refreshed before go-live if the last successful restore drill is older than 7 days."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"

@@ -192,3 +192,50 @@ class TestTelegramChannelParity:
         assert payload["consumption_context"]["channel_type"] == "telegram_bot"
         assert payload["consumption_context"]["credential_type"] == "telegram_bot"
         assert payload["consumption_context"]["credential_subject_key"] == "telegram-bot:123456"
+
+    @pytest.mark.integration
+    async def test_bot_support_escalation_creates_staff_note(
+        self,
+        async_client: AsyncClient,
+        monkeypatch,
+    ) -> None:
+        monkeypatch.setattr(settings, "telegram_bot_internal_secret", SecretStr("telegram-test-secret"))
+        user_id = uuid4()
+        note_id = uuid4()
+        mobile_user = SimpleNamespace(id=user_id, auth_realm_id=None)
+        created_note = SimpleNamespace(id=note_id)
+
+        with patch(
+            "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
+            AsyncMock(return_value=mobile_user),
+        ), patch(
+            "src.presentation.api.v1.telegram.routes.CustomerStaffNoteRepository.create",
+            AsyncMock(return_value=created_note),
+        ) as create_note:
+            response = await async_client.post(
+                "/api/v1/telegram/bot/user/123456/support/escalations",
+                headers=_bot_headers(),
+                json={
+                    "support_reference": "tg-provisioning-p1-abc123def456",
+                    "category": "provisioning",
+                    "priority": "p1",
+                    "safe_summary": "Paid but no access vless://secret-config",
+                    "first_line_reply_key": "support-first-line-provisioning",
+                    "source": "telegram_bot",
+                    "telegram_username": "tester",
+                },
+            )
+
+        assert response.status_code == 201
+        assert response.json() == {
+            "support_reference": "tg-provisioning-p1-abc123def456",
+            "status": "accepted",
+            "user_uuid": str(user_id),
+            "note_id": str(note_id),
+        }
+        note_model = create_note.await_args.args[0]
+        assert note_model.user_id == user_id
+        assert note_model.admin_id is None
+        assert note_model.category == "support"
+        assert "vless://" not in note_model.note
+        assert "[vpn-config-url]" in note_model.note

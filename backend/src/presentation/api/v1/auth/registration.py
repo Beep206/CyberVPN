@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.auth_service import AuthService
 from src.application.services.invite_service import InviteTokenService
 from src.application.services.otp_service import OtpService
+from src.application.services.public_registration_policy import PublicRegistrationDisabledError
 from src.application.use_cases.auth.register import RegisterUseCase
 from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
@@ -111,7 +112,7 @@ async def register(
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration is currently disabled. Contact an administrator for access.",
+            detail=PublicRegistrationDisabledError("web_password").public_detail(),
         )
 
     # CRIT-1: Check for invite token if required

@@ -35,29 +35,10 @@ vi.mock('@/i18n/navigation', () => ({
 }));
 
 describe('CodesSection', () => {
-  it('renders a single entry point to the rewards hub', () => {
+  it('hides public rewards and checkout-code guidance while S1 growth flows are disabled', () => {
     render(<CodesSection />);
 
-    expect(screen.getByText('Rewards Hub')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Manage invite codes, referral sharing, and invite redemption from one place instead of splitting the flow across subscription screens.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open rewards hub/i })).toHaveAttribute(
-      'href',
-      '/referral',
-    );
-  });
-
-  it('keeps promo guidance inside the subscriptions surface', () => {
-    render(<CodesSection />);
-
-    expect(screen.getByText('Checkout codes')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.queryByText('Rewards Hub')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checkout codes')).not.toBeInTheDocument();
   });
 });

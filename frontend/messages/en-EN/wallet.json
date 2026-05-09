@@ -21,6 +21,14 @@
     "liability": "Total wallet value",
     "pendingWithdrawals": "Pending withdrawals"
   },
+  "recentPayments": {
+    "eyebrow": "Customer receipts",
+    "title": "Recent payments",
+    "description": "A safe payment snapshot scoped to the signed-in customer. Raw provider identifiers, checkout URLs and provider payloads stay out of the wallet UI.",
+    "paymentSuffix": "payment",
+    "empty": "No recent payments found.",
+    "openFull": "Open full history"
+  },
   "withdrawForm": {
     "eyebrow": "Withdrawal request",
     "title": "Request payout",

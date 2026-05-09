@@ -4,6 +4,77 @@
     "mainContent": "Основное содержимое",
     "skipToMainContent": "Перейти к основному содержимому"
   },
+  "AcceptableUse": {
+    "intro": "Этот документ является S1 candidate для CyberVPN Controlled Public Beta. Он объясняет, как можно и нельзя использовать сервис через cyber-vpn.net, cyber-vpn.org, Telegram Bot, Telegram Mini App, пользовательские web-интерфейсы и VPN-доступ, выданный CyberVPN. Документ должен пройти owner/legal review до того, как будет считаться финальным публичным legal copy.",
+    "lastUpdated": "S1 candidate обновлён 5 мая 2026",
+    "meta": {
+      "description": "S1 candidate Acceptable Use Policy для CyberVPN Controlled Public Beta.",
+      "title": "Правила допустимого использования"
+    },
+    "sections": {
+      "allowedUse": {
+        "items": {
+          "personalSubscription": "Использовать только те accounts, devices, subscription URLs, QR-коды и configuration files, которые CyberVPN выдал вам или явно разрешил для вашего тарифа.",
+          "privateAccess": "Использовать CyberVPN для законного private network access, персональной privacy, более безопасного доступа в недоверенных сетях и доступности обычных интернет-сервисов там, где это разрешено применимым правом.",
+          "support": "Обращаться в поддержку, если connection, payment, trial, renewal или provisioning issue мешает нормальному использованию."
+        },
+        "title": "2. Разрешённое использование"
+      },
+      "changes": {
+        "content": "Этот S1 candidate может измениться до public go-live. Финальная публикация требует owner/legal approval, abuse mailbox proof, node/provider torrent policy evidence и support/admin enforcement evidence.",
+        "title": "7. Изменения до go-live"
+      },
+      "enforcement": {
+        "items": {
+          "controls": "CyberVPN может предупреждать, rate limit, throttle, block provisioning, suspend VPN access, revoke credentials, disable trials, terminate accounts или refuse renewal при обнаружении или credible report abuse.",
+          "evidence": "CyberVPN может сохранять account, payment, support, security и operational evidence, необходимые для investigation abuse, выполнения provider requirements, обработки disputes или legal obligations.",
+          "refunds": "Возвраты регулируются Refund Policy и support process. Abuse, fraud или policy violations могут влиять на refund eligibility там, где это разрешено применимым правом.",
+          "review": "Paid-but-no-access и abuse-related support cases должны проходить через S1 manual review или support escalation process. CyberVPN должен избегать permanent action без достаточного evidence, кроме случаев, когда immediate action нужен для предотвращения вреда."
+        },
+        "title": "5. Применение правил"
+      },
+      "network": {
+        "items": {
+          "automation": "Automated high-volume traffic, mining, bot automation, scraping, port scanning, brute force workflows и load patterns, ухудшающие работу сервиса, могут быть ограничены или suspended.",
+          "configSafety": "Не публикуйте raw subscription URLs, QR-коды, private keys или configuration files в публичных каналах. Если credentials раскрыты, CyberVPN может revoke and reissue them.",
+          "fairUse": "Stage 1 plans могут иметь fair-use limits, rate limits, device limits, traffic limits и anti-abuse controls для защиты beta-сервиса и других пользователей.",
+          "nodeRules": "Node-specific rules могут быть строже этой публичной политики. Если provider, jurisdiction или beta rollout требует блокировать категорию traffic на ноде, CyberVPN может применить это правило без признания breach of service.",
+          "torrent": "CyberVPN не обещает, что torrent или P2P traffic доступен на каждой ноде. Torrent или P2P traffic может блокироваться, ограничиваться или замедляться на нодах, где этого требует provider policy, law, abuse risk или operational evidence."
+        },
+        "title": "4. Правила сети, torrent и ресурсов"
+      },
+      "prohibited": {
+        "intro": "Нельзя использовать CyberVPN, CyberVPN accounts, VPN nodes, subscription URLs, QR-коды или configuration files для действий, которые вредят CyberVPN, другим пользователям, провайдерам или третьим лицам. Запрещённые действия включают:",
+        "items": {
+          "attacks": "DDoS attacks, flooding, intrusion attempts, vulnerability exploitation, unauthorized port scanning, network reconnaissance или traffic, предназначенный для нарушения работы другого сервиса.",
+          "credentialStuffing": "Credential stuffing, password spraying, brute force login attempts, automated account checking или любые атаки на authentication systems.",
+          "illegalContent": "Доступ, хранение, передача или содействие распространению illegal content, child sexual abuse material, материалов с эксплуатацией minors, terrorist content или контента, незаконного в применимой юрисдикции.",
+          "malware": "Создание, hosting, распространение, управление или содействие malware, ransomware, botnets, command-and-control systems, exploit kits или malicious payloads.",
+          "phishing": "Phishing, impersonation, social engineering, credential theft, account takeover, payment fraud, scams или попытки собирать sensitive data без авторизации.",
+          "publicProxy": "Запуск public proxies, open relays, exit nodes, reverse proxies, hosting services, crypto-mining infrastructure или server workloads через персональный CyberVPN account.",
+          "resale": "Reselling, sharing, public posting или commercial redistribution accounts, subscription URLs, QR-кодов, configs или credentials, если CyberVPN явно не разрешил это письменно.",
+          "rightsAbuse": "Copyright infringement, trademark abuse, counterfeit activity или другое использование, нарушающее права третьих лиц, если CyberVPN получает valid complaint или provider requirement.",
+          "sanctions": "Использование сервиса способом, нарушающим applicable sanctions, export controls, payment-provider rules, hosting-provider rules или legal restrictions, применимые к CyberVPN.",
+          "scraping": "High-volume scraping, abusive crawling, spam SEO automation, ticket buying automation, fake engagement, content abuse или действия, нарушающие terms/rate limits другого сервиса.",
+          "spam": "Spam, bulk unsolicited messages, abusive advertising, robocalls, массовое создание аккаунтов и похожий messaging abuse."
+        },
+        "title": "3. Запрещённые действия"
+      },
+      "reporting": {
+        "items": {
+          "abuseEmail": "Сообщайте об abuse на abuse@cyber-vpn.net. Для этого mailbox требуется delivery evidence до go-live.",
+          "details": "В report желательно включить timestamps, affected IPs или domains, relevant logs, message headers, account identifiers и краткое описание suspected abuse, если эти данные доступны.",
+          "supportEmail": "По обычным вопросам account, billing, trial или connection обращайтесь на support@cyber-vpn.net."
+        },
+        "title": "6. Сообщения об abuse"
+      },
+      "scope": {
+        "content": "Политика применяется ко всем аккаунтам CyberVPN, trial, платным подпискам, support flows, configuration links, QR-кодам, subscription URLs и VPN credentials, выданным на Stage 1. Если эта политика конфликтует с финально утверждёнными Terms of Service, Privacy Policy или provider-specific node rule, более строгое операционное правило может применяться до согласования документов.",
+        "title": "1. Область действия"
+      }
+    },
+    "title": "Правила допустимого использования"
+  },
   "Analytics": {},
   "Api": {
     "description": "Программный доступ к глобальной инфраструктуре CyberVPN. Автоматизируйте маршрутизацию серверов, управление пользователями и политики безопасности.",
@@ -300,6 +371,73 @@
     "subtitle": "Глобальный зашифрованный ретранслятор",
     "title": "ЗАЩИЩЕННАЯ СВЯЗЬ"
   },
+  "CookiePolicy": {
+    "intro": "Этот Cookie Policy является S1 candidate для CyberVPN Controlled Public Beta. Он объясняет cookies, local storage, session storage, telemetry и похожее browser storage, которое используется или подготовлено в CyberVPN web site, web cabinet, Telegram Mini App, backend API flows и admin/support surfaces. Это не финальная юридическая консультация; документ должен пройти owner/legal review до публикации как final public legal copy.",
+    "lastUpdated": "S1 candidate обновлён 5 мая 2026",
+    "meta": {
+      "description": "S1 candidate Cookie Policy для CyberVPN Controlled Public Beta.",
+      "title": "Политика cookies"
+    },
+    "sections": {
+      "changes": {
+        "content": "This S1 candidate may change before public go-live. Final publication requires owner/legal approval, deployed cookie inventory, Set-Cookie evidence, consent evidence where non-essential storage is used and alignment with Privacy Policy, Terms of Service, Acceptable Use Policy and Refund Policy.",
+        "title": "7. Changes before go-live"
+      },
+      "consent": {
+        "items": {
+          "changes": "If CyberVPN adds a new cookie, storage mechanism, SDK or tracking provider, owner must approve the change and attach updated cookie inventory evidence before public use.",
+          "marketing": "S1 does not approve marketing pixels, advertising retargeting or cross-site profiling by default. If enabled later, Cookie Policy, Privacy Policy, consent UI and evidence pack must be updated first.",
+          "necessary": "Strictly necessary cookies and storage may be used to provide login, security, checkout return handling, fraud prevention, language routing, support and VPN provisioning flows requested by the user.",
+          "nonEssential": "Non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default for S1 until the project has a consent mechanism, cookie inventory, legal approval and evidence."
+        },
+        "title": "3. Consent and default state"
+      },
+      "controls": {
+        "items": {
+          "browser": "Users can control cookies, local storage and session storage in their browser or device settings. Blocking strictly necessary storage may prevent login, checkout, VPN provisioning, support/admin access or Telegram Mini App flows from working.",
+          "logout": "Logging out should clear CyberVPN auth cookies. Some provider-side cookies, browser cache, locale preference or Telegram-controlled storage may need to be cleared through browser, Telegram app or third-party provider.",
+          "support": "Cookie/privacy questions can be sent to support@cyber-vpn.net. Refund-related payment questions can be sent to refund@cyber-vpn.net."
+        },
+        "title": "5. User controls"
+      },
+      "goLiveBlockers": {
+        "items": {
+          "browserInventory": "Attach deployed browser cookie inventory for public site, web cabinet, login/register, OAuth, Telegram Mini App, checkout, logout and admin flows.",
+          "consent": "If non-essential analytics or marketing storage is enabled, attach consent banner/settings evidence proving default-off behavior and withdrawal controls.",
+          "legal": "Owner/legal review must approve this Cookie Policy together with Terms of Service, Privacy Policy, Acceptable Use Policy and Refund Policy.",
+          "pii": "Attach Sentry/observability PII scrubbing evidence, analytics payload review and proof that cookies, Set-Cookie headers and secrets are filtered from logs.",
+          "setCookie": "Attach redacted Set-Cookie evidence proving Secure, HttpOnly where applicable, SameSite, domain, path and expiry/max-age for production HTTPS responses."
+        },
+        "title": "6. Required evidence before go-live"
+      },
+      "inventory": {
+        "intro": "S1 inventory основан на текущем monorepo и local source review. Deployed browser evidence, включая DevTools/curl Set-Cookie output, всё ещё должен быть приложен до go-live.",
+        "items": {
+          "auth": "Authentication cookies: backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Configured S1 behavior is HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days.",
+          "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. Exact production cookie name, domain, path and lifetime must be confirmed in browser cookie inventory evidence.",
+          "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing, but production PII evidence is still required.",
+          "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
+          "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. For S1, PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced.",
+          "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP and 2FA redirect handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests."
+        },
+        "title": "2. Cookie and storage inventory"
+      },
+      "retention": {
+        "items": {
+          "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
+          "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
+          "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the approved Privacy Policy, provider settings and the S1 observability evidence pack.",
+          "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow."
+        },
+        "title": "4. Retention"
+      },
+      "scope": {
+        "content": "Политика покрывает cyber-vpn.net как primary S1 domain, cyber-vpn.org как mirror/redirect domain, admin.cyber-vpn.net как primary admin domain и admin.cyber-vpn.org как redirect на primary admin domain. S1 правило: предпочитать canonical cookies на cyber-vpn.net/admin.cyber-vpn.net и держать .org mirrors в redirect-only режиме, если отдельный domain/cookie evidence pack не утвердит другое.",
+        "title": "1. Область действия"
+      }
+    },
+    "title": "Политика cookies"
+  },
   "Dashboard": {
     "activeSessions": "АКТИВНЫЕ СЕССИИ",
     "aggregateThroughput": "Суммарная пропускная способность",
@@ -427,6 +565,118 @@
         },
         "title": "Чеклист защиты аккаунта"
       },
+      "stage1States": {
+        "access": {
+          "active": {
+            "description": "Оплаченный VPN-доступ активен и готов к штатной выдаче подключения.",
+            "title": "Доступ активен"
+          },
+          "checking": {
+            "description": "Dashboard загружает последний снимок прав доступа перед показом финального состояния.",
+            "title": "Проверяем доступ"
+          },
+          "expired": {
+            "description": "VPN-доступ истёк или отключён. Продлите тариф или обратитесь в поддержку перед подключением.",
+            "title": "Доступ истёк"
+          },
+          "eyebrow": "Доступ",
+          "grace": {
+            "description": "VPN-доступ остаётся доступным в течение 72-часового grace-окна. Продлите вручную до его закрытия.",
+            "title": "Grace-период"
+          },
+          "no_access": {
+            "description": "Активных прав доступа нет. Запустите trial или выберите тариф для запроса VPN-доступа.",
+            "title": "Доступа пока нет"
+          },
+          "payment_pending": {
+            "description": "Оплата ещё не финальна. Доступ будет выдан после подтверждения и сверки платежа.",
+            "title": "Оплата ожидается"
+          },
+          "provisioning_pending": {
+            "description": "Тариф есть, но выдача VPN ещё готовит credential или канал доступа.",
+            "title": "Provisioning ожидается"
+          },
+          "trial_active": {
+            "description": "Пробный доступ активен. Проверьте дату окончания до закрытия trial-окна.",
+            "title": "Trial активен"
+          }
+        },
+        "ariaLabel": "Состояния доступа, оплаты и provisioning для Stage 1",
+        "payment": {
+          "checking": {
+            "description": "Dashboard загружает billing-сигналы перед показом финального состояния оплаты.",
+            "title": "Проверяем оплату"
+          },
+          "expired": {
+            "description": "Окно оплаты истекло. Создайте новый invoice для продления или тарифа.",
+            "title": "Оплата истекла"
+          },
+          "eyebrow": "Оплата",
+          "failed": {
+            "description": "Платёж отклонён или завершился ошибкой. Создайте новый checkout или обратитесь в поддержку, если средства были зарезервированы.",
+            "title": "Оплата не прошла"
+          },
+          "not_started": {
+            "description": "К текущему состоянию доступа не привязан live-платёж.",
+            "title": "Оплата не начата"
+          },
+          "paid": {
+            "description": "Billing-состояние закрыто для текущего окна доступа.",
+            "title": "Оплата принята"
+          },
+          "pending": {
+            "description": "Подтверждение провайдера ещё ожидается. Платёж должен оставаться на контроле до финального статуса.",
+            "title": "Оплата ожидается"
+          },
+          "processing": {
+            "description": "Провайдер ещё обрабатывает платёж. Не повторяйте тот же checkout до финального статуса.",
+            "title": "Оплата обрабатывается"
+          },
+          "reconciliation_required": {
+            "description": "Оплата и доступ требуют ручной сверки. Поддержка должна закрыть это в рамках S1-политики 24 часов.",
+            "title": "Нужна ручная сверка"
+          },
+          "refunded": {
+            "description": "По billing-состоянию зафиксирован refund. Доступ может требовать ручной проверки поддержки.",
+            "title": "Возврат зафиксирован"
+          }
+        },
+        "provisioning": {
+          "checking": {
+            "description": "Dashboard загружает сигналы VPN delivery перед показом финального состояния provisioning.",
+            "title": "Проверяем provisioning"
+          },
+          "eyebrow": "Provisioning",
+          "failed": {
+            "description": "Выдача VPN завершилась ошибкой. Поддержка должна повторить provisioning или выполнить ручное исправление.",
+            "title": "Provisioning не прошёл"
+          },
+          "not_required": {
+            "description": "Provisioning начинается после активации trial или финального решения по платному доступу.",
+            "title": "Пока не требуется"
+          },
+          "pending": {
+            "description": "VPN credentials или delivery channel ещё не готовы. Повторите проверку или дождитесь worker-сверки.",
+            "title": "Provisioning ожидается"
+          },
+          "ready": {
+            "description": "В Remnawave delivery есть service identity, credential, profile и access channel.",
+            "title": "VPN готов"
+          },
+          "reconciliation_required": {
+            "description": "Оплата/доступ и VPN delivery расходятся. Поддержка должна сверить состояние до прохождения go-live evidence.",
+            "title": "Нужна проверка provisioning"
+          },
+          "remnawave_unavailable": {
+            "description": "Dashboard не может получить состояние provisioning. Повторите проверку перед изменением доступа или оплаты.",
+            "title": "Remnawave недоступен"
+          },
+          "retrying": {
+            "description": "Backend повторяет выдачу VPN. Обратитесь в поддержку, если состояние быстро не исправится.",
+            "title": "Provisioning повторяется"
+          }
+        }
+      },
       "statusLabel": "КАНАЛ АККАУНТА:",
       "statusValue": "ЗАШИФРОВАН",
       "subtitle": "Пользовательский центр управления тарифом, готовностью VPN, трафиком, кошельком, наградами, уведомлениями и безопасностью.",
@@ -473,7 +723,7 @@
     "contact": {
       "description": "If you have questions about account deletion or data privacy:",
       "email": "Email",
-      "emailAddress": "privacy@cybervpn.app",
+      "emailAddress": "privacy@cyber-vpn.net",
       "title": "Need help?"
     },
     "error": {
@@ -550,7 +800,7 @@
           "accountData": "Your account information and profile",
           "configs": "VPN configurations and connection history",
           "referrals": "Referral data and earned rewards",
-          "subscriptions": "All active subscriptions (no refunds)",
+          "subscriptions": "Active subscription handling, including any refund request, follows the Refund Policy and provider rules.",
           "support": "Support tickets and communication history"
         },
         "title": "What will be deleted"
@@ -568,7 +818,10 @@
       "title": "Warning: This action is permanent"
     }
   },
-  "Devices": {},
+  "Devices": {
+    "subtitle": "Управляйте активными сессиями и устройствами",
+    "title": "Активные устройства"
+  },
   "Docs": {
     "doc_config_desc": "Создание защищенных путей через враждебные сети.",
     "doc_config_title": "Настройка Туннелей",
@@ -612,71 +865,71 @@
     "title": "ЗАЩИЩЕННЫЙ ПАКЕТ"
   },
   "Features": {
-    "description": "Шифрование военного уровня и квантово-устойчивая инфраструктура. Изучите модульные компоненты, защищающие ваше цифровое существование.",
+    "description": "Controlled Public Beta фокусируется на логине, trial или оплате, Remnawave provisioning, выдаче config, support recovery и наблюдаемой эксплуатации.",
     "features": {
       "killswitch": {
-        "description": "Постоянно отслеживает целостность туннеля. При разрыве соединения блокирует весь сетевой трафик устройства для предотвращения утечек IP-адреса.",
+        "description": "S1 surface ставит на первое место recoverability: paid-but-no-access, provisioning failures, expired access и support escalation имеют явную обработку.",
         "specs": [
-          "Уровень: Правила маршрутизации ядра ОС",
-          "Время реакции: < 1мс",
-          "Предотвращение утечек: DNS, IPv6, WebRTC"
+          "SLA: paid orphan review within 24h",
+          "Provisioning: retry and support escalation",
+          "Admin: audited manual recovery actions"
         ],
-        "subtitle": "Изоляция на Системном Уровне",
-        "title": "Нейронный Kill Switch"
+        "subtitle": "Payment и provisioning safeguards",
+        "title": "Support recovery path"
       },
       "multihop": {
-        "description": "Ваш трафик фрагментируется, шифруется и маршрутизируется через множество независимых юрисдикций. Если один узел скомпрометирован, происхождение остается невозможным для отслеживания.",
+        "description": "Регионы не являются публичным обещанием, пока нет staging или production node evidence. S1-каталог стартует с country-level слотов и скрывает недоступные ноды.",
         "specs": [
-          "Узлов: Настраиваемые цепи из 2-4",
-          "Юрисдикции: Глобальное распределение",
-          "Перешифрование: На каждом выходе из туннеля"
+          "Startup inventory: 12 region slots",
+          "Публичный показ: только enabled nodes",
+          "Proof: health, profile, monitoring"
         ],
-        "subtitle": "Распределенная Маршрутизация",
-        "title": "Multi-Hop Каскадирование"
+        "subtitle": "Country-level startup inventory",
+        "title": "Evidence-gated регионы"
       },
       "obfuscation": {
-        "description": "Обходит глубокий анализ пакетов в странах с жесткой цензурой. VPN-трафик стеганографически маскируется под стандартный веб-трафик HTTPS.",
+        "description": "Reality-профили рассчитаны на restricted networks, но S1-copy остаётся ограниченным: результат зависит от сети пользователя и текущего node evidence.",
         "specs": [
-          "Протокол: V2Ray / Shadowsocks / XTLS",
-          "Сигнатура: Неотличима от TLS 1.3",
-          "Устойчивость: Автоматическая ротация при блокировке"
+          "Profile: HTTPS-like Reality transport",
+          "Fallback: XHTTP where configured",
+          "Claim boundary: evidence required"
         ],
-        "subtitle": "Обход DPI",
-        "title": "Теневая Обфускация"
+        "subtitle": "Без универсального unblock-обещания",
+        "title": "DPI-resistant profiles"
       },
       "quantum": {
-        "description": "Готовность к криптографическому апокалипсису. Использование алгоритмов на решетках для защиты криптографических рукопожатий от атак с использованием квантовых компьютеров.",
+        "description": "Stage 1 держит VPN transport surface узким: VLESS Reality RAW является default profile, а VLESS Reality XHTTP включается как alternate path после evidence.",
         "specs": [
-          "Алгоритм: Kyber-1024 / NTRU",
-          "Обмен ключами: Гибридный ECDHE + PQ",
-          "Модель угрозы: 'Собери сейчас, расшифруй потом'"
+          "Default: VLESS Reality RAW",
+          "Alternate: VLESS Reality XHTTP",
+          "Вне S1: Helix, Verta, Beep production"
         ],
-        "subtitle": "Постквантовая Криптография",
-        "title": "Квантовая Устойчивость"
+        "subtitle": "VLESS Reality RAW + XHTTP",
+        "title": "S1 protocol baseline"
       }
     },
     "secondary": {
       "items": [
         {
-          "desc": "Только RAM-серверы. Ежедневная перезагрузка. Данные никогда не касаются HDD.",
-          "title": "Строгая Политика 'Без Логов'"
+          "desc": "CyberVPN не делает absolute privacy claim в S1. Operational metadata может существовать для security, billing, support и provisioning.",
+          "title": "Ограниченная privacy-copy"
         },
         {
-          "desc": "Защитите весь свой арсенал оборудования с помощью одного ключа доступа.",
-          "title": "10 Устройств Одновременно"
+          "desc": "Количество устройств зависит от выбранного плана и должно подтверждаться backend и support process.",
+          "title": "Plan-based device limits"
         },
         {
-          "desc": "Фильтрация на уровне DNS нейтрализует вредоносные скрипты до их загрузки.",
-          "title": "Блокировка Рекламы и Трекеров"
+          "desc": "S1 не обещает автоматическое продление. Renewal reminders и invoice links допустимы только после evidence.",
+          "title": "Сначала ручное продление"
         },
         {
-          "desc": "Выделенные узлы с высокой пропускной способностью, аппаратно ускоренные для торрентов.",
-          "title": "Оптимизация для P2P"
+          "desc": "Torrent/P2P не рекламируется как широко доступный. Node policy и provider rules решают, что включено.",
+          "title": "P2P restricted by default"
         }
       ],
-      "title": "Вспомогательные Системы"
+      "title": "S1 operating boundaries"
     },
-    "title": "Ключевые Возможности"
+    "title": "Возможности Stage 1"
   },
   "Footer": {
     "brandDescription": "Передовая инфраструктура защиты конфиденциальности для интернета следующего поколения. Навигация в цифровой пустоте с шифрованием военного уровня.",
@@ -688,14 +941,17 @@
       "trust": "Центр доверия"
     },
     "links": {
+      "acceptableUse": "Правила использования",
       "api": "API",
       "contact": "Контакты",
+      "cookiePolicy": "Политика cookies",
       "documentation": "Документация",
       "download": "Скачать",
       "features": "Возможности",
       "helpCenter": "Центр помощи",
       "pricing": "Цены",
       "privacy": "Политика конфиденциальности",
+      "refundPolicy": "Политика возвратов",
       "security": "Безопасность",
       "servers": "Серверы",
       "status": "Статус системы",
@@ -733,41 +989,41 @@
     "category_getting_started": "Инициализация",
     "category_getting_started_desc": "Запуск системы и протоколы базовой конфигурации.",
     "category_security": "Протоколы Шифрования",
-    "category_security_desc": "Детали о Anti-DPI, обфускации и политике отсутствия логов.",
+    "category_security_desc": "S1 transports, evidence boundaries, privacy limits и abuse controls.",
     "category_troubleshooting": "Маршрутизация",
     "category_troubleshooting_desc": "Диагностика ошибок подключения и туннелирования.",
     "contact_button_telegram": "ИНИЦИИРОВАТЬ СВЯЗЬ В TELEGRAM",
     "contact_button_ticket": "ОТКРЫТЬ ЗАЩИЩЕННЫЙ ТИКЕТ",
     "contact_desc": "Не удалось решить аномалию в архивах? Установите прямой защищенный канал связи с нашими операторами.",
     "contact_title": "ЗАЩИЩЕННАЯ ПЕРЕДАЧА",
-    "faq_billing_1_a": "Вы можете приобрести дополнительные Кредиты Доступа через терминал биллинга, используя поддерживаемые крипто или фиатные шлюзы.",
+    "faq_billing_1_a": "Откройте pricing или wallet flow и выберите протестированный S1 payment path. Add-ons и public promo/gift/referral discounts остаются выключенными, пока отдельный evidence gate их не включит.",
     "faq_billing_1_q": "Как увеличить квоту пропускной способности?",
-    "faq_billing_2_a": "Возвраты обрабатываются строго в течение первых 72 часов после установления нового цикла подключения.",
+    "faq_billing_2_a": "Refund requests обрабатываются вручную через support и finance review. Provider status, provisioning state, usage/support evidence и Refund Policy определяют итог.",
     "faq_billing_2_q": "Возможен ли возврат средств?",
-    "faq_billing_3_a": "Утвердительно. Мы принимаем Monero (XMR), USDT и Bitcoin для полностью неотслеживаемых транзакций.",
-    "faq_billing_3_q": "Поддерживаете ли вы анонимные платежи?",
-    "faq_getting_started_1_a": "Загрузите модуль ядра CyberVPN для вашей ОС, авторизуйтесь с вашим Neural ID и нажмите 'Engage'.",
+    "faq_billing_3_a": "Включаются только payment methods с account, credential, webhook, status, refund и reconciliation evidence. Остальные provider options остаются hidden или disabled.",
+    "faq_billing_3_q": "Какие payment methods доступны в S1?",
+    "faq_getting_started_1_a": "Создайте аккаунт через сайт или Telegram, запустите trial или завершите поддерживаемую оплату, затем импортируйте выданный QR, subscription URL или config в поддерживаемый клиент.",
     "faq_getting_started_1_q": "Как мне инициализировать первое подключение?",
     "faq_getting_started_2_a": "Сеть принимает соединения от клиентов на Windows, macOS, Linux, iOS и Android по стандартным протоколам Xray/Sing-box.",
     "faq_getting_started_2_q": "Какие устройства поддерживаются?",
-    "faq_getting_started_3_a": "Да, в зависимости от вашего уровня Кредитов Доступа, вы можете связать до 10 одновременных нейронных путей.",
+    "faq_getting_started_3_a": "Да, но лимит зависит от выбранного плана и S1 enforcement evidence. Dashboard и support должны показывать активный device limit.",
     "faq_getting_started_3_q": "Могу ли я подключить несколько устройств одновременно?",
-    "faq_security_1_a": "Отрицательно. Все базы данных волатильны. Мы работаем по строгой архитектуре нулевого знания.",
+    "faq_security_1_a": "CyberVPN не делает absolute privacy claim в S1. Operational metadata может существовать для security, payments, support, provisioning, observability и abuse handling.",
     "faq_security_1_q": "Служба ведет логирование моих данных?",
-    "faq_security_2_a": "Мы используем шифры ChaCha20-Poly1305 и AES-256-GCM, обеспечивая криптографическую целостность военного уровня.",
+    "faq_security_2_a": "S1 использует encryption и transport modes, которые дают approved Xray/Remnawave profiles. Public crypto claims ограничены фактическим profile evidence.",
     "faq_security_2_q": "Какой стандарт шифрования используется?",
-    "faq_security_3_a": "Да. В случае обрыва защищенного туннеля клиент немедленно блокирует все внешние сетевые адаптеры для предотвращения утечки IP.",
-    "faq_security_3_q": "Есть ли у вас функция Kill Switch?",
+    "faq_security_3_a": "Paid state сохраняется, provisioning должен retry или escalation, а support обязан проверить paid-but-no-access/orphan cases до нарушения S1 24-hour policy.",
+    "faq_security_3_q": "Что если оплаченный VPN-доступ не готов?",
     "faq_title": "ЧАСТЫЕ ЗАПРОСЫ",
-    "faq_troubleshooting_1_a": "Проверьте пинг вашего узла. Если потеря пакетов превышает 5%, перенаправьтесь на альтернативный шард в Server Grid.",
+    "faq_troubleshooting_1_a": "Проверьте, включён ли выбранный регион, попробуйте alternate S1 profile при наличии и обратитесь в support, если dashboard показывает provisioning или payment review.",
     "faq_troubleshooting_1_q": "Почему скорость моего соединения снижена?",
-    "faq_troubleshooting_2_a": "Система автоматически включает резервную маршрутизацию. Если нужно ручное вмешательство, сбросьте DNS-кэш и переподключитесь.",
+    "faq_troubleshooting_2_a": "Используйте alternate subscription profile при наличии. Если доступ оплачен, но VPN не готов, support обязан эскалировать case по S1 paid-access escalation policy.",
     "faq_troubleshooting_2_q": "Что делать, если основной прокси не отвечает?",
-    "faq_troubleshooting_3_a": "Наше ядро, использующее VLESS+Reality, автоматически маскирует ваш трафик под стандартный HTTPS. Убедитесь, что у вас установлено последнее обновление ядра.",
+    "faq_troubleshooting_3_a": "S1 использует VLESS Reality RAW как default profile и VLESS Reality XHTTP как alternate path. Результат зависит от сети пользователя и текущего node evidence.",
     "faq_troubleshooting_3_q": "Как мне обойти ограничения DPI?",
     "hero_subtitle": "ДОСТУП К ЦЕНТРАЛЬНЫМ БАЗАМ ДАННЫХ...",
     "hero_title": "НЕЙРОННЫЕ АРХИВЫ",
-    "meta_description": "Доступ к базам данных для устранения неполадок, руководствам и защищенным каналам связи.",
+    "meta_description": "Troubleshooting, setup guidance, billing support и Stage 1 support escalation channels.",
     "meta_title": "Нейронные Архивы | CyberVPN Help Center",
     "search_button": "ДЕШИФРОВАТЬ",
     "search_placeholder": "Введите нейро-запрос..."
@@ -781,22 +1037,22 @@
       },
       "rows": {
         "dpi": {
-          "cybervpn": "Неотличимо от HTTPS",
+          "cybervpn": "HTTPS-like Reality profile",
           "feature": "Обнаружение DPI",
           "legacy": "Легко определяется и блокируется"
         },
         "ip_blocking": {
-          "cybervpn": "Нулевой (динамическая маскировка Reality)",
+          "cybervpn": "Ниже при актуальном node evidence",
           "feature": "Риск блокировки IP",
           "legacy": "Высокий (статичные паттерны)"
         },
         "privacy": {
-          "cybervpn": "Шифрование только в RAM (Без следов)",
+          "cybervpn": "Privacy claims ограничены evidence",
           "feature": "Уровень Приватности",
           "legacy": "Стандартное шифрование"
         },
         "speed": {
-          "cybervpn": "Полная скорость магистрали (10 Гбит/с)",
+          "cybervpn": "Измеряется по включённой ноде",
           "feature": "Скорость под нагрузкой",
           "legacy": "Ограничивается провайдером"
         }
@@ -805,58 +1061,58 @@
     },
     "features": {
       "backbone": {
-        "desc": "Нативные аплинки 10 Гбит/с в дата-центрах Tier-3. Оптимизировано для 4K/8K стриминга и гейминга с низким пингом.",
+        "desc": "Стартовые регионы включаются только после Remnawave node evidence, monitoring, support recovery и rollback proof.",
         "title": "Магистральная Производительность"
       },
       "badge": "МАТРИЦА ВОЗМОЖНОСТЕЙ",
       "multiplatform": {
-        "desc": "Одна подписка для Telegram бота, iOS, Android, Windows, macOS и Linux.",
+        "desc": "S1 поддерживает web-кабинет, Telegram Bot/Mini App и инструкции импорта в сторонние клиенты для Android, iOS, Windows, macOS и Linux.",
         "title": "Нативная Кроссплатформенность"
       },
       "protocols": {
-        "desc": "Полная поддержка VLESS, Trojan. Поддержка XHTTP для обхода самых жестких корпоративных и государственных файрволов. Ваш трафик выглядит как стандартные HTTP-запросы к доверенным ресурсам.",
+        "desc": "S1 включает VLESS Reality RAW как default и VLESS Reality XHTTP как alternate path. Остальные транспорты остаются вне S1 до отдельного approval.",
         "title": "Продвинутые Протоколы"
       },
       "ram": {
-        "desc": "Никаких дисков, никаких логов, никакого сохранения данных. Инфраструктура стирается при каждом перезапуске.",
-        "title": "Инфраструктура только в RAM"
+        "desc": "Публичные privacy-формулировки ограничены тем, что подтверждено S1 evidence. Operational metadata может существовать для security, billing, support и provisioning.",
+        "title": "Ограниченная privacy-позиция"
       },
       "routing": {
-        "desc": "Глобальная сеть из 100+ узлов с автоматическим выбором на основе задержки.",
+        "desc": "Регион показывается только после готовности node health, profile mapping и support handling.",
         "title": "Умная Маршрутизация"
       },
       "sectionSubtitle": "Шесть уровней защиты для современного кибер-гражданина",
       "sectionTitle": "ТЕХНОЛОГИЧЕСКОЕ ПРЕВОСХОДСТВО",
       "stats": {
-        "bandwidth": "Гбит/с",
-        "locations": "локации",
-        "logs": "логи",
-        "uptime": "аптайм"
+        "bandwidth": "утверждённых транспорта",
+        "locations": "стартовых регионов",
+        "logs": "ограниченные claims",
+        "uptime": "beta-статус"
       },
       "stealth": {
-        "desc": "Трафик неотличим от посещения Google/Microsoft/Apple. Никакого отпечатка VPN.",
+        "desc": "VLESS Reality является S1 default path для сетей, где стандартные VPN-отпечатки ненадёжны. Доступность зависит от evidence по реальным нодам.",
         "title": "Стелс Режим (Reality)"
       }
     },
     "hero": {
       "cta_app": "СКАЧАТЬ ПРИЛОЖЕНИЕ",
       "cta_telegram": "ЗАПУСТИТЬ В TELEGRAM",
-      "protocol_badge": "PROTOCOL: VLESS-REALITY + XHTTP (STABLE) | CORE: XRAY-CORE",
-      "subtitle": "Обход DPI-блокировок любой сложности. Маскировка трафика под стандартный HTTPS. Скорость до 10 Гбит/с без потерь на инкапсуляцию.",
-      "title": "НЕВИДИМЫЙ VPN. РАБОТАЕТ НА VLESS-REALITY",
-      "titleHighlight": "НЕВИДИМЫЙ VPN."
+      "protocol_badge": "S1 ПРОТОКОЛЫ: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
+      "subtitle": "Controlled Public Beta с S1-утверждёнными транспортами, evidence-gated регионами, ручным продлением и support recovery path.",
+      "title": "CONTROLLED BETA VPN. РАБОТАЕТ НА VLESS REALITY",
+      "titleHighlight": "CONTROLLED BETA VPN"
     },
     "how_it_works": {
       "badge": "ANTI-DPI ДВИЖОК",
-      "desc": "Ваш провайдер видит запрос к microsoft.com или google.com. Он не видит зашифрованный туннель. Он видит обычного пользователя в сети. Доступ открыт. Интеллектуальный выбор транспорта: автоматическое переключение на XHTTP, если сеть блокирует нестандартные протоколы.",
+      "desc": "Reality-профили настраиваются так, чтобы напоминать обычные HTTPS-потоки, но rollout остаётся evidence-driven. XHTTP считается S1 alternate path, а не универсальным обещанием обхода.",
       "title": "Как работает Reality"
     },
     "network_stats": {
-      "bandwidth": "Пропускная способность магистрали 1.2 Тбит/с",
-      "coverage": "50+ Стран, 100+ Городов",
-      "nodes": "100+ Активных высокопроизводительных узлов",
+      "bandwidth": "Capacity показывается после node evidence",
+      "coverage": "Для S1 только country-level регионы",
+      "nodes": "12 стартовых регионов, включение по evidence",
       "title": "Сетевая Инфраструктура",
-      "uptime": "99.9% Доступность сети"
+      "uptime": "Monitoring и alerts обязательны до go-live"
     },
     "pricing": {
       "basic": "Basic: Пробный / Начальный уровень",
@@ -867,17 +1123,17 @@
     "quick_start": {
       "badge": "Быстрый старт",
       "step1": "Запустите бота (@CyberVPN_Bot)",
-      "step2": "Активация Trial в один клик (2 дня / 2 ГБ)",
-      "step3": "Импортируйте конфиг в любое приложение и оставайтесь свободными",
+      "step2": "Активация Trial в один клик (3 дня / 1 устройство)",
+      "step3": "Импортируйте QR, subscription URL или config в поддерживаемый клиент",
       "terminalComment": "# Автоматическое развёртывание VPN-туннеля...",
-      "terminalStatus": "> Туннель установлен. DPI обойдён. Защищаем транспорт...",
+      "terminalStatus": "> VPN-доступ готов, когда provisioning evidence и support recovery проходят gate.",
       "terminalTitle": "Развертывание подключения",
       "title": "Путь в 30 Секунд"
     },
     "speed_tunnel": {
-      "featureNoAds": "YouTube без рекламы",
-      "featureTorrent": "Торренты",
-      "online": "ОНЛАЙН",
+      "featureNoAds": "HTTPS-like profile",
+      "featureTorrent": "P2P restricted",
+      "online": "S1 SLOT",
       "servers": {
         "amsterdam": {
           "city": "Амстердам",
@@ -920,23 +1176,23 @@
           "country": "Канада"
         }
       },
-      "subtitle": "100+ локаций. Каналы 10 Гбит/с. Никаких ограничений.",
+      "subtitle": "S1 startup regions. Evidence-gated ноды. Fair-use policy.",
       "titleEnd": "СЕТЬ",
       "titleHighlight": "УЛЬТРАСКОРОСТНАЯ",
       "titleStart": "ГЛОБАЛЬНАЯ"
     },
     "status_board": {
-      "item_online": "ОНЛАЙН",
-      "live": "В РЕАЛЬНОМ ВРЕМЕНИ",
+      "item_online": "EVIDENCE OK",
+      "live": "S1 READY",
       "protocols": {
         "reality": "Reality",
-        "vless_grpc": "VLESS-gRPC"
+        "xhttp": "Reality XHTTP"
       },
       "title": "Статус Узлов"
     },
     "tech_specs": {
       "encryption": "Шифрование: ChaCha20-Poly1305 / AES-128-GCM",
-      "network": "Сеть: Аплинки 10 Гбит/с, глобальная поддержка IPv6",
+      "network": "Сеть: S1 startup regions, monitored node evidence",
       "transport": "Транспорт: XHTTP (Next-Gen), gRPC, Reality-TCP"
     },
     "technical": {
@@ -946,10 +1202,10 @@
         "transport": "Транспорт"
       },
       "networkLabels": {
-        "bandwidth": "Пропускная способность",
+        "bandwidth": "Beta capacity",
         "coverage": "Покрытие",
-        "nodes": "Активные узлы",
-        "uptime": "Доступность сети"
+        "nodes": "Включённые регионы",
+        "uptime": "Monitoring posture"
       },
       "specificationsTitle": "Технические характеристики"
     }
@@ -987,8 +1243,8 @@
       "subscriptionActive": "Subscription Active",
       "trial": "TRIAL",
       "trialAvailable": "Free Trial Available",
-      "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
-      "trialPlan": "7-Day Free Trial",
+      "trialDescription": "Try CyberVPN free for 3 days on 1 device.",
+      "trialPlan": "3-Day Free Trial",
       "unknown": "Unknown",
       "usage": "Usage Statistics",
       "viewPlans": "View Plans",
@@ -1032,6 +1288,7 @@
       "addonUnavailable": "Этот add-on недоступен на выбранном плане.",
       "apply": "Применить",
       "availablePlans": "Выберите план",
+      "billingCurrencyNotice": "Списание в {currency}",
       "catalogHint": "Показывается только публичный каталог: Basic, Plus, Pro, Max. Hidden-планы не попадают сюда, пока backend не откроет их явно.",
       "checkoutTemporarilyUnavailable": "Checkout временно недоступен. Попробуйте позже.",
       "currentPlanExpiry": "Истекает: {date}",
@@ -1054,7 +1311,7 @@
         "upgrade": "Upgrade"
       },
       "freeTrialDescription": "1 устройство, только shared pool, без dedicated IP и без premium узлов. Этого достаточно, чтобы оценить продукт без жирного trial-перекоса.",
-      "freeTrialTitle": "7-дневный trial",
+      "freeTrialTitle": "3-дневный trial",
       "haveInviteCode": "Есть invite code?",
       "havePromoCode": "Есть promo code?",
       "inviteCodeNote": "Redeem invite работает отдельно от платного checkout flow.",
@@ -1064,6 +1321,7 @@
       "inviteRewardDays": "{count} бесплатных дней",
       "inviteRewardDefault": "бонус активирован",
       "limitedRolloutDescription": "Mini App сейчас работает в ограниченном canary rollout. Доступ открыт только для одобренных Telegram-пользователей.",
+      "localEstimate": "Примерно {price}, только для отображения",
       "noPlans": "Сейчас нет доступных планов",
       "paymentCancelled": "Оплата отменена.",
       "paymentError": "Оплата не удалась. Попробуйте ещё раз.",
@@ -1107,7 +1365,7 @@
       "runtimeTemporarilyUnavailable": "Mini App временно недоступен. Попробуйте позже.",
       "selectPlanToQuote": "Выберите план и период, чтобы посчитать quote.",
       "serviceMaintenanceTitle": "Сервисное уведомление",
-      "trialActivated": "Trial активирован. У вас есть 7 дней входного доступа.",
+      "trialActivated": "Trial активирован. У вас есть 3 дня входного доступа.",
       "trialError": "Не удалось активировать trial. Попробуйте ещё раз.",
       "trialLabel": "Trial",
       "trialTemporarilyUnavailable": "Активация trial временно недоступна. Попробуйте позже."
@@ -1530,8 +1788,8 @@
           "q": "Все ли paid-планы являются полноценными VPN-планами?"
         },
         {
-          "a": "Потому что именно так рынок consumer VPN сейчас объясняет продукт. Реальная экономика и ограничения остаются внутри fair-use policy и правил серверных пулов, а не в публичных жёстких data cap.",
-          "q": "Почему на витрине написано Unlimited / fair use?"
+          "a": "S1 не даёт absolute unlimited claim. Traffic handling зависит от fair-use rules, node policy, abuse controls и выбранного плана, а не от публичного обещания без лимитов.",
+          "q": "Что означает Fair-use policy?"
         },
         {
           "a": "Invite bundles зависят от срока конкретного SKU. На коротких периодах их может не быть, а на 180 и 365 днях появляются заметные бонусы с friend days и сроком жизни кода.",
@@ -1545,19 +1803,21 @@
       "title": "Что важно понять до выбора"
     },
     "introPills": {
-      "addons": "2 add-on’а",
+      "addons": "Опции",
       "periods": "4 периода",
       "plans": "4 плана"
     },
     "labels": {
+      "chargedInBillingCurrency": "Списание в {currency}",
       "dedicatedIpAddon": "Dedicated IP как add-on",
       "devices": "{count} устройств",
       "includedDedicatedIp": "{count} dedicated IP включён",
       "inviteBundle": "{count} invite’ов · {days} дней другу",
       "inviteNone": "Без invite bundle",
+      "localDisplayEstimate": "Примерно {price}, только для отображения",
       "monthlyEquivalent": "{price} / 30 дней в эквиваленте",
       "perSelectedTerm": "за {days}-дневный срок",
-      "unlimitedFairUse": "Unlimited / fair use"
+      "trafficFairUse": "Fair-use policy"
     },
     "matrix": {
       "rows": {
@@ -1582,7 +1842,7 @@
     },
     "periods": {
       "best": "Лучшая ценность",
-      "helper": "Add-ons наследуют тот же срок, поэтому checkout остаётся чистым и без размножения SKU.",
+      "helper": "Выберите срок, который подходит под ваш сценарий; checkout остаётся простым и предсказуемым.",
       "label": "Выберите срок подписки",
       "options": {
         "30": "30 дней",
@@ -1599,7 +1859,7 @@
       "shared": "Shared",
       "shared_plus": "Shared+"
     },
-    "subtitle": "4 плана, 4 периода, 2 add-on’а. Полноценный базовый VPN-слой есть на каждом платном плане.",
+    "subtitle": "4 плана, 4 периода оплаты. Полноценный базовый VPN-слой есть на каждом платном плане.",
     "summary": {
       "noInviteBonus": "На этом сроке invite bundle не включён.",
       "selectedTerm": "Выбранный срок: {days} дней"
@@ -1643,133 +1903,134 @@
     "title": "Прайсинг без перегруза"
   },
   "Privacy": {
-    "description": "СОВЕРШЕННО СЕКРЕТНО. РАСШИФРОВКА ПОЛИТИКИ КОНФИДЕНЦИАЛЬНОСТИ...",
+    "description": "S1 CONTROLLED PUBLIC BETA PRIVACY SUMMARY",
     "sections": {
       "dataCollection": {
-        "content": "Для поддержания работы протокола нам необходим абсолютный минимум информации. Мы собираем только: учетные данные для авторизации (хэш пароля) и метаданные подписки (срок действия токена).",
+        "content": "CyberVPN обрабатывает account, authentication, Telegram/OAuth linking, payment, subscription, wallet, provisioning, support, security, audit, notification, webhook и observability data, необходимые для beta. Финальный публичный список должен совпадать с deployed backend, Remnawave, provider и support evidence.",
         "radarLabels": {
-          "blocked": "TRAFFIC LOGS",
-          "collected": "АВТОРИЗАЦИЯ"
+          "blocked": "BROWSING CONTENT",
+          "collected": "S1 SERVICE DATA"
         },
-        "title": "02. СБОР ДАННЫХ"
+        "title": "02. DATA CATEGORIES"
       },
       "encryption": {
-        "content": "Ваш трафик защищен по стандарту AES-256-GCM с использованием совершенной прямой секретности (PFS). Это означает, что даже если квантовый компьютер будущего взломает текущий ключ, ваши прошлые сессии останутся в безопасности.",
-        "title": "04. КРИПТОГРАФИЯ"
+        "content": "S1 security опирается на hashed passwords, hashed refresh tokens, encrypted selected secrets/tokens where implemented, production admin 2FA, RBAC, audit logs, private PostgreSQL, private Valkey/Redis, private Remnawave API и HTTPS-only public ingress. Более сильные crypto или no-logs claims требуют evidence.",
+        "title": "04. SECURITY CONTROLS"
       },
       "introduction": {
-        "content": "Данный документ представляет собой официальную Политику Конфиденциальности сети CyberVPN. Наш главный принцип: мы не можем выдать то, чего у нас нет. Мы создали инфраструктуру, которая физически не способна хранить ваши личные данные, логи активности или историю посещений.",
-        "title": "01. ВВЕДЕНИЕ & ОБЗОР"
+        "content": "Эта страница кратко описывает S1 privacy posture и связана по смыслу с полной Privacy Policy. Это controlled-beta candidate, а не final legal approval. Final public seller display, jurisdiction, processor list и retention wording должны быть утверждены before go-live.",
+        "title": "01. S1 PRIVACY SUMMARY"
       },
       "noLogs": {
-        "content": "Вся наша сеть работает на базе RAM-дисков (оперативной памяти). Как только сервер перезагружается, любые следы вашего присутствия уничтожаются безвозвратно. Мы не ведем журналы DNS-запросов, IP-адресов или временных меток сессий.",
-        "title": "03. ПОЛИТИКА ZERO-LOGS"
+        "content": "CyberVPN не намерен хранить browsing content или raw VPN traffic content в app/backend systems. Не считайте это final audited no-logs claim: IP address, user-agent, timestamps, provider IDs, support records и provisioning metadata могут существовать в security, payment, support, node или observability systems до проверки.",
+        "title": "03. NO-LOGS LIMITS"
       },
       "thirdParties": {
-        "content": "CyberVPN не передает, не продает и не обменивает ваши данные. Мы не сотрудничаем с рекламными сетями или дата-брокерами. Наш единственный источник дохода — оплата подписки пользователями.",
-        "title": "05. ТРЕТЬИ СТОРОНЫ"
+        "content": "S1 может использовать payment providers, Telegram, Google/GitHub OAuth, Remnawave, VPN node hosts, email/support tooling и observability providers. Каждый enabled provider требует privacy/refund wording, credentials, webhook/status evidence и PII controls before public launch.",
+        "title": "05. PROVIDER BOUNDARIES"
       }
     },
     "status": {
-      "decrypted": "РАСШИФРОВАНО",
-      "decrypting": "РАСШИФРОВКА...",
-      "encrypted": "ЗАШИФРОВАНО"
+      "decrypted": "REVIEWED",
+      "decrypting": "ACTIVE",
+      "encrypted": "PENDING"
     },
-    "title": "ПРОТОКОЛ ПРОЗРАЧНОСТИ"
+    "title": "PRIVACY READINESS"
   },
   "PrivacyPolicy": {
-    "lastUpdated": "Last Updated",
+    "lastUpdated": "Last Updated: 2026-05-05 (S1 candidate; final legal review required before go-live)",
     "meta": {
-      "description": "CyberVPN's privacy policy covering data collection, no-log policy, GDPR rights, and data security practices.",
+      "description": "Privacy notice для Controlled Public Beta: категории данных, retention criteria, limits no-logs claims, providers и privacy contacts.",
       "title": "Privacy Policy - CyberVPN"
     },
     "sections": {
       "changes": {
-        "description": "We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the 'Last Updated' date.",
-        "title": "Changes to This Policy"
+        "description": "Этот S1 candidate может измениться до go-live. Material public changes должны быть отражены в approved legal pack, linked Terms, AUP, Refund Policy и Cookie Policy, и не должны противоречить actual deployment evidence.",
+        "title": "Policy changes"
       },
       "contact": {
-        "address": "Address",
-        "addressLine": "CyberVPN Privacy Team, [Your Company Address]",
+        "address": "Public seller and jurisdiction",
+        "addressLine": "S1 legal seller category: individual founder/owner. Final public seller display, legal address и jurisdiction/country должны быть утверждены before public go-live и намеренно не коммитятся в repository.",
         "email": "Email",
-        "intro": "For privacy-related inquiries or to exercise your rights, contact us:",
-        "title": "Contact Information"
+        "emailAddress": "privacy@cyber-vpn.net",
+        "intro": "По вопросам privacy, deletion/export requests или privacy complaints используйте утверждённый S1 privacy route:",
+        "title": "Privacy contact"
       },
       "dataCollection": {
-        "intro": "CyberVPN collects minimal data necessary to provide our VPN service:",
+        "intro": "CyberVPN обрабатывает данные, необходимые для S1 Controlled Public Beta: входа в аккаунт, выдачи VPN-доступа, платежей, защиты от abuse и поддержки пользователей:",
         "items": {
-          "accountInfo": "Account information (email address, username)",
-          "deviceInfo": "Device and connection metadata (device type, operating system)",
-          "paymentInfo": "Payment information (processed securely by third-party providers)",
-          "usageStats": "Aggregate usage statistics (bandwidth usage, connection duration)"
+          "accountInfo": "Account и authentication data: email, username/display name, password hash, 2FA/TOTP state, Telegram ID/username при привязке, OAuth provider identifiers и profile email при использовании.",
+          "deviceInfo": "Device, access и provisioning data: session identifiers, refresh-token metadata, device ID если передан, IP address и user-agent в auth/security logs, Remnawave user reference, subscription URL state и device credential state.",
+          "paymentInfo": "Commercial и payment data: plan, trial, subscription, wallet state, provider name, provider transaction identifiers, payment status, refund/dispute metadata и reconciliation records.",
+          "usageStats": "Operational data: support tickets/staff notes, notification delivery state, audit logs, webhook payload snapshots, security/rate-limit events, backup presence и aggregated service health/traffic counters where enabled."
         },
-        "title": "Data Collection"
+        "title": "Какие данные мы обрабатываем"
       },
       "dataRetention": {
-        "description": "We retain data only as long as necessary:",
+        "description": "Сроки хранения зависят от статуса аккаунта, security needs, provider obligations и final legal review. Для S1 действуют такие operating rules, если финальная policy не утвердит более строгие правила:",
         "policies": {
-          "accountData": "Account data: retained while your account is active",
-          "deletedAccounts": "Deleted account data: permanently erased within 30 days",
-          "paymentRecords": "Payment records: 7 years for legal compliance",
-          "supportLogs": "Support logs: 90 days after ticket closure"
+          "accountData": "Account, authentication и subscription data: хранится, пока аккаунт активен, и далее в период, необходимый для security, abuse, accounting, support, deletion и backup windows.",
+          "deletedAccounts": "Validated deletion requests: operational account deletion target — 30 дней, кроме records, которые нужно хранить для payment, security, legal, fraud, backup или abuse handling. S1 PostgreSQL backups хранятся 14 дней по утверждённой backup policy.",
+          "paymentRecords": "Payment, refund, dispute и reconciliation records: хранятся для provider, finance, tax, fraud-prevention и legal obligations; финальный срок зависит от legal seller jurisdiction и enabled provider rules.",
+          "supportLogs": "Support tickets, staff notes и notification records: целевой срок 90 дней после закрытия, если записи не нужны для fraud, abuse, paid-no-access, legal, safety или accounting reasons."
         },
-        "title": "Data Retention"
+        "title": "Retention criteria"
       },
       "dataSecurity": {
-        "description": "We implement industry-standard security measures:",
+        "description": "CyberVPN использует security controls для controlled beta, но ни один public security claim не считается финальным без deployment evidence:",
         "measures": {
-          "accessControl": "Strict access controls and authentication",
-          "encryption": "End-to-end encryption for all VPN traffic",
-          "regularAudits": "Regular security audits and vulnerability assessments",
-          "secureProtocols": "Secure VPN protocols (VLESS, WireGuard, OpenVPN)"
+          "accessControl": "Admin access role-gated, требует 2FA в production mode и пишет audit events для privileged operations.",
+          "encryption": "Passwords и refresh tokens хранятся как hashes; selected OAuth/TOTP/provider tokens шифруются или проходят через approved secret process where implemented.",
+          "regularAudits": "Для S1 нужны evidence по secret scanning, dependency checks, backup/restore, rollback, observability, webhook idempotency и support escalation before go-live.",
+          "secureProtocols": "Production topology требует private PostgreSQL, private Valkey/Redis, private Remnawave API и HTTPS-only public ingress where required."
         },
-        "title": "Data Security"
+        "title": "Security controls"
       },
       "gdprRights": {
-        "intro": "If you are in the European Economic Area (EEA), you have the following rights:",
+        "intro": "В зависимости от вашей локации и применимого закона у вас могут быть права на access, correction, deletion, portability, objection или restriction. В S1 часть запросов может обрабатываться вручную через support/privacy process, пока automated export/delete flows не завершены.",
         "rights": {
           "access": {
-            "description": "Request a copy of your personal data",
-            "title": "Right to Access"
+            "description": "Запросить копию или summary personal data, связанных с вашим аккаунтом.",
+            "title": "Access"
           },
           "erasure": {
-            "description": "Request deletion of your personal data",
-            "title": "Right to Erasure"
+            "description": "Запросить удаление аккаунта с учётом payment, security, legal, fraud, backup и abuse-retention limits.",
+            "title": "Deletion"
           },
           "objection": {
-            "description": "Object to processing of your data",
-            "title": "Right to Object"
+            "description": "Возразить против optional processing или запросить restriction where applicable. Service-critical processing может быть необходим для выдачи VPN access.",
+            "title": "Objection or Restriction"
           },
           "portability": {
-            "description": "Receive your data in a machine-readable format",
-            "title": "Right to Data Portability"
+            "description": "Запросить portable account-data export, если технически доступно, или manual support export во время S1.",
+            "title": "Portability"
           },
           "rectification": {
-            "description": "Correct inaccurate or incomplete data",
-            "title": "Right to Rectification"
+            "description": "Запросить исправление неточных account, Telegram/OAuth или support data.",
+            "title": "Correction"
           }
         },
-        "title": "Your GDPR Rights"
+        "title": "Privacy rights"
       },
       "noLogPolicy": {
-        "details": "This means:",
+        "details": "Не считайте это финальным audited no-logs claim. Финальная публичная формулировка no-logs должна быть проверена по backend logs, Remnawave behavior, VPN node logs, support tooling, payment providers и observability tools до go-live. Security, payment, support и provisioning records всё ещё могут содержать personal data: account identifiers, IP address, user-agent, provider IDs или timestamps.",
         "notLogged": {
-          "browsing": "No browsing history or website visits",
-          "connections": "No connection timestamps or session duration",
-          "dns": "No DNS queries or IP addresses",
-          "traffic": "No traffic data or content inspection"
+          "browsing": "Browsing content и visited website content не должны сохраняться CyberVPN app/backend.",
+          "connections": "Connection/session metadata должны быть проверены по Remnawave и node configuration до любых более сильных публичных claims.",
+          "dns": "DNS query logging должен быть проверен по фактической node и resolver configuration до финальной публикации.",
+          "traffic": "Raw VPN traffic content не должен просматриваться CyberVPN support/admin tooling."
         },
-        "statement": "CyberVPN operates a strict no-log policy. We do NOT collect, store, or log your online activity.",
-        "title": "No-Log Policy"
+        "statement": "Для S1 CyberVPN не намерен хранить browsing content, visited websites или raw VPN traffic content в CyberVPN app/backend.",
+        "title": "VPN activity и limits no-logs claims"
       },
       "thirdParty": {
-        "description": "We work with trusted third-party providers:",
+        "description": "В S1 могут использоваться следующие provider categories. Каждый provider должен иметь credentials, webhook/status evidence и provider-aligned privacy/refund wording before enablement:",
         "services": {
-          "analytics": "Anonymous analytics (no personally identifiable information)",
-          "infrastructure": "Cloud infrastructure providers (servers and network)",
-          "payment": "Payment processing (Stripe, cryptocurrency gateways)"
+          "analytics": "Operational analytics/observability: Sentry, PostHog или metrics/logging tools только where enabled и configured with PII controls.",
+          "infrastructure": "Infrastructure and service providers: managed PostgreSQL, private Valkey/Redis, Remnawave, VPN node hosts, Telegram, Google/GitHub OAuth и email/support tooling.",
+          "payment": "Payment providers: PayRam, NOWPayments, CryptoBot, Telegram Stars for Telegram, Digiseller и YooKassa where approved для соответствующего user segment."
         },
-        "title": "Third-Party Services"
+        "title": "Processors and providers"
       }
     },
     "title": "Privacy Policy"
@@ -1884,6 +2145,69 @@
       "title": "РЕФЕРАЛЬНЫЕ НАГРАДЫ"
     }
   },
+  "RefundPolicy": {
+    "intro": "Этот документ является S1 candidate для CyberVPN Controlled Public Beta. Он объясняет, как обрабатываются refund requests для CyberVPN accounts, trial-to-paid flows, Telegram Bot, Telegram Mini App, web checkout и VPN access, выданного через CyberVPN. Это не финальная юридическая консультация; документ должен пройти owner/legal review до публикации как final public legal copy.",
+    "lastUpdated": "S1 candidate обновлён 5 мая 2026",
+    "meta": {
+      "description": "S1 candidate Refund Policy для CyberVPN Controlled Public Beta.",
+      "title": "Политика возвратов"
+    },
+    "sections": {
+      "access": {
+        "items": {
+          "fullRefund": "Full refund обычно отменяет или отключает paid subscription period, связанный с этим payment.",
+          "partialRefund": "Partial refund может уменьшить subscription time, quota, wallet balance или другое paid entitlement, в зависимости от approved correction.",
+          "pending": "Pending refund request автоматически не pause, extend или disable VPN access, если support/ops не применил отдельную correction.",
+          "trial": "Trial access регулируется trial policy и не создаёт cash refund entitlement."
+        },
+        "title": "5. Влияние на VPN-доступ"
+      },
+      "changes": {
+        "content": "Этот S1 candidate может измениться до public go-live. Финальная публикация требует owner/legal approval, provider-specific refund evidence, refund@cyber-vpn.net mailbox proof, support/admin workflow evidence и alignment with Terms, Privacy Policy, Acceptable Use Policy and Cookie Policy.",
+        "title": "8. Изменения до go-live"
+      },
+      "evidence": {
+        "content": "CyberVPN may keep payment, refund, support, audit and provider evidence needed to review the request, prevent fraud, reconcile provider records, respond to disputes and satisfy legal or tax obligations. This must align with the approved Privacy Policy and data-retention evidence.",
+        "title": "7. Evidence and records"
+      },
+      "providerRules": {
+        "items": {
+          "cryptobot": "CryptoBot/Crypto Pay: paid invoices являются final provider states для access, но refunds требуют manual support/finance action, transfer/check evidence или другой approved provider workflow. Automatic refund не обещается.",
+          "digiseller": "Digiseller: refund handling следует Digiseller purchase/dispute flow, seller balance rules и provider status evidence. Digital goods и delivered credentials требуют manual review до refund decision.",
+          "nowpayments": "NOWPayments: completed и partially paid crypto transactions обычно выходят из provider custody; CyberVPN должен рассматривать merchant-side refund responsibility, wrong-asset/wrong-network/minimum-amount exceptions и validation requirements NOWPayments.",
+          "payram": "PayRam: crypto refunds не являются automatic chargebacks. Refunds должны выполняться manual через merchant-controlled dashboard/API или direct wallet transfer, с wallet-address validation и finance approval.",
+          "telegramStars": "Telegram Stars: refund handling доступен только для Telegram Bot/Mini App paid flow после сохранения Telegram payment charge ID и evidence для refundStarPayment path. Bot должен поддерживать /paysupport для payment issues.",
+          "yookassa": "YooKassa: refunds можно создавать для successful payments, если payment method поддерживает возврат. Full или partial refund handling должен использовать provider evidence, idempotency controls, receipt/fiscalization rules где требуется и finance approval."
+        },
+        "title": "4. Правила по провайдерам"
+      },
+      "request": {
+        "content": "Отправляйте refund requests на refund@cyber-vpn.net или через approved Telegram/support flow. Укажите CyberVPN account email или Telegram ID, payment ID или provider invoice ID, дату оплаты, payment method/provider и короткую причину обращения. Не отправляйте passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN configuration files.",
+        "title": "2. Как запросить возврат"
+      },
+      "review": {
+        "items": {
+          "abuse": "Fraud, chargeback abuse, policy violations, account resale, credential sharing, malware/spam abuse или другие нарушения Acceptable Use Policy могут уменьшить или исключить refund eligibility там, где это разрешено applicable law.",
+          "duplicate": "Duplicate charges, confirmed overpayments, wrong amount или provider-confirmed processing errors являются reviewable cases.",
+          "fees": "Blockchain network fees, provider fees, conversion spread, exchange fees, bank fees, fiscal/receipt obligations и third-party fees могут быть non-refundable, если provider или applicable law не требуют иного.",
+          "manualReview": "В S1 refunds проходят manual finance/support review, если для конкретного provider-specific automated path нет отдельного staging и production evidence.",
+          "noGuarantee": "Запрос не гарантирует возврат. CyberVPN должен проверить payment status, provider rules, provisioning status и support evidence до approval или denial refund.",
+          "paidNoAccess": "Paid-but-no-access или orphan payment cases должны уходить в manual review. Ни один unresolved paid-but-no-access/orphan payment не должен быть старше 24 часов без owner/support escalation.",
+          "serviceFault": "Если CyberVPN не может provision или restore paid VPN access после разумных support и retry steps, CyberVPN может предоставить refund, service extension или другую correction, approved by finance/ops."
+        },
+        "title": "3. Правила рассмотрения"
+      },
+      "scope": {
+        "content": "Политика применяется к S1 B2C purchases и payment attempts через PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller и YooKassa, если эти провайдеры включены. Возвраты рассматриваются с учётом payment provider status, CyberVPN subscription state, provisioning state, support evidence, abuse checks и applicable legal requirements.",
+        "title": "1. Область действия"
+      },
+      "timing": {
+        "content": "CyberVPN aims to acknowledge refund/payment support requests within the S1 support targets. Actual refund timing depends on manual review, provider status, blockchain or bank settlement, provider validation and any additional information required from the user.",
+        "title": "6. Сроки"
+      }
+    },
+    "title": "Политика возвратов"
+  },
   "Security": {
     "classified": {
       "text1": "Наши алгоритмы [ОБФУСКАЦИИ] разработаны бывшими инженерами [УДАЛЕНО], что позволяет нашему трафику сливаться с фоновым шумом интернета.",
@@ -1982,6 +2306,9 @@
       "copyConfig": "Скопировать raw config",
       "copySubscription": "Скопировать подписку",
       "description": "Сначала используйте ссылку подписки. Она держит клиенты синхронизированными при ротации маршрутов, ключей и stealth-профилей.",
+      "downloadConfig": "Скачать config file",
+      "downloadFile": "Файл конфигурации",
+      "downloadNote": "Файл создаётся только в вашем браузере из активного delivery payload.",
       "empty": {
         "missing_config": "Backend ещё не вернул конфигурацию. Повторите после завершения provisioning или проверьте подписку.",
         "missing_profile": "Профиль недоступен, поэтому пользовательскую конфигурацию нельзя запросить.",
@@ -1991,7 +2318,9 @@
       },
       "eyebrow": "Набор импорта",
       "openSubscription": "Открыть ссылку",
+      "qrCode": "QR-код",
       "rawConfig": "Raw config",
+      "safeDelivery": "Полные значения скрыты на экране. Используйте copy, QR или download только на доверенном устройстве.",
       "status": {
         "missing_config": "Конфиг ожидается",
         "missing_profile": "Нет профиля",
@@ -2004,6 +2333,7 @@
     },
     "copy": {
       "config": "Raw config скопирован.",
+      "download": "Файл конфигурации скачан.",
       "error": "Не удалось скопировать в буфер. Используйте видимую ссылку вручную.",
       "subscription": "Ссылка подписки скопирована.",
       "unavailable": "Буфер обмена недоступен в этом браузере."
@@ -2055,7 +2385,8 @@
     },
     "lastSync": "ПОСЛЕДНЯЯ СИНХРОНИЗАЦИЯ: {time} НАЗАД",
     "recommended": {
-      "description": "Рекомендация учитывает online-статус, активное подключение, disabled-флаг, нагрузку и давление трафика.",
+      "customerSafeReason": "Пользовательский вид показывает только готовность маршрута. Операторские метрики нагрузки, трафика, inbounds, online users и node version не выводятся в публичный кабинет.",
+      "description": "Рекомендация учитывает, можно ли использовать маршрут для этого аккаунта. Детали операционного scoring остаются в admin tooling.",
       "empty": "Нет VPN-узлов для рекомендации.",
       "eyebrow": "Рекомендованный маршрут",
       "reasonFallback": "Запасной маршрут",
@@ -2063,7 +2394,7 @@
       "title": "Лучший узел для этой сессии"
     },
     "servers": {
-      "description": "Пользовательский список узлов. Здесь есть доступность и подсказки импорта, но нет операторских controls.",
+      "description": "Пользовательский список маршрутов. Здесь есть доступность и подсказки импорта, но нет операторских метрик нагрузки, трафика, online users, inbounds и node version.",
       "empty": "Backend не вернул серверы.",
       "title": "Доступные приватные маршруты"
     },
@@ -2078,6 +2409,7 @@
     },
     "subtitle": "Выберите стабильную локацию, импортируйте конфигурацию и держите приватный туннель готовым на всех устройствах.",
     "summary": {
+      "access": "Доступ",
       "ariaLabel": "Сводка доступа к VPN-серверам",
       "connected": "Подключены",
       "countries": "Регионы",
@@ -2147,12 +2479,34 @@
         "saving": "Сохраняю..."
       },
       "devices": {
+        "activeCount": "Активно",
         "current": "Текущая",
         "currentHint": "Эта сессия защищена от remote revoke controls.",
         "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
         "empty": "Активные устройства не найдены.",
         "eyebrow": "Session perimeter",
+        "limitDescription": "Лимит берётся из текущего entitlement snapshot. Перед подключением нового устройства отзывайте устаревшие сессии.",
+        "limitHelp": {
+          "at_limit": "Лимит тарифа полностью использован. Отзовите устаревшие устройства или измените тариф перед добавлением нового устройства.",
+          "available": "На этом тарифе ещё доступно {remaining} слотов устройств.",
+          "near_limit": "Осталось только {remaining} слотов устройств. Перед добавлением новых устройств отзовите устаревшие сессии.",
+          "over_limit": "Аккаунт превышает текущий лимит тарифа на {count}. Отзовите устаревшие устройства или обратитесь в поддержку.",
+          "unknown": "Список активных сессий доступен, но лимит тарифа не удалось загрузить из entitlements."
+        },
+        "limitStates": {
+          "at_limit": "Лимит достигнут",
+          "available": "Есть свободные места",
+          "near_limit": "Почти лимит",
+          "over_limit": "Сверх лимита",
+          "unknown": "Лимит неизвестен"
+        },
+        "limitTitle": "Лимит устройств тарифа",
+        "limitUnknown": "{used} активно / лимит недоступен",
+        "limitUsed": "{used} из {limit}",
+        "managePlan": "Управлять тарифом",
         "meta": "IP {ip} / активность {date} / id {id}",
+        "planLimit": "Лимит тарифа",
+        "remainingSlots": "Свободно",
         "revoke": "Отозвать",
         "revokeDevice": "Отозвать устройство",
         "revokeOthers": "Отозвать остальные",
@@ -2314,26 +2668,26 @@
   },
   "Status": {
     "history": {
-      "title": "История за 90 дней",
+      "title": "Beta evidence window",
       "tooltip_date": "Дата",
       "tooltip_status": "Статус"
     },
     "incidents": {
-      "empty": "Инцидентов нет. Сеть защищена.",
+      "empty": "В этом local status snapshot активных incidents не записано.",
       "title": "ЛОГ ИНЦИДЕНТОВ",
       "view_all": "СМОТРЕТЬ АРХИВ"
     },
     "metrics": {
-      "active_nodes": "АКТИВНЫЕ ЯДРА",
-      "bandwidth": "ПРОПУСКНАЯ СПОСОБНОСТЬ",
+      "active_nodes": "ENABLED REGIONS",
+      "bandwidth": "OBSERVED TRAFFIC",
       "latency": "СРЕДНИЙ ПИНГ",
-      "status_nominal": "СИСТЕМЫ В НОРМЕ",
-      "status_outage": "ЗАФИКСИРОВАН СБОЙ",
-      "status_warning": "СНИЖЕНИЕ ПРОИЗВОДИТЕЛЬНОСТИ",
-      "uptime": "99.99% АПТАЙМ"
+      "status_nominal": "READY SIGNALS NOMINAL",
+      "status_outage": "INCIDENT REVIEW REQUIRED",
+      "status_warning": "DEGRADED SIGNALS",
+      "uptime": "AVAILABILITY WINDOW"
     },
-    "subtitle": "Глобальный центр управления сетью",
-    "title": "СИСТЕМНАЯ РАДАР"
+    "subtitle": "Controlled Public Beta monitoring surface",
+    "title": "S1 STATUS"
   },
   "Subscriptions": {
     "actions": {
@@ -2480,46 +2834,47 @@
     }
   },
   "Terms": {
-    "description": "КРИТИЧЕСКИЙ УРОВЕНЬ: УСЛОВИЯ ОБСЛУЖИВАНИЯ. ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ...",
+    "description": "Условия Controlled Public Beta. Публичное наименование продавца и юрисдикция должны быть утверждены до go-live.",
     "sections": {
       "acceptance": {
-        "content": "Используя инфраструктуру CyberVPN, вы инициируете обязательный кибернетический контракт. Доступ к нашим узлам связи (Серверам) предоставляется исключительно на условиях безоговорочного принятия данных Директив. Если ваши протоколы не согласны с условиями, немедленно разорвите соединение.",
-        "title": "01. ИНИЦИАЛИЗАЦИЯ СОГЛАШЕНИЯ"
+        "content": "Эти Условия регулируют доступ к CyberVPN через cyber-vpn.net, cyber-vpn.org, Telegram Bot, Telegram Mini App и связанные пользовательские интерфейсы. Создавая аккаунт, активируя trial, оплачивая тариф или используя VPN-сервис, вы соглашаетесь с этими Условиями, Privacy Policy, Acceptable Use Policy и Refund Policy. Для Stage 1 юридическим продавцом является individual founder/owner CyberVPN; публичное наименование продавца, контактные данные и применимая юрисдикция должны быть утверждены owner/legal review до публикации этих Условий как финальных.",
+        "title": "01. Соглашение и продавец"
       },
       "liability": {
-        "content": "Вы несете единоличную ответственность за пакеты данных, которые вы передаете через нашу сеть. В максимальной степени, разрешенной законом, CyberVPN не несет ответственности за любой прямой, косвенный или случайный ущерб, потерю прибыли или сбои в ваших системах.",
-        "title": "04. ОГРАНИЧЕНИЕ ОТВЕТСТВЕННОСТИ"
+        "content": "Вы отвечаете за использование сервиса, соблюдение применимых к вам законов и безопасность аккаунта, устройств и configuration links. В Stage 1 сервис предоставляется as-is и as-available. В максимальной степени, разрешённой применимым законом, CyberVPN не отвечает за косвенный, случайный, специальный или consequential ущерб, lost profit, сбои провайдеров, блокировки третьих лиц, проблемы устройств или незаконные действия пользователей. Ничто в этих Условиях не ограничивает права или ответственность, которые нельзя ограничить по закону.",
+        "title": "04. Ответственность и ограничения"
       },
       "prohibited": {
-        "content": "Сеть CyberVPN создана для обхода цензуры и защиты цифровой личности, а не для нанесения ущерба другим системам. Следующие паттерны трафика строго запрещены на аппаратном уровне:",
+        "content": "CyberVPN предоставляется для законного private network access, защиты приватности и устойчивости к цензуре. Нельзя использовать сервис для вреда другим системам, злоупотреблений против третьих лиц, нарушения применимого закона или обхода ограничений провайдеров. Запрещены следующие действия:",
         "rules": {
-          "botnets": "Управление ботнетами",
-          "csam": "Любой контент, эксплуатирующий несовершеннолетних",
-          "ddos": "DDoS-атаки и флуд сетей",
-          "malware": "Распространение вредоносного ПО",
-          "spam": "Массовая рассылка спама"
+          "abuse": "Атаки на сети, сервисы, устройства или аккаунты, включая DDoS, flooding и несанкционированное сканирование",
+          "illegal": "Незаконная деятельность, нарушение прав или действия, создающие legal/network abuse risk для CyberVPN, пользователей или провайдеров",
+          "malware": "Распространение malware, botnet command and control, exploit hosting или другая вредоносная инфраструктура",
+          "minorSafety": "Материалы сексуального насилия над детьми или любой контент, эксплуатирующий несовершеннолетних",
+          "restrictedTraffic": "Трафик, запрещённый конкретной нодой, провайдером, платёжным методом, санкционным/export restriction или опубликованной node policy",
+          "spam": "Спам, phishing, credential stuffing, fraud, impersonation или массовые нежелательные сообщения"
         },
-        "title": "02. БЛОКИРОВКА ПАТТЕРНОВ"
+        "title": "02. Допустимое использование"
       },
       "service": {
-        "content": "Хотя наша инфраструктура спроектирована с учетом максимальной отказоустойчивости (99.9% аптайм), мы предоставляем доступ «как есть» (as-is). Мы оставляем за собой право отключать, переносить или обновлять любые узлы связи (Ноды) без предварительного уведомления для обеспечения суммарной безопасности матрицы.",
-        "title": "03. ГАРАНТИИ И ДОСТУПНОСТЬ"
+        "content": "Stage 1 является Controlled Public Beta. Функции, регионы, ноды, скорости, платёжные методы, Telegram flows и provisioning paths могут быть ограничены, изменены, приостановлены или удалены во время стабилизации сервиса. Trial-доступ и платный доступ выдаются через утверждённый CyberVPN flow и Remnawave-backed VPN access. Платный доступ начинается только после проверки provider final-success payment state. CyberVPN не обещает автоматическое продление в Stage 1; продление выполняется вручную, если позже не будет утверждён recurring-billing flow с явным согласием пользователя. Не полагайтесь на claims об uptime, скорости, локациях, no-logs, privacy или unblock, если они не подтверждены финальной публичной policy и evidence.",
+        "title": "03. Сервис, trial и оплата"
       },
       "termination": {
-        "content": "Мы оставляем за собой право мгновенно, без объяснения причин и предварительного уведомления терминировать ваш токен доступа, если наши нейросети или администраторы зафиксируют нарушение пункта 02 (Блокировка Паттернов). Деньги за оставшийся период подписки в таком случае не возвращаются.",
-        "title": "05. ПРОТОКОЛ УНИЧТОЖЕНИЯ"
+        "content": "CyberVPN может приостановить, ограничить или прекратить доступ при неоплате, abuse, security risk, требовании провайдера, нарушении этих Условий или emergency operational need. Где это практически возможно, support использует утверждённый support path до финального действия, но срочные abuse, legal или infrastructure-risk cases могут эскалироваться немедленно. Запросы на возврат обрабатываются через refund@cyber-vpn.net по финальной Refund Policy и provider-specific rules. Общая поддержка доступна через support@cyber-vpn.net и Telegram support flows. Не отправляйте в support chats пароли, 2FA codes, полные номера карт, CVV/CVC, raw QR codes, raw subscription URLs или raw config files.",
+        "title": "05. Приостановка, прекращение и поддержка"
       }
     },
     "status": {
-      "acknowledged": "ОЗНАКОМЛЕН",
-      "unverified": "НЕ ПОДТВЕРЖДЕНО"
+      "acknowledged": "ПОДТВЕРЖДЕНО",
+      "unverified": "НЕ ПРОВЕРЕНО"
     },
     "terminal": {
-      "command": "ПРИНЯТЬ_ДИРЕКТИВЫ",
-      "prompt": "ОЖИДАНИЕ ВВОДА ПОЛЬЗОВАТЕЛЯ...",
-      "verified": "СИСТЕМА: ДОСТУП РАЗРЕШЕН. КОНТРАКТ ПОДПИСАН."
+      "command": "ПРИНЯТЬ УСЛОВИЯ",
+      "prompt": "Ознакомьтесь с beta Terms перед продолжением.",
+      "verified": "Условия подтверждены для этой сессии."
     },
-    "title": "СИСТЕМНЫЕ ДИРЕКТИВЫ"
+    "title": "Условия обслуживания"
   },
   "Users": {
     "newToday": "СЕГОДНЯ НОВЫХ: {count}",
@@ -2567,6 +2922,14 @@
     "labels": {
       "notAvailable": "Недоступно",
       "transaction": "Транзакция кошелька"
+    },
+    "recentPayments": {
+      "description": "Безопасный платежный срез только для текущего пользователя. Raw provider identifiers, checkout URLs и provider payloads не попадают в UI кошелька.",
+      "empty": "Последние платежи не найдены.",
+      "eyebrow": "Квитанции клиента",
+      "openFull": "Открыть всю историю",
+      "paymentSuffix": "платеж",
+      "title": "Последние платежи"
     },
     "subtitle": "Баланс, замороженные средства, журнал начислений и заявки на вывод в одном безопасном billing-разделе.",
     "summary": {

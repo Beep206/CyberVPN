@@ -6,7 +6,7 @@ MED-005: Test weak secret pattern rejection.
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from src.config.settings import Settings
+from src.config.settings import S1_PRODUCTION_CORS_ORIGINS, Settings
 
 
 class TestWeakSecretPatterns:
@@ -14,7 +14,7 @@ class TestWeakSecretPatterns:
 
     # Generate a valid-length secret with weak pattern embedded
     WEAK_SECRETS = [
-        "test_secret_key_that_is_long_enough_32chars",
+        "sample_placeholder_for_dev_mode_32_chars",
         "this_is_a_dev_secret_for_testing_purposes",
         "local_secret_key_with_minimum_length_ok",
         "dummy_secret_for_unit_tests_32_chars_min",
@@ -27,6 +27,8 @@ class TestWeakSecretPatterns:
 
     STRONG_SECRET = "xVanw-qakEZA0v_T5mJ9GSCJkTzoWYpHMJDX02lFg-B8"
     VALID_TOKEN = "valid_token_for_testing_purposes_32characters"
+    VALID_PRODUCTION_PROVIDER_TOKEN = "liveProviderCredentialAlphaBeta123456"
+    PRODUCTION_CORS_ORIGINS = list(S1_PRODUCTION_CORS_ORIGINS)
 
     @pytest.mark.parametrize("weak_secret", WEAK_SECRETS)
     def test_weak_secrets_rejected_in_production(self, weak_secret: str) -> None:
@@ -37,6 +39,8 @@ class TestWeakSecretPatterns:
                 jwt_secret=SecretStr(weak_secret),
                 remnawave_token=SecretStr(self.VALID_TOKEN),
                 cryptobot_token=SecretStr(self.VALID_TOKEN),
+                cors_origins=self.PRODUCTION_CORS_ORIGINS,
+                admin_2fa_required=True,
             )
 
         # Verify the error is about weak secret
@@ -50,14 +54,17 @@ class TestWeakSecretPatterns:
             environment="production",
             jwt_secret=SecretStr(self.STRONG_SECRET),
             remnawave_token=SecretStr(self.VALID_TOKEN),
-            cryptobot_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            cors_origins=self.PRODUCTION_CORS_ORIGINS,
             oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
+            cookie_secure=True,
+            admin_2fa_required=True,
         )
         assert settings.jwt_secret.get_secret_value() == self.STRONG_SECRET
 
     def test_weak_secrets_allowed_in_development(self) -> None:
         """Verify weak secrets are allowed in development environment."""
-        weak_secret = "test_secret_key_that_is_long_enough_32chars"
+        weak_secret = "sample_placeholder_for_dev_mode_32_chars"
 
         # Should not raise in development
         settings = Settings(
@@ -66,7 +73,7 @@ class TestWeakSecretPatterns:
             remnawave_token=SecretStr(self.VALID_TOKEN),
             cryptobot_token=SecretStr(self.VALID_TOKEN),
         )
-        assert "test_secret" in settings.jwt_secret.get_secret_value()
+        assert "placeholder" in settings.jwt_secret.get_secret_value()
 
     def test_short_secret_rejected_in_any_environment(self) -> None:
         """Verify secrets shorter than 32 chars are always rejected."""
@@ -108,3 +115,108 @@ class TestWeakSecretPatterns:
         )
 
         assert settings.debug is False
+
+
+class TestS1CorsAndCookieSettings:
+    """Test S1 production browser-origin and cookie constraints."""
+
+    STRONG_SECRET = TestWeakSecretPatterns.STRONG_SECRET
+    VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
+    VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
+
+    def _production_settings(self, **overrides):
+        values = {
+            "environment": "production",
+            "jwt_secret": SecretStr(self.STRONG_SECRET),
+            "remnawave_token": SecretStr(self.VALID_TOKEN),
+            "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
+            "cors_origins": [
+                "https://cyber-vpn.net",
+                "https://admin.cyber-vpn.net",
+            ],
+            "cookie_secure": True,
+            "admin_2fa_required": True,
+        }
+        values.update(overrides)
+        return Settings(**values)
+
+    def test_s1_production_cors_origins_are_accepted_and_normalized(self) -> None:
+        settings = self._production_settings(cors_origins="https://cyber-vpn.net/, https://admin.cyber-vpn.net/")
+
+        assert settings.cors_origins == [
+            "https://cyber-vpn.net",
+            "https://admin.cyber-vpn.net",
+        ]
+
+    def test_s1_production_rejects_wildcard_cors(self) -> None:
+        with pytest.raises(ValidationError, match="not allowed in production"):
+            self._production_settings(cors_origins="*")
+
+    def test_s1_production_rejects_redirect_only_org_origins(self) -> None:
+        with pytest.raises(ValidationError, match="redirect-only"):
+            self._production_settings(cors_origins="https://cyber-vpn.org")
+
+    def test_s1_production_rejects_unapproved_cors_origin(self) -> None:
+        with pytest.raises(ValidationError, match="not approved"):
+            self._production_settings(cors_origins="https://evil.example")
+
+    def test_s1_production_rejects_http_cors_origin(self) -> None:
+        with pytest.raises(ValidationError, match="https"):
+            self._production_settings(cors_origins="http://cyber-vpn.net")
+
+    def test_s1_production_rejects_cors_origin_with_path(self) -> None:
+        with pytest.raises(ValidationError, match="path"):
+            self._production_settings(cors_origins="https://cyber-vpn.net/app")
+
+    def test_s1_production_accepts_host_only_cookie_domain(self) -> None:
+        settings = self._production_settings(cookie_domain="")
+
+        assert settings.cookie_domain == ""
+        assert settings.cookie_secure is True
+
+    def test_s1_production_accepts_primary_net_cookie_domain(self) -> None:
+        settings = self._production_settings(cookie_domain=".cyber-vpn.net")
+
+        assert settings.cookie_domain == "cyber-vpn.net"
+
+    def test_s1_production_rejects_org_cookie_domain(self) -> None:
+        with pytest.raises(ValidationError, match="COOKIE_DOMAIN"):
+            self._production_settings(cookie_domain="cyber-vpn.org")
+
+    def test_s1_production_rejects_cookie_secure_false(self) -> None:
+        with pytest.raises(ValidationError, match="COOKIE_SECURE"):
+            self._production_settings(cookie_secure=False)
+
+    def test_s1_production_rejects_csrf_disabled(self) -> None:
+        with pytest.raises(ValidationError, match="CSRF_PROTECTION_ENABLED"):
+            self._production_settings(csrf_protection_enabled=False)
+
+    def test_s1_production_accepts_admin_primary_host_only(self) -> None:
+        settings = self._production_settings(admin_allowed_hosts=".ADMIN.CYBER-VPN.NET")
+
+        assert settings.admin_host_protection_enabled is True
+        assert settings.admin_allowed_hosts == ["admin.cyber-vpn.net"]
+
+    def test_s1_production_rejects_admin_host_protection_disabled(self) -> None:
+        with pytest.raises(ValidationError, match="ADMIN_HOST_PROTECTION_ENABLED"):
+            self._production_settings(admin_host_protection_enabled=False)
+
+    def test_s1_production_rejects_admin_2fa_disabled(self) -> None:
+        with pytest.raises(ValidationError, match="ADMIN_2FA_REQUIRED"):
+            self._production_settings(admin_2fa_required=False)
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "cyber-vpn.net",
+            "cyber-vpn.org",
+            "admin.cyber-vpn.org",
+            "https://admin.cyber-vpn.net",
+            "admin.cyber-vpn.net:443",
+            "localhost",
+        ],
+    )
+    def test_s1_production_rejects_unapproved_admin_allowed_hosts(self, host: str) -> None:
+        with pytest.raises(ValidationError, match="ADMIN_ALLOWED_HOSTS"):
+            self._production_settings(admin_allowed_hosts=f"admin.cyber-vpn.net,{host}")

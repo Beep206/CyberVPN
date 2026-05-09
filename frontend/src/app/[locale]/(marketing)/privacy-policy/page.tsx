@@ -141,7 +141,7 @@ export default async function PrivacyPolicyPage({ params }: { params: Promise<{ 
                         <div className="space-y-4 text-gray-300">
                             <p>{t('sections.contact.intro')}</p>
                             <div className="bg-terminal-bg-light p-6 rounded-lg border border-neon-cyan/20">
-                                <p><strong>{t('sections.contact.email')}:</strong> privacy@cybervpn.app</p>
+                                <p><strong>{t('sections.contact.email')}:</strong> {t('sections.contact.emailAddress')}</p>
                                 <p><strong>{t('sections.contact.address')}:</strong> {t('sections.contact.addressLine')}</p>
                             </div>
                         </div>

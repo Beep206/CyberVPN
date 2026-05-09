@@ -3,5 +3,15 @@
   "subtitle": "Správa VPN uzlů, protokolů a regionů nasazení.",
   "globalStatus": "GLOBÁLNÍ STAV: {status}",
   "globalStatusValue": "PROVOZUSCHOPNÝ",
-  "lastSync": "POSLEDNÍ SYNC: PŘED {time}"
+  "lastSync": "POSLEDNÍ SYNC: PŘED {time}",
+  "config": {
+    "downloadConfig": "Download config file",
+    "downloadFile": "Config file",
+    "downloadNote": "The file is generated only in your browser from the active delivery payload.",
+    "qrCode": "QR code",
+    "safeDelivery": "Full values are hidden on screen. Use copy, QR, or download only on a trusted device."
+  },
+  "copy": {
+    "download": "Config file downloaded."
+  }
 }

@@ -50,7 +50,7 @@ export async function LandingTechnical() {
     {
       id: 'net',
       label: t('technical.labels.network'),
-      value: t('tech_specs.network').split(': ')[1] || '10Gbps Uplinks, Global IPv6 Support',
+      value: t('tech_specs.network').split(': ')[1] || 'S1 startup regions, monitored node evidence',
     },
   ];
 
@@ -125,9 +125,9 @@ export async function LandingTechnical() {
               </div>
             </div>
             <div className="grid gap-5">
-              <StatusBadgeLive protocol={t('status_board.protocols.reality')} status={t('status_board.item_online')} nodeName="Node-RU-01" latency="24ms" className="w-full justify-between" />
-              <StatusBadgeLive protocol={t('status_board.protocols.reality')} status={t('status_board.item_online')} nodeName="Node-DE-12" latency="15ms" className="w-full justify-between" />
-              <StatusBadgeLive protocol={t('status_board.protocols.vless_grpc')} status={t('status_board.item_online')} nodeName="Node-US-03" latency="110ms" className="w-full justify-between" />
+              <StatusBadgeLive protocol={t('status_board.protocols.reality')} status={t('status_board.item_online')} nodeName="Region-US" latency="S1" className="w-full justify-between" />
+              <StatusBadgeLive protocol={t('status_board.protocols.reality')} status={t('status_board.item_online')} nodeName="Region-DE" latency="S1" className="w-full justify-between" />
+              <StatusBadgeLive protocol={t('status_board.protocols.xhttp')} status={t('status_board.item_online')} nodeName="Region-NL" latency="S1" className="w-full justify-between" />
             </div>
           </Reveal>
 

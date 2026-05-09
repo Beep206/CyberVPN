@@ -17,7 +17,7 @@ class TestSecurityHardening:
 
     def test_mask_secret_full_length(self):
         """Test masking secrets with sufficient length."""
-        assert mask_secret("sk_live_1234567890abcdef", 4) == "***cdef"
+        assert mask_secret("example-secret-value-for-tests", 4) == "***ests"
         assert mask_secret("very_long_secret_token_here", 6) == "***n_here"
 
     def test_mask_secret_short_value(self):

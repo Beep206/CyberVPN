@@ -41,31 +41,31 @@ describe('seo-route-policy', () => {
       '/guides/how-to-bypass-dpi-with-vless-reality',
     );
 
-    expect(alternates['en-EN']).toBe('https://vpn.ozoxy.ru/en-EN/pricing');
-    expect(alternates['ru-RU']).toBe('https://vpn.ozoxy.ru/ru-RU/pricing');
-    expect(alternates['x-default']).toBe('https://vpn.ozoxy.ru/en-EN/pricing');
-    expect(guidesAlternates['en-EN']).toBe('https://vpn.ozoxy.ru/en-EN/guides');
-    expect(guidesAlternates['ru-RU']).toBe('https://vpn.ozoxy.ru/ru-RU/guides');
-    expect(guidesAlternates['zh-CN']).toBe('https://vpn.ozoxy.ru/zh-CN/guides');
-    expect(guidesAlternates['x-default']).toBe('https://vpn.ozoxy.ru/en-EN/guides');
+    expect(alternates['en-EN']).toBe('https://cyber-vpn.net/en-EN/pricing');
+    expect(alternates['ru-RU']).toBe('https://cyber-vpn.net/ru-RU/pricing');
+    expect(alternates['x-default']).toBe('https://cyber-vpn.net/en-EN/pricing');
+    expect(guidesAlternates['en-EN']).toBe('https://cyber-vpn.net/en-EN/guides');
+    expect(guidesAlternates['ru-RU']).toBe('https://cyber-vpn.net/ru-RU/guides');
+    expect(guidesAlternates['zh-CN']).toBe('https://cyber-vpn.net/zh-CN/guides');
+    expect(guidesAlternates['x-default']).toBe('https://cyber-vpn.net/en-EN/guides');
     expect(guideDetailAlternates['en-EN']).toBe(
-      'https://vpn.ozoxy.ru/en-EN/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://cyber-vpn.net/en-EN/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(guideDetailAlternates['ru-RU']).toBe(
-      'https://vpn.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(guideDetailAlternates['zh-CN']).toBe(
-      'https://vpn.ozoxy.ru/zh-CN/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://cyber-vpn.net/zh-CN/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(guideDetailAlternates['hi-IN']).toBe(
-      'https://vpn.ozoxy.ru/hi-IN/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://cyber-vpn.net/hi-IN/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(guideDetailAlternates['ja-JP']).toBe(
-      'https://vpn.ozoxy.ru/ja-JP/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://cyber-vpn.net/ja-JP/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(guideDetailAlternates['fa-IR']).toBeUndefined();
     expect(toAbsoluteLocalizedUrl('hi-IN', '/pricing')).toBe(
-      'https://vpn.ozoxy.ru/hi-IN/pricing',
+      'https://cyber-vpn.net/hi-IN/pricing',
     );
   });
 

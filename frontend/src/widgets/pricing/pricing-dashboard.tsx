@@ -101,8 +101,16 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
     minimumTier: 'full',
     defer: 'idle',
   });
+  const hasPublicAddons = catalog.addons.length > 0;
+  const dedicatedIpAddonAvailable = catalog.addons.some((addon) => addon.code === 'dedicated_ip');
   const showScene = visualTier === 'full' && isSceneReady;
   const sourceLabel = catalog.source === 'api' ? 'LIVE' : 'CATALOG';
+  const headerPills = [
+    { label: t('introPills.plans') },
+    { label: t('introPills.periods') },
+    ...(hasPublicAddons ? [{ label: t('introPills.addons') }] : []),
+    { label: sourceLabel },
+  ];
 
   const header = (
     <header className="mt-4 space-y-8 text-center">
@@ -117,12 +125,7 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
         {t('title')}
       </h1>
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-3 px-4">
-        {([
-          { label: t('introPills.plans') },
-          { label: t('introPills.periods') },
-          { label: t('introPills.addons') },
-          { label: sourceLabel },
-        ]).map((pill) => (
+        {headerPills.map((pill) => (
           <span
             key={pill.label}
             className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white/70 backdrop-blur"
@@ -177,6 +180,7 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
     <div className="space-y-20 pb-12 md:space-y-24 lg:pb-24">
       <div className="relative z-20">
         <TierCards
+          dedicatedIpAddonAvailable={dedicatedIpAddonAvailable}
           hoveredTier={hoveredTier}
           onHover={setHoveredTier}
           plans={catalog.plans}
@@ -189,7 +193,7 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
       </div>
 
       <div className="relative z-20 mx-auto max-w-4xl">
-        <FAQAccordion />
+        <FAQAccordion showAddonFaq={hasPublicAddons} />
       </div>
     </div>
   );

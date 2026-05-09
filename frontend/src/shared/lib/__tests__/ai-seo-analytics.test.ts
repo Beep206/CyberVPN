@@ -41,9 +41,9 @@ describe('ai-seo-analytics', () => {
     expect(getLocaleFromPathname('/ru-RU/pricing')).toBe('ru-RU');
     expect(isAcquisitionRoute('/ru-RU/pricing')).toBe(true);
     expect(isAcquisitionRoute('/ru-RU/dashboard')).toBe(false);
-    expect(classifyCtaHref('/ru-RU/pricing', 'https://vpn.ozoxy.ru')).toBe('pricing');
-    expect(classifyCtaHref('/ru-RU/contact', 'https://vpn.ozoxy.ru')).toBe('contact');
-    expect(classifyCtaHref('https://t.me/cybervpn', 'https://vpn.ozoxy.ru')).toBe('telegram');
+    expect(classifyCtaHref('/ru-RU/pricing', 'https://cyber-vpn.net')).toBe('pricing');
+    expect(classifyCtaHref('/ru-RU/contact', 'https://cyber-vpn.net')).toBe('contact');
+    expect(classifyCtaHref('https://t.me/cybervpn', 'https://cyber-vpn.net')).toBe('telegram');
   });
 
   it('reads UTM parameters without leaking unrelated query params', () => {

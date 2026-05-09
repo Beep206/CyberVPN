@@ -78,9 +78,7 @@ class TestUsageEndpoint:
             last_connection_at=datetime(2024, 1, 15, 10, 30, tzinfo=UTC),
         )
 
-        with patch(
-            "src.presentation.api.v1.usage.routes.GetUserUsageUseCase"
-        ) as mock_uc_class:
+        with patch("src.presentation.api.v1.usage.routes.GetUserUsageUseCase") as mock_uc_class:
             mock_uc = AsyncMock()
             mock_uc.execute.return_value = mock_usage
             mock_uc_class.return_value = mock_uc
@@ -92,11 +90,15 @@ class TestUsageEndpoint:
 
         assert response.status_code == 200
         data = response.json()
+        assert data["usage_available"] is True
+        assert data["usage_source"] == "remnawave"
+        assert data["usage_unavailable_reason"] is None
         assert data["bandwidth_used_bytes"] == 1_073_741_824
         assert data["bandwidth_limit_bytes"] == 10_737_418_240
         assert data["connections_active"] == 1
         assert data["connections_limit"] == 5
         assert data["last_connection_at"] is not None
+        assert data["generated_at"] is not None
 
     @pytest.mark.integration
     async def test_get_usage_no_subscription(
@@ -113,9 +115,7 @@ class TestUsageEndpoint:
         password, email = await _create_verified_user(db)
         access_token = await _login(async_client, email, password)
 
-        with patch(
-            "src.presentation.api.v1.usage.routes.GetUserUsageUseCase"
-        ) as mock_uc_class:
+        with patch("src.presentation.api.v1.usage.routes.GetUserUsageUseCase") as mock_uc_class:
             mock_uc = AsyncMock()
             mock_uc.execute.side_effect = ValueError("User not found in VPN backend")
             mock_uc_class.return_value = mock_uc
@@ -127,11 +127,15 @@ class TestUsageEndpoint:
 
         assert response.status_code == 200
         data = response.json()
+        assert data["usage_available"] is False
+        assert data["usage_source"] == "unavailable"
+        assert data["usage_unavailable_reason"] == "upstream_user_not_found"
         assert data["bandwidth_used_bytes"] == 0
         assert data["bandwidth_limit_bytes"] == 0
         assert data["connections_active"] == 0
         assert data["connections_limit"] == 0
         assert data["last_connection_at"] is None
+        assert data["generated_at"] is not None
 
     @pytest.mark.integration
     async def test_usage_requires_auth(

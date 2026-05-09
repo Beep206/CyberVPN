@@ -43,7 +43,7 @@ Cookie topology:
 
 ## Canonical Callback URIs
 
-Production examples below assume the current canonical frontend origin is `https://vpn.ozoxy.ru`.
+Production examples below assume the current S1 canonical frontend origin is `https://cyber-vpn.net`.
 
 Web callback template:
 
@@ -51,16 +51,15 @@ Web callback template:
 {OAUTH_WEB_BASE_URL}/api/oauth/callback/{provider}
 ```
 
-Required provider slugs:
+S1 provider slugs:
 
 | Product label | Internal slug | Callback path |
 |---|---|---|
 | Google | `google` | `/api/oauth/callback/google` |
 | GitHub | `github` | `/api/oauth/callback/github` |
-| Discord | `discord` | `/api/oauth/callback/discord` |
-| Facebook | `facebook` | `/api/oauth/callback/facebook` |
-| Microsoft | `microsoft` | `/api/oauth/callback/microsoft` |
-| X | `twitter` | `/api/oauth/callback/twitter` |
+
+Deferred provider slugs may remain in backend code for later stages, but S1 must not enable them publicly:
+`discord`, `facebook`, `microsoft`, `twitter`, `apple`.
 
 Environment matrix:
 
@@ -68,7 +67,7 @@ Environment matrix:
 |---|---|---|
 | Local | `http://localhost:3000` | `http://localhost:3000/api/oauth/callback/google` |
 | Staging | `https://<staging-frontend-origin>` | `https://<staging-frontend-origin>/api/oauth/callback/google` |
-| Production | `https://vpn.ozoxy.ru` | `https://vpn.ozoxy.ru/api/oauth/callback/google` |
+| Production | `https://cyber-vpn.net` | `https://cyber-vpn.net/api/oauth/callback/google` |
 
 Rules:
 
@@ -97,18 +96,15 @@ Provider credentials:
 
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
-- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`
-- `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`
-- `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID`
-- `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET`
+- Deferred until later stages: `DISCORD_*`, `FACEBOOK_*`, `MICROSOFT_*`, `TWITTER_*`, `APPLE_*`
 
 Recommended production baseline:
 
 ```env
-OAUTH_WEB_BASE_URL=https://vpn.ozoxy.ru
+OAUTH_WEB_BASE_URL=https://cyber-vpn.net
 OAUTH_ALLOWED_REDIRECT_URIS=cybervpn://oauth/callback
-OAUTH_ENABLED_LOGIN_PROVIDERS=google,github,microsoft,discord,twitter,facebook
-OAUTH_TRUSTED_EMAIL_LINK_PROVIDERS=google,github,microsoft,discord
+OAUTH_ENABLED_LOGIN_PROVIDERS=google,github
+OAUTH_TRUSTED_EMAIL_LINK_PROVIDERS=google,github
 OAUTH_RETAINED_ACCESS_TOKEN_PROVIDERS=
 OAUTH_RETAINED_REFRESH_TOKEN_PROVIDERS=
 OAUTH_TOKEN_PLAINTEXT_FALLBACK_ENABLED=false
@@ -138,23 +134,24 @@ PENDING_2FA_SECRET=replace-with-strong-secret
 |---|---|---|---|---|
 | Google | OIDC auth code | Yes | Allowed only after validated ID token with `email_verified=true` | Uses discovery + JWKS |
 | GitHub | OAuth 2.0 auth code | Yes | Allowed only with verified email from `/user/emails` | Callback must stay exact |
-| Discord | OAuth 2.0 auth code | No in current rollout | Allowed only when Discord returns verified email | Requests `identify email` |
-| Facebook | OAuth 2.0 auth code | No in current rollout | Disabled by default | Keep `public_profile,email` only |
-| Microsoft | OIDC auth code | Yes | Allowed after validated ID token claims | Test both personal and work/school accounts |
-| X | OAuth 2.0 auth code | Yes | Disabled by default | Internal slug is `twitter` |
+| Discord | OAuth 2.0 auth code | Deferred | Disabled in S1 | Keep implementation for later stage only |
+| Facebook | OAuth 2.0 auth code | Deferred | Disabled in S1 | Legacy linking endpoints must return disabled-provider in S1 |
+| Microsoft | OIDC auth code | Deferred | Disabled in S1 | Test both personal and work/school accounts before any later rollout |
+| X | OAuth 2.0 auth code | Deferred | Disabled in S1 | Internal slug is `twitter` |
+| Apple | OIDC auth code | Deferred | Disabled in S1 | Keep out of S1 provider consoles and runtime config |
 
 Trust semantics in code:
 
-- `google`, `github`, `microsoft`, `discord` can auto-link only when provider-specific verification rules pass.
-- `facebook` and `twitter` must return a collision/linking-required experience for existing local accounts.
-- New accounts may still be created from Facebook/X when no existing email collision exists.
+- `google` and `github` can auto-link only when provider-specific verification rules pass.
+- Deferred providers must not auto-link by email in S1 even if accidentally added to env config.
+- Deferred providers must not complete public login or linking flows until a later stage explicitly approves them.
 
 ## Provider Console Notes
 
 ### Google
 
 - Console: Google Cloud Console, OAuth consent screen + Credentials.
-- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/google`
+- Redirect URI: `https://cyber-vpn.net/api/oauth/callback/google`
 - Scopes: `openid email profile`
 - Keep the app in the correct publishing state before broad rollout.
 - Offline access and consent prompts are already requested by backend code.
@@ -162,7 +159,7 @@ Trust semantics in code:
 ### GitHub
 
 - Console: GitHub Developer settings, OAuth Apps.
-- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/github`
+- Redirect URI: `https://cyber-vpn.net/api/oauth/callback/github`
 - Scope: `read:user user:email`
 - PKCE is enabled in the app flow; do not document or configure it as a legacy non-PKCE app flow.
 - Auto-link only works when `/user/emails` returns a verified address.
@@ -170,15 +167,15 @@ Trust semantics in code:
 ### Discord
 
 - Console: Discord Developer Portal.
-- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/discord`
+- Redirect URI: deferred until a later stage.
 - Scope: `identify email`
-- Current rollout keeps Discord in state-based web flow mode even though the provider class can accept `code_verifier`.
-- Unverified Discord emails are rejected before login completion.
+- S1 must return a disabled-provider response before state validation or token exchange.
+- Re-evaluate verified-email handling before any later-stage enablement.
 
 ### Facebook
 
 - Console: Meta for Developers, Facebook Login for Web.
-- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/facebook`
+- Redirect URI: deferred until a later stage.
 - Scopes: `public_profile,email`
 - Pin the Graph API version in the app review and operational docs.
 - Confirm app mode, domain verification, and allowed redirect URI settings before enabling production traffic.
@@ -187,17 +184,17 @@ Trust semantics in code:
 ### Microsoft
 
 - Console: Microsoft Entra admin center / App registrations.
-- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/microsoft`
+- Redirect URI: deferred until a later stage.
 - Scopes: `openid email profile User.Read`
 - `MICROSOFT_TENANT_ID=common` supports both personal Microsoft accounts and Entra work/school accounts.
-- Staging smoke must cover both account classes.
+- Later-stage staging smoke must cover both account classes before enablement.
 
 ### X
 
 - Console: X Developer Portal.
-- Redirect URI: `https://vpn.ozoxy.ru/api/oauth/callback/twitter`
+- Redirect URI: deferred until a later stage.
 - Scope in current code: `users.read`
-- Email is not trusted or required in the current rollout.
+- S1 must return a disabled-provider response before state validation or token exchange.
 - Do not enable retention of X tokens unless a downstream feature requires them.
 
 ## Reverse Proxy And Cookie Requirements
@@ -231,13 +228,9 @@ Minimum staging checks before production:
 
 - Google login from signed-out browser.
 - GitHub login with PKCE.
-- Discord login with verified email.
-- Facebook login in the correct app mode.
-- Microsoft personal account login.
-- Microsoft work/school account login.
-- X login.
+- Deferred providers return disabled-provider responses before state validation or token exchange.
 - Existing linked-account login repeat.
-- Existing local-account collision for Facebook/X.
+- Existing local-account collision for non-S1 providers is deferred until those providers are approved.
 - `requires_2fa=true` continuation for OAuth and Telegram bot-link completion.
 - Denied-consent redirect to localized login with stable `oauth_error`.
 - Tampered or expired state rejection.
@@ -272,12 +265,9 @@ Do not enable retention pre-emptively.
 
 Recommended enablement order:
 
-1. Google
-2. GitHub
-3. Microsoft
-4. Discord
-5. X
-6. Facebook
+1. Google for S1.
+2. GitHub for S1.
+3. Additional providers only in a later approved stage/backlog item.
 
 Per-provider release gate:
 
