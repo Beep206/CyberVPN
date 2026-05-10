@@ -1,0 +1,112 @@
+== timestamp ==
+2026-05-09T20:58:50+05:00
+== public DNS via DoH ==
+n8n.non-project-domain.invalid                       95.82.233.131
+ha.non-project-domain.invalid                        95.82.233.131
+vpn.non-project-domain.invalid                       95.82.233.131
+gitlab.h.cyber-vpn.net             104.21.85.196,172.67.209.233
+registry.h.cyber-vpn.net           104.21.85.196,172.67.209.233
+grafana.h.cyber-vpn.net            104.21.85.196,172.67.209.233
+sentry.h.cyber-vpn.net             104.21.85.196,172.67.209.233
+prometheus.h.cyber-vpn.net         104.21.85.196,172.67.209.233
+loki.h.cyber-vpn.net               104.21.85.196,172.67.209.233
+alerts.h.cyber-vpn.net             172.67.209.233,104.21.85.196
+uptime.h.cyber-vpn.net             95.82.233.131
+== router NAT relevant ==
+Flags: X - DISABLED, I - INVALID; D - DYNAMIC; S - SLAVE 
+ 3  D  address=95.82.233.131/24 network=95.82.233.0 interface=sfp-sfpplus1 
+       actual-interface=sfp-sfpplus1 vrf=main 
+
+  3 comment=HTTP -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=80 protocol=tcp in-interface-list=WAN dst-port=80
+  4 comment=HTTPS -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=443 protocol=tcp in-interface-list=WAN dst-port=443
+  5 comment=HAIRPIN: masquerade LAN -> CyberVPN Caddy edge chain=srcnat action=masquerade protocol=tcp src-address=10.10.10.0/24 dst-address=10.10.10.34 out-interface=bridge dst-port=80,443
+  6 comment=HAIRPIN: HTTP -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=80 protocol=tcp src-address=10.10.10.0/24 dst-address=95.82.233.131 dst-port=80
+  7 comment=HAIRPIN: HTTPS -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=443 protocol=tcp src-address=10.10.10.0/24 dst-address=95.82.233.131 dst-port=443
+ 68 comment=Mumble TCP -> 10.10.10.32 chain=dstnat action=dst-nat to-addresses=10.10.10.32 to-ports=64738 protocol=tcp in-interface-list=WAN dst-port=64738
+ 69 comment=Mumble UDP -> 10.10.10.32 chain=dstnat action=dst-nat to-addresses=10.10.10.32 to-ports=64738 protocol=udp in-interface-list=WAN dst-port=64738
+ 70 comment=HAIRPIN: Mumble TCP chain=dstnat action=dst-nat to-addresses=10.10.10.32 to-ports=64738 protocol=tcp src-address=10.10.10.0/24 dst-address=95.82.233.131 dst-port=64738
+ 71 comment=HAIRPIN: Mumble UDP chain=dstnat action=dst-nat to-addresses=10.10.10.32 to-ports=64738 protocol=udp src-address=10.10.10.0/24 dst-address=95.82.233.131 dst-port=64738
+105 comment=HAIRPIN: masquerade LAN -> Mumble TCP chain=srcnat action=masquerade protocol=tcp src-address=10.10.10.0/24 dst-address=10.10.10.32 out-interface=bridge dst-port=64738
+106 comment=HAIRPIN: masquerade LAN -> Mumble UDP chain=srcnat action=masquerade protocol=udp src-address=10.10.10.0/24 dst-address=10.10.10.32 out-interface=bridge dst-port=64738
+
+ 1 comment=Local HA via CyberVPN Caddy edge name=ha.non-project-domain.invalid type=A address=10.10.10.34 ttl=1h
+ 2 comment=Local n8n via CyberVPN Caddy edge name=n8n.non-project-domain.invalid type=A address=10.10.10.34 ttl=1h
+ 3 comment=Local Mumble name=mumble.non-project-domain.invalid type=A address=10.10.10.32 ttl=1h
+ 4 comment=Local vpn via CyberVPN Caddy edge name=vpn.non-project-domain.invalid type=A address=10.10.10.34 ttl=1h
+ 5 comment=CyberVPN local edge name=gitlab.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 6 comment=CyberVPN local edge name=registry.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 7 comment=CyberVPN local edge name=grafana.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 8 comment=CyberVPN local edge name=sentry.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 9 comment=CyberVPN local edge name=prometheus.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+10 comment=CyberVPN local edge name=loki.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+11 comment=CyberVPN local edge name=alerts.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+12 comment=CyberVPN local edge name=uptime.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+
+Flags: D - DYNAMIC; X - DISABLED, I - INVALID; c - CONNECTION 
+ 1     name="ssh" port=22 proto=tcp address="" vrf=main max-sessions=20 
+
+774 D c name="ssh" port=22 proto=tcp local=10.10.10.1 remote=10.10.10.10:60572 
+
+10 comment=defconf: drop all not coming from LAN chain=input action=drop in-interface-list=!LAN log=no log-prefix=
+
+== Caddy local status ==
+active
+Netid State  Recv-Q Send-Q      Local Address:Port Peer Address:PortProcess                                                                     
+udp   UNCONN 0      0                       *:443             *:*    uid:999 ino:103709 sk:9001 cgroup:/system.slice/caddy.service v6only:0 <-> 
+tcp   LISTEN 0      65535           127.0.0.1:2019      0.0.0.0:*    uid:999 ino:9173 sk:9002 cgroup:/system.slice/caddy.service <->            
+tcp   LISTEN 0      65535           127.0.0.1:9123      0.0.0.0:*    uid:999 ino:103705 sk:9003 cgroup:/system.slice/caddy.service <->          
+tcp   LISTEN 0      65535                   *:80              *:*    uid:999 ino:103703 sk:9004 cgroup:/system.slice/caddy.service v6only:0 <-> 
+tcp   LISTEN 0      65535                   *:443             *:*    uid:999 ino:103707 sk:9005 cgroup:/system.slice/caddy.service v6only:0 <-> 
+-- n8n.non-project-domain.invalid --
+HTTP/1.1 308 Permanent Redirect
+Connection: close
+Location: https://n8n.non-project-domain.invalid/
+Server: Caddy
+Date: Sat, 09 May 2026 15:59:00 GMT
+
+-- ha.non-project-domain.invalid --
+HTTP/1.1 308 Permanent Redirect
+Connection: close
+Location: https://ha.non-project-domain.invalid/
+Server: Caddy
+Date: Sat, 09 May 2026 15:59:00 GMT
+
+-- vpn.non-project-domain.invalid --
+HTTP/1.1 308 Permanent Redirect
+Connection: close
+Location: https://vpn.non-project-domain.invalid/
+Server: Caddy
+Date: Sat, 09 May 2026 15:59:00 GMT
+
+-- gitlab.h.cyber-vpn.net --
+HTTP/1.1 308 Permanent Redirect
+Connection: close
+Location: https://gitlab.h.cyber-vpn.net/
+Server: Caddy
+Date: Sat, 09 May 2026 15:59:00 GMT
+
+-- registry.h.cyber-vpn.net --
+HTTP/1.1 308 Permanent Redirect
+Connection: close
+Location: https://registry.h.cyber-vpn.net/
+Server: Caddy
+Date: Sat, 09 May 2026 15:59:00 GMT
+
+-- grafana.h.cyber-vpn.net --
+HTTP/1.1 308 Permanent Redirect
+Connection: close
+Location: https://grafana.h.cyber-vpn.net/
+Server: Caddy
+Date: Sat, 09 May 2026 15:59:00 GMT
+
+May 09 15:48:09 cybervpn-h-ops caddy[13082]: {"level":"info","ts":1778341689.8013206,"logger":"tls.on_demand","msg":"obtaining new certificate","remote_ip":"10.10.10.34","remote_port":"42390","server_name":"n8n.non-project-domain.invalid"}
+May 09 15:48:12 cybervpn-h-ops caddy[13082]: {"level":"info","ts":1778341692.608802,"logger":"http","msg":"served key authentication","identifier":"n8n.non-project-domain.invalid","challenge":"http-01","remote":"23.178.112.219:35027","distributed":false}
+May 09 15:48:23 cybervpn-h-ops caddy[13082]: {"level":"error","ts":1778341703.7135634,"msg":"challenge failed","identifier":"n8n.non-project-domain.invalid","challenge_type":"http-01","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"During secondary validation: 95.82.233.131: Fetching http://n8n.non-project-domain.invalid/.well-known/acme-challenge/xDc48CT0I34zQZe4XhT1P52ln5kSx7mEFwTRQv36-0g: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"stacktrace":"github.com/mholt/acmez/v3.(*Client).pollAuthorization\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:570\ngithub.com/mholt/acmez/v3.(*Client).solveChallenges\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:391\ngithub.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:149\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:498\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:391\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/acmeissuer.go:292\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:662\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.25.2/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:736\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:532\ngithub.com/caddyserver/certmagic.(*Config).obtainOnDemandCertificate\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:559\ngithub.com/caddyserver/certmagic.(*Config).getCertDuringHandshake\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:391\ngithub.com/caddyserver/certmagic.(*Config).GetCertificateWithContext\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:93\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ConnectionPolicy).buildStandardTLSConfig.func1\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/connpolicy.go:316\ncrypto/tls.(*Config).getCertificate\n\tcrypto/tls/common.go:1320\ncrypto/tls.(*serverHandshakeStateTLS13).pickCertificate\n\tcrypto/tls/handshake_server_tls13.go:487\ncrypto/tls.(*serverHandshakeStateTLS13).handshake\n\tcrypto/tls/handshake_server_tls13.go:76\ncrypto/tls.(*Conn).serverHandshake\n\tcrypto/tls/handshake_server.go:55\ncrypto/tls.(*Conn).handshakeContext\n\tcrypto/tls/conn.go:1562\ncrypto/tls.(*Conn).HandshakeContext\n\tcrypto/tls/conn.go:1516\nnet/http.(*conn).serve\n\tnet/http/server.go:1931"}
+May 09 15:48:25 cybervpn-h-ops caddy[13082]: {"level":"info","ts":1778341705.9483678,"logger":"tls","msg":"served key authentication certificate","server_name":"n8n.non-project-domain.invalid","challenge":"tls-alpn-01","remote":"23.178.112.219:36203","distributed":false}
+May 09 15:48:37 cybervpn-h-ops caddy[13082]: {"level":"error","ts":1778341717.6755645,"msg":"challenge failed","identifier":"n8n.non-project-domain.invalid","challenge_type":"tls-alpn-01","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"During secondary validation: 95.82.233.131: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"stacktrace":"github.com/mholt/acmez/v3.(*Client).pollAuthorization\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:570\ngithub.com/mholt/acmez/v3.(*Client).solveChallenges\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:391\ngithub.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:149\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:498\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:391\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/acmeissuer.go:292\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:662\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.25.2/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:736\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:532\ngithub.com/caddyserver/certmagic.(*Config).obtainOnDemandCertificate\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:559\ngithub.com/caddyserver/certmagic.(*Config).getCertDuringHandshake\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:391\ngithub.com/caddyserver/certmagic.(*Config).GetCertificateWithContext\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:93\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ConnectionPolicy).buildStandardTLSConfig.func1\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/connpolicy.go:316\ncrypto/tls.(*Config).getCertificate\n\tcrypto/tls/common.go:1320\ncrypto/tls.(*serverHandshakeStateTLS13).pickCertificate\n\tcrypto/tls/handshake_server_tls13.go:487\ncrypto/tls.(*serverHandshakeStateTLS13).handshake\n\tcrypto/tls/handshake_server_tls13.go:76\ncrypto/tls.(*Conn).serverHandshake\n\tcrypto/tls/handshake_server.go:55\ncrypto/tls.(*Conn).handshakeContext\n\tcrypto/tls/conn.go:1562\ncrypto/tls.(*Conn).HandshakeContext\n\tcrypto/tls/conn.go:1516\nnet/http.(*conn).serve\n\tnet/http/server.go:1931"}
+May 09 15:48:37 cybervpn-h-ops caddy[13082]: {"level":"error","ts":1778341717.675914,"logger":"tls.obtain","msg":"could not get certificate from issuer","identifier":"n8n.non-project-domain.invalid","issuer":"acme-v02.api.letsencrypt.org-directory","error":"HTTP 400 urn:ietf:params:acme:error:connection - During secondary validation: 95.82.233.131: Timeout during connect (likely firewall problem)"}
+May 09 15:49:40 cybervpn-h-ops caddy[13082]: {"level":"info","ts":1778341780.836525,"logger":"tls","msg":"served key authentication certificate","server_name":"n8n.non-project-domain.invalid","challenge":"tls-alpn-01","remote":"66.133.109.36:61275","distributed":false}
+May 09 15:49:52 cybervpn-h-ops caddy[13082]: {"level":"error","ts":1778341792.2066672,"msg":"challenge failed","identifier":"n8n.non-project-domain.invalid","challenge_type":"tls-alpn-01","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"During secondary validation: 95.82.233.131: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"stacktrace":"github.com/mholt/acmez/v3.(*Client).pollAuthorization\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:570\ngithub.com/mholt/acmez/v3.(*Client).solveChallenges\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:391\ngithub.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:149\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:498\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:391\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/acmeissuer.go:292\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:662\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.25.2/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:736\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:532\ngithub.com/caddyserver/certmagic.(*Config).obtainOnDemandCertificate\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:559\ngithub.com/caddyserver/certmagic.(*Config).getCertDuringHandshake\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:391\ngithub.com/caddyserver/certmagic.(*Config).GetCertificateWithContext\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:93\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ConnectionPolicy).buildStandardTLSConfig.func1\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/connpolicy.go:316\ncrypto/tls.(*Config).getCertificate\n\tcrypto/tls/common.go:1320\ncrypto/tls.(*serverHandshakeStateTLS13).pickCertificate\n\tcrypto/tls/handshake_server_tls13.go:487\ncrypto/tls.(*serverHandshakeStateTLS13).handshake\n\tcrypto/tls/handshake_server_tls13.go:76\ncrypto/tls.(*Conn).serverHandshake\n\tcrypto/tls/handshake_server.go:55\ncrypto/tls.(*Conn).handshakeContext\n\tcrypto/tls/conn.go:1562\ncrypto/tls.(*Conn).HandshakeContext\n\tcrypto/tls/conn.go:1516\nnet/http.(*conn).serve\n\tnet/http/server.go:1931"}
+May 09 15:49:54 cybervpn-h-ops caddy[13082]: {"level":"info","ts":1778341794.6521003,"logger":"http","msg":"served key authentication","identifier":"n8n.non-project-domain.invalid","challenge":"http-01","remote":"66.133.109.36:60509","distributed":false}
+May 09 15:50:05 cybervpn-h-ops caddy[13082]: {"level":"error","ts":1778341805.3239312,"msg":"challenge failed","identifier":"n8n.non-project-domain.invalid","challenge_type":"http-01","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"During secondary validation: 95.82.233.131: Fetching http://n8n.non-project-domain.invalid/.well-known/acme-challenge/ltb9dosdSI4RMIoETKN5D3zZQ8lWL4_z9q9jqPZmNpU: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"stacktrace":"github.com/mholt/acmez/v3.(*Client).pollAuthorization\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:570\ngithub.com/mholt/acmez/v3.(*Client).solveChallenges\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:391\ngithub.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.6/client.go:149\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:498\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.25.2/acmeissuer.go:391\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/acmeissuer.go:292\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:662\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.25.2/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:736\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.25.2/config.go:532\ngithub.com/caddyserver/certmagic.(*Config).obtainOnDemandCertificate\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:559\ngithub.com/caddyserver/certmagic.(*Config).getCertDuringHandshake\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:391\ngithub.com/caddyserver/certmagic.(*Config).GetCertificateWithContext\n\tgithub.com/caddyserver/certmagic@v0.25.2/handshake.go:93\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ConnectionPolicy).buildStandardTLSConfig.func1\n\tgithub.com/caddyserver/caddy/v2@v2.11.2/modules/caddytls/connpolicy.go:316\ncrypto/tls.(*Config).getCertificate\n\tcrypto/tls/common.go:1320\ncrypto/tls.(*serverHandshakeStateTLS13).pickCertificate\n\tcrypto/tls/handshake_server_tls13.go:487\ncrypto/tls.(*serverHandshakeStateTLS13).handshake\n\tcrypto/tls/handshake_server_tls13.go:76\ncrypto/tls.(*Conn).serverHandshake\n\tcrypto/tls/handshake_server.go:55\ncrypto/tls.(*Conn).handshakeContext\n\tcrypto/tls/conn.go:1562\ncrypto/tls.(*Conn).HandshakeContext\n\tcrypto/tls/conn.go:1516\nnet/http.(*conn).serve\n\tnet/http/server.go:1931"}
+May 09 15:50:05 cybervpn-h-ops caddy[13082]: {"level":"error","ts":1778341805.324278,"logger":"tls.obtain","msg":"could not get certificate from issuer","identifier":"n8n.non-project-domain.invalid","issuer":"acme-v02.api.letsencrypt.org-directory","error":"HTTP 400 urn:ietf:params:acme:error:connection - During secondary validation: 95.82.233.131: Fetching http://n8n.non-project-domain.invalid/.well-known/acme-challenge/ltb9dosdSI4RMIoETKN5D3zZQ8lWL4_z9q9jqPZmNpU: Timeout during connect (likely firewall problem)"}

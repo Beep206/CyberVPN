@@ -1,0 +1,232 @@
+
+> vpn-admin@0.1.0 prebuild
+> npm run prepare:workspace && npm run prepare:i18n
+
+
+> vpn-admin@0.1.0 prepare:workspace
+> bash ./scripts/ensure-local-next-deps.sh
+
+
+> vpn-admin@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 2 locale bundles in src/i18n/messages/generated.
+
+> vpn-admin@0.1.0 build
+> next build
+
+▲ Next.js 16.2.3 (Turbopack)
+- Cache Components enabled
+- Experiments (use with caution):
+  · clientTraceMetadata
+  ✓ globalNotFound
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.6s
+  Running next.config.js provided runAfterProductionCompile ...
+✓ Completed runAfterProductionCompile in 661ms
+  Running TypeScript ...
+  Finished TypeScript in 10.8s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/141) ...
+  Generating static pages using 7 workers (35/141) 
+  Generating static pages using 7 workers (70/141) 
+  Generating static pages using 7 workers (105/141) 
+✓ Generating static pages using 7 workers (141/141) in 1598ms
+  Finalizing page optimization ...
+
+Route (app)                                    Revalidate  Expire
+┌ ○ /_not-found
+├ ◐ /[locale]/[section]                                1h      1d
+│ ├ /[locale]/[section]                                1h      1d
+│ ├ /ru-RU/[section]
+│ ├ /ru-RU/customers                                   1h      1d
+│ └ [+14 more paths]
+├ ◐ /[locale]/commerce                                 1h      1d
+│ ├ /[locale]/commerce                                 1h      1d
+│ ├ /ru-RU/commerce                                    1h      1d
+│ └ /en-EN/commerce                                    1h      1d
+├ ◐ /[locale]/commerce/addons                          1h      1d
+│ ├ /[locale]/commerce/addons                          1h      1d
+│ ├ /ru-RU/commerce/addons                             1h      1d
+│ └ /en-EN/commerce/addons                             1h      1d
+├ ◐ /[locale]/commerce/payments                        1h      1d
+│ ├ /[locale]/commerce/payments                        1h      1d
+│ ├ /ru-RU/commerce/payments                           1h      1d
+│ └ /en-EN/commerce/payments                           1h      1d
+├ ◐ /[locale]/commerce/plans                           1h      1d
+│ ├ /[locale]/commerce/plans                           1h      1d
+│ ├ /ru-RU/commerce/plans                              1h      1d
+│ └ /en-EN/commerce/plans                              1h      1d
+├ ◐ /[locale]/commerce/subscription-templates          1h      1d
+│ ├ /[locale]/commerce/subscription-templates          1h      1d
+│ ├ /ru-RU/commerce/subscription-templates             1h      1d
+│ └ /en-EN/commerce/subscription-templates             1h      1d
+├ ◐ /[locale]/commerce/wallets                         1h      1d
+│ ├ /[locale]/commerce/wallets                         1h      1d
+│ ├ /ru-RU/commerce/wallets                            1h      1d
+│ └ /en-EN/commerce/wallets                            1h      1d
+├ ◐ /[locale]/commerce/withdrawals                     1h      1d
+│ ├ /[locale]/commerce/withdrawals                     1h      1d
+│ ├ /ru-RU/commerce/withdrawals                        1h      1d
+│ └ /en-EN/commerce/withdrawals                        1h      1d
+├ ◐ /[locale]/customers                                1h      1d
+│ ├ /[locale]/customers                                1h      1d
+│ ├ /ru-RU/customers                                   1h      1d
+│ └ /en-EN/customers                                   1h      1d
+├ ◐ /[locale]/customers/[userId]
+│ ├ /[locale]/customers/[userId]
+│ ├ /ru-RU/customers/[userId]
+│ └ /en-EN/customers/[userId]
+├ ◐ /[locale]/dashboard                                1h      1d
+│ ├ /[locale]/dashboard                                1h      1d
+│ ├ /ru-RU/dashboard                                   1h      1d
+│ └ /en-EN/dashboard                                   1h      1d
+├ ◐ /[locale]/governance                               1h      1d
+│ ├ /[locale]/governance                               1h      1d
+│ ├ /ru-RU/governance                                  1h      1d
+│ └ /en-EN/governance                                  1h      1d
+├ ◐ /[locale]/governance/admin-invites                 1h      1d
+│ ├ /[locale]/governance/admin-invites                 1h      1d
+│ ├ /ru-RU/governance/admin-invites                    1h      1d
+│ └ /en-EN/governance/admin-invites                    1h      1d
+├ ◐ /[locale]/governance/audit-log                     1h      1d
+│ ├ /[locale]/governance/audit-log                     1h      1d
+│ ├ /ru-RU/governance/audit-log                        1h      1d
+│ └ /en-EN/governance/audit-log                        1h      1d
+├ ◐ /[locale]/governance/policy                        1h      1d
+│ ├ /[locale]/governance/policy                        1h      1d
+│ ├ /ru-RU/governance/policy                           1h      1d
+│ └ /en-EN/governance/policy                           1h      1d
+├ ◐ /[locale]/governance/webhook-log                   1h      1d
+│ ├ /[locale]/governance/webhook-log                   1h      1d
+│ ├ /ru-RU/governance/webhook-log                      1h      1d
+│ └ /en-EN/governance/webhook-log                      1h      1d
+├ ◐ /[locale]/growth                                   1h      1d
+│ ├ /[locale]/growth                                   1h      1d
+│ ├ /ru-RU/growth                                      1h      1d
+│ └ /en-EN/growth                                      1h      1d
+├ ◐ /[locale]/growth/gift-codes                        1h      1d
+│ ├ /[locale]/growth/gift-codes                        1h      1d
+│ ├ /ru-RU/growth/gift-codes                           1h      1d
+│ └ /en-EN/growth/gift-codes                           1h      1d
+├ ◐ /[locale]/growth/invite-codes                      1h      1d
+│ ├ /[locale]/growth/invite-codes                      1h      1d
+│ ├ /ru-RU/growth/invite-codes                         1h      1d
+│ └ /en-EN/growth/invite-codes                         1h      1d
+├ ◐ /[locale]/growth/partners                          1h      1d
+│ ├ /[locale]/growth/partners                          1h      1d
+│ ├ /ru-RU/growth/partners                             1h      1d
+│ └ /en-EN/growth/partners                             1h      1d
+├ ◐ /[locale]/growth/promo-codes                       1h      1d
+│ ├ /[locale]/growth/promo-codes                       1h      1d
+│ ├ /ru-RU/growth/promo-codes                          1h      1d
+│ └ /en-EN/growth/promo-codes                          1h      1d
+├ ◐ /[locale]/growth/referrals                         1h      1d
+│ ├ /[locale]/growth/referrals                         1h      1d
+│ ├ /ru-RU/growth/referrals                            1h      1d
+│ └ /en-EN/growth/referrals                            1h      1d
+├ ◐ /[locale]/infrastructure                           1h      1d
+│ ├ /[locale]/infrastructure                           1h      1d
+│ ├ /ru-RU/infrastructure                              1h      1d
+│ └ /en-EN/infrastructure                              1h      1d
+├ ◐ /[locale]/infrastructure/config-profiles           1h      1d
+│ ├ /[locale]/infrastructure/config-profiles           1h      1d
+│ ├ /ru-RU/infrastructure/config-profiles              1h      1d
+│ └ /en-EN/infrastructure/config-profiles              1h      1d
+├ ◐ /[locale]/infrastructure/helix                     1h      1d
+│ ├ /[locale]/infrastructure/helix                     1h      1d
+│ ├ /ru-RU/infrastructure/helix                        1h      1d
+│ └ /en-EN/infrastructure/helix                        1h      1d
+├ ◐ /[locale]/infrastructure/hosts                     1h      1d
+│ ├ /[locale]/infrastructure/hosts                     1h      1d
+│ ├ /ru-RU/infrastructure/hosts                        1h      1d
+│ └ /en-EN/infrastructure/hosts                        1h      1d
+├ ◐ /[locale]/infrastructure/inbounds                  1h      1d
+│ ├ /[locale]/infrastructure/inbounds                  1h      1d
+│ ├ /ru-RU/infrastructure/inbounds                     1h      1d
+│ └ /en-EN/infrastructure/inbounds                     1h      1d
+├ ◐ /[locale]/infrastructure/node-plugins              1h      1d
+│ ├ /[locale]/infrastructure/node-plugins              1h      1d
+│ ├ /ru-RU/infrastructure/node-plugins                 1h      1d
+│ └ /en-EN/infrastructure/node-plugins                 1h      1d
+├ ◐ /[locale]/infrastructure/servers                   1h      1d
+│ ├ /[locale]/infrastructure/servers                   1h      1d
+│ ├ /ru-RU/infrastructure/servers                      1h      1d
+│ └ /en-EN/infrastructure/servers                      1h      1d
+├ ◐ /[locale]/infrastructure/snippets                  1h      1d
+│ ├ /[locale]/infrastructure/snippets                  1h      1d
+│ ├ /ru-RU/infrastructure/snippets                     1h      1d
+│ └ /en-EN/infrastructure/snippets                     1h      1d
+├ ◐ /[locale]/infrastructure/squads                    1h      1d
+│ ├ /[locale]/infrastructure/squads                    1h      1d
+│ ├ /ru-RU/infrastructure/squads                       1h      1d
+│ └ /en-EN/infrastructure/squads                       1h      1d
+├ ◐ /[locale]/infrastructure/xray                      1h      1d
+│ ├ /[locale]/infrastructure/xray                      1h      1d
+│ ├ /ru-RU/infrastructure/xray                         1h      1d
+│ └ /en-EN/infrastructure/xray                         1h      1d
+├ ◐ /[locale]/integrations                             1h      1d
+│ ├ /[locale]/integrations                             1h      1d
+│ ├ /ru-RU/integrations                                1h      1d
+│ └ /en-EN/integrations                                1h      1d
+├ ◐ /[locale]/integrations/push                        1h      1d
+│ ├ /[locale]/integrations/push                        1h      1d
+│ ├ /ru-RU/integrations/push                           1h      1d
+│ └ /en-EN/integrations/push                           1h      1d
+├ ◐ /[locale]/integrations/realtime                    1h      1d
+│ ├ /[locale]/integrations/realtime                    1h      1d
+│ ├ /ru-RU/integrations/realtime                       1h      1d
+│ └ /en-EN/integrations/realtime                       1h      1d
+├ ◐ /[locale]/integrations/telegram                    1h      1d
+│ ├ /[locale]/integrations/telegram                    1h      1d
+│ ├ /ru-RU/integrations/telegram                       1h      1d
+│ └ /en-EN/integrations/telegram                       1h      1d
+├ ◐ /[locale]/login                                    1h      1d
+│ ├ /[locale]/login                                    1h      1d
+│ ├ /ru-RU/login                                       1h      1d
+│ └ /en-EN/login                                       1h      1d
+├ ƒ /-/opengraph-image
+├ ◐ /[locale]/security                                 1h      1d
+│ ├ /[locale]/security                                 1h      1d
+│ ├ /ru-RU/security                                    1h      1d
+│ └ /en-EN/security                                    1h      1d
+├ ◐ /[locale]/security/anti-phishing                   1h      1d
+│ ├ /[locale]/security/anti-phishing                   1h      1d
+│ ├ /ru-RU/security/anti-phishing                      1h      1d
+│ └ /en-EN/security/anti-phishing                      1h      1d
+├ ◐ /[locale]/security/posture                         1h      1d
+│ ├ /[locale]/security/posture                         1h      1d
+│ ├ /ru-RU/security/posture                            1h      1d
+│ └ /en-EN/security/posture                            1h      1d
+├ ◐ /[locale]/security/review-queue                    1h      1d
+│ ├ /[locale]/security/review-queue                    1h      1d
+│ ├ /ru-RU/security/review-queue                       1h      1d
+│ └ /en-EN/security/review-queue                       1h      1d
+├ ◐ /[locale]/security/sessions                        1h      1d
+│ ├ /[locale]/security/sessions                        1h      1d
+│ ├ /ru-RU/security/sessions                           1h      1d
+│ └ /en-EN/security/sessions                           1h      1d
+├ ◐ /[locale]/security/two-factor                      1h      1d
+│ ├ /[locale]/security/two-factor                      1h      1d
+│ ├ /ru-RU/security/two-factor                         1h      1d
+│ └ /en-EN/security/two-factor                         1h      1d
+├ ƒ /api/analytics/frontend-runtime
+├ ƒ /api/analytics/reporting
+├ ƒ /api/analytics/traffic
+├ ƒ /api/analytics/web-vitals
+├ ƒ /api/auth/2fa/complete
+├ ƒ /api/auth/2fa/pending
+├ ƒ /api/integrations/telegram/bot/[...path]
+├ ƒ /api/observability/sentry-contract
+├ ○ /robots.txt
+└ ○ /sitemap.xml                                       1d      1w
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)             prerendered as static content
+◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+ƒ  (Dynamic)            server-rendered on demand
+

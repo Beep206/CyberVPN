@@ -1,0 +1,15 @@
+
+> vpn-frontend@0.1.0 prelint
+> npm run prepare:i18n
+
+
+> vpn-frontend@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 39 locale bundles in src/i18n/messages/generated.
+
+> vpn-frontend@0.1.0 lint
+> eslint
+
+
+exit_code=0

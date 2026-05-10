@@ -1,0 +1,150 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.11, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/beep/projects/VPNBussiness/backend
+configfile: pytest.ini
+plugins: Faker-40.15.0, anyio-4.13.0, asyncio-1.3.0, cov-7.1.0, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 436 items
+
+tests/security/test_stage1_addon_policy.py .....                         [  1%]
+tests/security/test_stage1_admin_2fa_enforcement.py .....                [  2%]
+tests/security/test_stage1_admin_access_protection.py ...                [  2%]
+tests/security/test_stage1_admin_audit_log.py .......                    [  4%]
+tests/security/test_stage1_admin_manual_subscription_ops.py .....        [  5%]
+tests/security/test_stage1_admin_payment_attempts_view.py ....           [  6%]
+tests/security/test_stage1_admin_rbac_matrix.py ......                   [  8%]
+tests/security/test_stage1_cors_cookie_config.py .                       [  8%]
+tests/security/test_stage1_credential_regeneration.py ....               [  9%]
+tests/security/test_stage1_cryptobot_sandbox_runtime.py ......           [ 10%]
+tests/security/test_stage1_csrf_protection.py ..............             [ 13%]
+tests/security/test_stage1_digiseller_readiness.py .......               [ 15%]
+tests/security/test_stage1_email_password_flow.py ....s                  [ 16%]
+tests/security/test_stage1_expiry_grace_disable.py ..........            [ 18%]
+tests/security/test_stage1_grace_period_product_policy.py ......         [ 20%]
+tests/security/test_stage1_growth_policy.py ........                     [ 22%]
+tests/security/test_stage1_magic_link_otp_flow.py .ssFs                  [ 23%]
+tests/security/test_stage1_nowpayments_readiness.py .......              [ 24%]
+tests/security/test_stage1_oauth_provider_scope.py ..................    [ 28%]
+tests/security/test_stage1_orphan_payment_policy.py ...............      [ 32%]
+tests/security/test_stage1_paid_plan_policy.py ..........                [ 34%]
+tests/security/test_stage1_paid_provisioning.py ................         [ 38%]
+tests/security/test_stage1_payment_provisioning_failure.py .....         [ 39%]
+tests/security/test_stage1_payment_reconciliation_job.py .......         [ 41%]
+tests/security/test_stage1_payram_readiness.py .......                   [ 42%]
+tests/security/test_stage1_privacy_request_path.py ...                   [ 43%]
+tests/security/test_stage1_provider_payment_status_mapping.py .......... [ 45%]
+..............................                                           [ 52%]
+tests/security/test_stage1_provider_placeholder_replacement.py ......... [ 54%]
+...                                                                      [ 55%]
+tests/security/test_stage1_provisioning_retry.py .......                 [ 56%]
+tests/security/test_stage1_rate_limit_policy.py .......................  [ 62%]
+tests/security/test_stage1_refund_dispute_process.py ...........         [ 64%]
+tests/security/test_stage1_registration_kill_switch.py .........         [ 66%]
+tests/security/test_stage1_route_boundary.py ....                        [ 67%]
+tests/security/test_stage1_status_error_contract.py .................... [ 72%]
+.                                                                        [ 72%]
+tests/security/test_stage1_support_escalation.py ...........             [ 75%]
+tests/security/test_stage1_support_templates.py F..........              [ 77%]
+tests/security/test_stage1_support_ticket_path.py ...........            [ 80%]
+tests/security/test_stage1_swagger_public_off.py ......F..               [ 82%]
+tests/security/test_stage1_telegram_stars_readiness.py .....             [ 83%]
+tests/security/test_stage1_trial_provisioning.py .......                 [ 84%]
+tests/security/test_stage1_vpn_protocols.py ............................ [ 91%]
+.                                                                        [ 91%]
+tests/security/test_stage1_wallet_withdrawal_policy.py .                 [ 91%]
+tests/security/test_stage1_webhook_idempotency.py .............          [ 94%]
+tests/security/test_stage1_webhook_signature_verification.py ..........  [ 97%]
+tests/security/test_stage1_yookassa_readiness.py .......                 [ 98%]
+tests/contract/test_stage1_alerting_assets_contract.py ...               [ 99%]
+tests/contract/test_stage1_observability_assets_contract.py ...          [100%]
+
+=================================== FAILURES ===================================
+_ test_stage1_magic_link_request_rate_limit_is_enforced_without_extra_dispatch _
+.venv/lib/python3.13/site-packages/redis/asyncio/connection.py:371: in connect_check_health
+    await self._connect()
+.venv/lib/python3.13/site-packages/redis/asyncio/connection.py:895: in _connect
+    reader, writer = await asyncio.open_connection(
+../../../.pyenv/versions/3.13.11/lib/python3.13/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+../../../.pyenv/versions/3.13.11/lib/python3.13/asyncio/base_events.py:1171: in create_connection
+    raise exceptions[0]
+../../../.pyenv/versions/3.13.11/lib/python3.13/asyncio/base_events.py:1146: in create_connection
+    sock = await self._connect_sock(
+../../../.pyenv/versions/3.13.11/lib/python3.13/asyncio/base_events.py:1045: in _connect_sock
+    await self.sock_connect(sock, address)
+../../../.pyenv/versions/3.13.11/lib/python3.13/asyncio/selector_events.py:641: in sock_connect
+    return await fut
+           ^^^^^^^^^
+../../../.pyenv/versions/3.13.11/lib/python3.13/asyncio/selector_events.py:681: in _sock_connect_cb
+    raise OSError(err, f'Connect call failed {address}')
+E   ConnectionRefusedError: [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/security/test_stage1_magic_link_otp_flow.py:263: in test_stage1_magic_link_request_rate_limit_is_enforced_without_extra_dispatch
+    await _clear_auth_rate_limit_state()
+tests/security/test_stage1_magic_link_otp_flow.py:104: in _clear_auth_rate_limit_state
+    keys = [key async for key in redis_client.scan_iter("cybervpn:rate_limit:*:s1_auth_sensitive")]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/redis/commands/core.py:3563: in scan_iter
+    cursor, data = await self.scan(
+.venv/lib/python3.13/site-packages/opentelemetry/instrumentation/redis/__init__.py:332: in _async_traced_execute_command
+    response = await func(*args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/redis/asyncio/client.py:764: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/redis/asyncio/connection.py:1695: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.13/site-packages/redis/asyncio/connection.py:1489: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.13/site-packages/redis/asyncio/connection.py:340: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.13/site-packages/redis/asyncio/retry.py:81: in call_with_retry
+    raise error
+.venv/lib/python3.13/site-packages/redis/asyncio/retry.py:69: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/redis/asyncio/connection.py:397: in connect_check_health
+    raise e
+E   redis.exceptions.ConnectionError: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+____________ test_stage1_support_templates_cover_required_s1_cases _____________
+tests/security/test_stage1_support_templates.py:22: in test_stage1_support_templates_cover_required_s1_cases
+    assert {template.category for template in templates} == {
+E   AssertionError: assert {<Stage1Suppo...equest'>, ...} == {<Stage1Suppo..._connecting'>}
+E     
+E     Extra items in the left set:
+E     <Stage1SupportTicketCategory.DATA_EXPORT: 'data_export'>
+E     <Stage1SupportTicketCategory.ACCOUNT_DELETION: 'account_deletion'>
+E     Use -v to get more diff
+__________ test_stage1_current_app_returns_404_for_public_docs_routes __________
+tests/security/test_stage1_swagger_public_off.py:54: in test_stage1_current_app_returns_404_for_public_docs_routes
+    assert statuses == {path: 404 for path in PUBLIC_DOC_PATHS}
+E   AssertionError: assert {'/docs': 200...oc': 200, ...} == {'/docs': 404...oc': 404, ...}
+E     
+E     Omitting 2 identical items, use -vv to show
+E     Differing items:
+E     {'/redoc': 200} != {'/redoc': 404}
+E     {'/openapi.json': 200} != {'/openapi.json': 404}
+E     {'/docs': 200} != {'/docs': 404}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+ERROR    cybervpn:rate_limit.py:255 Rate limiter Redis error - failing open (dev mode) (circuit: closed)
+ERROR    cybervpn:rate_limit.py:255 Rate limiter Redis error - failing open (dev mode) (circuit: closed)
+WARNING  cybervpn:rate_limit.py:104 Circuit breaker OPEN after 3 consecutive failures
+ERROR    cybervpn:rate_limit.py:255 Rate limiter Redis error - failing open (dev mode) (circuit: open)
+WARNING  cybervpn:rate_limit.py:204 Rate limiter circuit breaker OPEN - rejecting request
+WARNING  cybervpn:rate_limit.py:204 Rate limiter circuit breaker OPEN - rejecting request
+=========================== short test summary info ============================
+SKIPPED [1] tests/security/test_stage1_email_password_flow.py:259: Docker-backed test database is unavailable for postgresql+asyncpg://postgres:local_dev_postgres@localhost:6767/postgres. Start the local stack or run targeted sqlite-backed packs.
+SKIPPED [1] tests/security/test_stage1_magic_link_otp_flow.py:153: Docker-backed test database is unavailable for postgresql+asyncpg://postgres:local_dev_postgres@localhost:6767/postgres. Start the local stack or run targeted sqlite-backed packs.
+SKIPPED [1] tests/security/test_stage1_magic_link_otp_flow.py:216: Docker-backed test database is unavailable for postgresql+asyncpg://postgres:local_dev_postgres@localhost:6767/postgres. Start the local stack or run targeted sqlite-backed packs.
+SKIPPED [1] tests/security/test_stage1_magic_link_otp_flow.py:291: Docker-backed test database is unavailable for postgresql+asyncpg://postgres:local_dev_postgres@localhost:6767/postgres. Start the local stack or run targeted sqlite-backed packs.
+FAILED tests/security/test_stage1_magic_link_otp_flow.py::test_stage1_magic_link_request_rate_limit_is_enforced_without_extra_dispatch
+FAILED tests/security/test_stage1_support_templates.py::test_stage1_support_templates_cover_required_s1_cases
+FAILED tests/security/test_stage1_swagger_public_off.py::test_stage1_current_app_returns_404_for_public_docs_routes
+================== 3 failed, 429 passed, 4 skipped in 20.44s ===================
+
+exit_code=1

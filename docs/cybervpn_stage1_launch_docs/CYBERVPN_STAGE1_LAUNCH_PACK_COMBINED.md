@@ -9380,7 +9380,7 @@ Interpretation:
 | `uv export` + `uvx pip-audit --timeout 60` in `services/task-worker/` | PASS: no known vulnerabilities found |
 | Targeted secret-pattern scan over touched `S1-REL-002` docs | PASS: no matches |
 | Targeted dangerous-pattern scan over touched `S1-REL-002` docs | PASS: no matches |
-| `scripts/security/run_s1_gitleaks_current_tree.sh` | PASS after `S1-INFRA-007` revalidation: accepted baseline is redacted and the baseline-enforced current-tree scan returns `no leaks found` |
+| `scripts/security/scan-secrets.sh` | PASS after `S1-INFRA-007` revalidation: accepted baseline is redacted and the baseline-enforced current-tree scan returns `no leaks found` |
 | `git diff --check` over touched docs | PASS |
 | `docker ps --format ...` | PASS: no running containers shown |
 
@@ -10466,7 +10466,7 @@ Generated local evidence lives under `.tmp/stage1-secrets/`. This directory is l
 | `.tmp/stage1-secrets/gitleaks-stage1-docs-redacted.json` | Redacted scan of the Stage 1 docs pack after this document was added |
 | `.tmp/stage1-secrets/gitleaks-git-history-after-purge-redacted.json` | Redacted Git-history findings after local history purge; no `infra/APIToken.txt` / `frontend/localhost.har` findings |
 | `.tmp/stage1-secrets/gitleaks-current-index-after-purge-redacted.json` | Redacted current-index findings after local history purge |
-| `scripts/security/run_s1_gitleaks_current_tree.sh` | Repeatable S1 current-tree Gitleaks runner using tracked files plus untracked Stage 1 docs |
+| `scripts/security/scan-secrets.sh` | Repeatable S1 current-tree Gitleaks runner using tracked files plus untracked Stage 1 docs |
 | `.gitleaks.s1.current-tree.baseline.json` | Redacted accepted baseline for current-tree findings; every `Secret` field is `REDACTED` |
 | `.tmp/stage1-secrets/gitleaks-s1-current-tree-redacted.json` | Latest baseline-enforced current-tree scan report; empty when no new leaks are found |
 | `.tmp/stage1-secrets/gitleaks-s1-current-tree-by-rule.tsv` | Latest baseline-enforced current-tree rule counts |
@@ -10525,10 +10525,10 @@ docker run --rm \
   --no-color \
   --timeout 120
 
-GITLEAKS_EXIT_CODE=0 scripts/security/run_s1_gitleaks_current_tree.sh
+GITLEAKS_EXIT_CODE=0 scripts/security/scan-secrets.sh
 cp .tmp/stage1-secrets/gitleaks-s1-current-tree-redacted.json \
   .gitleaks.s1.current-tree.baseline.json
-scripts/security/run_s1_gitleaks_current_tree.sh
+scripts/security/scan-secrets.sh
 
 docker run --rm -v "$PWD:/repo" -w /repo ghcr.io/gitleaks/gitleaks:latest detect \
   --source /repo \
@@ -10658,7 +10658,7 @@ By rule:
 The follow-up adds a repeatable S1 scanner:
 
 ```bash
-scripts/security/run_s1_gitleaks_current_tree.sh
+scripts/security/scan-secrets.sh
 ```
 
 The script builds a temporary scan snapshot from:
@@ -10673,11 +10673,11 @@ Baseline creation and verification:
 
 | Check | Result |
 |---|---|
-| Baseline generation command | `GITLEAKS_EXIT_CODE=0 scripts/security/run_s1_gitleaks_current_tree.sh` |
+| Baseline generation command | `GITLEAKS_EXIT_CODE=0 scripts/security/scan-secrets.sh` |
 | Baseline file | `.gitleaks.s1.current-tree.baseline.json` |
 | Baseline findings | 77 redacted accepted findings |
 | Baseline secret values | `77 REDACTED`, no non-redacted `Secret` fields |
-| Baseline-enforced scan command | `scripts/security/run_s1_gitleaks_current_tree.sh` |
+| Baseline-enforced scan command | `scripts/security/scan-secrets.sh` |
 | Baseline-enforced scan result | `no leaks found` |
 | Baseline-enforced report findings | 0 |
 | Bytes scanned | ~87.24 MB |
@@ -10762,7 +10762,7 @@ Closed follow-up:
 
 | ID | Closure |
 |---|---|
-| `SEC-SCAN-BLOCKER-002` | Closed locally by `.gitleaks.s1.current-tree.baseline.json` and `scripts/security/run_s1_gitleaks_current_tree.sh`; the baseline-enforced current-tree scan returns `no leaks found` |
+| `SEC-SCAN-BLOCKER-002` | Closed locally by `.gitleaks.s1.current-tree.baseline.json` and `scripts/security/scan-secrets.sh`; the baseline-enforced current-tree scan returns `no leaks found` |
 
 ## Required Follow-Up
 

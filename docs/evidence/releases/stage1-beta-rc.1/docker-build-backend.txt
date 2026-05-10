@@ -1,0 +1,354 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 923B done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/python:3.13.13-alpine
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.13.13-alpine
+#2 DONE 2.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 92B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 ...
+
+#6 [builder 1/6] FROM docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc
+#6 resolve docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc 0.0s done
+#6 DONE 0.1s
+
+#5 [internal] load build context
+#5 transferring context: 53.95MB 0.2s done
+#5 DONE 0.3s
+
+#7 [builder 2/6] RUN apk add --no-cache build-base
+#7 CACHED
+
+#8 [builder 3/6] WORKDIR /app
+#8 CACHED
+
+#9 [builder 4/6] COPY pyproject.toml ./
+#9 DONE 0.1s
+
+#10 [builder 5/6] RUN pip install --no-cache-dir --upgrade "pip>=26.0"
+#10 1.524 Requirement already satisfied: pip>=26.0 in /usr/local/lib/python3.13/site-packages (26.0.1)
+#10 2.266 Collecting pip>=26.0
+#10 2.973   Downloading pip-26.1.1-py3-none-any.whl.metadata (4.6 kB)
+#10 3.059 Downloading pip-26.1.1-py3-none-any.whl (1.8 MB)
+#10 3.565    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 6.7 MB/s  0:00:00
+#10 3.577 Installing collected packages: pip
+#10 3.577   Attempting uninstall: pip
+#10 3.579     Found existing installation: pip 26.0.1
+#10 3.604     Uninstalling pip-26.0.1:
+#10 3.736       Successfully uninstalled pip-26.0.1
+#10 4.383 Successfully installed pip-26.1.1
+#10 4.384 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#10 DONE 5.2s
+
+#11 [builder 6/6] RUN pip install --no-cache-dir .
+#11 1.187 Processing ./.
+#11 1.189   Installing build dependencies: started
+#11 4.349   Installing build dependencies: finished with status 'done'
+#11 4.350   Getting requirements to build wheel: started
+#11 4.470   Getting requirements to build wheel: finished with status 'done'
+#11 4.471   Preparing metadata (pyproject.toml): started
+#11 4.605   Preparing metadata (pyproject.toml): finished with status 'done'
+#11 5.300 Collecting alembic>=1.13.0 (from cybervpn-backend==0.1.0)
+#11 5.845   Downloading alembic-1.18.4-py3-none-any.whl.metadata (7.2 kB)
+#11 5.976 Collecting argon2-cffi>=23.1.0 (from cybervpn-backend==0.1.0)
+#11 6.056   Downloading argon2_cffi-25.1.0-py3-none-any.whl.metadata (4.1 kB)
+#11 6.236 Collecting asyncpg>=0.29.0 (from cybervpn-backend==0.1.0)
+#11 6.317   Downloading asyncpg-0.31.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (4.4 kB)
+#11 6.442 Collecting fastapi==0.135.3 (from cybervpn-backend==0.1.0)
+#11 6.522   Downloading fastapi-0.135.3-py3-none-any.whl.metadata (28 kB)
+#11 6.662 Collecting httpx>=0.25.0 (from cybervpn-backend==0.1.0)
+#11 6.742   Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+#11 6.849 Collecting mako>=1.3.12 (from cybervpn-backend==0.1.0)
+#11 6.932   Downloading mako-1.3.12-py3-none-any.whl.metadata (2.9 kB)
+#11 7.019 Collecting nats-py>=2.12.0 (from cybervpn-backend==0.1.0)
+#11 7.100   Downloading nats_py-2.14.0-py3-none-any.whl.metadata (8.0 kB)
+#11 7.208 Collecting opentelemetry-api>=1.20.0 (from cybervpn-backend==0.1.0)
+#11 7.289   Downloading opentelemetry_api-1.41.1-py3-none-any.whl.metadata (1.5 kB)
+#11 7.397 Collecting opentelemetry-exporter-otlp>=1.20.0 (from cybervpn-backend==0.1.0)
+#11 7.484   Downloading opentelemetry_exporter_otlp-1.41.1-py3-none-any.whl.metadata (2.4 kB)
+#11 7.577 Collecting opentelemetry-instrumentation-fastapi>=0.41b0 (from cybervpn-backend==0.1.0)
+#11 7.663   Downloading opentelemetry_instrumentation_fastapi-0.62b1-py3-none-any.whl.metadata (2.2 kB)
+#11 7.768 Collecting opentelemetry-instrumentation-httpx>=0.41b0 (from cybervpn-backend==0.1.0)
+#11 7.847   Downloading opentelemetry_instrumentation_httpx-0.62b1-py3-none-any.whl.metadata (7.4 kB)
+#11 7.946 Collecting opentelemetry-instrumentation-redis>=0.41b0 (from cybervpn-backend==0.1.0)
+#11 8.049   Downloading opentelemetry_instrumentation_redis-0.62b1-py3-none-any.whl.metadata (2.1 kB)
+#11 8.144 Collecting opentelemetry-instrumentation-sqlalchemy>=0.41b0 (from cybervpn-backend==0.1.0)
+#11 8.225   Downloading opentelemetry_instrumentation_sqlalchemy-0.62b1-py3-none-any.whl.metadata (2.2 kB)
+#11 8.317 Collecting opentelemetry-sdk>=1.20.0 (from cybervpn-backend==0.1.0)
+#11 8.397   Downloading opentelemetry_sdk-1.41.1-py3-none-any.whl.metadata (1.7 kB)
+#11 8.485 Collecting prometheus-client>=0.20.0 (from cybervpn-backend==0.1.0)
+#11 8.572   Downloading prometheus_client-0.25.0-py3-none-any.whl.metadata (2.1 kB)
+#11 8.836 Collecting protobuf>=6.33.5 (from cybervpn-backend==0.1.0)
+#11 8.919   Downloading protobuf-7.34.1-py3-none-any.whl.metadata (595 bytes)
+#11 9.005 Collecting pydantic-settings==2.13.1 (from cybervpn-backend==0.1.0)
+#11 9.085   Downloading pydantic_settings-2.13.1-py3-none-any.whl.metadata (3.4 kB)
+#11 9.279 Collecting pydantic==2.12.5 (from cybervpn-backend==0.1.0)
+#11 9.360   Downloading pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+#11 9.593 Collecting pyjwt>=2.8.0 (from pyjwt[crypto]>=2.8.0->cybervpn-backend==0.1.0)
+#11 9.673   Downloading pyjwt-2.12.1-py3-none-any.whl.metadata (4.1 kB)
+#11 9.765 Collecting pyotp>=2.9.0 (from cybervpn-backend==0.1.0)
+#11 9.853   Downloading pyotp-2.9.0-py3-none-any.whl.metadata (9.8 kB)
+#11 9.957 Collecting redis>=5.0.0 (from cybervpn-backend==0.1.0)
+#11 10.04   Downloading redis-7.4.0-py3-none-any.whl.metadata (12 kB)
+#11 10.16 Collecting sentry-sdk>=2.0.0 (from sentry-sdk[fastapi]>=2.0.0->cybervpn-backend==0.1.0)
+#11 10.24   Downloading sentry_sdk-2.59.0-py2.py3-none-any.whl.metadata (10 kB)
+#11 10.55 Collecting sqlalchemy<3.0.0,>=2.0.23 (from cybervpn-backend==0.1.0)
+#11 10.63   Downloading sqlalchemy-2.0.49-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (9.5 kB)
+#11 10.72 Collecting starlette==1.0.0 (from cybervpn-backend==0.1.0)
+#11 10.81   Downloading starlette-1.0.0-py3-none-any.whl.metadata (6.3 kB)
+#11 10.89 Collecting structlog>=24.0.0 (from cybervpn-backend==0.1.0)
+#11 11.00   Downloading structlog-25.5.0-py3-none-any.whl.metadata (9.5 kB)
+#11 11.08 Collecting taskiq-redis>=1.0.0 (from cybervpn-backend==0.1.0)
+#11 11.17   Downloading taskiq_redis-1.2.2-py3-none-any.whl.metadata (7.2 kB)
+#11 11.33 Collecting taskiq>=0.11.0 (from cybervpn-backend==0.1.0)
+#11 11.41   Downloading taskiq-0.12.4-py3-none-any.whl.metadata (6.8 kB)
+#11 11.51 Collecting uvicorn==0.44.0 (from uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 11.59   Downloading uvicorn-0.44.0-py3-none-any.whl.metadata (6.7 kB)
+#11 11.68 Collecting typing-extensions>=4.8.0 (from fastapi==0.135.3->cybervpn-backend==0.1.0)
+#11 11.76   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+#11 11.85 Collecting typing-inspection>=0.4.2 (from fastapi==0.135.3->cybervpn-backend==0.1.0)
+#11 11.92   Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+#11 12.01 Collecting annotated-doc>=0.0.2 (from fastapi==0.135.3->cybervpn-backend==0.1.0)
+#11 12.09   Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+#11 12.19 Collecting annotated-types>=0.6.0 (from pydantic==2.12.5->cybervpn-backend==0.1.0)
+#11 12.27   Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+#11 12.86 Collecting pydantic-core==2.41.5 (from pydantic==2.12.5->cybervpn-backend==0.1.0)
+#11 12.94   Downloading pydantic_core-2.41.5-cp313-cp313-musllinux_1_1_x86_64.whl.metadata (7.3 kB)
+#11 13.04 Collecting python-dotenv>=0.21.0 (from pydantic-settings==2.13.1->cybervpn-backend==0.1.0)
+#11 13.11   Downloading python_dotenv-1.2.2-py3-none-any.whl.metadata (27 kB)
+#11 13.22 Collecting anyio<5,>=3.6.2 (from starlette==1.0.0->cybervpn-backend==0.1.0)
+#11 13.30   Downloading anyio-4.13.0-py3-none-any.whl.metadata (4.5 kB)
+#11 13.39 Collecting click>=7.0 (from uvicorn==0.44.0->uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 13.47   Downloading click-8.3.3-py3-none-any.whl.metadata (2.6 kB)
+#11 13.55 Collecting h11>=0.8 (from uvicorn==0.44.0->uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 13.63   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+#11 13.76 Collecting httptools>=0.6.3 (from uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 13.84   Downloading httptools-0.7.1-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (3.5 kB)
+#11 13.94 Collecting pyyaml>=5.1 (from uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 14.03   Downloading pyyaml-6.0.3-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (2.4 kB)
+#11 14.21 Collecting uvloop>=0.15.1 (from uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 14.29   Downloading uvloop-0.22.1-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (4.9 kB)
+#11 14.42 Collecting watchfiles>=0.20 (from uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 14.50   Downloading watchfiles-1.1.1-cp313-cp313-musllinux_1_1_x86_64.whl.metadata (4.9 kB)
+#11 14.67 Collecting websockets>=10.4 (from uvicorn[standard]==0.44.0->cybervpn-backend==0.1.0)
+#11 14.76   Downloading websockets-16.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (6.8 kB)
+#11 14.85 Collecting idna>=2.8 (from anyio<5,>=3.6.2->starlette==1.0.0->cybervpn-backend==0.1.0)
+#11 14.93   Downloading idna-3.13-py3-none-any.whl.metadata (8.0 kB)
+#11 15.11 Collecting greenlet>=1 (from sqlalchemy<3.0.0,>=2.0.23->cybervpn-backend==0.1.0)
+#11 15.19   Downloading greenlet-3.5.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (3.7 kB)
+#11 15.28 Collecting argon2-cffi-bindings (from argon2-cffi>=23.1.0->cybervpn-backend==0.1.0)
+#11 15.36   Downloading argon2_cffi_bindings-25.1.0-cp39-abi3-musllinux_1_2_x86_64.whl.metadata (7.4 kB)
+#11 15.46 Collecting certifi (from httpx>=0.25.0->cybervpn-backend==0.1.0)
+#11 15.54   Downloading certifi-2026.4.22-py3-none-any.whl.metadata (2.5 kB)
+#11 15.62 Collecting httpcore==1.* (from httpx>=0.25.0->cybervpn-backend==0.1.0)
+#11 15.71   Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+#11 15.84 Collecting MarkupSafe>=0.9.2 (from mako>=1.3.12->cybervpn-backend==0.1.0)
+#11 15.92   Downloading markupsafe-3.0.3-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (2.7 kB)
+#11 16.02 Collecting importlib-metadata<8.8.0,>=6.0 (from opentelemetry-api>=1.20.0->cybervpn-backend==0.1.0)
+#11 16.12   Downloading importlib_metadata-8.7.1-py3-none-any.whl.metadata (4.7 kB)
+#11 16.21 Collecting zipp>=3.20 (from importlib-metadata<8.8.0,>=6.0->opentelemetry-api>=1.20.0->cybervpn-backend==0.1.0)
+#11 16.29   Downloading zipp-3.23.1-py3-none-any.whl.metadata (3.6 kB)
+#11 16.38 Collecting opentelemetry-exporter-otlp-proto-grpc==1.41.1 (from opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 16.49   Downloading opentelemetry_exporter_otlp_proto_grpc-1.41.1-py3-none-any.whl.metadata (2.6 kB)
+#11 16.58 Collecting opentelemetry-exporter-otlp-proto-http==1.41.1 (from opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 16.66   Downloading opentelemetry_exporter_otlp_proto_http-1.41.1-py3-none-any.whl.metadata (2.5 kB)
+#11 16.76 Collecting googleapis-common-protos~=1.57 (from opentelemetry-exporter-otlp-proto-grpc==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 16.85   Downloading googleapis_common_protos-1.75.0-py3-none-any.whl.metadata (8.6 kB)
+#11 17.28 Collecting grpcio<2.0.0,>=1.66.2 (from opentelemetry-exporter-otlp-proto-grpc==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 17.38   Downloading grpcio-1.80.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (3.8 kB)
+#11 17.47 Collecting opentelemetry-exporter-otlp-proto-common==1.41.1 (from opentelemetry-exporter-otlp-proto-grpc==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 17.57   Downloading opentelemetry_exporter_otlp_proto_common-1.41.1-py3-none-any.whl.metadata (1.9 kB)
+#11 17.67 Collecting opentelemetry-proto==1.41.1 (from opentelemetry-exporter-otlp-proto-grpc==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 17.75   Downloading opentelemetry_proto-1.41.1-py3-none-any.whl.metadata (2.4 kB)
+#11 17.86 Collecting requests~=2.7 (from opentelemetry-exporter-otlp-proto-http==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 17.94   Downloading requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+#11 17.94 Collecting protobuf>=6.33.5 (from cybervpn-backend==0.1.0)
+#11 18.02   Downloading protobuf-6.33.6-py3-none-any.whl.metadata (593 bytes)
+#11 18.12 Collecting opentelemetry-semantic-conventions==0.62b1 (from opentelemetry-sdk>=1.20.0->cybervpn-backend==0.1.0)
+#11 18.21   Downloading opentelemetry_semantic_conventions-0.62b1-py3-none-any.whl.metadata (2.5 kB)
+#11 18.35 Collecting charset_normalizer<4,>=2 (from requests~=2.7->opentelemetry-exporter-otlp-proto-http==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 18.44   Downloading charset_normalizer-3.4.7-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (40 kB)
+#11 18.57 Collecting urllib3<3,>=1.26 (from requests~=2.7->opentelemetry-exporter-otlp-proto-http==1.41.1->opentelemetry-exporter-otlp>=1.20.0->cybervpn-backend==0.1.0)
+#11 18.65   Downloading urllib3-2.7.0-py3-none-any.whl.metadata (6.9 kB)
+#11 18.82 Collecting opentelemetry-instrumentation-asgi==0.62b1 (from opentelemetry-instrumentation-fastapi>=0.41b0->cybervpn-backend==0.1.0)
+#11 18.90   Downloading opentelemetry_instrumentation_asgi-0.62b1-py3-none-any.whl.metadata (2.1 kB)
+#11 19.06 Collecting opentelemetry-instrumentation==0.62b1 (from opentelemetry-instrumentation-fastapi>=0.41b0->cybervpn-backend==0.1.0)
+#11 19.14   Downloading opentelemetry_instrumentation-0.62b1-py3-none-any.whl.metadata (7.2 kB)
+#11 19.24 Collecting opentelemetry-util-http==0.62b1 (from opentelemetry-instrumentation-fastapi>=0.41b0->cybervpn-backend==0.1.0)
+#11 19.32   Downloading opentelemetry_util_http-0.62b1-py3-none-any.whl.metadata (2.6 kB)
+#11 19.41 Collecting packaging>=18.0 (from opentelemetry-instrumentation==0.62b1->opentelemetry-instrumentation-fastapi>=0.41b0->cybervpn-backend==0.1.0)
+#11 19.49   Downloading packaging-26.2-py3-none-any.whl.metadata (3.5 kB)
+#11 19.79 Collecting wrapt<3.0.0,>=1.0.0 (from opentelemetry-instrumentation==0.62b1->opentelemetry-instrumentation-fastapi>=0.41b0->cybervpn-backend==0.1.0)
+#11 19.87   Downloading wrapt-2.1.2-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (7.4 kB)
+#11 19.96 Collecting asgiref~=3.0 (from opentelemetry-instrumentation-asgi==0.62b1->opentelemetry-instrumentation-fastapi>=0.41b0->cybervpn-backend==0.1.0)
+#11 20.04   Downloading asgiref-3.11.1-py3-none-any.whl.metadata (9.3 kB)
+#11 20.27 Collecting cryptography>=3.4.0 (from pyjwt[crypto]>=2.8.0->cybervpn-backend==0.1.0)
+#11 20.37   Downloading cryptography-48.0.0-cp311-abi3-musllinux_1_2_x86_64.whl.metadata (4.3 kB)
+#11 20.52 Collecting cffi>=2.0.0 (from cryptography>=3.4.0->pyjwt[crypto]>=2.8.0->cybervpn-backend==0.1.0)
+#11 20.61   Downloading cffi-2.0.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (2.6 kB)
+#11 20.70 Collecting pycparser (from cffi>=2.0.0->cryptography>=3.4.0->pyjwt[crypto]>=2.8.0->cybervpn-backend==0.1.0)
+#11 20.78   Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+#11 17.11 Collecting aiohttp>=3 (from taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 17.19   Downloading aiohttp-3.13.5-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (8.1 kB)
+#11 24.84 Collecting pycron>=3.0.0 (from taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 24.91   Downloading pycron-3.2.0-py3-none-any.whl.metadata (3.3 kB)
+#11 25.07 Collecting taskiq-dependencies<2,>=1.3.1 (from taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 25.15   Downloading taskiq_dependencies-1.5.7-py3-none-any.whl.metadata (9.9 kB)
+#11 25.24 Collecting aiohappyeyeballs>=2.5.0 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 25.32   Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl.metadata (5.9 kB)
+#11 25.42 Collecting aiosignal>=1.4.0 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 25.50   Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+#11 25.58 Collecting attrs>=17.3.0 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 25.67   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+#11 25.82 Collecting frozenlist>=1.1.1 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 25.90   Downloading frozenlist-1.8.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (20 kB)
+#11 26.19 Collecting multidict<7.0,>=4.5 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 26.27   Downloading multidict-6.7.1-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (5.3 kB)
+#11 26.39 Collecting propcache>=0.2.0 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 26.47   Downloading propcache-0.5.2-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (16 kB)
+#11 26.76 Collecting yarl<2.0,>=1.17.0 (from aiohttp>=3->taskiq>=0.11.0->cybervpn-backend==0.1.0)
+#11 26.84   Downloading yarl-1.23.0-cp313-cp313-musllinux_1_2_x86_64.whl.metadata (79 kB)
+#11 26.98 Downloading fastapi-0.135.3-py3-none-any.whl (117 kB)
+#11 27.11 Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+#11 27.33 Downloading pydantic_core-2.41.5-cp313-cp313-musllinux_1_1_x86_64.whl (2.3 MB)
+#11 27.70    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 6.4 MB/s  0:00:00
+#11 27.79 Downloading pydantic_settings-2.13.1-py3-none-any.whl (58 kB)
+#11 27.88 Downloading starlette-1.0.0-py3-none-any.whl (72 kB)
+#11 27.97 Downloading uvicorn-0.44.0-py3-none-any.whl (69 kB)
+#11 28.15 Downloading anyio-4.13.0-py3-none-any.whl (114 kB)
+#11 28.26 Downloading sqlalchemy-2.0.49-cp313-cp313-musllinux_1_2_x86_64.whl (3.3 MB)
+#11 28.67    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 8.2 MB/s  0:00:00
+#11 28.75 Downloading alembic-1.18.4-py3-none-any.whl (263 kB)
+#11 28.86 Downloading annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+#11 28.95 Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+#11 29.03 Downloading argon2_cffi-25.1.0-py3-none-any.whl (14 kB)
+#11 29.12 Downloading asyncpg-0.31.0-cp313-cp313-musllinux_1_2_x86_64.whl (3.5 MB)
+#11 29.60    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.5/3.5 MB 8.5 MB/s  0:00:00
+#11 29.68 Downloading click-8.3.3-py3-none-any.whl (110 kB)
+#11 29.77 Downloading greenlet-3.5.0-cp313-cp313-musllinux_1_2_x86_64.whl (1.6 MB)
+#11 30.14    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 4.2 MB/s  0:00:00
+#11 30.22 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#11 30.30 Downloading httptools-0.7.1-cp313-cp313-musllinux_1_2_x86_64.whl (458 kB)
+#11 30.46 Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+#11 30.55 Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+#11 30.65 Downloading idna-3.13-py3-none-any.whl (68 kB)
+#11 30.74 Downloading mako-1.3.12-py3-none-any.whl (78 kB)
+#11 30.85 Downloading markupsafe-3.0.3-cp313-cp313-musllinux_1_2_x86_64.whl (23 kB)
+#11 30.93 Downloading nats_py-2.14.0-py3-none-any.whl (82 kB)
+#11 31.03 Downloading opentelemetry_api-1.41.1-py3-none-any.whl (69 kB)
+#11 31.13 Downloading importlib_metadata-8.7.1-py3-none-any.whl (27 kB)
+#11 31.21 Downloading opentelemetry_exporter_otlp-1.41.1-py3-none-any.whl (7.0 kB)
+#11 31.29 Downloading opentelemetry_exporter_otlp_proto_grpc-1.41.1-py3-none-any.whl (20 kB)
+#11 31.37 Downloading opentelemetry_exporter_otlp_proto_common-1.41.1-py3-none-any.whl (18 kB)
+#11 31.45 Downloading opentelemetry_exporter_otlp_proto_http-1.41.1-py3-none-any.whl (22 kB)
+#11 31.54 Downloading opentelemetry_proto-1.41.1-py3-none-any.whl (72 kB)
+#11 31.63 Downloading googleapis_common_protos-1.75.0-py3-none-any.whl (300 kB)
+#11 31.75 Downloading grpcio-1.80.0-cp313-cp313-musllinux_1_2_x86_64.whl (7.8 MB)
+#11 32.75    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.8/7.8 MB 7.8 MB/s  0:00:01
+#11 32.83 Downloading opentelemetry_sdk-1.41.1-py3-none-any.whl (180 kB)
+#11 32.94 Downloading opentelemetry_semantic_conventions-0.62b1-py3-none-any.whl (231 kB)
+#11 33.05 Downloading protobuf-6.33.6-py3-none-any.whl (170 kB)
+#11 33.15 Downloading requests-2.33.1-py3-none-any.whl (64 kB)
+#11 33.33 Downloading charset_normalizer-3.4.7-cp313-cp313-musllinux_1_2_x86_64.whl (217 kB)
+#11 33.43 Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+#11 33.62 Downloading urllib3-2.7.0-py3-none-any.whl (131 kB)
+#11 33.71 Downloading certifi-2026.4.22-py3-none-any.whl (135 kB)
+#11 33.81 Downloading opentelemetry_instrumentation_fastapi-0.62b1-py3-none-any.whl (13 kB)
+#11 33.89 Downloading opentelemetry_instrumentation-0.62b1-py3-none-any.whl (34 kB)
+#11 33.98 Downloading opentelemetry_instrumentation_asgi-0.62b1-py3-none-any.whl (17 kB)
+#11 34.07 Downloading opentelemetry_util_http-0.62b1-py3-none-any.whl (9.3 kB)
+#11 34.15 Downloading asgiref-3.11.1-py3-none-any.whl (24 kB)
+#11 34.23 Downloading wrapt-2.1.2-cp313-cp313-musllinux_1_2_x86_64.whl (120 kB)
+#11 34.41 Downloading opentelemetry_instrumentation_httpx-0.62b1-py3-none-any.whl (17 kB)
+#11 35.14 Downloading opentelemetry_instrumentation_redis-0.62b1-py3-none-any.whl (15 kB)
+#11 35.68 Downloading opentelemetry_instrumentation_sqlalchemy-0.62b1-py3-none-any.whl (15 kB)
+#11 36.12 Downloading packaging-26.2-py3-none-any.whl (100 kB)
+#11 37.54 Downloading prometheus_client-0.25.0-py3-none-any.whl (64 kB)
+#11 38.05 Downloading pyjwt-2.12.1-py3-none-any.whl (29 kB)
+#11 38.30 Downloading cryptography-48.0.0-cp311-abi3-musllinux_1_2_x86_64.whl (5.0 MB)
+#11 40.49    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 3.2 MB/s  0:00:02
+#11 40.59 Downloading cffi-2.0.0-cp313-cp313-musllinux_1_2_x86_64.whl (221 kB)
+#11 40.70 Downloading pyotp-2.9.0-py3-none-any.whl (13 kB)
+#11 40.78 Downloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+#11 40.87 Downloading pyyaml-6.0.3-cp313-cp313-musllinux_1_2_x86_64.whl (794 kB)
+#11 41.05    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 794.1/794.1 kB 9.5 MB/s  0:00:00
+#11 41.13 Downloading redis-7.4.0-py3-none-any.whl (409 kB)
+#11 41.27 Downloading sentry_sdk-2.59.0-py2.py3-none-any.whl (468 kB)
+#11 41.46 Downloading structlog-25.5.0-py3-none-any.whl (72 kB)
+#11 41.55 Downloading taskiq-0.12.4-py3-none-any.whl (91 kB)
+#11 41.66 Downloading taskiq_dependencies-1.5.7-py3-none-any.whl (13 kB)
+#11 41.74 Downloading aiohttp-3.13.5-cp313-cp313-musllinux_1_2_x86_64.whl (1.7 MB)
+#11 42.04    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 5.9 MB/s  0:00:00
+#11 42.12 Downloading multidict-6.7.1-cp313-cp313-musllinux_1_2_x86_64.whl (249 kB)
+#11 42.26 Downloading yarl-1.23.0-cp313-cp313-musllinux_1_2_x86_64.whl (101 kB)
+#11 42.36 Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl (15 kB)
+#11 42.45 Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+#11 42.55 Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+#11 42.64 Downloading frozenlist-1.8.0-cp313-cp313-musllinux_1_2_x86_64.whl (233 kB)
+#11 42.75 Downloading propcache-0.5.2-cp313-cp313-musllinux_1_2_x86_64.whl (62 kB)
+#11 42.84 Downloading pycron-3.2.0-py3-none-any.whl (4.9 kB)
+#11 42.92 Downloading taskiq_redis-1.2.2-py3-none-any.whl (20 kB)
+#11 43.00 Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+#11 43.08 Downloading uvloop-0.22.1-cp313-cp313-musllinux_1_2_x86_64.whl (4.2 MB)
+#11 43.71    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 6.8 MB/s  0:00:00
+#11 43.80 Downloading watchfiles-1.1.1-cp313-cp313-musllinux_1_1_x86_64.whl (622 kB)
+#11 43.88    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 622.3/622.3 kB 7.8 MB/s  0:00:00
+#11 43.97 Downloading websockets-16.0-cp313-cp313-musllinux_1_2_x86_64.whl (184 kB)
+#11 44.07 Downloading zipp-3.23.1-py3-none-any.whl (10 kB)
+#11 44.15 Downloading argon2_cffi_bindings-25.1.0-cp39-abi3-musllinux_1_2_x86_64.whl (86 kB)
+#11 44.25 Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+#11 44.34 Building wheels for collected packages: cybervpn-backend
+#11 44.34   Building wheel for cybervpn-backend (pyproject.toml): started
+#11 44.36   Building wheel for cybervpn-backend (pyproject.toml): finished with status 'done'
+#11 44.36   Created wheel for cybervpn-backend: filename=cybervpn_backend-0.1.0-py3-none-any.whl size=1218 sha256=7555b2a1948a91a193231793ec386b159fef251c04f363193e169972f18549db
+#11 44.36   Stored in directory: /tmp/pip-ephem-wheel-cache-cir2g14h/wheels/19/62/e5/caf0138816cbbc0c92b8fb19626cf9ac282f22194a65231821
+#11 44.36 Successfully built cybervpn-backend
+#11 44.45 Installing collected packages: zipp, wrapt, websockets, uvloop, urllib3, typing-extensions, taskiq-dependencies, structlog, redis, pyyaml, python-dotenv, pyotp, pyjwt, pycron, pycparser, protobuf, propcache, prometheus-client, packaging, opentelemetry-util-http, nats-py, multidict, MarkupSafe, idna, httptools, h11, greenlet, frozenlist, click, charset_normalizer, certifi, attrs, asyncpg, asgiref, annotated-types, annotated-doc, aiohappyeyeballs, yarl, uvicorn, typing-inspection, sqlalchemy, sentry-sdk, requests, pydantic-core, opentelemetry-proto, mako, importlib-metadata, httpcore, grpcio, googleapis-common-protos, cffi, anyio, aiosignal, watchfiles, starlette, pydantic, opentelemetry-exporter-otlp-proto-common, opentelemetry-api, httpx, cryptography, argon2-cffi-bindings, alembic, aiohttp, taskiq, pydantic-settings, opentelemetry-semantic-conventions, fastapi, argon2-cffi, taskiq-redis, opentelemetry-sdk, opentelemetry-instrumentation, opentelemetry-instrumentation-sqlalchemy, opentelemetry-instrumentation-redis, opentelemetry-instrumentation-httpx, opentelemetry-instrumentation-asgi, opentelemetry-exporter-otlp-proto-http, opentelemetry-exporter-otlp-proto-grpc, opentelemetry-instrumentation-fastapi, opentelemetry-exporter-otlp, cybervpn-backend
+#11 50.04 
+#11 50.05 Successfully installed MarkupSafe-3.0.3 aiohappyeyeballs-2.6.1 aiohttp-3.13.5 aiosignal-1.4.0 alembic-1.18.4 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.13.0 argon2-cffi-25.1.0 argon2-cffi-bindings-25.1.0 asgiref-3.11.1 asyncpg-0.31.0 attrs-26.1.0 certifi-2026.4.22 cffi-2.0.0 charset_normalizer-3.4.7 click-8.3.3 cryptography-48.0.0 cybervpn-backend-0.1.0 fastapi-0.135.3 frozenlist-1.8.0 googleapis-common-protos-1.75.0 greenlet-3.5.0 grpcio-1.80.0 h11-0.16.0 httpcore-1.0.9 httptools-0.7.1 httpx-0.28.1 idna-3.13 importlib-metadata-8.7.1 mako-1.3.12 multidict-6.7.1 nats-py-2.14.0 opentelemetry-api-1.41.1 opentelemetry-exporter-otlp-1.41.1 opentelemetry-exporter-otlp-proto-common-1.41.1 opentelemetry-exporter-otlp-proto-grpc-1.41.1 opentelemetry-exporter-otlp-proto-http-1.41.1 opentelemetry-instrumentation-0.62b1 opentelemetry-instrumentation-asgi-0.62b1 opentelemetry-instrumentation-fastapi-0.62b1 opentelemetry-instrumentation-httpx-0.62b1 opentelemetry-instrumentation-redis-0.62b1 opentelemetry-instrumentation-sqlalchemy-0.62b1 opentelemetry-proto-1.41.1 opentelemetry-sdk-1.41.1 opentelemetry-semantic-conventions-0.62b1 opentelemetry-util-http-0.62b1 packaging-26.2 prometheus-client-0.25.0 propcache-0.5.2 protobuf-6.33.6 pycparser-3.0 pycron-3.2.0 pydantic-2.12.5 pydantic-core-2.41.5 pydantic-settings-2.13.1 pyjwt-2.12.1 pyotp-2.9.0 python-dotenv-1.2.2 pyyaml-6.0.3 redis-7.4.0 requests-2.33.1 sentry-sdk-2.59.0 sqlalchemy-2.0.49 starlette-1.0.0 structlog-25.5.0 taskiq-0.12.4 taskiq-dependencies-1.5.7 taskiq-redis-1.2.2 typing-extensions-4.15.0 typing-inspection-0.4.2 urllib3-2.7.0 uvicorn-0.44.0 uvloop-0.22.1 watchfiles-1.1.1 websockets-16.0 wrapt-2.1.2 yarl-1.23.0 zipp-3.23.1
+#11 50.05 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#11 DONE 50.3s
+
+#12 [stage-1 2/6] RUN addgroup -S cybervpn && adduser -S -G cybervpn cybervpn
+#12 CACHED
+
+#13 [stage-1 3/6] WORKDIR /app
+#13 CACHED
+
+#14 [stage-1 4/6] COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#14 DONE 0.5s
+
+#15 [stage-1 5/6] COPY --from=builder /usr/local/bin /usr/local/bin
+#15 DONE 0.1s
+
+#16 [stage-1 6/6] COPY --chown=cybervpn:cybervpn . .
+#16 DONE 0.6s
+
+#17 exporting to image
+#17 exporting layers
+#17 exporting layers 6.9s done
+#17 exporting manifest sha256:a88b0a5578c52a41f844a454ddfe7b46dbb11bd7507956ab43bfbb62e0761d89 0.0s done
+#17 exporting config sha256:d613ee8557f2fcb693d3a06ea85a08c63934c1ca121e35da7099fa1ab740f20f 0.0s done
+#17 exporting attestation manifest sha256:051b58397bc35e349ec70112f942e0086643cf19711c02f04d5620fd69a4262e
+#17 exporting attestation manifest sha256:051b58397bc35e349ec70112f942e0086643cf19711c02f04d5620fd69a4262e 0.1s done
+#17 exporting manifest list sha256:4130142b0e4a9fa759f77548b098f55aa942daa154f0d866ac88689e7657b925 0.0s done
+#17 naming to docker.io/library/cybervpn-backend:stage1-beta-rc.1-local
+#17 naming to docker.io/library/cybervpn-backend:stage1-beta-rc.1-local 0.0s done
+#17 unpacking to docker.io/library/cybervpn-backend:stage1-beta-rc.1-local
+#17 unpacking to docker.io/library/cybervpn-backend:stage1-beta-rc.1-local 1.3s done
+#17 DONE 8.5s
+
+exit_code=0
+image_id=sha256:4130142b0e4a9fa759f77548b098f55aa942daa154f0d866ac88689e7657b925 size=76711989 created=2026-05-10T16:43:50.880711571Z

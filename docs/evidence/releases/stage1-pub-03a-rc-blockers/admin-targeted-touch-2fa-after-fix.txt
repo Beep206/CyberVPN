@@ -1,0 +1,52 @@
+
+> vpn-admin@0.1.0 pretest:run
+> npm run prepare:i18n
+
+
+> vpn-admin@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 2 locale bundles in src/i18n/messages/generated.
+
+> vpn-admin@0.1.0 test:run
+> vitest run src/shared/ui/__tests__/touch-targets.test.tsx src/app/api/auth/2fa/complete/route.test.ts
+
+
+ RUN  v4.1.4 /home/beep/projects/VPNBussiness/admin
+
+ ❯ src/app/api/auth/2fa/complete/route.test.ts (2 tests | 1 failed) 12ms
+     × completes pending 2FA, forwards backend cookies, and returns redirect target 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/api/auth/2fa/complete/route.test.ts > POST /api/auth/2fa/complete > completes pending 2FA, forwards backend cookies, and returns redirect target
+AssertionError: expected 'pending_2fa=; Path=/; Expires=Thu, 01…' to contain 'access_token=abc'
+
+Expected: "access_token=abc"
+Received: "pending_2fa=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+
+ ❯ src/app/api/auth/2fa/complete/route.test.ts:83:55
+     81|       redirect_to: '/ru-RU/dashboard?welcome=true',
+     82|     });
+     83|     expect(readSetCookieHeaders(response).join('\n')).toContain('acces…
+       |                                                       ^
+     84|   });
+     85|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 5 passed (6)
+   Start at  22:00:11
+   Duration  466ms (transform 120ms, setup 313ms, import 125ms, tests 40ms, environment 259ms)
+
+npm error Lifecycle script `test:run` failed with error:
+npm error code 1
+npm error path /home/beep/projects/VPNBussiness/admin
+npm error workspace vpn-admin@0.1.0
+npm error location /home/beep/projects/VPNBussiness/admin
+npm error command failed
+npm error command sh -c vitest run src/shared/ui/__tests__/touch-targets.test.tsx src/app/api/auth/2fa/complete/route.test.ts
+
+exit_code=1

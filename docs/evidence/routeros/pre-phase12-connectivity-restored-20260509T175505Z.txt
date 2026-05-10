@@ -1,0 +1,98 @@
+Pre-Phase 12 connectivity restored evidence
+Sat May  9 17:55:05 UTC 2026
+
+== ssh host ==
+cybervpn-h-ops
+ 17:55:08 up 36 min,  1 user,  load average: 0.26, 0.08, 0.02
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+ens4             DOWN           
+enp9s0           UP             10.10.10.34/24 metric 100 fe80::2e0:4cff:fe7d:4065/64 
+docker0          DOWN           172.30.0.1/24 
+default via 10.10.10.1 dev enp9s0 proto dhcp src 10.10.10.34 metric 100 
+10.10.10.0/24 dev enp9s0 proto kernel scope link src 10.10.10.34 metric 100 
+10.10.10.1 dev enp9s0 proto dhcp scope link src 10.10.10.34 metric 100 
+46.48.102.252 via 10.10.10.1 dev enp9s0 proto dhcp src 10.10.10.34 metric 100 
+172.30.0.0/24 dev docker0 proto kernel scope link src 172.30.0.1 linkdown 
+
+== services and firewall ==
+active
+active
+active
+Status: active
+Logging: on (medium)
+Default: deny (incoming), allow (outgoing), deny (routed)
+New profiles: skip
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW IN    10.10.10.0/24              # CyberVPN SSH from LAN
+80/tcp                     ALLOW IN    Anywhere                   # CyberVPN Caddy HTTP public edge
+443/tcp                    ALLOW IN    Anywhere                   # CyberVPN Caddy HTTPS public edge
+80/tcp (v6)                ALLOW IN    Anywhere (v6)              # CyberVPN Caddy HTTP public edge
+443/tcp (v6)               ALLOW IN    Anywhere (v6)              # CyberVPN Caddy HTTPS public edge
+
+Netid State  Recv-Q Send-Q      Local Address:Port Peer Address:PortProcess                                                                                                                
+udp   UNCONN 0      0                       *:443             *:*    users:(("caddy",pid=2004,fd=10)) uid:999 ino:57453 sk:1004 cgroup:/system.slice/caddy.service v6only:0 <->            
+tcp   LISTEN 0      65535           127.0.0.1:2019      0.0.0.0:*    users:(("caddy",pid=2004,fd=4)) uid:999 ino:57445 sk:1 cgroup:/system.slice/caddy.service <->                         
+tcp   LISTEN 0      65535           127.0.0.1:9123      0.0.0.0:*    users:(("caddy",pid=2004,fd=8)) uid:999 ino:57449 sk:3 cgroup:/system.slice/caddy.service <->                         
+tcp   LISTEN 0      65535             0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=2288,fd=3),("systemd",pid=1,fd=95)) ino:64661 sk:5 cgroup:/system.slice/ssh.socket <->             
+tcp   LISTEN 0      65535                [::]:22           [::]:*    users:(("sshd",pid=2288,fd=4),("systemd",pid=1,fd=96)) ino:21571 sk:7 cgroup:/system.slice/ssh.socket v6only:1 <->    
+tcp   LISTEN 0      65535                   *:80              *:*    users:(("caddy",pid=2004,fd=7)) uid:999 ino:57447 sk:8 cgroup:/system.slice/caddy.service v6only:0 <->                
+tcp   LISTEN 0      65535                   *:443             *:*    users:(("caddy",pid=2004,fd=9)) uid:999 ino:57451 sk:9 cgroup:/system.slice/caddy.service v6only:0 <->                
+
+== caddy validate ==
+{"level":"info","ts":1778349308.9687088,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1778349308.975343,"msg":"adapted config to JSON","adapter":"caddyfile"}
+{"level":"info","ts":1778349308.9772112,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0x783ad15b300"}
+{"level":"info","ts":1778349308.9779055,"logger":"http.auto_https","msg":"enabling automatic HTTP->HTTPS redirects","server_name":"srv1"}
+{"level":"warn","ts":1778349308.977912,"logger":"http.auto_https","msg":"server is listening only on the HTTP port, so no automatic HTTPS will be applied to this server","server_name":"srv2","http_port":80}
+{"level":"info","ts":1778349308.9799373,"logger":"http","msg":"servers shutting down with eternal grace period"}
+Valid configuration
+{"level":"info","ts":1778349308.9799924,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0x783ad15b300"}
+
+== router view ==
+Flags: X - DISABLED, R - RADIUS, D - DYNAMIC, B - BLOCKED 
+ 6   ;;; CyberVPN h ops static DHCP
+     address=10.10.10.34 mac-address=00:E0:4C:7D:40:65 address-lists="" 
+     server=defconf dhcp-option="" status=bound expires-after=9m10s 
+     last-seen=50s active-address=10.10.10.34 
+     active-mac-address=00:E0:4C:7D:40:65 
+     active-client-id="ff:4:76:91:97:0:2:0:0:ab:11:be:56:21:20:99:61:7c:74" 
+     active-server=defconf host-name="cybervpn-h-ops" 
+
+Flags: X - DISABLED, I - INVALID, H - DHCP, D - DYNAMIC, P - PUBLISHED; 
+C - COMPLETE 
+23 DC address=10.10.10.34 mac-address=00:E0:4C:7D:40:65 interface=bridge 
+      published=no status="reachable" vrf=main 
+
+Flags: X - DISABLED; I - INVALID; D - DYNAMIC; L - LOCAL; E - EXTERNAL; 
+A - AGED; a - AGED-PEER 
+39   D     mac-address=00:E0:4C:7D:40:65 interface=ether3 bridge=bridge 
+           on-interface=ether3 
+
+  SEQ HOST                                     SIZE TTL TIME       STATUS      
+    0 10.10.10.34                                56  64 217us     
+    1 10.10.10.34                                56  64 278us     
+    2 10.10.10.34                                56  64 297us     
+    sent=3 received=3 packet-loss=0% min-rtt=217us avg-rtt=264us 
+   max-rtt=297us 
+
+
+== h-domain checks ==
+gitlab_health=200 verify=0
+grafana_noauth=401 verify=0
+gitlab_pending=503 verify=0
+
+== memory ==
+               total        used        free      shared  buff/cache   available
+Mem:            46Gi       1.6Gi        44Gi       2.3Mi       852Mi        45Gi
+Swap:           31Gi          0B        31Gi
+RANGE                                 SIZE  STATE REMOVABLE  BLOCK
+0x0000000000000000-0x000000007fffffff   2G online       yes   0-15
+0x0000000100000000-0x0000000c7fffffff  46G online       yes 32-399
+
+Memory block size:       128M
+Total online memory:      48G
+Total offline memory:      0B
+Node 0 MemTotal:       16264500 kB
+Node 1 MemTotal:       33011552 kB

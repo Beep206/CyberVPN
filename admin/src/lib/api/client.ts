@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import {
   buildLocalizedLoginRedirect,
   isPublicAuthRoute,
@@ -26,6 +26,13 @@ export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
  * browser client.
  */
 export function resolveApiBaseUrl(): string {
+  if (process.env.NODE_ENV === 'test') {
+    const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (configuredBaseUrl) {
+      return `${configuredBaseUrl.replace(/\/$/, '')}${CANONICAL_API_BASE_PATH}`;
+    }
+  }
+
   if (typeof window !== 'undefined') {
     return CANONICAL_API_BASE_PATH;
   }
@@ -118,6 +125,7 @@ function parseRetryAfter(header: string | null): number {
 
 export const apiClient = axios.create({
   baseURL: resolveApiBaseUrl(),
+  adapter: process.env.NODE_ENV === 'test' ? 'http' : undefined,
   timeout: 10000,
   withCredentials: true, // Required for httpOnly cookies
   headers: {
@@ -226,8 +234,31 @@ const processQueue = (error: AxiosError | null) => {
   failedQueue = [];
 };
 
+function normalizeBlobResponse(response: AxiosResponse): AxiosResponse {
+  if (
+    response.config.responseType !== 'blob' ||
+    typeof Blob === 'undefined' ||
+    response.data instanceof Blob
+  ) {
+    return response;
+  }
+
+  const contentType = response.headers['content-type'];
+  const blobOptions =
+    typeof contentType === 'string' ? { type: contentType } : undefined;
+
+  if (typeof response.data === 'string' || response.data instanceof ArrayBuffer) {
+    response.data = new Blob([response.data], blobOptions);
+  } else {
+    response.data = new Blob([JSON.stringify(response.data)], blobOptions);
+  }
+
+  return response;
+}
+
 apiClient.interceptors.response.use(
   (response) => {
+    const normalizedResponse = normalizeBlobResponse(response);
     const requestConfig = response.config as ApiClientRequestConfig;
     const requestIdHeader = response.headers[CANONICAL_REQUEST_ID_HEADER.toLowerCase()];
 
@@ -236,7 +267,7 @@ apiClient.interceptors.response.use(
       result: 'success',
     });
 
-    return response;
+    return normalizedResponse;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as ApiClientRequestConfig & { _retry?: boolean };

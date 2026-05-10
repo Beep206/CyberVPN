@@ -31,7 +31,7 @@ def _addon(**overrides):
 def test_stage1_addons_are_disabled_by_default_in_policy_and_settings() -> None:
     policy = get_stage1_addon_policy()
     settings = Settings(
-        jwt_secret="xVanw-qakEZA0v_T5mJ9GSCJkTzoWYpHMJDX02lFg-B8",
+        jwt_secret="xVanw-qakEZA0v_T5mJ9GSCJkTzoWYpHMJDX02lFg-B8",  # gitleaks:allow
         remnawave_token="valid_token_for_testing_purposes_32characters",
         cryptobot_token="valid_token_for_testing_purposes_32characters",
     )

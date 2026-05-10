@@ -80,7 +80,7 @@ describe('paymentsApi.createInvoice', () => {
   it('test_create_invoice_success_returns_payment_url', async () => {
     // Arrange
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, async () => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, async () => {
         return HttpResponse.json(MOCK_INVOICE, { status: 201 });
       }),
     );
@@ -103,7 +103,7 @@ describe('paymentsApi.createInvoice', () => {
   it('test_create_invoice_with_promo_code_applies_discount', async () => {
     // Arrange
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, async () => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, async () => {
         return HttpResponse.json({
           ...MOCK_INVOICE,
           amount: 7.99,
@@ -130,7 +130,7 @@ describe('paymentsApi.createInvoice', () => {
     // Arrange - capture request body
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, async ({ request }) => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(MOCK_INVOICE, { status: 201 });
       }),
@@ -153,7 +153,7 @@ describe('paymentsApi.createInvoice', () => {
   it('test_create_invoice_invalid_plan_rejects_with_404', async () => {
     // Arrange
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, async () => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, async () => {
         return HttpResponse.json(
           { detail: 'Plan not found' },
           { status: 404 },
@@ -181,7 +181,7 @@ describe('paymentsApi.createInvoice', () => {
   it('test_create_invoice_invalid_promo_rejects_with_422', async () => {
     // Arrange
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, async () => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, async () => {
         return HttpResponse.json(
           { detail: 'Invalid promo code' },
           { status: 422 },
@@ -208,7 +208,7 @@ describe('paymentsApi.createInvoice', () => {
   it('test_create_invoice_unauthenticated_rejects_with_401', async () => {
     // Arrange
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, () => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, () => {
         return HttpResponse.json(
           { detail: 'Not authenticated' },
           { status: 401 },
@@ -223,7 +223,7 @@ describe('paymentsApi.createInvoice', () => {
         plan_id: 'plan_monthly',
         currency: 'USD',
       }),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_create_invoice_with_refresh_token_retries_on_401', async () => {
@@ -232,7 +232,7 @@ describe('paymentsApi.createInvoice', () => {
 
     let callCount = 0;
     server.use(
-      http.post(`${API_BASE}/payments/invoice`, () => {
+      http.post(`${API_BASE}/payments/crypto/invoice`, () => {
         callCount += 1;
         if (callCount === 1) {
           return HttpResponse.json(
@@ -266,7 +266,7 @@ describe('paymentsApi.getInvoiceStatus', () => {
   it('test_get_invoice_status_pending_returns_invoice_data', async () => {
     // Arrange
     server.use(
-      http.get(`${API_BASE}/payments/invoice/:id`, () => {
+      http.get(`${API_BASE}/payments/crypto/invoice/:id`, () => {
         return HttpResponse.json(MOCK_INVOICE);
       }),
     );
@@ -283,7 +283,7 @@ describe('paymentsApi.getInvoiceStatus', () => {
   it('test_get_invoice_status_paid_shows_completed', async () => {
     // Arrange
     server.use(
-      http.get(`${API_BASE}/payments/invoice/:id`, () => {
+      http.get(`${API_BASE}/payments/crypto/invoice/:id`, () => {
         return HttpResponse.json({
           ...MOCK_INVOICE,
           status: 'completed',
@@ -302,7 +302,7 @@ describe('paymentsApi.getInvoiceStatus', () => {
   it('test_get_invoice_status_expired_shows_expired', async () => {
     // Arrange
     server.use(
-      http.get(`${API_BASE}/payments/invoice/:id`, () => {
+      http.get(`${API_BASE}/payments/crypto/invoice/:id`, () => {
         return HttpResponse.json({
           ...MOCK_INVOICE,
           status: 'expired',
@@ -321,7 +321,7 @@ describe('paymentsApi.getInvoiceStatus', () => {
   it('test_get_invoice_status_not_found_rejects_with_404', async () => {
     // Arrange
     server.use(
-      http.get(`${API_BASE}/payments/invoice/:id`, () => {
+      http.get(`${API_BASE}/payments/crypto/invoice/:id`, () => {
         return HttpResponse.json(
           { detail: 'Invoice not found' },
           { status: 404 },
@@ -344,7 +344,7 @@ describe('paymentsApi.getInvoiceStatus', () => {
   it('test_get_invoice_status_unauthenticated_rejects_with_401', async () => {
     // Arrange
     server.use(
-      http.get(`${API_BASE}/payments/invoice/:id`, () => {
+      http.get(`${API_BASE}/payments/crypto/invoice/:id`, () => {
         return HttpResponse.json(
           { detail: 'Not authenticated' },
           { status: 401 },
@@ -354,14 +354,14 @@ describe('paymentsApi.getInvoiceStatus', () => {
 
     // Act & Assert
     await expect(paymentsApi.getInvoiceStatus('inv_001')).rejects.toThrow(
-      'No refresh token',
+      'Request failed with status code 401',
     );
   });
 
   it('test_get_invoice_status_rate_limited_rejects_with_rate_limit_error', async () => {
     // Arrange
     server.use(
-      http.get(`${API_BASE}/payments/invoice/:id`, () => {
+      http.get(`${API_BASE}/payments/crypto/invoice/:id`, () => {
         return HttpResponse.json(
           { detail: 'Too many requests' },
           { status: 429, headers: { 'Retry-After': '30' } },
@@ -462,7 +462,9 @@ describe('paymentsApi.getHistory', () => {
     );
 
     // Act & Assert
-    await expect(paymentsApi.getHistory()).rejects.toThrow('No refresh token');
+    await expect(paymentsApi.getHistory()).rejects.toThrow(
+      'Request failed with status code 401',
+    );
   });
 
   it('test_get_history_server_error_500_rejects', async () => {

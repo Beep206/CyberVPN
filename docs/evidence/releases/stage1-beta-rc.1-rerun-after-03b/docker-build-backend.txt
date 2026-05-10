@@ -1,0 +1,71 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 923B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.13.13-alpine
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.13.13-alpine
+#2 DONE 2.3s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 92B done
+#4 DONE 0.1s
+
+#5 [builder 1/6] FROM docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc
+#5 resolve docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc
+#5 resolve docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc 0.1s done
+#5 DONE 0.1s
+
+#6 [internal] load build context
+#6 transferring context: 16.59MB 0.1s done
+#6 DONE 0.2s
+
+#7 [builder 4/6] COPY pyproject.toml ./
+#7 CACHED
+
+#8 [stage-1 4/6] COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+#8 CACHED
+
+#9 [builder 6/6] RUN pip install --no-cache-dir .
+#9 CACHED
+
+#10 [stage-1 3/6] WORKDIR /app
+#10 CACHED
+
+#11 [builder 3/6] WORKDIR /app
+#11 CACHED
+
+#12 [builder 5/6] RUN pip install --no-cache-dir --upgrade "pip>=26.0"
+#12 CACHED
+
+#13 [stage-1 2/6] RUN addgroup -S cybervpn && adduser -S -G cybervpn cybervpn
+#13 CACHED
+
+#14 [builder 2/6] RUN apk add --no-cache build-base
+#14 CACHED
+
+#15 [stage-1 5/6] COPY --from=builder /usr/local/bin /usr/local/bin
+#15 CACHED
+
+#16 [stage-1 6/6] COPY --chown=cybervpn:cybervpn . .
+#16 DONE -3.1s
+
+#17 exporting to image
+#17 exporting layers
+#17 exporting layers 8.4s done
+#17 exporting manifest sha256:8cfd9cdea9ee47bd8274a17c96499614eff39731ee6a87ea3793500a8376b7d6 0.0s done
+#17 exporting config sha256:4c9f796ca05231717fa60a6a4cbbba4c714626eb1ad6ef306a2edc7219ceae95 0.0s done
+#17 exporting attestation manifest sha256:0f5579b582507b39b0276b3205db41d4449b223a42be1847a8f46a362301442f
+#17 exporting attestation manifest sha256:0f5579b582507b39b0276b3205db41d4449b223a42be1847a8f46a362301442f 0.1s done
+#17 exporting manifest list sha256:7393058d63b3d9ec06c7fa2f15c21d90972840b73fd0c6976b32be81d83b200d 0.0s done
+#17 naming to docker.io/library/cybervpn-backend:stage1-beta-rc.1-rerun-after-03b-local
+#17 naming to docker.io/library/cybervpn-backend:stage1-beta-rc.1-rerun-after-03b-local done
+#17 unpacking to docker.io/library/cybervpn-backend:stage1-beta-rc.1-rerun-after-03b-local
+#17 unpacking to docker.io/library/cybervpn-backend:stage1-beta-rc.1-rerun-after-03b-local 0.3s done
+#17 DONE 9.0s

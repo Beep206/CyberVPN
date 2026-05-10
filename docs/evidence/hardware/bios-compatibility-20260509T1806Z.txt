@@ -1,0 +1,37 @@
+JGINYUE X99-D8 BIOS compatibility check
+Date: 2026-05-09 UTC
+
+Installed board from DMI:
+- System vendor: JGINYUE
+- Product: X99-D8 Server
+- Baseboard: JGINYUE X99-D8 Server V1.0
+- BIOS: American Megatrends Inc. 5.11, release date 05/14/2021
+
+Official image source checked:
+- JGINYUE official X99-D8 page lists X99-D8 BIOS file, update date 2021-09-23.
+- Downloaded archive: /tmp/jginyue-x99-d8-bios.rar
+- Archive SHA256: e591a7c2ec4c4625d49280605ee13055eac3fe0bdd149f5073e8a28f58476a31
+- Extracted image: J99X8002.bin
+- Image size: 16777216 bytes / 16 MiB
+- Image SHA256: 7232495d5cfd237aebcb36b4666bf5fa2ea492b22a806f1cdea4feca604a2781
+
+Read-only server flash check:
+- flashrom detected chipset: Intel C610/X99 (Wellsburg)
+- flashrom detected SPI chip: Winbond W25Q128.V, 16384 kB / 16 MiB
+- Current full SPI dump saved on server only: /srv/cybervpn-h/evidence/hardware/bios/current-spi-w25q128-20260509T180543Z.bin
+- Current full SPI dump SHA256: d271e60bbcfb8c36ca9b0a72bde193fd78587cbb5bf34c6a1aace5ec29ac2fd8
+
+Binary comparison:
+- Official image and current SPI dump are both 16 MiB.
+- Flash Descriptor region 0x000000-0x000fff: identical.
+- ME region 0x001000-0x7fffff: identical.
+- BIOS code region 0x880000-0xffffff: identical.
+- Differences are confined to 0x800000-0x87ffff, consistent with variable/NVRAM/settings area.
+- Both current and official image contain: (05/14/2021)JGINYUE X99-D8 Server V1.0
+- Both contain project marker: J99X8002
+
+Conclusion:
+- The official JGINYUE X99-D8 image matches this board family and chip size.
+- It is not a newer BIOS code than the currently installed firmware; the executable/code part is identical.
+- Flashing it would mostly reset/replace NVRAM/default settings and carries more risk than benefit.
+- Recommended next step for RAM detection issue: physical RAM/socket check and CMOS reset/load optimized defaults, not BIOS flashing.

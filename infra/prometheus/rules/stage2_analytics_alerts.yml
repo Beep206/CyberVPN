@@ -1,0 +1,332 @@
+groups:
+  - name: cybervpn_stage2_analytics_recording_rules
+    interval: 30s
+    rules:
+      - record: stage2:payment_success_ratio:24h
+        expr: |
+          (
+            sum(increase(payments_total{status=~"success|completed|paid"}[24h]))
+            /
+            clamp_min(sum(increase(payments_total[24h])), 1e-9)
+          ) or vector(0)
+
+      - record: stage2:payment_failures:24h
+        expr: |
+          sum(increase(payments_total{status=~"failed|error|cancelled"}[24h])) or vector(0)
+
+      - record: stage2:paid_but_no_access:current
+        expr: |
+          sum(cybervpn_stage1_payment_reconciliation_items_current{severity=~"alert_15m|p1_escalation|p0_blocker"}) or vector(0)
+
+      - record: stage2:payment_reconciliation_max_age_minutes
+        expr: |
+          max(cybervpn_stage1_payment_reconciliation_max_age_minutes) or vector(0)
+
+      - record: stage2:webhook_failures:1h
+        expr: |
+          sum(increase(webhook_operations_total{status=~"failure|failed|error"}[1h])) or vector(0)
+
+      - record: stage2:webhook_retries:1h
+        expr: |
+          sum(increase(cybervpn_webhook_retries_total[1h])) or vector(0)
+
+      - record: stage2:refunds:24h
+        expr: |
+          sum(increase(cybervpn_refunds_total[24h]))
+          or
+          sum(increase(payments_total{status=~"refund|refunded"}[24h]))
+          or vector(0)
+
+      - record: stage2:chargebacks:24h
+        expr: |
+          sum(increase(cybervpn_chargebacks_total[24h]))
+          or
+          sum(increase(payments_total{status=~"chargeback|disputed"}[24h]))
+          or vector(0)
+
+      - record: stage2:renewal_success_ratio:24h
+        expr: |
+          (
+            sum(increase(cybervpn_subscription_renewals_total{result=~"success|renewed"}[24h]))
+            /
+            clamp_min(sum(increase(cybervpn_subscription_renewals_total[24h])), 1e-9)
+          ) or vector(0)
+
+      - record: stage2:renewal_failures:24h
+        expr: |
+          sum(increase(cybervpn_subscription_renewals_total{result=~"failed|error"}[24h])) or vector(0)
+
+      - record: stage2:subscriptions_expiring_24h
+        expr: |
+          sum(cybervpn_subscriptions_expiring_current{window="24h"}) or vector(0)
+
+      - record: stage2:subscriptions_expiring_72h
+        expr: |
+          sum(cybervpn_subscriptions_expiring_current{window="72h"}) or vector(0)
+
+      - record: stage2:subscriptions_expiring_7d
+        expr: |
+          sum(cybervpn_subscriptions_expiring_current{window="7d"}) or vector(0)
+
+      - record: stage2:expired_disable_failures:24h
+        expr: |
+          sum(increase(cybervpn_subscription_expiry_disable_total{result=~"failed|error"}[24h])) or vector(0)
+
+      - record: stage2:support_open_items:current
+        expr: |
+          sum(cybervpn_support_open_items_current) or vector(0)
+
+      - record: stage2:support_sla_overdue:current
+        expr: |
+          sum(cybervpn_support_sla_overdue_current) or vector(0)
+
+      - record: stage2:support_first_response_p95_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(cybervpn_support_first_response_seconds_bucket[1h])) by (le)
+          ) or vector(0)
+
+      - record: stage2:support_resolution_p95_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(cybervpn_support_resolution_seconds_bucket[1h])) by (le)
+          ) or vector(0)
+
+      - record: stage2:status_public_endpoint_success_ratio:5m
+        expr: |
+          avg(probe_success{job=~"blackbox.*|stage2-public-endpoints"}) or vector(0)
+
+      - record: stage2:synthetic_failures:15m
+        expr: |
+          count_over_time((probe_success{job=~"blackbox.*|stage2-public-endpoints"} == 0)[15m:30s]) or vector(0)
+
+      - record: stage2:synthetic_slow_probes:15m
+        expr: |
+          count_over_time((probe_duration_seconds{job=~"blackbox.*|stage2-public-endpoints"} > 3)[15m:30s]) or vector(0)
+
+      - record: stage2:tls_cert_min_days
+        expr: |
+          min((probe_ssl_earliest_cert_expiry{job=~"blackbox.*|stage2-public-endpoints"} - time()) / 86400) or vector(0)
+
+      - record: stage2:analytics_ingestion_dropped:15m
+        expr: |
+          sum(increase(cybervpn_product_analytics_events_total{result=~"dropped|rejected"}[15m])) or vector(0)
+
+      - record: stage2:frontend_web_vitals_lcp_p75_seconds
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum(rate(cybervpn_frontend_web_vital_seconds_bucket{name="LCP"}[15m])) by (le)
+          ) or vector(0)
+
+      - record: stage2:frontend_web_vitals_inp_p75_seconds
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum(rate(cybervpn_frontend_web_vital_seconds_bucket{name="INP"}[15m])) by (le)
+          ) or vector(0)
+
+      - record: stage2:frontend_web_vitals_cls_p75_ratio
+        expr: |
+          histogram_quantile(
+            0.75,
+            sum(rate(cybervpn_frontend_web_vital_ratio_bucket{name="CLS"}[15m])) by (le)
+          ) or vector(0)
+
+      - record: stage2:checkout_conversion_ratio:24h
+        expr: |
+          (
+            sum(increase(miniapp_checkout_commits_total{status=~"success|paid|completed"}[24h]))
+            /
+            clamp_min(sum(increase(miniapp_checkout_commits_total[24h])), 1e-9)
+          ) or vector(0)
+
+      - record: stage2:release_security_gate_failures:24h
+        expr: |
+          sum(increase(cybervpn_ci_security_gate_total{result=~"failed|blocked"}[24h])) or vector(0)
+
+      - record: stage2:sbom_age_seconds
+        expr: |
+          clamp_min(time() - max(cybervpn_sbom_last_success_unixtime), 0) or vector(0)
+
+      - record: stage2:restore_drill_age_seconds
+        expr: |
+          clamp_min(time() - max(stage1_restore_drill_last_success_unixtime), 0) or vector(0)
+
+      - record: stage2:sentry_frontend_errors:1h
+        expr: |
+          sum(increase(cybervpn_sentry_frontend_errors_total[1h])) or vector(0)
+
+  - name: cybervpn_stage2_analytics_alerts
+    interval: 30s
+    rules:
+      - alert: Stage2PaymentReconciliationBacklog
+        expr: |
+          stage2:paid_but_no_access:current > 0
+          or stage2:payment_reconciliation_max_age_minutes > 60
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: payments
+          stage: s2
+        annotations:
+          summary: "Stage 2 payment reconciliation backlog exists"
+          description: "Paid-but-no-access, orphan payment, or stale reconciliation items require operator review."
+          dashboard_path: "/d/stage2-payment-reconciliation/stage-2-payment-reconciliation"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2RefundSpike
+        expr: |
+          stage2:refunds:24h > 5
+          or stage2:chargebacks:24h > 0
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: payments
+          stage: s2
+        annotations:
+          summary: "Stage 2 refund or chargeback spike"
+          description: "Refund or chargeback volume crossed the Stage 2 operator threshold."
+          dashboard_path: "/d/stage2-refund-renewal/stage-2-refund-and-renewal"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2RenewalFailures
+        expr: |
+          stage2:renewal_success_ratio:24h < 0.90
+          and sum(increase(cybervpn_subscription_renewals_total[24h])) > 10
+        for: 30m
+        labels:
+          severity: warning
+          priority: p1
+          service: subscriptions
+          stage: s2
+        annotations:
+          summary: "Stage 2 renewal success ratio is low"
+          description: "Renewal success ratio is below 90 percent while renewal traffic is present."
+          dashboard_path: "/d/stage2-refund-renewal/stage-2-refund-and-renewal"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2SubscriptionExpiryBacklog
+        expr: |
+          stage2:expired_disable_failures:24h > 0
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: subscriptions
+          stage: s2
+        annotations:
+          summary: "Stage 2 subscription expiry disable failures"
+          description: "Expired subscription disable automation has failures in the last 24 hours."
+          dashboard_path: "/d/stage2-subscription-expiry/stage-2-subscription-expiry"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2SupportSlaBreach
+        expr: |
+          stage2:support_sla_overdue:current > 0
+        for: 20m
+        labels:
+          severity: warning
+          priority: p1
+          service: support
+          stage: s2
+        annotations:
+          summary: "Stage 2 support SLA breach exists"
+          description: "One or more support items are overdue against the configured SLA."
+          dashboard_path: "/d/stage2-support-sla/stage-2-support-sla"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2StatusEndpointDown
+        expr: |
+          stage2:status_public_endpoint_success_ratio:5m < 0.95
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: edge
+          stage: s2
+        annotations:
+          summary: "Stage 2 public endpoint synthetic success is low"
+          description: "Blackbox probes show public endpoint availability below 95 percent."
+          dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2TlsCertificateExpiresSoon
+        expr: |
+          stage2:tls_cert_min_days < 14
+          and stage2:tls_cert_min_days > 0
+        for: 1h
+        labels:
+          severity: warning
+          priority: p1
+          service: edge
+          stage: s2
+        annotations:
+          summary: "Stage 2 TLS certificate expires soon"
+          description: "At least one public endpoint TLS certificate has less than 14 days remaining."
+          dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2AnalyticsIngestionDroppingEvents
+        expr: |
+          stage2:analytics_ingestion_dropped:15m > 0
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: product-analytics
+          stage: s2
+        annotations:
+          summary: "Stage 2 product analytics ingestion is dropping events"
+          description: "Analytics ingestion dropped or rejected events for at least 10 minutes."
+          dashboard_path: "/d/stage2-product-analytics/stage-2-product-analytics"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2RestoreDrillOverdue
+        expr: |
+          stage2:restore_drill_age_seconds > 2592000
+        for: 6h
+        labels:
+          severity: warning
+          priority: p1
+          service: backups
+          stage: s2
+        annotations:
+          summary: "Stage 2 scheduled restore drill is overdue"
+          description: "No successful restore drill evidence has been observed for more than 30 days."
+          dashboard_path: "/d/stage2-release-quality/stage-2-release-quality-gates"
+          runbook_path: "docs/runbooks/restore-from-restic.md"
+
+      - alert: Stage2SecurityQualityGateFailed
+        expr: |
+          stage2:release_security_gate_failures:24h > 0
+        for: 0m
+        labels:
+          severity: critical
+          priority: p0
+          service: ci
+          stage: s2
+        annotations:
+          summary: "Stage 2 security quality gate failed"
+          description: "A CI security gate produced a failed or blocked result in the last 24 hours."
+          dashboard_path: "/d/stage2-release-quality/stage-2-release-quality-gates"
+          runbook_path: "docs/runbooks/SECURITY_PIPELINE.md"
+
+      - alert: Stage2SentryFrontendErrorsElevated
+        expr: |
+          stage2:sentry_frontend_errors:1h > 25
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: frontend
+          stage: s2
+        annotations:
+          summary: "Stage 2 frontend Sentry errors are elevated"
+          description: "Frontend error volume is above the initial Stage 2 threshold."
+          dashboard_path: "/d/stage2-release-quality/stage-2-release-quality-gates"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"

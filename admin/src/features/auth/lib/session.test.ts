@@ -6,7 +6,7 @@ import { buildInternalLoginHref, buildLocalizedLoginRedirect } from './session';
 describe('auth redirect canonicalization', () => {
   it('builds a locale-prefixed browser redirect from a raw pathname without locale', () => {
     expect(buildLocalizedLoginRedirect('/dashboard')).toBe(
-      '/en-EN/login?redirect=%2Fen-EN%2Fdashboard',
+      '/ru-RU/login?redirect=%2Fru-RU%2Fdashboard',
     );
   });
 

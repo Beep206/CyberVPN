@@ -88,7 +88,7 @@ describe('profileApi.getProfile', () => {
     );
 
     // Act & Assert
-    await expect(profileApi.getProfile()).rejects.toThrow('No refresh token');
+    await expect(profileApi.getProfile()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_profile_with_refresh_token_retries_on_401', async () => {
@@ -278,7 +278,7 @@ describe('profileApi.updateProfile', () => {
     // Act & Assert
     await expect(
       profileApi.updateProfile({ display_name: 'Test' }),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_update_profile_server_error_500_rejects', async () => {

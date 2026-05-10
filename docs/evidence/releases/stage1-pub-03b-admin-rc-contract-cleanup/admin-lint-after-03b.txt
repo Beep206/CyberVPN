@@ -1,0 +1,13 @@
+
+> vpn-admin@0.1.0 prelint
+> npm run prepare:i18n
+
+
+> vpn-admin@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 2 locale bundles in src/i18n/messages/generated.
+
+> vpn-admin@0.1.0 lint
+> eslint
+

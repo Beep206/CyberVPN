@@ -139,7 +139,7 @@ describe('walletApi.getBalance', () => {
     );
 
     // Act & Assert
-    await expect(walletApi.getBalance()).rejects.toThrow('No refresh token');
+    await expect(walletApi.getBalance()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_balance_with_refresh_token_retries_on_401', async () => {
@@ -243,7 +243,7 @@ describe('walletApi.getTransactions', () => {
     );
 
     // Act & Assert
-    await expect(walletApi.getTransactions()).rejects.toThrow('No refresh token');
+    await expect(walletApi.getTransactions()).rejects.toThrow('Request failed with status code 401');
   });
 });
 
@@ -391,7 +391,7 @@ describe('walletApi.requestWithdrawal', () => {
         amount: 25.0,
         method: 'cryptobot',
       }),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 });
 
@@ -465,7 +465,7 @@ describe('walletApi.getWithdrawals', () => {
     );
 
     // Act & Assert
-    await expect(walletApi.getWithdrawals()).rejects.toThrow('No refresh token');
+    await expect(walletApi.getWithdrawals()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_withdrawals_rate_limited_rejects_with_rate_limit_error', async () => {

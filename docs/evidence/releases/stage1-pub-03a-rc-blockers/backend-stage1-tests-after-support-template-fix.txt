@@ -1,0 +1,63 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.11, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/beep/projects/VPNBussiness/backend
+configfile: pytest.ini
+plugins: Faker-40.15.0, anyio-4.13.0, asyncio-1.3.0, cov-7.1.0, respx-0.23.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 436 items
+
+tests/security/test_stage1_addon_policy.py .....                         [  1%]
+tests/security/test_stage1_admin_2fa_enforcement.py .....                [  2%]
+tests/security/test_stage1_admin_access_protection.py ...                [  2%]
+tests/security/test_stage1_admin_audit_log.py .......                    [  4%]
+tests/security/test_stage1_admin_manual_subscription_ops.py .....        [  5%]
+tests/security/test_stage1_admin_payment_attempts_view.py ....           [  6%]
+tests/security/test_stage1_admin_rbac_matrix.py ......                   [  8%]
+tests/security/test_stage1_cors_cookie_config.py .                       [  8%]
+tests/security/test_stage1_credential_regeneration.py ....               [  9%]
+tests/security/test_stage1_cryptobot_sandbox_runtime.py ......           [ 10%]
+tests/security/test_stage1_csrf_protection.py ..............             [ 13%]
+tests/security/test_stage1_digiseller_readiness.py .......               [ 15%]
+tests/security/test_stage1_email_password_flow.py .....                  [ 16%]
+tests/security/test_stage1_expiry_grace_disable.py ..........            [ 18%]
+tests/security/test_stage1_grace_period_product_policy.py ......         [ 20%]
+tests/security/test_stage1_growth_policy.py ........                     [ 22%]
+tests/security/test_stage1_magic_link_otp_flow.py .....                  [ 23%]
+tests/security/test_stage1_nowpayments_readiness.py .......              [ 24%]
+tests/security/test_stage1_oauth_provider_scope.py ..................    [ 28%]
+tests/security/test_stage1_orphan_payment_policy.py ...............      [ 32%]
+tests/security/test_stage1_paid_plan_policy.py ..........                [ 34%]
+tests/security/test_stage1_paid_provisioning.py ................         [ 38%]
+tests/security/test_stage1_payment_provisioning_failure.py .....         [ 39%]
+tests/security/test_stage1_payment_reconciliation_job.py .......         [ 41%]
+tests/security/test_stage1_payram_readiness.py .......                   [ 42%]
+tests/security/test_stage1_privacy_request_path.py ...                   [ 43%]
+tests/security/test_stage1_provider_payment_status_mapping.py .......... [ 45%]
+..............................                                           [ 52%]
+tests/security/test_stage1_provider_placeholder_replacement.py ......... [ 54%]
+...                                                                      [ 55%]
+tests/security/test_stage1_provisioning_retry.py .......                 [ 56%]
+tests/security/test_stage1_rate_limit_policy.py .......................  [ 62%]
+tests/security/test_stage1_refund_dispute_process.py ...........         [ 64%]
+tests/security/test_stage1_registration_kill_switch.py .........         [ 66%]
+tests/security/test_stage1_route_boundary.py ....                        [ 67%]
+tests/security/test_stage1_status_error_contract.py .................... [ 72%]
+.                                                                        [ 72%]
+tests/security/test_stage1_support_escalation.py ...........             [ 75%]
+tests/security/test_stage1_support_templates.py ...........              [ 77%]
+tests/security/test_stage1_support_ticket_path.py ...........            [ 80%]
+tests/security/test_stage1_swagger_public_off.py .........               [ 82%]
+tests/security/test_stage1_telegram_stars_readiness.py .....             [ 83%]
+tests/security/test_stage1_trial_provisioning.py .......                 [ 84%]
+tests/security/test_stage1_vpn_protocols.py ............................ [ 91%]
+.                                                                        [ 91%]
+tests/security/test_stage1_wallet_withdrawal_policy.py .                 [ 91%]
+tests/security/test_stage1_webhook_idempotency.py .............          [ 94%]
+tests/security/test_stage1_webhook_signature_verification.py ..........  [ 97%]
+tests/security/test_stage1_yookassa_readiness.py .......                 [ 98%]
+tests/contract/test_stage1_alerting_assets_contract.py ...               [ 99%]
+tests/contract/test_stage1_observability_assets_contract.py ...          [100%]
+
+============================= 436 passed in 18.18s =============================
+
+exit_code=0

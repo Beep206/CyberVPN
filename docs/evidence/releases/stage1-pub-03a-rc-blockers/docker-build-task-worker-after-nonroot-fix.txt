@@ -1,0 +1,70 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.11kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.13.13-alpine
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.13.13-alpine
+#2 DONE 1.9s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 673B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 18.15kB done
+#5 DONE 0.1s
+
+#6 [builder 1/5] FROM docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc
+#6 resolve docker.io/library/python:3.13.13-alpine@sha256:420cd0bf0f3998275875e02ecd5808168cf0843cbb4d3c536432f729247b2acc 0.1s done
+#6 CACHED
+
+#7 [builder 3/5] RUN apk add --no-cache build-base
+#7 CACHED
+
+#8 [builder 4/5] COPY pyproject.toml ./
+#8 CACHED
+
+#9 [builder 2/5] WORKDIR /app
+#9 CACHED
+
+#10 [builder 5/5] RUN pip install --no-cache-dir --prefix=/install .
+#10 CACHED
+
+#11 [runtime 2/6] RUN addgroup -S workeruser &&     adduser -S -G workeruser -h /app -s /sbin/nologin workeruser
+#11 DONE 0.3s
+
+#12 [runtime 3/6] WORKDIR /app
+#12 DONE 0.1s
+
+#13 [runtime 4/6] COPY --from=builder /install /usr/local
+#13 DONE 0.9s
+
+#14 [runtime 5/6] COPY --chown=workeruser:workeruser src/ ./src/
+#14 DONE 0.2s
+
+#15 [runtime 6/6] COPY --chown=workeruser:workeruser healthcheck.py ./
+#15 DONE 0.2s
+
+#16 exporting to image
+#16 exporting layers
+#16 exporting layers 2.0s done
+#16 exporting manifest sha256:3438e7453ddc33c007978387b73b1c40efa76f8b023b25f18a6d393a028bc0d0 0.0s done
+#16 exporting config sha256:980b8d667c1f0b829e129f3867539d2a7063f4e51f9d6dba5f24597fb220fbd0 0.0s done
+#16 exporting attestation manifest sha256:6f54136d0dd1fe9cd67c0a5753b54dbf273b65c75ffa781915f827c3295f9bab
+#16 exporting attestation manifest sha256:6f54136d0dd1fe9cd67c0a5753b54dbf273b65c75ffa781915f827c3295f9bab 0.1s done
+#16 exporting manifest list sha256:36bc172088f5fb80c95bbf924eebda305b0f1e4e8607e770afd20e695e52db02 0.0s done
+#16 naming to docker.io/library/cybervpn-task-worker:stage1-pub-03a-local
+#16 naming to docker.io/library/cybervpn-task-worker:stage1-pub-03a-local done
+#16 unpacking to docker.io/library/cybervpn-task-worker:stage1-pub-03a-local
+#16 unpacking to docker.io/library/cybervpn-task-worker:stage1-pub-03a-local 0.6s done
+#16 DONE 2.9s
+
+exit_code=0
+image_id=sha256:36bc172088f5fb80c95bbf924eebda305b0f1e4e8607e770afd20e695e52db02 user=workeruser size=42414147 created=2026-05-10T17:09:21.560613411Z

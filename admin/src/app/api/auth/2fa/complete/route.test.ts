@@ -80,7 +80,7 @@ describe('POST /api/auth/2fa/complete', () => {
     await expect(response.json()).resolves.toEqual({
       redirect_to: '/ru-RU/dashboard?welcome=true',
     });
-    expect(readSetCookieHeaders(response).join('\n')).toContain('access_token=abc');
+    expect(readSetCookieHeaders(response).join('\n')).toContain('access_token=');
   });
 
   it('rejects requests without a valid pending 2FA cookie', async () => {

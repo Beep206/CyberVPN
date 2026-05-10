@@ -1,0 +1,24 @@
+
+> vpn-admin@0.1.0 pretest:run
+> npm run prepare:i18n
+
+
+> vpn-admin@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 2 locale bundles in src/i18n/messages/generated.
+
+> vpn-admin@0.1.0 test:run
+> vitest run src/shared/ui/__tests__/touch-targets.test.tsx src/app/api/auth/2fa/complete/route.test.ts
+
+
+ RUN  v4.1.4 /home/beep/projects/VPNBussiness/admin
+
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  22:08:52
+   Duration  480ms (transform 128ms, setup 304ms, import 128ms, tests 38ms, environment 266ms)
+
+
+exit_code=0

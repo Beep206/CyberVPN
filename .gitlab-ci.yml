@@ -1,0 +1,608 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - when: never
+
+stages:
+  - validate
+  - lint
+  - test
+  - build
+  - security
+  - package
+
+default:
+  tags:
+    - h-docker
+  interruptible: true
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  before_script: []
+
+variables:
+  GIT_DEPTH: "50"
+  NEXT_TELEMETRY_DISABLED: "1"
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.cache/npm"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PYTHONUNBUFFERED: "1"
+  SECURITY_ARTIFACT_DIR: "$CI_PROJECT_DIR/security-artifacts"
+  TRIVY_VERSION: "0.70.0"
+  GRYPE_VERSION: "0.112.0"
+  SYFT_VERSION: "1.44.0"
+
+.rules_gitlab_config:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - docs/gitlab/**/*
+        - scripts/validate_gitlab_ci_contract.py
+    - when: never
+
+.rules_frontend:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - package.json
+        - package-lock.json
+        - frontend/**/*
+    - when: never
+
+.rules_admin:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - package.json
+        - package-lock.json
+        - admin/**/*
+    - when: never
+
+.rules_partner:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - package.json
+        - package-lock.json
+        - partner/**/*
+    - when: never
+
+.rules_backend:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - backend/**/*
+        - scripts/validate-sentry-contract.py
+        - scripts/http-smoke-check.py
+    - when: never
+
+.rules_telegram_bot:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - services/telegram-bot/**/*
+        - scripts/validate-sentry-contract.py
+        - scripts/http-smoke-check.py
+    - when: never
+
+.rules_task_worker:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - services/task-worker/**/*
+        - scripts/validate-sentry-contract.py
+    - when: never
+
+.rules_security:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$SECURITY_RELEASE_CANDIDATE == "true"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - package-lock.json
+        - backend/pyproject.toml
+        - backend/uv.lock
+        - services/telegram-bot/pyproject.toml
+        - services/telegram-bot/uv.lock
+        - services/task-worker/pyproject.toml
+        - services/task-worker/uv.lock
+        - scripts/security/**/*
+        - backend/Dockerfile
+        - services/telegram-bot/Dockerfile
+        - services/task-worker/Dockerfile
+        - infra/**/*
+        - docs/runbooks/SECURITY_PIPELINE.md
+    - when: never
+
+.rules_observability:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - infra/grafana/**/*
+        - infra/prometheus/**/*
+        - infra/blackbox/**/*
+        - scripts/grafana/**/*
+        - scripts/status/**/*
+        - scripts/validate-stage2-analytics-artifacts.py
+        - docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md
+        - docs/plans/2026-05-10-cybervpn-stage2-analytics-quality-gates-plan.md
+    - when: never
+
+.rules_partner_stage3:
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - infra/partner-lab/**/*
+        - infra/grafana/dashboards/stage3-*.json
+        - infra/prometheus/rules/stage3_partner_reseller_alerts.yml
+        - infra/prometheus/targets/stage3-storefront-endpoints.json
+        - scripts/partner/**/*
+        - scripts/grafana/generate-stage3-partner-dashboards.py
+        - scripts/validate-stage3-partner-artifacts.py
+        - docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md
+        - docs/plans/2026-05-10-cybervpn-stage3-partner-reseller-platform-plan.md
+    - when: never
+
+.node_job:
+  image: node:22-bookworm
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .cache/npm/
+    policy: pull-push
+  before_script:
+    - npm ci --cache "$NPM_CONFIG_CACHE" --prefer-offline
+
+.python_job:
+  image: python:3.13
+  cache:
+    key: "$CI_JOB_NAME_SLUG"
+    paths:
+      - .cache/pip/
+    policy: pull-push
+  before_script:
+    - python -m pip install --upgrade pip
+
+gitlab:ci-contract:
+  stage: validate
+  image: python:3.13
+  extends:
+    - .rules_gitlab_config
+  script:
+    - python scripts/validate_gitlab_ci_contract.py
+
+frontend:lint:
+  stage: lint
+  extends:
+    - .node_job
+    - .rules_frontend
+  script:
+    - npm run lint -w frontend
+
+frontend:test:
+  stage: test
+  extends:
+    - .node_job
+    - .rules_frontend
+  script:
+    - npm run test:run -w frontend
+
+frontend:build:
+  stage: build
+  extends:
+    - .node_job
+    - .rules_frontend
+  variables:
+    APP_ENV: "staging"
+    NEXT_PUBLIC_APP_ENV: "staging"
+    SENTRY_DSN: "https://frontend-server@example.com/1"
+    NEXT_PUBLIC_SENTRY_DSN: "https://frontend-public@example.com/1"
+    SENTRY_RELEASE: "frontend@$CI_COMMIT_SHA"
+    NEXT_PUBLIC_SENTRY_RELEASE: "frontend@$CI_COMMIT_SHA"
+    FRONTEND_OBSERVABILITY_INTERNAL_SECRET: "gitlab-frontend-smoke-secret"
+  script:
+    - npm run build -w frontend
+
+admin:lint:
+  stage: lint
+  extends:
+    - .node_job
+    - .rules_admin
+  script:
+    - npm run lint -w admin
+
+admin:test:
+  stage: test
+  extends:
+    - .node_job
+    - .rules_admin
+  script:
+    - npm run test:run -w admin
+
+admin:build:
+  stage: build
+  extends:
+    - .node_job
+    - .rules_admin
+  variables:
+    APP_ENV: "staging"
+    NEXT_PUBLIC_APP_ENV: "staging"
+    SENTRY_DSN: "https://admin-server@example.com/1"
+    NEXT_PUBLIC_SENTRY_DSN: "https://admin-public@example.com/1"
+    SENTRY_RELEASE: "admin@$CI_COMMIT_SHA"
+    NEXT_PUBLIC_SENTRY_RELEASE: "admin@$CI_COMMIT_SHA"
+    ADMIN_OBSERVABILITY_INTERNAL_SECRET: "gitlab-admin-smoke-secret"
+  script:
+    - npm run build -w admin
+
+partner:lint:
+  stage: lint
+  extends:
+    - .node_job
+    - .rules_partner
+  script:
+    - npm run lint -w partner
+
+partner:test:
+  stage: test
+  extends:
+    - .node_job
+    - .rules_partner
+  script:
+    - npm run test:run -w partner
+
+partner:build:
+  stage: build
+  extends:
+    - .node_job
+    - .rules_partner
+  variables:
+    APP_ENV: "staging"
+    NEXT_PUBLIC_APP_ENV: "staging"
+    SENTRY_DSN: "https://partner-server@example.com/1"
+    NEXT_PUBLIC_SENTRY_DSN: "https://partner-public@example.com/1"
+    SENTRY_RELEASE: "partner@$CI_COMMIT_SHA"
+    NEXT_PUBLIC_SENTRY_RELEASE: "partner@$CI_COMMIT_SHA"
+    PARTNER_OBSERVABILITY_INTERNAL_SECRET: "gitlab-partner-smoke-secret"
+  script:
+    - npm run build -w partner
+
+backend:lint:
+  stage: lint
+  extends:
+    - .python_job
+    - .rules_backend
+  script:
+    - cd backend
+    - pip install ruff
+    - ruff check src/
+    - ruff format --check src/
+
+backend:test:smoke:
+  stage: test
+  extends:
+    - .python_job
+    - .rules_backend
+  services:
+    - name: postgres:17
+      alias: postgres
+      variables:
+        POSTGRES_USER: test
+        POSTGRES_PASSWORD: test
+        POSTGRES_DB: cybervpn_test
+    - name: valkey/valkey:8
+      alias: redis
+  variables:
+    DATABASE_URL: "postgresql+asyncpg://test:test@postgres:5432/cybervpn_test"
+    REDIS_URL: "redis://redis:6379/0"
+    ENVIRONMENT: "staging"
+    SENTRY_DSN: "https://backend@example.com/1"
+    SENTRY_RELEASE: "backend@$CI_COMMIT_SHA"
+  script:
+    - cd backend
+    - pip install -e ".[dev]"
+    - pytest tests/unit/test_first_admin_bootstrap.py tests/security/test_stage1_route_boundary.py tests/security/test_stage1_webhook_idempotency.py -q --tb=short
+
+telegram-bot:lint:
+  stage: lint
+  extends:
+    - .python_job
+    - .rules_telegram_bot
+  script:
+    - cd services/telegram-bot
+    - pip install -e ".[dev]"
+    - ruff check src/config.py src/main.py tests/unit/test_main.py
+    - ruff format --check src/config.py src/main.py tests/unit/test_main.py
+
+telegram-bot:test:smoke:
+  stage: test
+  extends:
+    - .python_job
+    - .rules_telegram_bot
+  variables:
+    BOT_TOKEN: "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+    BOT_MODE: "polling"
+    ENVIRONMENT: "staging"
+    SENTRY_DSN: "https://telegram@example.com/1"
+    SENTRY_RELEASE: "telegram-bot@$CI_COMMIT_SHA"
+    BACKEND_API_URL: "https://api.test.cybervpn.local"
+    BACKEND_API_KEY: "ci-placeholder-backend-api-key" # gitleaks:allow
+    CRYPTOBOT_TOKEN: "test_cryptobot_token"
+    PROMETHEUS_ENABLED: "false"
+    PROMETHEUS_PROTECT: "false"
+    AVAILABLE_LANGUAGES: "ru,en"
+  script:
+    - cd services/telegram-bot
+    - pip install -e ".[test]"
+    - pytest tests/test_fixtures.py tests/unit/test_main.py tests/unit/test_stage1_surface.py -q --tb=short
+
+task-worker:lint:
+  stage: lint
+  extends:
+    - .python_job
+    - .rules_task_worker
+  script:
+    - cd services/task-worker
+    - pip install -e ".[dev]"
+    - ruff check src/
+    - ruff format --check src/
+
+task-worker:test:smoke:
+  stage: test
+  extends:
+    - .python_job
+    - .rules_task_worker
+  variables:
+    ENVIRONMENT: "staging"
+    SENTRY_DSN: "https://task-worker@example.com/1"
+    SENTRY_RELEASE: "task-worker@$CI_COMMIT_SHA"
+  script:
+    - cd services/task-worker
+    - pip install -e ".[test]"
+    - pytest tests/test_stage1_cryptobot_sandbox_config.py tests/test_stage1_telegram_notifications.py tests/unit/test_observability.py -q --tb=short
+
+secret-pattern-scan:
+  stage: security
+  image: alpine:3.20
+  extends:
+    - .rules_security
+  before_script:
+    - apk add --no-cache git ripgrep
+  script:
+    - |
+      if rg -n --pcre2 --hidden \
+        --glob '!.git/**' \
+        --glob '!node_modules/**' \
+        --glob '!**/.next/**' \
+        --glob '!**/dist/**' \
+        --glob '!**/build/**' \
+        --glob '!docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md' \
+        -- \
+        '-----BEGIN (RSA |OPENSSH |EC |DSA |PRIVATE )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|xox[baprs]-[A-Za-z0-9-]{20,}|sk_live_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}' \
+        .; then
+        echo "High-confidence secret pattern found"
+        exit 1
+      fi
+
+security:gitleaks:
+  stage: security
+  image:
+    name: ghcr.io/gitleaks/gitleaks:v8.30.1
+    entrypoint: [""]
+  extends:
+    - .rules_security
+  script:
+    - mkdir -p "$SECURITY_ARTIFACT_DIR"
+    - apk add --no-cache bash git
+    - bash scripts/security/scan-secrets.sh
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - security-artifacts/
+
+npm-audit:high:
+  stage: security
+  image: node:22-bookworm
+  extends:
+    - .rules_security
+  before_script:
+    - npm ci --cache "$NPM_CONFIG_CACHE" --prefer-offline
+  script:
+    - bash scripts/security/audit-dependencies.sh npm
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - security-artifacts/
+
+pip-audit:python-locks:
+  stage: security
+  image: python:3.13-bookworm
+  extends:
+    - .rules_security
+  cache:
+    key: "$CI_JOB_NAME_SLUG"
+    paths:
+      - .cache/pip/
+      - .cache/uv/
+    policy: pull-push
+  before_script:
+    - python -m pip install --upgrade pip uv pip-audit
+  script:
+    - UV_CACHE_DIR="$CI_PROJECT_DIR/.cache/uv" bash scripts/security/audit-dependencies.sh python
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - security-artifacts/
+
+container-scan:trivy-grype:
+  stage: security
+  image: alpine:3.20
+  extends:
+    - .rules_security
+  before_script:
+    - apk add --no-cache bash ca-certificates curl tar gzip
+    - |
+      curl -fsSLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+      curl -fsSLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_checksums.txt"
+      grep " trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz$" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c -
+      tar -xzf "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -C /usr/local/bin trivy
+    - |
+      curl -fsSLO "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+      curl -fsSLO "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_checksums.txt"
+      grep " grype_${GRYPE_VERSION}_linux_amd64.tar.gz$" "grype_${GRYPE_VERSION}_checksums.txt" | sha256sum -c -
+      tar -xzf "grype_${GRYPE_VERSION}_linux_amd64.tar.gz" -C /usr/local/bin grype
+  script:
+    - bash scripts/security/scan-filesystem-vulnerabilities.sh
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - security-artifacts/
+
+sbom:release-candidate:
+  stage: security
+  image: alpine:3.20
+  extends:
+    - .rules_security
+  before_script:
+    - apk add --no-cache bash ca-certificates curl tar gzip
+    - |
+      curl -fsSLO "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+      curl -fsSLO "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_checksums.txt"
+      grep " syft_${SYFT_VERSION}_linux_amd64.tar.gz$" "syft_${SYFT_VERSION}_checksums.txt" | sha256sum -c -
+      tar -xzf "syft_${SYFT_VERSION}_linux_amd64.tar.gz" -C /usr/local/bin syft
+  script:
+    - bash scripts/security/generate-sbom.sh
+  artifacts:
+    when: always
+    expire_in: 90 days
+    paths:
+      - security-artifacts/
+
+observability:stage2-artifacts:
+  stage: validate
+  image: python:3.13-alpine
+  extends:
+    - .rules_observability
+  script:
+    - python scripts/validate-stage2-analytics-artifacts.py
+
+partner:stage3-artifacts:
+  stage: validate
+  image: python:3.13-alpine
+  extends:
+    - .rules_partner_stage3
+  script:
+    - python scripts/validate-stage3-partner-artifacts.py
+
+partner:stage3-sandbox-pack:
+  stage: validate
+  image: alpine:3.20
+  extends:
+    - .rules_partner_stage3
+  before_script:
+    - apk add --no-cache bash
+  script:
+    - STAGE3_SANDBOX_OUTPUT_DIR="$CI_PROJECT_DIR/docs/evidence/partner-platform/stage3-sandbox-ci" bash scripts/partner/generate-stage3-sandbox-reports.sh
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - docs/evidence/partner-platform/stage3-sandbox-ci/
+
+quality:release-comparison-report:
+  stage: package
+  image: alpine:3.20
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$RELEASE_COMPARISON_ENABLED == "true"'
+    - when: never
+  before_script:
+    - apk add --no-cache bash git
+  script:
+    - bash scripts/release/generate-release-comparison-report.sh "${RELEASE_COMPARISON_BASE:-}" "${RELEASE_COMPARISON_HEAD:-HEAD}"
+  artifacts:
+    when: always
+    expire_in: 90 days
+    paths:
+      - docs/evidence/releases/
+
+sentry:frontend-sourcemaps:
+  stage: package
+  image: node:22-bookworm
+  rules:
+    - if: '$SENTRY_UPLOAD_SOURCEMAPS == "true"'
+    - when: never
+  before_script:
+    - npm ci --cache "$NPM_CONFIG_CACHE" --prefer-offline
+  script:
+    - bash scripts/sentry/upload-frontend-sourcemaps.sh
+
+.docker_job:
+  stage: package
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: "tcp://docker:2376"
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  tags:
+    - dind
+  when: manual
+  allow_failure: true
+  before_script:
+    - docker version
+
+docker:backend:
+  extends:
+    - .docker_job
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - backend/Dockerfile
+        - backend/**/*
+      when: manual
+    - when: never
+  script:
+    - docker build --pull -t "cybervpn-backend:$CI_COMMIT_SHORT_SHA" backend
+
+docker:telegram-bot:
+  extends:
+    - .docker_job
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - services/telegram-bot/Dockerfile
+        - services/telegram-bot/**/*
+      when: manual
+    - when: never
+  script:
+    - docker build --pull -t "cybervpn-telegram-bot:$CI_COMMIT_SHORT_SHA" services/telegram-bot
+
+docker:task-worker:
+  extends:
+    - .docker_job
+  rules:
+    - changes:
+        - .gitlab-ci.yml
+        - services/task-worker/Dockerfile
+        - services/task-worker/**/*
+      when: manual
+    - when: never
+  script:
+    - docker build --pull -t "cybervpn-task-worker:$CI_COMMIT_SHORT_SHA" services/task-worker

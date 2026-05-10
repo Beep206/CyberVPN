@@ -109,8 +109,8 @@ describe('normalizeApiRequestPath', () => {
 });
 
 describe('resolveApiBaseUrl', () => {
-  it('uses same-origin api path in the browser', () => {
-    expect(resolveApiBaseUrl()).toBe(CANONICAL_API_BASE_PATH);
+  it('uses configured absolute API origin in Vitest for MSW Node interception', () => {
+    expect(resolveApiBaseUrl()).toBe('http://localhost:8000/api/v1');
   });
 });
 

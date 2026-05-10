@@ -1,0 +1,83 @@
+./infra/scripts/event_backbone_bootstrap.py:42:                    return ast.literal_eval(node.value)
+./apps/desktop-client/src/pages/Remote/index.tsx:102:                                <div dangerouslySetInnerHTML={{ __html: t('remote.instruction1') }} />
+./apps/desktop-client/src/pages/Remote/index.tsx:106:                                <div dangerouslySetInnerHTML={{ __html: t('remote.instruction2') }} />
+./apps/desktop-client/src/pages/Remote/index.tsx:110:                                <div dangerouslySetInnerHTML={{ __html: t('remote.instruction3') }} />
+./apps/desktop-client/vite.config.ts:14:const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN ?? "";
+./frontend/src/widgets/docs-content-server.tsx:30:  token: process.env.CYBER_NEURAL_TOKEN,
+./frontend/src/app/api/observability/sentry-contract/route.ts:8:  const configured = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./docs/cybervpn_stage1_launch_docs/118_STAGE1_AUTH_007_DELETE_EXPORT_DATA_PATH_EVIDENCE.md:98:rg -n -e '\beval\s*\(' -e '\bexec\s*\(' -e 'subprocess\.' -e 'shell=True' -e 'dangerouslySetInnerHTML' -e 'innerHTML' backend/src/presentation/api/shared/stage1_privacy_request_path.py backend/src/presentation/api/v1/auth/schemas.py backend/src/presentation/api/v1/auth/routes.py backend/tests/security/test_stage1_privacy_request_path.py frontend/src/lib/api/auth.ts frontend/src/lib/api/generated/types.ts frontend/src/lib/api/__tests__/auth.test.ts frontend/src/test/mocks/handlers.ts frontend/src/test/infrastructure.test.tsx -S
+./docs/cybervpn_stage1_launch_docs/101_STAGE1_FE_004_DEVICES_PAGE_EVIDENCE.md:50:| Dangerous-pattern scan over touched runtime files | `rg` for `eval`, dynamic `Function`, `dangerouslySetInnerHTML`, `innerHTML`, `document.write` and shell execution patterns | PASS: no matches |
+./docs/cybervpn_stage1_launch_docs/100_STAGE1_FE_003_CONFIG_DELIVERY_UI_EVIDENCE.md:50:| Dangerous-pattern scan over touched runtime/docs files | `rg` for `eval`, dynamic `Function`, `dangerouslySetInnerHTML`, `innerHTML`, `document.write` and shell execution patterns | PASS: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:2717:| Dangerous-pattern scan over touched runtime/docs files | `rg` for `eval`, dynamic `Function`, `dangerouslySetInnerHTML`, `innerHTML`, `document.write` and shell execution patterns | PASS: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:2799:| Dangerous-pattern scan over touched runtime files | `rg` for `eval`, dynamic `Function`, `dangerouslySetInnerHTML`, `innerHTML`, `document.write` and shell execution patterns | PASS: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:2881:| Dangerous frontend pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `innerHTML`, shell/process patterns in billing widgets | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:2981:| Static dangerous-pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `innerHTML`, shell/process and obvious SQL template patterns over touched runtime files | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:3094:| Static dangerous-pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `document.write`, shell/process and obvious SQL template patterns over touched runtime files | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:3214:| Static dangerous-pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `document.write`, shell/process and obvious SQL template patterns over touched runtime files | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:5057:rg -n -e '\beval\s*\(' -e '\bexec\s*\(' -e 'subprocess\.' -e 'shell=True' -e 'dangerouslySetInnerHTML' -e 'innerHTML' backend/src/presentation/api/shared/stage1_privacy_request_path.py backend/src/presentation/api/v1/auth/schemas.py backend/src/presentation/api/v1/auth/routes.py backend/tests/security/test_stage1_privacy_request_path.py frontend/src/lib/api/auth.ts frontend/src/lib/api/generated/types.ts frontend/src/lib/api/__tests__/auth.test.ts frontend/src/test/mocks/handlers.ts frontend/src/test/infrastructure.test.tsx -S
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:15518:| Targeted dangerous-pattern scan | No `eval`, dynamic `Function`, shell execution, `dangerouslySetInnerHTML`, unsafe raw query or `innerHTML` pattern found in the changed S1-PROD-004 source files |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:15638:| Static dangerous pattern scan | No new `eval`, `Function`, `exec`, `dangerouslySetInnerHTML`, unsafe raw query patterns found in changed runtime files |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:15792:| Static dangerous pattern scan | No new `eval`, `Function`, `exec`, `dangerouslySetInnerHTML`, unsafe raw query patterns found in changed runtime files |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:16208:| Static dangerous pattern scan | No new `eval`, `exec`, `shell=True`, `os.system`, pipe-to-shell, `chmod 777` or `dangerouslySetInnerHTML` pattern added in changed S1-TG-003 runtime/test lines |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:16596:rg -n "\\b(eval|exec)\\s*\\(|subprocess\\.|os\\.system\\(|text\\(f\\\"|text\\(f'|\\.raw\\(|innerHTML|dangerouslySetInnerHTML" \
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:16811:rg -n "\\b(eval|exec)\\s*\\(|subprocess\\.|os\\.system\\(|text\\(f\\\"|text\\(f'|\\.raw\\(|innerHTML|dangerouslySetInnerHTML" \
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:17849:| Dangerous-pattern scan | `rg -n "(eval\\(|innerHTML|dangerouslySetInnerHTML|document\\.write|localStorage|sessionStorage|new Function\\()" <S1-ADM-006 changed files>` | No matches |
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:20480:rg -n "\b(eval|Function\(|dangerouslySetInnerHTML|innerHTML|document\.write|subprocess\.|os\.system|shell=True|raw\(|text\()" <changed-runtime-files>
+./docs/cybervpn_stage1_launch_docs/CYBERVPN_STAGE1_LAUNCH_PACK_COMBINED.md:23463:| Dangerous-pattern scan over touched frontend/docs files | `rg` for `eval`, dynamic `Function`, `dangerouslySetInnerHTML`, shell execution patterns | PASS for touched code; only pre-existing docs text describing earlier dangerous-pattern scans matched |
+./docs/cybervpn_stage1_launch_docs/103_STAGE1_FE_006_GROWTH_UI_GATES_EVIDENCE.md:59:| Static dangerous-pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `innerHTML`, shell/process and obvious SQL template patterns over touched runtime files | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/104_STAGE1_FE_007_OPERATOR_SURFACE_AUDIT_EVIDENCE.md:85:| Static dangerous-pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `document.write`, shell/process and obvious SQL template patterns over touched runtime files | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/55_STAGE1_TG_003_COMMANDS_MENU_ONBOARDING_EVIDENCE.md:125:| Static dangerous pattern scan | No new `eval`, `exec`, `shell=True`, `os.system`, pipe-to-shell, `chmod 777` or `dangerouslySetInnerHTML` pattern added in changed S1-TG-003 runtime/test lines |
+./docs/cybervpn_stage1_launch_docs/57_STAGE1_TG_005_TELEGRAM_AUTH_LINKING_EVIDENCE.md:206:rg -n "\\b(eval|exec)\\s*\\(|subprocess\\.|os\\.system\\(|text\\(f\\\"|text\\(f'|\\.raw\\(|innerHTML|dangerouslySetInnerHTML" \
+./docs/cybervpn_stage1_launch_docs/50_STAGE1_PROD_004_LOCAL_CURRENCY_DISPLAY_EVIDENCE.md:176:| Targeted dangerous-pattern scan | No `eval`, dynamic `Function`, shell execution, `dangerouslySetInnerHTML`, unsafe raw query or `innerHTML` pattern found in the changed S1-PROD-004 source files |
+./docs/cybervpn_stage1_launch_docs/99_STAGE1_FE_002_DASHBOARD_STATES_EVIDENCE.md:71:| Dangerous-pattern scan over touched frontend/docs files | `rg` for `eval`, dynamic `Function`, `dangerouslySetInnerHTML`, shell execution patterns | PASS for touched code; only pre-existing docs text describing earlier dangerous-pattern scans matched |
+./docs/cybervpn_stage1_launch_docs/85_STAGE1_VPN_009_USAGE_DISPLAY_EVIDENCE.md:176:rg -n "\b(eval|Function\(|dangerouslySetInnerHTML|innerHTML|document\.write|subprocess\.|os\.system|shell=True|raw\(|text\()" <changed-runtime-files>
+./docs/cybervpn_stage1_launch_docs/102_STAGE1_FE_005_WALLET_PAGE_EVIDENCE.md:50:| Dangerous frontend pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `innerHTML`, shell/process patterns in billing widgets | `PASS`: no matches |
+./docs/cybervpn_stage1_launch_docs/105_STAGE1_FE_008_PLATFORM_GUIDES_EVIDENCE.md:88:| Static dangerous-pattern scan | `rg` for `dangerouslySetInnerHTML`, `eval`, `new Function`, `document.write`, shell/process and obvious SQL template patterns over touched runtime files | `PASS`: no matches |
+./docs/prompts/agent-teams/AGENT_TEAM_PHASE5_PROMPT.md:147:          dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+./docs/prompts/agent-teams/AGENT_TEAM_PHASE5_PROMPT.md:151:  - NOTE: dangerouslySetInnerHTML is the STANDARD Next.js pattern for JSON-LD.
+./docs/cybervpn_stage1_launch_docs/52_STAGE1_PROD_007_GROWTH_KILL_SWITCH_EVIDENCE.md:127:| Static dangerous pattern scan | No new `eval`, `Function`, `exec`, `dangerouslySetInnerHTML`, unsafe raw query patterns found in changed runtime files |
+./docs/cybervpn_stage1_launch_docs/58_STAGE1_TG_006_TELEGRAM_NOTIFICATIONS_EVIDENCE.md:166:rg -n "\\b(eval|exec)\\s*\\(|subprocess\\.|os\\.system\\(|text\\(f\\\"|text\\(f'|\\.raw\\(|innerHTML|dangerouslySetInnerHTML" \
+./docs/cybervpn_stage1_launch_docs/51_STAGE1_PROD_006_ADDONS_KILL_SWITCH_EVIDENCE.md:97:| Static dangerous pattern scan | No new `eval`, `Function`, `exec`, `dangerouslySetInnerHTML`, unsafe raw query patterns found in changed runtime files |
+./docs/cybervpn_stage1_launch_docs/67_STAGE1_ADM_006_MANUAL_SUBSCRIPTION_OPS_EVIDENCE.md:82:| Dangerous-pattern scan | `rg -n "(eval\\(|innerHTML|dangerouslySetInnerHTML|document\\.write|localStorage|sessionStorage|new Function\\()" <S1-ADM-006 changed files>` | No matches |
+./docs/plans/2026-04-24-user-cabinet-frontend-integration-plan.md:108:- No `dangerouslySetInnerHTML` for backend-provided content.
+./frontend/next.config.ts:13:const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+./docs/plans/2026-03-30-frontend-mobile-adaptation-audit.md:227:- One intentional `dangerouslySetInnerHTML` use exists in JSON-LD output at `frontend/src/shared/lib/json-ld.tsx`; that is acceptable for structured data.
+./admin/next.config.ts:15:const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+./admin/src/app/api/observability/sentry-contract/route.ts:8:  const configured = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./admin/src/app/api/analytics/frontend-runtime/route.ts:16:  const secret = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./admin/src/app/api/analytics/web-vitals/route.ts:16:  const secret = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./admin/src/app/api/integrations/telegram/bot/[...path]/route.ts:64:  return process.env.TELEGRAM_BOT_INTERNAL_SECRET?.trim();
+./admin/src/shared/lib/json-ld.tsx:7:      dangerouslySetInnerHTML={{
+./admin/src/widgets/docs-content-server.tsx:30:  token: process.env.CYBER_NEURAL_TOKEN,
+./frontend/src/lib/api/commerce.ts:18:  process.env.NEXT_PUBLIC_STOREFRONT_KEY?.trim() || 'cybervpn-web';
+./frontend/src/shared/lib/json-ld.tsx:7:      dangerouslySetInnerHTML={{
+./partner/src/widgets/docs-content-server.tsx:30:  token: process.env.CYBER_NEURAL_TOKEN,
+./admin/src/features/auth/lib/pending-twofa.ts:41:    process.env.PENDING_2FA_SECRET?.trim()
+./admin/src/features/auth/lib/pending-twofa.ts:42:    || process.env.OAUTH_TRANSACTION_SECRET?.trim();
+./partner/src/app/api/observability/sentry-contract/route.ts:8:  const configured = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./partner/next.config.ts:81:  silent: !process.env.SENTRY_AUTH_TOKEN,
+./partner/src/app/api/analytics/frontend-runtime/route.ts:16:  const secret = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:28:    NEXT_PUBLIC_POSTHOG_TOKEN: process.env.NEXT_PUBLIC_POSTHOG_TOKEN,
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:30:    POSTHOG_PERSONAL_API_KEY: process.env.POSTHOG_PERSONAL_API_KEY,
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:31:    POSTHOG_PROJECT_API_KEY: process.env.POSTHOG_PROJECT_API_KEY,
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:40:    process.env.POSTHOG_PERSONAL_API_KEY = originalEnv.POSTHOG_PERSONAL_API_KEY;
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:41:    process.env.POSTHOG_PROJECT_API_KEY = originalEnv.POSTHOG_PROJECT_API_KEY;
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:43:    process.env.NEXT_PUBLIC_POSTHOG_TOKEN = originalEnv.NEXT_PUBLIC_POSTHOG_TOKEN;
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:48:    delete process.env.POSTHOG_PROJECT_API_KEY;
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:50:    delete process.env.NEXT_PUBLIC_POSTHOG_TOKEN;
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:69:    process.env.POSTHOG_PROJECT_API_KEY = 'ph_project_token';
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:99:    process.env.POSTHOG_PROJECT_API_KEY = 'ph_project_token';
+./partner/src/lib/product-intelligence/__tests__/server.test.ts:116:    process.env.POSTHOG_PROJECT_API_KEY = 'ph_project_token';
+./partner/src/app/api/analytics/web-vitals/route.ts:16:  const secret = process.env.FRONTEND_OBSERVABILITY_INTERNAL_SECRET?.trim();
+./partner/src/lib/product-intelligence/server.ts:22:  const projectApiKey = process.env.POSTHOG_PROJECT_API_KEY?.trim()
+./partner/src/lib/product-intelligence/server.ts:23:    || process.env.NEXT_PUBLIC_POSTHOG_TOKEN?.trim();
+./partner/src/lib/product-intelligence/server.ts:31:  const personalApiKey = process.env.POSTHOG_PERSONAL_API_KEY?.trim() || undefined;
+./partner/src/app/api/integrations/telegram/bot/[...path]/route.ts:69:  return process.env.TELEGRAM_BOT_INTERNAL_SECRET?.trim();
+./partner/src/shared/lib/json-ld.tsx:7:      dangerouslySetInnerHTML={{
+./frontend/src/features/auth/lib/pending-twofa.ts:41:    process.env.PENDING_2FA_SECRET?.trim()
+./frontend/src/features/auth/lib/pending-twofa.ts:42:    || process.env.OAUTH_TRANSACTION_SECRET?.trim();
+./frontend/src/features/auth/lib/oauth-transaction.ts:48:  const configuredSecret = process.env.OAUTH_TRANSACTION_SECRET?.trim();
+./partner/src/features/auth/lib/pending-twofa.ts:41:    process.env.PENDING_2FA_SECRET?.trim()
+./partner/src/features/auth/lib/pending-twofa.ts:42:    || process.env.OAUTH_TRANSACTION_SECRET?.trim();
+./partner/src/features/storefront-shell/lib/runtime.ts:70:  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_KEY?.trim() || 'ozoxy-storefront';
+./partner/src/features/storefront-shell/lib/runtime.ts:72:  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_REALM_KEY?.trim() || 'ozoxy-storefront';

@@ -1,0 +1,57 @@
+Pre-Phase 12 connectivity evidence
+Sat May  9 17:11:24 UTC 2026
+
+== local route ==
+10.10.10.34 via 172.19.240.1 dev eth0 src 172.19.254.139 uid 1000 
+    cache 
+
+== local tcp probes ==
+Connection to 10.10.10.34 22 port [tcp/ssh] succeeded!
+Connection to 10.10.10.34 80 port [tcp/http] succeeded!
+Connection to 10.10.10.34 443 port [tcp/https] succeeded!
+
+== local ssh probe ==
+kex_exchange_identification: read: Connection reset by peer
+Connection reset by 10.10.10.34 port 22
+
+== router view of cybervpn host ==
+Flags: X - DISABLED, R - RADIUS, D - DYNAMIC, B - BLOCKED 
+ 6   ;;; CyberVPN h ops static DHCP
+     address=10.10.10.34 mac-address=00:E0:4C:7D:40:65 address-lists="" 
+     server=defconf dhcp-option="" status=waiting last-seen=never 
+
+Flags: X - DISABLED, I - INVALID, H - DHCP, D - DYNAMIC, P - PUBLISHED; 
+C - COMPLETE 
+23 D  address=10.10.10.34 interface=bridge published=no status="failed" 
+      vrf=main 
+
+Flags: X - DISABLED; I - INVALID; D - DYNAMIC; L - LOCAL; E - EXTERNAL; 
+A - AGED; a - AGED-PEER 
+
+  SEQ HOST                                     SIZE TTL TIME       STATUS      
+    0 10.10.10.34                                                  timeout     
+    1 10.10.10.34                                                  timeout     
+    2 10.10.10.34                                                  timeout     
+    sent=3 received=0 packet-loss=100% 
+
+
+== router cybervpn nat/dns/upnp check ==
+3 comment=HTTP -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=80 protocol=tcp in-interface-list=WAN dst-port=80
+4 comment=HTTPS -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=443 protocol=tcp in-interface-list=WAN dst-port=443
+5 comment=HAIRPIN: masquerade LAN -> CyberVPN Caddy edge chain=srcnat action=masquerade protocol=tcp src-address=10.10.10.0/24 dst-address=10.10.10.34 out-interface=bridge dst-port=80,443
+6 comment=HAIRPIN: HTTP -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=80 protocol=tcp src-address=10.10.10.0/24 dst-address=95.82.233.131 dst-port=80
+7 comment=HAIRPIN: HTTPS -> CyberVPN Caddy edge chain=dstnat action=dst-nat to-addresses=10.10.10.34 to-ports=443 protocol=tcp src-address=10.10.10.0/24 dst-address=95.82.233.131 dst-port=443
+
+ 5 comment=CyberVPN local edge name=gitlab.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 6 comment=CyberVPN local edge name=registry.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 7 comment=CyberVPN local edge name=grafana.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 8 comment=CyberVPN local edge name=sentry.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+ 9 comment=CyberVPN local edge name=prometheus.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+10 comment=CyberVPN local edge name=loki.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+11 comment=CyberVPN local edge name=alerts.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+12 comment=CyberVPN local edge name=uptime.h.cyber-vpn.net type=A address=10.10.10.34 ttl=1h
+
+                           enabled: yes
+  allow-disable-external-interface: no 
+                   show-dummy-rule: yes
+

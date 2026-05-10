@@ -235,7 +235,7 @@ describe('codesApi.validate', () => {
         plan_id: 'plan_monthly',
         amount: 50.0,
       }),
-    ).rejects.toThrow('No refresh token');
+    ).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_validate_promo_with_refresh_token_retries_on_401', async () => {

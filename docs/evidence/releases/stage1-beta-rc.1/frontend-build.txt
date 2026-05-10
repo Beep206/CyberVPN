@@ -1,0 +1,355 @@
+
+> vpn-frontend@0.1.0 prebuild
+> npm run prepare:i18n
+
+
+> vpn-frontend@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 39 locale bundles in src/i18n/messages/generated.
+
+> vpn-frontend@0.1.0 build
+> next build --turbopack
+
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+- Cache Components enabled
+- Experiments (use with caution):
+  · clientTraceMetadata
+  ✓ globalNotFound
+  · serverActions
+  ⨯ turbopackFileSystemCacheForDev
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.6s
+  Running next.config.js provided runAfterProductionCompile ...
+✓ Completed runAfterProductionCompile in 814ms
+  Running TypeScript ...
+  Finished TypeScript in 12.6s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/2801) ...
+  Generating static pages using 7 workers (700/2801) 
+  Generating static pages using 7 workers (1400/2801) 
+  Generating static pages using 7 workers (2100/2801) 
+✓ Generating static pages using 7 workers (2801/2801) in 16.0s
+  Finalizing page optimization ...
+
+Route (app)                                             Revalidate  Expire
+┌ ○ /_not-found
+├ ◐ /[locale]                                                   1h      1d
+│ ├ /[locale]                                                   1h      1d
+│ ├ /en-EN                                                      1h      1d
+│ ├ /ru-RU                                                      1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/acceptable-use                                    1h      1d
+│ ├ /[locale]/acceptable-use                                    1h      1d
+│ ├ /en-EN/acceptable-use                                       1h      1d
+│ ├ /ru-RU/acceptable-use                                       1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/analytics                                         1h      1d
+│ ├ /[locale]/analytics                                         1h      1d
+│ ├ /en-EN/analytics                                            1h      1d
+│ ├ /ru-RU/analytics                                            1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/api                                               1h      1d
+│ ├ /[locale]/api                                               1h      1d
+│ ├ /en-EN/api                                                  1h      1d
+│ ├ /ru-RU/api                                                  1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/audits                                            1h      1d
+│ ├ /[locale]/audits                                            1h      1d
+│ ├ /en-EN/audits                                               1h      1d
+│ ├ /ru-RU/audits                                               1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/compare                                           1h      1d
+│ ├ /[locale]/compare                                           1h      1d
+│ ├ /en-EN/compare                                              1h      1d
+│ ├ /ru-RU/compare                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/compare/[slug]                                    1h      1d
+│ ├ /[locale]/compare/[slug]                                    1h      1d
+│ ├ /en-EN/compare/[slug]
+│ ├ /en-EN/compare/vless-reality-vs-wireguard                   1h      1d
+│ └ [+115 more paths]
+├ ◐ /[locale]/contact                                           1h      1d
+│ ├ /[locale]/contact                                           1h      1d
+│ ├ /en-EN/contact                                              1h      1d
+│ ├ /ru-RU/contact                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/cookie-policy                                     1h      1d
+│ ├ /[locale]/cookie-policy                                     1h      1d
+│ ├ /en-EN/cookie-policy                                        1h      1d
+│ ├ /ru-RU/cookie-policy                                        1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/dashboard                                         1h      1d
+│ ├ /[locale]/dashboard                                         1h      1d
+│ ├ /en-EN/dashboard                                            1h      1d
+│ ├ /ru-RU/dashboard                                            1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/delete-account                                    1h      1d
+│ ├ /[locale]/delete-account                                    1h      1d
+│ ├ /en-EN/delete-account                                       1h      1d
+│ ├ /ru-RU/delete-account                                       1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/devices                                           1h      1d
+│ ├ /[locale]/devices                                           1h      1d
+│ ├ /en-EN/devices                                              1h      1d
+│ ├ /ru-RU/devices                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/devices/[slug]                                    1h      1d
+│ ├ /[locale]/devices/[slug]                                    1h      1d
+│ ├ /en-EN/devices/[slug]
+│ ├ /en-EN/devices/android-vpn-setup                            1h      1d
+│ └ [+271 more paths]
+├ ◐ /[locale]/docs                                              1h      1d
+│ ├ /[locale]/docs                                              1h      1d
+│ ├ /en-EN/docs                                                 1h      1d
+│ ├ /ru-RU/docs                                                 1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/download                                          1h      1d
+│ ├ /[locale]/download                                          1h      1d
+│ ├ /en-EN/download                                             1h      1d
+│ ├ /ru-RU/download                                             1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/features                                          1h      1d
+│ ├ /[locale]/features                                          1h      1d
+│ ├ /en-EN/features                                             1h      1d
+│ ├ /ru-RU/features                                             1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/forgot-password                                   1h      1d
+│ ├ /[locale]/forgot-password                                   1h      1d
+│ ├ /en-EN/forgot-password                                      1h      1d
+│ ├ /ru-RU/forgot-password                                      1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/guides                                            1h      1d
+│ ├ /[locale]/guides                                            1h      1d
+│ ├ /en-EN/guides                                               1h      1d
+│ ├ /ru-RU/guides                                               1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/guides/[slug]                                     1h      1d
+│ ├ /[locale]/guides/[slug]                                     1h      1d
+│ ├ /en-EN/guides/[slug]
+│ ├ /en-EN/guides/how-to-bypass-dpi-with-vless-reality          1h      1d
+│ └ [+154 more paths]
+├ ◐ /[locale]/help                                              1h      1d
+│ ├ /[locale]/help                                              1h      1d
+│ ├ /en-EN/help                                                 1h      1d
+│ ├ /ru-RU/help                                                 1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/login                                             1h      1d
+│ ├ /[locale]/login                                             1h      1d
+│ ├ /en-EN/login                                                1h      1d
+│ ├ /ru-RU/login                                                1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/magic-link                                        1h      1d
+│ ├ /[locale]/magic-link                                        1h      1d
+│ ├ /en-EN/magic-link                                           1h      1d
+│ ├ /ru-RU/magic-link                                           1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/magic-link/verify                                 1h      1d
+│ ├ /[locale]/magic-link/verify                                 1h      1d
+│ ├ /en-EN/magic-link/verify                                    1h      1d
+│ ├ /ru-RU/magic-link/verify                                    1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp                                           1h      1d
+│ ├ /[locale]/miniapp                                           1h      1d
+│ ├ /en-EN/miniapp                                              1h      1d
+│ ├ /ru-RU/miniapp                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/devices                                   1h      1d
+│ ├ /[locale]/miniapp/devices                                   1h      1d
+│ ├ /en-EN/miniapp/devices                                      1h      1d
+│ ├ /ru-RU/miniapp/devices                                      1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/home                                      1h      1d
+│ ├ /[locale]/miniapp/home                                      1h      1d
+│ ├ /en-EN/miniapp/home                                         1h      1d
+│ ├ /ru-RU/miniapp/home                                         1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/payments                                  1h      1d
+│ ├ /[locale]/miniapp/payments                                  1h      1d
+│ ├ /en-EN/miniapp/payments                                     1h      1d
+│ ├ /ru-RU/miniapp/payments                                     1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/plans                                     1h      1d
+│ ├ /[locale]/miniapp/plans                                     1h      1d
+│ ├ /en-EN/miniapp/plans                                        1h      1d
+│ ├ /ru-RU/miniapp/plans                                        1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/profile                                   1h      1d
+│ ├ /[locale]/miniapp/profile                                   1h      1d
+│ ├ /en-EN/miniapp/profile                                      1h      1d
+│ ├ /ru-RU/miniapp/profile                                      1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/referral                                  1h      1d
+│ ├ /[locale]/miniapp/referral                                  1h      1d
+│ ├ /en-EN/miniapp/referral                                     1h      1d
+│ ├ /ru-RU/miniapp/referral                                     1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/miniapp/wallet                                    1h      1d
+│ ├ /[locale]/miniapp/wallet                                    1h      1d
+│ ├ /en-EN/miniapp/wallet                                       1h      1d
+│ ├ /ru-RU/miniapp/wallet                                       1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/monitoring                                        1h      1d
+│ ├ /[locale]/monitoring                                        1h      1d
+│ ├ /en-EN/monitoring                                           1h      1d
+│ ├ /ru-RU/monitoring                                           1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/network                                           1h      1d
+│ ├ /[locale]/network                                           1h      1d
+│ ├ /en-EN/network                                              1h      1d
+│ ├ /ru-RU/network                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/network/dpi-resistance                            1h      1d
+│ ├ /[locale]/network/dpi-resistance                            1h      1d
+│ ├ /en-EN/network/dpi-resistance                               1h      1d
+│ ├ /ru-RU/network/dpi-resistance                               1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/oauth/callback                                    1h      1d
+│ ├ /[locale]/oauth/callback                                    1h      1d
+│ ├ /en-EN/oauth/callback                                       1h      1d
+│ ├ /ru-RU/oauth/callback                                       1h      1d
+│ └ [+37 more paths]
+├ ƒ /-/opengraph-image
+├ ◐ /[locale]/partner                                           1h      1d
+│ ├ /[locale]/partner                                           1h      1d
+│ ├ /en-EN/partner                                              1h      1d
+│ ├ /ru-RU/partner                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/payment-history                                   1h      1d
+│ ├ /[locale]/payment-history                                   1h      1d
+│ ├ /en-EN/payment-history                                      1h      1d
+│ ├ /ru-RU/payment-history                                      1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/pricing                                           1h      1d
+│ ├ /[locale]/pricing                                           1h      1d
+│ ├ /en-EN/pricing                                              1h      1d
+│ ├ /ru-RU/pricing                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/privacy                                           1h      1d
+│ ├ /[locale]/privacy                                           1h      1d
+│ ├ /en-EN/privacy                                              1h      1d
+│ ├ /ru-RU/privacy                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/privacy-policy                                    1h      1d
+│ ├ /[locale]/privacy-policy                                    1h      1d
+│ ├ /en-EN/privacy-policy                                       1h      1d
+│ ├ /ru-RU/privacy-policy                                       1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/referral                                          1h      1d
+│ ├ /[locale]/referral                                          1h      1d
+│ ├ /en-EN/referral                                             1h      1d
+│ ├ /ru-RU/referral                                             1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/refund-policy                                     1h      1d
+│ ├ /[locale]/refund-policy                                     1h      1d
+│ ├ /en-EN/refund-policy                                        1h      1d
+│ ├ /ru-RU/refund-policy                                        1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/register                                          1h      1d
+│ ├ /[locale]/register                                          1h      1d
+│ ├ /en-EN/register                                             1h      1d
+│ ├ /ru-RU/register                                             1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/reset-password                                    1h      1d
+│ ├ /[locale]/reset-password                                    1h      1d
+│ ├ /en-EN/reset-password                                       1h      1d
+│ ├ /ru-RU/reset-password                                       1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/security                                          1h      1d
+│ ├ /[locale]/security                                          1h      1d
+│ ├ /en-EN/security                                             1h      1d
+│ ├ /ru-RU/security                                             1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/servers                                           1h      1d
+│ ├ /[locale]/servers                                           1h      1d
+│ ├ /en-EN/servers                                              1h      1d
+│ ├ /ru-RU/servers                                              1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/settings                                          1h      1d
+│ ├ /[locale]/settings                                          1h      1d
+│ ├ /en-EN/settings                                             1h      1d
+│ ├ /ru-RU/settings                                             1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/status                                            1h      1d
+│ ├ /[locale]/status                                            1h      1d
+│ ├ /en-EN/status                                               1h      1d
+│ ├ /ru-RU/status                                               1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/subscriptions                                     1h      1d
+│ ├ /[locale]/subscriptions                                     1h      1d
+│ ├ /en-EN/subscriptions                                        1h      1d
+│ ├ /ru-RU/subscriptions                                        1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/telegram-link                                     1h      1d
+│ ├ /[locale]/telegram-link                                     1h      1d
+│ ├ /en-EN/telegram-link                                        1h      1d
+│ ├ /ru-RU/telegram-link                                        1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/telegram-widget                                   1h      1d
+│ ├ /[locale]/telegram-widget                                   1h      1d
+│ ├ /en-EN/telegram-widget                                      1h      1d
+│ ├ /ru-RU/telegram-widget                                      1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/terms                                             1h      1d
+│ ├ /[locale]/terms                                             1h      1d
+│ ├ /en-EN/terms                                                1h      1d
+│ ├ /ru-RU/terms                                                1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/test-animation                                    1h      1d
+│ ├ /[locale]/test-animation                                    1h      1d
+│ ├ /en-EN/test-animation                                       1h      1d
+│ ├ /ru-RU/test-animation                                       1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/test-error                                        1h      1d
+│ ├ /[locale]/test-error                                        1h      1d
+│ ├ /en-EN/test-error                                           1h      1d
+│ ├ /ru-RU/test-error                                           1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/trust                                             1h      1d
+│ ├ /[locale]/trust                                             1h      1d
+│ ├ /en-EN/trust                                                1h      1d
+│ ├ /ru-RU/trust                                                1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/users                                             1h      1d
+│ ├ /[locale]/users                                             1h      1d
+│ ├ /en-EN/users                                                1h      1d
+│ ├ /ru-RU/users                                                1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/verify                                            1h      1d
+│ ├ /[locale]/verify                                            1h      1d
+│ ├ /en-EN/verify                                               1h      1d
+│ ├ /ru-RU/verify                                               1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/wallet                                            1h      1d
+│ ├ /[locale]/wallet                                            1h      1d
+│ ├ /en-EN/wallet                                               1h      1d
+│ ├ /ru-RU/wallet                                               1h      1d
+│ └ [+37 more paths]
+├ ◐ /[locale]/widgets/network                                   1h      1d
+│ ├ /[locale]/widgets/network                                   1h      1d
+│ ├ /en-EN/widgets/network                                      1h      1d
+│ ├ /ru-RU/widgets/network                                      1h      1d
+│ └ [+37 more paths]
+├ ƒ /api/analytics/miniapp-runtime
+├ ƒ /api/analytics/reporting
+├ ƒ /api/analytics/traffic
+├ ƒ /api/analytics/web-vitals
+├ ƒ /api/auth/2fa/complete
+├ ƒ /api/auth/2fa/pending
+├ ƒ /api/oauth/callback/[provider]
+├ ƒ /api/oauth/start/[provider]
+├ ƒ /api/observability/sentry-contract
+├ ○ /robots.txt
+└ ƒ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)             prerendered as static content
+◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+ƒ  (Dynamic)            server-rendered on demand
+
+
+exit_code=0

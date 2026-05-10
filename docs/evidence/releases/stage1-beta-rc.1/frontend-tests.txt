@@ -1,0 +1,24 @@
+
+> vpn-frontend@0.1.0 pretest:run
+> npm run prepare:i18n
+
+
+> vpn-frontend@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 39 locale bundles in src/i18n/messages/generated.
+
+> vpn-frontend@0.1.0 test:run
+> vitest run
+
+
+ RUN  v4.1.2 /home/beep/projects/VPNBussiness/frontend
+
+
+ Test Files  150 passed | 1 skipped (151)
+      Tests  1114 passed | 7 skipped (1121)
+   Start at  21:40:07
+   Duration  21.59s (transform 5.34s, setup 35.97s, import 19.84s, tests 38.50s, environment 35.29s)
+
+
+exit_code=0

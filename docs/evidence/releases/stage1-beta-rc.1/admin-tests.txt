@@ -1,0 +1,3034 @@
+
+> vpn-admin@0.1.0 pretest:run
+> npm run prepare:i18n
+
+
+> vpn-admin@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 2 locale bundles in src/i18n/messages/generated.
+
+> vpn-admin@0.1.0 test:run
+> vitest run
+
+
+ RUN  v4.1.2 /home/beep/projects/VPNBussiness/admin
+
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+ ❯ src/lib/api/__tests__/payments.test.ts (18 tests | 18 failed) 302ms
+     × test_create_invoice_success_returns_payment_url 50ms
+     × test_create_invoice_with_promo_code_applies_discount 22ms
+     × test_create_invoice_sends_correct_body 14ms
+     × test_create_invoice_invalid_plan_rejects_with_404 34ms
+     × test_create_invoice_invalid_promo_rejects_with_422 14ms
+     × test_create_invoice_unauthenticated_rejects_with_401 17ms
+     × test_create_invoice_with_refresh_token_retries_on_401 9ms
+     × test_get_invoice_status_pending_returns_invoice_data 12ms
+     × test_get_invoice_status_paid_shows_completed 35ms
+     × test_get_invoice_status_expired_shows_expired 11ms
+     × test_get_invoice_status_not_found_rejects_with_404 11ms
+     × test_get_invoice_status_unauthenticated_rejects_with_401 3ms
+     × test_get_invoice_status_rate_limited_rejects_with_rate_limit_error 3ms
+     × test_get_history_success_returns_payment_list 3ms
+     × test_get_history_with_pagination_params 9ms
+     × test_get_history_empty_list_returns_empty_array 12ms
+     × test_get_history_unauthenticated_rejects_with_401 10ms
+     × test_get_history_server_error_500_rejects 20ms
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+ ❯ src/lib/api/__tests__/wallet.test.ts (19 tests | 19 failed) 348ms
+     × test_get_balance_success_returns_wallet_data 81ms
+     × test_get_balance_wallet_not_found_autocreates_with_404 20ms
+     × test_get_balance_unauthenticated_rejects_with_401 12ms
+     × test_get_balance_with_refresh_token_retries_on_401 11ms
+     × test_get_transactions_success_returns_transaction_list 7ms
+     × test_get_transactions_with_pagination_params 30ms
+     × test_get_transactions_empty_list_returns_empty_array 9ms
+     × test_get_transactions_unauthenticated_rejects_with_401 24ms
+     × test_request_withdrawal_success_creates_pending_request 23ms
+     × test_request_withdrawal_sends_correct_body 12ms
+     × test_request_withdrawal_below_minimum_rejects_with_422 33ms
+     × test_request_withdrawal_insufficient_balance_rejects_with_422 20ms
+     × test_request_withdrawal_invalid_params_rejects_with_400 8ms
+     × test_request_withdrawal_unauthenticated_rejects_with_401 20ms
+     × test_get_withdrawals_success_returns_withdrawal_list 3ms
+     × test_get_withdrawals_empty_list_returns_empty_array 6ms
+     × test_get_withdrawals_unauthenticated_rejects_with_401 17ms
+     × test_get_withdrawals_rate_limited_rejects_with_rate_limit_error 5ms
+     × test_get_withdrawals_server_error_500_rejects 2ms
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+ ❯ src/lib/api/__tests__/referral.test.ts (17 tests | 17 failed) 304ms
+     × test_get_referral_status_success_returns_referral_data 70ms
+     × test_get_referral_status_not_enabled_returns_disabled 34ms
+     × test_get_referral_status_unauthenticated_rejects_with_401 30ms
+     × test_get_referral_status_server_error_500_rejects 22ms
+     × test_get_referral_code_success_returns_code_and_url 18ms
+     × test_get_referral_code_not_created_rejects_with_404 4ms
+     × test_get_referral_code_unauthenticated_rejects_with_401 5ms
+     × test_get_referral_code_rate_limited_rejects_with_rate_limit_error 8ms
+     × test_get_referral_stats_success_returns_analytics 8ms
+     × test_get_referral_stats_no_activity_returns_zeros 15ms
+     × test_get_referral_stats_unauthenticated_rejects_with_401 28ms
+     × test_get_referral_stats_server_error_500_rejects 9ms
+     × test_get_recent_commissions_success_returns_commission_list 9ms
+     × test_get_recent_commissions_empty_list_returns_empty_array 22ms
+     × test_get_recent_commissions_returns_recent_only 3ms
+     × test_get_recent_commissions_unauthenticated_rejects_with_401 9ms
+     × test_get_recent_commissions_server_error_500_rejects 5ms
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+ ❯ src/lib/api/__tests__/codes.test.ts (11 tests | 11 failed) 168ms
+     × test_validate_promo_success_with_percentage_discount 51ms
+     × test_validate_promo_success_with_fixed_discount 6ms
+     × test_validate_promo_code_not_found_rejects_with_404 11ms
+     × test_validate_promo_code_expired_rejects_with_422 24ms
+     × test_validate_promo_code_exhausted_rejects_with_422 14ms
+     × test_validate_promo_sends_correct_request_body 15ms
+     × test_validate_promo_unauthenticated_rejects_with_401 13ms
+     × test_validate_promo_with_refresh_token_retries_on_401 5ms
+     × test_validate_promo_server_error_500_rejects 8ms
+     × test_validate_promo_rate_limited_rejects_with_rate_limit_error 10ms
+     × test_validate_promo_missing_fields_rejects_with_422 8ms
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+ ❯ src/lib/api/__tests__/profile.test.ts (11 tests | 11 failed) 197ms
+     × test_get_profile_success_returns_user_data 80ms
+     × test_get_profile_unauthenticated_rejects_with_401 23ms
+     × test_get_profile_with_refresh_token_retries_on_401 7ms
+     × test_get_profile_server_error_500_rejects 7ms
+     × test_get_profile_rate_limited_rejects_with_rate_limit_error 3ms
+     × test_update_profile_success_returns_updated_data 7ms
+     × test_update_profile_sends_correct_body 4ms
+     × test_update_profile_invalid_data_rejects_with_422 5ms
+     × test_update_profile_invalid_timezone_rejects_with_422 32ms
+     × test_update_profile_unauthenticated_rejects_with_401 6ms
+     × test_update_profile_server_error_500_rejects 15ms
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+Error: connect ECONNREFUSED 127.0.0.1:3000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 3000
+}
+ ❯ src/lib/api/__tests__/vpn.test.ts (7 tests | 6 failed) 107ms
+     × test_get_usage_success_returns_usage_stats 43ms
+     × test_get_usage_unauthenticated_rejects_with_401 18ms
+     × test_get_usage_with_refresh_token_retries_on_401 3ms
+     × test_get_usage_server_error_500_rejects 7ms
+     × test_get_usage_rate_limited_rejects_with_rate_limit_error 16ms
+     × test_get_usage_includes_authorization_header 3ms
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts (8 tests | 6 failed) 15ms
+     × builds page-equivalent canonical and hreflang alternates for public routes 5ms
+     × keeps exact market hubs indexable in priority locales 3ms
+     × keeps localized detail content indexable for Russia 3ms
+     × keeps expanded detail content indexable across the full priority rollout set 1ms
+     × keeps expanded detail content noindex outside the priority rollout set 0ms
+     × maps RTL locales to rtl direction and falls back to the default locale 1ms
+ ❯ src/shared/lib/__tests__/seo-route-policy.test.ts (5 tests | 2 failed) 11ms
+     × builds absolute alternate URLs for every configured locale plus x-default 4ms
+     × differentiates structurally public routes from rollout-eligible locales 1ms
+ ❯ src/shared/lib/__tests__/structured-data.test.ts (5 tests | 5 failed) 25ms
+     × builds localized FAQPage structured data from server FAQ content 10ms
+     × builds breadcrumb structured data on the production domain 4ms
+     × builds TechArticle structured data for the docs knowledge surface 1ms
+     × builds offer structured data on the localized production domain 1ms
+     × builds SoftwareApplication structured data with visible feature and offer coverage 1ms
+ ❯ src/shared/ui/__tests__/route-error-boundary.test.tsx (0 test)
+ ❯ src/app/api/auth/2fa/complete/route.test.ts (2 tests | 1 failed) 12ms
+     × completes pending 2FA, forwards backend cookies, and returns redirect target 8ms
+ ❯ src/shared/lib/__tests__/locale-rollout-policy.test.ts (2 tests | 2 failed) 16ms
+     × keeps core marketing routes indexable for tier1 locales 3ms
+     × indexes exact market hubs and detail content across all priority locales 2ms
+ ❯ src/app/__tests__/sitemap.test.ts (1 test | 1 failed) 14ms
+     × includes only rollout-eligible public routes on the canonical domain 10ms
+ ❯ src/shared/ui/__tests__/touch-targets.test.tsx (4 tests | 1 failed) 96ms
+     × routes high-risk forms through mobile-safe input sizing 39ms
+ ❯ src/app/__tests__/robots.test.ts (1 test | 1 failed) 5ms
+     × points to the canonical sitemap and blocks private/test routes across locales 3ms
+ ❯ src/features/auth/lib/session.test.ts (5 tests | 1 failed) 18ms
+     × builds a locale-prefixed browser redirect from a raw pathname without locale 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/ui/__tests__/route-error-boundary.test.tsx [ src/shared/ui/__tests__/route-error-boundary.test.tsx ]
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ src/shared/ui/route-error-boundary.tsx:3:1
+      1| 'use client';
+      2|
+      3| import * as Sentry from '@sentry/nextjs';
+       | ^
+      4| import { useEffect, useState } from 'react';
+      5| import Link from 'next/link';
+
+Caused by: ReferenceError: Cannot access 'mockCaptureException' before initialization
+ ❯ src/shared/ui/__tests__/route-error-boundary.test.tsx:18:21
+ ❯ src/shared/ui/route-error-boundary.tsx:3:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/103]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 102 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/__tests__/robots.test.ts > robots > points to the canonical sitemap and blocks private/test routes across locales
+AssertionError: expected undefined to be 'https://admin.ozoxy.ru/sitemap.xml' // Object.is equality
+
+- Expected:
+"https://admin.ozoxy.ru/sitemap.xml"
+
++ Received:
+undefined
+
+ ❯ src/app/__tests__/robots.test.ts:16:28
+     14|     const disallow = asArray(rule.disallow);
+     15|
+     16|     expect(policy.sitemap).toBe(`${SITE_URL}/sitemap.xml`);
+       |                            ^
+     17|     expect(rule.userAgent).toBe('*');
+     18|     expect(rule.allow).toBe('/');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/103]⎯
+
+ FAIL  src/app/__tests__/sitemap.test.ts > sitemap > includes only rollout-eligible public routes on the canonical domain
+AssertionError: expected [] to have a length of 54 but got +0
+
+- Expected
++ Received
+
+- 54
++ 0
+
+ ❯ src/app/__tests__/sitemap.test.ts:38:21
+     36|     );
+     37|
+     38|     expect(entries).toHaveLength(expectedCount);
+       |                     ^
+     39|     expect(entries.every((entry) => entry.url.startsWith(SITE_URL))).t…
+     40|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/103]⎯
+
+ FAIL  src/features/auth/lib/session.test.ts > auth redirect canonicalization > builds a locale-prefixed browser redirect from a raw pathname without locale
+AssertionError: expected '/ru-RU/login?redirect=%2Fru-RU%2Fdash…' to be '/en-EN/login?redirect=%2Fen-EN%2Fdash…' // Object.is equality
+
+Expected: "/en-EN/login?redirect=%2Fen-EN%2Fdashboard"
+Received: "/ru-RU/login?redirect=%2Fru-RU%2Fdashboard"
+
+ ❯ src/features/auth/lib/session.test.ts:8:55
+      6| describe('auth redirect canonicalization', () => {
+      7|   it('builds a locale-prefixed browser redirect from a raw pathname wi…
+      8|     expect(buildLocalizedLoginRedirect('/dashboard')).toBe(
+       |                                                       ^
+      9|       '/en-EN/login?redirect=%2Fen-EN%2Fdashboard',
+     10|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_success_with_percentage_discount
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/promo/validate": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/codes.test.ts:63:22
+     61|
+     62|     // Act
+     63|     const response = await codesApi.validate({
+       |                      ^
+     64|       code: 'SAVE20',
+     65|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_success_with_fixed_discount
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/promo/validate": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/codes.test.ts:92:22
+     90|
+     91|     // Act
+     92|     const response = await codesApi.validate({
+       |                      ^
+     93|       code: 'FLAT5',
+     94|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_code_not_found_rejects_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/codes.test.ts:128:40
+    126|       expect(isAxiosError(error)).toBe(true);
+    127|       if (isAxiosError(error)) {
+    128|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    129|         expect(error.response?.data.detail).toBe('Promo code not found…
+    130|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_code_expired_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/codes.test.ts:156:40
+    154|       expect(isAxiosError(error)).toBe(true);
+    155|       if (isAxiosError(error)) {
+    156|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    157|         expect(error.response?.data.detail).toContain('expired');
+    158|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_code_exhausted_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/codes.test.ts:184:40
+    182|       expect(isAxiosError(error)).toBe(true);
+    183|       if (isAxiosError(error)) {
+    184|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    185|         expect(error.response?.data.detail).toContain('maximum uses');
+    186|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_sends_correct_request_body
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/promo/validate": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/codes.test.ts:207:5
+    205|
+    206|     // Act
+    207|     await codesApi.validate({
+       |     ^
+    208|       code: 'TEST10',
+    209|       plan_id: 'plan_annual',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/promo/validate": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/codes.test.ts:238:5
+    236|         amount: 50.0,
+    237|       }),
+    238|     ).rejects.toThrow('No refresh token');
+       |     ^
+    239|   });
+    240|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_with_refresh_token_retries_on_401
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/promo/validate": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/codes.test.ts:266:22
+    264|
+    265|     // Act
+    266|     const response = await codesApi.validate({
+       |                      ^
+    267|       code: 'RETRY15',
+    268|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/codes.test.ts:301:40
+    299|       expect(isAxiosError(error)).toBe(true);
+    300|       if (isAxiosError(error)) {
+    301|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    302|       }
+    303|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/codes.test.ts:326:37
+    324|       expect.fail('Expected RateLimitError');
+    325|     } catch (error: unknown) {
+    326|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    327|       expect((error as { retryAfter: number }).retryAfter).toBe(30);
+    328|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/103]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_missing_fields_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/codes.test.ts:353:40
+    351|       expect(isAxiosError(error)).toBe(true);
+    352|       if (isAxiosError(error)) {
+    353|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    354|       }
+    355|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_success_returns_payment_url
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:89:22
+     87|
+     88|     // Act
+     89|     const response = await paymentsApi.createInvoice({
+       |                      ^
+     90|       user_uuid: 'user_001',
+     91|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_with_promo_code_applies_discount
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:116:22
+    114|
+    115|     // Act
+    116|     const response = await paymentsApi.createInvoice({
+       |                      ^
+    117|       user_uuid: "user_001",
+    118|       plan_id: "plan_monthly",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_sends_correct_body
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:140:5
+    138|
+    139|     // Act
+    140|     await paymentsApi.createInvoice({
+       |     ^
+    141|       user_uuid: 'user_001',
+    142|       plan_id: 'plan_annual',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_invalid_plan_rejects_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:175:40
+    173|       expect(isAxiosError(error)).toBe(true);
+    174|       if (isAxiosError(error)) {
+    175|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    176|         expect(error.response?.data.detail).toContain('not found');
+    177|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_invalid_promo_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:203:40
+    201|       expect(isAxiosError(error)).toBe(true);
+    202|       if (isAxiosError(error)) {
+    203|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    204|       }
+    205|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:226:5
+    224|         currency: 'USD',
+    225|       }),
+    226|     ).rejects.toThrow('No refresh token');
+       |     ^
+    227|   });
+    228|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_with_refresh_token_retries_on_401
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:248:22
+    246|
+    247|     // Act
+    248|     const response = await paymentsApi.createInvoice({
+       |                      ^
+    249|       user_uuid: 'user_001',
+    250|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_pending_returns_invoice_data
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:275:22
+    273|
+    274|     // Act
+    275|     const response = await paymentsApi.getInvoiceStatus('inv_001');
+       |                      ^
+    276|
+    277|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_paid_shows_completed
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:295:22
+    293|
+    294|     // Act
+    295|     const response = await paymentsApi.getInvoiceStatus('inv_001');
+       |                      ^
+    296|
+    297|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_expired_shows_expired
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:314:22
+    312|
+    313|     // Act
+    314|     const response = await paymentsApi.getInvoiceStatus('inv_001');
+       |                      ^
+    315|
+    316|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_not_found_rejects_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:339:40
+    337|       expect(isAxiosError(error)).toBe(true);
+    338|       if (isAxiosError(error)) {
+    339|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    340|       }
+    341|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:356:57
+    354|
+    355|     // Act & Assert
+    356|     await expect(paymentsApi.getInvoiceStatus('inv_001')).rejects.toTh…
+       |                                                         ^
+    357|       'No refresh token',
+    358|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:377:37
+    375|       expect.fail('Expected RateLimitError');
+    376|     } catch (error: unknown) {
+    377|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    378|       expect((error as { retryAfter: number }).retryAfter).toBe(30);
+    379|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getHistory > test_get_history_success_returns_payment_list
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/history": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:408:22
+    406|
+    407|     // Act
+    408|     const response = await paymentsApi.getHistory();
+       |                      ^
+    409|
+    410|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getHistory > test_get_history_with_pagination_params
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/history?offset=5&limit=10": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:429:5
+    427|
+    428|     // Act
+    429|     await paymentsApi.getHistory({ offset: 5, limit: 10 });
+       |     ^
+    430|
+    431|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getHistory > test_get_history_empty_list_returns_empty_array
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/history": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:446:22
+    444|
+    445|     // Act
+    446|     const response = await paymentsApi.getHistory();
+       |                      ^
+    447|
+    448|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getHistory > test_get_history_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/payments/history": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:465:42
+    463|
+    464|     // Act & Assert
+    465|     await expect(paymentsApi.getHistory()).rejects.toThrow('No refresh…
+       |                                          ^
+    466|   });
+    467|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/103]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getHistory > test_get_history_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:486:40
+    484|       expect(isAxiosError(error)).toBe(true);
+    485|       if (isAxiosError(error)) {
+    486|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    487|       }
+    488|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.getProfile > test_get_profile_success_returns_user_data
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/profile": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/profile.test.ts:68:22
+     66|
+     67|     // Act
+     68|     const response = await profileApi.getProfile();
+       |                      ^
+     69|
+     70|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.getProfile > test_get_profile_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/profile": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/profile.test.ts:91:41
+     89|
+     90|     // Act & Assert
+     91|     await expect(profileApi.getProfile()).rejects.toThrow('No refresh …
+       |                                         ^
+     92|   });
+     93|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.getProfile > test_get_profile_with_refresh_token_retries_on_401
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/profile": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/profile.test.ts:113:22
+    111|
+    112|     // Act
+    113|     const response = await profileApi.getProfile();
+       |                      ^
+    114|
+    115|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.getProfile > test_get_profile_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/profile.test.ts:139:40
+    137|       expect(isAxiosError(error)).toBe(true);
+    138|       if (isAxiosError(error)) {
+    139|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    140|       }
+    141|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.getProfile > test_get_profile_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/profile.test.ts:160:37
+    158|       expect.fail('Expected RateLimitError');
+    159|     } catch (error: unknown) {
+    160|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    161|       expect((error as { retryAfter: number }).retryAfter).toBe(30);
+    162|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_success_returns_updated_data
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/profile": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/profile.test.ts:184:22
+    182|
+    183|     // Act
+    184|     const response = await profileApi.updateProfile({
+       |                      ^
+    185|       display_name: 'Jane Smith',
+    186|       language: 'es-ES',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_sends_correct_body
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/profile": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/profile.test.ts:206:5
+    204|
+    205|     // Act
+    206|     await profileApi.updateProfile({
+       |     ^
+    207|       display_name: 'Updated Name',
+    208|       timezone: 'America/New_York',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_invalid_data_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/profile.test.ts:237:40
+    235|       expect(isAxiosError(error)).toBe(true);
+    236|       if (isAxiosError(error)) {
+    237|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    238|       }
+    239|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_invalid_timezone_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/profile.test.ts:262:40
+    260|       expect(isAxiosError(error)).toBe(true);
+    261|       if (isAxiosError(error)) {
+    262|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    263|       }
+    264|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/profile": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/profile.test.ts:281:5
+    279|     await expect(
+    280|       profileApi.updateProfile({ display_name: 'Test' }),
+    281|     ).rejects.toThrow('No refresh token');
+       |     ^
+    282|   });
+    283|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/103]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/profile.test.ts:302:40
+    300|       expect(isAxiosError(error)).toBe(true);
+    301|       if (isAxiosError(error)) {
+    302|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    303|       }
+    304|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStatus > test_get_referral_status_success_returns_referral_data
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/status": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:94:22
+     92|
+     93|     // Act
+     94|     const response = await referralApi.getStatus();
+       |                      ^
+     95|
+     96|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStatus > test_get_referral_status_not_enabled_returns_disabled
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/status": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:114:22
+    112|
+    113|     // Act
+    114|     const response = await referralApi.getStatus();
+       |                      ^
+    115|
+    116|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStatus > test_get_referral_status_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/status": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:133:41
+    131|
+    132|     // Act & Assert
+    133|     await expect(referralApi.getStatus()).rejects.toThrow('No refresh …
+       |                                         ^
+    134|   });
+    135|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStatus > test_get_referral_status_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/referral.test.ts:154:40
+    152|       expect(isAxiosError(error)).toBe(true);
+    153|       if (isAxiosError(error)) {
+    154|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    155|       }
+    156|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getCode > test_get_referral_code_success_returns_code_and_url
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/code": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:174:22
+    172|
+    173|     // Act
+    174|     const response = await referralApi.getCode();
+       |                      ^
+    175|
+    176|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getCode > test_get_referral_code_not_created_rejects_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/referral.test.ts:199:40
+    197|       expect(isAxiosError(error)).toBe(true);
+    198|       if (isAxiosError(error)) {
+    199|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    200|       }
+    201|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getCode > test_get_referral_code_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/code": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:216:39
+    214|
+    215|     // Act & Assert
+    216|     await expect(referralApi.getCode()).rejects.toThrow('No refresh to…
+       |                                       ^
+    217|   });
+    218|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getCode > test_get_referral_code_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:235:37
+    233|       expect.fail('Expected RateLimitError');
+    234|     } catch (error: unknown) {
+    235|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    236|       expect((error as { retryAfter: number }).retryAfter).toBe(20);
+    237|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStats > test_get_referral_stats_success_returns_analytics
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/stats": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:255:22
+    253|
+    254|     // Act
+    255|     const response = await referralApi.getStats();
+       |                      ^
+    256|
+    257|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStats > test_get_referral_stats_no_activity_returns_zeros
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/stats": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:277:22
+    275|
+    276|     // Act
+    277|     const response = await referralApi.getStats();
+       |                      ^
+    278|
+    279|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStats > test_get_referral_stats_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/stats": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:297:40
+    295|
+    296|     // Act & Assert
+    297|     await expect(referralApi.getStats()).rejects.toThrow('No refresh t…
+       |                                        ^
+    298|   });
+    299|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStats > test_get_referral_stats_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/referral.test.ts:318:40
+    316|       expect(isAxiosError(error)).toBe(true);
+    317|       if (isAxiosError(error)) {
+    318|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    319|       }
+    320|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getRecentCommissions > test_get_recent_commissions_success_returns_commission_list
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/recent": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:338:22
+    336|
+    337|     // Act
+    338|     const response = await referralApi.getRecentCommissions();
+       |                      ^
+    339|
+    340|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getRecentCommissions > test_get_recent_commissions_empty_list_returns_empty_array
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/recent": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:356:22
+    354|
+    355|     // Act
+    356|     const response = await referralApi.getRecentCommissions();
+       |                      ^
+    357|
+    358|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getRecentCommissions > test_get_recent_commissions_returns_recent_only
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/recent": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/referral.test.ts:372:22
+    370|
+    371|     // Act
+    372|     const response = await referralApi.getRecentCommissions();
+       |                      ^
+    373|
+    374|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getRecentCommissions > test_get_recent_commissions_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/referral/recent": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:391:52
+    389|
+    390|     // Act & Assert
+    391|     await expect(referralApi.getRecentCommissions()).rejects.toThrow(
+       |                                                    ^
+    392|       'No refresh token',
+    393|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/103]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getRecentCommissions > test_get_recent_commissions_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/referral.test.ts:414:40
+    412|       expect(isAxiosError(error)).toBe(true);
+    413|       if (isAxiosError(error)) {
+    414|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    415|       }
+    416|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[61/103]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_success_returns_usage_stats
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/usage": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/vpn.test.ts:74:22
+     72|
+     73|     // Act
+     74|     const response = await vpnApi.getUsage();
+       |                      ^
+     75|
+     76|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[62/103]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/usage": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/vpn.test.ts:99:35
+     97|
+     98|     // Act & Assert - 401 interceptor tries to refresh, finds no token
+     99|     await expect(vpnApi.getUsage()).rejects.toThrow('No refresh token'…
+       |                                   ^
+    100|   });
+    101|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[63/103]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_with_refresh_token_retries_on_401
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/usage": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/vpn.test.ts:123:22
+    121|
+    122|     // Act
+    123|     const response = await vpnApi.getUsage();
+       |                      ^
+    124|
+    125|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[64/103]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/vpn.test.ts:149:40
+    147|       expect(isAxiosError(error)).toBe(true);
+    148|       if (isAxiosError(error)) {
+    149|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    150|       }
+    151|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[65/103]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/vpn.test.ts:170:37
+    168|       expect.fail('Expected RateLimitError');
+    169|     } catch (error: unknown) {
+    170|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    171|       expect((error as { retryAfter: number }).retryAfter).toBe(60);
+    172|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[66/103]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_includes_authorization_header
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/users/me/usage": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/vpn.test.ts:200:5
+    198|
+    199|     // Act
+    200|     await vpnApi.getUsage();
+       |     ^
+    201|
+    202|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[67/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getBalance > test_get_balance_success_returns_wallet_data
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:97:22
+     95|
+     96|     // Act
+     97|     const response = await walletApi.getBalance();
+       |                      ^
+     98|
+     99|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[68/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getBalance > test_get_balance_wallet_not_found_autocreates_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:125:40
+    123|       expect(isAxiosError(error)).toBe(true);
+    124|       if (isAxiosError(error)) {
+    125|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    126|       }
+    127|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[69/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getBalance > test_get_balance_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:142:40
+    140|
+    141|     // Act & Assert
+    142|     await expect(walletApi.getBalance()).rejects.toThrow('No refresh t…
+       |                                        ^
+    143|   });
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[70/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getBalance > test_get_balance_with_refresh_token_retries_on_401
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:164:22
+    162|
+    163|     // Act
+    164|     const response = await walletApi.getBalance();
+       |                      ^
+    165|
+    166|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[71/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getTransactions > test_get_transactions_success_returns_transaction_list
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/transactions": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:187:22
+    185|
+    186|     // Act
+    187|     const response = await walletApi.getTransactions();
+       |                      ^
+    188|
+    189|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[72/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getTransactions > test_get_transactions_with_pagination_params
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/transactions?offset=10&limit=20": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:210:5
+    208|
+    209|     // Act
+    210|     await walletApi.getTransactions({ offset: 10, limit: 20 });
+       |     ^
+    211|
+    212|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[73/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getTransactions > test_get_transactions_empty_list_returns_empty_array
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/transactions": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:227:22
+    225|
+    226|     // Act
+    227|     const response = await walletApi.getTransactions();
+       |                      ^
+    228|
+    229|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[74/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getTransactions > test_get_transactions_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/transactions": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:246:45
+    244|
+    245|     // Act & Assert
+    246|     await expect(walletApi.getTransactions()).rejects.toThrow('No refr…
+       |                                             ^
+    247|   });
+    248| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[75/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_success_creates_pending_request
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/withdraw": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:264:22
+    262|
+    263|     // Act
+    264|     const response = await walletApi.requestWithdrawal({
+       |                      ^
+    265|       amount: 25.0,
+    266|       method: 'cryptobot',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[76/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_sends_correct_body
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/withdraw": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:286:5
+    284|
+    285|     // Act
+    286|     await walletApi.requestWithdrawal({
+       |     ^
+    287|       amount: 50.0,
+    288|       method: 'cryptobot',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[77/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_below_minimum_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:318:40
+    316|       expect(isAxiosError(error)).toBe(true);
+    317|       if (isAxiosError(error)) {
+    318|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    319|         expect(error.response?.data.detail).toContain('minimum');
+    320|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[78/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_insufficient_balance_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:345:40
+    343|       expect(isAxiosError(error)).toBe(true);
+    344|       if (isAxiosError(error)) {
+    345|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    346|         expect(error.response?.data.detail).toContain('Insufficient');
+    347|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[79/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_invalid_params_rejects_with_400
+AssertionError: expected undefined to be 400 // Object.is equality
+
+- Expected:
+400
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:372:40
+    370|       expect(isAxiosError(error)).toBe(true);
+    371|       if (isAxiosError(error)) {
+    372|         expect(error.response?.status).toBe(400);
+       |                                        ^
+    373|       }
+    374|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[80/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/withdraw": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:394:5
+    392|         method: 'cryptobot',
+    393|       }),
+    394|     ).rejects.toThrow('No refresh token');
+       |     ^
+    395|   });
+    396| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[81/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getWithdrawals > test_get_withdrawals_success_returns_withdrawal_list
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/withdrawals": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:430:22
+    428|
+    429|     // Act
+    430|     const response = await walletApi.getWithdrawals();
+       |                      ^
+    431|
+    432|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[82/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getWithdrawals > test_get_withdrawals_empty_list_returns_empty_array
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/withdrawals": connect ECONNREFUSED 127.0.0.1:3000
+ ❯ handleError ../node_modules/axios/lib/adapters/xhr.js:123:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request ../node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/wallet.test.ts:449:22
+    447|
+    448|     // Act
+    449|     const response = await walletApi.getWithdrawals();
+       |                      ^
+    450|
+    451|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[83/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getWithdrawals > test_get_withdrawals_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:3000/api/v1/wallet/withdrawals": connect ECONNREFUSED 127.0.0.1:3000"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:468:44
+    466|
+    467|     // Act & Assert
+    468|     await expect(walletApi.getWithdrawals()).rejects.toThrow('No refre…
+       |                                            ^
+    469|   });
+    470|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[84/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getWithdrawals > test_get_withdrawals_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:487:37
+    485|       expect.fail('Expected RateLimitError');
+    486|     } catch (error: unknown) {
+    487|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    488|       expect((error as { retryAfter: number }).retryAfter).toBe(60);
+    489|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[85/103]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getWithdrawals > test_get_withdrawals_server_error_500_rejects
+AssertionError: expected undefined to be 500 // Object.is equality
+
+- Expected:
+500
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:510:40
+    508|       expect(isAxiosError(error)).toBe(true);
+    509|       if (isAxiosError(error)) {
+    510|         expect(error.response?.status).toBe(500);
+       |                                        ^
+    511|       }
+    512|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[86/103]⎯
+
+ FAIL  src/shared/lib/__tests__/locale-rollout-policy.test.ts > locale-rollout-policy > keeps core marketing routes indexable for tier1 locales
+AssertionError: expected 'tier3' to be 'tier2' // Object.is equality
+
+Expected: "tier2"
+Received: "tier3"
+
+ ❯ src/shared/lib/__tests__/locale-rollout-policy.test.ts:13:43
+     11|   it('keeps core marketing routes indexable for tier1 locales', () => {
+     12|     expect(getLocaleRolloutTier('en-EN')).toBe('tier1');
+     13|     expect(getLocaleRolloutTier('ar-SA')).toBe('tier2');
+       |                                           ^
+     14|     expect(getLocaleRolloutTier('fr-FR')).toBe('tier3');
+     15|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[87/103]⎯
+
+ FAIL  src/shared/lib/__tests__/locale-rollout-policy.test.ts > locale-rollout-policy > indexes exact market hubs and detail content across all priority locales
+AssertionError: expected [ 'ru-RU', 'en-EN' ] to deeply equal [ 'en-EN', 'ru-RU', 'zh-CN', …(6) ]
+
+- Expected
++ Received
+
+  [
+-   "en-EN",
+    "ru-RU",
+-   "zh-CN",
+-   "hi-IN",
+-   "id-ID",
+-   "vi-VN",
+-   "th-TH",
+-   "ja-JP",
+-   "ko-KR",
++   "en-EN",
+  ]
+
+ ❯ src/shared/lib/__tests__/locale-rollout-policy.test.ts:38:51
+     36|     expect(isExpandedContentPath('/pricing')).toBe(false);
+     37|
+     38|     expect(getIndexableLocalesForPath('/guides')).toEqual([
+       |                                                   ^
+     39|       'en-EN',
+     40|       'ru-RU',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[88/103]⎯
+
+ FAIL  src/shared/lib/__tests__/seo-route-policy.test.ts > seo-route-policy > builds absolute alternate URLs for every configured locale plus x-default
+AssertionError: expected 'https://admin.ozoxy.ru/en-EN/pricing' to be 'https://vpn.ozoxy.ru/en-EN/pricing' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/en-EN/pricing"
+Received: "https://admin.ozoxy.ru/en-EN/pricing"
+
+ ❯ src/shared/lib/__tests__/seo-route-policy.test.ts:43:33
+     41|     );
+     42|
+     43|     expect(alternates['en-EN']).toBe('https://vpn.ozoxy.ru/en-EN/prici…
+       |                                 ^
+     44|     expect(alternates['ru-RU']).toBe('https://vpn.ozoxy.ru/ru-RU/prici…
+     45|     expect(alternates['x-default']).toBe('https://vpn.ozoxy.ru/en-EN/p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[89/103]⎯
+
+ FAIL  src/shared/lib/__tests__/seo-route-policy.test.ts > seo-route-policy > differentiates structurally public routes from rollout-eligible locales
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/shared/lib/__tests__/seo-route-policy.test.ts:76:62
+     74|     expect(isRolloutIndexableLocalizedPath('/ru-RU/wallet')).toBe(fals…
+     75|     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides')).toBe(true…
+     76|     expect(isRolloutIndexableLocalizedPath('/ja-JP/guides')).toBe(true…
+       |                                                              ^
+     77|     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides/how-to-bypas…
+     78|     expect(isRolloutIndexableLocalizedPath('/zh-CN/compare/vless-reali…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[90/103]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > builds page-equivalent canonical and hreflang alternates for public routes
+AssertionError: expected 'https://admin.ozoxy.ru/ru-RU/pricing' to be 'https://admin.ozoxy.ru/en-EN/pricing' // Object.is equality
+
+Expected: "https://admin.ozoxy.ru/en-EN/pricing"
+Received: "https://admin.ozoxy.ru/ru-RU/pricing"
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:26:59
+     24|     expect(metadata.alternates?.languages?.['en-EN']).toBe(`${SITE_URL…
+     25|     expect(metadata.alternates?.languages?.['ru-RU']).toBe(`${SITE_URL…
+     26|     expect(metadata.alternates?.languages?.['x-default']).toBe(`${SITE…
+       |                                                           ^
+     27|     expect(metadata.openGraph?.images).toEqual([
+     28|       {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[91/103]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps exact market hubs indexable in priority locales
+AssertionError: expected { …(3) } to match object { …(4) }
+
+- Expected
++ Received
+
+  {
+    "en-EN": "https://admin.ozoxy.ru/en-EN/guides",
+    "ru-RU": "https://admin.ozoxy.ru/ru-RU/guides",
+-   "x-default": "https://admin.ozoxy.ru/en-EN/guides",
+-   "zh-CN": "https://admin.ozoxy.ru/zh-CN/guides",
++   "x-default": "https://admin.ozoxy.ru/ru-RU/guides",
+  }
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:52:44
+     50|
+     51|     expect(metadata.alternates?.canonical).toBe(`${SITE_URL}/ru-RU/gui…
+     52|     expect(metadata.alternates?.languages).toMatchObject({
+       |                                            ^
+     53|       'en-EN': `${SITE_URL}/en-EN/guides`,
+     54|       'ru-RU': `${SITE_URL}/ru-RU/guides`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[92/103]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps localized detail content indexable for Russia
+AssertionError: expected { …(3) } to match object { …(4) }
+
+- Expected
++ Received
+
+  {
+    "en-EN": "https://admin.ozoxy.ru/en-EN/guides/how-to-bypass-dpi-with-vless-reality",
+    "ru-RU": "https://admin.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality",
+-   "x-default": "https://admin.ozoxy.ru/en-EN/guides/how-to-bypass-dpi-with-vless-reality",
+-   "zh-CN": "https://admin.ozoxy.ru/zh-CN/guides/how-to-bypass-dpi-with-vless-reality",
++   "x-default": "https://admin.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality",
+  }
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:77:44
+     75|       `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
+     76|     );
+     77|     expect(metadata.alternates?.languages).toMatchObject({
+       |                                            ^
+     78|       'en-EN': `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-…
+     79|       'ru-RU': `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[93/103]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps expanded detail content indexable across the full priority rollout set
+AssertionError: expected 'https://admin.ozoxy.ru/ru-RU/guides/h…' to be 'https://admin.ozoxy.ru/hi-IN/guides/h…' // Object.is equality
+
+Expected: "https://admin.ozoxy.ru/hi-IN/guides/how-to-bypass-dpi-with-vless-reality"
+Received: "https://admin.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality"
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:99:44
+     97|     );
+     98|
+     99|     expect(metadata.alternates?.canonical).toBe(
+       |                                            ^
+    100|       `${SITE_URL}/hi-IN/guides/how-to-bypass-dpi-with-vless-reality`,
+    101|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[94/103]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps expanded detail content noindex outside the priority rollout set
+AssertionError: expected 'https://admin.ozoxy.ru/ru-RU/guides/h…' to be 'https://admin.ozoxy.ru/en-EN/guides/h…' // Object.is equality
+
+Expected: "https://admin.ozoxy.ru/en-EN/guides/how-to-bypass-dpi-with-vless-reality"
+Received: "https://admin.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality"
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:118:44
+    116|     );
+    117|
+    118|     expect(metadata.alternates?.canonical).toBe(
+       |                                            ^
+    119|       `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-reality`,
+    120|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[95/103]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > maps RTL locales to rtl direction and falls back to the default locale
+AssertionError: expected { lang: 'ru-RU', dir: 'ltr' } to deeply equal { lang: 'ar-SA', dir: 'rtl' }
+
+- Expected
++ Received
+
+  {
+-   "dir": "rtl",
+-   "lang": "ar-SA",
++   "dir": "ltr",
++   "lang": "ru-RU",
+  }
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:168:48
+    166|
+    167|   it('maps RTL locales to rtl direction and falls back to the default …
+    168|     expect(getHtmlLanguageAttributes('ar-SA')).toEqual({
+       |                                                ^
+    169|       lang: 'ar-SA',
+    170|       dir: 'rtl',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[96/103]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds localized FAQPage structured data from server FAQ content
+AssertionError: expected 'https://admin.ozoxy.ru/ru-RU/help' to be 'https://vpn.ozoxy.ru/ru-RU/help' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/ru-RU/help"
+Received: "https://admin.ozoxy.ru/ru-RU/help"
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:30:22
+     28|
+     29|     expect(data['@type']).toBe('FAQPage');
+     30|     expect(data.url).toBe('https://vpn.ozoxy.ru/ru-RU/help');
+       |                      ^
+     31|     expect(data.inLanguage).toBe('ru-RU');
+     32|     expect(data.mainEntity).toHaveLength(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[97/103]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds breadcrumb structured data on the production domain
+AssertionError: expected [ { '@type': 'ListItem', …(3) }, …(1) ] to deeply equal [ { '@type': 'ListItem', …(3) }, …(1) ]
+
+- Expected
++ Received
+
+  [
+    {
+      "@type": "ListItem",
+-     "item": "https://vpn.ozoxy.ru/en-EN",
++     "item": "https://admin.ozoxy.ru/en-EN",
+      "name": "Home",
+      "position": 1,
+    },
+    {
+      "@type": "ListItem",
+-     "item": "https://vpn.ozoxy.ru/en-EN/docs",
++     "item": "https://admin.ozoxy.ru/en-EN/docs",
+      "name": "Docs",
+      "position": 2,
+    },
+  ]
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:49:34
+     47|
+     48|     expect(data['@type']).toBe('BreadcrumbList');
+     49|     expect(data.itemListElement).toEqual([
+       |                                  ^
+     50|       {
+     51|         '@type': 'ListItem',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[98/103]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds TechArticle structured data for the docs knowledge surface
+AssertionError: expected 'https://admin.ozoxy.ru/en-EN/docs' to be 'https://vpn.ozoxy.ru/en-EN/docs' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/en-EN/docs"
+Received: "https://admin.ozoxy.ru/en-EN/docs"
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:75:22
+     73|
+     74|     expect(data['@type']).toBe('TechArticle');
+     75|     expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/docs');
+       |                      ^
+     76|     expect(data.articleSection).toEqual([
+     77|       'INITIALIZATION',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[99/103]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds offer structured data on the localized production domain
+AssertionError: expected { '@type': 'Offer', …(6) } to match object { '@type': 'Offer', …(4) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "@type": "Offer",
+    "name": "CYBER_PRO",
+    "price": "8.99",
+    "priceCurrency": "USD",
+-   "url": "https://vpn.ozoxy.ru/en-EN/pricing",
++   "url": "https://admin.ozoxy.ru/en-EN/pricing",
+  }
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:97:18
+     95|     });
+     96|
+     97|     expect(data).toMatchObject({
+       |                  ^
+     98|       '@type': 'Offer',
+     99|       name: 'CYBER_PRO',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[100/103]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds SoftwareApplication structured data with visible feature and offer coverage
+AssertionError: expected 'https://admin.ozoxy.ru/en-EN/download' to be 'https://vpn.ozoxy.ru/en-EN/download' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/en-EN/download"
+Received: "https://admin.ozoxy.ru/en-EN/download"
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:127:22
+    125|
+    126|     expect(data['@type']).toBe('SoftwareApplication');
+    127|     expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/download');
+       |                      ^
+    128|     expect(data.downloadUrl).toBe('https://vpn.ozoxy.ru/en-EN/download…
+    129|     expect(data.featureList).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[101/103]⎯
+
+ FAIL  src/shared/ui/__tests__/touch-targets.test.tsx > mobile touch target contract > routes high-risk forms through mobile-safe input sizing
+Error: ENOENT: no such file or directory, open '/home/beep/projects/VPNBussiness/admin/src/app/[locale]/(auth)/register/page.tsx'
+ ❯ src/shared/ui/__tests__/touch-targets.test.tsx:67:22
+     65|     const contact = await readSource('widgets/contact-form.tsx');
+     66|     const login = await readSource('app/[locale]/(auth)/login/page.tsx…
+     67|     const register = await readSource('app/[locale]/(auth)/register/pa…
+       |                      ^
+     68|     const forgotPassword = await readSource('app/[locale]/(auth)/forgo…
+     69|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[102/103]⎯
+
+ FAIL  src/app/api/auth/2fa/complete/route.test.ts > POST /api/auth/2fa/complete > completes pending 2FA, forwards backend cookies, and returns redirect target
+AssertionError: expected 'pending_2fa=; Path=/; Expires=Thu, 01…' to contain 'access_token=abc'
+
+Expected: "access_token=abc"
+Received: "pending_2fa=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+
+ ❯ src/app/api/auth/2fa/complete/route.test.ts:83:55
+     81|       redirect_to: '/ru-RU/dashboard?welcome=true',
+     82|     });
+     83|     expect(readSetCookieHeaders(response).join('\n')).toContain('acces…
+       |                                                       ^
+     84|   });
+     85|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[103/103]⎯
+
+
+ Test Files  16 failed | 71 passed (87)
+      Tests  102 failed | 446 passed (548)
+   Start at  21:40:07
+   Duration  13.75s (transform 4.02s, setup 25.47s, import 18.03s, tests 9.35s, environment 26.01s)
+
+npm error Lifecycle script `test:run` failed with error:
+npm error code 1
+npm error path /home/beep/projects/VPNBussiness/admin
+npm error workspace vpn-admin@0.1.0
+npm error location /home/beep/projects/VPNBussiness/admin
+npm error command failed
+npm error command sh -c vitest run
+
+exit_code=1

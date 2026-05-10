@@ -1,0 +1,3 @@
+Static dangerous pattern scan for STAGE1-PUB-03A touched runtime files.
+
+exit_code=0

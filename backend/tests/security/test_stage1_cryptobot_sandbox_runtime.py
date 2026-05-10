@@ -10,7 +10,7 @@ from pydantic import SecretStr, ValidationError
 from src.config.settings import S1_PRODUCTION_CORS_ORIGINS, Settings
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 
-STRONG_SECRET = "qHj9mV8sW3zR6tY1nP4cL7dF2gK5bX0aQ9wE6rT3yU8iO1pA"
+STRONG_SECRET = "qHj9mV8sW3zR6tY1nP4cL7dF2gK5bX0aQ9wE6rT3yU8iO1pA"  # gitleaks:allow
 
 
 def _settings(**overrides: object) -> Settings:

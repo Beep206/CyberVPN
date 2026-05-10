@@ -1,0 +1,255 @@
+groups:
+  - name: cybervpn_stage3_partner_reseller_recording_rules
+    interval: 30s
+    rules:
+      - record: stage3:partner_bootstrap_success_ratio:5m
+        expr: |
+          partner_platform:bootstrap_success_ratio:5m
+          or
+          (
+            sum(rate(cybervpn_partner_bootstrap_requests_total{result="success"}[5m]))
+            /
+            clamp_min(sum(rate(cybervpn_partner_bootstrap_requests_total[5m])), 1e-9)
+          )
+          or vector(0)
+
+      - record: stage3:partner_auth_denials:15m
+        expr: |
+          sum(increase(cybervpn_partner_auth_cross_realm_denied_total[15m]))
+          +
+          sum(increase(cybervpn_partner_auth_wrong_host_token_rejected_total[15m]))
+          or vector(0)
+
+      - record: stage3:partner_frontend_route_p95_seconds
+        expr: |
+          partner_platform:frontend_route_load_duration_seconds:p95_15m
+          or vector(0)
+
+      - record: stage3:partner_frontend_api_p95_seconds
+        expr: |
+          partner_platform:frontend_api_call_duration_seconds:p95_15m
+          or vector(0)
+
+      - record: stage3:partner_frontend_error_events:15m
+        expr: |
+          sum(increase(cybervpn_partner_frontend_unhandled_errors_total[15m]))
+          +
+          sum(increase(cybervpn_partner_frontend_render_errors_total[15m]))
+          or vector(0)
+
+      - record: stage3:partner_attribution_no_owner_ratio:5m
+        expr: |
+          partner_platform:attribution_no_owner_ratio:5m
+          or
+          (
+            sum(rate(cybervpn_partner_attribution_no_owner_total[5m]))
+            /
+            clamp_min(sum(rate(cybervpn_partner_attribution_resolutions_total[5m])), 1e-9)
+          )
+          or vector(0)
+
+      - record: stage3:partner_touchpoint_rejects:1h
+        expr: |
+          sum(increase(cybervpn_partner_touchpoints_rejected_total[1h])) or vector(0)
+
+      - record: stage3:partner_referral_reward_reversals:24h
+        expr: |
+          sum(increase(cybervpn_referral_rewards_reversed_total[24h]))
+          or
+          sum(increase(cybervpn_partner_growth_rewards_reversed_total[24h]))
+          or vector(0)
+
+      - record: stage3:partner_statement_closes:1h
+        expr: |
+          sum(increase(cybervpn_partner_statements_closed_total{result="success"}[1h])) or vector(0)
+
+      - record: stage3:partner_payout_failures:15m
+        expr: |
+          partner_platform:payout_failures:increase15m
+          or
+          sum(increase(cybervpn_partner_payout_failures_total[15m]))
+          or vector(0)
+
+      - record: stage3:partner_commission_ledger_mismatches:24h
+        expr: |
+          sum(increase(cybervpn_partner_commission_ledger_mismatches_total[24h]))
+          or
+          sum(cybervpn_partner_commission_ledger_mismatch_current)
+          or vector(0)
+
+      - record: stage3:partner_settlement_dry_run_failures:24h
+        expr: |
+          sum(increase(cybervpn_partner_settlement_dry_run_total{result=~"failed|error|blocked"}[24h])) or vector(0)
+
+      - record: stage3:partner_payout_simulation_failures:24h
+        expr: |
+          sum(increase(cybervpn_partner_payout_simulation_total{result=~"failed|error|blocked"}[24h])) or vector(0)
+
+      - record: stage3:partner_cases_created:24h
+        expr: |
+          sum(increase(cybervpn_partner_cases_created_total[24h])) or vector(0)
+
+      - record: stage3:partner_risk_reviews_open
+        expr: |
+          sum(cybervpn_partner_risk_reviews_open) or vector(0)
+
+      - record: stage3:partner_audit_log_failures:1h
+        expr: |
+          sum(increase(cybervpn_partner_audit_log_failures_total[1h])) or vector(0)
+
+      - record: stage3:partner_antifraud_flags:24h
+        expr: |
+          sum(increase(cybervpn_partner_antifraud_experiment_total{result=~"flagged|blocked|review"}[24h])) or vector(0)
+
+      - record: stage3:partner_webhook_receiver_failures:15m
+        expr: |
+          sum(increase(cybervpn_partner_webhook_test_receiver_requests_total{result=~"failed|invalid_signature|invalid_json"}[15m])) or vector(0)
+
+      - record: stage3:storefront_synthetic_success_ratio:5m
+        expr: |
+          avg(probe_success{job="stage3-storefront-endpoints"}) or vector(0)
+
+      - record: stage3:storefront_synthetic_failures:15m
+        expr: |
+          count_over_time((probe_success{job="stage3-storefront-endpoints"} == 0)[15m:30s]) or vector(0)
+
+  - name: cybervpn_stage3_partner_reseller_alerts
+    interval: 30s
+    rules:
+      - alert: Stage3PartnerBootstrapFailureRate
+        expr: |
+          stage3:partner_bootstrap_success_ratio:5m < 0.90
+          and sum(rate(cybervpn_partner_bootstrap_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-platform
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner bootstrap success ratio is low"
+          description: "Partner staging bootstrap success is below 90 percent while traffic is present."
+          dashboard_path: "/d/stage3-partner-staging-readiness/stage-3-partner-staging-readiness"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerFrontendErrors
+        expr: |
+          stage3:partner_frontend_error_events:15m > 10
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-frontend
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner frontend errors are elevated"
+          description: "Partner frontend unhandled or render errors crossed the staging threshold."
+          dashboard_path: "/d/stage3-partner-staging-readiness/stage-3-partner-staging-readiness"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerAttributionNoOwnerHigh
+        expr: |
+          stage3:partner_attribution_no_owner_ratio:5m > 0.05
+          and sum(rate(cybervpn_partner_attribution_resolutions_total[5m])) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-attribution
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner attribution no-owner ratio is high"
+          description: "Partner attribution is producing too many no-owner outcomes while attribution traffic is present."
+          dashboard_path: "/d/stage3-partner-attribution-storefront/stage-3-partner-attribution-and-storefront"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerPayoutFailure
+        expr: |
+          stage3:partner_payout_failures:15m > 0
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: partner-finance
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner payout failure detected"
+          description: "A partner payout execution failure was observed. Do not run real payouts until reviewed."
+          dashboard_path: "/d/stage3-partner-settlement-payout/stage-3-partner-settlement-and-payout"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerCommissionLedgerMismatch
+        expr: |
+          stage3:partner_commission_ledger_mismatches:24h > 0
+        for: 0m
+        labels:
+          severity: critical
+          priority: p0
+          service: partner-finance
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner commission ledger mismatch"
+          description: "Commission ledger dry-run or current mismatch count is non-zero. Treat as a finance correctness blocker."
+          dashboard_path: "/d/stage3-partner-settlement-payout/stage-3-partner-settlement-and-payout"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerSettlementDryRunFailed
+        expr: |
+          stage3:partner_settlement_dry_run_failures:24h > 0
+          or stage3:partner_payout_simulation_failures:24h > 0
+        for: 0m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-finance
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner settlement dry-run or payout simulation failed"
+          description: "A dry-run/simulation failure exists. Preserve evidence before changing settlement logic."
+          dashboard_path: "/d/stage3-partner-settlement-payout/stage-3-partner-settlement-and-payout"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerRiskReviewBacklog
+        expr: |
+          stage3:partner_risk_reviews_open > 20
+        for: 1h
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-risk
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner risk review backlog is high"
+          description: "Open partner risk review count is above the initial staging threshold."
+          dashboard_path: "/d/stage3-partner-support-audit-risk/stage-3-partner-support-audit-risk"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerAuditLogFailure
+        expr: |
+          stage3:partner_audit_log_failures:1h > 0
+        for: 0m
+        labels:
+          severity: critical
+          priority: p0
+          service: partner-audit
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner audit log failure"
+          description: "A partner audit log write failed. Sensitive partner/admin operations must be reviewed."
+          dashboard_path: "/d/stage3-partner-support-audit-risk/stage-3-partner-support-audit-risk"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerWebhookReceiverFailures
+        expr: |
+          stage3:partner_webhook_receiver_failures:15m > 0
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-webhook-test-receiver
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner webhook test receiver failures"
+          description: "The partner webhook test receiver observed invalid JSON, signature failure, or request handling errors."
+          dashboard_path: "/d/stage3-partner-staging-readiness/stage-3-partner-staging-readiness"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"

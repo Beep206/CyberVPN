@@ -13,8 +13,11 @@ import userEvent from '@testing-library/user-event';
 import { RouteErrorBoundary } from '../route-error-boundary';
 
 // Mock @sentry/nextjs
-const mockCaptureException = vi.fn();
+const { mockCaptureException } = vi.hoisted(() => ({
+  mockCaptureException: vi.fn(),
+}));
 vi.mock('@sentry/nextjs', () => ({
+  addBreadcrumb: vi.fn(),
   captureException: mockCaptureException,
 }));
 
@@ -39,8 +42,8 @@ describe('RouteErrorBoundary', () => {
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    // Should display the error message
-    expect(screen.getByText(/Test error message/i)).toBeInTheDocument();
+    // Should display the error message in the visible log and stack details.
+    expect(screen.getAllByText(/Test error message/i).length).toBeGreaterThan(0);
   });
 
   it('renders error digest when provided', () => {
@@ -63,14 +66,14 @@ describe('RouteErrorBoundary', () => {
     expect(screen.getByText(/UNKNOWN/i)).toBeInTheDocument();
   });
 
-  it('calls reset function when "Try Again" button is clicked', async () => {
+  it('calls reset function when the reboot button is clicked', async () => {
     const user = userEvent.setup();
     const testError = new Error('Test error');
     const mockReset = vi.fn();
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    const tryAgainButton = screen.getByText(/Try Again/i);
+    const tryAgainButton = screen.getByText(/Reboot System/i);
     await user.click(tryAgainButton);
 
     expect(mockReset).toHaveBeenCalledTimes(1);
@@ -104,13 +107,13 @@ describe('RouteErrorBoundary', () => {
     expect(mockCaptureException).toHaveBeenCalledTimes(2);
   });
 
-  it('renders "Go Home" link to /dashboard', () => {
+  it('renders dashboard return link', () => {
     const testError = new Error('Test error');
     const mockReset = vi.fn();
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    const goHomeLink = screen.getByText(/Go Home/i);
+    const goHomeLink = screen.getByText(/Return to Base/i);
     expect(goHomeLink).toBeInTheDocument();
     expect(goHomeLink).toHaveAttribute('href', '/dashboard');
   });
@@ -121,11 +124,8 @@ describe('RouteErrorBoundary', () => {
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    // Check for error header
-    expect(screen.getByText(/ERROR/i)).toBeInTheDocument();
-    expect(screen.getByText(/SYSTEM MALFUNCTION DETECTED/i)).toBeInTheDocument();
-
-    // Check for monitoring message
-    expect(screen.getByText(/REPORT LOGGED TO MONITORING SYSTEM/i)).toBeInTheDocument();
+    expect(screen.getByText(/SYSTEM FAILURE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Critical Error Detected/i)).toBeInTheDocument();
+    expect(screen.getByText(/ERROR_LOG/i)).toBeInTheDocument();
   });
 });

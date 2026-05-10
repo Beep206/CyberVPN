@@ -45,17 +45,80 @@ function getSetCookieHeaders(response: Response): string[] {
   };
 
   if (typeof headers.getSetCookie === 'function') {
-    return headers.getSetCookie();
+    const setCookieHeaders = headers.getSetCookie();
+    if (setCookieHeaders.length > 0) {
+      return setCookieHeaders;
+    }
   }
 
   const setCookie = response.headers.get('set-cookie');
   return setCookie ? [setCookie] : [];
 }
 
-function appendSetCookieHeaders(source: Response, target: NextResponse): void {
-  for (const headerValue of getSetCookieHeaders(source)) {
-    target.headers.append('set-cookie', headerValue);
+async function appendBackendAuthCookies(source: Response, target: NextResponse): Promise<void> {
+  const headerValues = getSetCookieHeaders(source);
+  if (headerValues.length > 0) {
+    for (const headerValue of headerValues) {
+      target.headers.append('Set-Cookie', headerValue);
+      mirrorBackendCookieForNextResponse(headerValue, target);
+    }
+    return;
   }
+
+  await appendJsonTokenFallbackCookies(source, target);
+}
+
+async function appendJsonTokenFallbackCookies(source: Response, target: NextResponse): Promise<void> {
+  let payload: { access_token?: string; refresh_token?: string };
+  try {
+    payload = await source.clone().json() as { access_token?: string; refresh_token?: string };
+  } catch {
+    return;
+  }
+
+  const secure = process.env.NODE_ENV === 'production';
+  for (const [name, value] of [
+    ['access_token', payload.access_token],
+    ['refresh_token', payload.refresh_token],
+  ] as const) {
+    if (!value) {
+      continue;
+    }
+    target.cookies.set(name, value, {
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      secure,
+    });
+  }
+}
+
+function mirrorBackendCookieForNextResponse(headerValue: string, target: NextResponse): void {
+  const [nameValue, ...attributes] = headerValue.split(';').map((part) => part.trim());
+  const separatorIndex = nameValue.indexOf('=');
+  if (separatorIndex <= 0) {
+    return;
+  }
+
+  const name = nameValue.slice(0, separatorIndex);
+  const value = nameValue.slice(separatorIndex + 1);
+  const pathAttribute = attributes.find((attribute) => attribute.toLowerCase().startsWith('path='));
+  const sameSiteAttribute = attributes.find((attribute) => attribute.toLowerCase().startsWith('samesite='));
+  const sameSite = sameSiteAttribute?.split('=')[1]?.toLowerCase();
+
+  target.cookies.set(name, value, {
+    httpOnly: attributes.some((attribute) => attribute.toLowerCase() === 'httponly'),
+    path: pathAttribute?.slice('path='.length) || '/',
+    sameSite: sameSite === 'strict' || sameSite === 'lax' || sameSite === 'none' ? sameSite : undefined,
+    secure: attributes.some((attribute) => attribute.toLowerCase() === 'secure'),
+  });
+}
+
+function deletePendingTwoFactorCookie(response: NextResponse): void {
+  response.headers.append(
+    'Set-Cookie',
+    `${PENDING_2FA_COOKIE}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+  );
 }
 
 async function readErrorPayload(response: Response): Promise<{ detail: string }> {
@@ -80,7 +143,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { detail: 'Two-factor login session expired. Start sign-in again.' },
       { status: 401 },
     );
-    response.cookies.delete(PENDING_2FA_COOKIE);
+    deletePendingTwoFactorCookie(response);
     return response;
   }
 
@@ -112,7 +175,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const errorPayload = await readErrorPayload(backendResponse);
     const response = NextResponse.json(errorPayload, { status: backendResponse.status });
     if (backendResponse.status === 401) {
-      response.cookies.delete(PENDING_2FA_COOKIE);
+      deletePendingTwoFactorCookie(response);
     }
     return response;
   }
@@ -124,7 +187,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const response = NextResponse.json({ redirect_to: redirectTo.pathname + redirectTo.search });
-  response.cookies.delete(PENDING_2FA_COOKIE);
-  appendSetCookieHeaders(backendResponse, response);
+  deletePendingTwoFactorCookie(response);
+  await appendBackendAuthCookies(backendResponse, response);
   return response;
 }

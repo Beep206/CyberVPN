@@ -126,7 +126,7 @@ Interpretation:
 | `uv export` + `uvx pip-audit --timeout 60` in `services/task-worker/` | PASS: no known vulnerabilities found |
 | Targeted secret-pattern scan over touched `S1-REL-002` docs | PASS: no matches |
 | Targeted dangerous-pattern scan over touched `S1-REL-002` docs | PASS: no matches |
-| `scripts/security/run_s1_gitleaks_current_tree.sh` | PASS after `S1-INFRA-007` revalidation: accepted baseline is redacted and the baseline-enforced current-tree scan returns `no leaks found` |
+| `scripts/security/scan-secrets.sh` | PASS after `S1-INFRA-007` revalidation: accepted baseline is redacted and the baseline-enforced current-tree scan returns `no leaks found` |
 | `git diff --check` over touched docs | PASS |
 | `docker ps --format ...` | PASS: no running containers shown |
 

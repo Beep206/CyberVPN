@@ -1,0 +1,38 @@
+name: cybervpn-h-partner-lab
+
+services:
+  partner-webhook-test-receiver:
+    image: python:3.13-alpine
+    container_name: cybervpn-partner-webhook-test-receiver
+    profiles:
+      - manual
+    restart: "no"
+    working_dir: /opt/cybervpn
+    command:
+      - python
+      - /opt/cybervpn/run-webhook-test-receiver.py
+    environment:
+      PARTNER_WEBHOOK_RECEIVER_HOST: 0.0.0.0
+      PARTNER_WEBHOOK_RECEIVER_PORT: "9088"
+      PARTNER_WEBHOOK_EVIDENCE_DIR: /evidence/webhook-receiver
+      PARTNER_WEBHOOK_MAX_BODY_BYTES: "262144"
+      PARTNER_WEBHOOK_SHARED_SECRET_FILE: /run/secrets/partner_webhook_test_secret
+    ports:
+      - 127.0.0.1:9088:9088
+    volumes:
+      - /srv/cybervpn-h/scripts/run-webhook-test-receiver.py:/opt/cybervpn/run-webhook-test-receiver.py:ro
+      - /srv/storage/evidence/settlements:/evidence
+    secrets:
+      - partner_webhook_test_secret
+    mem_limit: 128m
+    cpus: "0.25"
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+secrets:
+  partner_webhook_test_secret:
+    file: /srv/cybervpn-h/secrets/partner-webhook-test.secret

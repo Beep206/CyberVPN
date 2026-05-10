@@ -95,8 +95,8 @@ describe('vpnApi.getUsage', () => {
       }),
     );
 
-    // Act & Assert - 401 interceptor tries to refresh, finds no token
-    await expect(vpnApi.getUsage()).rejects.toThrow('No refresh token');
+    // Act & Assert - 401 interceptor tries cookie refresh and surfaces the 401.
+    await expect(vpnApi.getUsage()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_usage_with_refresh_token_retries_on_401', async () => {
@@ -184,8 +184,8 @@ describe('vpnApi.getUsage', () => {
     await expect(vpnApi.getUsage()).rejects.toBeDefined();
   });
 
-  it('test_get_usage_includes_authorization_header', async () => {
-    // Arrange - store token so interceptor injects it
+  it('test_get_usage_does_not_add_authorization_header_in_cookie_auth_flow', async () => {
+    // Arrange - legacy localStorage tokens are ignored after SEC-01.
     localStorage.setItem('access_token', 'my_jwt_token');
 
     let capturedAuthHeader: string | undefined;
@@ -200,6 +200,6 @@ describe('vpnApi.getUsage', () => {
     await vpnApi.getUsage();
 
     // Assert
-    expect(capturedAuthHeader).toBe('Bearer my_jwt_token');
+    expect(capturedAuthHeader).toBeUndefined();
   });
 });

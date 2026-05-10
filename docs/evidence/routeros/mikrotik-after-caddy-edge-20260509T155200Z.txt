@@ -1,0 +1,927 @@
+== identity ==
+  name: MikroTik
+
+== resource ==
+                   uptime: 2w1d1h43m15s       
+                  version: 7.22.1 (stable)    
+               build-time: 2026-03-23 14:35:15
+         factory-software: 6.43.2             
+              free-memory: 668.9MiB           
+             total-memory: 1024.0MiB          
+                      cpu: ARM                
+                cpu-count: 4                  
+            cpu-frequency: 1000MHz            
+                 cpu-load: 21%                
+           free-hdd-space: 366.7MiB           
+          total-hdd-space: 512.0MiB           
+  write-sect-since-reboot: 46211              
+         write-sect-total: 2453033            
+               bad-blocks: 0%                 
+        architecture-name: arm                
+               board-name: RB4011iGS+5HacQ2HnD
+                 platform: MikroTik           
+
+== nat cybervpn/mumble ==
+Flags: X - DISABLED, I - INVALID; D - DYNAMIC 
+ #    CHAIN            ACTION                             BYTES         PACKETS
+ 3    ;;; HTTP -> CyberVPN Caddy edge
+      dstnat           dst-nat                        2 588 528          49 356
+ 4    ;;; HTTPS -> CyberVPN Caddy edge
+      dstnat           dst-nat                        2 661 241          50 056
+ 5    ;;; HAIRPIN: masquerade LAN -> CyberVPN Caddy edge
+      srcnat           masquerade                       622 816           4 742
+ 6    ;;; HAIRPIN: HTTP -> CyberVPN Caddy edge
+      dstnat           dst-nat                               60               1
+ 7    ;;; HAIRPIN: HTTPS -> CyberVPN Caddy edge
+      dstnat           dst-nat                          298 198           3 760
+ 8 X  ;;; DISABLED duplicate old hairpin LAN -> n8n host
+      srcnat           masquerade                             0               0
+68    ;;; Mumble TCP -> 10.10.10.32
+      dstnat           dst-nat                            3 964              72
+69    ;;; Mumble UDP -> 10.10.10.32
+      dstnat           dst-nat                            1 478              33
+70    ;;; HAIRPIN: Mumble TCP
+      dstnat           dst-nat                              240               4
+71    ;;; HAIRPIN: Mumble UDP
+      dstnat           dst-nat                              225               5
+105    ;;; HAIRPIN: masquerade LAN -> Mumble TCP
+      srcnat           masquerade                            60               1
+106    ;;; HAIRPIN: masquerade LAN -> Mumble UDP
+      srcnat           masquerade                            42               1
+
+== dns static relevant ==
+Flags: D - DYNAMIC; X - DISABLED 
+ 1    ;;; Local HA via CyberVPN Caddy edge
+      name="ha.non-project-domain.invalid" type=A address=10.10.10.34 ttl=1h 
+
+ 2    ;;; Local n8n via CyberVPN Caddy edge
+      name="n8n.non-project-domain.invalid" type=A address=10.10.10.34 ttl=1h 
+
+ 3    ;;; Local Mumble
+      name="mumble.non-project-domain.invalid" type=A address=10.10.10.32 ttl=1h 
+
+ 4    ;;; Local vpn via CyberVPN Caddy edge
+      name="vpn.non-project-domain.invalid" type=A address=10.10.10.34 ttl=1h 
+
+ 5    ;;; CyberVPN local edge
+      name="gitlab.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+ 6    ;;; CyberVPN local edge
+      name="registry.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+ 7    ;;; CyberVPN local edge
+      name="grafana.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+ 8    ;;; CyberVPN local edge
+      name="sentry.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+ 9    ;;; CyberVPN local edge
+      name="prometheus.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+10    ;;; CyberVPN local edge
+      name="loki.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+11    ;;; CyberVPN local edge
+      name="alerts.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+12    ;;; CyberVPN local edge
+      name="uptime.h.cyber-vpn.net" type=A address=10.10.10.34 ttl=1h 
+
+== dns settings ==
+                      servers: 1.1.1.1                             
+                               1.0.0.1                             
+              dynamic-servers:                                     
+               use-doh-server: https://cloudflare-dns.com/dns-query
+              verify-doh-cert: yes                                 
+   doh-max-server-connections: 5                                   
+   doh-max-concurrent-queries: 50                                  
+                  doh-timeout: 5s                                  
+        allow-remote-requests: yes                                 
+          max-udp-packet-size: 4096                                
+         query-server-timeout: 2s                                  
+          query-total-timeout: 10s                                 
+       max-concurrent-queries: 100                                 
+  max-concurrent-tcp-sessions: 20                                  
+                   cache-size: 2048KiB                             
+                cache-max-ttl: 1w                                  
+      address-list-extra-time: 0s                                  
+                          vrf: main                                
+           mdns-repeat-ifaces:                                     
+                   cache-used: 142KiB                              
+
+== services ==
+Flags: D - DYNAMIC; X - DISABLED, I - INVALID; c - CONNECTION 
+ #     NAME                       NETNS CONTAINER              PORT PROTO     
+ 0  X  ftp                                                       21 tcp       
+ 1     ssh                                                       22 tcp       
+ 2 D c ssh                                                       22 tcp       
+ 3  X  telnet                                                    23 tcp       
+ 4 D   resolver                                                  53 tcp       
+ 5 D   resolver                                                  53 udp       
+ 6 D   dhcp                                                      67 udp       
+ 7 D   dhcpclient                                                68 udp       
+ 8  X  www                                                       80 tcp       
+ 9 D   ntp                                                      123 udp       
+10  X  www-ssl                                                  443 tcp       
+11     reverse-proxy                                            443 tcp       
+12 D   upnp                                                    1900 udp       
+13 D   btest                                                   2000 tcp       
+14 D   upnp                                                    2828 tcp       
+15 D   route_BFD                                               3784 udp       
+16 D   route_BFD                                               4784 udp       
+17 D   discover                                                5678 udp       
+18     winbox                                                  8291 tcp       
+19 D c winbox                                                  8291 tcp       
+20     api                                                     8728 tcp       
+21     api-ssl                                                 8729 tcp       
+22 D c resolver                                               32834 tcp       
+23 D c ssld                                                   43254 tcp       
+24 D c resolver                                               43756 tcp       
+25 D c ssld                                                   44786 tcp       
+26 D c route_BGP                                              45817 tcp       
+27 D c resolver                                               58606 tcp       
+28 D   xray                          22 xray-mikrotik-arm:... 10800 tcp       
+29 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+30 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+31 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+32 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+33 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+34 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+35 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+36 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+37 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+38 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+39 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+40 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+41 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+42 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+43 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+44 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+45 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+46 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+47 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+48 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+49 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+50 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+51 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+52 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+53 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+54 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+55 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+56 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+57 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+58 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+59 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+60 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+61 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+62 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+63 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+64 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+65 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+66 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+67 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+68 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+69 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+70 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+71 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+72 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+73 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+74 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+75 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+76 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+77 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+78 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+79 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+80 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+81 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+82 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+83 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+84 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+85 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+86 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+87 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+88 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+89 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+90 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+91 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+92 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+93 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+94 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+95 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+96 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+97 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+98 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+99 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+100 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+101 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+102 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+103 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+104 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+105 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+106 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+107 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+108 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+109 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+110 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+111 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+112 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+113 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+114 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+115 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+116 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+117 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+118 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+119 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+120 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+121 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+122 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+123 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+124 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+125 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+126 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+127 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+128 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+129 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+130 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+131 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+132 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+133 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+134 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+135 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+136 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+137 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+138 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+139 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+140 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+141 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+142 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+143 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+144 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+145 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+146 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+147 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+148 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+149 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+150 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+151 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+152 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+153 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+154 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+155 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+156 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+157 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+158 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+159 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+160 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+161 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+162 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+163 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+164 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+165 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+166 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+167 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+168 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+169 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+170 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+171 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+172 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+173 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+174 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+175 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+176 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+177 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+178 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+179 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+180 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+181 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+182 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+183 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+184 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+185 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+186 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+187 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+188 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+189 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+190 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+191 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+192 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+193 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+194 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+195 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+196 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+197 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+198 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+199 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+200 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+201 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+202 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+203 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+204 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+205 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+206 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+207 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+208 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+209 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+210 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+211 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+212 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+213 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+214 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+215 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+216 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+217 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+218 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+219 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+220 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+221 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+222 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+223 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+224 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+225 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+226 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+227 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+228 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+229 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+230 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+231 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+232 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+233 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+234 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+235 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+236 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+237 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+238 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+239 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+240 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+241 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+242 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+243 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+244 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+245 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+246 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+247 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+248 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+249 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+250 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+251 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+252 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+253 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+254 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+255 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+256 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+257 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+258 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+259 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+260 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+261 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+262 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+263 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+264 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+265 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+266 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+267 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+268 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+269 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+270 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+271 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+272 D c xray                          22 xray-mikrotik-arm:... 10800 tcp       
+273 D   xray                          22 xray-mikrotik-arm:... 10800 udp       
+274 D c tun2socks                     22 xray-mikrotik-arm:... 32794 tcp       
+275 D c tun2socks                     22 xray-mikrotik-arm:... 32974 tcp       
+276 D c tun2socks                     22 xray-mikrotik-arm:... 33064 tcp       
+277 D c tun2socks                     22 xray-mikrotik-arm:... 33066 tcp       
+278 D c tun2socks                     22 xray-mikrotik-arm:... 33070 tcp       
+279 D c xray                          22 xray-mikrotik-arm:... 33104 tcp       
+280 D c xray                          22 xray-mikrotik-arm:... 33118 tcp       
+281 D c tun2socks                     22 xray-mikrotik-arm:... 33150 tcp       
+282 D c tun2socks                     22 xray-mikrotik-arm:... 33224 tcp       
+283 D c xray                          22 xray-mikrotik-arm:... 33236 tcp       
+284 D c tun2socks                     22 xray-mikrotik-arm:... 33374 tcp       
+285 D c tun2socks                     22 xray-mikrotik-arm:... 33410 tcp       
+286 D c tun2socks                     22 xray-mikrotik-arm:... 33484 tcp       
+287 D c tun2socks                     22 xray-mikrotik-arm:... 33550 tcp       
+288 D c tun2socks                     22 xray-mikrotik-arm:... 33612 tcp       
+289 D c tun2socks                     22 xray-mikrotik-arm:... 33678 tcp       
+290 D c tun2socks                     22 xray-mikrotik-arm:... 33708 tcp       
+291 D c tun2socks                     22 xray-mikrotik-arm:... 33710 tcp       
+292 D c tun2socks                     22 xray-mikrotik-arm:... 33712 tcp       
+293 D c tun2socks                     22 xray-mikrotik-arm:... 33800 tcp       
+294 D c tun2socks                     22 xray-mikrotik-arm:... 33912 tcp       
+295 D c tun2socks                     22 xray-mikrotik-arm:... 33954 tcp       
+296 D c tun2socks                     22 xray-mikrotik-arm:... 33956 tcp       
+297 D c tun2socks                     22 xray-mikrotik-arm:... 34164 tcp       
+298 D c tun2socks                     22 xray-mikrotik-arm:... 34202 tcp       
+299 D c tun2socks                     22 xray-mikrotik-arm:... 34232 tcp       
+300 D c tun2socks                     22 xray-mikrotik-arm:... 34276 tcp       
+301 D c tun2socks                     22 xray-mikrotik-arm:... 34312 tcp       
+302 D   tun2socks                     22 xray-mikrotik-arm:... 34338 udp       
+303 D c tun2socks                     22 xray-mikrotik-arm:... 34372 tcp       
+304 D c tun2socks                     22 xray-mikrotik-arm:... 34374 tcp       
+305 D c tun2socks                     22 xray-mikrotik-arm:... 34376 tcp       
+306 D c tun2socks                     22 xray-mikrotik-arm:... 34564 tcp       
+307 D c tun2socks                     22 xray-mikrotik-arm:... 34566 tcp       
+308 D c tun2socks                     22 xray-mikrotik-arm:... 34568 tcp       
+309 D c tun2socks                     22 xray-mikrotik-arm:... 34570 tcp       
+310 D c tun2socks                     22 xray-mikrotik-arm:... 34574 tcp       
+311 D c tun2socks                     22 xray-mikrotik-arm:... 34576 tcp       
+312 D c tun2socks                     22 xray-mikrotik-arm:... 34578 tcp       
+313 D c tun2socks                     22 xray-mikrotik-arm:... 34580 tcp       
+314 D c tun2socks                     22 xray-mikrotik-arm:... 34582 tcp       
+315 D c tun2socks                     22 xray-mikrotik-arm:... 34584 tcp       
+316 D c tun2socks                     22 xray-mikrotik-arm:... 34586 tcp       
+317 D c tun2socks                     22 xray-mikrotik-arm:... 34588 tcp       
+318 D c tun2socks                     22 xray-mikrotik-arm:... 34590 tcp       
+319 D c tun2socks                     22 xray-mikrotik-arm:... 34624 tcp       
+320 D c tun2socks                     22 xray-mikrotik-arm:... 34626 tcp       
+321 D c tun2socks                     22 xray-mikrotik-arm:... 34628 tcp       
+322 D c tun2socks                     22 xray-mikrotik-arm:... 34630 tcp       
+323 D c tun2socks                     22 xray-mikrotik-arm:... 34634 tcp       
+324 D c tun2socks                     22 xray-mikrotik-arm:... 34636 tcp       
+325 D c tun2socks                     22 xray-mikrotik-arm:... 34638 tcp       
+326 D c tun2socks                     22 xray-mikrotik-arm:... 34640 tcp       
+327 D c tun2socks                     22 xray-mikrotik-arm:... 34642 tcp       
+328 D c tun2socks                     22 xray-mikrotik-arm:... 34644 tcp       
+329 D c tun2socks                     22 xray-mikrotik-arm:... 34646 tcp       
+330 D c tun2socks                     22 xray-mikrotik-arm:... 34648 tcp       
+331 D c tun2socks                     22 xray-mikrotik-arm:... 34650 tcp       
+332 D c tun2socks                     22 xray-mikrotik-arm:... 34652 tcp       
+333 D c tun2socks                     22 xray-mikrotik-arm:... 34684 tcp       
+334 D c tun2socks                     22 xray-mikrotik-arm:... 34688 tcp       
+335 D c tun2socks                     22 xray-mikrotik-arm:... 34690 tcp       
+336 D c tun2socks                     22 xray-mikrotik-arm:... 34692 tcp       
+337 D c tun2socks                     22 xray-mikrotik-arm:... 34696 tcp       
+338 D c tun2socks                     22 xray-mikrotik-arm:... 34700 tcp       
+339 D c tun2socks                     22 xray-mikrotik-arm:... 34702 tcp       
+340 D c tun2socks                     22 xray-mikrotik-arm:... 34704 tcp       
+341 D c tun2socks                     22 xray-mikrotik-arm:... 34706 tcp       
+342 D c tun2socks                     22 xray-mikrotik-arm:... 34708 tcp       
+343 D c tun2socks                     22 xray-mikrotik-arm:... 34710 tcp       
+344 D c tun2socks                     22 xray-mikrotik-arm:... 34712 tcp       
+345 D c tun2socks                     22 xray-mikrotik-arm:... 34714 tcp       
+346 D c tun2socks                     22 xray-mikrotik-arm:... 34744 tcp       
+347 D c tun2socks                     22 xray-mikrotik-arm:... 34748 tcp       
+348 D c tun2socks                     22 xray-mikrotik-arm:... 34750 tcp       
+349 D c tun2socks                     22 xray-mikrotik-arm:... 34752 tcp       
+350 D c tun2socks                     22 xray-mikrotik-arm:... 34754 tcp       
+351 D c tun2socks                     22 xray-mikrotik-arm:... 34756 tcp       
+352 D c tun2socks                     22 xray-mikrotik-arm:... 34758 tcp       
+353 D c tun2socks                     22 xray-mikrotik-arm:... 34760 tcp       
+354 D c tun2socks                     22 xray-mikrotik-arm:... 34762 tcp       
+355 D c tun2socks                     22 xray-mikrotik-arm:... 34764 tcp       
+356 D c tun2socks                     22 xray-mikrotik-arm:... 34766 tcp       
+357 D c tun2socks                     22 xray-mikrotik-arm:... 34768 tcp       
+358 D c tun2socks                     22 xray-mikrotik-arm:... 34798 tcp       
+359 D c tun2socks                     22 xray-mikrotik-arm:... 34800 tcp       
+360 D c tun2socks                     22 xray-mikrotik-arm:... 34802 tcp       
+361 D c tun2socks                     22 xray-mikrotik-arm:... 34804 tcp       
+362 D c tun2socks                     22 xray-mikrotik-arm:... 34806 tcp       
+363 D c tun2socks                     22 xray-mikrotik-arm:... 34810 tcp       
+364 D c tun2socks                     22 xray-mikrotik-arm:... 34812 tcp       
+365 D c tun2socks                     22 xray-mikrotik-arm:... 34814 tcp       
+366 D c tun2socks                     22 xray-mikrotik-arm:... 34816 tcp       
+367 D c tun2socks                     22 xray-mikrotik-arm:... 34818 tcp       
+368 D c tun2socks                     22 xray-mikrotik-arm:... 34820 tcp       
+369 D c tun2socks                     22 xray-mikrotik-arm:... 34822 tcp       
+370 D c tun2socks                     22 xray-mikrotik-arm:... 34824 tcp       
+371 D c tun2socks                     22 xray-mikrotik-arm:... 34826 tcp       
+372 D c tun2socks                     22 xray-mikrotik-arm:... 34828 tcp       
+373 D c tun2socks                     22 xray-mikrotik-arm:... 34830 tcp       
+374 D   tun2socks                     22 xray-mikrotik-arm:... 34851 udp       
+375 D c tun2socks                     22 xray-mikrotik-arm:... 34868 tcp       
+376 D c tun2socks                     22 xray-mikrotik-arm:... 34870 tcp       
+377 D c tun2socks                     22 xray-mikrotik-arm:... 34872 tcp       
+378 D c tun2socks                     22 xray-mikrotik-arm:... 34874 tcp       
+379 D c tun2socks                     22 xray-mikrotik-arm:... 34876 tcp       
+380 D c tun2socks                     22 xray-mikrotik-arm:... 34878 tcp       
+381 D c tun2socks                     22 xray-mikrotik-arm:... 34880 tcp       
+382 D c tun2socks                     22 xray-mikrotik-arm:... 34882 tcp       
+383 D c tun2socks                     22 xray-mikrotik-arm:... 34884 tcp       
+384 D c tun2socks                     22 xray-mikrotik-arm:... 34886 tcp       
+385 D c tun2socks                     22 xray-mikrotik-arm:... 34888 tcp       
+386 D c tun2socks                     22 xray-mikrotik-arm:... 34890 tcp       
+387 D c tun2socks                     22 xray-mikrotik-arm:... 34892 tcp       
+388 D c tun2socks                     22 xray-mikrotik-arm:... 34926 tcp       
+389 D c tun2socks                     22 xray-mikrotik-arm:... 34928 tcp       
+390 D c tun2socks                     22 xray-mikrotik-arm:... 34930 tcp       
+391 D c tun2socks                     22 xray-mikrotik-arm:... 34934 tcp       
+392 D   tun2socks                     22 xray-mikrotik-arm:... 34935 udp       
+393 D c tun2socks                     22 xray-mikrotik-arm:... 34936 tcp       
+394 D c tun2socks                     22 xray-mikrotik-arm:... 34938 tcp       
+395 D c tun2socks                     22 xray-mikrotik-arm:... 34940 tcp       
+396 D c tun2socks                     22 xray-mikrotik-arm:... 34942 tcp       
+397 D c tun2socks                     22 xray-mikrotik-arm:... 34944 tcp       
+398 D c tun2socks                     22 xray-mikrotik-arm:... 34946 tcp       
+399 D c tun2socks                     22 xray-mikrotik-arm:... 34948 tcp       
+400 D c tun2socks                     22 xray-mikrotik-arm:... 34974 tcp       
+401 D c tun2socks                     22 xray-mikrotik-arm:... 34978 tcp       
+402 D c tun2socks                     22 xray-mikrotik-arm:... 34980 tcp       
+403 D c tun2socks                     22 xray-mikrotik-arm:... 34982 tcp       
+404 D c tun2socks                     22 xray-mikrotik-arm:... 34984 tcp       
+405 D c tun2socks                     22 xray-mikrotik-arm:... 34986 tcp       
+406 D c tun2socks                     22 xray-mikrotik-arm:... 34988 tcp       
+407 D c tun2socks                     22 xray-mikrotik-arm:... 34990 tcp       
+408 D c tun2socks                     22 xray-mikrotik-arm:... 34992 tcp       
+409 D c tun2socks                     22 xray-mikrotik-arm:... 34994 tcp       
+410 D c tun2socks                     22 xray-mikrotik-arm:... 34996 tcp       
+411 D c tun2socks                     22 xray-mikrotik-arm:... 35020 tcp       
+412 D c tun2socks                     22 xray-mikrotik-arm:... 35022 tcp       
+413 D c tun2socks                     22 xray-mikrotik-arm:... 35024 tcp       
+414 D c tun2socks                     22 xray-mikrotik-arm:... 35026 tcp       
+415 D c tun2socks                     22 xray-mikrotik-arm:... 35028 tcp       
+416 D c tun2socks                     22 xray-mikrotik-arm:... 35030 tcp       
+417 D c tun2socks                     22 xray-mikrotik-arm:... 35032 tcp       
+418 D c tun2socks                     22 xray-mikrotik-arm:... 35034 tcp       
+419 D c tun2socks                     22 xray-mikrotik-arm:... 35056 tcp       
+420 D c tun2socks                     22 xray-mikrotik-arm:... 35058 tcp       
+421 D c tun2socks                     22 xray-mikrotik-arm:... 35060 tcp       
+422 D c tun2socks                     22 xray-mikrotik-arm:... 35062 tcp       
+423 D c tun2socks                     22 xray-mikrotik-arm:... 35064 tcp       
+424 D c tun2socks                     22 xray-mikrotik-arm:... 35066 tcp       
+425 D c tun2socks                     22 xray-mikrotik-arm:... 35068 tcp       
+426 D c tun2socks                     22 xray-mikrotik-arm:... 35070 tcp       
+427 D c tun2socks                     22 xray-mikrotik-arm:... 35072 tcp       
+428 D c tun2socks                     22 xray-mikrotik-arm:... 35074 tcp       
+429 D c tun2socks                     22 xray-mikrotik-arm:... 35076 tcp       
+430 D   tun2socks                     22 xray-mikrotik-arm:... 35092 udp       
+431 D c tun2socks                     22 xray-mikrotik-arm:... 35104 tcp       
+432 D c tun2socks                     22 xray-mikrotik-arm:... 35106 tcp       
+433 D c tun2socks                     22 xray-mikrotik-arm:... 35108 tcp       
+434 D c tun2socks                     22 xray-mikrotik-arm:... 35110 tcp       
+435 D c tun2socks                     22 xray-mikrotik-arm:... 35112 tcp       
+436 D c tun2socks                     22 xray-mikrotik-arm:... 35114 tcp       
+437 D c tun2socks                     22 xray-mikrotik-arm:... 35116 tcp       
+438 D c tun2socks                     22 xray-mikrotik-arm:... 35118 tcp       
+439 D c tun2socks                     22 xray-mikrotik-arm:... 35120 tcp       
+440 D c tun2socks                     22 xray-mikrotik-arm:... 35122 tcp       
+441 D c tun2socks                     22 xray-mikrotik-arm:... 35124 tcp       
+442 D c tun2socks                     22 xray-mikrotik-arm:... 35126 tcp       
+443 D c tun2socks                     22 xray-mikrotik-arm:... 35128 tcp       
+444 D c tun2socks                     22 xray-mikrotik-arm:... 35130 tcp       
+445 D c tun2socks                     22 xray-mikrotik-arm:... 35132 tcp       
+446 D c tun2socks                     22 xray-mikrotik-arm:... 35142 tcp       
+447 D c xray                          22 xray-mikrotik-arm:... 35198 tcp       
+448 D c xray                          22 xray-mikrotik-arm:... 35400 tcp       
+449 D c tun2socks                     22 xray-mikrotik-arm:... 35566 tcp       
+450 D c tun2socks                     22 xray-mikrotik-arm:... 35958 tcp       
+451 D c xray                          22 xray-mikrotik-arm:... 36780 tcp       
+452 D   tun2socks                     22 xray-mikrotik-arm:... 37108 udp       
+453 D c xray                          22 xray-mikrotik-arm:... 37158 tcp       
+454 D c xray                          22 xray-mikrotik-arm:... 37282 tcp       
+455 D c tun2socks                     22 xray-mikrotik-arm:... 37286 tcp       
+456 D c tun2socks                     22 xray-mikrotik-arm:... 37426 tcp       
+457 D c tun2socks                     22 xray-mikrotik-arm:... 37546 tcp       
+458 D c tun2socks                     22 xray-mikrotik-arm:... 38054 tcp       
+459 D c tun2socks                     22 xray-mikrotik-arm:... 38616 tcp       
+460 D   tun2socks                     22 xray-mikrotik-arm:... 38811 udp       
+461 D   tun2socks                     22 xray-mikrotik-arm:... 39098 udp       
+462 D   tun2socks                     22 xray-mikrotik-arm:... 39573 udp       
+463 D c tun2socks                     22 xray-mikrotik-arm:... 39742 tcp       
+464 D c xray                          22 xray-mikrotik-arm:... 40108 tcp       
+465 D c xray                          22 xray-mikrotik-arm:... 40368 tcp       
+466 D c xray                          22 xray-mikrotik-arm:... 40866 tcp       
+467 D c xray                          22 xray-mikrotik-arm:... 41132 tcp       
+468 D c xray                          22 xray-mikrotik-arm:... 41138 tcp       
+469 D c xray                          22 xray-mikrotik-arm:... 41398 tcp       
+470 D c xray                          22 xray-mikrotik-arm:... 41678 tcp       
+471 D c xray                          22 xray-mikrotik-arm:... 41712 tcp       
+472 D c xray                          22 xray-mikrotik-arm:... 41730 tcp       
+473 D c xray                          22 xray-mikrotik-arm:... 41844 tcp       
+474 D c xray                          22 xray-mikrotik-arm:... 41858 tcp       
+475 D   tun2socks                     22 xray-mikrotik-arm:... 41907 udp       
+476 D c tun2socks                     22 xray-mikrotik-arm:... 42134 tcp       
+477 D c tun2socks                     22 xray-mikrotik-arm:... 42148 tcp       
+478 D c xray                          22 xray-mikrotik-arm:... 42236 tcp       
+479 D c tun2socks                     22 xray-mikrotik-arm:... 42266 tcp       
+480 D c xray                          22 xray-mikrotik-arm:... 42362 tcp       
+481 D c xray                          22 xray-mikrotik-arm:... 42418 tcp       
+482 D c xray                          22 xray-mikrotik-arm:... 42446 tcp       
+483 D c xray                          22 xray-mikrotik-arm:... 42832 tcp       
+484 D c xray                          22 xray-mikrotik-arm:... 42870 tcp       
+485 D c xray                          22 xray-mikrotik-arm:... 43402 tcp       
+486 D c xray                          22 xray-mikrotik-arm:... 43460 tcp       
+487 D c xray                          22 xray-mikrotik-arm:... 43514 tcp       
+488 D c xray                          22 xray-mikrotik-arm:... 43552 tcp       
+489 D c xray                          22 xray-mikrotik-arm:... 43674 tcp       
+490 D c xray                          22 xray-mikrotik-arm:... 43676 tcp       
+491 D c xray                          22 xray-mikrotik-arm:... 44020 tcp       
+492 D c tun2socks                     22 xray-mikrotik-arm:... 44228 tcp       
+493 D c tun2socks                     22 xray-mikrotik-arm:... 44430 tcp       
+494 D c xray                          22 xray-mikrotik-arm:... 44590 tcp       
+495 D c xray                          22 xray-mikrotik-arm:... 44658 tcp       
+496 D c xray                          22 xray-mikrotik-arm:... 44934 tcp       
+497 D c xray                          22 xray-mikrotik-arm:... 44980 tcp       
+498 D c xray                          22 xray-mikrotik-arm:... 45040 tcp       
+499 D c xray                          22 xray-mikrotik-arm:... 45218 tcp       
+500 D c xray                          22 xray-mikrotik-arm:... 45284 tcp       
+501 D c xray                          22 xray-mikrotik-arm:... 45600 tcp       
+502 D c tun2socks                     22 xray-mikrotik-arm:... 45810 tcp       
+503 D c xray                          22 xray-mikrotik-arm:... 45810 tcp       
+504 D c tun2socks                     22 xray-mikrotik-arm:... 46188 tcp       
+505 D c tun2socks                     22 xray-mikrotik-arm:... 46312 tcp       
+506 D   tun2socks                     22 xray-mikrotik-arm:... 46796 udp       
+507 D   tun2socks                     22 xray-mikrotik-arm:... 47075 udp       
+508 D c xray                          22 xray-mikrotik-arm:... 47120 tcp       
+509 D c xray                          22 xray-mikrotik-arm:... 47846 tcp       
+510 D c xray                          22 xray-mikrotik-arm:... 47990 tcp       
+511 D   tun2socks                     22 xray-mikrotik-arm:... 48085 udp       
+512 D c xray                          22 xray-mikrotik-arm:... 48414 tcp       
+513 D   tun2socks                     22 xray-mikrotik-arm:... 48983 udp       
+514 D c xray                          22 xray-mikrotik-arm:... 48988 tcp       
+515 D c tun2socks                     22 xray-mikrotik-arm:... 49138 tcp       
+516 D c tun2socks                     22 xray-mikrotik-arm:... 49390 tcp       
+517 D c xray                          22 xray-mikrotik-arm:... 49400 tcp       
+518 D c xray                          22 xray-mikrotik-arm:... 49492 tcp       
+519 D c xray                          22 xray-mikrotik-arm:... 49618 tcp       
+520 D c tun2socks                     22 xray-mikrotik-arm:... 49896 tcp       
+521 D c xray                          22 xray-mikrotik-arm:... 49944 tcp       
+522 D c tun2socks                     22 xray-mikrotik-arm:... 50162 tcp       
+523 D c tun2socks                     22 xray-mikrotik-arm:... 50168 tcp       
+524 D c xray                          22 xray-mikrotik-arm:... 50352 tcp       
+525 D c tun2socks                     22 xray-mikrotik-arm:... 50428 tcp       
+526 D c xray                          22 xray-mikrotik-arm:... 50516 tcp       
+527 D   tun2socks                     22 xray-mikrotik-arm:... 50573 udp       
+528 D c xray                          22 xray-mikrotik-arm:... 50598 tcp       
+529 D c tun2socks                     22 xray-mikrotik-arm:... 50708 tcp       
+530 D c tun2socks                     22 xray-mikrotik-arm:... 50742 tcp       
+531 D c tun2socks                     22 xray-mikrotik-arm:... 50760 tcp       
+532 D c xray                          22 xray-mikrotik-arm:... 50824 tcp       
+533 D c tun2socks                     22 xray-mikrotik-arm:... 50874 tcp       
+534 D c xray                          22 xray-mikrotik-arm:... 50874 tcp       
+535 D c tun2socks                     22 xray-mikrotik-arm:... 50888 tcp       
+536 D   tun2socks                     22 xray-mikrotik-arm:... 50932 udp       
+537 D c xray                          22 xray-mikrotik-arm:... 51080 tcp       
+538 D c xray                          22 xray-mikrotik-arm:... 51196 tcp       
+539 D c xray                          22 xray-mikrotik-arm:... 51206 tcp       
+540 D c tun2socks                     22 xray-mikrotik-arm:... 51266 tcp       
+541 D c xray                          22 xray-mikrotik-arm:... 51328 tcp       
+542 D c xray                          22 xray-mikrotik-arm:... 51360 tcp       
+543 D c tun2socks                     22 xray-mikrotik-arm:... 51392 tcp       
+544 D c tun2socks                     22 xray-mikrotik-arm:... 51442 tcp       
+545 D c tun2socks                     22 xray-mikrotik-arm:... 51476 tcp       
+546 D c xray                          22 xray-mikrotik-arm:... 51710 tcp       
+547 D c xray                          22 xray-mikrotik-arm:... 51736 tcp       
+548 D c tun2socks                     22 xray-mikrotik-arm:... 51862 tcp       
+549 D c tun2socks                     22 xray-mikrotik-arm:... 51900 tcp       
+550 D   tun2socks                     22 xray-mikrotik-arm:... 52146 udp       
+551 D c xray                          22 xray-mikrotik-arm:... 52176 tcp       
+552 D c xray                          22 xray-mikrotik-arm:... 52280 tcp       
+553 D c xray                          22 xray-mikrotik-arm:... 52426 tcp       
+554 D c tun2socks                     22 xray-mikrotik-arm:... 52430 tcp       
+555 D c tun2socks                     22 xray-mikrotik-arm:... 52490 tcp       
+556 D c tun2socks                     22 xray-mikrotik-arm:... 52544 tcp       
+557 D c tun2socks                     22 xray-mikrotik-arm:... 52570 tcp       
+558 D c xray                          22 xray-mikrotik-arm:... 52614 tcp       
+559 D c tun2socks                     22 xray-mikrotik-arm:... 52698 tcp       
+560 D c tun2socks                     22 xray-mikrotik-arm:... 52702 tcp       
+561 D c xray                          22 xray-mikrotik-arm:... 53002 tcp       
+562 D c tun2socks                     22 xray-mikrotik-arm:... 53042 tcp       
+563 D   tun2socks                     22 xray-mikrotik-arm:... 53097 udp       
+564 D   tun2socks                     22 xray-mikrotik-arm:... 53269 udp       
+565 D c xray                          22 xray-mikrotik-arm:... 53480 tcp       
+566 D c xray                          22 xray-mikrotik-arm:... 53574 tcp       
+567 D c xray                          22 xray-mikrotik-arm:... 53604 tcp       
+568 D c tun2socks                     22 xray-mikrotik-arm:... 53614 tcp       
+569 D c tun2socks                     22 xray-mikrotik-arm:... 53688 tcp       
+570 D c xray                          22 xray-mikrotik-arm:... 53730 tcp       
+571 D c xray                          22 xray-mikrotik-arm:... 53734 tcp       
+572 D c xray                          22 xray-mikrotik-arm:... 53738 tcp       
+573 D c xray                          22 xray-mikrotik-arm:... 53740 tcp       
+574 D   tun2socks                     22 xray-mikrotik-arm:... 53742 udp       
+575 D c xray                          22 xray-mikrotik-arm:... 53744 tcp       
+576 D c xray                          22 xray-mikrotik-arm:... 53746 tcp       
+577 D c xray                          22 xray-mikrotik-arm:... 53748 tcp       
+578 D c xray                          22 xray-mikrotik-arm:... 53750 tcp       
+579 D c xray                          22 xray-mikrotik-arm:... 53752 tcp       
+580 D c xray                          22 xray-mikrotik-arm:... 53754 tcp       
+581 D c xray                          22 xray-mikrotik-arm:... 53756 tcp       
+582 D c xray                          22 xray-mikrotik-arm:... 53758 tcp       
+583 D c xray                          22 xray-mikrotik-arm:... 53796 tcp       
+584 D c xray                          22 xray-mikrotik-arm:... 53798 tcp       
+585 D c xray                          22 xray-mikrotik-arm:... 53802 tcp       
+586 D c xray                          22 xray-mikrotik-arm:... 53804 tcp       
+587 D c xray                          22 xray-mikrotik-arm:... 53806 tcp       
+588 D c xray                          22 xray-mikrotik-arm:... 53808 tcp       
+589 D c xray                          22 xray-mikrotik-arm:... 53810 tcp       
+590 D c xray                          22 xray-mikrotik-arm:... 53812 tcp       
+591 D c xray                          22 xray-mikrotik-arm:... 53814 tcp       
+592 D c xray                          22 xray-mikrotik-arm:... 53816 tcp       
+593 D c xray                          22 xray-mikrotik-arm:... 53818 tcp       
+594 D c xray                          22 xray-mikrotik-arm:... 53822 tcp       
+595 D c xray                          22 xray-mikrotik-arm:... 53854 tcp       
+596 D c xray                          22 xray-mikrotik-arm:... 53856 tcp       
+597 D c xray                          22 xray-mikrotik-arm:... 53858 tcp       
+598 D c xray                          22 xray-mikrotik-arm:... 53860 tcp       
+599 D c xray                          22 xray-mikrotik-arm:... 53862 tcp       
+600 D   tun2socks                     22 xray-mikrotik-arm:... 53862 udp       
+601 D c xray                          22 xray-mikrotik-arm:... 53866 tcp       
+602 D c xray                          22 xray-mikrotik-arm:... 53868 tcp       
+603 D c xray                          22 xray-mikrotik-arm:... 53870 tcp       
+604 D c xray                          22 xray-mikrotik-arm:... 53872 tcp       
+605 D c xray                          22 xray-mikrotik-arm:... 53874 tcp       
+606 D c xray                          22 xray-mikrotik-arm:... 53876 tcp       
+607 D c xray                          22 xray-mikrotik-arm:... 53878 tcp       
+608 D c xray                          22 xray-mikrotik-arm:... 53880 tcp       
+609 D c xray                          22 xray-mikrotik-arm:... 53882 tcp       
+610 D c xray                          22 xray-mikrotik-arm:... 53886 tcp       
+611 D c xray                          22 xray-mikrotik-arm:... 53916 tcp       
+612 D c xray                          22 xray-mikrotik-arm:... 53918 tcp       
+613 D c xray                          22 xray-mikrotik-arm:... 53920 tcp       
+614 D c xray                          22 xray-mikrotik-arm:... 53922 tcp       
+615 D c xray                          22 xray-mikrotik-arm:... 53924 tcp       
+616 D c xray                          22 xray-mikrotik-arm:... 53928 tcp       
+617 D c xray                          22 xray-mikrotik-arm:... 53932 tcp       
+618 D c xray                          22 xray-mikrotik-arm:... 53934 tcp       
+619 D c xray                          22 xray-mikrotik-arm:... 53936 tcp       
+620 D c xray                          22 xray-mikrotik-arm:... 53938 tcp       
+621 D c xray                          22 xray-mikrotik-arm:... 53940 tcp       
+622 D c xray                          22 xray-mikrotik-arm:... 53942 tcp       
+623 D c tun2socks                     22 xray-mikrotik-arm:... 53964 tcp       
+624 D c xray                          22 xray-mikrotik-arm:... 53970 tcp       
+625 D c xray                          22 xray-mikrotik-arm:... 53974 tcp       
+626 D c xray                          22 xray-mikrotik-arm:... 53976 tcp       
+627 D c xray                          22 xray-mikrotik-arm:... 53978 tcp       
+628 D c xray                          22 xray-mikrotik-arm:... 53980 tcp       
+629 D c xray                          22 xray-mikrotik-arm:... 53982 tcp       
+630 D c xray                          22 xray-mikrotik-arm:... 53984 tcp       
+631 D c xray                          22 xray-mikrotik-arm:... 53986 tcp       
+632 D c xray                          22 xray-mikrotik-arm:... 53988 tcp       
+633 D c xray                          22 xray-mikrotik-arm:... 53990 tcp       
+634 D c xray                          22 xray-mikrotik-arm:... 53992 tcp       
+635 D c xray                          22 xray-mikrotik-arm:... 53994 tcp       
+636 D c tun2socks                     22 xray-mikrotik-arm:... 54010 tcp       
+637 D c xray                          22 xray-mikrotik-arm:... 54034 tcp       
+638 D c xray                          22 xray-mikrotik-arm:... 54036 tcp       
+639 D c xray                          22 xray-mikrotik-arm:... 54038 tcp       
+640 D c xray                          22 xray-mikrotik-arm:... 54040 tcp       
+641 D c xray                          22 xray-mikrotik-arm:... 54042 tcp       
+642 D c xray                          22 xray-mikrotik-arm:... 54044 tcp       
+643 D c xray                          22 xray-mikrotik-arm:... 54046 tcp       
+644 D c xray                          22 xray-mikrotik-arm:... 54048 tcp       
+645 D c xray                          22 xray-mikrotik-arm:... 54050 tcp       
+646 D c xray                          22 xray-mikrotik-arm:... 54052 tcp       
+647 D c xray                          22 xray-mikrotik-arm:... 54054 tcp       
+648 D c xray                          22 xray-mikrotik-arm:... 54056 tcp       
+649 D c xray                          22 xray-mikrotik-arm:... 54058 tcp       
+650 D c xray                          22 xray-mikrotik-arm:... 54060 tcp       
+651 D c xray                          22 xray-mikrotik-arm:... 54062 tcp       
+652 D c xray                          22 xray-mikrotik-arm:... 54064 tcp       
+653 D c tun2socks                     22 xray-mikrotik-arm:... 54070 tcp       
+654 D c xray                          22 xray-mikrotik-arm:... 54096 tcp       
+655 D c xray                          22 xray-mikrotik-arm:... 54102 tcp       
+656 D c xray                          22 xray-mikrotik-arm:... 54104 tcp       
+657 D c xray                          22 xray-mikrotik-arm:... 54106 tcp       
+658 D c xray                          22 xray-mikrotik-arm:... 54108 tcp       
+659 D c xray                          22 xray-mikrotik-arm:... 54110 tcp       
+660 D c xray                          22 xray-mikrotik-arm:... 54112 tcp       
+661 D c xray                          22 xray-mikrotik-arm:... 54114 tcp       
+662 D c xray                          22 xray-mikrotik-arm:... 54116 tcp       
+663 D c xray                          22 xray-mikrotik-arm:... 54118 tcp       
+664 D c xray                          22 xray-mikrotik-arm:... 54120 tcp       
+665 D c xray                          22 xray-mikrotik-arm:... 54122 tcp       
+666 D c xray                          22 xray-mikrotik-arm:... 54124 tcp       
+667 D c xray                          22 xray-mikrotik-arm:... 54152 tcp       
+668 D c xray                          22 xray-mikrotik-arm:... 54154 tcp       
+669 D c xray                          22 xray-mikrotik-arm:... 54156 tcp       
+670 D c xray                          22 xray-mikrotik-arm:... 54158 tcp       
+671 D c xray                          22 xray-mikrotik-arm:... 54160 tcp       
+672 D c xray                          22 xray-mikrotik-arm:... 54162 tcp       
+673 D c xray                          22 xray-mikrotik-arm:... 54164 tcp       
+674 D c xray                          22 xray-mikrotik-arm:... 54166 tcp       
+675 D c xray                          22 xray-mikrotik-arm:... 54168 tcp       
+676 D c xray                          22 xray-mikrotik-arm:... 54170 tcp       
+677 D c xray                          22 xray-mikrotik-arm:... 54172 tcp       
+678 D c xray                          22 xray-mikrotik-arm:... 54200 tcp       
+679 D c xray                          22 xray-mikrotik-arm:... 54202 tcp       
+680 D c xray                          22 xray-mikrotik-arm:... 54204 tcp       
+681 D c xray                          22 xray-mikrotik-arm:... 54206 tcp       
+682 D c xray                          22 xray-mikrotik-arm:... 54208 tcp       
+683 D c xray                          22 xray-mikrotik-arm:... 54210 tcp       
+684 D c xray                          22 xray-mikrotik-arm:... 54212 tcp       
+685 D c xray                          22 xray-mikrotik-arm:... 54214 tcp       
+686 D c xray                          22 xray-mikrotik-arm:... 54216 tcp       
+687 D c xray                          22 xray-mikrotik-arm:... 54218 tcp       
+688 D c xray                          22 xray-mikrotik-arm:... 54236 tcp       
+689 D c xray                          22 xray-mikrotik-arm:... 54238 tcp       
+690 D c xray                          22 xray-mikrotik-arm:... 54240 tcp       
+691 D c xray                          22 xray-mikrotik-arm:... 54242 tcp       
+692 D c xray                          22 xray-mikrotik-arm:... 54244 tcp       
+693 D c xray                          22 xray-mikrotik-arm:... 54246 tcp       
+694 D c tun2socks                     22 xray-mikrotik-arm:... 54248 tcp       
+695 D c xray                          22 xray-mikrotik-arm:... 54248 tcp       
+696 D c xray                          22 xray-mikrotik-arm:... 54250 tcp       
+697 D c xray                          22 xray-mikrotik-arm:... 54282 tcp       
+698 D c xray                          22 xray-mikrotik-arm:... 54284 tcp       
+699 D c xray                          22 xray-mikrotik-arm:... 54286 tcp       
+700 D c xray                          22 xray-mikrotik-arm:... 54288 tcp       
+701 D c xray                          22 xray-mikrotik-arm:... 54290 tcp       
+702 D c xray                          22 xray-mikrotik-arm:... 54292 tcp       
+703 D c xray                          22 xray-mikrotik-arm:... 54294 tcp       
+704 D c xray                          22 xray-mikrotik-arm:... 54296 tcp       
+705 D c xray                          22 xray-mikrotik-arm:... 54298 tcp       
+706 D c xray                          22 xray-mikrotik-arm:... 54300 tcp       
+707 D c xray                          22 xray-mikrotik-arm:... 54302 tcp       
+708 D c tun2socks                     22 xray-mikrotik-arm:... 54304 tcp       
+709 D   tun2socks                     22 xray-mikrotik-arm:... 54328 udp       
+710 D c xray                          22 xray-mikrotik-arm:... 54334 tcp       
+711 D c xray                          22 xray-mikrotik-arm:... 54336 tcp       
+712 D c xray                          22 xray-mikrotik-arm:... 54338 tcp       
+713 D c xray                          22 xray-mikrotik-arm:... 54340 tcp       
+714 D c xray                          22 xray-mikrotik-arm:... 54342 tcp       
+715 D c xray                          22 xray-mikrotik-arm:... 54344 tcp       
+716 D c xray                          22 xray-mikrotik-arm:... 54346 tcp       
+717 D c xray                          22 xray-mikrotik-arm:... 54348 tcp       
+718 D c xray                          22 xray-mikrotik-arm:... 54350 tcp       
+719 D c xray                          22 xray-mikrotik-arm:... 54352 tcp       
+720 D c xray                          22 xray-mikrotik-arm:... 54354 tcp       
+721 D c xray                          22 xray-mikrotik-arm:... 54356 tcp       
+722 D c xray                          22 xray-mikrotik-arm:... 54358 tcp       
+723 D c xray                          22 xray-mikrotik-arm:... 54360 tcp       
+724 D c xray                          22 xray-mikrotik-arm:... 54362 tcp       
+725 D c xray                          22 xray-mikrotik-arm:... 54364 tcp       
+726 D c tun2socks                     22 xray-mikrotik-arm:... 54630 tcp       
+727 D c xray                          22 xray-mikrotik-arm:... 54768 tcp       
+728 D c tun2socks                     22 xray-mikrotik-arm:... 54840 tcp       
+729 D   tun2socks                     22 xray-mikrotik-arm:... 54928 udp       
+730 D c xray                          22 xray-mikrotik-arm:... 55160 tcp       
+731 D   tun2socks                     22 xray-mikrotik-arm:... 55311 udp       
+732 D c tun2socks                     22 xray-mikrotik-arm:... 56150 tcp       
+733 D c xray                          22 xray-mikrotik-arm:... 56488 tcp       
+734 D c xray                          22 xray-mikrotik-arm:... 56628 tcp       
+735 D c xray                          22 xray-mikrotik-arm:... 56748 tcp       
+736 D c tun2socks                     22 xray-mikrotik-arm:... 56874 tcp       
+737 D c tun2socks                     22 xray-mikrotik-arm:... 57020 tcp       
+738 D c xray                          22 xray-mikrotik-arm:... 57256 tcp       
+739 D c tun2socks                     22 xray-mikrotik-arm:... 57444 tcp       
+740 D c xray                          22 xray-mikrotik-arm:... 57822 tcp       
+741 D c tun2socks                     22 xray-mikrotik-arm:... 58018 tcp       
+742 D   tun2socks                     22 xray-mikrotik-arm:... 58166 udp       
+743 D c tun2socks                     22 xray-mikrotik-arm:... 58430 tcp       
+744 D   tun2socks                     22 xray-mikrotik-arm:... 58481 udp       
+745 D c tun2socks                     22 xray-mikrotik-arm:... 58522 tcp       
+746 D c tun2socks                     22 xray-mikrotik-arm:... 58648 tcp       
+747 D c xray                          22 xray-mikrotik-arm:... 58944 tcp       
+748 D   tun2socks                     22 xray-mikrotik-arm:... 58971 udp       
+749 D c tun2socks                     22 xray-mikrotik-arm:... 58972 tcp       
+750 D   tun2socks                     22 xray-mikrotik-arm:... 59210 udp       
+751 D c tun2socks                     22 xray-mikrotik-arm:... 59382 tcp       
+752 D c tun2socks                     22 xray-mikrotik-arm:... 59546 tcp       
+753 D c tun2socks                     22 xray-mikrotik-arm:... 59628 tcp       
+754 D   tun2socks                     22 xray-mikrotik-arm:... 59654 udp       
+755 D c tun2socks                     22 xray-mikrotik-arm:... 59854 tcp       
+756 D c tun2socks                     22 xray-mikrotik-arm:... 59874 tcp       
+757 D c tun2socks                     22 xray-mikrotik-arm:... 59904 tcp       
+758 D c tun2socks                     22 xray-mikrotik-arm:... 60110 tcp       
+759 D c tun2socks                     22 xray-mikrotik-arm:... 60226 tcp       
+760 D c tun2socks                     22 xray-mikrotik-arm:... 60236 tcp       
+761 D c tun2socks                     22 xray-mikrotik-arm:... 60272 tcp       
+762 D c tun2socks                     22 xray-mikrotik-arm:... 60356 tcp       
+763 D c tun2socks                     22 xray-mikrotik-arm:... 60358 tcp       
+764 D   tun2socks                     22 xray-mikrotik-arm:... 60381 udp       
+765 D c tun2socks                     22 xray-mikrotik-arm:... 60390 tcp       
+766 D c tun2socks                     22 xray-mikrotik-arm:... 60472 tcp       
+767 D c tun2socks                     22 xray-mikrotik-arm:... 60542 tcp       
+768 D c tun2socks                     22 xray-mikrotik-arm:... 60732 tcp       
+769 D c tun2socks                     22 xray-mikrotik-arm:... 60740 tcp       
+770 D c tun2socks                     22 xray-mikrotik-arm:... 60762 tcp       
+771 D c tun2socks                     22 xray-mikrotik-arm:... 60800 tcp       
+772 D c tun2socks                     22 xray-mikrotik-arm:... 60838 tcp       
+
+== export relevant ==
+# 2026-05-09 20:52:01 by RouterOS 7.22.1
+# software id = GVIY-VV64
+#
+# model = RB4011iGS+5HacQ2HnD
+# serial number = 968909A0D9BE
+/ip firewall nat add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
+/ip firewall nat add action=masquerade chain=srcnat comment="container -> WAN" out-interface-list=WAN src-address=172.18.20.4/30
+/ip firewall nat add action=masquerade chain=srcnat comment="LAN -> xray container" out-interface=docker-xray-vless-veth
+/ip firewall nat add action=dst-nat chain=dstnat comment="HTTP -> CyberVPN Caddy edge" dst-port=80 in-interface-list=WAN protocol=tcp to-addresses=10.10.10.34 to-ports=80
+/ip firewall nat add action=dst-nat chain=dstnat comment="HTTPS -> CyberVPN Caddy edge" dst-port=443 in-interface-list=WAN protocol=tcp to-addresses=10.10.10.34 to-ports=443
+/ip firewall nat add action=masquerade chain=srcnat comment="HAIRPIN: masquerade LAN -> CyberVPN Caddy edge" dst-address=10.10.10.34 dst-port=80,443 out-interface=bridge protocol=tcp src-address=10.10.10.0/24
+/ip firewall nat add action=dst-nat chain=dstnat comment="HAIRPIN: HTTP -> CyberVPN Caddy edge" dst-address=95.82.233.131 dst-port=80 protocol=tcp src-address=10.10.10.0/24 to-addresses=10.10.10.34 to-ports=80
+/ip firewall nat add action=dst-nat chain=dstnat comment="HAIRPIN: HTTPS -> CyberVPN Caddy edge" dst-address=95.82.233.131 dst-port=443 protocol=tcp src-address=10.10.10.0/24 to-addresses=10.10.10.34 to-ports=443
+/ip firewall nat add action=masquerade chain=srcnat comment="DISABLED duplicate old hairpin LAN -> n8n host" disabled=yes dst-address=10.10.10.32 src-address=10.10.10.0/24
+/ip firewall nat add action=dst-nat chain=dstnat comment="Mumble TCP -> 10.10.10.32" dst-port=64738 in-interface-list=WAN protocol=tcp to-addresses=10.10.10.32 to-ports=64738
+/ip firewall nat add action=dst-nat chain=dstnat comment="Mumble UDP -> 10.10.10.32" dst-port=64738 in-interface-list=WAN protocol=udp to-addresses=10.10.10.32 to-ports=64738
+/ip firewall nat add action=dst-nat chain=dstnat comment="HAIRPIN: Mumble TCP" dst-address=95.82.233.131 dst-port=64738 protocol=tcp src-address=10.10.10.0/24 to-addresses=10.10.10.32 to-ports=64738
+/ip firewall nat add action=dst-nat chain=dstnat comment="HAIRPIN: Mumble UDP" dst-address=95.82.233.131 dst-port=64738 protocol=udp src-address=10.10.10.0/24 to-addresses=10.10.10.32 to-ports=64738
+/ip firewall nat add action=masquerade chain=srcnat comment="HAIRPIN: masquerade LAN -> Mumble TCP" dst-address=10.10.10.32 dst-port=64738 out-interface=bridge protocol=tcp src-address=10.10.10.0/24
+/ip firewall nat add action=masquerade chain=srcnat comment="HAIRPIN: masquerade LAN -> Mumble UDP" dst-address=10.10.10.32 dst-port=64738 out-interface=bridge protocol=udp src-address=10.10.10.0/24
+# 2026-05-09 20:52:01 by RouterOS 7.22.1
+# software id = GVIY-VV64
+#
+# model = RB4011iGS+5HacQ2HnD
+# serial number = 968909A0D9BE
+/ip dns static add address=192.168.88.1 match-subdomain=yes name=router.lan type=A
+/ip dns static add address=10.10.10.34 comment="Local HA via CyberVPN Caddy edge" name=ha.non-project-domain.invalid ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="Local n8n via CyberVPN Caddy edge" name=n8n.non-project-domain.invalid ttl=1h type=A
+/ip dns static add address=10.10.10.32 comment="Local Mumble" name=mumble.non-project-domain.invalid ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="Local vpn via CyberVPN Caddy edge" name=vpn.non-project-domain.invalid ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=gitlab.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=registry.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=grafana.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=sentry.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=prometheus.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=loki.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=alerts.h.cyber-vpn.net ttl=1h type=A
+/ip dns static add address=10.10.10.34 comment="CyberVPN local edge" name=uptime.h.cyber-vpn.net ttl=1h type=A

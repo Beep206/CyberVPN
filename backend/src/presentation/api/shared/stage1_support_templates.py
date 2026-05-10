@@ -251,7 +251,13 @@ STAGE1_SUPPORT_TEMPLATES: dict[Stage1SupportTemplateId, Stage1SupportTemplate] =
     ),
 }
 
-REQUIRED_STAGE1_SUPPORT_TEMPLATE_IDS = tuple(Stage1SupportTemplateId)
+REQUIRED_STAGE1_SUPPORT_TEMPLATE_IDS = (
+    Stage1SupportTemplateId.FAILED_PAYMENT,
+    Stage1SupportTemplateId.PAID_NO_ACCESS,
+    Stage1SupportTemplateId.VPN_NOT_CONNECTING,
+    Stage1SupportTemplateId.EXPIRED_SUBSCRIPTION,
+    Stage1SupportTemplateId.REFUND_REQUEST,
+)
 
 
 def list_stage1_support_templates() -> tuple[Stage1SupportTemplate, ...]:
@@ -277,7 +283,7 @@ def get_stage1_support_template_for_category(
     resolved_category = (
         category if isinstance(category, Stage1SupportTicketCategory) else Stage1SupportTicketCategory(str(category))
     )
-    for template in list_stage1_support_templates():
+    for template in STAGE1_SUPPORT_TEMPLATES.values():
         if template.category == resolved_category:
             return template
     return None

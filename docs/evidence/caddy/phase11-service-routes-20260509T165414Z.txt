@@ -1,0 +1,21 @@
+Phase 11 service reverse proxy routes evidence
+Sat May  9 16:54:14 UTC 2026
+
+== caddy status ==
+active
+
+== h-domain pending routes ==
+gitlab.h.cyber-vpn.net             http=503 verify=0
+registry.h.cyber-vpn.net           http=503 verify=0
+sentry.h.cyber-vpn.net             http=503 verify=0
+
+== observability routes without auth ==
+grafana.h.cyber-vpn.net            http=401 verify=0
+prometheus.h.cyber-vpn.net         http=401 verify=0
+loki.h.cyber-vpn.net               http=401 verify=0
+alerts.h.cyber-vpn.net             http=401 verify=0
+uptime.h.cyber-vpn.net             http=401 verify=0
+
+== edge health ==
+gitlab.h.cyber-vpn.net             http=200
+grafana.h.cyber-vpn.net            http=200

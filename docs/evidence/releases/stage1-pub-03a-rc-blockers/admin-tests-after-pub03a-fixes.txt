@@ -1,0 +1,1129 @@
+
+> vpn-admin@0.1.0 pretest:run
+> npm run prepare:i18n
+
+
+> vpn-admin@0.1.0 prepare:i18n
+> node ./scripts/generate-message-bundles.mjs
+
+[i18n] Generated 2 locale bundles in src/i18n/messages/generated.
+
+> vpn-admin@0.1.0 test:run
+> vitest run
+
+
+ RUN  v4.1.4 /home/beep/projects/VPNBussiness/admin
+
+ ❯ src/lib/api/__tests__/client.test.ts (27 tests | 1 failed) 20ms
+     × uses same-origin api path in the browser 2ms
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ ❯ src/lib/api/__tests__/vpn.test.ts (7 tests | 2 failed) 62ms
+     × test_get_usage_unauthenticated_rejects_with_401 13ms
+     × test_get_usage_includes_authorization_header 4ms
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ ❯ src/lib/api/__tests__/codes.test.ts (11 tests | 1 failed) 68ms
+     × test_validate_promo_unauthenticated_rejects_with_401 13ms
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ ❯ src/lib/api/__tests__/profile.test.ts (11 tests | 2 failed) 80ms
+     × test_get_profile_unauthenticated_rejects_with_401 19ms
+     × test_update_profile_unauthenticated_rejects_with_401 14ms
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ ❯ src/lib/api/__tests__/referral.test.ts (17 tests | 4 failed) 76ms
+     × test_get_referral_status_unauthenticated_rejects_with_401 9ms
+     × test_get_referral_code_unauthenticated_rejects_with_401 8ms
+     × test_get_referral_stats_unauthenticated_rejects_with_401 6ms
+     × test_get_recent_commissions_unauthenticated_rejects_with_401 6ms
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ ❯ src/lib/api/__tests__/wallet.test.ts (19 tests | 4 failed) 96ms
+     × test_get_balance_unauthenticated_rejects_with_401 13ms
+     × test_get_transactions_unauthenticated_rejects_with_401 4ms
+     × test_request_withdrawal_unauthenticated_rejects_with_401 6ms
+     × test_get_withdrawals_unauthenticated_rejects_with_401 4ms
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1645:16) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ ❯ src/lib/api/__tests__/payments.test.ts (18 tests | 14 failed) 130ms
+     × test_create_invoice_success_returns_payment_url 46ms
+     × test_create_invoice_with_promo_code_applies_discount 8ms
+     × test_create_invoice_sends_correct_body 5ms
+     × test_create_invoice_invalid_plan_rejects_with_404 6ms
+     × test_create_invoice_invalid_promo_rejects_with_422 6ms
+     × test_create_invoice_unauthenticated_rejects_with_401 11ms
+     × test_create_invoice_with_refresh_token_retries_on_401 4ms
+     × test_get_invoice_status_pending_returns_invoice_data 6ms
+     × test_get_invoice_status_paid_shows_completed 5ms
+     × test_get_invoice_status_expired_shows_expired 4ms
+     × test_get_invoice_status_not_found_rejects_with_404 4ms
+     × test_get_invoice_status_unauthenticated_rejects_with_401 8ms
+     × test_get_invoice_status_rate_limited_rejects_with_rate_limit_error 3ms
+     × test_get_history_unauthenticated_rejects_with_401 4ms
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts (8 tests | 6 failed) 13ms
+     × builds page-equivalent canonical and hreflang alternates for public routes 4ms
+     × keeps exact market hubs indexable in priority locales 3ms
+     × keeps localized detail content indexable for Russia 1ms
+     × keeps expanded detail content indexable across the full priority rollout set 1ms
+     × keeps expanded detail content noindex outside the priority rollout set 1ms
+     × maps RTL locales to rtl direction and falls back to the default locale 0ms
+ ❯ src/shared/lib/__tests__/locale-rollout-policy.test.ts (2 tests | 2 failed) 7ms
+     × keeps core marketing routes indexable for tier1 locales 3ms
+     × indexes exact market hubs and detail content across all priority locales 2ms
+ ❯ src/shared/lib/__tests__/seo-route-policy.test.ts (5 tests | 2 failed) 9ms
+     × builds absolute alternate URLs for every configured locale plus x-default 3ms
+     × differentiates structurally public routes from rollout-eligible locales 1ms
+ ❯ src/shared/lib/__tests__/structured-data.test.ts (5 tests | 5 failed) 13ms
+     × builds localized FAQPage structured data from server FAQ content 4ms
+     × builds breadcrumb structured data on the production domain 4ms
+     × builds TechArticle structured data for the docs knowledge surface 1ms
+     × builds offer structured data on the localized production domain 2ms
+     × builds SoftwareApplication structured data with visible feature and offer coverage 1ms
+ ❯ src/features/auth/lib/session.test.ts (5 tests | 1 failed) 8ms
+     × builds a locale-prefixed browser redirect from a raw pathname without locale 3ms
+ ❯ src/app/__tests__/robots.test.ts (1 test | 1 failed) 5ms
+     × points to the canonical sitemap and blocks private/test routes across locales 3ms
+ ❯ src/app/__tests__/sitemap.test.ts (1 test | 1 failed) 7ms
+     × includes only rollout-eligible public routes on the canonical domain 4ms
+ ❯ src/shared/ui/__tests__/route-error-boundary.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/ui/__tests__/route-error-boundary.test.tsx [ src/shared/ui/__tests__/route-error-boundary.test.tsx ]
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ src/shared/ui/route-error-boundary.tsx:3:1
+      1| 'use client';
+      2|
+      3| import * as Sentry from '@sentry/nextjs';
+       | ^
+      4| import { useEffect, useState } from 'react';
+      5| import Link from 'next/link';
+
+Caused by: ReferenceError: Cannot access 'mockCaptureException' before initialization
+ ❯ src/shared/ui/__tests__/route-error-boundary.test.tsx:18:21
+ ❯ src/shared/ui/route-error-boundary.tsx:3:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/47]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 46 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/__tests__/robots.test.ts > robots > points to the canonical sitemap and blocks private/test routes across locales
+AssertionError: expected undefined to be 'https://admin.cyber-vpn.net/sitemap.x…' // Object.is equality
+
+- Expected:
+"https://admin.cyber-vpn.net/sitemap.xml"
+
++ Received:
+undefined
+
+ ❯ src/app/__tests__/robots.test.ts:16:28
+     14|     const disallow = asArray(rule.disallow);
+     15|
+     16|     expect(policy.sitemap).toBe(`${SITE_URL}/sitemap.xml`);
+       |                            ^
+     17|     expect(rule.userAgent).toBe('*');
+     18|     expect(rule.allow).toBe('/');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/47]⎯
+
+ FAIL  src/app/__tests__/sitemap.test.ts > sitemap > includes only rollout-eligible public routes on the canonical domain
+AssertionError: expected [] to have a length of 54 but got +0
+
+- Expected
++ Received
+
+- 54
++ 0
+
+ ❯ src/app/__tests__/sitemap.test.ts:38:21
+     36|     );
+     37|
+     38|     expect(entries).toHaveLength(expectedCount);
+       |                     ^
+     39|     expect(entries.every((entry) => entry.url.startsWith(SITE_URL))).t…
+     40|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/47]⎯
+
+ FAIL  src/features/auth/lib/session.test.ts > auth redirect canonicalization > builds a locale-prefixed browser redirect from a raw pathname without locale
+AssertionError: expected '/ru-RU/login?redirect=%2Fru-RU%2Fdash…' to be '/en-EN/login?redirect=%2Fen-EN%2Fdash…' // Object.is equality
+
+Expected: "/en-EN/login?redirect=%2Fen-EN%2Fdashboard"
+Received: "/ru-RU/login?redirect=%2Fru-RU%2Fdashboard"
+
+ ❯ src/features/auth/lib/session.test.ts:8:55
+      6| describe('auth redirect canonicalization', () => {
+      7|   it('builds a locale-prefixed browser redirect from a raw pathname wi…
+      8|     expect(buildLocalizedLoginRedirect('/dashboard')).toBe(
+       |                                                       ^
+      9|       '/en-EN/login?redirect=%2Fen-EN%2Fdashboard',
+     10|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/47]⎯
+
+ FAIL  src/lib/api/__tests__/client.test.ts > resolveApiBaseUrl > uses same-origin api path in the browser
+AssertionError: expected 'http://localhost:8000/api/v1' to be '/api/v1' // Object.is equality
+
+Expected: "/api/v1"
+Received: "http://localhost:8000/api/v1"
+
+ ❯ src/lib/api/__tests__/client.test.ts:113:33
+    111| describe('resolveApiBaseUrl', () => {
+    112|   it('uses same-origin api path in the browser', () => {
+    113|     expect(resolveApiBaseUrl()).toBe(CANONICAL_API_BASE_PATH);
+       |                                 ^
+    114|   });
+    115| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/47]⎯
+
+ FAIL  src/lib/api/__tests__/codes.test.ts > codesApi.validate > test_validate_promo_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/codes.test.ts:238:6
+    236|         amount: 50.0,
+    237|       }),
+    238|     ).rejects.toThrow('No refresh token');
+       |      ^
+    239|   });
+    240|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_success_returns_payment_url
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:89:22
+     87|
+     88|     // Act
+     89|     const response = await paymentsApi.createInvoice({
+       |                      ^
+     90|       user_uuid: 'user_001',
+     91|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_with_promo_code_applies_discount
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:116:22
+    114|
+    115|     // Act
+    116|     const response = await paymentsApi.createInvoice({
+       |                      ^
+    117|       user_uuid: "user_001",
+    118|       plan_id: "plan_monthly",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_sends_correct_body
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:140:5
+    138|
+    139|     // Act
+    140|     await paymentsApi.createInvoice({
+       |     ^
+    141|       user_uuid: 'user_001',
+    142|       plan_id: 'plan_annual',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_invalid_plan_rejects_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:175:40
+    173|       expect(isAxiosError(error)).toBe(true);
+    174|       if (isAxiosError(error)) {
+    175|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    176|         expect(error.response?.data.detail).toContain('not found');
+    177|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_invalid_promo_rejects_with_422
+AssertionError: expected undefined to be 422 // Object.is equality
+
+- Expected:
+422
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:203:40
+    201|       expect(isAxiosError(error)).toBe(true);
+    202|       if (isAxiosError(error)) {
+    203|         expect(error.response?.status).toBe(422);
+       |                                        ^
+    204|       }
+    205|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:8000"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:226:6
+    224|         currency: 'USD',
+    225|       }),
+    226|     ).rejects.toThrow('No refresh token');
+       |      ^
+    227|   });
+    228|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.createInvoice > test_create_invoice_with_refresh_token_retries_on_401
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:248:22
+    246|
+    247|     // Act
+    248|     const response = await paymentsApi.createInvoice({
+       |                      ^
+    249|       user_uuid: 'user_001',
+    250|       plan_id: 'plan_monthly',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_pending_returns_invoice_data
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:275:22
+    273|
+    274|     // Act
+    275|     const response = await paymentsApi.getInvoiceStatus('inv_001');
+       |                      ^
+    276|
+    277|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_paid_shows_completed
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:295:22
+    293|
+    294|     // Act
+    295|     const response = await paymentsApi.getInvoiceStatus('inv_001');
+       |                      ^
+    296|
+    297|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_expired_shows_expired
+AxiosError: Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:8000
+ ❯ handleError node_modules/axios/lib/adapters/xhr.js:122:21
+ ❯ XMLHttpRequest.#callDispatchEventListeners ../node_modules/happy-dom/src/event/EventTarget.ts:368:6
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:142:35
+ ❯ XMLHttpRequest.#goThroughDispatchEventPhases ../node_modules/happy-dom/src/event/EventTarget.ts:214:32
+ ❯ XMLHttpRequest.dispatchEvent ../node_modules/happy-dom/src/event/EventTarget.ts:135:38
+ ❯ XMLHttpRequest.#dispatchEvent ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:574:7
+ ❯ onError ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:417:24
+ ❯ XMLHttpRequest.#sendAsync ../node_modules/happy-dom/src/xml-http-request/XMLHttpRequest.ts:434:3
+ ❯ Axios.request node_modules/axios/lib/core/Axios.js:46:41
+ ❯ src/lib/api/__tests__/payments.test.ts:314:22
+    312|
+    313|     // Act
+    314|     const response = await paymentsApi.getInvoiceStatus('inv_001');
+       |                      ^
+    315|
+    316|     // Assert
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_not_found_rejects_with_404
+AssertionError: expected undefined to be 404 // Object.is equality
+
+- Expected:
+404
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/payments.test.ts:339:40
+    337|       expect(isAxiosError(error)).toBe(true);
+    338|       if (isAxiosError(error)) {
+    339|         expect(error.response?.status).toBe(404);
+       |                                        ^
+    340|       }
+    341|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Failed to execute "fetch()" on "Windo…'
+
+Expected: "No refresh token"
+Received: "Failed to execute "fetch()" on "Window" with URL "http://localhost:8000/api/v1/payments/crypto/invoice/inv_001": connect ECONNREFUSED 127.0.0.1:8000"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:356:58
+    354|
+    355|     // Act & Assert
+    356|     await expect(paymentsApi.getInvoiceStatus('inv_001')).rejects.toTh…
+       |                                                          ^
+    357|       'No refresh token',
+    358|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getInvoiceStatus > test_get_invoice_status_rate_limited_rejects_with_rate_limit_error
+AssertionError: expected 'AxiosError' to be 'RateLimitError' // Object.is equality
+
+Expected: "RateLimitError"
+Received: "AxiosError"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:377:37
+    375|       expect.fail('Expected RateLimitError');
+    376|     } catch (error: unknown) {
+    377|       expect((error as Error).name).toBe('RateLimitError');
+       |                                     ^
+    378|       expect((error as { retryAfter: number }).retryAfter).toBe(30);
+    379|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/47]⎯
+
+ FAIL  src/lib/api/__tests__/payments.test.ts > paymentsApi.getHistory > test_get_history_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/payments.test.ts:465:43
+    463|
+    464|     // Act & Assert
+    465|     await expect(paymentsApi.getHistory()).rejects.toThrow('No refresh…
+       |                                           ^
+    466|   });
+    467|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/47]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.getProfile > test_get_profile_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/profile.test.ts:91:42
+     89|
+     90|     // Act & Assert
+     91|     await expect(profileApi.getProfile()).rejects.toThrow('No refresh …
+       |                                          ^
+     92|   });
+     93|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/47]⎯
+
+ FAIL  src/lib/api/__tests__/profile.test.ts > profileApi.updateProfile > test_update_profile_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/profile.test.ts:281:6
+    279|     await expect(
+    280|       profileApi.updateProfile({ display_name: 'Test' }),
+    281|     ).rejects.toThrow('No refresh token');
+       |      ^
+    282|   });
+    283|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/47]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStatus > test_get_referral_status_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:133:42
+    131|
+    132|     // Act & Assert
+    133|     await expect(referralApi.getStatus()).rejects.toThrow('No refresh …
+       |                                          ^
+    134|   });
+    135|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/47]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getCode > test_get_referral_code_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:216:40
+    214|
+    215|     // Act & Assert
+    216|     await expect(referralApi.getCode()).rejects.toThrow('No refresh to…
+       |                                        ^
+    217|   });
+    218|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/47]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getStats > test_get_referral_stats_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:297:41
+    295|
+    296|     // Act & Assert
+    297|     await expect(referralApi.getStats()).rejects.toThrow('No refresh t…
+       |                                         ^
+    298|   });
+    299|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/47]⎯
+
+ FAIL  src/lib/api/__tests__/referral.test.ts > referralApi.getRecentCommissions > test_get_recent_commissions_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/referral.test.ts:391:53
+    389|
+    390|     // Act & Assert
+    391|     await expect(referralApi.getRecentCommissions()).rejects.toThrow(
+       |                                                     ^
+    392|       'No refresh token',
+    393|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/47]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/vpn.test.ts:99:36
+     97|
+     98|     // Act & Assert - 401 interceptor tries to refresh, finds no token
+     99|     await expect(vpnApi.getUsage()).rejects.toThrow('No refresh token'…
+       |                                    ^
+    100|   });
+    101|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/47]⎯
+
+ FAIL  src/lib/api/__tests__/vpn.test.ts > vpnApi.getUsage > test_get_usage_includes_authorization_header
+AssertionError: expected undefined to be 'Bearer my_jwt_token' // Object.is equality
+
+- Expected:
+"Bearer my_jwt_token"
+
++ Received:
+undefined
+
+ ❯ src/lib/api/__tests__/vpn.test.ts:203:32
+    201|
+    202|     // Assert
+    203|     expect(capturedAuthHeader).toBe('Bearer my_jwt_token');
+       |                                ^
+    204|   });
+    205| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/47]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getBalance > test_get_balance_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:142:41
+    140|
+    141|     // Act & Assert
+    142|     await expect(walletApi.getBalance()).rejects.toThrow('No refresh t…
+       |                                         ^
+    143|   });
+    144|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/47]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getTransactions > test_get_transactions_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:246:46
+    244|
+    245|     // Act & Assert
+    246|     await expect(walletApi.getTransactions()).rejects.toThrow('No refr…
+       |                                              ^
+    247|   });
+    248| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/47]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.requestWithdrawal > test_request_withdrawal_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:394:6
+    392|         method: 'cryptobot',
+    393|       }),
+    394|     ).rejects.toThrow('No refresh token');
+       |      ^
+    395|   });
+    396| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/47]⎯
+
+ FAIL  src/lib/api/__tests__/wallet.test.ts > walletApi.getWithdrawals > test_get_withdrawals_unauthenticated_rejects_with_401
+AssertionError: expected [Function] to throw error including 'No refresh token' but got 'Request failed with status code 401'
+
+Expected: "No refresh token"
+Received: "Request failed with status code 401"
+
+ ❯ src/lib/api/__tests__/wallet.test.ts:468:45
+    466|
+    467|     // Act & Assert
+    468|     await expect(walletApi.getWithdrawals()).rejects.toThrow('No refre…
+       |                                             ^
+    469|   });
+    470|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/47]⎯
+
+ FAIL  src/shared/lib/__tests__/locale-rollout-policy.test.ts > locale-rollout-policy > keeps core marketing routes indexable for tier1 locales
+AssertionError: expected 'tier3' to be 'tier2' // Object.is equality
+
+Expected: "tier2"
+Received: "tier3"
+
+ ❯ src/shared/lib/__tests__/locale-rollout-policy.test.ts:13:43
+     11|   it('keeps core marketing routes indexable for tier1 locales', () => {
+     12|     expect(getLocaleRolloutTier('en-EN')).toBe('tier1');
+     13|     expect(getLocaleRolloutTier('ar-SA')).toBe('tier2');
+       |                                           ^
+     14|     expect(getLocaleRolloutTier('fr-FR')).toBe('tier3');
+     15|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/47]⎯
+
+ FAIL  src/shared/lib/__tests__/locale-rollout-policy.test.ts > locale-rollout-policy > indexes exact market hubs and detail content across all priority locales
+AssertionError: expected [ 'ru-RU', 'en-EN' ] to deeply equal [ 'en-EN', 'ru-RU', 'zh-CN', …(6) ]
+
+- Expected
++ Received
+
+  [
+-   "en-EN",
+    "ru-RU",
+-   "zh-CN",
+-   "hi-IN",
+-   "id-ID",
+-   "vi-VN",
+-   "th-TH",
+-   "ja-JP",
+-   "ko-KR",
++   "en-EN",
+  ]
+
+ ❯ src/shared/lib/__tests__/locale-rollout-policy.test.ts:38:51
+     36|     expect(isExpandedContentPath('/pricing')).toBe(false);
+     37|
+     38|     expect(getIndexableLocalesForPath('/guides')).toEqual([
+       |                                                   ^
+     39|       'en-EN',
+     40|       'ru-RU',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/47]⎯
+
+ FAIL  src/shared/lib/__tests__/seo-route-policy.test.ts > seo-route-policy > builds absolute alternate URLs for every configured locale plus x-default
+AssertionError: expected 'https://admin.cyber-vpn.net/en-EN/pri…' to be 'https://vpn.ozoxy.ru/en-EN/pricing' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/en-EN/pricing"
+Received: "https://admin.cyber-vpn.net/en-EN/pricing"
+
+ ❯ src/shared/lib/__tests__/seo-route-policy.test.ts:43:33
+     41|     );
+     42|
+     43|     expect(alternates['en-EN']).toBe('https://vpn.ozoxy.ru/en-EN/prici…
+       |                                 ^
+     44|     expect(alternates['ru-RU']).toBe('https://vpn.ozoxy.ru/ru-RU/prici…
+     45|     expect(alternates['x-default']).toBe('https://vpn.ozoxy.ru/en-EN/p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/47]⎯
+
+ FAIL  src/shared/lib/__tests__/seo-route-policy.test.ts > seo-route-policy > differentiates structurally public routes from rollout-eligible locales
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/shared/lib/__tests__/seo-route-policy.test.ts:76:62
+     74|     expect(isRolloutIndexableLocalizedPath('/ru-RU/wallet')).toBe(fals…
+     75|     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides')).toBe(true…
+     76|     expect(isRolloutIndexableLocalizedPath('/ja-JP/guides')).toBe(true…
+       |                                                              ^
+     77|     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides/how-to-bypas…
+     78|     expect(isRolloutIndexableLocalizedPath('/zh-CN/compare/vless-reali…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/47]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > builds page-equivalent canonical and hreflang alternates for public routes
+AssertionError: expected 'https://admin.cyber-vpn.net/ru-RU/pri…' to be 'https://admin.cyber-vpn.net/en-EN/pri…' // Object.is equality
+
+Expected: "https://admin.cyber-vpn.net/en-EN/pricing"
+Received: "https://admin.cyber-vpn.net/ru-RU/pricing"
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:26:59
+     24|     expect(metadata.alternates?.languages?.['en-EN']).toBe(`${SITE_URL…
+     25|     expect(metadata.alternates?.languages?.['ru-RU']).toBe(`${SITE_URL…
+     26|     expect(metadata.alternates?.languages?.['x-default']).toBe(`${SITE…
+       |                                                           ^
+     27|     expect(metadata.openGraph?.images).toEqual([
+     28|       {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/47]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps exact market hubs indexable in priority locales
+AssertionError: expected { …(3) } to match object { …(4) }
+
+- Expected
++ Received
+
+  {
+    "en-EN": "https://admin.cyber-vpn.net/en-EN/guides",
+    "ru-RU": "https://admin.cyber-vpn.net/ru-RU/guides",
+-   "x-default": "https://admin.cyber-vpn.net/en-EN/guides",
+-   "zh-CN": "https://admin.cyber-vpn.net/zh-CN/guides",
++   "x-default": "https://admin.cyber-vpn.net/ru-RU/guides",
+  }
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:52:44
+     50|
+     51|     expect(metadata.alternates?.canonical).toBe(`${SITE_URL}/ru-RU/gui…
+     52|     expect(metadata.alternates?.languages).toMatchObject({
+       |                                            ^
+     53|       'en-EN': `${SITE_URL}/en-EN/guides`,
+     54|       'ru-RU': `${SITE_URL}/ru-RU/guides`,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/47]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps localized detail content indexable for Russia
+AssertionError: expected { …(3) } to match object { …(4) }
+
+- Expected
++ Received
+
+  {
+    "en-EN": "https://admin.cyber-vpn.net/en-EN/guides/how-to-bypass-dpi-with-vless-reality",
+    "ru-RU": "https://admin.cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality",
+-   "x-default": "https://admin.cyber-vpn.net/en-EN/guides/how-to-bypass-dpi-with-vless-reality",
+-   "zh-CN": "https://admin.cyber-vpn.net/zh-CN/guides/how-to-bypass-dpi-with-vless-reality",
++   "x-default": "https://admin.cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality",
+  }
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:77:44
+     75|       `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
+     76|     );
+     77|     expect(metadata.alternates?.languages).toMatchObject({
+       |                                            ^
+     78|       'en-EN': `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-…
+     79|       'ru-RU': `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/47]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps expanded detail content indexable across the full priority rollout set
+AssertionError: expected 'https://admin.cyber-vpn.net/ru-RU/gui…' to be 'https://admin.cyber-vpn.net/hi-IN/gui…' // Object.is equality
+
+Expected: "https://admin.cyber-vpn.net/hi-IN/guides/how-to-bypass-dpi-with-vless-reality"
+Received: "https://admin.cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality"
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:99:44
+     97|     );
+     98|
+     99|     expect(metadata.alternates?.canonical).toBe(
+       |                                            ^
+    100|       `${SITE_URL}/hi-IN/guides/how-to-bypass-dpi-with-vless-reality`,
+    101|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/47]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > keeps expanded detail content noindex outside the priority rollout set
+AssertionError: expected 'https://admin.cyber-vpn.net/ru-RU/gui…' to be 'https://admin.cyber-vpn.net/en-EN/gui…' // Object.is equality
+
+Expected: "https://admin.cyber-vpn.net/en-EN/guides/how-to-bypass-dpi-with-vless-reality"
+Received: "https://admin.cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality"
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:118:44
+    116|     );
+    117|
+    118|     expect(metadata.alternates?.canonical).toBe(
+       |                                            ^
+    119|       `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-reality`,
+    120|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/47]⎯
+
+ FAIL  src/shared/lib/__tests__/site-metadata.test.ts > site-metadata > maps RTL locales to rtl direction and falls back to the default locale
+AssertionError: expected { lang: 'ru-RU', dir: 'ltr' } to deeply equal { lang: 'ar-SA', dir: 'rtl' }
+
+- Expected
++ Received
+
+  {
+-   "dir": "rtl",
+-   "lang": "ar-SA",
++   "dir": "ltr",
++   "lang": "ru-RU",
+  }
+
+ ❯ src/shared/lib/__tests__/site-metadata.test.ts:168:48
+    166|
+    167|   it('maps RTL locales to rtl direction and falls back to the default …
+    168|     expect(getHtmlLanguageAttributes('ar-SA')).toEqual({
+       |                                                ^
+    169|       lang: 'ar-SA',
+    170|       dir: 'rtl',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/47]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds localized FAQPage structured data from server FAQ content
+AssertionError: expected 'https://admin.cyber-vpn.net/ru-RU/help' to be 'https://vpn.ozoxy.ru/ru-RU/help' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/ru-RU/help"
+Received: "https://admin.cyber-vpn.net/ru-RU/help"
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:30:22
+     28|
+     29|     expect(data['@type']).toBe('FAQPage');
+     30|     expect(data.url).toBe('https://vpn.ozoxy.ru/ru-RU/help');
+       |                      ^
+     31|     expect(data.inLanguage).toBe('ru-RU');
+     32|     expect(data.mainEntity).toHaveLength(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/47]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds breadcrumb structured data on the production domain
+AssertionError: expected [ { '@type': 'ListItem', …(3) }, …(1) ] to deeply equal [ { '@type': 'ListItem', …(3) }, …(1) ]
+
+- Expected
++ Received
+
+  [
+    {
+      "@type": "ListItem",
+-     "item": "https://vpn.ozoxy.ru/en-EN",
++     "item": "https://admin.cyber-vpn.net/en-EN",
+      "name": "Home",
+      "position": 1,
+    },
+    {
+      "@type": "ListItem",
+-     "item": "https://vpn.ozoxy.ru/en-EN/docs",
++     "item": "https://admin.cyber-vpn.net/en-EN/docs",
+      "name": "Docs",
+      "position": 2,
+    },
+  ]
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:49:34
+     47|
+     48|     expect(data['@type']).toBe('BreadcrumbList');
+     49|     expect(data.itemListElement).toEqual([
+       |                                  ^
+     50|       {
+     51|         '@type': 'ListItem',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/47]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds TechArticle structured data for the docs knowledge surface
+AssertionError: expected 'https://admin.cyber-vpn.net/en-EN/docs' to be 'https://vpn.ozoxy.ru/en-EN/docs' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/en-EN/docs"
+Received: "https://admin.cyber-vpn.net/en-EN/docs"
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:75:22
+     73|
+     74|     expect(data['@type']).toBe('TechArticle');
+     75|     expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/docs');
+       |                      ^
+     76|     expect(data.articleSection).toEqual([
+     77|       'INITIALIZATION',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/47]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds offer structured data on the localized production domain
+AssertionError: expected { '@type': 'Offer', …(6) } to match object { '@type': 'Offer', …(4) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "@type": "Offer",
+    "name": "CYBER_PRO",
+    "price": "8.99",
+    "priceCurrency": "USD",
+-   "url": "https://vpn.ozoxy.ru/en-EN/pricing",
++   "url": "https://admin.cyber-vpn.net/en-EN/pricing",
+  }
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:97:18
+     95|     });
+     96|
+     97|     expect(data).toMatchObject({
+       |                  ^
+     98|       '@type': 'Offer',
+     99|       name: 'CYBER_PRO',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/47]⎯
+
+ FAIL  src/shared/lib/__tests__/structured-data.test.ts > structured-data helpers > builds SoftwareApplication structured data with visible feature and offer coverage
+AssertionError: expected 'https://admin.cyber-vpn.net/en-EN/dow…' to be 'https://vpn.ozoxy.ru/en-EN/download' // Object.is equality
+
+Expected: "https://vpn.ozoxy.ru/en-EN/download"
+Received: "https://admin.cyber-vpn.net/en-EN/download"
+
+ ❯ src/shared/lib/__tests__/structured-data.test.ts:127:22
+    125|
+    126|     expect(data['@type']).toBe('SoftwareApplication');
+    127|     expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/download');
+       |                      ^
+    128|     expect(data.downloadUrl).toBe('https://vpn.ozoxy.ru/en-EN/download…
+    129|     expect(data.featureList).toEqual([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/47]⎯
+
+
+ Test Files  15 failed | 72 passed (87)
+      Tests  46 failed | 502 passed (548)
+   Start at  22:02:36
+   Duration  6.99s (transform 2.17s, setup 12.51s, import 9.59s, tests 4.58s, environment 13.13s)
+
+npm error Lifecycle script `test:run` failed with error:
+npm error code 1
+npm error path /home/beep/projects/VPNBussiness/admin
+npm error workspace vpn-admin@0.1.0
+npm error location /home/beep/projects/VPNBussiness/admin
+npm error command failed
+npm error command sh -c vitest run
+
+exit_code=1

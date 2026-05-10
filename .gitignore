@@ -42,6 +42,8 @@ yarn-error.log*
 # tooling
 .turbo/
 .vercel/
+.cache/
+!.cache/.gitkeep
 
 # misc
 .DS_Store
@@ -150,6 +152,7 @@ APIToken.txt
 *.credentials
 *.key
 !*.key.example
+.private/
 
 # Terraform / Ansible IaC
 **/.terraform/

@@ -1,0 +1,3 @@
+status=error
+scanner=grype
+message=grype scan failed after retries; see CI job log
