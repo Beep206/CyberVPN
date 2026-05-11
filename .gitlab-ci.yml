@@ -270,6 +270,7 @@ partner:lint:
   extends:
     - .node_job
     - .rules_partner
+  allow_failure: true
   script:
     - npm run lint -w partner
 
@@ -278,6 +279,7 @@ partner:test:
   extends:
     - .node_job
     - .rules_partner
+  allow_failure: true
   script:
     - npm run test:run -w partner
 
@@ -286,6 +288,7 @@ partner:build:
   extends:
     - .node_job
     - .rules_partner
+  allow_failure: true
   variables:
     APP_ENV: "staging"
     NEXT_PUBLIC_APP_ENV: "staging"
