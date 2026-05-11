@@ -52,6 +52,7 @@ const config: NextConfigWithCompiler = {
     turbopackFileSystemCacheForDev: false,
     ...(process.env.CI
       ? {
+          cpus: 4,
           staticGenerationRetryCount: 1,
           staticGenerationMaxConcurrency: 4,
           staticGenerationMinPagesPerWorker: 200,

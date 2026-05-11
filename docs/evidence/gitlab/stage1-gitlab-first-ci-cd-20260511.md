@@ -54,7 +54,7 @@ The GitLab pipeline includes:
 - Backend smoke tests run with `--no-cov`; repository-wide coverage belongs in a separate coverage gate, not in a narrow Stage 1 smoke job.
 - Task-worker lint and smoke jobs are advisory until its existing ruff baseline is normalized; Stage 1 worker readiness is still controlled through runtime smoke/evidence gates.
 - Next.js workspace apps set `turbopack.root` to the monorepo root so GitLab CI can resolve hoisted Next packages during builds.
-- Frontend Next.js builds limit static generation concurrency under `CI=true`; this avoids runner OOM kills while preserving normal local/runtime behavior.
+- Frontend Next.js builds limit CI CPU/static generation concurrency under `CI=true`; this avoids runner OOM kills while preserving normal local/runtime behavior.
 
 The `stage1:limited-publication-preflight` job:
 
