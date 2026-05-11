@@ -639,6 +639,8 @@ docker:backend:
   extends:
     - .docker_job
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - changes:
         - .gitlab-ci.yml
         - backend/Dockerfile
@@ -652,6 +654,8 @@ docker:telegram-bot:
   extends:
     - .docker_job
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - changes:
         - .gitlab-ci.yml
         - services/telegram-bot/Dockerfile
@@ -665,6 +669,8 @@ docker:task-worker:
   extends:
     - .docker_job
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - changes:
         - .gitlab-ci.yml
         - services/task-worker/Dockerfile
