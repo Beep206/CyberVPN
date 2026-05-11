@@ -1,0 +1,35 @@
+# Stage 1 uses the standard Next.js Node server path for admin/frontend images.
+# The image is intentionally workspace-scoped so the deployment can build a
+# single Next.js app without requiring a full monorepo runtime install.
+FROM node:24-alpine
+
+ARG NEXT_WORKSPACE=admin
+ARG NEXT_PUBLIC_SITE_URL=https://admin.cyber-vpn.net
+ARG NEXT_PUBLIC_API_URL=https://cyber-vpn.net
+ARG API_INTERNAL_ORIGIN=http://cybervpn-backend:8000
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV API_INTERNAL_ORIGIN=${API_INTERNAL_ORIGIN}
+ENV API_URL=${API_INTERNAL_ORIGIN}
+
+WORKDIR /app
+
+RUN apk add --no-cache bash
+
+COPY ${NEXT_WORKSPACE}/package.json ${NEXT_WORKSPACE}/package-lock.json ./
+RUN npm ci --include=dev --no-fund --no-audit
+
+COPY ${NEXT_WORKSPACE}/ ./
+RUN npm run build
+RUN npm prune --omit=dev --no-fund --no-audit
+
+USER node
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start"]

@@ -991,7 +991,7 @@
     "title": "Stage 1 Capabilities"
   },
   "Footer": {
-    "brandDescription": "Advanced privacy protection infrastructure for the next generation of the internet. Navigate the digital void with military-grade encryption.",
+    "brandDescription": "Controlled Public Beta VPN access with evidence-gated regions, bounded privacy claims, and monitored support recovery paths.",
     "knowledgeLinks": {
       "audits": "Audits",
       "compare": "Compare",
@@ -1018,11 +1018,11 @@
     },
     "newsletter": {
       "cta": "INIT",
-      "description": "Join our encrypted frequency. Get updates on server locations, security protocols, and zero-day patches.",
+      "description": "Get updates on enabled regions, S1 support notices, and launch-readiness changes.",
       "placeholder": "enter_email.exe",
       "prompt": "root@user:~$"
     },
-    "operationalStatus": "All systems operational.",
+    "operationalStatus": "S1 monitoring active; public availability remains evidence-bound.",
     "sections": {
       "knowledge": "Knowledge",
       "paymentMethods": "Payment methods",

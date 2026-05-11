@@ -29,6 +29,7 @@ REQUIRED_STAGES = (
     "build",
     "security",
     "package",
+    "deploy",
 )
 
 REQUIRED_JOBS = (
@@ -57,6 +58,7 @@ REQUIRED_JOBS = (
     "docker:backend:",
     "docker:telegram-bot:",
     "docker:task-worker:",
+    "stage1:limited-publication-preflight:",
 )
 
 REQUIRED_RULE_ANCHORS = (
@@ -67,6 +69,7 @@ REQUIRED_RULE_ANCHORS = (
     ".rules_telegram_bot:",
     ".rules_task_worker:",
     ".rules_security:",
+    ".rules_stage1_limited_publication:",
 )
 
 REQUIRED_PATH_MARKERS = (
@@ -98,6 +101,15 @@ REQUIRED_SECURITY_SCRIPT_MARKERS = (
     "GRYPE_VERSION:",
     "SYFT_VERSION:",
     "sha256sum -c -",
+)
+
+REQUIRED_STAGE1_PUBLICATION_MARKERS = (
+    "stage1/limited-public-beta",
+    "STAGE1_LIMITED_PUBLICATION_PREFLIGHT",
+    "STAGE1_REQUIRE_BETA_GO",
+    "docs/evidence/releases/ci-stage1/",
+    "https://cyber-vpn.net/en-EN/status",
+    "https://api.cyber-vpn.net/healthz",
 )
 
 FORBIDDEN_MARKERS = (
@@ -132,6 +144,7 @@ def main() -> int:
     failures.extend(require_all(content, REQUIRED_PATH_MARKERS, "path marker"))
     failures.extend(require_all(content, REQUIRED_SECURITY_RULE_MARKERS, "security rule marker"))
     failures.extend(require_all(content, REQUIRED_SECURITY_SCRIPT_MARKERS, "security script marker"))
+    failures.extend(require_all(content, REQUIRED_STAGE1_PUBLICATION_MARKERS, "stage1 publication marker"))
 
     for marker in FORBIDDEN_MARKERS:
         if marker in content:

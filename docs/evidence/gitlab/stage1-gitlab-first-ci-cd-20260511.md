@@ -1,0 +1,85 @@
+# Stage 1 GitLab First CI/CD Evidence
+
+Date: 2026-05-11
+
+Scope: switch repository operations to GitLab-first, keep GitHub as fallback, and align Stage 1 limited-publication CI/CD gates.
+
+## Decision
+
+Owner decision:
+
+```text
+GitLab is first for repository CI/CD and release evidence.
+GitHub remains the external fallback remote.
+```
+
+This does not make the home GitLab server a customer-runtime dependency. Stage 1 customer availability, payment webhooks, Telegram webhooks, VPN node availability and emergency rollback must not depend only on the home server.
+
+## Local Remote Model
+
+Target remotes:
+
+```text
+origin = https://gitlab.h.cyber-vpn.net/root/CyberVPN.git
+github = https://github.com/Beep206/CyberVPN.git
+```
+
+Push order:
+
+```text
+1. push main to origin/GitLab
+2. verify GitLab accepts commit and pipeline starts
+3. push same commit to github/GitHub
+```
+
+Credentials must not be stored in `.git/config`. Temporary Git credential/askpass flow is allowed for the push as long as no token/password is printed to logs or committed.
+
+## CI/CD Alignment
+
+The GitLab pipeline includes:
+
+- path-gated validation/lint/test/build jobs for the monorepo workspaces;
+- protected-runner default tag `h-docker`;
+- security jobs for secret scan, gitleaks wrapper, npm audit, pip audit, filesystem vulnerability scans and SBOM;
+- manual Docker build jobs isolated behind `dind`;
+- no automatic `docker push`;
+- no production secrets;
+- no automatic production deployment;
+- manual `stage1:limited-publication-preflight` job.
+
+The `stage1:limited-publication-preflight` job:
+
+- is manual;
+- prepares the GitLab environment `stage1/limited-public-beta`;
+- curls public Stage 1 endpoints;
+- writes a CI artifact under `docs/evidence/releases/ci-stage1/`;
+- reads the latest stabilization evidence if present;
+- fails only when `STAGE1_REQUIRE_BETA_GO=true` and latest stabilization evidence still says external beta is `NO-GO`.
+
+This lets GitLab become the first CI/CD gate while preserving the current launch blockers.
+
+## Validation
+
+Local contract:
+
+```text
+python scripts/validate_gitlab_ci_contract.py
+PASS: GitLab CI contract is ready for initial GitLab import
+```
+
+Security model:
+
+```text
+real production payment, Telegram, Remnawave, database, JWT/TOTP/OAuth and SSH private secrets are not required in GitLab CI for this step
+```
+
+## Remaining Before Limited User Publishing
+
+GitLab-first CI/CD can start now, but external beta users remain blocked until:
+
+1. sensitive GitLab runner request-header logging is redacted in Caddy/Loki;
+2. an approved immutable snapshot/tag is created;
+3. a production VPN node is proven;
+4. trial provisioning works on the production node;
+5. one payment path is proven if paid beta is included;
+6. support mailbox or Telegram-only first-cohort support is proven.

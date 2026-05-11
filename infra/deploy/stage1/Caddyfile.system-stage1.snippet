@@ -1,0 +1,102 @@
+# Stage 1 system-edge Caddy routes for the cybervpn-h home server.
+# This variant is used when host ports 80/443 are already owned by the
+# system Caddy service and app containers bind only to 127.0.0.1.
+
+(stage1_app_security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+}
+
+(stage1_backend_routes) {
+	@stage1_remnawave_subscription path /api/sub*
+	handle @stage1_remnawave_subscription {
+		reverse_proxy http://127.0.0.1:13005 {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Port 443
+		}
+	}
+
+	@stage1_backend path /api/v1/* /health /ready /docs /openapi.json /redoc /.well-known/security.txt
+	handle @stage1_backend {
+		reverse_proxy http://127.0.0.1:18080
+	}
+}
+
+(stage1_telegram_webhook_routes) {
+	@stage1_telegram_webhook path /webhook/telegram
+	handle @stage1_telegram_webhook {
+		reverse_proxy http://127.0.0.1:18088
+	}
+}
+
+cyber-vpn.net {
+	import cybervpn_tls
+	import standard_proxy
+	import stage1_app_security_headers
+	import stage1_backend_routes
+	import stage1_telegram_webhook_routes
+
+	reverse_proxy http://127.0.0.1:13000 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+	}
+}
+
+www.cyber-vpn.net {
+	import cybervpn_tls
+	redir https://cyber-vpn.net{uri} permanent
+}
+
+status.cyber-vpn.net {
+	import cybervpn_tls
+	redir https://cyber-vpn.net/en-EN/status permanent
+}
+
+api.cyber-vpn.net {
+	import cybervpn_tls
+	import standard_proxy
+	import stage1_app_security_headers
+	import stage1_backend_routes
+	import stage1_telegram_webhook_routes
+
+	@healthz path /healthz
+	respond @healthz "ok" 200
+
+	respond "Not found" 404
+}
+
+cyber-vpn.org {
+	import cybervpn_tls
+	redir https://cyber-vpn.net{uri} permanent
+}
+
+admin.cyber-vpn.net {
+	import cybervpn_tls
+	import standard_proxy
+	import stage1_app_security_headers
+	import stage1_backend_routes
+	import stage1_telegram_webhook_routes
+
+	reverse_proxy http://127.0.0.1:13001 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+	}
+}
+
+admin.cyber-vpn.org {
+	import cybervpn_tls
+	redir https://admin.cyber-vpn.net{uri} permanent
+}

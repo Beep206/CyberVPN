@@ -24,6 +24,7 @@ from src.config import (
 )
 from src.main import (
     _before_send,
+    build_webhook_url,
     create_webhook_app,
     on_shutdown,
     on_startup,
@@ -118,6 +119,15 @@ def test_setup_sentry_skips_init_without_dsn() -> None:
 
     assert initialized is False
     mock_init.assert_not_called()
+
+
+def test_build_webhook_url_normalizes_base_and_path_slashes() -> None:
+    assert build_webhook_url("https://api.cyber-vpn.net/", "/webhook/telegram") == (
+        "https://api.cyber-vpn.net/webhook/telegram"
+    )
+    assert build_webhook_url("https://api.cyber-vpn.net", "webhook/telegram") == (
+        "https://api.cyber-vpn.net/webhook/telegram"
+    )
 
 
 def test_setup_sentry_uses_minimal_pii_contract() -> None:

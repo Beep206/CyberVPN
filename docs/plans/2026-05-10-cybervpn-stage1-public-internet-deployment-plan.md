@@ -597,6 +597,11 @@ curl -I https://cyber-vpn.org/
 - No private env value appears in client bundles.
 - Public endpoint probes are visible in Grafana.
 
+**Execution evidence:**
+
+- Completed in `docs/evidence/releases/stage1-pub-08-frontend-screenshots-20260510T201837Z.md`.
+- Screenshots are stored in `docs/evidence/releases/screenshots/`.
+
 ---
 
 ## STAGE1-PUB-09: Telegram Bot And Mini App Deploy
@@ -631,11 +636,22 @@ curl -I https://cyber-vpn.org/
 - Support escalation creates visible admin/support evidence.
 - Telegram/Mini App metrics appear in Grafana without raw `initData` or PII.
 
+**Execution evidence:**
+
+- Runtime deploy evidence is recorded in `docs/evidence/releases/stage1-pub-09-telegram-20260510T205338Z.md`.
+- `api.cyber-vpn.net` edge, TLS, Mini App route, compose contract, bot image, webhook and bot metrics target are prepared.
+- `C_y_b_e_r_VPN_Bot` token was installed and Telegram `getWebhookInfo` confirms `https://api.cyber-vpn.net/webhook/telegram`.
+- Full user-flow evidence still requires a real Telegram client smoke and token rotation before public beta because the token was pasted into chat during setup.
+
 ---
 
 ## STAGE1-PUB-10: Remnawave And VPN Node Deploy
 
 **Purpose:** Prove that trial/payment can create usable VPN access.
+
+**Latest evidence:** `docs/evidence/releases/stage1-pub-10-remnawave-vpn-20260510T214814Z.md`
+
+**Current status:** Remnawave control-plane, API token, Prometheus metrics and one connected lab-only node are live on `cybervpn-h`. This clears the Remnawave control-plane and lab-node smoke, but it does not yet approve user-facing VPN access. Trial/paid provisioning stays disabled until a rented production VPN node is deployed and real client connection evidence is captured.
 
 **Files:**
 
@@ -704,6 +720,17 @@ curl -I https://cyber-vpn.org/
 - Providers with documentation-only placeholders are blocked.
 - Payment dashboards and alerts show real data before paid beta is enabled.
 
+**Latest execution status, 2026-05-10T22:09:26Z:**
+
+- Evidence: `docs/evidence/releases/stage1-pub-11-payments-20260510T220926Z.md`.
+- Runtime backend moved to `local/cybervpn-backend:stage1-beta-rc.2`.
+- Runtime worker/scheduler moved to `local/cybervpn-task-worker:stage1-beta-rc.2` and are healthy.
+- New payment runtime gates are deployed: `PAYMENTS_ENABLED=false` and `TELEGRAM_STARS_ENABLED=false` block new paid invoice/checkout creation with `503`.
+- CryptoBot unsigned webhook probe returns `401 Invalid webhook signature`.
+- Stage 1 reconciliation API returns zero items and `launch_blocked=false`.
+- Stage 1 reconciliation worker metrics expose success/item/max-age/launch-blocked series.
+- CryptoBot `getMe` currently returns `401 UNAUTHORIZED`; paid checkout remains blocked until a valid provider token and webhook evidence exist.
+
 ---
 
 ## STAGE1-PUB-12: Observability Integration
@@ -743,6 +770,21 @@ curl -I https://cyber-vpn.org/
 - Payment/provisioning/reconciliation metrics are visible before paid beta is enabled.
 - Host hardware metrics are visible because Stage 1 observability runs on the home server.
 
+**Latest execution status, 2026-05-10T23:14:55Z:**
+
+- Evidence: `docs/evidence/observability/stage1-pub-12-app-observability-20260510T231455Z.md`.
+- Added and deployed PostgreSQL and Redis/Valkey exporters for the current no-cost `local-data` Stage 1 topology.
+- Connected Prometheus to `cybervpn_stage1_metrics` and added live scrape jobs for backend, worker, PostgreSQL exporter and Redis exporter.
+- Verified required Stage 1 scrape targets are `up`: backend, worker, Telegram bot, PostgreSQL, Redis/Valkey and Remnawave.
+- Recreated S1 runtime containers to load Sentry runtime env; all app containers are healthy afterward.
+- Replaced invalid non-URL Sentry DSN placeholders with the existing valid self-hosted Sentry smoke DSN for S1 runtime proof.
+- Verified protected Sentry contracts for frontend, admin and Telegram bot; all report DSN configured and release `stage1-beta-rc.1`.
+- Verified Sentry self-hosted ingestion smoke with HTTP `200` and success metric `cybervpn_h_sentry_ingestion_smoke_success=1`.
+- Verified Grafana Stage 1 and companion dashboards are provisioned.
+- Verified Loki receives Docker logs; service/container label enrichment remains a later hardening item.
+- Triggered a synthetic Alertmanager Stage 1 alert; Telegram/email notification counters increased and failed counters remained `0`.
+- No Stage 1 app alerts are firing after cleanup. Existing host swap alerts remain and should be reviewed before expanding the beta cohort.
+
 ---
 
 ## STAGE1-PUB-13: Security, Legal And Support Gate
@@ -776,6 +818,23 @@ curl -I https://cyber-vpn.org/
 - Support can handle `paid but no access`.
 - Admin/support sensitive actions are role-gated and audited.
 
+**Latest execution status, 2026-05-11T06:29:02Z:**
+
+- Evidence: `docs/evidence/security/stage1-pub-13-security-legal-support-20260511T062902Z.md`.
+- Result: `PASS WITH NOTES` for a controlled beta cohort.
+- Removed stale launch-unsafe public copy from affected marketing/support/status/footer namespaces and regenerated locale bundles.
+- Rebuilt and deployed frontend image `sha256:eadf9769f1c70c9ba73527afadda34101a181f48feb6d8acf202a0a1387d1142` under runtime tag `stage1-beta-rc.2`.
+- Verified EN/RU Terms, Privacy Policy, AUP, Refund Policy and Cookie Policy routes return `200`.
+- Verified `cyber-vpn.org` redirects to `cyber-vpn.net` and `admin.cyber-vpn.org` redirects to `admin.cyber-vpn.net`.
+- Verified public host hides admin audit API and OpenAPI/Swagger routes.
+- Verified route-level public copy scan across all locales for `status`, `pricing` and `help` has no unsafe promise markers.
+- Verified frontend help copy regression test: `1 passed`, `2 tests passed`.
+- Verified frontend image private-marker scan has no private runtime markers.
+- Verified local high-confidence secret scan has no matches; `gitleaks`/`trivy` are not installed and should be added to CI/release host hardening.
+- Verified Node/Python dependency scans have no high/critical blockers; residual low/moderate findings are non-blocking for S1 controlled beta.
+- Verified admin/support/RBAC/2FA/audit local security tests: `58 passed`.
+- Operational note: `support@cyber-vpn.net` and `refund@cyber-vpn.net` are present in public copy, but MX/DMARC evidence was empty during this gate. Telegram/on-call support remains the proven first-cohort path; inbound mailbox delivery must be proven before widening the cohort.
+
 ---
 
 ## STAGE1-PUB-14: Backup, Restore And Rollback Gate
@@ -804,6 +863,27 @@ curl -I https://cyber-vpn.org/
 - Restore works.
 - Rollback target works.
 - Kill switches work without code changes.
+
+**Latest execution status, 2026-05-11T06:46:30Z:**
+
+- Evidence:
+  - `docs/evidence/backups/stage1-pub-14-app-backup-20260511T064630Z.md`
+  - `docs/evidence/restores/stage1-pub-14-app-restore-20260511T064630Z.md`
+  - `docs/evidence/releases/stage1-pub-14-rollback-dry-run-20260511T064630Z.md`
+- Result: `PASS` for a small controlled beta.
+- Created fresh app DB backup: `711901` bytes, SHA-256 `d769a412664ef7396c3b5577328fdda877ab1a16340cbcbbd782c53fc73bb3fc`.
+- Restored app DB into disposable database and verified Alembic version `20260423_p27_partner_events` and `120` public tables; disposable database was dropped.
+- Created fresh Remnawave DB backup: `144481` bytes, SHA-256 `b8c85e4369524f38cf4bee789e125575eea37c38734fde68d221d7bbeedea28e`.
+- Restored Remnawave DB into disposable database and verified `36` public tables; disposable database was dropped.
+- Verified no disposable restore databases remain.
+- Verified all Stage 1 runtime containers are still `running` and `healthy`.
+- Verified live smoke routes: `cyber-vpn.net/en-EN/status`, `admin.cyber-vpn.net/ru-RU/login`, `api.cyber-vpn.net/healthz`.
+- Verified public registration kill switch on the live API: `POST /api/v1/auth/register` returns `403 REGISTRATION_DISABLED`.
+- Verified backend registration/payment kill switch tests: `11 passed`.
+- Verified no-code kill switch compose override validates for registration, payments, trial provisioning, paid provisioning, Telegram Stars and bot-level trial pause.
+- Verified rollback compose override validates and rollback image targets exist for backend, frontend, admin, Telegram bot and worker/scheduler.
+- Verified final hygiene: `git diff --check` passes, targeted STAGE1-PUB-14 secret/static scans have no matches, remote temporary script was removed, `npm audit --omit=dev --audit-level=high` has no high/critical blockers.
+- Residual note: worker/scheduler rollback currently uses current known-good `stage1-beta-rc.2` because no older worker image is present on the host. Keep previous immutable worker images before expanding the cohort.
 
 ---
 
@@ -835,6 +915,121 @@ curl -I https://cyber-vpn.org/
 - No unresolved P0 incident.
 - Stage 1 dashboard baseline captured before first invite.
 - Payment, provisioning, Remnawave, worker queue and support escalation panels show live data during the first 3-5 users.
+
+**Latest execution status, 2026-05-11T07:03:41Z:**
+
+- Evidence:
+  - `docs/evidence/releases/stage1-pub-15-go-no-go-20260511T070341Z.md`
+  - `docs/evidence/releases/stage1-beta-rc.2-release-notes-20260511T070341Z.md`
+- Technical recommendation: `GO` for internal smoke on public domains; `NO-GO` for inviting real beta users.
+- Runtime stack is healthy and public smoke routes work.
+- Public registration is still paused and live API returns `403 REGISTRATION_DISABLED`.
+- Payments, paid provisioning and backend trial provisioning are intentionally disabled.
+- Remnawave control-plane and lab node are healthy, but user-facing production VPN node/provisioning evidence remains missing.
+- CryptoBot/payment provider proof remains blocked from `STAGE1-PUB-11`; paid beta must remain disabled.
+- Prometheus is reachable; Alertmanager has 2 active warning alerts for swap usage.
+- Final hygiene passed: `git diff --check`, targeted secret scan, targeted static scan and `npm audit --omit=dev --audit-level=high` have no high/critical blockers.
+- Owner sign-off is pending; only the owner can convert this technical recommendation into a real cohort launch decision.
+- Recommended next operational step: `STAGE1-PUB-15A: Internal Smoke And Launch Blocker Closure`.
+
+---
+
+## STAGE1-PUB-15A: Internal Smoke And Launch Blocker Closure
+
+**Purpose:** Run internal smoke on the public-domain runtime while keeping real-user launch blockers closed and visible.
+
+**Files:**
+
+- Create evidence: `docs/evidence/releases/stage1-pub-15a-internal-smoke-and-blockers-YYYYMMDDTHHMMSSZ.md`
+
+**Steps:**
+
+1. Verify all Stage 1 app containers are running and healthy.
+2. Verify public site/admin/API smoke routes.
+3. Verify internal backend, bot, Remnawave, frontend and admin health routes.
+4. Verify Telegram webhook status without printing token values.
+5. Verify registration, payments, trial provisioning and paid provisioning remain safely paused.
+6. Verify Prometheus targets and active alerts.
+7. Re-check launch blockers: production VPN node, payment provider, immutable release tag, support email DNS and host warnings.
+8. Record allowed and disallowed next actions.
+
+**Exit criteria:**
+
+- Internal smoke is safe to continue.
+- Real-user beta remains blocked unless all P0 launch blockers are closed.
+- Next blocker-closure step is explicit.
+
+**Latest execution status, 2026-05-11T07:20:11Z:**
+
+- Evidence: `docs/evidence/releases/stage1-pub-15a-internal-smoke-and-blockers-20260511T072011Z.md`.
+- Result: `PASS` for internal smoke; `NO-GO` for external beta users.
+- All Stage 1 containers are running and healthy.
+- Public/internal smoke routes passed, except direct backend `/ready` returns `404`; backend `/health` and public `api.cyber-vpn.net/healthz` are healthy.
+- Telegram webhook info is clean: webhook URL set, pending updates `0`, no last error.
+- Registration is safely paused: live registration probe returns `403 REGISTRATION_DISABLED`.
+- Payments remain safely paused; CryptoBot `getMe` still returns `401 UNAUTHORIZED`.
+- Backend trial/paid provisioning flags remain disabled.
+- Prometheus sees Stage 1 targets up; Remnawave lab node recording rule reports `1`.
+- Alertmanager still has 2 swap warning alerts.
+- Support/refund email DNS remains unproven: no MX/DMARC records for `cyber-vpn.net` or `cyber-vpn.org`.
+- Dirty worktree remains broad: `262` entries, including `170` tracked modified and `92` untracked.
+- Final hygiene passed: `git diff --check`, targeted secret scan, targeted static scan and `npm audit --omit=dev --audit-level=high` have no high/critical blockers.
+- Recommended next no-cost step: `STAGE1-PUB-15B: Approved Snapshot Commit And Immutable RC2 Tag`.
+- Recommended next real-user blocker step: `STAGE1-PUB-15C: Production VPN Node And Trial Provisioning Proof`.
+
+---
+
+## STAGE1-PUB-15C: Production VPN Node And Trial Provisioning Proof
+
+**Purpose:** Prove that Stage 1 has a real production VPN exit node and that trial access can be provisioned end-to-end through CyberVPN and Remnawave.
+
+**Files:**
+
+- Create evidence: `docs/evidence/releases/stage1-pub-15c-production-vpn-node-trial-provisioning-YYYYMMDDTHHMMSSZ.md`
+
+**Required proof path:**
+
+1. Confirm Remnawave control-plane health.
+2. Confirm at least one rented, always-on external production VPN node is registered and connected.
+3. Confirm the node is not a lab/home/local-only node.
+4. Confirm node firewall/allowlist and `NODE_PORT` boundary.
+5. Confirm Prometheus sees Remnawave and the production node health signal.
+6. Temporarily enable trial provisioning only for a disposable controlled beta identity or smoke window.
+7. Run trial activation through CyberVPN.
+8. Confirm Remnawave user/profile creation or update.
+9. Confirm QR/subscription URL/config delivery.
+10. Import the config into a real client and capture redacted connection evidence.
+11. Prove credential regeneration.
+12. Prove expiry/grace disable behavior.
+13. Capture median/p95 `trial/pay -> VPN ready` latency from the smoke events.
+14. Re-disable trial provisioning if the production cohort is not starting immediately.
+
+**Exit criteria:**
+
+- Production node inventory exists and is safe to share in evidence.
+- Node health is proven by Remnawave API and Prometheus.
+- Trial provisioning works against the production node.
+- QR/subscription URL/config are generated.
+- A real client can connect.
+- Support/admin can see the resulting state.
+- No trial/provisioning/payment secret is printed into evidence.
+
+**Latest execution status, 2026-05-11T07:27:05Z:**
+
+- Evidence: `docs/evidence/releases/stage1-pub-15c-production-vpn-node-trial-provisioning-20260511T072705Z.md`.
+- Result: `BLOCKED` for production VPN node and user-facing trial provisioning proof; `PASS` for no-cost Remnawave control-plane, lab-node and safety preflight.
+- Current containers are running and healthy, including backend, worker, scheduler, Telegram bot, Remnawave and the local lab node.
+- Remnawave `/health` returns `200`; Prometheus reports `up{job="remnawave"}=1`.
+- Remnawave node inventory currently contains one connected node: `stage1-lab-home-node`, classified as `internal-hostname`, port `22230`.
+- This node remains acceptable only for control-plane/lab smoke.
+- No rented/always-on external production VPN node is currently proven.
+- Backend registration, payments, trial provisioning and paid provisioning remain disabled.
+- Public registration probe returns `403 REGISTRATION_DISABLED`.
+- `stage1:provisioning_success_ratio:current` and `stage1:paid_but_no_access_oldest_age_minutes:current` have no data because user provisioning and payments are intentionally disabled.
+- Final hygiene passed: `git diff --check`, targeted secret scan, targeted static scan and `npm audit --omit=dev --audit-level=high` have no high/critical blockers.
+- External beta users must not be invited until this gate is rerun with a real production node and the full trial provisioning path passes.
+- Recommended no-cost continuation: `STAGE1-PUB-15B: Approved Snapshot Commit And Immutable RC2 Tag`.
+- Recommended real-user blocker continuation: provision a rented production VPN node, then rerun `STAGE1-PUB-15C`.
 
 ---
 
@@ -871,6 +1066,25 @@ curl -I https://cyber-vpn.org/
 - Stage 1 remains stable with beta users.
 - Known issues are classified.
 - Decision is made to continue beta, expand cohort, pause, or plan S2.
+
+**Latest execution status, 2026-05-11T07:35:00Z:**
+
+- Evidence: `docs/evidence/releases/stage1-stabilization-20260511.md`.
+- Result: `CONTINUE` internal smoke / pre-beta stabilization; `NO-GO` for external beta cohort expansion.
+- Public web, admin login, API health and mirror redirects respond with expected `200`/`301`.
+- Core S1 app containers are running and healthy.
+- Sentry health returns `200`; sampled Sentry web logs and app logs show no critical/error-level app failures, but the Sentry issue list was not queried without an API token.
+- Alertmanager has two firing host swap alerts: `CyberVPNSwapInUse` and `CyberVPNSwapUsageAbove1GiB`.
+- Payment/orphan state is empty because payments remain disabled: app DB has zero payments and payment attempts; reconciliation P0/current items are zero.
+- Remnawave has one connected lab-only node, `stage1-lab-home-node`; production VPN node proof remains open.
+- Worker queues are empty: `stage1:worker_queue_depth:current=0` and Redis `XLEN taskiq:stream=0`.
+- PostgreSQL and Valkey health checks pass; app DB has `120` public tables.
+- Telegram webhook is clean: configured, pending updates `0`, no last error.
+- Hardware has enough disk and SMART metrics are healthy, but GitLab is at memory limit and host swap is active.
+- Loki is receiving logs, but sensitive request-header material for GitLab runner polling was observed in log search output. No value is copied into evidence. Redaction/purge/rotation decision is required before wider beta or log export sharing.
+- App DB currently has `active_plans=0` and `support_profiles_active=0`; seed S1 plan/support profile before enabling registration/trial/payment.
+- Support/refund mailbox DNS remains unproven: no MX/DMARC output for `cyber-vpn.net` / `cyber-vpn.org`.
+- Known issues were updated in `docs/cybervpn_stage1_launch_docs/77_STAGE1_REMAINING_WORK_TO_LAUNCH.md`.
 
 ---
 

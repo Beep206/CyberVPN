@@ -73,6 +73,11 @@ SENSITIVE_STRING_PATTERNS = (
 )
 
 
+def build_webhook_url(base_url: object, path: str) -> str:
+    """Join webhook base URL and path without duplicating slashes."""
+    return f"{str(base_url).rstrip('/')}/{path.lstrip('/')}"
+
+
 def _scrub_sensitive_value(value: Any) -> Any:
     if isinstance(value, str):
         if any(pattern.search(value) for pattern in SENSITIVE_STRING_PATTERNS):
@@ -207,7 +212,7 @@ async def on_startup(bot: Bot, settings: BotSettings) -> None:
     await apply_stage1_telegram_surface(bot, settings)
 
     if settings.bot_mode == "webhook":
-        webhook_url = f"{settings.webhook.url}{settings.webhook.path}"
+        webhook_url = build_webhook_url(settings.webhook.url, settings.webhook.path)
         secret = settings.webhook.secret_token.get_secret_value() if settings.webhook.secret_token else None
         await bot.set_webhook(
             url=webhook_url,

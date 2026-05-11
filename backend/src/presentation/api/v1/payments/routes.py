@@ -31,6 +31,10 @@ from src.infrastructure.database.repositories.payment_repo import PaymentReposit
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_payment
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
+from src.presentation.api.shared.stage1_payment_runtime import (
+    require_stage1_payments_enabled,
+    require_stage1_telegram_stars_enabled,
+)
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
     CheckoutCodeResolutionResponse,
@@ -175,6 +179,7 @@ async def create_crypto_invoice(
     _: None = Depends(require_permission(Permission.PAYMENT_CREATE)),
 ) -> InvoiceResponse:
     """Create a direct cryptocurrency invoice."""
+    require_stage1_payments_enabled()
     plan_repo = SubscriptionPlanRepository(db)
     use_case = CreateCryptoInvoiceUseCase(
         crypto_client=crypto_client,
@@ -261,6 +266,7 @@ async def commit_checkout(
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> CheckoutCommitResponse:
     """Create a local payment and optionally a CryptoBot invoice for the checkout basket."""
+    require_stage1_payments_enabled()
     result = await _build_quote(body=body, db=db, user_id=user_id)
     quote_response = _serialize_quote(result)
     commit_use_case = CommitCheckoutUseCase(db, crypto_client)
@@ -308,6 +314,7 @@ async def commit_telegram_stars_checkout(
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> CheckoutCommitResponse:
     """Create a Telegram Stars invoice link for Mini App base-plan checkout."""
+    require_stage1_telegram_stars_enabled()
     if body.channel != "miniapp":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Telegram Stars checkout is Mini App only")
     if body.currency.upper() != "XTR":

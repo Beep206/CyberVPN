@@ -23,6 +23,37 @@ public site / Telegram
 
 Все partner, mobile store, desktop, Android TV, browser extension, Helix/Verta/Beep, payouts, full GitOps/Talos/Kubernetes и growth mechanics должны оставаться выключенными до следующих этапов.
 
+## Latest Stabilization Snapshot - 2026-05-11
+
+Evidence: `docs/evidence/releases/stage1-stabilization-20260511.md`
+
+Current operational decision:
+
+```text
+CONTINUE internal smoke / pre-beta stabilization.
+NO-GO for external beta cohort expansion.
+```
+
+What is healthy now:
+
+- public web, admin login, API health and `.org` redirects respond with expected `200`/`301`;
+- backend, worker, scheduler, Telegram bot, PostgreSQL, Valkey, Remnawave and lab node containers are healthy;
+- Prometheus sees core S1 targets up;
+- Telegram webhook is configured, pending updates are `0`, and last error is absent;
+- app PostgreSQL and Valkey are healthy;
+- payment/orphan queues are empty because paid flow remains disabled;
+- backup/restore evidence from `STAGE1-PUB-14` exists for the current no-cost runtime.
+
+New/confirmed launch blockers:
+
+- `S1-STAB-20260511-001`: no rented/always-on production VPN node is proven; only `stage1-lab-home-node` exists.
+- `S1-STAB-20260511-002`: paid path remains disabled and no provider proof exists for a paid cohort.
+- `S1-STAB-20260511-003`: Loki/Caddy logs include sensitive request-header material for GitLab runner polling; redact headers and decide whether to rotate runner token before widening beta or sharing log exports.
+- `S1-STAB-20260511-004`: GitLab is at memory limit and host swap alerts are firing.
+- `S1-STAB-20260511-005`: support/refund mailbox DNS remains unproven; no MX/DMARC output for `cyber-vpn.net` / `cyber-vpn.org`.
+- `S1-STAB-20260511-006`: app DB has `active_plans=0` and `support_profiles_active=0`; seed S1 plan/support profile before enabling registration/trial/payment.
+- `S1-STAB-20260511-007`: backend direct `/ready` returns `404`; either expose readiness or keep `/healthz`/`/health` as the documented probe contract.
+
 ## Status Legend
 
 | Status | Meaning |

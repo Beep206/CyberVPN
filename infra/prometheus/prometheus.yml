@@ -53,7 +53,7 @@ scrape_configs:
 
   - job_name: 'cybervpn-telegram-bot'
     static_configs:
-      - targets: ['cybervpn-telegram-bot:9092']
+      - targets: ['cybervpn-telegram-bot:8080']
         labels:
           optional_profile: 'true'
     metrics_path: /metrics
@@ -144,6 +144,22 @@ scrape_configs:
       - targets: ['otel-collector:8888']
     metrics_path: /metrics
     scrape_interval: 15s
+
+  - job_name: 'stage1-public-web'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/stage1-public-web.json
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+    scrape_interval: 30s
 
   - job_name: 'stage2-public-endpoints'
     file_sd_configs:

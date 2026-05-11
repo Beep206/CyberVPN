@@ -154,6 +154,11 @@ class Settings(BaseSettings):
     # Payment gateway
     cryptobot_token: SecretStr
     cryptobot_network: Literal["mainnet", "testnet"] = "mainnet"
+    payments_enabled: bool = True
+    telegram_stars_enabled: bool = True
+    payment_reconciliation_enabled: bool = True
+    payment_autorenewal_enabled: bool = False
+    payment_orphan_max_age_hours: int = 24
     growth_code_hash_secret: SecretStr = SecretStr("")
     growth_reporting_rollup_retention_days: int = 180
     growth_reporting_refresh_run_retention_days: int = 180

@@ -593,7 +593,47 @@
     "title": "SECURE PACKAGE"
   },
   "Features": {},
-  "Footer": {},
+  "Footer": {
+    "brandDescription": "Controlled Public Beta VPN access with evidence-gated regions, bounded privacy claims, and monitored support recovery paths.",
+    "knowledgeLinks": {
+      "audits": "Audits",
+      "compare": "Compare",
+      "devices": "Devices",
+      "guides": "Guides",
+      "trust": "Trust center"
+    },
+    "links": {
+      "acceptableUse": "Acceptable Use",
+      "api": "API",
+      "contact": "Contact",
+      "cookiePolicy": "Cookie Policy",
+      "documentation": "Docs",
+      "download": "Download",
+      "features": "Features",
+      "helpCenter": "Help Center",
+      "pricing": "Pricing",
+      "privacy": "Privacy Policy",
+      "refundPolicy": "Refund Policy",
+      "security": "Security",
+      "servers": "Servers",
+      "status": "System Status",
+      "terms": "Terms of Service"
+    },
+    "newsletter": {
+      "cta": "INIT",
+      "description": "Get updates on enabled regions, S1 support notices, and launch-readiness changes.",
+      "placeholder": "enter_email.exe",
+      "prompt": "root@user:~$"
+    },
+    "operationalStatus": "S1 monitoring active; public availability remains evidence-bound.",
+    "sections": {
+      "knowledge": "Knowledge",
+      "paymentMethods": "Payment methods",
+      "product": "Product",
+      "stayConnected": "Stay Connected",
+      "support": "Support"
+    }
+  },
   "Header": {
     "encryptionLabel": "خفیہ کاری",
     "encryptionValue": "فعال - AES-256",
@@ -605,52 +645,235 @@
     "systemLabel": "سسٹم"
   },
   "HelpCenter": {
+    "categories_intro": "Pick a verified module and jump straight to the relevant answers in the archive.",
     "categories_title": "KNOWLEDGE MODULES",
     "category_billing": "Access Credits",
     "category_billing_desc": "Subscription, payments, and bandwidth allocation.",
     "category_getting_started": "Initialization",
     "category_getting_started_desc": "System startup and basic configuration protocols.",
     "category_security": "Encryption Protocols",
-    "category_security_desc": "Details on Anti-DPI, obfuscation, and zero-logs policies.",
+    "category_security_desc": "Details on S1 transports, evidence boundaries, privacy limits, and abuse controls.",
     "category_troubleshooting": "Signal Routing",
     "category_troubleshooting_desc": "Diagnostics for connection and tunneling errors.",
     "contact_button_telegram": "INITIATE TELEGRAM LINK",
     "contact_button_ticket": "OPEN SECURE TICKET",
     "contact_desc": "Unable to resolve your anomaly in the archives? Establish a direct secure comm channel with our operators.",
     "contact_title": "SECURE TRANSMISSION",
-    "faq_billing_1_a": "You can acquire additional Access Credits via the Billing terminal using supported crypto or fiat gateways.",
+    "faq_billing_1_a": "Open the pricing or wallet flow and choose a tested S1 payment path. Add-ons and public promo/gift/referral discounts stay disabled unless a later evidence gate enables them.",
     "faq_billing_1_q": "How do I increase my bandwidth quota?",
-    "faq_billing_2_a": "Refunds are processed strictly within the first 72 hours of establishing a new connection cycle.",
+    "faq_billing_2_a": "Refund requests are handled manually through support and finance review. Provider status, provisioning state, usage/support evidence, and the Refund Policy determine the outcome.",
     "faq_billing_2_q": "Are refunds available for inactive cycles?",
-    "faq_billing_3_a": "Affirmative. We accept Monero (XMR), USDT, and Bitcoin for completely untraceable transactions.",
-    "faq_billing_3_q": "Do you support anonymous payments?",
-    "faq_getting_started_1_a": "Download the CyberVPN core module for your OS, authenticate with your Neural ID, and click 'Engage'.",
+    "faq_billing_3_a": "Only payment methods with account, credential, webhook, status, refund, and reconciliation evidence should be enabled. Other provider options stay hidden or disabled.",
+    "faq_billing_3_q": "Which payment methods are available in S1?",
+    "faq_getting_started_1_a": "Create an account through the website or Telegram, start trial or complete a supported payment, then import the issued QR code, subscription URL, or config into a supported client.",
     "faq_getting_started_1_q": "How do I initialize my first connection?",
     "faq_getting_started_2_a": "The network accepts connections from Windows, macOS, Linux, iOS, and Android clients via standard Xray/Sing-box protocols.",
     "faq_getting_started_2_q": "What devices are supported?",
-    "faq_getting_started_3_a": "Yes, depending on your Access Credit tier, you can link up to 10 concurrent neural pathways.",
+    "faq_getting_started_3_a": "Yes, but the limit depends on the selected plan and S1 enforcement evidence. The dashboard and support team should show the active device limit.",
     "faq_getting_started_3_q": "Can I connect multiple devices simultaneously?",
-    "faq_security_1_a": "Negative. All databanks are volatile. We operate on a strict zero-knowledge architecture.",
+    "faq_intro": "Browse initialization, routing, billing, and security answers without waiting for client hydration.",
+    "faq_security_1_a": "CyberVPN does not make an absolute privacy claim in S1. Operational metadata can exist for security, payments, support, provisioning, observability, and abuse handling.",
     "faq_security_1_q": "Is my data logged?",
-    "faq_security_2_a": "We utilize ChaCha20-Poly1305 and AES-256-GCM ciphers, providing military-grade cryptographic integrity.",
+    "faq_security_2_a": "S1 uses the encryption and transport modes provided by the approved Xray/Remnawave profiles. Public crypto claims stay limited to what the actual profile evidence confirms.",
     "faq_security_2_q": "What encryption standard is deployed?",
-    "faq_security_3_a": "Yes. If the secure tunnel drops, the client immediately terminates all external network adapters to prevent IP leaks.",
-    "faq_security_3_q": "Do you offer a Kill Switch?",
+    "faq_security_3_a": "Paid state must be preserved, provisioning must retry or escalate, and support must review paid-but-no-access/orphan cases before they exceed the S1 24-hour policy.",
+    "faq_security_3_q": "What if my paid VPN access is not ready?",
     "faq_title": "COMMON QUERIES",
-    "faq_troubleshooting_1_a": "Check your node's ping. If packet loss exceeds 5%, reroute to an alternate shard in the Server Grid.",
+    "faq_troubleshooting_1_a": "Check whether the selected region is enabled, try the alternate S1 profile if available, and contact support if the dashboard shows provisioning or payment review.",
     "faq_troubleshooting_1_q": "Why is my connection speed degraded?",
-    "faq_troubleshooting_2_a": "The system automatically engages fallback routing. If manual override is needed, flush your DNS cache and reconnect.",
+    "faq_troubleshooting_2_a": "Use the alternate subscription profile when available. If access was paid but VPN is not ready, support must escalate the case under the S1 paid-access escalation policy.",
     "faq_troubleshooting_2_q": "What if the primary proxy fails?",
-    "faq_troubleshooting_3_a": "Our core utilizing VLESS+Reality automatically masks your traffic as standard HTTPS. Ensure you have the latest core update applied.",
+    "faq_troubleshooting_3_a": "S1 uses VLESS Reality RAW as the default profile and VLESS Reality XHTTP as the alternate path. Results depend on the user's network and current node evidence.",
     "faq_troubleshooting_3_q": "How do I bypass DPI restrictions?",
     "hero_subtitle": "ACCESSING CENTRAL DATABANKS...",
     "hero_title": "NEURAL ARCHIVES",
-    "meta_description": "Access the databanks for troubleshooting, guides, and secure communication channels.",
+    "meta_description": "Troubleshooting, setup guidance, billing support, and Stage 1 support escalation channels.",
     "meta_title": "Neural Archives | CyberVPN Help Center",
     "search_button": "DECRYPT",
     "search_placeholder": "Enter neural query..."
   },
-  "Landing": {},
+  "Landing": {
+    "comparison_table": {
+      "headers": {
+        "cybervpn": "CyberVPN (VLESS-Reality)",
+        "feature": "Feature",
+        "legacy": "Legacy VPN (WireGuard/OpenVPN)"
+      },
+      "rows": {
+        "dpi": {
+          "cybervpn": "HTTPS-like Reality profile",
+          "feature": "DPI Detection",
+          "legacy": "Easily fingerprinted and blocked"
+        },
+        "ip_blocking": {
+          "cybervpn": "Lower when node evidence is current",
+          "feature": "IP Blocking Risk",
+          "legacy": "High (static patterns)"
+        },
+        "privacy": {
+          "cybervpn": "Bounded privacy claims tied to evidence",
+          "feature": "Privacy Layer",
+          "legacy": "Standard encryption"
+        },
+        "speed": {
+          "cybervpn": "Measured per enabled node",
+          "feature": "Speed under Load",
+          "legacy": "Throttled by ISP deep inspection"
+        }
+      },
+      "title": "Legacy vs Next-Gen"
+    },
+    "features": {
+      "backbone": {
+        "desc": "Startup regions are enabled only after Remnawave node evidence, monitoring, support recovery, and rollback proof are available.",
+        "title": "Backbone Performance"
+      },
+      "badge": "FEATURE MATRIX",
+      "multiplatform": {
+        "desc": "S1 supports web cabinet, Telegram Bot/Mini App, and standard third-party client import instructions for Android, iOS, Windows, macOS, and Linux.",
+        "title": "Native Multi-Platform"
+      },
+      "protocols": {
+        "desc": "S1 exposes VLESS Reality RAW as default and VLESS Reality XHTTP as the alternate path. Other transports stay out of scope until separately approved.",
+        "title": "Advanced Protocols"
+      },
+      "ram": {
+        "desc": "Public privacy wording is limited to what S1 evidence can support. Operational metadata may exist for security, billing, support, and provisioning.",
+        "title": "Privacy-Bounded Operations"
+      },
+      "routing": {
+        "desc": "Region visibility is evidence-gated: a location is shown only when node health, profile mapping, and support handling are ready.",
+        "title": "Intelligent Routing"
+      },
+      "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
+      "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
+      "stats": {
+        "bandwidth": "approved transports",
+        "locations": "startup regions",
+        "logs": "bounded claims",
+        "uptime": "beta status"
+      },
+      "stealth": {
+        "desc": "VLESS Reality is the S1 default path for networks where standard VPN fingerprints are unreliable. Availability depends on real node evidence.",
+        "title": "Stealth Mode (Reality)"
+      }
+    },
+    "hero": {
+      "cta_app": "DOWNLOAD APP",
+      "cta_telegram": "LAUNCH IN TELEGRAM",
+      "protocol_badge": "S1 PROTOCOLS: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
+      "subtitle": "Controlled Public Beta access with S1-approved transports, evidence-gated regions, manual renewal, and support recovery paths.",
+      "title": "CONTROLLED BETA VPN. POWERED BY VLESS REALITY",
+      "titleHighlight": "CONTROLLED BETA VPN"
+    },
+    "how_it_works": {
+      "badge": "ANTI-DPI ENGINE",
+      "desc": "Reality-based profiles are configured to resemble ordinary HTTPS flows while keeping the rollout evidence-driven. XHTTP is treated as the S1 alternate path, not as a universal bypass promise.",
+      "title": "How Reality Works"
+    },
+    "network_stats": {
+      "bandwidth": "Capacity shown after node evidence",
+      "coverage": "Country-level regions only for S1",
+      "nodes": "12 startup regions, enabled by evidence",
+      "title": "Network Infrastructure",
+      "uptime": "Monitoring and alerts required before go-live"
+    },
+    "pricing": {
+      "basic": "Basic: Trial / Entry level",
+      "cyber": "Cyber: Premium / Full access",
+      "pro": "Pro: Most popular",
+      "ultra": "Ultra: High bandwidth"
+    },
+    "quick_start": {
+      "badge": "Fast Track",
+      "step1": "Launch the bot (@CyberVPN_Bot)",
+      "step2": "One-tap Trial Activation (3 days / 1 device)",
+      "step3": "Import QR, subscription URL, or config into a supported client",
+      "terminalComment": "# Auto-provisioning VPN tunnel...",
+      "terminalStatus": "> VPN access ready when provisioning evidence and support recovery pass.",
+      "terminalTitle": "Deploy Connection",
+      "title": "30-Second Path"
+    },
+    "speed_tunnel": {
+      "featureNoAds": "HTTPS-like profile",
+      "featureTorrent": "P2P restricted",
+      "online": "S1 SLOT",
+      "servers": {
+        "amsterdam": {
+          "city": "Amsterdam",
+          "country": "Netherlands"
+        },
+        "frankfurt": {
+          "city": "Frankfurt",
+          "country": "Germany"
+        },
+        "london": {
+          "city": "London",
+          "country": "United Kingdom"
+        },
+        "newYork": {
+          "city": "New York",
+          "country": "USA"
+        },
+        "paris": {
+          "city": "Paris",
+          "country": "France"
+        },
+        "seoul": {
+          "city": "Seoul",
+          "country": "South Korea"
+        },
+        "singapore": {
+          "city": "Singapore",
+          "country": "Singapore"
+        },
+        "sydney": {
+          "city": "Sydney",
+          "country": "Australia"
+        },
+        "tokyo": {
+          "city": "Tokyo",
+          "country": "Japan"
+        },
+        "toronto": {
+          "city": "Toronto",
+          "country": "Canada"
+        }
+      },
+      "subtitle": "S1 startup regions. Evidence-gated nodes. Fair-use policy.",
+      "titleEnd": "NETWORK",
+      "titleHighlight": "ULTRASPEED",
+      "titleStart": "GLOBAL"
+    },
+    "status_board": {
+      "item_online": "EVIDENCE OK",
+      "live": "S1 READY",
+      "protocols": {
+        "reality": "Reality",
+        "xhttp": "Reality XHTTP"
+      },
+      "title": "Node Status Dashboard"
+    },
+    "tech_specs": {
+      "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
+      "network": "Network: S1 startup regions, monitored node evidence",
+      "transport": "Transport: XHTTP (Next-Gen), gRPC, Reality-TCP"
+    },
+    "technical": {
+      "labels": {
+        "encryption": "Encryption",
+        "network": "Network",
+        "transport": "Transport"
+      },
+      "networkLabels": {
+        "bandwidth": "Beta capacity",
+        "coverage": "Coverage",
+        "nodes": "Enabled regions",
+        "uptime": "Monitoring posture"
+      },
+      "specificationsTitle": "Technical Specifications"
+    }
+  },
   "LanguageSelector": {
     "noResults": "NO_MATCHES_FOUND",
     "searchPlaceholder": "SEARCH_LANGUAGE...",
@@ -946,71 +1169,141 @@
     "title": "سسٹم ماڈیول آف لائن"
   },
   "Pricing": {
+    "addons": {
+      "dedicated_ip": {
+        "availability": "Available on every paid plan. Max includes 1 by default.",
+        "description": "One IP, one location, one predictable routing identity for services that dislike shared pools.",
+        "title": "Dedicated IP"
+      },
+      "extra_device": {
+        "availability": "Limits by plan: {limits}",
+        "description": "Extends device limit immediately and renews with the base subscription. Good product hygiene, no extra tariff cloning.",
+        "title": "+1 Device"
+      },
+      "priceLabel": "from {price}",
+      "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
+      "title": "Add-ons, Not Tariff Sprawl"
+    },
     "faq": {
-      "a1": "Negative. We operate on a strict Zero-Log infrastructure. Your digital footprint is erased upon disconnection.",
-      "a2": "Your connection will drop to baseline throttled speeds (128 kbps). Upgrade to Pro for unlimited transmission.",
-      "a3": "Affirmative. We accept Bitcoin, Monero, and secure digital credits. Absolute anonymity is our prime directive.",
-      "q1": "Are my logs recorded?",
-      "q2": "What happens if I exceed the Stealth tier bandwidth?",
-      "q3": "Do you accept crypto?",
-      "title": "DECRYPTED ARCHIVES"
+      "items": [
+        {
+          "a": "Yes. Baseline VPN protection is not tiered away. Paid plans differ by seats, routing modes, server pool quality, dedicated IP access, and support.",
+          "q": "Are all paid plans full VPN plans?"
+        },
+        {
+          "a": "S1 avoids a public hard-cap promise. Traffic handling follows fair-use rules, node policy, abuse controls, and the selected plan instead of an absolute unlimited claim.",
+          "q": "What does Fair-use policy mean?"
+        },
+        {
+          "a": "Invite bundles are a term-level bonus. Short terms can have none, while 180-day and 365-day plans can include invite codes with defined friend days and expiry windows.",
+          "q": "When do invite bundles appear?"
+        },
+        {
+          "a": "No. It is a premium option. You can buy it as an add-on on paid plans, and Max already includes one dedicated IP.",
+          "q": "Is Dedicated IP a separate plan?"
+        }
+      ],
+      "title": "Before You Choose"
     },
     "introPills": {
-      "addons": "Options"
+      "addons": "Options",
+      "periods": "4 periods",
+      "plans": "4 plans"
     },
     "labels": {
       "chargedInBillingCurrency": "Charged in {currency}",
-      "localDisplayEstimate": "Approx. {price} display only"
+      "dedicatedIpAddon": "Dedicated IP as add-on",
+      "devices": "{count} devices",
+      "includedDedicatedIp": "{count} dedicated IP included",
+      "inviteBundle": "{count} invites · {days} friend days",
+      "inviteNone": "No invite bundle",
+      "localDisplayEstimate": "Approx. {price} display only",
+      "monthlyEquivalent": "{price} / 30 days equivalent",
+      "perSelectedTerm": "per {days}-day term",
+      "trafficFairUse": "Fair-use policy"
+    },
+    "matrix": {
+      "rows": {
+        "capability": "Capability",
+        "dedicatedIp": "Dedicated IP",
+        "devices": "Devices",
+        "invites": "Invite bundle",
+        "modes": "Connection modes",
+        "serverPool": "Server access",
+        "support": "Support",
+        "traffic": "Traffic"
+      },
+      "subtitle": "Core VPN security stays on every paid plan. The difference is device count, routing surface, premium access, invite bundles, and support.",
+      "title": "What Actually Changes Between Plans"
+    },
+    "modeNames": {
+      "dedicated_ip": "Dedicated IP",
+      "experimental": "Experimental",
+      "manual_config": "Manual / Advanced",
+      "standard": "Standard",
+      "stealth": "Stealth"
     },
     "periods": {
-      "helper": "Choose the term that fits your setup; checkout stays simple and predictable."
+      "best": "Best value",
+      "helper": "Choose the term that fits your setup; checkout stays simple and predictable.",
+      "label": "Choose your billing term",
+      "options": {
+        "30": "30 days",
+        "90": "90 days",
+        "180": "180 days",
+        "365": "365 days"
+      },
+      "term": "Selectable term"
+    },
+    "poolNames": {
+      "exclusive": "Exclusive",
+      "premium": "Premium",
+      "premium_shared": "Premium Shared",
+      "shared": "Shared",
+      "shared_plus": "Shared+"
     },
     "subtitle": "4 plans, 4 billing terms. One full VPN baseline on every paid plan.",
+    "summary": {
+      "noInviteBonus": "No invite bundle on this term.",
+      "selectedTerm": "Selected term: {days} days"
+    },
+    "supportNames": {
+      "internal": "Internal",
+      "priority": "Priority support",
+      "standard": "Standard support",
+      "vip": "VIP support"
+    },
     "tiers": {
       "basic": {
-        "button": "INITIATE STEALTH",
-        "description": "Essential encryption for navigating the digital outer rims.",
-        "features": [
-          "AES-256 Core Encryption",
-          "5 Global Relay Nodes",
-          "10 GB/mc Bandwidth limit",
-          "Standard Support Ping"
-        ],
-        "name": "STEALTH",
-        "period": "/forever",
-        "price": "Free"
+        "audience": "One person, clean start",
+        "badge": "Starter",
+        "button": "Choose Basic",
+        "description": "A full VPN baseline for personal use with simple routing, no hard data cap messaging, and a healthier default than a single-device tariff.",
+        "eyebrow": "Entry plan"
       },
-      "elite": {
-        "button": "ACQUIRE ELITE",
-        "description": "Full network override. Dedicated IPs and total infrastructure control.",
-        "features": [
-          "Dedicated Cyber-IP Address",
-          "Obfuscated Stealth Protocols",
-          "Priority Node Selection",
-          "10Gbps Network Links",
-          "Access to Beta Directives"
-        ],
-        "name": "ELITE_SYNC",
-        "period": "/month",
-        "price": "$15.99"
+      "max": {
+        "audience": "Family or premium setup",
+        "badge": "Flagship",
+        "button": "Choose Max",
+        "description": "The premium top tier. More seats, stronger server access, and one included dedicated IP so the upsell is obvious instead of cosmetic.",
+        "eyebrow": "Flagship plan"
+      },
+      "plus": {
+        "audience": "Most users",
+        "badge": "Most Popular",
+        "button": "Choose Plus",
+        "description": "The mainline plan for phones, laptops, and normal multi-device life. Stealth mode lands here because it solves real networks, not niche edge cases.",
+        "eyebrow": "Mass market"
       },
       "pro": {
-        "badge": "MOST POPULAR",
-        "button": "UPGRADE TO PRO",
-        "description": "Unrestricted speed and matrix-level anonymity for true runners.",
-        "features": [
-          "Quantum-Resistant Protocols",
-          "8,000+ Tier-1 Relays",
-          "Unlimited Bandwidth",
-          "Zero-Log Hardened Cores",
-          "Double VPN Routing"
-        ],
-        "name": "CYBER_PRO",
-        "period": "/month",
-        "price": "$8.99"
+        "audience": "Travel, work, streaming",
+        "badge": "Best Balance",
+        "button": "Choose Pro",
+        "description": "Built for heavier use: stronger routing access, manual and advanced profiles, and a support posture that fits users who actually notice network quality.",
+        "eyebrow": "Power users"
       }
     },
-    "title": "ACCESS TIERS"
+    "title": "Pricing That Stays Clear"
   },
   "Privacy": {
     "description": "S1 CONTROLLED PUBLIC BETA PRIVACY SUMMARY",
@@ -1259,26 +1552,26 @@
   "Settings": {},
   "Status": {
     "history": {
-      "title": "90-Day History",
+      "title": "Beta Evidence Window",
       "tooltip_date": "Date",
       "tooltip_status": "Status"
     },
     "incidents": {
-      "empty": "No active incidents. Network secure.",
+      "empty": "No active incidents recorded in this local status snapshot.",
       "title": "INCIDENT LOG",
       "view_all": "VIEW ARCHIVE"
     },
     "metrics": {
-      "active_nodes": "ACTIVE CORES",
-      "bandwidth": "THROUGHPUT",
+      "active_nodes": "ENABLED REGIONS",
+      "bandwidth": "OBSERVED TRAFFIC",
       "latency": "AVG LATENCY",
-      "status_nominal": "ALL SYSTEMS NOMINAL",
-      "status_outage": "MAJOR OUTAGE DETECTED",
-      "status_warning": "DEGRADED PERFORMANCE",
-      "uptime": "99.99% UPTIME"
+      "status_nominal": "READY SIGNALS NOMINAL",
+      "status_outage": "INCIDENT REVIEW REQUIRED",
+      "status_warning": "DEGRADED SIGNALS",
+      "uptime": "AVAILABILITY WINDOW"
     },
-    "subtitle": "Global Network Operations Center",
-    "title": "SYSTEM TELEMETRY"
+    "subtitle": "Controlled Public Beta monitoring surface",
+    "title": "S1 STATUS"
   },
   "Subscriptions": {},
   "Terms": {

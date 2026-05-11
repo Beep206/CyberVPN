@@ -58,6 +58,10 @@ from src.infrastructure.monitoring.instrumentation.routes import (
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.api.shared.stage1_payment_runtime import (
+    require_stage1_payments_enabled,
+    require_stage1_telegram_stars_enabled,
+)
 from src.presentation.api.v1.addons.schemas import AddonResponse
 from src.presentation.api.v1.payments.routes import (
     _build_quote as _build_base_checkout_quote,
@@ -838,6 +842,11 @@ async def commit_miniapp_checkout(
     payment_rail = "telegram_stars_xtr" if body.currency.upper() == "XTR" else "generic_checkout"
     response: MiniAppCheckoutCommitResponse | None = None
     try:
+        if body.currency.upper() == "XTR":
+            require_stage1_telegram_stars_enabled()
+        else:
+            require_stage1_payments_enabled()
+
         rollout = await _get_miniapp_runtime_config(db)
         telegram_user_id = await _resolve_miniapp_runtime_telegram_user_id(
             config=rollout,

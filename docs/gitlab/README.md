@@ -10,40 +10,46 @@ Prepare the CyberVPN monorepo so it can run in a home GitLab instance while GitH
 
 This does not make the home GitLab instance production-critical. Customer-facing CyberVPN services, payment webhooks, VPN nodes and production provisioning must continue to run outside the home server.
 
-## Source Of Truth Recommendation
+## Source Of Truth Decision
 
-For the first GitLab phase:
+Owner update, 2026-05-11:
 
-1. Keep GitHub as the external fallback remote.
-2. Add the home GitLab instance as a second remote.
-3. Run GitLab CI on the home server for repository validation, security scans, evidence generation and non-production packaging.
-4. Do not make production deploys depend only on the home GitLab server.
+```text
+GitLab is first for repository CI/CD and release evidence.
+GitHub remains the external fallback remote.
+```
+
+This changes repository operations, not the Stage 1 runtime safety model:
+
+1. Push to GitLab first.
+2. Let GitLab CI run protected validation/security/evidence jobs.
+3. Push to GitHub after GitLab accepts the same commit, or enable a controlled GitLab -> GitHub push mirror later.
+4. Do not make customer runtime, payment webhooks, Telegram webhooks, VPN access or emergency rollback depend only on the home GitLab server while the server can lose power.
 
 After the GitLab instance is stable, choose one of two models:
 
 | Model | When to use | Rule |
 |---|---|---|
 | GitHub primary, GitLab CI mirror | Lowest launch risk | Push to GitHub; mirror or manually push to GitLab for CI |
-| GitLab primary, GitHub push mirror | Better internal DevOps | Merge in GitLab; push mirror to GitHub as external fallback |
+| GitLab primary, GitHub push mirror | Current owner decision for repo CI/CD | Merge/push in GitLab first; push mirror to GitHub as external fallback |
 
-Because home power can be offline for several hours, the first model is safer until S1 is launched.
+Because home power can be offline for several hours, GitHub remains the recovery remote even while GitLab is first for daily CI/CD.
 
 ## Repository Remotes
 
-Recommended local remotes:
+Current local remotes after GitLab-first switch:
 
 ```bash
 git remote -v
-git remote add gitlab ssh://git@gitlab.home.cyber-vpn.net:2222/cybervpn/cybervpn.git
-git push gitlab main
-git push gitlab --tags
+origin  https://gitlab.h.cyber-vpn.net/root/CyberVPN.git
+github  https://github.com/Beep206/CyberVPN.git
 ```
 
-If GitLab is made primary later:
+If the local repository still has GitHub as `origin`, switch it once:
 
 ```bash
 git remote rename origin github
-git remote rename gitlab origin
+git remote add origin https://gitlab.h.cyber-vpn.net/root/CyberVPN.git
 ```
 
 Keep GitHub available:
@@ -86,6 +92,7 @@ The baseline pipeline is intentionally conservative:
 - no automatic `docker push`;
 - security scans that can run on schedule or default branch changes;
 - Docker-in-Docker jobs isolated behind the `dind` runner tag.
+- manual `stage1:limited-publication-preflight` job for protected Stage 1 public endpoint and launch-guard evidence.
 
 This keeps the home server useful without making it part of the customer critical path.
 

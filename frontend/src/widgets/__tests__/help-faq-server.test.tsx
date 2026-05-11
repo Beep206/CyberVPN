@@ -17,7 +17,8 @@ const messages = {
   category_billing: 'Access Credits',
   category_billing_desc: 'Subscription, payments, and bandwidth allocation.',
   category_security: 'Encryption Protocols',
-  category_security_desc: 'Details on Anti-DPI, obfuscation, and zero-logs policies.',
+  category_security_desc:
+    'Details on Anti-DPI, obfuscation, and S1 privacy boundaries.',
   faq_getting_started_1_q: 'How do I initialize my first connection?',
   faq_getting_started_1_a:
     "Download the core module, authenticate, and click 'Engage'.",

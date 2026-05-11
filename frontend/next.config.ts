@@ -13,6 +13,14 @@ const publicSentryRelease =
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
+const FRONTEND_PRIMARY_ORIGIN = "cyber-vpn.net";
+const FRONTEND_WWW_ORIGIN = "www.cyber-vpn.net";
+const FRONTEND_LOCAL_ORIGINS = ["localhost:3000", "127.0.0.1:3000"];
+const apiInternalOrigin = (
+  process.env.API_INTERNAL_ORIGIN?.trim() ||
+  process.env.API_URL?.trim() ||
+  "http://localhost:8000"
+).replace(/\/$/, "");
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
@@ -42,10 +50,14 @@ const config: NextConfigWithCompiler = {
     // Avoid WSL CPU/RAM spikes from Turbopack dev filesystem-cache compaction.
     turbopackFileSystemCacheForDev: false,
     serverActions: {
-      allowedOrigins: ["vpn.ozoxy.ru"],
+      allowedOrigins: [FRONTEND_PRIMARY_ORIGIN, FRONTEND_WWW_ORIGIN],
     },
   },
-  allowedDevOrigins: ["vpn.ozoxy.ru"],
+  allowedDevOrigins: [
+    FRONTEND_PRIMARY_ORIGIN,
+    FRONTEND_WWW_ORIGIN,
+    ...FRONTEND_LOCAL_ORIGINS,
+  ],
   cacheComponents: true,
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactCompiler: true,
@@ -71,7 +83,7 @@ const config: NextConfigWithCompiler = {
     return [
       {
         source: "/api/v1/:path*",
-        destination: "http://localhost:8000/api/v1/:path*",
+        destination: `${apiInternalOrigin}/api/v1/:path*`,
       },
     ];
   },

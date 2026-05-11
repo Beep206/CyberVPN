@@ -1,5 +1,5 @@
 {
-    "brandDescription": "Передовая инфраструктура защиты конфиденциальности для интернета следующего поколения. Навигация в цифровой пустоте с шифрованием военного уровня.",
+    "brandDescription": "Controlled Public Beta VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
     "sections": {
         "product": "Продукт",
         "support": "Поддержка",
@@ -15,12 +15,12 @@
         "audits": "Аудиты"
     },
     "newsletter": {
-        "description": "Подключайтесь к нашему зашифрованному каналу. Получайте обновления по локациям, протоколам безопасности и критическим патчам.",
+        "description": "Получайте обновления по включённым регионам, S1 support notices и изменениям launch-readiness.",
         "prompt": "root@user:~$",
         "placeholder": "введите_email.exe",
         "cta": "СТАРТ"
     },
-    "operationalStatus": "Все системы работают штатно.",
+    "operationalStatus": "S1 monitoring активен; публичная доступность остаётся evidence-bound.",
     "links": {
         "features": "Возможности",
         "pricing": "Цены",

@@ -37,7 +37,7 @@ COPY healthcheck.py ./
 USER botuser
 
 # Expose metrics port
-EXPOSE 9092
+EXPOSE 8080
 
 # Healthcheck: verify Redis connectivity
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s \

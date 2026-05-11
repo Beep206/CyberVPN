@@ -1,5 +1,5 @@
 {
-    "brandDescription": "Advanced privacy protection infrastructure for the next generation of the internet. Navigate the digital void with military-grade encryption.",
+    "brandDescription": "Controlled Public Beta VPN access with evidence-gated regions, bounded privacy claims, and monitored support recovery paths.",
     "sections": {
         "product": "Product",
         "support": "Support",
@@ -15,12 +15,12 @@
         "audits": "Audits"
     },
     "newsletter": {
-        "description": "Join our encrypted frequency. Get updates on server locations, security protocols, and zero-day patches.",
+        "description": "Get updates on enabled regions, S1 support notices, and launch-readiness changes.",
         "prompt": "root@user:~$",
         "placeholder": "enter_email.exe",
         "cta": "INIT"
     },
-    "operationalStatus": "All systems operational.",
+    "operationalStatus": "S1 monitoring active; public availability remains evidence-bound.",
     "links": {
         "features": "Features",
         "pricing": "Pricing",
@@ -33,9 +33,9 @@
         "documentation": "Docs",
         "privacy": "Privacy Policy",
         "terms": "Terms of Service",
-        "security": "Security",
         "acceptableUse": "Acceptable Use",
         "refundPolicy": "Refund Policy",
-        "cookiePolicy": "Cookie Policy"
+        "cookiePolicy": "Cookie Policy",
+        "security": "Security"
     }
 }

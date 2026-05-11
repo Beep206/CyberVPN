@@ -932,7 +932,7 @@
     "title": "Возможности Stage 1"
   },
   "Footer": {
-    "brandDescription": "Передовая инфраструктура защиты конфиденциальности для интернета следующего поколения. Навигация в цифровой пустоте с шифрованием военного уровня.",
+    "brandDescription": "Controlled Public Beta VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
     "knowledgeLinks": {
       "audits": "Аудиты",
       "compare": "Сравнения",
@@ -959,11 +959,11 @@
     },
     "newsletter": {
       "cta": "СТАРТ",
-      "description": "Подключайтесь к нашему зашифрованному каналу. Получайте обновления по локациям, протоколам безопасности и критическим патчам.",
+      "description": "Получайте обновления по включённым регионам, S1 support notices и изменениям launch-readiness.",
       "placeholder": "введите_email.exe",
       "prompt": "root@user:~$"
     },
-    "operationalStatus": "Все системы работают штатно.",
+    "operationalStatus": "S1 monitoring активен; публичная доступность остаётся evidence-bound.",
     "sections": {
       "knowledge": "База знаний",
       "paymentMethods": "Способы оплаты",

@@ -1,0 +1,91 @@
+{
+	admin off
+	email support@cyber-vpn.net
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+(stage1_security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+(stage1_api_routes) {
+	@remnawave_subscription path /api/sub*
+	handle @remnawave_subscription {
+		reverse_proxy remnawave:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Port 443
+		}
+	}
+
+	@api path /api/v1/* /.well-known/security.txt
+	reverse_proxy @api cybervpn-backend:8000
+
+	@telegram_webhook path /webhook/telegram
+	reverse_proxy @telegram_webhook cybervpn-telegram-bot:8080
+
+	@healthz path /healthz
+	respond @healthz "ok" 200
+}
+
+cyber-vpn.net {
+	import stage1_security_headers
+	import stage1_api_routes
+
+	encode zstd gzip
+	reverse_proxy cybervpn-frontend:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+	}
+}
+
+www.cyber-vpn.net {
+	redir https://cyber-vpn.net{uri} permanent
+}
+
+status.cyber-vpn.net {
+	redir https://cyber-vpn.net/en-EN/status permanent
+}
+
+api.cyber-vpn.net {
+	import stage1_security_headers
+	import stage1_api_routes
+
+	@healthz path /healthz
+	respond @healthz "ok" 200
+
+	respond "Not found" 404
+}
+
+cyber-vpn.org {
+	redir https://cyber-vpn.net{uri} permanent
+}
+
+admin.cyber-vpn.net {
+	import stage1_security_headers
+	import stage1_api_routes
+
+	encode zstd gzip
+	reverse_proxy cybervpn-admin:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+	}
+}
+
+admin.cyber-vpn.org {
+	redir https://admin.cyber-vpn.net{uri} permanent
+}

@@ -52,6 +52,10 @@ from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remn
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveCreatedSubscriptionResponse
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.api.shared.stage1_payment_runtime import (
+    require_stage1_payments_enabled,
+    require_stage1_telegram_stars_enabled,
+)
 from src.presentation.api.v1.access_delivery_channels.routes import (
     _serialize_access_delivery_channel,
     _serialize_purchase_context,
@@ -1088,6 +1092,7 @@ async def commit_bot_user_checkout(
 ) -> TelegramBotCheckoutCommitResponse:
     """Create a payment and optional invoice for a Telegram bot checkout basket."""
     _require_telegram_bot_secret(telegram_bot_secret)
+    require_stage1_payments_enabled()
     if body.payment_method != "cryptobot":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1137,6 +1142,7 @@ async def create_telegram_stars_invoice(
 ) -> TelegramStarsInvoiceResponse:
     """Create a pending Telegram Stars payment and return invoice parameters for the bot."""
     _require_telegram_bot_secret(telegram_bot_secret)
+    require_stage1_telegram_stars_enabled()
 
     if body.payment_method != "telegram_stars":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payment method for Telegram Stars")

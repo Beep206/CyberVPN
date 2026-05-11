@@ -1,0 +1,670 @@
+name: cybervpn-stage1
+
+x-stage-labels: &stage-labels
+  cybervpn.environment: ${CYBERVPN_ENVIRONMENT:-production}
+  cybervpn.stage: stage1
+  cybervpn.release: ${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+
+x-runtime-defaults: &runtime-defaults
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: ${STAGE1_LOG_MAX_SIZE:-50m}
+      max-file: "${STAGE1_LOG_MAX_FILES:-5}"
+      labels: cybervpn.service,cybervpn.environment,cybervpn.stage,cybervpn.release
+
+x-app-env: &app-env
+  env_file:
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/app.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/payments.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+      required: false
+
+x-web-env: &web-env
+  env_file:
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/frontend.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+      required: false
+
+x-admin-env: &admin-env
+  env_file:
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/admin.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+      required: false
+
+x-bot-env: &bot-env
+  env_file:
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/telegram-bot.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/payments.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+      required: false
+
+services:
+  cybervpn-caddy:
+    <<: *runtime-defaults
+    profiles: ["container-edge"]
+    image: caddy:2.9-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${CYBERVPN_CONFIG_DIR:-/srv/cybervpn-h/configs/app}/Caddyfile.stage1.snippet:/etc/caddy/Caddyfile:ro
+      - cybervpn-caddy-data:/data
+      - cybervpn-caddy-config:/config
+    networks:
+      cybervpn-public: {}
+      cybervpn-backend: {}
+      cybervpn-egress: {}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='Host: cyber-vpn.net' http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 256m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-caddy
+      cybervpn.metrics.target: blackbox_http_probe
+
+  cybervpn-backend:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-backend:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/app.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/payments.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "8000"
+      - "9091"
+    ports:
+      - "127.0.0.1:18080:8000"
+      - "127.0.0.1:19091:9091"
+    environment:
+      DATABASE_URL: ${CYBERVPN_DATABASE_URL:-postgresql+asyncpg://cybervpn:replace-before-live@cybervpn-postgres:5432/cybervpn}
+      REDIS_URL: ${CYBERVPN_REDIS_URL:-redis://cybervpn-valkey:6379/0}
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      METRICS_HOST: 0.0.0.0
+      METRICS_PORT: "9091"
+      ENABLE_METRICS: "true"
+      JSON_LOGS: "true"
+      LOG_SANITIZATION_ENABLED: "true"
+      SWAGGER_ENABLED: "false"
+      UVICORN_ACCESS_LOG: "false"
+      TRUST_PROXY_HEADERS: "true"
+      TRUSTED_PROXY_IPS: 172.16.0.0/12,10.0.0.0/8,192.168.0.0/16
+    networks:
+      cybervpn-backend: {}
+      cybervpn-data: {}
+      cybervpn-metrics: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 768m
+    cpus: "1.00"
+    pids_limit: 256
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-backend
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /metrics
+      prometheus.io/port: "9091"
+      prometheus.job: cybervpn-backend
+      prometheus.service: cybervpn-backend
+
+  cybervpn-worker:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-task-worker:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    command:
+      - sh
+      - -lc
+      - mkdir -p "$${PROMETHEUS_MULTIPROC_DIR:-/tmp/prometheus-multiproc}" && exec taskiq worker src.broker:broker --workers 1 --fs-discover
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/app.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/telegram-bot.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/payments.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "9091"
+    environment:
+      DATABASE_URL: ${CYBERVPN_DATABASE_URL:-postgresql+asyncpg://cybervpn:replace-before-live@cybervpn-postgres:5432/cybervpn}
+      REDIS_URL: ${CYBERVPN_REDIS_URL:-redis://cybervpn-valkey:6379/0}
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+      METRICS_ENABLED: "true"
+      METRICS_PROTECT: "false"
+      METRICS_PORT: "9091"
+      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus-multiproc
+      HELIX_ENABLED: "false"
+    networks:
+      cybervpn-backend: {}
+      cybervpn-data: {}
+      cybervpn-metrics: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os, redis; client=redis.from_url(os.environ['REDIS_URL'], socket_connect_timeout=5, socket_timeout=5); client.ping(); client.close()\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    mem_limit: 512m
+    cpus: "1.00"
+    pids_limit: 256
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-worker
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /metrics
+      prometheus.io/port: "9091"
+      prometheus.job: cybervpn-worker
+      prometheus.service: cybervpn-worker
+
+  cybervpn-scheduler:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-task-worker:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    command: ["taskiq", "scheduler", "src.broker:scheduler"]
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/app.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/telegram-bot.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/payments.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    environment:
+      DATABASE_URL: ${CYBERVPN_DATABASE_URL:-postgresql+asyncpg://cybervpn:replace-before-live@cybervpn-postgres:5432/cybervpn}
+      REDIS_URL: ${CYBERVPN_REDIS_URL:-redis://cybervpn-valkey:6379/0}
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+      METRICS_ENABLED: "false"
+      METRICS_PROTECT: "false"
+      HELIX_ENABLED: "false"
+    networks:
+      cybervpn-backend: {}
+      cybervpn-data: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os, redis; client=redis.from_url(os.environ['REDIS_URL'], socket_connect_timeout=5, socket_timeout=5); client.ping(); client.close()\""]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    mem_limit: 256m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-scheduler
+      cybervpn.metrics.target: worker_scheduler_logs
+
+  cybervpn-remnawave:
+    <<: *runtime-defaults
+    image: remnawave/backend:2.7.4
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-panel.env
+        required: true
+    expose:
+      - "3000"
+      - "3001"
+    ports:
+      - "127.0.0.1:13005:3000"
+      - "127.0.0.1:13006:3001"
+    volumes:
+      - ${CYBERVPN_CONFIG_DIR:-/srv/cybervpn-h/configs/app}/remnawave-notifications.yml:/var/lib/remnawave/configs/notifications/notifications-config.yml:ro
+    depends_on:
+      cybervpn-remnawave-postgres:
+        condition: service_healthy
+      cybervpn-remnawave-valkey:
+        condition: service_healthy
+    networks:
+      cybervpn-backend:
+        aliases:
+          - remnawave
+      cybervpn-remnawave-data: {}
+      cybervpn-metrics: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${METRICS_PORT:-3001}/health >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    mem_limit: 768m
+    cpus: "1.00"
+    pids_limit: 256
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-remnawave
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /metrics
+      prometheus.io/port: "3001"
+      prometheus.job: remnawave
+      prometheus.service: cybervpn-remnawave
+
+  cybervpn-remnawave-postgres:
+    <<: *runtime-defaults
+    image: postgres:17.7-alpine
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-panel.env
+        required: true
+    environment:
+      TZ: UTC
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+    volumes:
+      - cybervpn-remnawave-postgres-data:/var/lib/postgresql/data
+    networks:
+      cybervpn-remnawave-data: {}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 1g
+    cpus: "1.00"
+    pids_limit: 256
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-remnawave-postgres
+      cybervpn.metrics.target: postgres_exporter
+
+  cybervpn-remnawave-valkey:
+    <<: *runtime-defaults
+    image: valkey/valkey:8.1-alpine
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory ${CYBERVPN_REMNAWAVE_VALKEY_MAXMEMORY:-128mb}
+      --maxmemory-policy noeviction
+      --loglevel warning
+    networks:
+      cybervpn-remnawave-data: {}
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    mem_limit: 256m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-remnawave-valkey
+      cybervpn.metrics.target: redis_exporter
+
+  cybervpn-remnawave-node-local:
+    <<: *runtime-defaults
+    profiles: ["vpn-node-local"]
+    image: ${REMNAWAVE_NODE_IMAGE:-remnawave/node:2.7.0}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-node.env
+        required: true
+    volumes:
+      - ${CYBERVPN_LOG_DIR:-/srv/cybervpn-h/logs}/remnanode:/var/log/remnanode
+    networks:
+      cybervpn-remnawave-data:
+        aliases:
+          - remnawave-node-local
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$${SECRET_KEY:-}\" && test -n \"$${NODE_PORT:-}\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 512m
+    cpus: "1.00"
+    pids_limit: 256
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-remnawave-node-local
+      cybervpn.scope: lab-only-until-real-vpn-node
+
+  cybervpn-telegram-bot:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-telegram-bot:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/telegram-bot.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/payments.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "8080"
+    ports:
+      - "127.0.0.1:18088:8080"
+    environment:
+      BOT_MODE: webhook
+      WEBHOOK_URL: https://api.cyber-vpn.net
+      WEBHOOK_PATH: /webhook/telegram
+      WEBHOOK_PORT: "8080"
+      BACKEND_API_URL: http://cybervpn-backend:8000/api/v1
+      REDIS_URL: ${CYBERVPN_BOT_REDIS_URL:-redis://cybervpn-valkey:6379}
+      REDIS_DB: "1"
+      CRYPTOBOT_ENABLED: "false"
+      PROMETHEUS_ENABLED: "true"
+      PROMETHEUS_PROTECT: "false"
+      PROMETHEUS_PORT: "8080"
+      PROMETHEUS_PATH: /metrics
+      REFERRAL_ENABLED: "false"
+      TELEGRAM_STARS_ENABLED: "false"
+      LOG_JSON_FORMAT: "true"
+    networks:
+      cybervpn-backend: {}
+      cybervpn-data: {}
+      cybervpn-metrics: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 384m
+    cpus: "0.75"
+    pids_limit: 192
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-telegram-bot
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /metrics
+      prometheus.io/port: "8080"
+      prometheus.job: cybervpn-telegram-bot
+      prometheus.service: cybervpn-telegram-bot
+
+  cybervpn-frontend:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-frontend:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/frontend.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "3000"
+    ports:
+      - "127.0.0.1:13000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_SITE_URL: https://cyber-vpn.net
+      NEXT_PUBLIC_API_URL: https://cyber-vpn.net
+      NEXT_PUBLIC_ADMIN_URL: https://admin.cyber-vpn.net
+      API_URL: http://cybervpn-backend:8000
+      API_INTERNAL_ORIGIN: http://cybervpn-backend:8000
+    networks:
+      cybervpn-backend: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/ru-RU').then(r=>process.exit(r.status < 500 ? 0 : 1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    mem_limit: 512m
+    cpus: "1.00"
+    pids_limit: 192
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-frontend
+      cybervpn.metrics.target: frontend_runtime_events_via_backend
+
+  cybervpn-admin:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-admin:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/admin.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "3000"
+    ports:
+      - "127.0.0.1:13001:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_SITE_URL: https://admin.cyber-vpn.net
+      NEXT_PUBLIC_API_URL: https://cyber-vpn.net
+      API_URL: http://cybervpn-backend:8000
+      API_INTERNAL_ORIGIN: http://cybervpn-backend:8000
+      ADMIN_2FA_REQUIRED: "true"
+    networks:
+      cybervpn-backend: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/ru-RU/login').then(r=>process.exit(r.status < 500 ? 0 : 1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    mem_limit: 512m
+    cpus: "1.00"
+    pids_limit: 192
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-admin
+      cybervpn.metrics.target: admin_runtime_events_via_backend
+
+  cybervpn-postgres:
+    <<: *runtime-defaults
+    profiles: ["local-data"]
+    image: postgres:17.7-alpine
+    environment:
+      POSTGRES_DB: ${CYBERVPN_POSTGRES_DB:-cybervpn}
+      POSTGRES_USER: ${CYBERVPN_POSTGRES_USER:-cybervpn}
+      POSTGRES_PASSWORD: ${CYBERVPN_POSTGRES_PASSWORD:-replace-before-live}
+      TZ: UTC
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+    volumes:
+      - cybervpn-postgres-data:/var/lib/postgresql/data
+    networks:
+      cybervpn-data:
+        aliases:
+          - remnawave-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 1g
+    cpus: "1.00"
+    pids_limit: 256
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-postgres
+      cybervpn.metrics.target: postgres_exporter
+
+  cybervpn-valkey:
+    <<: *runtime-defaults
+    profiles: ["local-data"]
+    image: valkey/valkey:8.1-alpine
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory ${CYBERVPN_VALKEY_MAXMEMORY:-256mb}
+      --maxmemory-policy noeviction
+      --loglevel warning
+    networks:
+      cybervpn-data:
+        aliases:
+          - remnawave-redis
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    mem_limit: 384m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-valkey
+      cybervpn.metrics.target: redis_exporter
+
+  cybervpn-postgres-exporter:
+    <<: *runtime-defaults
+    profiles: ["local-data"]
+    image: prometheuscommunity/postgres-exporter:v0.17.0
+    environment:
+      DATA_SOURCE_NAME: postgresql://${CYBERVPN_POSTGRES_USER:-cybervpn}:${CYBERVPN_POSTGRES_PASSWORD:-replace-before-live}@cybervpn-postgres:5432/${CYBERVPN_POSTGRES_DB:-cybervpn}?sslmode=disable
+    expose:
+      - "9187"
+    depends_on:
+      cybervpn-postgres:
+        condition: service_healthy
+    networks:
+      cybervpn-data: {}
+      cybervpn-metrics: {}
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9187/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 128m
+    cpus: "0.25"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-postgres-exporter
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /metrics
+      prometheus.io/port: "9187"
+      prometheus.job: postgres
+      prometheus.service: cybervpn-postgres
+
+  cybervpn-redis-exporter:
+    <<: *runtime-defaults
+    profiles: ["local-data"]
+    image: oliver006/redis_exporter:v1.67.0-alpine
+    environment:
+      REDIS_ADDR: redis://cybervpn-valkey:6379
+    expose:
+      - "9121"
+    depends_on:
+      cybervpn-valkey:
+        condition: service_healthy
+    networks:
+      cybervpn-data: {}
+      cybervpn-metrics: {}
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9121/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 128m
+    cpus: "0.25"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-redis-exporter
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /metrics
+      prometheus.io/port: "9121"
+      prometheus.job: redis
+      prometheus.service: cybervpn-valkey
+
+networks:
+  cybervpn-public:
+    name: cybervpn_stage1_public
+  cybervpn-backend:
+    name: cybervpn_stage1_backend
+    internal: true
+  cybervpn-data:
+    name: cybervpn_stage1_data
+    internal: true
+  cybervpn-metrics:
+    name: cybervpn_stage1_metrics
+    internal: true
+  cybervpn-remnawave-data:
+    name: cybervpn_stage1_remnawave_data
+    internal: true
+  cybervpn-egress:
+    name: cybervpn_stage1_egress
+
+volumes:
+  cybervpn-caddy-data:
+    name: cybervpn_stage1_caddy_data
+  cybervpn-caddy-config:
+    name: cybervpn_stage1_caddy_config
+  cybervpn-postgres-data:
+    name: cybervpn_stage1_postgres_data
+  cybervpn-remnawave-postgres-data:
+    name: cybervpn_stage1_remnawave_postgres_data

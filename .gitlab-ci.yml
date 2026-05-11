@@ -14,6 +14,7 @@ stages:
   - build
   - security
   - package
+  - deploy
 
 default:
   tags:
@@ -148,6 +149,26 @@ variables:
         - scripts/validate-stage3-partner-artifacts.py
         - docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md
         - docs/plans/2026-05-10-cybervpn-stage3-partner-reseller-platform-plan.md
+    - when: never
+
+.rules_stage1_limited_publication:
+  rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-beta-rc\./'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - docs/plans/2026-05-10-cybervpn-stage1-public-internet-deployment-plan.md
+        - docs/cybervpn_stage1_launch_docs/**/*
+        - docs/evidence/releases/**/*
+        - infra/deploy/stage1/**/*
+        - frontend/**/*
+        - admin/**/*
+        - backend/**/*
+        - services/telegram-bot/**/*
+      when: manual
     - when: never
 
 .node_job:
@@ -606,3 +627,74 @@ docker:task-worker:
     - when: never
   script:
     - docker build --pull -t "cybervpn-task-worker:$CI_COMMIT_SHORT_SHA" services/task-worker
+
+stage1:limited-publication-preflight:
+  stage: deploy
+  image: alpine:3.20
+  extends:
+    - .rules_stage1_limited_publication
+  environment:
+    name: stage1/limited-public-beta
+    action: prepare
+  allow_failure: false
+  before_script:
+    - apk add --no-cache bash curl coreutils grep
+  script:
+    - mkdir -p docs/evidence/releases/ci-stage1
+    - REPORT="docs/evidence/releases/ci-stage1/stage1-limited-publication-preflight-${CI_COMMIT_SHORT_SHA}.md"
+    - |
+      {
+        echo "# Stage 1 Limited Publication Preflight"
+        echo
+        echo "Commit: \`${CI_COMMIT_SHA}\`"
+        echo "Ref: \`${CI_COMMIT_REF_NAME}\`"
+        echo "Pipeline: \`${CI_PIPELINE_URL}\`"
+        echo "Checked at: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`"
+        echo
+        echo "## Endpoint Smoke"
+        echo
+        echo '```text'
+      } > "$REPORT"
+    - |
+      for url in \
+        "https://cyber-vpn.net/en-EN/status" \
+        "https://cyber-vpn.net/ru-RU/privacy-policy" \
+        "https://admin.cyber-vpn.net/ru-RU/login" \
+        "https://api.cyber-vpn.net/healthz" \
+        "https://cyber-vpn.org/en-EN/status" \
+        "https://admin.cyber-vpn.org/ru-RU/login"
+      do
+        curl -fsS -o /dev/null -w "%{http_code} %{time_total} ${url}\n" "$url" | tee -a "$REPORT"
+      done
+    - |
+      {
+        echo '```'
+        echo
+        echo "## Launch Guard"
+        echo
+      } >> "$REPORT"
+    - |
+      latest_stabilization="$(ls -1 docs/evidence/releases/stage1-stabilization-*.md 2>/dev/null | sort | tail -1 || true)"
+      if [ -n "$latest_stabilization" ]; then
+        echo "Latest stabilization evidence: \`${latest_stabilization}\`" >> "$REPORT"
+        if grep -q "NO-GO for external beta cohort expansion" "$latest_stabilization"; then
+          echo >> "$REPORT"
+          echo "External beta cohort remains NO-GO according to latest stabilization evidence." >> "$REPORT"
+          if [ "${STAGE1_REQUIRE_BETA_GO:-false}" = "true" ]; then
+            cat "$REPORT"
+            exit 1
+          fi
+        fi
+      else
+        echo "No stabilization evidence file found." >> "$REPORT"
+        if [ "${STAGE1_REQUIRE_BETA_GO:-false}" = "true" ]; then
+          cat "$REPORT"
+          exit 1
+        fi
+      fi
+    - cat "$REPORT"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - docs/evidence/releases/ci-stage1/
