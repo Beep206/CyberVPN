@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIza-PLACEHOLDER-DEV-REPLACE-WITH-ACTUAL-KEY</string>
+	<string>FIREBASE_API_KEY_PLACEHOLDER_DEV_REPLACE_WITH_ACTUAL_KEY</string>
 	<key>GCM_SENDER_ID</key>
 	<string>000000000000</string>
 	<key>PLIST_VERSION</key>

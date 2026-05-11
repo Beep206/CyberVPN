@@ -50,6 +50,13 @@ const config: NextConfigWithCompiler = {
     globalNotFound: true,
     // Avoid WSL CPU/RAM spikes from Turbopack dev filesystem-cache compaction.
     turbopackFileSystemCacheForDev: false,
+    ...(process.env.CI
+      ? {
+          staticGenerationRetryCount: 1,
+          staticGenerationMaxConcurrency: 4,
+          staticGenerationMinPagesPerWorker: 200,
+        }
+      : {}),
     serverActions: {
       allowedOrigins: [FRONTEND_PRIMARY_ORIGIN, FRONTEND_WWW_ORIGIN],
     },

@@ -46,6 +46,7 @@ The GitLab pipeline includes:
 - no production secrets;
 - no automatic production deployment;
 - manual `stage1:limited-publication-preflight` job.
+- explicit `STAGE1_FULL_CI=true` switch for a full Stage 1 validation pass when path-gated jobs would otherwise skip unchanged workspaces.
 - Stage 2 observability and Stage 3 partner artifact validators are advisory during Stage 1 and must not block controlled public beta publication.
 - Partner portal app jobs are advisory during Stage 1 because partner portal belongs to Stage 3, not the controlled public beta B2C path.
 - Backend Stage 1 CI blocks on `ruff check`; full `ruff format --check src/` is deferred until the existing formatter baseline is normalized outside the limited publication path.
@@ -53,6 +54,7 @@ The GitLab pipeline includes:
 - Backend smoke tests run with `--no-cov`; repository-wide coverage belongs in a separate coverage gate, not in a narrow Stage 1 smoke job.
 - Task-worker lint and smoke jobs are advisory until its existing ruff baseline is normalized; Stage 1 worker readiness is still controlled through runtime smoke/evidence gates.
 - Next.js workspace apps set `turbopack.root` to the monorepo root so GitLab CI can resolve hoisted Next packages during builds.
+- Frontend Next.js builds limit static generation concurrency under `CI=true`; this avoids runner OOM kills while preserving normal local/runtime behavior.
 
 The `stage1:limited-publication-preflight` job:
 

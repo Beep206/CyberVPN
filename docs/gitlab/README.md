@@ -93,6 +93,7 @@ The baseline pipeline is intentionally conservative:
 - security scans that can run on schedule or default branch changes;
 - Docker-in-Docker jobs isolated behind the `dind` runner tag.
 - manual `stage1:limited-publication-preflight` job for protected Stage 1 public endpoint and launch-guard evidence.
+- explicit `STAGE1_FULL_CI=true` switch for full Stage 1 validation when a path-gated pipeline would otherwise skip unchanged apps.
 - Stage 2 and Stage 3 validators are advisory for Stage 1 pipelines, so future-stage evidence gaps do not block controlled public beta work.
 
 This keeps the home server useful without making it part of the customer critical path.
@@ -235,6 +236,16 @@ git diff --check -- .gitlab-ci.yml scripts/validate_gitlab_ci_contract.py docs/g
 ```
 
 The real GitLab server-side CI linter should also be used after import.
+
+For a full Stage 1 validation pipeline from the GitLab UI or API, run a
+pipeline on `main` with:
+
+```text
+STAGE1_FULL_CI=true
+```
+
+This intentionally runs the Stage 1 app/service gates even when GitLab's
+path-based `rules:changes` would skip unchanged workspaces.
 
 ## Official References
 

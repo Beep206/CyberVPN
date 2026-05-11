@@ -105,6 +105,7 @@ REQUIRED_SECURITY_SCRIPT_MARKERS = (
 
 REQUIRED_STAGE1_PUBLICATION_MARKERS = (
     "stage1/limited-public-beta",
+    "STAGE1_FULL_CI",
     "STAGE1_LIMITED_PUBLICATION_PREFLIGHT",
     "STAGE1_REQUIRE_BETA_GO",
     "docs/evidence/releases/ci-stage1/",
