@@ -26,7 +26,7 @@
   "faq_troubleshooting_1_q": "Why is my connection speed degraded?",
   "faq_troubleshooting_1_a": "Check whether the selected region is enabled, try the alternate S1 profile if available, and contact support if the dashboard shows provisioning or payment review.",
   "faq_troubleshooting_2_q": "What if the primary proxy fails?",
-  "faq_troubleshooting_2_a": "Use the alternate subscription profile when available. If access was paid but VPN is not ready, support must escalate the case under the S1 paid-access escalation policy.",
+  "faq_troubleshooting_2_a": "Use the alternate subscription profile when available. If access was paid but VPN is not ready, support must escalate the case under the S1 paid entitlement escalation policy.",
   "faq_troubleshooting_3_q": "How do I bypass DPI restrictions?",
   "faq_troubleshooting_3_a": "S1 uses VLESS Reality RAW as the default profile and VLESS Reality XHTTP as the alternate path. Results depend on the user's network and current node evidence.",
   "faq_billing_1_q": "How do I increase my bandwidth quota?",

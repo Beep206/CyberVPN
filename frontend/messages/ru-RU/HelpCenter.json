@@ -24,7 +24,7 @@
   "faq_troubleshooting_1_q": "Почему скорость моего соединения снижена?",
   "faq_troubleshooting_1_a": "Проверьте, включён ли выбранный регион, попробуйте alternate S1 profile при наличии и обратитесь в support, если dashboard показывает provisioning или payment review.",
   "faq_troubleshooting_2_q": "Что делать, если основной прокси не отвечает?",
-  "faq_troubleshooting_2_a": "Используйте alternate subscription profile при наличии. Если доступ оплачен, но VPN не готов, support обязан эскалировать case по S1 paid-access escalation policy.",
+  "faq_troubleshooting_2_a": "Используйте alternate subscription profile при наличии. Если доступ оплачен, но VPN не готов, support обязан эскалировать case по S1 paid entitlement escalation policy.",
   "faq_troubleshooting_3_q": "Как мне обойти ограничения DPI?",
   "faq_troubleshooting_3_a": "S1 использует VLESS Reality RAW как default profile и VLESS Reality XHTTP как alternate path. Результат зависит от сети пользователя и текущего node evidence.",
   "faq_billing_1_q": "Как увеличить квоту пропускной способности?",
