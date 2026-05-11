@@ -46,6 +46,7 @@ The GitLab pipeline includes:
 - no production secrets;
 - no automatic production deployment;
 - manual `stage1:limited-publication-preflight` job.
+- Stage 2 observability and Stage 3 partner artifact validators are advisory during Stage 1 and must not block controlled public beta publication.
 
 The `stage1:limited-publication-preflight` job:
 

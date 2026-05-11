@@ -517,6 +517,7 @@ observability:stage2-artifacts:
   image: python:3.13-alpine
   extends:
     - .rules_observability
+  allow_failure: true
   script:
     - python scripts/validate-stage2-analytics-artifacts.py
 
@@ -525,6 +526,7 @@ partner:stage3-artifacts:
   image: python:3.13-alpine
   extends:
     - .rules_partner_stage3
+  allow_failure: true
   script:
     - python scripts/validate-stage3-partner-artifacts.py
 
@@ -533,6 +535,7 @@ partner:stage3-sandbox-pack:
   image: alpine:3.20
   extends:
     - .rules_partner_stage3
+  allow_failure: true
   before_script:
     - apk add --no-cache bash
   script:
