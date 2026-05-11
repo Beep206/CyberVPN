@@ -496,7 +496,7 @@ container-scan:trivy-grype:
   extends:
     - .rules_security
   before_script:
-    - apk add --no-cache bash ca-certificates curl tar gzip
+    - apk add --no-cache bash ca-certificates curl git tar gzip
     - |
       curl -fsSLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
       curl -fsSLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_checksums.txt"
@@ -521,7 +521,7 @@ sbom:release-candidate:
   extends:
     - .rules_security
   before_script:
-    - apk add --no-cache bash ca-certificates curl tar gzip
+    - apk add --no-cache bash ca-certificates curl git tar gzip
     - |
       curl -fsSLO "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
       curl -fsSLO "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_checksums.txt"
