@@ -48,6 +48,7 @@ The GitLab pipeline includes:
 - manual `stage1:limited-publication-preflight` job.
 - explicit `STAGE1_FULL_CI=true` switch for a full Stage 1 validation pass when path-gated jobs would otherwise skip unchanged workspaces.
 - Gitleaks runs from an allowed `alpine:3.20` job image and downloads a pinned binary with checksum verification; the home runner does not need to allow arbitrary `ghcr.io/gitleaks/*` images.
+- Grype filesystem scan is bounded by `GRYPE_SCAN_TIMEOUT_SECONDS`; Trivy remains the required filesystem vulnerability evidence unless `PHASE20_GRYPE_REQUIRED=true` is explicitly enabled later.
 - Stage 2 observability and Stage 3 partner artifact validators are advisory during Stage 1 and must not block controlled public beta publication.
 - Partner portal app jobs are advisory during Stage 1 because partner portal belongs to Stage 3, not the controlled public beta B2C path.
 - Backend Stage 1 CI blocks on `ruff check`; full `ruff format --check src/` is deferred until the existing formatter baseline is normalized outside the limited publication path.
