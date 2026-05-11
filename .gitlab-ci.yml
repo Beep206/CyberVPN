@@ -41,6 +41,8 @@ variables:
 
 .rules_gitlab_config:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -50,6 +52,8 @@ variables:
 
 .rules_frontend:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -60,6 +64,8 @@ variables:
 
 .rules_admin:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -70,6 +76,8 @@ variables:
 
 .rules_partner:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -80,6 +88,8 @@ variables:
 
 .rules_backend:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -90,6 +100,8 @@ variables:
 
 .rules_telegram_bot:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -100,6 +112,8 @@ variables:
 
 .rules_task_worker:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
@@ -109,6 +123,8 @@ variables:
 
 .rules_security:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - if: '$STAGE1_FULL_CI == "true"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
     - if: '$CI_COMMIT_TAG'
@@ -133,6 +149,8 @@ variables:
 
 .rules_observability:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - changes:
         - .gitlab-ci.yml
         - infra/grafana/**/*
@@ -147,6 +165,8 @@ variables:
 
 .rules_partner_stage3:
   rules:
+    - if: '$STAGE1_LIMITED_PUBLICATION_PREFLIGHT == "true"'
+      when: never
     - changes:
         - .gitlab-ci.yml
         - infra/partner-lab/**/*

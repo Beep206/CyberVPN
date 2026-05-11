@@ -96,6 +96,7 @@ The baseline pipeline is intentionally conservative:
 - Docker-in-Docker jobs isolated behind the `dind` runner tag.
 - manual `stage1:limited-publication-preflight` job for protected Stage 1 public endpoint and launch-guard evidence.
 - explicit `STAGE1_FULL_CI=true` switch for full Stage 1 validation when a path-gated pipeline would otherwise skip unchanged apps.
+- explicit `STAGE1_LIMITED_PUBLICATION_PREFLIGHT=true` switch for a preflight-only pipeline; normal path-gated app, security, observability and future-stage jobs are skipped in that mode.
 - Stage 2 and Stage 3 validators are advisory for Stage 1 pipelines, so future-stage evidence gaps do not block controlled public beta work.
 
 This keeps the home server useful without making it part of the customer critical path.
