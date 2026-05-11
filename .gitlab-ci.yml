@@ -330,6 +330,9 @@ backend:test:smoke:
     DATABASE_URL: "postgresql+asyncpg://test:test@postgres:5432/cybervpn_test"
     REDIS_URL: "redis://redis:6379/0"
     ENVIRONMENT: "staging"
+    REMNAWAVE_TOKEN: "ci-remnawave-placeholder-token" # gitleaks:allow
+    JWT_SECRET: "ci-jwt-secret-32chars-minimum-value" # gitleaks:allow
+    CRYPTOBOT_TOKEN: "ci-cryptobot-placeholder-token" # gitleaks:allow
     SENTRY_DSN: "https://backend@example.com/1"
     SENTRY_RELEASE: "backend@$CI_COMMIT_SHA"
   script:
