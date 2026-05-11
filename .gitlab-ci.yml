@@ -338,7 +338,7 @@ backend:test:smoke:
   script:
     - cd backend
     - pip install -e ".[dev]"
-    - pytest tests/unit/test_first_admin_bootstrap.py tests/security/test_stage1_route_boundary.py tests/security/test_stage1_webhook_idempotency.py -q --tb=short
+    - pytest tests/unit/test_first_admin_bootstrap.py tests/security/test_stage1_route_boundary.py tests/security/test_stage1_webhook_idempotency.py --no-cov -q --tb=short
 
 telegram-bot:lint:
   stage: lint

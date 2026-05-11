@@ -50,6 +50,7 @@ The GitLab pipeline includes:
 - Partner portal app jobs are advisory during Stage 1 because partner portal belongs to Stage 3, not the controlled public beta B2C path.
 - Backend Stage 1 CI blocks on `ruff check`; full `ruff format --check src/` is deferred until the existing formatter baseline is normalized outside the limited publication path.
 - Backend smoke tests use CI-only placeholder `REMNAWAVE_TOKEN`, `JWT_SECRET`, and `CRYPTOBOT_TOKEN` values so Settings can initialize without importing production secrets into GitLab.
+- Backend smoke tests run with `--no-cov`; repository-wide coverage belongs in a separate coverage gate, not in a narrow Stage 1 smoke job.
 - Task-worker lint and smoke jobs are advisory until its existing ruff baseline is normalized; Stage 1 worker readiness is still controlled through runtime smoke/evidence gates.
 
 The `stage1:limited-publication-preflight` job:
