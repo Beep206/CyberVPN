@@ -5,7 +5,8 @@ ROOT_DIR="$(git rev-parse --show-toplevel)"
 ARTIFACT_DIR="${SECURITY_ARTIFACT_DIR:-${ROOT_DIR}/security-artifacts}"
 TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.70.0}"
 GRYPE_IMAGE="${GRYPE_IMAGE:-anchore/grype:v0.112.0}"
-GRYPE_SCAN_TIMEOUT_SECONDS="${GRYPE_SCAN_TIMEOUT_SECONDS:-240}"
+GRYPE_SCAN_ATTEMPTS="${GRYPE_SCAN_ATTEMPTS:-1}"
+GRYPE_SCAN_TIMEOUT_SECONDS="${GRYPE_SCAN_TIMEOUT_SECONDS:-90}"
 
 mkdir -p "${ARTIFACT_DIR}/container"
 
@@ -86,7 +87,7 @@ run_grype_dir() {
   rm -f "${output_tmp}"
 
   if command -v grype >/dev/null 2>&1; then
-    for attempt in 1 2 3; do
+    for attempt in $(seq 1 "${GRYPE_SCAN_ATTEMPTS}"); do
       if timeout "${GRYPE_SCAN_TIMEOUT_SECONDS}s" grype dir:"${ROOT_DIR}" \
         --exclude '**/.git/**' \
         --exclude '**/node_modules/**' \
@@ -111,7 +112,7 @@ run_grype_dir() {
       sleep "$((attempt * 5))"
     done
   else
-    for attempt in 1 2 3; do
+    for attempt in $(seq 1 "${GRYPE_SCAN_ATTEMPTS}"); do
       if timeout "${GRYPE_SCAN_TIMEOUT_SECONDS}s" docker run --rm \
         -v "${ROOT_DIR}:/repo:ro" \
         "${GRYPE_IMAGE}" \
