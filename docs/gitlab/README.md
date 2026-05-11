@@ -91,6 +91,7 @@ The baseline pipeline is intentionally conservative:
 - manual Docker image build jobs;
 - no automatic `docker push`;
 - security scans that can run on schedule or default branch changes;
+- pinned Gitleaks binary download from an allowed `alpine:3.20` job image, with checksum verification;
 - Docker-in-Docker jobs isolated behind the `dind` runner tag.
 - manual `stage1:limited-publication-preflight` job for protected Stage 1 public endpoint and launch-guard evidence.
 - explicit `STAGE1_FULL_CI=true` switch for full Stage 1 validation when a path-gated pipeline would otherwise skip unchanged apps.

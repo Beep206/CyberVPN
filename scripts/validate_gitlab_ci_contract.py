@@ -97,6 +97,7 @@ REQUIRED_SECURITY_SCRIPT_MARKERS = (
     "audit-dependencies.sh python",
     "scan-filesystem-vulnerabilities.sh",
     "generate-sbom.sh",
+    "GITLEAKS_VERSION:",
     "TRIVY_VERSION:",
     "GRYPE_VERSION:",
     "SYFT_VERSION:",

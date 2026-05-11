@@ -34,6 +34,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PYTHONUNBUFFERED: "1"
   SECURITY_ARTIFACT_DIR: "$CI_PROJECT_DIR/security-artifacts"
+  GITLEAKS_VERSION: "8.30.1"
   TRIVY_VERSION: "0.70.0"
   GRYPE_VERSION: "0.112.0"
   SYFT_VERSION: "1.44.0"
@@ -435,14 +436,17 @@ secret-pattern-scan:
 
 security:gitleaks:
   stage: security
-  image:
-    name: ghcr.io/gitleaks/gitleaks:v8.30.1
-    entrypoint: [""]
+  image: alpine:3.20
   extends:
     - .rules_security
+  before_script:
+    - apk add --no-cache bash ca-certificates curl git tar gzip
+    - |
+      curl -fsSLO "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+      curl -fsSLO "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+      grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+      tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -C /usr/local/bin gitleaks
   script:
-    - mkdir -p "$SECURITY_ARTIFACT_DIR"
-    - apk add --no-cache bash git
     - bash scripts/security/scan-secrets.sh
   artifacts:
     when: always
