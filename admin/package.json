@@ -7,7 +7,7 @@
     "prepare:workspace": "bash ./scripts/ensure-local-next-deps.sh",
     "predev": "npm run prepare:workspace && npm run prepare:i18n",
     "dev": "node ./scripts/dev-server.mjs",
-    "prebuild": "npm run prepare:workspace && npm run prepare:i18n",
+    "prebuild": "npm run prepare:i18n",
     "build": "next build",
     "start": "next start",
     "start:prod-like": "bash ./scripts/start-prod-like.sh",
