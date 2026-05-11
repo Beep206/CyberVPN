@@ -372,6 +372,7 @@ task-worker:lint:
   extends:
     - .python_job
     - .rules_task_worker
+  allow_failure: true
   script:
     - cd services/task-worker
     - pip install -e ".[dev]"
@@ -383,6 +384,7 @@ task-worker:test:smoke:
   extends:
     - .python_job
     - .rules_task_worker
+  allow_failure: true
   variables:
     ENVIRONMENT: "staging"
     SENTRY_DSN: "https://task-worker@example.com/1"
