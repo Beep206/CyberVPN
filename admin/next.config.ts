@@ -5,6 +5,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
+const WORKSPACE_ROOT = dirname(CONFIG_DIR);
 const ADMIN_PUBLIC_ORIGIN = "admin.cyber-vpn.net";
 const ADMIN_LOCAL_ORIGINS = ["localhost:3001", "127.0.0.1:3001"];
 const API_INTERNAL_ORIGIN =
@@ -54,9 +55,9 @@ const config: NextConfigWithCompiler = {
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactCompiler: true,
   skipTrailingSlashRedirect: true,
-  // Keep Turbopack scoped to the Next.js app so WSL does not watch the entire monorepo.
+  // Next 16/Turbopack must resolve the hoisted Next package from the monorepo root in CI.
   turbopack: {
-    root: CONFIG_DIR,
+    root: WORKSPACE_ROOT,
   },
   async headers() {
     return [
