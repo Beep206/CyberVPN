@@ -30,7 +30,7 @@ class CreateGrowthRewardAllocationRequest(BaseModel):
         return value.upper() if value else None
 
     @model_validator(mode="after")
-    def validate_source_reference(self) -> "CreateGrowthRewardAllocationRequest":
+    def validate_source_reference(self) -> CreateGrowthRewardAllocationRequest:
         if not any((self.order_id, self.invite_code_id, self.referral_commission_id, self.source_key)):
             raise ValueError("At least one source reference is required")
         return self

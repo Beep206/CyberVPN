@@ -72,7 +72,9 @@ class PartnerEventRuntimeRepository:
         after_event_key: str | None = None,
         limit: int = 100,
     ) -> list[PartnerWorkspaceFeedEventModel]:
-        query = select(PartnerWorkspaceFeedEventModel).where(PartnerWorkspaceFeedEventModel.workspace_id == workspace_id)
+        query = select(PartnerWorkspaceFeedEventModel).where(
+            PartnerWorkspaceFeedEventModel.workspace_id == workspace_id
+        )
         if after_event_key:
             anchor = await self.get_feed_event_by_key(event_key=after_event_key)
             if anchor is not None and anchor.workspace_id == workspace_id:

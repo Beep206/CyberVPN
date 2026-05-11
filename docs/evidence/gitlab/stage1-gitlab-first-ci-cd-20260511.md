@@ -47,6 +47,7 @@ The GitLab pipeline includes:
 - no automatic production deployment;
 - manual `stage1:limited-publication-preflight` job.
 - Stage 2 observability and Stage 3 partner artifact validators are advisory during Stage 1 and must not block controlled public beta publication.
+- Backend Stage 1 CI blocks on `ruff check`; full `ruff format --check src/` is deferred until the existing formatter baseline is normalized outside the limited publication path.
 
 The `stage1:limited-publication-preflight` job:
 

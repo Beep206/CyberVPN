@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends
 
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
-from src.presentation.dependencies import get_current_active_user, get_remnawave_client
 from src.infrastructure.remnawave.contracts import (
     RemnawavePublicKeyResponse,
     RemnawaveSignPayloadResponse,
 )
+from src.presentation.dependencies import get_current_active_user, get_remnawave_client
 
 from .schemas import SignPayloadRequest
 

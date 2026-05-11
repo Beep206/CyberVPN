@@ -19,6 +19,13 @@ from src.application.use_cases.settlement.partner_payout_accounts import (
     SuspendPartnerPayoutAccountUseCase,
     VerifyPartnerPayoutAccountUseCase,
 )
+from src.application.use_cases.settlement.partner_statements import (
+    ClosePartnerStatementUseCase,
+    GeneratePartnerStatementUseCase,
+    GetPartnerStatementUseCase,
+    ListPartnerStatementsUseCase,
+    ReopenPartnerStatementUseCase,
+)
 from src.application.use_cases.settlement.payouts import (
     ApprovePayoutInstructionUseCase,
     CompletePayoutExecutionUseCase,
@@ -34,13 +41,6 @@ from src.application.use_cases.settlement.payouts import (
     ReconcilePayoutExecutionUseCase,
     RejectPayoutInstructionUseCase,
     SubmitPayoutExecutionUseCase,
-)
-from src.application.use_cases.settlement.partner_statements import (
-    ClosePartnerStatementUseCase,
-    GeneratePartnerStatementUseCase,
-    GetPartnerStatementUseCase,
-    ListPartnerStatementsUseCase,
-    ReopenPartnerStatementUseCase,
 )
 from src.application.use_cases.settlement.reserves import (
     CreateReserveUseCase,

@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, Header, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.domain.entities.partner_permission import PartnerPermission
 from src.config.settings import settings
+from src.domain.entities.partner_permission import PartnerPermission
 from src.infrastructure.database.repositories.partner_event_runtime_repo import PartnerEventRuntimeRepository
 from src.infrastructure.messaging.partner_workspace_feed_broker import partner_workspace_feed_broker
 from src.presentation.dependencies.database import get_db
@@ -49,7 +49,7 @@ async def stream_partner_workspace_feed(
             while True:
                 try:
                     item = await asyncio.wait_for(queue.get(), timeout=15)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield ": keep-alive\n\n"
                     continue
                 yield _format_broker_event(item)

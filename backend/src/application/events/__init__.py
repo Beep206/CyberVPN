@@ -1,4 +1,4 @@
-from .outbox import EventOutboxService, OutboxActorContext, PARTNER_PLATFORM_EVENT_NAMES
+from .outbox import PARTNER_PLATFORM_EVENT_NAMES, EventOutboxService, OutboxActorContext
 
 __all__ = [
     "EventOutboxService",

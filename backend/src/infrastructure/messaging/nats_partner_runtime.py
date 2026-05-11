@@ -8,8 +8,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.application.services.posthog_bridge import PostHogBridgeInput, build_posthog_capture_record
 from src.application.services.posthog_delivery import PostHogDeliveryService
 from src.config.settings import settings
@@ -217,7 +215,7 @@ class NatsPartnerRuntime:
                     settings.nats_consumer_fetch_batch_size,
                     timeout=settings.nats_consumer_fetch_timeout_seconds,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except asyncio.CancelledError:
                 raise

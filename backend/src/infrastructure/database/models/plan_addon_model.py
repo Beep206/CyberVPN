@@ -41,7 +41,9 @@ class SubscriptionAddonModel(Base):
     __tablename__ = "subscription_addons"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mobile_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mobile_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     plan_addon_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("plan_addons.id", ondelete="CASCADE"), nullable=False, index=True
     )

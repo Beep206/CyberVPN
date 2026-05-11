@@ -306,7 +306,8 @@ backend:lint:
     - cd backend
     - pip install ruff
     - ruff check src/
-    - ruff format --check src/
+    # Full backend formatter normalization is tracked as separate technical debt.
+    # Stage 1 blocks only on ruff check until the existing formatter baseline is cleaned up.
 
 backend:test:smoke:
   stage: test

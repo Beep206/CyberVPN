@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends
 from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
-from src.presentation.dependencies import get_remnawave_client, require_role
 from src.infrastructure.remnawave.contracts import RemnawaveSettingResponse
+from src.presentation.dependencies import get_remnawave_client, require_role
 
 from .schemas import CreateSettingRequest, UpdateSettingRequest
 
