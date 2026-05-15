@@ -1,5 +1,5 @@
 # Stage 1: Builder — compiles C-extensions (argon2-cffi, asyncpg, etc.)
-FROM python:3.13.13-alpine AS builder
+FROM python:3.14.5-alpine AS builder
 
 RUN apk add --no-cache build-base
 
@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0"
 RUN pip install --no-cache-dir .
 
 # Stage 2: Runtime — lean image without build-essential
-FROM python:3.13.13-alpine
+FROM python:3.14.5-alpine
 
 # SEC-002: Create non-root user for security
 RUN addgroup -S cybervpn && adduser -S -G cybervpn cybervpn
