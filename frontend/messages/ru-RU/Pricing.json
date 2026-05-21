@@ -62,7 +62,7 @@
     "includedDedicatedIp": "{count} dedicated IP включён",
     "dedicatedIpAddon": "Dedicated IP как add-on",
     "chargedInBillingCurrency": "Списание в {currency}",
-    "localDisplayEstimate": "Примерно {price}, только для отображения"
+    "localDisplayEstimate": "{price}"
   },
   "modeNames": {
     "standard": "Standard",

@@ -1340,7 +1340,7 @@
       "inviteRewardDays": "{count} бесплатных дней",
       "inviteRewardDefault": "бонус активирован",
       "limitedRolloutDescription": "Мини-приложение работает в ограниченном режиме. Доступ открыт только одобренным Telegram-пользователям.",
-      "localEstimate": "Примерно {price}, только для отображения",
+      "localEstimate": "{price}",
       "noPlans": "Сейчас нет доступных тарифов",
       "paymentCancelled": "Оплата отменена.",
       "paymentError": "Оплата не удалась. Попробуйте ещё раз.",
@@ -1952,7 +1952,7 @@
       "includedDedicatedIp": "{count} dedicated IP включён",
       "inviteBundle": "{count} invite’ов · {days} дней другу",
       "inviteNone": "Без invite bundle",
-      "localDisplayEstimate": "Примерно {price}, только для отображения",
+      "localDisplayEstimate": "{price}",
       "monthlyEquivalent": "{price} / 30 дней в эквиваленте",
       "perSelectedTerm": "за {days}-дневный срок",
       "trafficFairUse": "Fair-use policy"

@@ -192,7 +192,7 @@
     "limitedRolloutDescription": "Мини-приложение работает в ограниченном режиме. Доступ открыт только одобренным Telegram-пользователям.",
     "rollbackDescription": "Пробный доступ и оформление оплаты временно приостановлены, пока выполняется откат.",
     "billingCurrencyNotice": "Списание в {currency}",
-    "localEstimate": "Примерно {price}, только для отображения",
+    "localEstimate": "{price}",
     "trafficUnlimited": "Безлимитно",
     "connectionModes": {
       "standard": "стандартный",
