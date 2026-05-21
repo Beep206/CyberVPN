@@ -392,7 +392,7 @@ describe('Auth Store - telegramMiniAppAuth', () => {
     expect(state.isLoading).toBe(false);
   });
 
-  it('test_telegramMiniAppAuth_uses_fallback_error_when_no_detail', async () => {
+  it('test_telegramMiniAppAuth_uses_error_message_when_no_detail', async () => {
     // Arrange - both attempts fail with generic error (no response.data.detail)
     mockTelegramMiniApp
       .mockRejectedValueOnce(new Error('Network error'))
@@ -404,7 +404,7 @@ describe('Auth Store - telegramMiniAppAuth', () => {
     ).rejects.toBeDefined();
 
     // Assert
-    expect(useAuthStore.getState().error).toBe('Telegram Mini App auth failed');
+    expect(useAuthStore.getState().error).toBe('Network error again');
   });
 
   it('test_telegramMiniAppAuth_calls_analytics_error_on_final_failure', async () => {

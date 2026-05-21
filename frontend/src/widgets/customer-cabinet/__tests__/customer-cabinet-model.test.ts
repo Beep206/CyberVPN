@@ -313,6 +313,7 @@ describe('customer cabinet model', () => {
         notifications,
         serviceState,
         usage: { ...usage, bandwidth_used_bytes: 98 },
+        now: new Date('2026-04-24T00:00:00Z'),
       }),
     ).toBe('critical');
   });
@@ -351,6 +352,7 @@ describe('customer cabinet model', () => {
         notifications: { ...notifications, action_required_notifications: 1 },
         serviceState: { ...serviceState, device_credential: null },
         usage: { ...usage, bandwidth_used_bytes: 85 },
+        now: new Date('2026-04-24T00:00:00Z'),
       }),
     ).toEqual([
       'finishProvisioning',
