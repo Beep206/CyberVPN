@@ -51,6 +51,26 @@ Deployment jobs:
 
 All deploy jobs use `resource_group: stage1-production`, so GitLab will not run two production deploys at the same time.
 
+## Deploy Runner
+
+Production deploy jobs use a dedicated shell runner tagged `wsl-deploy`.
+
+Reason:
+
+- the home Docker runner remains valid for repository checks and non-production CI work;
+- the home-server direct SSH path to `prod-app-1` currently reaches the SSH banner but does not complete SSH key exchange;
+- the WSL shell runner reaches both `gitlab.h.cyber-vpn.net` and `prod-app-1`, so GitLab can still be the first delivery authority without moving customer runtime to the home server.
+
+Runner contract:
+
+- tags: `wsl-deploy`, `protected`;
+- executor: shell;
+- scope: production deploy jobs only;
+- required local tools: `bash`, `curl`, `ssh`, `rsync`;
+- no production runtime secrets are stored on the runner outside GitLab protected variables.
+
+Keep the deploy runner separate from the normal `h-docker` runner. Do not run untagged jobs on it.
+
 ## Required Protected CI Variables
 
 Set these in GitLab project/group CI/CD variables. Mark secret values as masked and protected.

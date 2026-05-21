@@ -682,15 +682,21 @@ docker:task-worker:
 
 .stage1_deploy_job:
   stage: deploy
-  image: alpine:3.20
+  tags:
+    - wsl-deploy
   resource_group: stage1-production
   # Required protected variable for production deploy jobs:
   # STAGE1_PROD_SSH_PRIVATE_KEY
+  # Deploy runs on the WSL shell runner because the home Docker runner can
+  # validate/build, but its network path to prod-app-1 does not complete SSH KEX.
   environment:
     name: stage1/limited-public-beta
     url: https://cyber-vpn.net
   before_script:
-    - apk add --no-cache bash curl openssh-client rsync
+    - command -v bash
+    - command -v curl
+    - command -v ssh
+    - command -v rsync
   script:
     - bash scripts/deploy/stage1-gitlab-deploy.sh "$STAGE1_DEPLOY_SERVICES"
   artifacts:
