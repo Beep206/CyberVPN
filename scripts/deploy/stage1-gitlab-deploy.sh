@@ -176,6 +176,26 @@ log() {
   printf '[remote-stage1-deploy] %s\n' "$*"
 }
 
+retry_curl() {
+  label="$1"
+  shift
+  max_attempts="${STAGE1_DEPLOY_SMOKE_ATTEMPTS:-30}"
+  sleep_seconds="${STAGE1_DEPLOY_SMOKE_SLEEP_SECONDS:-2}"
+  attempt=1
+
+  while [ "$attempt" -le "$max_attempts" ]; do
+    if "$@"; then
+      return 0
+    fi
+    log "${label} not ready yet (${attempt}/${max_attempts})"
+    attempt=$((attempt + 1))
+    sleep "$sleep_seconds"
+  done
+
+  log "${label} did not become ready"
+  return 1
+}
+
 is_requested() {
   case ",${SERVICES_CSV}," in
     *",$1,"*) return 0 ;;
@@ -277,17 +297,17 @@ log "compose status"
 $REMOTE_SUDO docker compose ps "${compose_services[@]}"
 
 if is_requested backend; then
-  curl -fsS http://127.0.0.1:18080/health
+  retry_curl backend-health curl -fsS http://127.0.0.1:18080/health
   printf '\n'
 fi
 if is_requested frontend; then
-  curl -fsSI http://127.0.0.1:13000/ru-RU/miniapp/home | sed -n '1,8p'
+  retry_curl frontend-miniapp curl -fsSI http://127.0.0.1:13000/ru-RU/miniapp/home | sed -n '1,8p'
 fi
 if is_requested admin; then
-  curl -fsSI http://127.0.0.1:13001/ru-RU/login | sed -n '1,8p'
+  retry_curl admin-login curl -fsSI http://127.0.0.1:13001/ru-RU/login | sed -n '1,8p'
 fi
 if is_requested telegram-bot; then
-  curl -fsS http://127.0.0.1:18088/health || true
+  retry_curl telegram-bot-health curl -fsS http://127.0.0.1:18088/health || true
   printf '\n'
 fi
 
@@ -302,7 +322,7 @@ REMOTE_SCRIPT
 } >>"$evidence_file"
 
 for url in $public_smoke_urls; do
-  curl -fsS -o /dev/null -w "%{http_code} %{time_total} ${url}\n" "$url" | tee -a "$evidence_file"
+  curl --retry 10 --retry-delay 3 --retry-all-errors -fsS -o /dev/null -w "%{http_code} %{time_total} ${url}\n" "$url" | tee -a "$evidence_file"
 done
 
 {
