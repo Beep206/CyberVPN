@@ -428,6 +428,13 @@ export const authApi = {
     apiClient.delete<DeleteAccountResponse>('/auth/me'),
 
   /**
+   * Delete the current customer/mobile account permanently for Mini App flows.
+   * DELETE /api/v1/mobile/auth/me
+   */
+  deleteMobileAccount: () =>
+    apiClient.delete<DeleteAccountResponse>('/mobile/auth/me'),
+
+  /**
    * Open a manual S1 privacy request for account deletion or data export.
    * POST /api/v1/auth/me/privacy-requests
    */

@@ -15,10 +15,10 @@ BASELINE_PATH = REPO_ROOT / "infra" / "edge" / "stage1-cloudflare-waf-baseline.j
 REQUIRED_ZONES = {"cyber-vpn.net", "cyber-vpn.org"}
 REQUIRED_SURFACES = {
     "public_web",
-    "public_mirror_redirect",
+    "org_reserved_zone",
     "api",
     "admin",
-    "admin_mirror_redirect",
+    "admin_org_reserved",
     "telegram_webhook",
     "payment_webhooks",
     "oauth_callbacks",
@@ -104,12 +104,12 @@ def validate_baseline(data: dict[str, Any]) -> list[str]:
     context = data.get("decision_context", {})
     if context.get("primary_public_domain") != "cyber-vpn.net":
         errors.append("primary_public_domain must be cyber-vpn.net")
-    if context.get("public_mirror_domain") != "cyber-vpn.org":
-        errors.append("public_mirror_domain must be cyber-vpn.org")
     if context.get("primary_admin_domain") != "admin.cyber-vpn.net":
         errors.append("primary_admin_domain must be admin.cyber-vpn.net")
-    if context.get("admin_mirror_domain") != "admin.cyber-vpn.org":
-        errors.append("admin_mirror_domain must be admin.cyber-vpn.org")
+    if context.get("org_reserved_domain") != "cyber-vpn.org":
+        errors.append("org_reserved_domain must be cyber-vpn.org")
+    if context.get("org_stage1_role") != "vpn_nodes_and_future_subscription_delivery_only":
+        errors.append("org_stage1_role must reserve .org for VPN nodes and future subscription delivery")
     if context.get("home_lab_allowed_for_non_critical_evidence_only") is not True:
         errors.append("home lab must be limited to non-critical evidence only")
 

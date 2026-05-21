@@ -279,6 +279,7 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
             return SimpleNamespace(
                 id=user_id,
                 telegram_id=123456789,
+                remnawave_uuid=None,
                 subscription_url="https://legacy.example/sub",
             )
 
@@ -333,6 +334,7 @@ def test_get_miniapp_config_falls_back_to_legacy_subscription_url(monkeypatch) -
             return SimpleNamespace(
                 id=user_id,
                 telegram_id=None,
+                remnawave_uuid=None,
                 subscription_url="https://legacy.example/sub",
             )
 
@@ -356,6 +358,37 @@ def test_get_miniapp_config_falls_back_to_legacy_subscription_url(monkeypatch) -
     assert response.client_type == "subscription"
     assert response.source == "legacy_subscription_url"
     assert response.subscription_url == "https://legacy.example/sub"
+
+
+def test_get_remnawave_user_for_mobile_user_prefers_local_remnawave_uuid(monkeypatch) -> None:
+    remnawave_uuid = uuid4()
+    seen: dict[str, object] = {}
+
+    class FakeGateway:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def get_by_uuid(self, user_uuid):
+            seen["uuid"] = user_uuid
+            return SimpleNamespace(uuid=user_uuid)
+
+        async def get_by_telegram_id(self, _telegram_id: int):
+            raise AssertionError("telegram_id lookup must not run when local remnawave_uuid exists")
+
+    monkeypatch.setattr(miniapp_routes, "RemnawaveUserGateway", FakeGateway)
+
+    response = asyncio.run(
+        miniapp_routes._get_remnawave_user_for_mobile_user(
+            client=object(),
+            mobile_user=SimpleNamespace(
+                remnawave_uuid=str(remnawave_uuid),
+                telegram_id=123456789,
+            ),
+        )
+    )
+
+    assert seen["uuid"] == remnawave_uuid
+    assert response.uuid == remnawave_uuid
 
 
 def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
@@ -396,6 +429,7 @@ def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
 
 def test_activate_miniapp_trial_preserves_rate_limit_and_activation(monkeypatch) -> None:
     user_id = uuid4()
+    provisioning_gateway = object()
 
     class FakePipeline:
         async def incr(self, _key):
@@ -418,10 +452,11 @@ def test_activate_miniapp_trial_preserves_rate_limit_and_activation(monkeypatch)
             return FakePipeline()
 
     class FakeActivateTrialUseCase:
-        def __init__(self, _db) -> None:
-            pass
+        def __init__(self, _db, provisioning_gateway=None) -> None:
+            self.provisioning_gateway = provisioning_gateway
 
         async def execute(self, _user_id):
+            assert self.provisioning_gateway is provisioning_gateway
             return SimpleNamespace(
                 activated=True,
                 trial_end=datetime(2026, 4, 29, 0, 0, tzinfo=UTC),
@@ -442,6 +477,7 @@ def test_activate_miniapp_trial_preserves_rate_limit_and_activation(monkeypatch)
             db=object(),
             user_id=user_id,
             redis_client=FakeRedis(),
+            provisioning_gateway=provisioning_gateway,
         )
     )
 
@@ -513,6 +549,7 @@ def test_activate_miniapp_trial_returns_503_when_trial_gate_disabled(monkeypatch
                 db=object(),
                 user_id=user_id,
                 redis_client=FakeRedis(),
+                provisioning_gateway=None,
             )
         )
     except miniapp_routes.HTTPException as exc:

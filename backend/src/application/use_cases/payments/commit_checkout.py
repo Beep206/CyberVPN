@@ -115,7 +115,12 @@ class CommitCheckoutUseCase:
 
         invoice = InvoiceResponseDTO(
             invoice_id=str(invoice_data.get("invoice_id", "")),
-            payment_url=invoice_data.get("pay_url", invoice_data.get("bot_invoice_url", "")),
+            payment_url=(
+                invoice_data.get("mini_app_invoice_url")
+                or invoice_data.get("bot_invoice_url")
+                or invoice_data.get("web_app_invoice_url")
+                or invoice_data.get("pay_url", "")
+            ),
             amount=quote_result.gateway_amount,
             currency=currency,
             status=invoice_data.get("status", "pending"),

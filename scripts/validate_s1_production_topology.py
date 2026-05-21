@@ -49,11 +49,11 @@ REQUIRED_COMPONENTS = {
 }
 REQUIRED_INGRESS = {
     "public_site_primary",
-    "public_site_mirror",
+    "org_reserved_zone",
     "api_public",
     "oauth_web_callbacks",
     "admin_primary",
-    "admin_mirror",
+    "admin_org_reserved",
     "telegram_webhook",
     "payment_webhooks",
 }

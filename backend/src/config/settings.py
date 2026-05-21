@@ -203,6 +203,8 @@ class Settings(BaseSettings):
     registration_enabled: bool = False  # Disabled by default for security
     registration_invite_required: bool = True  # Require invite token when enabled
     invite_token_expiry_hours: int = 24  # Invite tokens expire after 24 hours
+    telegram_miniapp_bootstrap_usernames: str = ""  # Comma-separated one-time owner bootstrap allowlist
+    telegram_bot_bootstrap_usernames: str = ""  # Comma-separated Telegram Bot closed-beta bootstrap allowlist
 
     # Security Settings (MED-1, MED-4, MED-5, MED-7)
     debug: bool = False  # Debug mode - should be False in production

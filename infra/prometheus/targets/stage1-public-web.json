@@ -1,0 +1,20 @@
+[
+  {
+    "targets": [
+      "https://cyber-vpn.net/",
+      "https://cyber-vpn.net/en-EN",
+      "https://cyber-vpn.net/ru-RU/miniapp/home",
+      "https://cyber-vpn.net/ru-RU/miniapp/plans",
+      "https://api.cyber-vpn.net/health",
+      "https://www.cyber-vpn.net/",
+      "https://status.cyber-vpn.net/",
+      "https://admin.cyber-vpn.net/ru-RU/login"
+    ],
+    "labels": {
+      "environment": "rented-production",
+      "stage": "s1",
+      "owner": "cybervpn",
+      "role": "stage1-public-web"
+    }
+  }
+]

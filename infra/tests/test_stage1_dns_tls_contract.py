@@ -35,26 +35,27 @@ def test_dns_tls_contract_covers_required_hosts() -> None:
         "www.cyber-vpn.net",
         "api.cyber-vpn.net",
         "admin.cyber-vpn.net",
-        "cyber-vpn.org",
-        "www.cyber-vpn.org",
-        "admin.cyber-vpn.org",
+        "de-1.cyber-vpn.org",
+        "de-1.node.cyber-vpn.org",
     }
 
     assert required.issubset(hosts)
-    assert required.issubset(cert_hosts)
+    assert {"cyber-vpn.net", "www.cyber-vpn.net", "api.cyber-vpn.net", "admin.cyber-vpn.net"}.issubset(
+        cert_hosts
+    )
 
 
-def test_dns_tls_contract_redirects_mirrors_to_canonical_hosts() -> None:
+def test_dns_tls_contract_keeps_org_for_nodes_not_mirrors() -> None:
     data = _contract()
-    redirects = {(item["source"], item["target"], item["status"]) for item in data["redirect_requirements"]}
+    records = {record["id"]: record for record in data["records"]}
+    redirects = {item["source"] for item in data["redirect_requirements"]}
 
-    assert ("http_or_https://cyber-vpn.org/*", "https://cyber-vpn.net/$path", "301_or_308") in redirects
-    assert ("http_or_https://www.cyber-vpn.org/*", "https://cyber-vpn.net/$path", "301_or_308") in redirects
-    assert (
-        "http_or_https://admin.cyber-vpn.org/*",
-        "https://admin.cyber-vpn.net/$path",
-        "301_or_308",
-    ) in redirects
+    assert records["vpn_node_de_1"]["host"] == "de-1.cyber-vpn.org"
+    assert records["vpn_node_de_1"]["proxied_or_edge_terminated"] is False
+    assert records["vpn_node_de_1_alias"]["host"] == "de-1.node.cyber-vpn.org"
+    assert records["vpn_node_de_1_alias"]["proxied_or_edge_terminated"] is False
+    assert "http_or_https://cyber-vpn.org/*" not in redirects
+    assert "http_or_https://admin.cyber-vpn.org/*" not in redirects
 
 
 def test_dns_tls_contract_keeps_status_route_on_primary_domain_for_s1() -> None:

@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 
 from src.config.settings import settings
 
-PAYMENTS_DISABLED_DETAIL = "Payments are temporarily unavailable during Stage 1 rollout."
+PAYMENTS_DISABLED_DETAIL = "Generic payments are temporarily unavailable during Stage 1 rollout."
 TELEGRAM_STARS_DISABLED_DETAIL = "Telegram Stars checkout is disabled until Stage 1 evidence is approved."
 
 
@@ -25,9 +25,8 @@ def require_stage1_payments_enabled() -> None:
 
 
 def require_stage1_telegram_stars_enabled() -> None:
-    """Block new Telegram Stars invoices unless both S1 payment gates are open."""
+    """Block new Telegram Stars invoices unless the Telegram-only S1 gate is open."""
 
-    require_stage1_payments_enabled()
     if settings.telegram_stars_enabled:
         return
     raise HTTPException(

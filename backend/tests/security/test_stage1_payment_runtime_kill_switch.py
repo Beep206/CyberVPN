@@ -16,13 +16,13 @@ from src.presentation.api.shared.stage1_payment_runtime import (
 )
 
 
-def test_stage1_payments_enabled_allows_new_paid_flows(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stage1_payments_enabled_allows_generic_paid_flows(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "payments_enabled", True)
 
     require_stage1_payments_enabled()
 
 
-def test_stage1_payments_disabled_blocks_new_paid_flows(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stage1_payments_disabled_blocks_generic_paid_flows(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "payments_enabled", False)
 
     with pytest.raises(HTTPException) as exc_info:
@@ -33,7 +33,6 @@ def test_stage1_payments_disabled_blocks_new_paid_flows(monkeypatch: pytest.Monk
 
 
 def test_stage1_telegram_stars_disabled_blocks_new_stars_invoices(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "payments_enabled", True)
     monkeypatch.setattr(settings, "telegram_stars_enabled", False)
 
     with pytest.raises(HTTPException) as exc_info:
@@ -43,12 +42,10 @@ def test_stage1_telegram_stars_disabled_blocks_new_stars_invoices(monkeypatch: p
     assert exc_info.value.detail == TELEGRAM_STARS_DISABLED_DETAIL
 
 
-def test_stage1_telegram_stars_requires_global_payments_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stage1_telegram_stars_can_be_enabled_while_generic_payments_stay_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "payments_enabled", False)
     monkeypatch.setattr(settings, "telegram_stars_enabled", True)
 
-    with pytest.raises(HTTPException) as exc_info:
-        require_stage1_telegram_stars_enabled()
-
-    assert exc_info.value.status_code == 503
-    assert exc_info.value.detail == PAYMENTS_DISABLED_DETAIL
+    require_stage1_telegram_stars_enabled()

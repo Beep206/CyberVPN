@@ -76,6 +76,26 @@ const PLAN_ACCENT_MAP = {
   pro: 'text-neon-pink border-neon-pink/30',
   max: 'text-neon-purple border-neon-purple/30',
 } satisfies Record<PricingTierCode, string>;
+const PLAN_NAME_KEY_MAP = {
+  basic: 'planNames.basic',
+  plus: 'planNames.plus',
+  pro: 'planNames.pro',
+  max: 'planNames.max',
+} satisfies Record<PricingTierCode, string>;
+const CONNECTION_MODE_KEY_MAP: Record<string, string> = {
+  standard: 'connectionModes.standard',
+  stealth: 'connectionModes.stealth',
+  manual_config: 'connectionModes.manualConfig',
+  dedicated_ip: 'connectionModes.dedicatedIp',
+  experimental: 'connectionModes.experimental',
+};
+const SERVER_POOL_KEY_MAP: Record<string, string> = {
+  shared: 'serverPools.shared',
+  shared_plus: 'serverPools.sharedPlus',
+  premium_shared: 'serverPools.premiumShared',
+  premium: 'serverPools.premium',
+  exclusive: 'serverPools.exclusive',
+};
 
 function groupPlanFamilies(plans: PlanRecord[]): PlanFamily[] {
   const grouped = new Map<PricingTierCode, PlanFamily>();
@@ -147,6 +167,42 @@ function formatPeriodLabel(t: ReturnType<typeof useTranslations>, durationDays: 
   return t('periods.custom', { days: durationDays });
 }
 
+function translateOrFallback(t: ReturnType<typeof useTranslations>, key: string, fallback: string) {
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
+
+function formatPlanDisplayName(t: ReturnType<typeof useTranslations>, family: PlanFamily) {
+  const translationKey = PLAN_NAME_KEY_MAP[family.code];
+  return translateOrFallback(t, translationKey, family.displayName);
+}
+
+function formatConnectionModes(t: ReturnType<typeof useTranslations>, modes: string[]) {
+  return modes
+    .map((mode) => {
+      const translationKey = CONNECTION_MODE_KEY_MAP[mode];
+      return translationKey ? translateOrFallback(t, translationKey, mode) : mode;
+    })
+    .join(' · ');
+}
+
+function formatServerPools(t: ReturnType<typeof useTranslations>, pools: string[]) {
+  return pools
+    .map((pool) => {
+      const translationKey = SERVER_POOL_KEY_MAP[pool];
+      return translationKey ? translateOrFallback(t, translationKey, pool) : pool;
+    })
+    .join(' · ');
+}
+
+function formatTrafficLabel(t: ReturnType<typeof useTranslations>, label: string | null | undefined) {
+  if (!label || label.toLowerCase() === 'unlimited') {
+    return t('trafficUnlimited');
+  }
+
+  return label;
+}
+
 function extractTelegramStarsAmount(features: Record<string, unknown> | undefined) {
   if (!features) {
     return 0;
@@ -199,7 +255,7 @@ function normalizeCurrentEntitlements(snapshot: CurrentEntitlementsResponse | un
 
   return {
     deviceLimit: effective.device_limit ?? 0,
-    trafficLabel: effective.display_traffic_label ?? 'Unlimited',
+    trafficLabel: effective.display_traffic_label ?? null,
     connectionModes: effective.connection_modes ?? [],
     serverPool: effective.server_pool ?? [],
     supportSla: effective.support_sla ?? 'standard',
@@ -293,7 +349,7 @@ function QuoteBreakdown({
           </div>
           <div className="flex items-center justify-between gap-4">
             <span>{t('quote.traffic')}</span>
-            <span>{entitlements.display_traffic_label}</span>
+            <span>{formatTrafficLabel(t, entitlements.display_traffic_label)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span>{t('quote.dedicatedIp')}</span>
@@ -302,13 +358,13 @@ function QuoteBreakdown({
           <div className="flex items-start justify-between gap-4">
             <span>{t('quote.modes')}</span>
             <span className="max-w-[60%] text-right">
-              {entitlements.connection_modes.join(' · ') || t('quote.none')}
+              {formatConnectionModes(t, entitlements.connection_modes) || t('quote.none')}
             </span>
           </div>
           <div className="flex items-start justify-between gap-4">
             <span>{t('quote.serverPool')}</span>
             <span className="max-w-[60%] text-right">
-              {entitlements.server_pool.join(' · ') || t('quote.none')}
+              {formatServerPools(t, entitlements.server_pool) || t('quote.none')}
             </span>
           </div>
         </div>
@@ -320,7 +376,7 @@ function QuoteBreakdown({
 export default function MiniAppPlansPage() {
   const t = useTranslations('MiniApp.plans');
   const locale = useLocale();
-  const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();
+  const { haptic, hapticNotification, webApp } = useTelegramWebApp();
   const queryClient = useQueryClient();
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
   const checkoutCodesEnabled = STAGE1_CHECKOUT_CODES_UI_ENABLED;
@@ -594,16 +650,24 @@ export default function MiniAppPlansPage() {
     }
   }
 
+  async function refreshMiniAppAccessState() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] }),
+      queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
+      queryClient.invalidateQueries({ queryKey: ['miniapp-config'] }),
+      queryClient.invalidateQueries({ queryKey: ['usage'] }),
+      queryClient.invalidateQueries({ queryKey: ['miniapp-profile-invites'] }),
+    ]);
+  }
+
   const activateTrialMutation = useMutation({
     mutationFn: async () => {
       const { data } = await miniappApi.activateTrial();
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       hapticNotification('success');
-      queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] });
-      queryClient.invalidateQueries({ queryKey: ['usage'] });
-      queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] });
+      await refreshMiniAppAccessState();
       webApp?.showAlert(t('trialActivated'));
     },
     onError: (error: unknown) => {
@@ -635,6 +699,7 @@ export default function MiniAppPlansPage() {
     onSuccess: (data, payload) => {
       hapticNotification('success');
       queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['miniapp-config'] });
       queryClient.invalidateQueries({ queryKey: ['usage'] });
       queryClient.invalidateQueries({ queryKey: ['payments-history'] });
       queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] });
@@ -660,6 +725,7 @@ export default function MiniAppPlansPage() {
               const finalStatus = await waitForPaymentCompletion(String(data.payment_id));
               await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] }),
+                queryClient.invalidateQueries({ queryKey: ['miniapp-config'] }),
                 queryClient.invalidateQueries({ queryKey: ['usage'] }),
                 queryClient.invalidateQueries({ queryKey: ['payments-history'] }),
                 queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
@@ -697,7 +763,7 @@ export default function MiniAppPlansPage() {
               subscriptionStatus: currentEntitlements?.status ?? 'none',
             });
             webApp?.showAlert(t('paymentSuccess'));
-            queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] });
+            void refreshMiniAppAccessState();
           } else if (status === 'cancelled') {
             void emitMiniAppRuntimeEvent({
               event: 'miniapp_payment_status_resolved',
@@ -768,11 +834,12 @@ export default function MiniAppPlansPage() {
       const { data } = await invitesApi.redeem({ code });
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       hapticNotification('success');
       const reward = data.free_days
         ? t('inviteRewardDays', { count: data.free_days })
         : t('inviteRewardDefault');
+      await refreshMiniAppAccessState();
       webApp?.showAlert(t('inviteRedeemed', { reward }));
       setInviteCode('');
     },
@@ -788,13 +855,13 @@ export default function MiniAppPlansPage() {
   );
   const canActivateTrial = trialEligible && trialEnabled;
   const currentValues = normalizeCurrentEntitlements(currentEntitlements);
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark
-    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
-    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark
-    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
-    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const currentPlanDisplayName = currentEntitlements?.status === 'trial'
+    ? t('trialLabel')
+    : currentMatch
+      ? formatPlanDisplayName(t, currentMatch.family)
+      : currentEntitlements?.display_name || t('trialLabel');
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   const selectedPricePresentation = selectedSku ? getPricePresentation(locale, selectedSku) : null;
   const selectedPrice = selectedPricePresentation
@@ -857,7 +924,7 @@ export default function MiniAppPlansPage() {
                 {t('currentPlanTitle')}
               </p>
               <h2 className="mt-1 font-display text-xl uppercase tracking-[0.16em] text-neon-cyan">
-                {currentEntitlements.display_name || t('trialLabel')}
+                {currentPlanDisplayName}
               </h2>
               <p className="mt-1 text-sm font-mono text-white/60">
                 {currentEntitlements.expires_at
@@ -877,7 +944,7 @@ export default function MiniAppPlansPage() {
             </div>
             <div className="flex items-center justify-between gap-4">
               <span>{t('quote.traffic')}</span>
-              <span>{currentValues.trafficLabel}</span>
+              <span>{formatTrafficLabel(t, currentValues.trafficLabel)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span>{t('quote.dedicatedIp')}</span>
@@ -970,7 +1037,7 @@ export default function MiniAppPlansPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-display text-base uppercase tracking-[0.16em] text-white">
-                          {plan.displayName}
+                          {formatPlanDisplayName(t, plan)}
                         </p>
                         <p className="mt-1 text-xs font-mono text-white/55">
                           {t('planDevices', { count: plan.devicesIncluded })}
@@ -981,7 +1048,7 @@ export default function MiniAppPlansPage() {
                       </div>
                     </div>
                     <div className="mt-3 text-xs font-mono text-white/60">
-                      {plan.connectionModes.join(' · ')}
+                      {formatConnectionModes(t, plan.connectionModes)}
                     </div>
                   </button>
                 );
@@ -996,7 +1063,7 @@ export default function MiniAppPlansPage() {
                       {t('periodSelectorTitle')}
                     </p>
                     <p className="mt-1 text-sm font-mono text-white/60">
-                      {selectedFamily.displayName} · {selectedPrice}
+                      {formatPlanDisplayName(t, selectedFamily)} · {selectedPrice}
                     </p>
                     {selectedPricePresentation?.localEstimate ? (
                       <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">

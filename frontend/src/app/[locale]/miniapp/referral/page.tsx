@@ -105,8 +105,8 @@ function formatGiftStatus(status: string): 'active' | 'redeemed' | 'expired' | '
 
 function MiniAppReferralPaused() {
   const { colorScheme } = useTelegramWebApp();
-  const cardBg = colorScheme === 'dark' ? 'bg-card/70' : 'bg-white/85';
-  const borderColor = colorScheme === 'dark' ? 'border-border' : 'border-gray-200';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   return (
     <main className="min-h-screen px-4 py-6 pb-24">
@@ -308,13 +308,8 @@ function MiniAppReferralExperience() {
     }
   };
 
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark
-    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
-    : 'bg-[var(--tg-bg-color,oklch(0.96_0.01_250))]';
-  const borderColor = isDark
-    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
-    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   return (
     <div className="max-w-screen-sm mx-auto space-y-4">

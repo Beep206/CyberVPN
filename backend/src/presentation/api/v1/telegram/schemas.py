@@ -197,6 +197,19 @@ class TelegramBotReferralStatsResponse(BaseModel):
     referral_link: str | None = None
 
 
+class TelegramBotInviteCodeResponse(BaseModel):
+    """Bot-facing invite code payload."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    code: str
+    free_days: int
+    is_used: bool
+    expires_at: datetime | None = None
+    created_at: datetime
+
+
 class TelegramBotCheckoutRequest(BaseModel):
     """Canonical checkout payload accepted from the Telegram bot."""
 

@@ -17,7 +17,7 @@ interface NavItem {
 export function MiniAppBottomNav() {
   const pathname = usePathname();
   const t = useTranslations('MiniApp.nav');
-  const { hapticSelection, colorScheme } = useTelegramWebApp();
+  const { hapticSelection } = useTelegramWebApp();
 
   const navItems: NavItem[] = [
     {
@@ -50,14 +50,8 @@ export function MiniAppBottomNav() {
     hapticSelection();
   };
 
-  // Use Telegram theme colors or fallback to cyberpunk
-  const bgColor = colorScheme === 'dark'
-    ? 'bg-[var(--tg-bg-color,oklch(0.05_0.015_260))]'
-    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-
-  const borderColor = colorScheme === 'dark'
-    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
-    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const bgColor = 'bg-[oklch(0.045_0.014_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   return (
     <nav

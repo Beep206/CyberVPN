@@ -37,7 +37,7 @@ interface TelegramWebApp {
     buttons?: Array<{ id?: string; type?: string; text: string }>;
   }) => void;
   showAlert: (message: string) => void;
-  showConfirm: (message: string) => Promise<boolean>;
+  showConfirm: (message: string, callback?: (confirmed: boolean) => void) => void | boolean | Promise<boolean>;
   openLink: (url: string) => void;
   openTelegramLink: (url: string) => void;
   openInvoice?: (url: string, callback?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void) => void;

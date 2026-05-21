@@ -57,6 +57,33 @@ class CryptoBotClient:
         "mainnet": "https://pay.crypt.bot/api",
         "testnet": "https://testnet-pay.crypt.bot/api",
     }
+    SUPPORTED_CRYPTO_ASSETS: ClassVar[frozenset[str]] = frozenset(
+        {"USDT", "TON", "BTC", "ETH", "LTC", "BNB", "TRX", "USDC"}
+    )
+    SUPPORTED_FIAT_CURRENCIES: ClassVar[frozenset[str]] = frozenset(
+        {
+            "USD",
+            "EUR",
+            "RUB",
+            "BYN",
+            "UAH",
+            "GBP",
+            "CNY",
+            "KZT",
+            "UZS",
+            "GEL",
+            "TRY",
+            "AMD",
+            "THB",
+            "INR",
+            "BRL",
+            "IDR",
+            "AZN",
+            "AED",
+            "PLN",
+            "ILS",
+        }
+    )
 
     def __init__(self, token: SecretStr | None = None, network: str | None = None):
         """Initialize CryptoBot client with authentication token.
@@ -216,18 +243,38 @@ class CryptoBotClient:
         Raises:
             CryptoBotAPIError: On API error or network failure
         """
-        payload_data = {
-            "amount": amount,
-            "currency_type": "crypto",
-            "asset": currency,
-        }
+        payload_data = self._build_create_invoice_payload(
+            amount=amount,
+            currency=currency,
+            description=description,
+            payload=payload,
+        )
+
+        return await self._request("POST", "/createInvoice", json=payload_data)
+
+    def _build_create_invoice_payload(
+        self,
+        *,
+        amount: float,
+        currency: str,
+        description: str = "",
+        payload: str = "",
+    ) -> dict[str, Any]:
+        normalized_currency = currency.upper()
+        payload_data: dict[str, Any] = {"amount": amount}
+        if normalized_currency in self.SUPPORTED_CRYPTO_ASSETS:
+            payload_data.update({"currency_type": "crypto", "asset": normalized_currency})
+        elif normalized_currency in self.SUPPORTED_FIAT_CURRENCIES:
+            payload_data.update({"currency_type": "fiat", "fiat": normalized_currency})
+        else:
+            msg = f"Unsupported CryptoBot invoice currency: {currency}"
+            raise ValueError(msg)
 
         if description:
             payload_data["description"] = description
         if payload:
             payload_data["payload"] = payload
-
-        return await self._request("POST", "/createInvoice", json=payload_data)
+        return payload_data
 
     async def get_balance(self) -> list[dict]:
         """Get account balance for all currencies.

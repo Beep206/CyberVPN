@@ -175,3 +175,5 @@ infra/terraform/**/backend.hcl
 infra/ansible/.vault_pass
 infra/ansible/inventories/*/generated.hosts.json
 infra/prometheus/targets/*.json
+!infra/prometheus/targets/stage1-public-web.json
+!infra/prometheus/targets/stage1-vpn-node-tcp.json

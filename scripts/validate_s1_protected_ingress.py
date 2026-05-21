@@ -26,14 +26,14 @@ REQUIRED_DEPENDENCIES = {
 REQUIRED_ENTRYPOINTS = {
     "public_site_primary",
     "public_site_www",
-    "public_site_mirror",
-    "public_site_mirror_www",
+    "org_reserved_zone",
+    "org_www_reserved",
     "public_api",
     "payment_webhooks",
     "telegram_webhook",
     "oauth_callbacks",
     "admin_primary",
-    "admin_mirror",
+    "admin_org_reserved",
 }
 REQUIRED_HOSTS = {
     "cyber-vpn.net",
@@ -221,14 +221,26 @@ def validate_ingress(data: dict[str, Any]) -> list[str]:
         },
     )
 
-    admin_mirror = _by_id(entrypoints, "admin_mirror")
+    admin_org = _by_id(entrypoints, "admin_org_reserved")
     _require_controls(
         errors,
-        admin_mirror,
+        admin_org,
         {
-            "redirect_to_admin_primary",
             "no_independent_session_cookie",
             "no_admin_backend_origin",
+            "no_public_admin_login",
+        },
+    )
+
+    org_reserved = _by_id(entrypoints, "org_reserved_zone")
+    _require_controls(
+        errors,
+        org_reserved,
+        {
+            "no_customer_web_mirror",
+            "no_admin_routes",
+            "vpn_node_records_dns_only",
+            "future_subscription_endpoint_requires_separate_approval",
         },
     )
 

@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from aiogram.types import InlineKeyboardMarkup
 
 
 def referral_keyboard(i18n: Callable[[str], str], _stats: dict | None = None) -> InlineKeyboardMarkup:
@@ -48,5 +49,29 @@ def referral_keyboard(i18n: Callable[[str], str], _stats: dict | None = None) ->
 
     # Layout: 2 buttons per row, except back button
     builder.adjust(2, 1, 1)
+
+    return builder.as_markup()
+
+
+def invite_codes_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
+    """Build keyboard for manually issued invite codes."""
+    builder = InlineKeyboardBuilder()
+
+    builder.button(
+        text=i18n("btn-my-invites"),
+        callback_data="referral:invites",
+        style="primary",
+    )
+    builder.button(
+        text=i18n("btn-refresh"),
+        callback_data="referral:invites",
+        style="primary",
+    )
+    builder.button(
+        text=i18n("btn-back"),
+        callback_data="nav:menu",
+        style="primary",
+    )
+    builder.adjust(2, 1)
 
     return builder.as_markup()

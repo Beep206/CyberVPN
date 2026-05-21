@@ -135,6 +135,28 @@ Added:
 
 The JSON contract encodes the topology decision, environments, network zones, components, public ingress, private dependencies, data authority, home-lab boundary, out-of-scope runtime and required go-live evidence.
 
+## Production VPN Node Boundary
+
+Stage 1 production VPN nodes are node-only hosts.
+
+Allowed:
+
+- SSH/admin access;
+- Remnawave node runtime;
+- VLESS/XHTTP transport listeners;
+- node control/listener ports required by Remnawave node runtime;
+- standard host services such as DNS resolver, time sync and firewall.
+
+Forbidden:
+
+- public web/API/admin probes;
+- Prometheus exporters unrelated to the VPN node itself;
+- GitLab, Grafana, Loki, Sentry, Alertmanager or other home-observability workloads;
+- backend, worker, scheduler, Telegram Bot, payment or support workloads;
+- temporary relays for `prod-app-1`.
+
+If home observability cannot reach `prod-app-1` directly, the fix must be a non-node network/edge/ops decision. Production VPN nodes must not be used as generic observability relay hosts.
+
 ## Verification
 
 Commands:

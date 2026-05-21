@@ -23,6 +23,112 @@ public site / Telegram
 
 Все partner, mobile store, desktop, Android TV, browser extension, Helix/Verta/Beep, payouts, full GitOps/Talos/Kubernetes и growth mechanics должны оставаться выключенными до следующих этапов.
 
+## Latest Rented Production Snapshot - 2026-05-21
+
+Evidence:
+
+```text
+docs/evidence/releases/stage1-rented-prod-09-telegram-miniapp-live-smoke-20260520T072553Z.md
+docs/evidence/releases/stage1-rented-prod-08-controlled-runtime-enablement-20260520T070701Z.md
+docs/evidence/releases/stage1-rented-prod-09a-owner-telegram-miniapp-auth-hotfix-20260520T074800Z.md
+docs/evidence/releases/stage1-rented-prod-09b-miniapp-route-guard-hotfix-20260520T080000Z.md
+docs/evidence/releases/stage1-rented-prod-09c-telegram-sdk-hotfix-20260520T081500Z.md
+docs/evidence/releases/stage1-rented-prod-09d-miniapp-auth-gate-theme-20260520T083000Z.md
+docs/evidence/releases/stage1-rented-prod-09e-backend-telegram-token-reload-20260520T085339Z.md
+docs/evidence/releases/stage1-rented-prod-09f-telegram-miniapp-owner-bootstrap-20260520T090407Z.md
+docs/evidence/releases/stage1-rented-prod-09g-miniapp-customer-session-react31-20260520T121643Z.md
+docs/evidence/releases/stage1-rented-prod-09h-miniapp-ru-l10n-20260520T132348Z.md
+docs/evidence/releases/stage1-rented-prod-09i-edge-http3-reset-fix-20260520T134851Z.md
+docs/evidence/releases/stage1-rented-prod-09j-edge-http3-quic-restore-20260520T135210Z.md
+docs/evidence/releases/stage1-rented-prod-10-payment-path-preflight-20260520T140517Z.md
+docs/evidence/releases/stage1-rented-prod-10b-cryptopay-key-webhook-closure-20260520T144900Z.md
+docs/evidence/releases/stage1-rented-prod-10c-telegram-stars-enable-20260520T150500Z.md
+docs/evidence/releases/stage1-rented-prod-11-observability-stabilization-20260520T162926Z.md
+docs/evidence/releases/stage1-rented-prod-11a-external-probe-relay-20260520T164632Z.md
+docs/evidence/releases/stage1-rented-prod-11b-node-only-and-direct-home-prod-app-20260520T170051Z.md
+docs/evidence/releases/stage1-rented-prod-11c-direct-home-prod-app-network-path-20260520T172432Z.md
+docs/evidence/releases/stage1-rented-prod-11d-cloudflare-user-path-probes-20260520T175619Z.md
+docs/evidence/releases/stage1-rented-prod-12-catalog-support-beta-gate-20260520T180458Z.md
+docs/evidence/releases/stage1-rented-prod-13-first-controlled-cohort-trial-watch-20260520T184156Z.md
+docs/evidence/releases/stage1-home-observability-swap-tuning-20260520T191045Z.md
+docs/evidence/releases/stage1-rented-prod-14-owner-device-cohort2-preflight-20260520T191226Z.md
+docs/evidence/releases/stage1-rented-prod-14a-owner-device-confirmation-cohort2-list-20260521T061114Z.md
+docs/evidence/releases/stage1-rented-prod-14b-owner-real-device-retest-cohort2-invite-20260521T062040Z.md
+docs/evidence/releases/stage1-stabilization-20260520.md
+```
+
+Current operational decision:
+
+```text
+GO for Telegram Bot/Mini App infrastructure readiness.
+GO for owner/internal Telegram Mini App smoke status after 09G/09H/09J; owner reported the Mini App opens and works.
+GO for controlled internal/owner trial smoke and small manually controlled trial cohort.
+GO for visible S1 catalog across web, Mini App and Telegram Bot.
+GO for owner/internal Telegram trial config delivery and real client connect proof after `STAGE1-RENT-13`.
+GO for cohort-2 preparation after owner real-device validation.
+NO-GO for cohort-2 invitations until a 1-3 user cohort-2 list is approved.
+NO-GO for opening public B2C registration.
+NO-GO for paid beta users.
+NO-GO for external paid Telegram cohort until real payment/provisioning proof exists.
+```
+
+Next ordered step:
+
+```text
+STAGE1-RENT-15: Cohort-2 Trial Invite Execution And Support Watch.
+```
+
+What is healthy now:
+
+- rented `prod-app-1` runtime is up: frontend, admin, backend, worker, scheduler, Telegram bot, PostgreSQL, Valkey, Remnawave and exporters are healthy;
+- rented `prod-vpn-node-1` VLESS/XHTTP node and real client connect proof exist from `STAGE1-RENT-07`;
+- `https://api.cyber-vpn.net/health` returns `200`;
+- `https://cyber-vpn.net/` redirects to `/en-EN` and returns `200`;
+- `https://admin.cyber-vpn.net/` redirects to `/ru-RU/login` and returns `200`;
+- trial provisioning is enabled in the running backend with `STAGE1_TRIAL_PROVISIONING_ENABLED=true`;
+- production Telegram bot token is accepted by Telegram API and `getMe` resolves `C_y_b_e_r_VPN_Bot`;
+- `https://api.cyber-vpn.net/webhook/telegram` is configured as the Telegram webhook with `pending_update_count=0` and no last error in `getWebhookInfo`;
+- public webhook requests without Telegram secret header are rejected with `401`;
+- Telegram commands are configured: `start`, `menu`, `connect`, `plans`, `trial`, `support`, `paysupport`;
+- Telegram default menu button opens `https://cyber-vpn.net/ru-RU/miniapp`;
+- Mini App public page returns `200`;
+- Mini App frontend auth hotfix is deployed in image `cybervpn/cybervpn-frontend:stage1-rent09a-miniapp-auth-20260520T074800Z`;
+- Mini App route-guard hotfix is deployed in image `cybervpn/cybervpn-frontend:stage1-rent09b-miniapp-route-20260520T080000Z`;
+- Mini App Telegram SDK hotfix is deployed in image `cybervpn/cybervpn-frontend:stage1-rent09c-telegram-sdk-20260520T081500Z`, and deployed HTML includes `https://telegram.org/js/telegram-web-app.js`;
+- Mini App auth-gate/theme hotfix is deployed in image `cybervpn/cybervpn-frontend:stage1-rent09d-miniapp-auth-gate-20260520T083000Z`; `/miniapp/*` routes no longer render the normal web guest profile while Telegram init data is missing, and Mini App panels/nav no longer use light gray Telegram background fallbacks;
+- backend was recreated after token fingerprint mismatch evidence; running backend now uses the same Telegram bot token fingerprint as the Telegram bot runtime, so the previous Mini App HMAC failure should be closed pending owner retest;
+- Mini App customer-session and React error `#31` hotfix is deployed in images `cybervpn/cybervpn-backend:stage1-rent09g-miniapp-customer-session-20260520t121643z` and `cybervpn/cybervpn-frontend:stage1-rent09g-miniapp-customer-session-20260520t121643z`;
+- backend Telegram Mini App auth now issues customer/mobile scoped tokens for `/api/v1/miniapp/*`; redacted internal runtime smoke shows `POST /api/v1/auth/telegram/miniapp -> 200`, `/api/v1/miniapp/bootstrap -> 200`, and `/api/v1/miniapp/config -> 404` for an account without an active config;
+- temporary owner bootstrap allowlist from `09F` has been removed from runtime secrets after owner account creation;
+- public registration remains paused with `REGISTRATION_ENABLED=false`;
+- generic/CryptoBot payments, add-ons, referrals, promo codes, gift codes, checkout discounts, autoprolongation and Helix are disabled; Telegram Stars is runtime-enabled only for Telegram Bot/Mini App and still lacks real purchase/provisioning evidence;
+- Crypto Pay provider auth and signed synthetic webhook proof exist, but generic/CryptoBot paid checkout remains disabled until real checkout -> provider callback -> provisioning evidence is captured;
+- S1 production plan catalog is seeded: Basic, Plus, Pro and Max are visible for 30/90/180/365 days across `web`, `miniapp` and `telegram_bot`;
+- minimum S1 support/storefront/merchant records are seeded and active: `support@cyber-vpn.net`, `refund@cyber-vpn.net`, `noreply@cyber-vpn.net`, `cyber-vpn.net` storefront, `CYBERVPN` billing descriptor;
+- Telegram Stars runtime gate is open for Telegram-only payment flow, but real Stars purchase/provisioning proof is not complete;
+- home observability stack is running and Alertmanager Telegram/email delivery is proven; production VPN node TCP probes for `de-1.cyber-vpn.org:443` and `:8443` are green;
+- `prod-vpn-node-1` is restored to node-only policy: no app/API/admin probe relay, no extra Prometheus exporter, no support/payment/backend/observability workload on the VPN node;
+- direct home Prometheus public-web blackbox probes to `prod-app-1` still time out: ICMP and TCP handshake work, MikroTik transmits post-handshake payload to WAN, but that payload is lost before it reaches `prod-app-1`;
+- `STAGE1-RENT-11C` has RouterOS SSH evidence: route/NAT/FastTrack inspection does not show a local router blocker; the remaining fault domain is upstream ISP path or JustHost/provider anti-DDoS/TCP validation for the home public IP on `80/443`;
+- `STAGE1-RENT-11D` switches S1 `.net` public hostnames to Cloudflare-proxied DNS and closes public endpoint user-path monitoring: all `blackbox-stage1-public-web` targets report `probe_success=1` and HTTP `200` from home Prometheus;
+- `STAGE1-RENT-12` rechecked observability after production catalog/support seed: Stage 1 firing alerts are `0`, public user-path probes remain green, and VPN-node TCP probes remain green;
+- `STAGE1-RENT-13` hotfixed Telegram/Mini App trial provisioning surfaces and Telegram Bot/Mini App config delivery, then proved owner/internal trial active state, Remnawave link, subscription URL, protected VLESS config delivery and real Xray client connect through `de-1.cyber-vpn.org`;
+- home observability swap warnings were closed by tuning GitLab memory/concurrency and controlled restarts of GitLab/Sentry services; firing alerts are empty after scrape;
+- `STAGE1-RENT-14` preflight proved rented production runtime healthy, owner trial/config server-side state valid, public endpoint/VPN-node probes green and Stage 1-specific firing alerts `0`;
+- `STAGE1-RENT-14A` found and hotfixed the remaining Mini App bootstrap usage lookup path so the owner Telegram-linked user now authenticates, bootstraps and receives Remnawave-generated config on production with HTTP `200`;
+- `STAGE1-RENT-14B` closed owner real-device validation: owner received the config through the Telegram Bot/Mini App flow, imported it into a VPN client, connected successfully and confirmed public exit through `77.90.13.29` in Germany;
+- pre-enable production backups were captured for CyberVPN PostgreSQL and Remnawave PostgreSQL;
+- pause runbooks exist on `prod-app-1` for registration, payments/growth and trial provisioning.
+
+Remaining launch blockers after `STAGE1-RENT-14B`:
+
+- B2C invite-only is not proven across every public registration surface. Current `REGISTRATION_INVITE_REQUIRED=true` does not cover all mobile/Telegram/Mini App/magic-link/OAuth new-user entrypoints, so global public registration must remain paused until this is fixed or beta users are onboarded manually.
+- Paid beta remains blocked until one provider has real credentials, webhook signature/final-status/idempotency/provisioning/reconciliation evidence.
+- Public endpoint monitoring authority is now Cloudflare-proxied user-path monitoring. The direct home -> origin provider/upstream issue remains open as a known infra issue, but it is no longer the active public user-path monitoring blocker. Do not reuse the VPN node as a relay.
+- Provider/upstream direct-origin closure remains open for later hardening: use provider ticket/whitelist or a separate external origin probe location if direct origin monitoring is required.
+- Paid Telegram Stars remains blocked until a real Stars purchase -> charge ID -> provisioning -> `/paysupport`/refund/reconciliation proof is captured.
+- Canonical service identity / entitlement / device credential rows are not yet populated by the Telegram trial path; current S1 trial delivery relies on `mobile_users.remnawave_uuid` and `mobile_users.subscription_url`. Track this as S1 hardening before larger cohort scale.
+
 ## Latest Stabilization Snapshot - 2026-05-11
 
 Evidence: `docs/evidence/releases/stage1-stabilization-20260511.md`
@@ -51,7 +157,7 @@ New/confirmed launch blockers:
 - `S1-STAB-20260511-003`: Loki/Caddy logs include sensitive request-header material for GitLab runner polling; redact headers and decide whether to rotate runner token before widening beta or sharing log exports.
 - `S1-STAB-20260511-004`: GitLab is at memory limit and host swap alerts are firing.
 - `S1-STAB-20260511-005`: support/refund mailbox DNS remains unproven; no MX/DMARC output for `cyber-vpn.net` / `cyber-vpn.org`.
-- `S1-STAB-20260511-006`: app DB has `active_plans=0` and `support_profiles_active=0`; seed S1 plan/support profile before enabling registration/trial/payment.
+- `S1-STAB-20260511-006`: closed on rented production by `STAGE1-RENT-12`; S1 plan catalog and support profile are seeded and verified.
 - `S1-STAB-20260511-007`: backend direct `/ready` returns `404`; either expose readiness or keep `/healthz`/`/health` as the documented probe contract.
 
 ## Status Legend
@@ -102,7 +208,7 @@ New/confirmed launch blockers:
 |---|---|---|---|
 | Clean migrations on staging/prod DB | External required / blocker | Local clean DB migration уже доказан, но managed staging/prod DB может отличаться | Повторить `S1-BE-001` на staging managed PostgreSQL и production preflight |
 | First admin bootstrap on staging/prod | External required / blocker | Local bootstrap есть, но первый production admin ещё не доказан | One-time protected bootstrap, role `owner/super_admin`, mandatory 2FA, audit event, bootstrap disabled after use |
-| Seed minimum production data | External required | Без тарифов/config/profile IDs нельзя проверить покупку/provisioning | Seed только S1 plans, feature flags, legal links, Remnawave profile mapping |
+| Seed minimum production data | Completed on rented production; repeat on rebuild | Без тарифов/config/profile IDs нельзя проверить покупку/provisioning | `STAGE1-RENT-12` seeded 28 subscription plan rows, 2 add-ons kept disabled by runtime flag, 16 public active plan entries and the minimum support/storefront/merchant records; repeat the seed after any production DB rebuild |
 | Durable queue/retry persistence | Go-live blocker | Redis/Valkey не должен быть source of truth for critical jobs | Critical payment/provisioning jobs должны восстанавливаться из PostgreSQL |
 
 ## 4. Auth, Registration and Account Linking
@@ -125,9 +231,9 @@ New/confirmed launch blockers:
 | Item | Status | Почему нужно | Рекомендация |
 |---|---|---|---|
 | Choose first live payment path | Go-live blocker for paid beta | Нельзя одновременно доводить 6 providers до production proof | Выбрать один primary path для S1 paid beta. Остальные держать disabled until evidence |
-| Provider accounts and access setup | External required / blocker | Сейчас provider mappings mostly documentation-derived | Получить sandbox/prod provider access, хранить secret values вне repo, записать inventory без values |
+| Provider accounts and access setup | Partially closed for Crypto Pay | Crypto Pay production token now validates against `getMe`; остальные providers не доказаны | For S1 paid beta keep only Crypto Pay as first candidate; leave PayRam/NOWPayments/YooKassa/Digiseller/Stars disabled until their own provider evidence exists |
 | Real provider final statuses | External required / blocker | Локальная mapping таблица не доказывает provider behavior | Для enabled provider приложить real callback/API samples: success, pending, fail/cancel/expired |
-| Webhook signature/authenticity live proof | External required / blocker | Local fail-closed contract есть, но нужен provider-specific proof | Не выдавать paid access без signature/recheck evidence |
+| Webhook signature/authenticity live proof | Partially closed for Crypto Pay synthetic proof | Valid signed synthetic Crypto Pay webhook returns 200 and is stored in `webhook_logs`; real provider callback still not captured | Enable Crypto Pay webhooks in app settings, then prove a real provider callback from a real invoice before public paid beta |
 | Durable webhook idempotency | Go-live blocker | Duplicate webhook не должен продлевать subscription или создать второй provisioning job | Back keys with DB/Redis uniqueness, test duplicate callback on staging |
 | Payment -> provisioning failure recovery | Go-live blocker | Пользователь оплатил, но Remnawave/API упал: это главный launch risk | Paid state сохраняется, retry job создаётся, support queue/alert срабатывает |
 | Orphan payment support queue | Go-live blocker | Owner rule: no orphan/paid-but-no-access older than 24h | 15m alert, 1h P1, 24h P0; real admin/support queue evidence |
@@ -178,7 +284,7 @@ New/confirmed launch blockers:
 |---|---|---|---|
 | BotFather staging/prod evidence | External required | Local bot command/menu proof не доказывает real Telegram bot | getMe, webhook, commands, menu button and domain evidence |
 | Telegram Mini App real initData | External required | Web UI screenshots are not enough | Verify Telegram client opens Mini App, auth/linking works, expired/paid/trial states render |
-| Telegram Stars if enabled | Local contract done; external evidence required | Owner allowed Stars only for Telegram after evidence | `108_STAGE1_PAY_011_TELEGRAM_STARS_READINESS_EVIDENCE.md` proves local XTR/pre-checkout/success/refund contract; do not enable Stars until real BotFather/test/prod payment, charge ID, `/paysupport`, refundStarPayment/reconciliation and provisioning evidence exists |
+| Telegram Stars if enabled | Runtime gate enabled; catalog seeded; real purchase evidence still required | Owner allowed Stars only for Telegram after evidence; `STAGE1-RENT-10C` opened Stars without opening generic/CryptoBot checkout | `108_STAGE1_PAY_011_TELEGRAM_STARS_READINESS_EVIDENCE.md` proves local XTR/pre-checkout/success/refund contract; `stage1-rented-prod-10c-telegram-stars-enable-20260520T150500Z.md` proves runtime gate and `createInvoiceLink` smoke; `STAGE1-RENT-12` proves the public S1 catalog. Still required: approved XTR purchase amount policy, real Stars payment, charge ID, `/paysupport`, refundStarPayment/reconciliation and provisioning evidence |
 | Notifications delivery | External required | Expiry/payment/provisioning notifications are support-critical | Real client screenshots and queue delivery proof |
 | Bot rate limiting with deployed Redis | External required | Telegram spam can create support/payment abuse | Prove Redis-backed limits and fail-closed behavior |
 | AI support escalation to real queue | External required | Local deterministic triage exists, but support must receive cases | Prove support queue/admin visibility and human SLA acknowledgement |
@@ -282,7 +388,7 @@ New/confirmed launch blockers:
 3. Run `S1-BE-003` on staging: prove public/internal/admin/user API route boundary, admin/internal protection, Swagger public-off behavior and webhook/OAuth callback exposure before user/payment/VPN smoke.
 4. Repeat clean migrations and first admin bootstrap on staging: `S1-BE-001`, `S1-BE-002`.
 5. Run `S1-AUTH-*` staging auth flows: email/password, magic link/OTP, Telegram linking, admin 2FA and OAuth if enabled.
-6. Run `S1-VPN-001`, `S1-VPN-003`, `S1-VPN-004` staging Remnawave control-plane/profile/trial provisioning proof.
+6. Keep `S1-VPN-001`, `S1-VPN-003`, `S1-VPN-004` evidence current if runtime tags or Remnawave settings change; rented production trial/client-connect proof is recorded in `docs/evidence/releases/stage1-rented-prod-07-backend-trial-client-connect-20260520T065023Z.md`.
 7. Test one provider sandbox path end-to-end, first candidate `S1-PAY-002` CryptoBot.
 
 ### C. Prepare production only after staging passes
@@ -290,7 +396,7 @@ New/confirmed launch blockers:
 1. Provision production managed PostgreSQL and private Valkey.
 2. Deploy production backend/worker/bot/frontend/admin containers.
 3. Deploy production Remnawave and at least minimal real node inventory.
-4. Configure DNS/TLS for `.net` primary and `.org` redirects.
+4. Configure DNS/TLS for `.net` primary customer/admin/API surfaces and `.org` VPN node/subscription surfaces only.
 5. Run backup/restore and rollback drills.
 
 ### D. Paid beta gate
@@ -320,7 +426,7 @@ S1 Controlled Public Beta can launch only when all of this is true:
 - local edge WAF/rate-limit baseline exists in `119_STAGE1_INFRA_008_EDGE_WAF_RATE_LIMITING_EVIDENCE.md`, and real DNS/TLS/WAF/rate-limit/security-event proof is attached before go-live;
 - local production topology spec exists in `120_STAGE1_INFRA_001_PRODUCTION_TOPOLOGY_EVIDENCE.md`, local production environment contract exists in `122_STAGE1_INFRA_003_PRODUCTION_ENVIRONMENT_EVIDENCE.md`, local DNS/TLS contract exists in `123_STAGE1_INFRA_004_DNS_TLS_EVIDENCE.md`, local protected ingress contract exists in `124_STAGE1_INFRA_005_PROTECTED_INGRESS_EVIDENCE.md`, and real staging/prod deployment, DNS/TLS and protected ingress proof is attached before go-live;
 - local staging environment contract exists in `121_STAGE1_INFRA_002_STAGING_ENVIRONMENT_EVIDENCE.md`, and real external staging health/evidence proof is attached before first rollout;
-- trial provisioning works on real staging/prod Remnawave;
+- trial provisioning works on real Remnawave and has a fresh redacted client-connect proof;
 - at least one live payment path is proven if paid beta is enabled;
 - paid-but-no-access cannot remain unresolved over 24h without owner/support escalation;
 - admin/support can see payment, subscription and provisioning state safely;
@@ -350,7 +456,7 @@ The current ordered local/revalidation chain completed on 2026-05-09:
 13. `S1-AUTH-007` - completed locally/revalidated: privacy delete/export request path pass.
 14. `S1-VPN-001` - local control-plane smoke completed; real external staging Remnawave remains required.
 15. `S1-VPN-003` - completed locally/revalidated: S1 protocol allowlist pass.
-16. `S1-VPN-004` - completed locally/revalidated: trial provisioning gateway pass; real staging/prod provisioning remains required.
+16. `S1-VPN-004` - completed locally/revalidated and proven on rented production: trial activation, Remnawave provisioning, real VLESS links and Xray client-connect pass.
 17. `S1-PAY-002` - completed locally/revalidated: CryptoBot sandbox/testnet runtime contract pass; real testnet credentials and callback samples remain required.
 18. `S1-QA-003` - completed locally/revalidated: fresh local `.dump` backup created and listed.
 19. `S1-QA-004` - completed locally/revalidated: fresh restore drill passed and disposable DB removed.
@@ -369,3 +475,49 @@ The current ordered local/revalidation chain completed on 2026-05-09:
 32. `Owner go/no-go` - prepared in `130_STAGE1_STEP_32_OWNER_GO_NO_GO_EVIDENCE.md`; recommended decision is `NO-GO_FOR_CONTROLLED_BETA_LAUNCH` and owner signature remains required.
 
 Next ordered step: owner must sign or override the go/no-go decision before `33. Controlled beta cohort launch`.
+
+## 17. Rented Production Runtime Update - 2026-05-21
+
+The rented Stage 1 runtime has advanced beyond the older local go/no-go snapshot. Current operating status:
+
+1. `STAGE1-RENT-14B` proved owner real-device VPN connectivity through Telegram Bot/Mini App config delivery and the production VPN node.
+2. `STAGE1-RENT-14C` fixed a Mini App stale-session restore issue that could show a misleading no-subscription state even though backend state still had an active trial, Remnawave UUID and subscription URL.
+3. The active customer-facing frontend image is `cybervpn/cybervpn-frontend:stage1-rent14c-miniapp-session-restore-20260521t063728z`.
+4. Backend, bot, worker, scheduler, Remnawave and VPN node were not changed by the 14C hotfix.
+5. Next launch blocker before cohort-2 expansion: owner must close/reopen the Telegram Mini App and confirm that session restore shows the active trial/config correctly on a real device.
+
+Next ordered rented-runtime step:
+
+```text
+STAGE1-RENT-14C owner real-device retest confirmation
+then STAGE1-RENT-15: Cohort-2 Trial Invite Execution And Support Watch
+```
+
+## 18. STAGE1-RENT-15 Status - 2026-05-21
+
+`STAGE1-RENT-15` has started.
+
+Completed:
+
+1. Issued 3 controlled beta invite codes to the owner Telegram-linked mobile account.
+2. Set each code to 7 free days.
+3. Set 72-hour expiry: 2026-05-24 11:54:13 UTC.
+4. Wrote audit event `s1_controlled_beta_invites_issued`.
+5. Verified production invite count: `total_invites=3`, `active_invites=3`.
+6. Verified rented production containers remained healthy.
+7. Verified public endpoint probes and VPN-node TCP probes remained green.
+8. Verified home Prometheus firing alerts were `0`.
+
+Still required:
+
+1. Owner selects and sends the codes to 1-3 real cohort-2 users.
+2. First invited user completes Telegram Bot/Mini App entry.
+3. First invited user activates trial or redeems invite code.
+4. Support watches provisioning/config/client-connect.
+5. Evidence is recorded in `STAGE1-RENT-15A`.
+
+Next ordered rented-runtime step:
+
+```text
+STAGE1-RENT-15A: First Invited User Trial/Invite Flow Evidence
+```

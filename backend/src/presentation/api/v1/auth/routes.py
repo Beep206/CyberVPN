@@ -38,12 +38,15 @@ from src.application.use_cases.auth.telegram_web_auth import TelegramWebAuthUseC
 from src.application.use_cases.auth.verify_otp import VerifyOtpUseCase
 from src.application.use_cases.auth_realms import RealmResolution
 from src.config.settings import settings
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.otp_code_repo import OtpCodeRepository
 from src.infrastructure.monitoring.client_context import resolve_web_client_context
 from src.infrastructure.monitoring.instrumentation.partner_runtime import (
@@ -213,6 +216,96 @@ def _build_admin_user_response(
         audience=current_realm.audience if current_realm else None,
         principal_type=principal_type,
         scope_family=scope_family,
+    )
+
+
+def _build_miniapp_mobile_login(*, login: str | None, telegram_id: int) -> str:
+    base = (login or "").strip().lstrip("@") or f"tg{telegram_id}"
+    return base[:50]
+
+
+async def _resolve_miniapp_mobile_login(
+    repo: MobileUserRepository,
+    *,
+    preferred_login: str | None,
+    telegram_id: int,
+) -> str:
+    candidate = _build_miniapp_mobile_login(login=preferred_login, telegram_id=telegram_id)
+    existing = await repo.get_by_username(candidate)
+    if existing is None or existing.telegram_id == telegram_id:
+        return candidate
+
+    fallback = f"tg{telegram_id}"
+    existing = await repo.get_by_username(fallback)
+    if existing is None or existing.telegram_id == telegram_id:
+        return fallback
+
+    return f"tg{telegram_id}_{secrets.token_hex(3)}"[:50]
+
+
+async def _ensure_miniapp_mobile_user(
+    *,
+    db: AsyncSession,
+    auth_service: AuthService,
+    telegram_id: int,
+    preferred_login: str | None,
+) -> MobileUserModel:
+    repo = MobileUserRepository(db)
+    customer_realm = DEFAULT_AUTH_REALMS["customer"]
+    customer_realm_id = stable_auth_realm_id(str(customer_realm["realm_key"]))
+    mobile_user = await repo.get_by_telegram_id(telegram_id)
+
+    if mobile_user is None:
+        password_hash = await auth_service.hash_password(secrets.token_urlsafe(32))
+        mobile_user = MobileUserModel(
+            auth_realm_id=customer_realm_id,
+            email=f"tg{telegram_id}@telegram.local",
+            password_hash=password_hash,
+            username=await _resolve_miniapp_mobile_login(
+                repo,
+                preferred_login=preferred_login,
+                telegram_id=telegram_id,
+            ),
+            telegram_id=telegram_id,
+            telegram_username=preferred_login,
+            is_active=True,
+            status="active",
+        )
+        return await repo.create(mobile_user)
+
+    changed = False
+    if mobile_user.auth_realm_id is None:
+        mobile_user.auth_realm_id = customer_realm_id
+        changed = True
+    normalized_login = _build_miniapp_mobile_login(login=preferred_login, telegram_id=telegram_id)
+    if preferred_login and mobile_user.telegram_username != preferred_login:
+        mobile_user.telegram_username = preferred_login
+        changed = True
+    if mobile_user.username is None:
+        mobile_user.username = normalized_login
+        changed = True
+    if changed:
+        mobile_user = await repo.update(mobile_user)
+    return mobile_user
+
+
+def _build_miniapp_mobile_user_response(mobile_user: MobileUserModel) -> AdminUserResponse:
+    customer_realm = DEFAULT_AUTH_REALMS["customer"]
+    customer_realm_id = mobile_user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))
+    return AdminUserResponse(
+        id=mobile_user.id,
+        login=mobile_user.username or f"tg{mobile_user.telegram_id or mobile_user.id}",
+        email=mobile_user.email,
+        role="viewer",
+        telegram_id=mobile_user.telegram_id,
+        is_active=mobile_user.is_active,
+        is_email_verified=True,
+        created_at=mobile_user.created_at,
+        auth_realm_id=customer_realm_id,
+        auth_realm_key=str(customer_realm["realm_key"]),
+        audience=str(customer_realm["audience"]),
+        principal_type="customer",
+        scope_family="customer",
     )
 
 
@@ -1814,6 +1907,7 @@ async def telegram_miniapp_auth(
         telegram_provider=telegram_provider,
         remnawave_gateway=remnawave_adapter,
         allow_new_users=settings.registration_enabled,
+        bootstrap_usernames=settings.telegram_miniapp_bootstrap_usernames,
     )
 
     try:
@@ -1924,30 +2018,56 @@ async def telegram_miniapp_auth(
             started_at=result.user.created_at,
         )
 
-    if result.access_token and result.refresh_token:
-        refresh_payload = auth_service.decode_token(result.refresh_token)
-        refresh_exp = datetime.fromtimestamp(refresh_payload["exp"], UTC)
-        await store_refresh_token(
-            db,
-            user_id=result.user.id,
-            refresh_token=result.refresh_token,
-            expires_at=refresh_exp,
-            device_id=generate_client_fingerprint(http_request),
-            ip_address=_get_client_ip(http_request),
-            user_agent=http_request.headers.get("User-Agent"),
+    response_access_token = result.access_token
+    response_refresh_token = result.refresh_token
+    response_user = AdminUserResponse.model_validate(result.user)
+
+    if result.access_token and result.refresh_token and result.user.telegram_id is not None:
+        mobile_user = await _ensure_miniapp_mobile_user(
+            db=db,
+            auth_service=auth_service,
+            telegram_id=result.user.telegram_id,
+            preferred_login=result.user.login,
         )
-        set_auth_cookies(response, result.access_token, result.refresh_token)
+        customer_realm = DEFAULT_AUTH_REALMS["customer"]
+        customer_realm_id = mobile_user.auth_realm_id or stable_auth_realm_id(str(customer_realm["realm_key"]))
+        response_access_token, _access_jti, _access_exp = auth_service.create_access_token(
+            subject=str(mobile_user.id),
+            role="mobile_user",
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(customer_realm_id),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
+            extra={"auth_method": "telegram_miniapp"},
+        )
+        response_refresh_token, _refresh_jti, _refresh_exp = auth_service.create_refresh_token(
+            subject=str(mobile_user.id),
+            fingerprint=generate_client_fingerprint(http_request),
+            audience=str(customer_realm["audience"]),
+            principal_type="customer",
+            realm_id=str(customer_realm_id),
+            realm_key=str(customer_realm["realm_key"]),
+            scope_family="customer",
+        )
+        set_auth_cookies(
+            response,
+            response_access_token,
+            response_refresh_token,
+            cookie_namespace=str(customer_realm["cookie_namespace"]),
+        )
+        response_user = _build_miniapp_mobile_user_response(mobile_user)
 
     await sync_active_sessions(db)
     await sync_auth_security_posture(db)
     observe_auth_request_duration("telegram", started_at)
 
     return TelegramMiniAppResponse(
-        access_token=result.access_token,
-        refresh_token=result.refresh_token,
+        access_token=response_access_token,
+        refresh_token=response_refresh_token,
         token_type=result.token_type,
         expires_in=result.expires_in,
-        user=AdminUserResponse.model_validate(result.user),
+        user=response_user,
         is_new_user=result.is_new_user,
         requires_2fa=result.requires_2fa,
         tfa_token=result.tfa_token,

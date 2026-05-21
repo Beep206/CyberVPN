@@ -104,6 +104,7 @@ Before spending money, CyberVPN should:
 3. add Tier B/C only after measured user demand or launch need;
 4. delete unused test nodes immediately after evidence runs;
 5. keep home-lab resources only for non-critical lab/evidence/device testing, never for customer VPN nodes or critical production path.
+6. keep production VPN nodes node-only: no public app/API/admin probe relays, no unrelated exporters and no business/runtime services outside the VPN node stack.
 
 ## What This Closes
 

@@ -7,6 +7,7 @@ export const OAUTH_RESULT_TTL_SECONDS = 5 * 60;
 
 const LOCALE_RE = /^\/([a-z]{2,3}-[A-Z]{2})(?:\/|$)/;
 const AUTH_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?(?:login|register|magic-link|forgot-password|reset-password|verify|oauth\/callback|telegram-link)(?:\/|$)/;
+const MINI_APP_ROUTE_RE = /^\/(?:[a-z]{2,3}-[A-Z]{2}\/)?miniapp(?:\/|$)/;
 const OAUTH_PROVIDERS = new Set<OAuthProvider>([
   'google',
   'github',
@@ -39,8 +40,12 @@ export function isPublicAuthRoute(pathname: string): boolean {
   return AUTH_ROUTE_RE.test(pathname);
 }
 
+export function isMiniAppRoute(pathname: string): boolean {
+  return MINI_APP_ROUTE_RE.test(pathname);
+}
+
 export function shouldBootstrapAuthSession(pathname: string): boolean {
-  return !isPublicAuthRoute(pathname);
+  return !isPublicAuthRoute(pathname) && !isMiniAppRoute(pathname);
 }
 
 /**

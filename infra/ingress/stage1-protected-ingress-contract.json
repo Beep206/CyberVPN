@@ -62,24 +62,25 @@
       "required_controls": ["tls", "redirect_to_primary_site"]
     },
     {
-      "id": "public_site_mirror",
+      "id": "org_reserved_zone",
       "host": "cyber-vpn.org",
-      "target_component": "edge_redirect",
-      "surface": "customer_web_mirror_redirect",
-      "public": true,
+      "target_component": "vpn_node_and_future_subscription_zone",
+      "surface": "reserved_not_customer_web",
+      "public": false,
       "required_controls": [
-        "tls",
-        "redirect_to_primary_site",
-        "no_duplicate_cookie_scope"
+        "no_customer_web_mirror",
+        "no_admin_routes",
+        "vpn_node_records_dns_only",
+        "future_subscription_endpoint_requires_separate_approval"
       ]
     },
     {
-      "id": "public_site_mirror_www",
+      "id": "org_www_reserved",
       "host": "www.cyber-vpn.org",
-      "target_component": "edge_redirect",
-      "surface": "customer_web_mirror_redirect",
-      "public": true,
-      "required_controls": ["tls", "redirect_to_primary_site"]
+      "target_component": "reserved_no_customer_web",
+      "surface": "reserved_not_customer_web",
+      "public": false,
+      "required_controls": ["no_customer_web_mirror", "no_admin_routes"]
     },
     {
       "id": "public_api",
@@ -171,23 +172,22 @@
       ]
     },
     {
-      "id": "admin_mirror",
+      "id": "admin_org_reserved",
       "host": "admin.cyber-vpn.org",
-      "target_component": "edge_redirect",
-      "surface": "admin_redirect",
+      "target_component": "reserved_no_admin",
+      "surface": "reserved_not_admin",
       "public": false,
       "required_controls": [
-        "tls",
-        "redirect_to_admin_primary",
         "no_independent_session_cookie",
-        "no_admin_backend_origin"
+        "no_admin_backend_origin",
+        "no_public_admin_login"
       ]
     }
   ],
   "blocked_public_paths": [
     {
       "id": "block_admin_paths_on_customer_web",
-      "hosts": ["cyber-vpn.net", "www.cyber-vpn.net", "cyber-vpn.org", "www.cyber-vpn.org"],
+      "hosts": ["cyber-vpn.net", "www.cyber-vpn.net"],
       "paths": ["/admin/*", "/api/v1/admin/*", "/operator/*", "/internal/*"],
       "expected_action": "404_or_redirect_to_canonical_public_route"
     },
@@ -267,7 +267,7 @@
     "redacted reverse proxy configuration",
     "origin firewall or security-group proof showing backend/admin container ports are not directly public",
     "admin.cyber-vpn.net Access/IP allowlist/private VPN proof before login page",
-    "admin.cyber-vpn.org redirect proof to admin.cyber-vpn.net",
+    "proof that admin.cyber-vpn.org does not serve S1 admin",
     "public customer domains cannot serve admin paths",
     "api.cyber-vpn.net Swagger/OpenAPI disabled proof",
     "api.cyber-vpn.net CORS/cookie/CSRF proof for approved domains only",

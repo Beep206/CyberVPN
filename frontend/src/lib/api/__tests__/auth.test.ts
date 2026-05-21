@@ -18,7 +18,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { MOCK_USER, MOCK_TOKENS } from '@/test/mocks/handlers';
 import { authApi } from '../auth';
-import { tokenStorage } from '../client';
+import { apiClient, MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, tokenStorage } from '../client';
 import { AxiosError } from 'axios';
 
 // ---------------------------------------------------------------------------
@@ -816,6 +816,32 @@ describe('apiClient 401 interceptor', () => {
     // SEC-01: tokens remain in httpOnly cookies, legacy storage stays empty
     expect(tokenStorage.getAccessToken()).toBeNull();
     expect(tokenStorage.getRefreshToken()).toBeNull();
+  });
+
+  it('test_401_on_miniapp_route_does_not_redirect_to_browser_login', async () => {
+    window.location.href = 'http://localhost:3000/ru-RU/miniapp/home';
+    let restoreEvents = 0;
+    const handleRestoreRequired = () => {
+      restoreEvents += 1;
+    };
+    window.addEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleRestoreRequired);
+
+    server.use(
+      http.get(`${API_BASE}/miniapp/bootstrap`, () => {
+        return HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 });
+      }),
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        return HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 });
+      }),
+    );
+
+    await expect(apiClient.get('/miniapp/bootstrap')).rejects.toThrow(
+      'Request failed with status code 401',
+    );
+
+    expect(window.location.href).toBe('http://localhost:3000/ru-RU/miniapp/home');
+    expect(restoreEvents).toBe(1);
+    window.removeEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleRestoreRequired);
   });
 });
 

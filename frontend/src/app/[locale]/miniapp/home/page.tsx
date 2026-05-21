@@ -28,6 +28,11 @@ function formatBytes(bytes?: number | null) {
   return `${gb.toFixed(2)} GB`;
 }
 
+function translateOrFallback(t: ReturnType<typeof useTranslations>, key: string, fallback: string) {
+  const translated = t(key);
+  return translated === key ? fallback : translated;
+}
+
 /**
  * Mini App Home/Dashboard page
  * Renders from the dedicated bootstrap/read model instead of broad API fan-out.
@@ -83,8 +88,9 @@ export default function MiniAppHomePage() {
         (usageData.bandwidthUsedBytes / usageData.bandwidthLimitBytes) * 100,
       )
     : 0;
-  const usageUnavailableLabel = 'Usage unavailable';
+  const usageUnavailableLabel = translateOrFallback(t, 'usageUnavailable', 'Usage unavailable');
   const isLoading = bootstrapQuery.isLoading;
+  const isSessionRestoring = bootstrapQuery.isError && !bootstrap;
 
   useEffect(() => {
     if (openedTracked.current) return;
@@ -122,13 +128,8 @@ export default function MiniAppHomePage() {
     });
   }, [bootstrapQuery.isError, locale]);
 
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark
-    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
-    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark
-    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
-    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
   const accentColor = 'text-[var(--tg-link-color,var(--color-neon-cyan))]';
 
   return (
@@ -141,6 +142,14 @@ export default function MiniAppHomePage() {
         {isLoading ? (
           <div className="flex items-center justify-center h-24">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-cyan" role="status" />
+          </div>
+        ) : isSessionRestoring ? (
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
+            <div>
+              <h2 className="font-display text-base text-amber-100">{t('sessionRestoringTitle')}</h2>
+              <p className="mt-1 text-xs font-mono text-amber-100/80">{t('sessionRestoringDescription')}</p>
+            </div>
           </div>
         ) : (
           <>
@@ -165,26 +174,26 @@ export default function MiniAppHomePage() {
                 <div className="flex justify-between">
                   <span>{t('plan')}:</span>
                   <span className="text-foreground font-semibold">
-                    {bootstrap.subscription.planName || 'Premium'}
+                    {bootstrap.subscription.planName || translateOrFallback(t, 'defaultPlan', 'Premium')}
                   </span>
                 </div>
                 {bootstrap.subscription.expiresAt && (
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(bootstrap.subscription.expiresAt).toLocaleDateString()}
+                      {new Date(bootstrap.subscription.expiresAt).toLocaleDateString(locale)}
                     </span>
                   </div>
                 )}
                 {bootstrap.serviceState.providerName && (
                   <div className="flex justify-between">
-                    <span>Provider:</span>
+                    <span>{t('provider')}:</span>
                     <span className="text-foreground">{bootstrap.serviceState.providerName}</span>
                   </div>
                 )}
                 {bootstrap.serviceState.channelType && (
                   <div className="flex justify-between">
-                    <span>Channel:</span>
+                    <span>{t('channel')}:</span>
                     <span className="text-foreground">{bootstrap.serviceState.channelType}</span>
                   </div>
                 )}
@@ -201,7 +210,7 @@ export default function MiniAppHomePage() {
                   <div className="flex justify-between">
                     <span>{t('expires')}:</span>
                     <span className="text-foreground">
-                      {new Date(bootstrap.trial.trialEnd).toLocaleDateString()}
+                      {new Date(bootstrap.trial.trialEnd).toLocaleDateString(locale)}
                     </span>
                   </div>
                 )}
@@ -343,21 +352,18 @@ export default function MiniAppHomePage() {
             href="/miniapp/plans"
             icon={CreditCard}
             label={t('viewPlans')}
-            colorScheme={colorScheme}
             onPress={() => haptic('medium')}
           />
           <QuickActionCard
             href="/miniapp/wallet"
             icon={Zap}
             label={t('wallet')}
-            colorScheme={colorScheme}
             onPress={() => haptic('medium')}
           />
           <QuickActionCard
             href="/miniapp/profile"
             icon={Settings}
             label={t('settings')}
-            colorScheme={colorScheme}
             onPress={() => haptic('medium')}
           />
           {(hasActiveSubscription || isOnTrial) && (
@@ -365,7 +371,6 @@ export default function MiniAppHomePage() {
               href="/miniapp/profile#vpn-config"
               icon={Shield}
               label={t('vpnConfig')}
-              colorScheme={colorScheme}
               onPress={() => haptic('medium')}
             />
           )}
@@ -379,22 +384,15 @@ function QuickActionCard({
   href,
   icon: Icon,
   label,
-  colorScheme,
   onPress,
 }: {
   href: string;
   icon: typeof Shield;
   label: string;
-  colorScheme: 'light' | 'dark';
   onPress: () => void;
 }) {
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark
-    ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]'
-    : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark
-    ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]'
-    : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   return (
     <Link

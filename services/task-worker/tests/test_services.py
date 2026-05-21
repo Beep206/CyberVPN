@@ -355,6 +355,29 @@ async def test_cryptobot_client_create_invoice():
 
 
 @pytest.mark.asyncio
+async def test_cryptobot_client_create_invoice_uses_fiat_contract_for_usd():
+    """Test CryptoBotClient uses Crypto Pay fiat contract for USD invoices."""
+    with patch("src.services.cryptobot_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"ok": True, "result": {"invoice_id": "inv-123"}}
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from pydantic import SecretStr
+
+        from src.services.cryptobot_client import CryptoBotClient
+
+        async with CryptoBotClient(token=SecretStr("test-token")) as client:
+            await client.create_invoice(amount=50.0, currency="USD", description="Test payment")
+
+        _, _, kwargs = mock_client.request.mock_calls[0]
+        assert kwargs["json"]["currency_type"] == "fiat"
+        assert kwargs["json"]["fiat"] == "USD"
+        assert "asset" not in kwargs["json"]
+
+
+@pytest.mark.asyncio
 async def test_cryptobot_client_uses_testnet_base_url():
     """Test CryptoBotClient can be pointed at the official testnet endpoint."""
     with patch("src.services.cryptobot_client.httpx.AsyncClient") as mock_client_cls:

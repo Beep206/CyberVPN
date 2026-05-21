@@ -5,6 +5,7 @@ btn-connect = 🚀 Подключиться
 btn-devices = 📱 Мои устройства
 btn-subscription = 💳 Подписка
 btn-invite = 👥 Пригласить
+btn-my-invites = 🎟 Мои инвайты
 btn-support = 🆘 Поддержка
 btn-profile = 👤 Профиль
 btn-language = 🌐 Язык

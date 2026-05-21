@@ -55,18 +55,18 @@ def test_s1_entrypoints_match_approved_domains() -> None:
 
     assert entrypoints["public_site_primary"]["host"] == "cyber-vpn.net"
     assert entrypoints["public_site_www"]["host"] == "www.cyber-vpn.net"
-    assert entrypoints["public_site_mirror"]["host"] == "cyber-vpn.org"
-    assert entrypoints["public_site_mirror_www"]["host"] == "www.cyber-vpn.org"
+    assert entrypoints["org_reserved_zone"]["host"] == "cyber-vpn.org"
+    assert entrypoints["org_www_reserved"]["host"] == "www.cyber-vpn.org"
     assert entrypoints["public_api"]["host"] == "api.cyber-vpn.net"
     assert entrypoints["admin_primary"]["host"] == "admin.cyber-vpn.net"
-    assert entrypoints["admin_mirror"]["host"] == "admin.cyber-vpn.org"
+    assert entrypoints["admin_org_reserved"]["host"] == "admin.cyber-vpn.org"
 
 
 def test_admin_surface_requires_access_gate_2fa_rbac_and_audit() -> None:
     data = _ingress()
     entrypoints = {item["id"]: item for item in data["public_entrypoints"]}
     admin_controls = set(entrypoints["admin_primary"]["required_controls"])
-    mirror_controls = set(entrypoints["admin_mirror"]["required_controls"])
+    admin_org_controls = set(entrypoints["admin_org_reserved"]["required_controls"])
 
     assert entrypoints["admin_primary"]["public"] is False
     assert "cloudflare_access_or_ip_allowlist_or_private_vpn" in admin_controls
@@ -76,9 +76,9 @@ def test_admin_surface_requires_access_gate_2fa_rbac_and_audit() -> None:
     assert "privileged_audit_log" in admin_controls
     assert "no_public_login_before_access_gate" in admin_controls
 
-    assert "redirect_to_admin_primary" in mirror_controls
-    assert "no_independent_session_cookie" in mirror_controls
-    assert "no_admin_backend_origin" in mirror_controls
+    assert "no_public_admin_login" in admin_org_controls
+    assert "no_independent_session_cookie" in admin_org_controls
+    assert "no_admin_backend_origin" in admin_org_controls
 
 
 def test_webhooks_and_oauth_callbacks_have_no_interactive_challenge() -> None:

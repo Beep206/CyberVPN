@@ -69,15 +69,15 @@ def test_production_public_ingress_matches_s1_domains_and_webhook_controls() -> 
     ingress = {item["id"]: item for item in data["production_public_ingress"]}
 
     assert ingress["production_site_primary"]["host"] == "cyber-vpn.net"
-    assert ingress["production_site_mirror"]["host"] == "cyber-vpn.org"
+    assert ingress["production_org_reserved"]["host"] == "cyber-vpn.org"
     assert ingress["production_api"]["host"] == "api.cyber-vpn.net"
     assert ingress["production_admin_primary"]["host"] == "admin.cyber-vpn.net"
-    assert ingress["production_admin_mirror"]["host"] == "admin.cyber-vpn.org"
+    assert ingress["production_admin_org_reserved"]["host"] == "admin.cyber-vpn.org"
 
     assert "no_interactive_edge_challenge" in ingress["production_payment_webhooks"]["required_controls"]
     assert "provider_signature_or_recheck" in ingress["production_payment_webhooks"]["required_controls"]
     assert "no_interactive_edge_challenge" in ingress["production_telegram_webhook"]["required_controls"]
-    assert "redirect_to_admin_primary" in ingress["production_admin_mirror"]["required_controls"]
+    assert "no_public_admin_login" in ingress["production_admin_org_reserved"]["required_controls"]
 
 
 def test_production_deployability_has_preflight_and_kill_switches() -> None:

@@ -58,6 +58,12 @@ REQUIRED_JOBS = (
     "docker:backend:",
     "docker:telegram-bot:",
     "docker:task-worker:",
+    "stage1:deploy:backend:",
+    "stage1:deploy:frontend:",
+    "stage1:deploy:admin:",
+    "stage1:deploy:telegram-bot:",
+    "stage1:deploy:task-worker:",
+    "stage1:deploy:all:",
     "stage1:limited-publication-preflight:",
 )
 
@@ -109,6 +115,10 @@ REQUIRED_STAGE1_PUBLICATION_MARKERS = (
     "STAGE1_FULL_CI",
     "STAGE1_LIMITED_PUBLICATION_PREFLIGHT",
     "STAGE1_REQUIRE_BETA_GO",
+    "STAGE1_AUTO_DEPLOY",
+    "STAGE1_PROD_SSH_PRIVATE_KEY",
+    "scripts/deploy/stage1-gitlab-deploy.sh",
+    "resource_group: stage1-production",
     "docs/evidence/releases/ci-stage1/",
     "https://cyber-vpn.net/en-EN/status",
     "https://api.cyber-vpn.net/healthz",

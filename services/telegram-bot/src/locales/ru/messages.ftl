@@ -245,6 +245,31 @@ referral-withdraw-success = ✅ Запрос на вывод создан.
     Сумма: { $amount }
     Статус: { $status }
 
+my-invites-info = 🎟 <b>Мои инвайты</b>
+
+    Всего: <b>{ $count }</b>
+    Активных: <b>{ $active_count }</b>
+
+    { $items }
+
+my-invites-empty = Инвайт-коды ещё не выданы вашему аккаунту.
+
+my-invites-item = <blockquote>
+    Код: <code>{ $code }</code>
+    Статус: { $status }
+    Бонус: { $days ->
+        [one] { $days } день
+        [few] { $days } дня
+       *[other] { $days } дней
+    }
+    Истекает: { $expires }
+    Выдан: { $created }
+    </blockquote>
+
+my-invites-status-active = активен
+my-invites-status-used = использован
+my-invites-status-expired = истёк
+
 # ── Промокоды ────────────────────────────────────────────────────────────
 promo-enter = 🎟 Введите промокод:
 

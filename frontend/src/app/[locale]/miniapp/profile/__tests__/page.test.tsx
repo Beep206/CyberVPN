@@ -16,12 +16,20 @@ import { server } from '@/test/mocks/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
 
+const mocks = vi.hoisted(() => ({
+  routerPush: vi.fn(),
+  routerReplace: vi.fn(),
+  mockLogout: vi.fn(),
+  mockDeleteAccount: vi.fn(),
+}));
+
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en-EN',
   useTranslations: () => (key: string) => key,
 }));
 
 vi.mock('@/i18n/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mocks.routerPush, replace: mocks.routerReplace }),
 }));
 
 vi.mock('../../components/VpnConfigCard', () => ({
@@ -35,8 +43,12 @@ vi.mock('@/stores/auth-store', () => ({
       login: 'testuser',
       email: 'test@example.com',
     };
-    const mockLogout = vi.fn();
-    return selector ? selector({ user: mockUser, logout: mockLogout }) : { user: mockUser, logout: mockLogout };
+    const state = {
+      user: mockUser,
+      logout: mocks.mockLogout,
+      deleteAccount: mocks.mockDeleteAccount,
+    };
+    return selector ? selector(state) : state;
   },
 }));
 
@@ -55,6 +67,8 @@ describe('MiniAppProfilePage', () => {
   beforeEach(() => {
     setupTelegramWebAppMock();
     vi.clearAllMocks();
+    mocks.mockLogout.mockResolvedValue(undefined);
+    mocks.mockDeleteAccount.mockResolvedValue(undefined);
 
     server.use(
       http.get(`${API_BASE}/referral/code`, () => {
@@ -68,6 +82,18 @@ describe('MiniAppProfilePage', () => {
       }),
       http.get(`${API_BASE}/orders/`, () => {
         return HttpResponse.json([]);
+      }),
+      http.get(`${API_BASE}/invites/my`, () => {
+        return HttpResponse.json([
+          {
+            id: 'invite-1',
+            code: 'OWNER123',
+            free_days: 7,
+            is_used: false,
+            expires_at: '2026-05-24T11:54:13Z',
+            created_at: '2026-05-21T11:54:13Z',
+          },
+        ]);
       }),
       http.get(`${API_BASE}/security/antiphishing`, () => {
         return HttpResponse.json({ code: null });
@@ -111,6 +137,19 @@ describe('MiniAppProfilePage', () => {
     });
   });
 
+  it('test_shows_my_invites_section_with_issued_codes', async () => {
+    render(<ProfilePage />, { wrapper: createWrapper() });
+
+    const invitesSection = await screen.findByRole('button', { name: /myInvites/i });
+    fireEvent.click(invitesSection);
+
+    await waitFor(() => {
+      expect(screen.getByText('OWNER123')).toBeInTheDocument();
+      expect(screen.getByText('inviteDays')).toBeInTheDocument();
+      expect(screen.getByText('inviteStatus.active')).toBeInTheDocument();
+    });
+  });
+
   it('test_shows_logout_button', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
@@ -124,6 +163,25 @@ describe('MiniAppProfilePage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('deleteAccount')).toBeInTheDocument();
+    });
+  });
+
+  it('test_delete_account_uses_telegram_confirm_callback_and_clears_miniapp_session', async () => {
+    const telegramWebApp = setupTelegramWebAppMock({
+      showConfirm: vi.fn((_message: string, callback?: (confirmed: boolean) => void) => {
+        callback?.(true);
+      }),
+    });
+
+    render(<ProfilePage />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole('button', { name: /deleteAccount/i }));
+
+    await waitFor(() => {
+      expect(telegramWebApp.showConfirm).toHaveBeenCalledWith('deleteAccountConfirm', expect.any(Function));
+      expect(mocks.mockDeleteAccount).toHaveBeenCalledTimes(1);
+      expect(telegramWebApp.showAlert).toHaveBeenCalledWith('accountDeleted');
+      expect(mocks.routerReplace).toHaveBeenCalledWith('/miniapp/home');
     });
   });
 });

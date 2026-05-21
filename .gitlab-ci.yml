@@ -680,6 +680,192 @@ docker:task-worker:
   script:
     - docker build --pull -t "cybervpn-task-worker:$CI_COMMIT_SHORT_SHA" services/task-worker
 
+.stage1_deploy_job:
+  stage: deploy
+  image: alpine:3.20
+  resource_group: stage1-production
+  # Required protected variable for production deploy jobs:
+  # STAGE1_PROD_SSH_PRIVATE_KEY
+  environment:
+    name: stage1/limited-public-beta
+    url: https://cyber-vpn.net
+  before_script:
+    - apk add --no-cache bash curl openssh-client rsync
+  script:
+    - bash scripts/deploy/stage1-gitlab-deploy.sh "$STAGE1_DEPLOY_SERVICES"
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - docs/evidence/releases/ci-stage1/
+
+stage1:deploy:backend:
+  extends:
+    - .stage1_deploy_job
+  variables:
+    STAGE1_DEPLOY_SERVICES: backend
+  needs:
+    - job: backend:lint
+      optional: true
+    - job: backend:test:smoke
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - backend/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - backend/**/*
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-/'
+      when: manual
+    - when: never
+
+stage1:deploy:frontend:
+  extends:
+    - .stage1_deploy_job
+  variables:
+    STAGE1_DEPLOY_SERVICES: frontend
+  needs:
+    - job: frontend:lint
+      optional: true
+    - job: frontend:test
+      optional: true
+    - job: frontend:build
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - frontend/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - frontend/**/*
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-/'
+      when: manual
+    - when: never
+
+stage1:deploy:admin:
+  extends:
+    - .stage1_deploy_job
+  variables:
+    STAGE1_DEPLOY_SERVICES: admin
+  needs:
+    - job: admin:lint
+      optional: true
+    - job: admin:test
+      optional: true
+    - job: admin:build
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - admin/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - admin/**/*
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-/'
+      when: manual
+    - when: never
+
+stage1:deploy:telegram-bot:
+  extends:
+    - .stage1_deploy_job
+  variables:
+    STAGE1_DEPLOY_SERVICES: telegram-bot
+  needs:
+    - job: telegram-bot:lint
+      optional: true
+    - job: telegram-bot:test:smoke
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - services/telegram-bot/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - services/telegram-bot/**/*
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-/'
+      when: manual
+    - when: never
+
+stage1:deploy:task-worker:
+  extends:
+    - .stage1_deploy_job
+  variables:
+    STAGE1_DEPLOY_SERVICES: task-worker
+  needs:
+    - job: task-worker:lint
+      optional: true
+    - job: task-worker:test:smoke
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - services/task-worker/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - .gitlab-ci.yml
+        - scripts/deploy/stage1-gitlab-deploy.sh
+        - infra/deploy/stage1/**/*
+        - services/task-worker/**/*
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-/'
+      when: manual
+    - when: never
+
+stage1:deploy:all:
+  extends:
+    - .stage1_deploy_job
+  variables:
+    STAGE1_DEPLOY_SERVICES: all
+  needs:
+    - job: frontend:build
+      optional: true
+    - job: admin:build
+      optional: true
+    - job: backend:test:smoke
+      optional: true
+    - job: telegram-bot:test:smoke
+      optional: true
+    - job: task-worker:test:smoke
+      optional: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+    - if: '$CI_COMMIT_TAG =~ /^stage1-/'
+      when: manual
+    - when: never
+
 stage1:limited-publication-preflight:
   stage: deploy
   image: alpine:3.20

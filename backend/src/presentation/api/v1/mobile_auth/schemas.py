@@ -243,6 +243,15 @@ class UserResponse(BaseModel):
     )
 
 
+class DeleteMobileAccountResponse(BaseModel):
+    """Response schema for authenticated mobile account deletion."""
+
+    message: str = Field(
+        default="Account has been deleted",
+        description="Deletion result message",
+    )
+
+
 class TokenResponse(BaseModel):
     """Response schema for authentication tokens.
 

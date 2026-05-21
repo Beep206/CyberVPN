@@ -16,8 +16,8 @@ The baseline is intentionally provider-specific enough for Cloudflare because th
 
 The baseline requires:
 
-- proxied HTTP edge for `cyber-vpn.net` and redirect-only mirror behavior for `cyber-vpn.org`;
-- admin canonical host `admin.cyber-vpn.net`, with `admin.cyber-vpn.org` redirecting to it;
+- proxied HTTP edge for `cyber-vpn.net`; `.org` is reserved for VPN nodes and future subscription delivery, not customer web;
+- admin canonical host `admin.cyber-vpn.net`; `admin.cyber-vpn.org` must not serve S1 admin;
 - Cloudflare Access, IP allowlist or equivalent protection in front of admin before go-live;
 - managed WAF rules where the selected Cloudflare plan allows them;
 - custom blocking for sensitive/scanner paths like `/.env`, `/.git`, `wp-login.php`, backup/database suffixes and debug paths;
@@ -40,7 +40,7 @@ Those surfaces must be protected by private networking, provider firewall rules,
 1. Configure Cloudflare or equivalent edge outside this repository.
 2. Keep all zone IDs, API tokens and origin IP evidence outside committed files.
 3. Apply the controls from `stage1-cloudflare-waf-baseline.json`.
-4. Capture redacted evidence for DNS/TLS, redirects, admin protection, managed WAF, custom blocks, rate-limit behavior and no-challenge webhook behavior.
+4. Capture redacted evidence for DNS/TLS, `.org` node-only behavior, admin protection, managed WAF, custom blocks, rate-limit behavior and no-challenge webhook behavior.
 5. Attach the evidence to the Stage 1 evidence pack before any `stage1-beta-live.N` tag.
 
 Until that real edge evidence exists, `S1-INFRA-008` is complete only as a local baseline and remains a go-live evidence gap.

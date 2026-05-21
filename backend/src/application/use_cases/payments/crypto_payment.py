@@ -27,7 +27,12 @@ class CreateCryptoInvoiceUseCase:
 
         return InvoiceResponseDTO(
             invoice_id=str(result.get("invoice_id", "")),
-            payment_url=result.get("pay_url", result.get("bot_invoice_url", "")),
+            payment_url=(
+                result.get("mini_app_invoice_url")
+                or result.get("bot_invoice_url")
+                or result.get("web_app_invoice_url")
+                or result.get("pay_url", "")
+            ),
             amount=amount,
             currency=currency,
             status=result.get("status", "pending"),
@@ -45,7 +50,12 @@ class CreateCryptoInvoiceUseCase:
 
         return InvoiceResponseDTO(
             invoice_id=str(result.get("invoice_id", invoice_id)),
-            payment_url=result.get("pay_url", result.get("bot_invoice_url", "")),
+            payment_url=(
+                result.get("mini_app_invoice_url")
+                or result.get("bot_invoice_url")
+                or result.get("web_app_invoice_url")
+                or result.get("pay_url", "")
+            ),
             amount=amount,
             currency=currency,
             status=status,

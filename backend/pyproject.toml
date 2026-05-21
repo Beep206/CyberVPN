@@ -41,6 +41,8 @@ dependencies = [
     "opentelemetry-instrumentation-httpx>=0.41b0",
     "opentelemetry-instrumentation-redis>=0.41b0",
     "opentelemetry-exporter-otlp>=1.20.0",
+    "idna>=3.15",
+    "urllib3>=2.7.0",
 ]
 
 [project.optional-dependencies]

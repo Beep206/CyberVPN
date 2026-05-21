@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import { getDefaultMiniAppPath } from '@/features/auth/lib/redirect-path';
+import { isMiniAppRoute } from '@/features/auth/lib/session';
+import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
 import { Loader2, AlertCircle, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -20,41 +23,122 @@ export function TelegramMiniAppAuthProvider({
     children: React.ReactNode;
 }) {
     const router = useRouter();
+    const pathname = usePathname();
     const locale = useLocale();
     const t = useTranslations('Auth.telegram');
+    const queryClient = useQueryClient();
     const { telegramMiniAppAuth, isAuthenticated, isMiniApp } = useAuthStore();
+    const [runtimeIsMiniApp, setRuntimeIsMiniApp] = useState(false);
+    const [telegramDetectionFinished, setTelegramDetectionFinished] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
     const hasAttempted = useRef(false);
+    const restoreInFlight = useRef(false);
+    const effectiveIsMiniApp = isMiniApp || runtimeIsMiniApp;
+    const isMiniAppRoutePath = isMiniAppRoute(pathname);
+    const shouldGateMiniApp = effectiveIsMiniApp || isMiniAppRoutePath;
 
     useEffect(() => {
-        if (!isMiniApp || isAuthenticated || hasAttempted.current) return;
-        hasAttempted.current = true;
+        let cancelled = false;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let attempts = 0;
+        const maxAttempts = 80;
 
-        const doAuth = async () => {
-            const miniAppHomePath = getDefaultMiniAppPath(locale);
-            try {
-                const result = await telegramMiniAppAuth();
-                if (result.requires_2fa && result.tfa_token) {
-                    await stagePendingTwoFactorSession({
-                        token: result.tfa_token,
-                        locale,
-                        returnTo: miniAppHomePath,
-                        isNewUser: result.is_new_user,
-                    });
-                    router.push(`/login?2fa=true&redirect=${encodeURIComponent(miniAppHomePath)}`);
-                    return;
-                }
-                router.push('/miniapp/home');
-            } catch {
-                setAuthError(t('miniAppAutoAuth'));
+        const detectTelegramWebApp = () => {
+            if (cancelled) return;
+
+            const detected = typeof window !== 'undefined' && Boolean(window.Telegram?.WebApp?.initData);
+            if (detected) {
+                setRuntimeIsMiniApp(true);
+                setTelegramDetectionFinished(true);
+                return;
             }
+
+            attempts += 1;
+            if (attempts < maxAttempts) {
+                timeoutId = setTimeout(detectTelegramWebApp, 250);
+                return;
+            }
+
+            setTelegramDetectionFinished(true);
         };
 
-        doAuth();
-    }, [isMiniApp, isAuthenticated, locale, telegramMiniAppAuth, router, t]);
+        detectTelegramWebApp();
 
-    // Not a Mini App — render children (standard login flow)
-    if (!isMiniApp) {
+        return () => {
+            cancelled = true;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, []);
+
+    const invalidateMiniAppQueries = useCallback(() => {
+        void queryClient.invalidateQueries({
+            predicate: (query) => {
+                const [queryKey] = query.queryKey;
+                return typeof queryKey === 'string' && queryKey.startsWith('miniapp-');
+            },
+        });
+    }, [queryClient]);
+
+    const authenticateMiniApp = useCallback(async () => {
+        const miniAppHomePath = getDefaultMiniAppPath(locale);
+        setAuthError(null);
+        try {
+            const result = await telegramMiniAppAuth();
+            if (result.requires_2fa && result.tfa_token) {
+                await stagePendingTwoFactorSession({
+                    token: result.tfa_token,
+                    locale,
+                    returnTo: miniAppHomePath,
+                    isNewUser: result.is_new_user,
+                });
+                router.push(`/login?2fa=true&redirect=${encodeURIComponent(miniAppHomePath)}`);
+                return;
+            }
+            invalidateMiniAppQueries();
+            router.push('/miniapp/home');
+        } catch {
+            setAuthError(t('miniAppAutoAuth'));
+        }
+    }, [invalidateMiniAppQueries, locale, router, telegramMiniAppAuth, t]);
+
+    useEffect(() => {
+        if (!effectiveIsMiniApp || isAuthenticated || hasAttempted.current) return;
+        hasAttempted.current = true;
+        const timeoutId = window.setTimeout(() => {
+            void authenticateMiniApp();
+        }, 0);
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [effectiveIsMiniApp, isAuthenticated, authenticateMiniApp]);
+
+    useEffect(() => {
+        if (!shouldGateMiniApp) return;
+
+        const handleMiniAppAuthRestoreRequired = () => {
+            if (restoreInFlight.current) return;
+            if (typeof window === 'undefined' || !window.Telegram?.WebApp?.initData) {
+                setAuthError(t('miniAppAutoAuth'));
+                return;
+            }
+
+            restoreInFlight.current = true;
+            hasAttempted.current = true;
+            void authenticateMiniApp().finally(() => {
+                restoreInFlight.current = false;
+            });
+        };
+
+        window.addEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleMiniAppAuthRestoreRequired);
+        return () => {
+            window.removeEventListener(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, handleMiniAppAuthRestoreRequired);
+        };
+    }, [authenticateMiniApp, shouldGateMiniApp, t]);
+
+    // Standard web routes keep the normal auth flow.
+    if (!shouldGateMiniApp) {
         return <>{children}</>;
     }
 
@@ -63,8 +147,12 @@ export function TelegramMiniAppAuthProvider({
         return <>{children}</>;
     }
 
-    // Error state — show error with fallback
-    if (authError) {
+    const routeAuthError = isMiniAppRoutePath && telegramDetectionFinished && !effectiveIsMiniApp
+        ? t('miniAppAutoAuth')
+        : authError;
+
+    // Error state — keep Mini App routes gated to avoid exposing the web guest state.
+    if (routeAuthError) {
         return (
             <motion.div
                 initial={{ opacity: 0 }}
@@ -75,9 +163,9 @@ export function TelegramMiniAppAuthProvider({
                     <AlertCircle className="h-6 w-6 text-red-400" aria-hidden="true" />
                 </div>
                 <p className="text-sm text-muted-foreground font-mono" role="alert">
-                    {authError}
+                    {routeAuthError}
                 </p>
-                {children}
+                {!isMiniAppRoutePath ? children : null}
             </motion.div>
         );
     }

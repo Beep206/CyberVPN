@@ -68,7 +68,7 @@
       "must_be_separate_from_staging": true,
       "public": true,
       "external_required": true,
-      "health_evidence": ["http_200_or_3xx", "frontend_bundle_env_scan", "pricing_devices_help_status_legal_routes_load", "canonical_and_mirror_behavior_recorded"]
+      "health_evidence": ["http_200_or_3xx", "frontend_bundle_env_scan", "pricing_devices_help_status_legal_routes_load", "canonical_net_behavior_recorded", "org_customer_mirror_disabled"]
     },
     {
       "id": "production_admin_web",
@@ -76,7 +76,7 @@
       "must_be_separate_from_staging": true,
       "public": false,
       "external_required": true,
-      "health_evidence": ["admin_origin_reachable_only_through_protection", "admin_2fa_required", "rbac_persona_smoke", "admin_mirror_redirects_to_primary"]
+      "health_evidence": ["admin_origin_reachable_only_through_protection", "admin_2fa_required", "rbac_persona_smoke", "admin_org_not_serving_s1_admin"]
     },
     {
       "id": "production_backend_api",
@@ -187,16 +187,16 @@
       "required_controls": ["tls", "redirect_or_canonical_to_primary"]
     },
     {
-      "id": "production_site_mirror",
+      "id": "production_org_reserved",
       "host": "cyber-vpn.org",
-      "target_component": "production_frontend_web",
-      "required_controls": ["tls", "redirect_or_mirror_policy_recorded", "no_duplicate_cookie_scope"]
+      "target_component": "vpn_node_and_future_subscription_zone",
+      "required_controls": ["no_customer_web_mirror", "vpn_node_records_dns_only", "future_subscription_endpoint_requires_separate_approval"]
     },
     {
-      "id": "production_site_mirror_www",
+      "id": "production_org_www_reserved",
       "host": "www.cyber-vpn.org",
-      "target_component": "production_frontend_web",
-      "required_controls": ["tls", "redirect_or_mirror_policy_recorded"]
+      "target_component": "reserved_no_customer_web",
+      "required_controls": ["no_customer_web_mirror", "no_admin_routes"]
     },
     {
       "id": "production_api",
@@ -211,10 +211,10 @@
       "required_controls": ["tls", "cloudflare_access_or_ip_allowlist_or_equivalent", "admin_2fa", "rbac", "audit_log"]
     },
     {
-      "id": "production_admin_mirror",
+      "id": "production_admin_org_reserved",
       "host": "admin.cyber-vpn.org",
-      "target_component": "production_admin_web",
-      "required_controls": ["tls", "redirect_to_admin_primary", "no_independent_session_cookie"]
+      "target_component": "reserved_no_admin",
+      "required_controls": ["no_public_admin_login", "no_independent_session_cookie", "no_admin_backend_origin"]
     },
     {
       "id": "production_telegram_webhook",

@@ -100,6 +100,34 @@ groups:
           dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
           runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
 
+      - alert: Stage1PublicEndpointProbeFailed
+        expr: probe_success{job=~"stage1-public-web|blackbox-stage1-public-web"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          priority: p0
+          service: public-web
+          stage: s1
+        annotations:
+          summary: "Stage 1 public endpoint probe failed"
+          description: "A required Stage 1 public web/API/admin endpoint failed the blackbox HTTP probe."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1VpnNodeTcpProbeFailed
+        expr: probe_success{job="stage1-vpn-node-tcp"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          priority: p0
+          service: vpn-node
+          stage: s1
+        annotations:
+          summary: "Stage 1 VPN node TCP probe failed"
+          description: "A required Stage 1 VPN node port failed the blackbox TCP probe. Check node firewall, transport runtime and provider reachability."
+          dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
+          runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
       - alert: Stage1PaidButNoAccessReviewNeeded
         expr: |
           sum(cybervpn_stage1_payment_reconciliation_items_current{severity=~"alert_15m|p1_escalation|p0_blocker"}) > 0

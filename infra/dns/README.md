@@ -22,9 +22,11 @@ It does not contain Cloudflare zone IDs, API tokens, origin IP addresses, tunnel
 | `www.cyber-vpn.net` | Redirect to `https://cyber-vpn.net` |
 | `api.cyber-vpn.net` | Backend API, payment webhooks, Telegram webhook and OAuth callbacks |
 | `admin.cyber-vpn.net` | Protected admin canonical host |
-| `cyber-vpn.org` | Mirror/redirect to `https://cyber-vpn.net` |
-| `www.cyber-vpn.org` | Mirror/redirect to `https://cyber-vpn.net` |
-| `admin.cyber-vpn.org` | Redirect to `https://admin.cyber-vpn.net`; no independent admin session |
+| `cyber-vpn.org` | Reserved for VPN nodes and future subscription delivery; no customer web mirror |
+| `www.cyber-vpn.org` | Not used for S1 customer web |
+| `admin.cyber-vpn.org` | Not used for S1 admin; no independent admin session |
+| `de-1.cyber-vpn.org` | Production VPN node hostname, DNS-only |
+| `de-1.node.cyber-vpn.org` | Production VPN node alias, DNS-only |
 
 For S1, status is a route on the primary domain: `https://cyber-vpn.net/status`. A separate `status.cyber-vpn.net` hostname is not required for S1 and should be treated as a later optional change.
 
@@ -35,8 +37,8 @@ Before `stage1-beta-live.N`, attach redacted live evidence for:
 - DNS resolution for every required host;
 - valid TLS certificate coverage for every required host;
 - HTTP to HTTPS redirect behavior;
-- `.org` public mirror redirects;
-- admin mirror redirect to primary admin;
+- proof that `.org` customer/admin mirror routes are not enabled;
+- VPN node DNS records in the `.org` zone;
 - public `/status` route;
 - admin access protection before login;
 - payment/Telegram webhook and OAuth callback paths without interactive browser challenges.

@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { authApi, commerceApi, partnerApi, referralApi, securityApi, twofaApi } from '@/lib/api';
+import { commerceApi, invitesApi, partnerApi, referralApi, securityApi, twofaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { motion } from 'motion/react';
 import {
@@ -25,12 +25,87 @@ import {
   Key,
   AlertTriangle,
   Loader2,
-  Smartphone
+  Smartphone,
+  Ticket
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from '../components/MiniAppBottomSheet';
 import { VpnConfigCard } from '../components/VpnConfigCard';
 import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
+
+const TECHNICAL_TELEGRAM_EMAIL_SUFFIX = '@telegram.local';
+
+type InviteCode = {
+  id: string;
+  code: string;
+  free_days: number;
+  is_used: boolean;
+  expires_at: string | null;
+  created_at: string;
+};
+
+type TelegramConfirmWebApp = {
+  showConfirm?: (
+    message: string,
+    callback?: (confirmed: boolean) => void,
+  ) => void | boolean | Promise<boolean>;
+};
+
+function requestTelegramConfirm(
+  webApp: TelegramConfirmWebApp | null | undefined,
+  message: string,
+): Promise<boolean> {
+  const showConfirm = webApp?.showConfirm;
+  if (!showConfirm) {
+    return Promise.resolve(
+      typeof window !== 'undefined' ? window.confirm(message) : false,
+    );
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const settle = (value: unknown) => {
+      if (settled) return;
+      settled = true;
+      resolve(Boolean(value));
+    };
+
+    try {
+      const result = showConfirm(message, settle);
+      if (typeof result === 'boolean') {
+        settle(result);
+      } else if (result && typeof (result as Promise<boolean>).then === 'function') {
+        (result as Promise<boolean>).then(settle).catch(() => settle(false));
+      }
+    } catch {
+      settle(false);
+    }
+  });
+}
+
+function getDisplayEmail(email?: string | null) {
+  if (!email || email.endsWith(TECHNICAL_TELEGRAM_EMAIL_SUFFIX)) {
+    return null;
+  }
+
+  return email;
+}
+
+function isInviteExpired(expiresAt?: string | null): boolean {
+  return Boolean(expiresAt && new Date(expiresAt).getTime() <= Date.now());
+}
+
+function formatInviteDate(locale: string, value?: string | null): string {
+  if (!value) {
+    return 'N/A';
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
+}
 
 /**
  * Mini App Profile page
@@ -38,15 +113,18 @@ import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
  */
 export default function MiniAppProfilePage() {
   const t = useTranslations('MiniApp.profile');
+  const locale = useLocale();
   const { haptic, colorScheme, webApp } = useTelegramWebApp();
   const router = useRouter();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
   const [antiphishingSheetOpen, setAntiphishingSheetOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Password change form state
   const [passwordForm, setPasswordForm] = useState({
@@ -95,6 +173,19 @@ export default function MiniAppProfilePage() {
       const { data } = await commerceApi.listOrders({ limit: 3, offset: 0 });
       return data;
     },
+  });
+
+  const {
+    data: inviteCodes,
+    isLoading: invitesLoading,
+    isError: invitesError,
+  } = useQuery({
+    queryKey: ['miniapp-profile-invites'],
+    queryFn: async () => {
+      const { data } = await invitesApi.getMyInvites();
+      return data as InviteCode[];
+    },
+    staleTime: 2 * 60 * 1000,
   });
 
   // Fetch antiphishing code
@@ -180,25 +271,31 @@ export default function MiniAppProfilePage() {
 
   const handleLogout = async () => {
     haptic('heavy');
-    const confirmed = await webApp?.showConfirm(t('logoutConfirm'));
+    const confirmed = await requestTelegramConfirm(webApp, t('logoutConfirm'));
     if (confirmed) {
       await logout();
-      router.push('/');
+      queryClient.clear();
+      router.replace('/miniapp/home');
     }
   };
 
   const handleDeleteAccount = async () => {
+    if (isDeletingAccount) return;
     haptic('heavy');
-    const confirmed = await webApp?.showConfirm(t('deleteAccountConfirm'));
-    if (confirmed) {
-      try {
-        await authApi.deleteAccount();
-        webApp?.showAlert(t('accountDeleted'));
-        router.push('/');
-      } catch (error: unknown) {
-        const axiosError = error as { response?: { data?: { detail?: string } } };
-        webApp?.showAlert(axiosError.response?.data?.detail || t('deleteAccountError'));
-      }
+    const confirmed = await requestTelegramConfirm(webApp, t('deleteAccountConfirm'));
+    if (!confirmed) return;
+
+    setIsDeletingAccount(true);
+    try {
+      await deleteAccount();
+      queryClient.clear();
+      webApp?.showAlert(t('accountDeleted'));
+      router.replace('/miniapp/home');
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      webApp?.showAlert(axiosError.response?.data?.detail || t('deleteAccountError'));
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -275,7 +372,7 @@ export default function MiniAppProfilePage() {
 
   const handleAntiphishingDelete = async () => {
     haptic('heavy');
-    const confirmed = await webApp?.showConfirm(t('antiphishing.deleteConfirm'));
+    const confirmed = await requestTelegramConfirm(webApp, t('antiphishing.deleteConfirm'));
     if (confirmed) {
       deleteAntiphishingMutation.mutate();
     }
@@ -309,10 +406,9 @@ export default function MiniAppProfilePage() {
     bindPartnerMutation.mutate(partnerCode);
   };
 
-  // Theme colors
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const displayEmail = getDisplayEmail(user?.email);
 
   return (
     <div className="max-w-screen-sm mx-auto space-y-4">
@@ -329,7 +425,7 @@ export default function MiniAppProfilePage() {
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-display">{user?.login || t('guest')}</h2>
-            <p className="text-sm text-muted-foreground font-mono">{user?.email || t('noEmail')}</p>
+            <p className="text-sm text-muted-foreground font-mono">{displayEmail || t('noEmail')}</p>
           </div>
         </div>
       </motion.div>
@@ -337,13 +433,83 @@ export default function MiniAppProfilePage() {
       {/* VPN Config Card */}
       <VpnConfigCard colorScheme={colorScheme} page="profile" />
 
+      <CollapsibleSection
+        title={t('myInvites')}
+        icon={Ticket}
+        isExpanded={expandedSections['invites']}
+        onToggle={() => toggleSection('invites')}
+      >
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground font-mono">
+            {t('myInvitesSubtitle')}
+          </p>
+
+          {invitesLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-neon-cyan" />
+            </div>
+          ) : invitesError ? (
+            <p className="text-sm text-amber-300 font-mono text-center py-4">
+              {t('myInvitesError')}
+            </p>
+          ) : !inviteCodes || inviteCodes.length === 0 ? (
+            <p className="text-sm text-muted-foreground font-mono text-center py-4">
+              {t('noInvites')}
+            </p>
+          ) : (
+            inviteCodes.map((invite) => {
+              const expired = isInviteExpired(invite.expires_at);
+              const status = invite.is_used ? 'used' : expired ? 'expired' : 'active';
+
+              return (
+                <div key={invite.id} className="rounded-lg border border-border/60 bg-muted/40 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <code className="break-all font-mono text-sm text-neon-cyan">
+                          {invite.code}
+                        </code>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] ${
+                            status === 'active'
+                              ? 'bg-matrix-green/15 text-matrix-green'
+                              : status === 'used'
+                                ? 'bg-neon-purple/15 text-neon-purple'
+                                : 'bg-amber-400/15 text-amber-300'
+                          }`}
+                        >
+                          {t(`inviteStatus.${status}`)}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-1 text-xs text-muted-foreground font-mono">
+                        <div>{t('inviteDays', { days: invite.free_days })}</div>
+                        <div>{t('inviteExpires', { date: formatInviteDate(locale, invite.expires_at) })}</div>
+                        <div>{t('inviteCreated', { date: formatInviteDate(locale, invite.created_at) })}</div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(invite.code, t('inviteCopied'))}
+                      className="shrink-0 rounded-lg bg-neon-cyan/10 p-2 text-neon-cyan transition-colors hover:bg-neon-cyan/20 touch-manipulation"
+                      aria-label={t('copyInvite')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </CollapsibleSection>
+
       {STAGE1_REFERRAL_UI_ENABLED ? (
         <CollapsibleSection
           title={t('referral')}
           icon={Gift}
           isExpanded={expandedSections['referral']}
           onToggle={() => toggleSection('referral')}
-          colorScheme={colorScheme}
         >
           <div className="space-y-4">
             {referralCode && (
@@ -397,7 +563,6 @@ export default function MiniAppProfilePage() {
         icon={Shield}
         isExpanded={expandedSections['security']}
         onToggle={() => toggleSection('security')}
-        colorScheme={colorScheme}
       >
         <div className="space-y-3">
           {/* 2FA Status */}
@@ -459,7 +624,7 @@ export default function MiniAppProfilePage() {
           >
             <div className="flex items-center gap-2">
               <Smartphone className="h-4 w-4 text-neon-cyan" />
-              <span className="font-mono text-sm">{t('activeDevices') || 'Active Devices'}</span>
+              <span className="font-mono text-sm">{t('activeDevices')}</span>
             </div>
           </button>
 
@@ -475,7 +640,6 @@ export default function MiniAppProfilePage() {
         icon={Receipt}
         isExpanded={expandedSections['payments']}
         onToggle={() => toggleSection('payments')}
-        colorScheme={colorScheme}
       >
         <div className="space-y-2">
           {orderHistoryPreview && orderHistoryPreview.length > 0 ? (
@@ -492,7 +656,7 @@ export default function MiniAppProfilePage() {
                 <div key={order.id || index} className="p-3 bg-muted rounded-lg">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-sm font-mono">
-                      {(order.items?.[0]?.display_name || order.id || 'Order').toString()}
+                      {(order.items?.[0]?.display_name || order.id || t('orderFallback')).toString()}
                     </span>
                     <span className={`text-xs font-mono ${(order.settlement_status || order.order_status) === 'paid' ? 'text-neon-cyan' : 'text-yellow-400'}`}>
                       {order.settlement_status || order.order_status}
@@ -532,7 +696,6 @@ export default function MiniAppProfilePage() {
         icon={Settings}
         isExpanded={expandedSections['settings']}
         onToggle={() => toggleSection('settings')}
-        colorScheme={colorScheme}
       >
         <div className="space-y-3">
           <div className="p-3 bg-muted rounded-lg">
@@ -552,7 +715,6 @@ export default function MiniAppProfilePage() {
         icon={Briefcase}
         isExpanded={expandedSections['partner']}
         onToggle={() => toggleSection('partner')}
-        colorScheme={colorScheme}
       >
         {partnerData?.is_partner ? (
           /* Partner Dashboard */
@@ -677,10 +839,15 @@ export default function MiniAppProfilePage() {
         </button>
         <button
           onClick={handleDeleteAccount}
+          disabled={isDeletingAccount}
           className="w-full py-3 px-4 bg-destructive/10 border border-destructive/30 text-destructive rounded-lg font-mono flex items-center justify-center gap-2 hover:bg-destructive/20 transition-colors touch-manipulation"
         >
-          <Trash2 className="h-4 w-4" />
-          {t('deleteAccount')}
+          {isDeletingAccount ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+          {isDeletingAccount ? t('deletingAccount') : t('deleteAccount')}
         </button>
       </motion.div>
 
@@ -834,19 +1001,16 @@ function CollapsibleSection({
   icon: Icon,
   isExpanded,
   onToggle,
-  colorScheme,
   children,
 }: {
   title: string;
   icon: typeof Gift;
   isExpanded: boolean;
   onToggle: () => void;
-  colorScheme: 'light' | 'dark';
   children: React.ReactNode;
 }) {
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   return (
     <motion.div

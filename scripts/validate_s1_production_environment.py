@@ -52,11 +52,11 @@ REQUIRED_SEPARATION = {
 REQUIRED_INGRESS = {
     "production_site_primary",
     "production_site_primary_www",
-    "production_site_mirror",
-    "production_site_mirror_www",
+    "production_org_reserved",
+    "production_org_www_reserved",
     "production_api",
     "production_admin_primary",
-    "production_admin_mirror",
+    "production_admin_org_reserved",
     "production_telegram_webhook",
     "production_payment_webhooks",
     "production_oauth_callbacks",
@@ -259,11 +259,11 @@ def validate_production(data: dict[str, Any]) -> list[str]:
     expected_hosts = {
         "production_site_primary": "cyber-vpn.net",
         "production_site_primary_www": "www.cyber-vpn.net",
-        "production_site_mirror": "cyber-vpn.org",
-        "production_site_mirror_www": "www.cyber-vpn.org",
+        "production_org_reserved": "cyber-vpn.org",
+        "production_org_www_reserved": "www.cyber-vpn.org",
         "production_api": "api.cyber-vpn.net",
         "production_admin_primary": "admin.cyber-vpn.net",
-        "production_admin_mirror": "admin.cyber-vpn.org",
+        "production_admin_org_reserved": "admin.cyber-vpn.org",
     }
     for ingress_id, expected_host in expected_hosts.items():
         ingress_item = _by_id(ingress, ingress_id)
@@ -274,7 +274,7 @@ def validate_production(data: dict[str, Any]) -> list[str]:
     _require_controls(errors, _by_id(ingress, "production_payment_webhooks"), {"provider_signature_or_recheck"})
     _require_controls(errors, _by_id(ingress, "production_telegram_webhook"), {"no_interactive_edge_challenge"})
     _require_controls(errors, _by_id(ingress, "production_admin_primary"), {"admin_2fa", "rbac", "audit_log"})
-    _require_controls(errors, _by_id(ingress, "production_admin_mirror"), {"redirect_to_admin_primary"})
+    _require_controls(errors, _by_id(ingress, "production_admin_org_reserved"), {"no_public_admin_login"})
 
     preflight = set(data.get("deployability_preflight", []))
     if not REQUIRED_PREFLIGHT.issubset(preflight):

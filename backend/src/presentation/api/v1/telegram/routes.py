@@ -32,6 +32,7 @@ from src.application.use_cases.subscriptions import GenerateConfigUseCase
 from src.application.use_cases.subscriptions.get_current_entitlements import GetCurrentEntitlementsUseCase
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
 from src.application.use_cases.trial.stage1_trial_policy import STAGE1_TRIAL_DURATION_DAYS
+from src.application.use_cases.trial.stage1_trial_provisioning import Stage1TrialProvisioningGateway
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
@@ -42,6 +43,7 @@ from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.customer_staff_note_repo import CustomerStaffNoteRepository
+from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
@@ -51,6 +53,7 @@ from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveCreatedSubscriptionResponse
+from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.shared.stage1_payment_runtime import (
     require_stage1_payments_enabled,
@@ -85,6 +88,7 @@ from src.presentation.api.v1.telegram.schemas import (
     TelegramBotCheckoutRequest,
     TelegramBotCurrentServiceStateResponse,
     TelegramBotEntitlementsResponse,
+    TelegramBotInviteCodeResponse,
     TelegramBotOrderResponse,
     TelegramBotPaymentStatusResponse,
     TelegramBotPlanResponse,
@@ -119,6 +123,14 @@ _SUPPORT_TELEGRAM_TOKEN_PATTERN = re.compile(r"\b\d{6,12}:[A-Za-z0-9_-]{20,}\b")
 _SUPPORT_LONG_SECRET_PATTERN = re.compile(r"\b[A-Za-z0-9_-]{40,}\b")
 
 
+async def _get_stage1_trial_provisioning_gateway(
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+) -> Stage1TrialProvisioningGateway | None:
+    if not settings.stage1_trial_provisioning_enabled:
+        return None
+    return RemnawaveStage1TrialProvisioningGateway(RemnawaveUserGateway(client=remnawave_client))
+
+
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
     configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
     if not configured or not secret:
@@ -130,6 +142,28 @@ def _require_telegram_bot_secret(secret: str | None) -> None:
     if _is_valid_telegram_bot_secret(secret):
         return
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def _normalize_telegram_username(username: str | None) -> str:
+    return (username or "").strip().lstrip("@").casefold()
+
+
+def _telegram_username_allowlist(value: str | None) -> frozenset[str]:
+    if not value:
+        return frozenset()
+
+    return frozenset(
+        normalized
+        for item in value.replace(";", ",").split(",")
+        if (normalized := _normalize_telegram_username(item))
+    )
+
+
+def _is_telegram_bot_bootstrap_username_allowed(username: str | None) -> bool:
+    allowlist = _telegram_username_allowlist(settings.telegram_bot_bootstrap_usernames)
+    if not allowlist:
+        return False
+    return _normalize_telegram_username(username) in allowlist
 
 
 def _build_telegram_stars_invoice_payload(*, payment_id: UUID, telegram_id: int) -> str:
@@ -811,18 +845,29 @@ async def create_or_bootstrap_bot_user(
         route_operations_total.labels(route="telegram_bot", action="upsert_user", status="success").inc()
         return _build_bot_user_response(existing, entitlements_snapshot=entitlements_snapshot)
 
-    try:
-        ensure_public_registration_enabled(
-            channel="telegram_bot",
-            registration_enabled=settings.registration_enabled,
+    bootstrap_allowed = _is_telegram_bot_bootstrap_username_allowed(request.username)
+    if not bootstrap_allowed:
+        try:
+            ensure_public_registration_enabled(
+                channel="telegram_bot",
+                registration_enabled=settings.registration_enabled,
+            )
+        except ValueError as exc:
+            route_operations_total.labels(route="telegram_bot", action="create_user", status="blocked").inc()
+            detail = exc.public_detail() if hasattr(exc, "public_detail") else {"message": str(exc)}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=detail,
+            ) from exc
+    elif not settings.registration_enabled:
+        logger.warning(
+            "telegram_bot_bootstrap_allowlist_used_while_registration_paused",
+            extra={
+                "bootstrap_usernames_count": len(
+                    _telegram_username_allowlist(settings.telegram_bot_bootstrap_usernames)
+                )
+            },
         )
-    except ValueError as exc:
-        route_operations_total.labels(route="telegram_bot", action="create_user", status="blocked").inc()
-        detail = exc.public_detail() if hasattr(exc, "public_detail") else {"message": str(exc)}
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=detail,
-        ) from exc
 
     login = OAuthLoginUseCase._generate_telegram_login(
         username=request.username,
@@ -1440,6 +1485,7 @@ async def activate_bot_user_trial(
     telegram_id: int,
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
+    provisioning_gateway: Stage1TrialProvisioningGateway | None = Depends(_get_stage1_trial_provisioning_gateway),
 ) -> TelegramBotTrialStatusResponse:
     """Activate trial for a Telegram bot user."""
     _require_telegram_bot_secret(telegram_bot_secret)
@@ -1449,7 +1495,7 @@ async def activate_bot_user_trial(
     if not current_status.eligible:
         return current_status
 
-    use_case = ActivateTrialUseCase(db)
+    use_case = ActivateTrialUseCase(db, provisioning_gateway=provisioning_gateway)
     await use_case.execute(user.id)
     refreshed_user = await _get_mobile_user_or_404(db, telegram_id)
 
@@ -1483,18 +1529,61 @@ async def get_bot_user_referral_stats(
     )
 
 
+@router.get("/bot/user/{telegram_id}/invite-codes", response_model=list[TelegramBotInviteCodeResponse])
+async def get_bot_user_invite_codes(
+    telegram_id: int,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
+) -> list[TelegramBotInviteCodeResponse]:
+    """Return Telegram bot-facing invite codes owned by the user."""
+    _require_telegram_bot_secret(telegram_bot_secret)
+
+    user = await _get_mobile_user_or_404(db, telegram_id)
+    invites = await InviteCodeRepository(db).get_by_owner(
+        owner_user_id=user.id,
+        offset=offset,
+        limit=limit,
+    )
+
+    route_operations_total.labels(route="telegram_bot", action="invite_codes", status="success").inc()
+    return [TelegramBotInviteCodeResponse.model_validate(invite) for invite in invites]
+
+
 @router.get("/bot/user/{telegram_id}/config", response_model=ConfigResponse)
 async def get_bot_user_config(
     telegram_id: int,
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> ConfigResponse:
     """Return Telegram bot-facing VPN config using the FastAPI backend as gateway."""
     _require_telegram_bot_secret(telegram_bot_secret)
 
+    mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
+    if mobile_user and mobile_user.remnawave_uuid:
+        try:
+            result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
+        except HTTPException as exc:
+            if exc.status_code != status.HTTP_404_NOT_FOUND:
+                raise
+        else:
+            route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
+            return ConfigResponse(
+                config_string=str(result.get("config_string", "")),
+                client_type=str(result.get("client_type", "subscription")),
+            )
+
     gateway = RemnawaveUserGateway(client=remnawave_client)
     user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
     if not user:
+        if mobile_user and mobile_user.subscription_url:
+            route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
+            return ConfigResponse(
+                config_string=str(mobile_user.subscription_url),
+                client_type="subscription",
+            )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with telegram_id {telegram_id} not found",

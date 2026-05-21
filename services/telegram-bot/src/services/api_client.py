@@ -888,6 +888,11 @@ class CyberVPNAPIClient:
         """
         return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/referral-stats")
 
+    async def get_invite_codes(self, telegram_id: int) -> list[dict[str, Any]]:
+        """Get invite codes issued to a Telegram user."""
+        invites = await self._request_auth_backend_list("GET", f"/telegram/bot/user/{telegram_id}/invite-codes")
+        return [invite for invite in invites if isinstance(invite, dict)]
+
     async def withdraw_referral_points(
         self,
         telegram_id: int,

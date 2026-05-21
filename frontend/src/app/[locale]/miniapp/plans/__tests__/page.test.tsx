@@ -379,20 +379,27 @@ describe('MiniAppPlansPage', () => {
 
   it('test_redeems_invite_code_through_invites_endpoint', async () => {
     const user = userEvent.setup();
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
 
-    render(<PlansPage />, { wrapper: createWrapper() });
+    try {
+      render(<PlansPage />, { wrapper: createWrapper() });
 
-    await screen.findByText('Have invite code');
-    await user.type(screen.getByPlaceholderText('Invite code'), 'friend14');
-    await user.click(screen.getByRole('button', { name: 'Redeem' }));
+      await screen.findByText('Have invite code');
+      await user.type(screen.getByPlaceholderText('Invite code'), 'friend14');
+      await user.click(screen.getByRole('button', { name: 'Redeem' }));
 
-    await waitFor(() => {
-      expect(requests).toContainEqual(
-        expect.objectContaining({
-          body: { code: 'FRIEND14' },
-        }),
-      );
-      expect(telegramMock.showAlert).toHaveBeenCalledWith('Invite redeemed 14 free days');
-    });
+      await waitFor(() => {
+        expect(requests).toContainEqual(
+          expect.objectContaining({
+            body: { code: 'FRIEND14' },
+          }),
+        );
+        expect(telegramMock.showAlert).toHaveBeenCalledWith('Invite redeemed 14 free days');
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-bootstrap'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-config'] });
+    } finally {
+      invalidateSpy.mockRestore();
+    }
   });
 });

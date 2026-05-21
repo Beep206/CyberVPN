@@ -138,7 +138,8 @@ async def test_stage1_manual_subscription_gateway_creates_new_remnawave_user() -
 
     assert result.created is True
     assert result.remnawave_uuid == str(remnawave_uuid)
-    assert fake_gateway.created[0][0] == f"cvpn_manual_{customer_id.hex}"
+    assert fake_gateway.created[0][0] == f"cvpn_m_{customer_id.hex[:28]}"
+    assert len(fake_gateway.created[0][0]) <= 36
     payload = fake_gateway.created[0][1]
     assert payload["email"] == "beta@example.test"
     assert payload["expire_at"] == now + timedelta(days=14)
@@ -270,7 +271,7 @@ def _build_user(
 ) -> User:
     return User(
         uuid=uuid,
-        username=f"cvpn_manual_{uuid.hex}",
+        username=f"cvpn_m_{uuid.hex[:28]}",
         status=UserStatus.ACTIVE,
         short_uuid=short_uuid,
         created_at=datetime(2026, 5, 4, 9, 0, tzinfo=UTC),

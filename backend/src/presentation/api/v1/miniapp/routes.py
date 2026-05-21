@@ -35,6 +35,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX,
     STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS,
 )
+from src.application.use_cases.trial.stage1_trial_provisioning import Stage1TrialProvisioningGateway
 from src.config.settings import settings
 from src.domain.entities.user import User
 from src.domain.enums import CatalogVisibility
@@ -57,6 +58,7 @@ from src.infrastructure.monitoring.instrumentation.routes import (
 )
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
+from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.shared.stage1_payment_runtime import (
     require_stage1_payments_enabled,
@@ -351,6 +353,28 @@ async def _get_remnawave_user(
     return await gateway.get_by_telegram_id(telegram_id)
 
 
+async def _get_remnawave_user_for_mobile_user(
+    *,
+    client: RemnawaveClient,
+    mobile_user,
+) -> User | None:
+    gateway = RemnawaveUserGateway(client)
+    if getattr(mobile_user, "remnawave_uuid", None):
+        return await gateway.get_by_uuid(UUID(str(mobile_user.remnawave_uuid)))
+    telegram_id = getattr(mobile_user, "telegram_id", None)
+    if telegram_id is None:
+        return None
+    return await gateway.get_by_telegram_id(int(telegram_id))
+
+
+async def _get_stage1_trial_provisioning_gateway(
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+) -> Stage1TrialProvisioningGateway | None:
+    if not settings.stage1_trial_provisioning_enabled:
+        return None
+    return RemnawaveStage1TrialProvisioningGateway(RemnawaveUserGateway(remnawave_client))
+
+
 def _serialize_plan(plan) -> PlanResponse:
     return PlanResponse(
         uuid=str(plan.id),
@@ -545,9 +569,9 @@ async def get_miniapp_bootstrap(
             "upstream_unavailable",
         ] = "upstream_user_not_found"
         try:
-            remnawave_user = await _get_remnawave_user(
+            remnawave_user = await _get_remnawave_user_for_mobile_user(
                 client=remnawave_client,
-                telegram_id=mobile_user.telegram_id,
+                mobile_user=mobile_user,
             )
         except Exception as exc:
             usage_unavailable_reason = "upstream_unavailable"
@@ -746,6 +770,7 @@ async def activate_miniapp_trial(
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     redis_client: redis.Redis = Depends(get_redis),
+    provisioning_gateway: Stage1TrialProvisioningGateway | None = Depends(_get_stage1_trial_provisioning_gateway),
 ) -> MiniAppTrialActivateResponse:
     started = perf_counter()
     error: Exception | None = None
@@ -772,7 +797,7 @@ async def activate_miniapp_trial(
             raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Try again in {ttl} seconds.")
 
         try:
-            result = await ActivateTrialUseCase(db).execute(user_id)
+            result = await ActivateTrialUseCase(db, provisioning_gateway=provisioning_gateway).execute(user_id)
         except ValueError as exc:
             if "already activated" in str(exc):
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1073,6 +1098,27 @@ async def get_miniapp_config(
         mobile_user = await MobileUserRepository(db).get_by_id(user_id)
         if mobile_user is None:
             raise HTTPException(status_code=404, detail="Mobile user not found")
+
+        if mobile_user.remnawave_uuid:
+            try:
+                result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
+            except HTTPException as exc:
+                if exc.status_code != status.HTTP_404_NOT_FOUND:
+                    raise
+            else:
+                config_source = "remnawave_generated"
+                track_miniapp_config_delivery(source=config_source, status="success")
+                return MiniAppConfigResponse(
+                    config=str(result.get("config", "")),
+                    configString=str(result.get("config_string", "")),
+                    clientType=str(result.get("client_type", "subscription")),
+                    isFound=bool(result.get("is_found", True)),
+                    links=list(result.get("links", [])),
+                    ssConfLinks=dict(result.get("ss_conf_links", {})),
+                    source="remnawave_generated",
+                    subscriptionUrl=result.get("subscription_url"),
+                    generatedAt=datetime.now(UTC),
+                )
 
         remnawave_user = await _get_remnawave_user(
             client=remnawave_client,

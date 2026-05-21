@@ -9,6 +9,7 @@ import {
   type User,
 } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
+import { getApiErrorMessage } from '@/lib/api/error-message';
 import { authAnalytics } from '@/lib/analytics';
 import {
   clearTelegramMagicLinkSession,
@@ -311,8 +312,7 @@ export const useAuthStore = create<AuthState>()(
           }
         }
 
-        const axiosError = lastError as { response?: { data?: { detail?: string } } };
-        const message = axiosError?.response?.data?.detail || 'Telegram Mini App auth failed';
+        const message = getApiErrorMessage(lastError, 'Telegram Mini App auth failed');
         authAnalytics.telegramError(message);
         set({ error: message, isLoading: false });
         throw lastError;
@@ -485,7 +485,11 @@ export const useAuthStore = create<AuthState>()(
       deleteAccount: async () => {
         set({ isLoading: true, error: null });
         try {
-          await authApi.deleteAccount();
+          const state = get();
+          const isTelegramMiniApp =
+            state.isMiniApp ||
+            (typeof window !== 'undefined' && Boolean(window.Telegram?.WebApp?.initData));
+          await (isTelegramMiniApp ? authApi.deleteMobileAccount() : authApi.deleteAccount());
           // SEC-01: backend clears cookies; clean up legacy localStorage
           tokenStorage.clearTokens();
           set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
@@ -127,3 +128,51 @@ async def test_telegram_bot_addons_catalog_is_empty_when_stage1_addons_disabled(
     )
 
     assert response == []
+
+
+@pytest.mark.asyncio
+async def test_telegram_bot_invite_codes_returns_owned_invites(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    owner_id = uuid4()
+    invite_id = uuid4()
+    created_at = datetime(2026, 5, 21, 11, 54, tzinfo=UTC)
+    expires_at = datetime(2026, 5, 24, 11, 54, tzinfo=UTC)
+
+    class FakeInviteRepo:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_owner(self, **kwargs):
+            assert kwargs == {"owner_user_id": owner_id, "offset": 0, "limit": 50}
+            return [
+                SimpleNamespace(
+                    id=invite_id,
+                    code="OWNER123",
+                    free_days=7,
+                    is_used=False,
+                    expires_at=expires_at,
+                    created_at=created_at,
+                )
+            ]
+
+    async def fake_get_mobile_user_or_404(_db, _telegram_id):
+        return SimpleNamespace(id=owner_id)
+
+    monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda _secret: None)
+    monkeypatch.setattr(telegram_routes, "_get_mobile_user_or_404", fake_get_mobile_user_or_404)
+    monkeypatch.setattr(telegram_routes, "InviteCodeRepository", FakeInviteRepo)
+
+    response = await telegram_routes.get_bot_user_invite_codes(
+        telegram_id=123456,
+        offset=0,
+        limit=50,
+        telegram_bot_secret="internal-secret",
+        db=object(),
+    )
+
+    assert len(response) == 1
+    assert response[0].id == invite_id
+    assert response[0].code == "OWNER123"
+    assert response[0].free_days == 7
+    assert response[0].is_used is False

@@ -218,7 +218,7 @@ def _build_user(
 ) -> User:
     return User(
         uuid=uuid,
-        username=f"cvpn_paid_{uuid.hex}",
+        username=f"cvpn_p_{uuid.hex[:28]}",
         status=UserStatus.ACTIVE,
         short_uuid=short_uuid,
         created_at=datetime(2026, 5, 4, 9, 0, tzinfo=UTC),
@@ -236,7 +236,7 @@ def _raw_remnawave_user(
 ) -> dict:
     return {
         "uuid": str(uuid),
-        "username": f"cvpn_paid_{uuid.hex}",
+        "username": f"cvpn_p_{uuid.hex[:28]}",
         "status": "ACTIVE",
         "shortUuid": short_uuid,
         "createdAt": "2026-05-04T09:00:00+00:00",

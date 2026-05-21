@@ -108,7 +108,9 @@ export function createTelegramWebAppMock(overrides?: Partial<TelegramWebAppMock>
     disableClosingConfirmation: vi.fn(),
     showPopup: vi.fn(),
     showAlert: vi.fn(),
-    showConfirm: vi.fn().mockResolvedValue(true),
+    showConfirm: vi.fn((_message: string, callback?: (confirmed: boolean) => void) => {
+      callback?.(true);
+    }),
     openLink: vi.fn(),
     openTelegramLink: vi.fn(),
     openInvoice: vi.fn(),

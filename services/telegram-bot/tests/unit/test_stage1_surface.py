@@ -27,6 +27,7 @@ def test_stage1_public_commands_match_implemented_s1_entrypoints() -> None:
         "connect",
         "plans",
         "trial",
+        "invites",
         "support",
         "paysupport",
     ]

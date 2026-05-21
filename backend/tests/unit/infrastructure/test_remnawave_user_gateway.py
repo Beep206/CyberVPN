@@ -125,6 +125,40 @@ async def test_create_normalizes_payload_and_sets_default_expire_at(monkeypatch)
 
 
 @pytest.mark.unit
+async def test_create_replaces_telegram_placeholder_email_for_remnawave(monkeypatch):
+    client = AsyncMock()
+    client.get_collection_validated.return_value = [SimpleNamespace(uuid=str(uuid4()), name="Default-Squad")]
+    client.post_validated.return_value = _ValidatedModel({"uuid": str(uuid4()), "username": "cvpn_t_demo"})
+
+    monkeypatch.setattr(
+        "src.infrastructure.remnawave.user_gateway.map_remnawave_user",
+        lambda data: SimpleNamespace(uuid=data["uuid"], username=data["username"]),
+    )
+    monkeypatch.setattr(settings, "remnawave_default_internal_squad_uuid", "")
+    monkeypatch.setattr(settings, "remnawave_default_internal_squad_name", "Default-Squad")
+
+    gateway = RemnawaveUserGateway(client)
+
+    await gateway.create(username="cvpn_t_demo", email="tg123456@telegram.local")
+
+    _, kwargs = client.post_validated.await_args
+    assert kwargs["json"]["email"] == "cvpn_t_demo@cyber-vpn.net"
+
+
+@pytest.mark.unit
+async def test_get_by_telegram_id_treats_empty_upstream_list_as_missing_user(monkeypatch):
+    client = AsyncMock()
+    client.get.return_value = []
+
+    gateway = RemnawaveUserGateway(client)
+
+    user = await gateway.get_by_telegram_id(123456789)
+
+    assert user is None
+    client.get.assert_awaited_once_with("/api/users/by-telegram-id/123456789")
+
+
+@pytest.mark.unit
 async def test_update_uses_patch_and_normalizes_payload(monkeypatch):
     client = AsyncMock()
     client.patch_validated.return_value = _ValidatedModel({"uuid": str(uuid4()), "username": "demo-user"})

@@ -74,10 +74,8 @@ export default function MiniAppWalletPage() {
 
   const allTransactions = transactionsData?.pages.flatMap((page) => (Array.isArray(page) ? page : [])) || [];
 
-  // Theme colors
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
   const accentColor = 'text-[var(--tg-link-color,var(--color-neon-cyan))]';
 
   const formatCurrency = (amount: number) => {
@@ -229,9 +227,8 @@ function TransactionCard({
   formatCurrency: (amount: number) => string;
   t: (key: string) => string;
 }) {
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   const isIncoming = transaction.type === 'deposit' || transaction.type === 'referral_commission' || transaction.type === 'refund';
   const Icon = isIncoming ? ArrowDownRight : ArrowUpRight;
@@ -351,8 +348,7 @@ function WithdrawSheet({
     withdrawMutation.mutate({ amount: amountNum, method: paymentMethod });
   };
 
-  const isDark = colorScheme === 'dark';
-  const bgColor = isDark ? 'bg-[var(--tg-bg-color,oklch(0.03_0.01_260))]' : 'bg-[var(--tg-bg-color,oklch(0.68_0.012_250))]';
+  const bgColor = 'bg-[oklch(0.045_0.014_260)]';
 
   return (
     <AnimatePresence>

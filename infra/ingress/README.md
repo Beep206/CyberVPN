@@ -18,11 +18,11 @@ This directory contains the local, no-secret protected ingress contract for S1.
 |---|---|
 | `cyber-vpn.net` | Primary public site and customer cabinet |
 | `www.cyber-vpn.net` | Redirect to `cyber-vpn.net` |
-| `cyber-vpn.org` | Redirect/mirror to `cyber-vpn.net` |
-| `www.cyber-vpn.org` | Redirect/mirror to `cyber-vpn.net` |
+| `cyber-vpn.org` | Reserved for VPN nodes and future subscription delivery; no customer web mirror |
+| `www.cyber-vpn.org` | Not used for S1 customer web |
 | `api.cyber-vpn.net` | Controlled backend API, webhooks and OAuth callbacks |
 | `admin.cyber-vpn.net` | Protected admin entrypoint only |
-| `admin.cyber-vpn.org` | Redirect-only to `admin.cyber-vpn.net` |
+| `admin.cyber-vpn.org` | Not used for S1 admin; no independent admin session |
 
 ## Required Boundary
 

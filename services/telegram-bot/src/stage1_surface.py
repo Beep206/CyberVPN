@@ -26,6 +26,7 @@ STAGE1_PUBLIC_COMMANDS: tuple[tuple[str, str], ...] = (
     ("connect", "Get VPN access and config"),
     ("plans", "View subscription plans"),
     ("trial", "Start a trial if available"),
+    ("invites", "View your invite codes"),
     ("support", "Contact support"),
     ("paysupport", "Payment and refund support"),
 )

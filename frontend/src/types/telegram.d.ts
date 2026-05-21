@@ -27,6 +27,8 @@ interface TelegramWebApp {
   ready: () => void;
   close: () => void;
   expand: () => void;
+  showAlert?: (message: string, callback?: () => void) => void;
+  showConfirm?: (message: string, callback?: (confirmed: boolean) => void) => void | boolean | Promise<boolean>;
   MainButton: {
     text: string;
     show: () => void;

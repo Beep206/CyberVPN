@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { getDefaultMiniAppPath, getSafeRedirectPath } from './redirect-path';
-import { buildInternalLoginHref, buildLocalizedLoginRedirect } from './session';
+import {
+  buildInternalLoginHref,
+  buildLocalizedLoginRedirect,
+  isMiniAppRoute,
+  shouldBootstrapAuthSession,
+} from './session';
 
 describe('auth redirect canonicalization', () => {
   it('builds a locale-prefixed browser redirect from a raw pathname without locale', () => {
@@ -34,5 +39,16 @@ describe('auth redirect canonicalization', () => {
 
   it('builds the canonical localized mini app home path', () => {
     expect(getDefaultMiniAppPath('ru-RU')).toBe('/ru-RU/miniapp/home');
+  });
+
+  it('recognizes localized and internal mini app routes', () => {
+    expect(isMiniAppRoute('/ru-RU/miniapp/home')).toBe(true);
+    expect(isMiniAppRoute('/miniapp/plans')).toBe(true);
+    expect(isMiniAppRoute('/ru-RU/login')).toBe(false);
+  });
+
+  it('does not bootstrap the normal web auth session inside the mini app', () => {
+    expect(shouldBootstrapAuthSession('/ru-RU/miniapp/home')).toBe(false);
+    expect(shouldBootstrapAuthSession('/ru-RU/dashboard')).toBe(true);
   });
 });

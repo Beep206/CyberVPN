@@ -17,6 +17,7 @@ import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from './MiniAppBottomSheet';
 import dynamic from 'next/dynamic';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
+import { getApiErrorMessage } from '@/lib/api/error-message';
 
 const QRCodeComponent = dynamic(() => import('react-qr-code'), { ssr: false });
 
@@ -44,7 +45,12 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
       return data;
     },
   });
-  const errorDetail = (error as { response?: { data?: { detail?: string } } } | null)?.response?.data?.detail;
+  const errorStatus = (error as { response?: { status?: number } } | null)?.response?.status;
+  const errorDetail = error
+    ? errorStatus === 404
+      ? t('noConfigDescription')
+      : getApiErrorMessage(error, t('noConfigDescription'))
+    : null;
 
   useEffect(() => {
     if (!configData || loadedTracked.current) return;
@@ -73,9 +79,8 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
     });
   }, [isError, locale, page]);
 
-  const isDark = colorScheme === 'dark';
-  const cardBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   const copyConfig = async () => {
     haptic('medium');
@@ -84,7 +89,7 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
         await navigator.clipboard.writeText(configData.config);
         webApp?.showAlert(t('configCopied'));
       } catch {
-        webApp?.showAlert('Failed to copy config');
+        webApp?.showAlert(t('configCopyError'));
       }
     }
   };
@@ -111,6 +116,24 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
       >
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-neon-cyan" />
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (errorStatus === 401) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`${cardBg} ${borderColor} border rounded-lg p-4`}
+      >
+        <div className="flex items-start gap-3">
+          <Loader2 className="h-5 w-5 text-neon-cyan flex-shrink-0 mt-0.5 animate-spin" />
+          <div>
+            <h3 className="font-display text-sm mb-1">{t('sessionRestoringTitle')}</h3>
+            <p className="text-xs text-muted-foreground font-mono">{t('sessionRestoringDescription')}</p>
+          </div>
         </div>
       </motion.div>
     );

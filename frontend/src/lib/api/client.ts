@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import {
   buildLocalizedLoginRedirect,
+  isMiniAppRoute,
   isPublicAuthRoute,
 } from '@/features/auth/lib/session';
 
@@ -9,6 +10,17 @@ const ABSOLUTE_URL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//;
 export const CANONICAL_API_BASE_PATH = '/api/v1';
 export const CANONICAL_REQUEST_ID_HEADER = 'X-Request-ID';
 export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
+export const MINIAPP_AUTH_RESTORE_REQUIRED_EVENT = 'cybervpn:miniapp-auth-restore-required';
+
+function dispatchMiniAppAuthRestoreRequired(requestUrl: string): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(MINIAPP_AUTH_RESTORE_REQUIRED_EVENT, {
+    detail: {
+      requestUrl,
+      reason: 'miniapp_unauthorized',
+    },
+  }));
+}
 
 /**
  * Web auth relies on same-origin httpOnly cookies and Next.js rewrites.
@@ -222,13 +234,21 @@ apiClient.interceptors.response.use(
           requestUrl.includes('/auth/session') ||
           requestUrl.includes('/auth/magic-link/verify') ||
           requestUrl.includes('/auth/magic-link/verify-otp');
+        const isMiniAppRequest = requestUrl.includes('/miniapp/');
+
+        if (isMiniAppRequest) {
+          dispatchMiniAppAuthRestoreRequired(requestUrl);
+        }
 
         // Session probe and magic-link verification can run on public pages;
-        // don't force redirect here or we can interrupt in-flight login flows.
+        // Mini App routes must also stay inside Telegram instead of falling
+        // back to the browser login route on bootstrap/config 401 responses.
         if (
           typeof window !== 'undefined'
           && !isNonBlockingAuthRequest
+          && !isMiniAppRequest
           && !isPublicAuthRoute(window.location.pathname)
+          && !isMiniAppRoute(window.location.pathname)
         ) {
           const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
           window.location.href = buildLocalizedLoginRedirect(currentLocation);

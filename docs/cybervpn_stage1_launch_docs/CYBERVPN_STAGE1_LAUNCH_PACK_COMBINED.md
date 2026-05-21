@@ -68,7 +68,7 @@
 | `38_STAGE1_PAY_007_ORPHAN_PAYMENT_POLICY_EVIDENCE.md` | Evidence по `S1-PAY-007`: orphan payment / paid-but-no-access policy, SLA thresholds and dashboard summary | Закрывает local orphan policy contract; не заменяет real admin/support queue, audit log или alert delivery evidence |
 | `128_STAGE1_VPN_001_REMNAWAVE_STAGING_CONTROL_PLANE_EVIDENCE.md` | Evidence по `S1-VPN-001`: local Remnawave staging/control-plane smoke | Закрывает local/no-cost control-plane smoke; не заменяет external staging Remnawave, private API boundary, connected node or provisioning evidence |
 | `39_STAGE1_VPN_003_PROTOCOL_LIST_EVIDENCE.md` | Evidence по `S1-VPN-003`: final S1 VPN protocol allowlist for Remnawave provisioning | Закрывает local protocol decision contract; не заменяет staging/prod Remnawave profile, inbound, node or provisioning evidence |
-| `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md` | Evidence по `S1-VPN-004`: trial activation can create VPN access through a mockable S1 Remnawave gateway | Закрывает local trial provisioning contract; не заменяет staging/prod Remnawave trial activation evidence |
+| `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md` | Evidence по `S1-VPN-004`: trial activation can create VPN access through a mockable S1 Remnawave gateway and rented production proof | Закрывает local trial provisioning contract and links to rented production trial/client-connect proof |
 | `41_STAGE1_VPN_005_PAID_PROVISIONING_EVIDENCE.md` | Evidence по `S1-VPN-005`: paid order can create or extend VPN access through a mockable S1 Remnawave gateway | Закрывает local paid provisioning contract; не заменяет payment webhook integration, retry behavior или staging/prod Remnawave paid evidence |
 | `42_STAGE1_VPN_006_PROVISIONING_RETRY_EVIDENCE.md` | Evidence по `S1-VPN-006`: Remnawave outage creates a retry job and later retry can succeed | Закрывает local retry semantics; не заменяет durable PostgreSQL/worker, alert delivery или staging/prod Remnawave outage evidence |
 | `43_STAGE1_VPN_008_CREDENTIAL_REGENERATION_EVIDENCE.md` | Evidence по `S1-VPN-008`: admin/support credential regeneration through Remnawave revoke action | Закрывает local role gate, required audit and safe response/log/UI contract; не заменяет staging/prod/deployed admin-page evidence |
@@ -1632,7 +1632,7 @@ Backlog разбивает Stage 1 на implementable work items. Каждая �
 | S1-VPN-001 | P0 | Deploy Remnawave staging | Local control-plane smoke completed: Remnawave/PostgreSQL/Valkey start, local TLS/proxy path works, unauth API returns 401 and auth `/api/nodes` returns an array; real external staging Remnawave/private API boundary/connected node evidence still required | `128_STAGE1_VPN_001_REMNAWAVE_STAGING_CONTROL_PLANE_EVIDENCE.md`; external staging health evidence |
 | S1-VPN-002 | P0 | Deploy Remnawave production | Production Remnawave ready and separate | Health evidence |
 | S1-VPN-003 | P0 | Define Stage 1 protocol list | VLESS Reality RAW default and VLESS Reality XHTTP alternate documented; Helix/Verta/Beep and non-S1 protocols disabled | `39_STAGE1_VPN_003_PROTOCOL_LIST_EVIDENCE.md`; staging/prod profile evidence still required |
-| S1-VPN-004 | P0 | Test trial provisioning | Trial creates VPN access through mockable S1 Remnawave gateway; real staging/prod trial evidence still required | `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md` |
+| S1-VPN-004 | P0 | Test trial provisioning | Trial creates VPN access through mockable S1 Remnawave gateway; rented production proof confirms trial -> Remnawave -> subscription URL -> real VLESS links -> Xray client connection | `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md`; `docs/evidence/releases/stage1-rented-prod-07-backend-trial-client-connect-20260520T065023Z.md` |
 | S1-VPN-005 | P0 | Test paid provisioning | Paid subscription creates/updates access through mockable S1 Remnawave gateway; real payment webhook integration, retry behavior and staging/prod paid evidence still required | `41_STAGE1_VPN_005_PAID_PROVISIONING_EVIDENCE.md` |
 | S1-VPN-006 | P0 | Test provisioning retry | Remnawave outage queues retry and later succeeds through local contract; durable PostgreSQL/worker and staging/prod outage evidence still required | `42_STAGE1_VPN_006_PROVISIONING_RETRY_EVIDENCE.md` |
 | S1-VPN-007 | P0 | Test expiry/grace disable | Local worker contract proves paid access is disabled only after 72h grace; trial disables at expiry; durable DB/worker and staging/prod evidence still required | `44_STAGE1_VPN_007_EXPIRY_GRACE_DISABLE_EVIDENCE.md` |
@@ -8722,7 +8722,7 @@ Current status: `S1-PAY-007` local orphan payment / paid-but-no-access policy, S
 
 Current status: `S1-VPN-003` local VPN protocol allowlist completed in `39_STAGE1_VPN_003_PROTOCOL_LIST_EVIDENCE.md`. Staging/prod Remnawave profile/inbound, node and provisioning evidence remain open before go-live.
 
-Current status: `S1-VPN-004` local trial provisioning through a mockable S1 Remnawave gateway completed in `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md`. Real staging/prod trial activation evidence remains open before beta.
+Current status: `S1-VPN-004` local trial provisioning through a mockable S1 Remnawave gateway completed in `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md`. Rented production trial/client-connect proof is recorded in `docs/evidence/releases/stage1-rented-prod-07-backend-trial-client-connect-20260520T065023Z.md`.
 
 Current status: `S1-VPN-005` local paid provisioning create/extend contract through a mockable S1 Remnawave gateway completed in `41_STAGE1_VPN_005_PAID_PROVISIONING_EVIDENCE.md`. Payment webhook integration, retry behavior and real staging/prod paid provisioning evidence remain open before beta.
 
@@ -9046,7 +9046,7 @@ This package waits on external accounts/credentials.
 |---|---|---|---|
 | Protocol decision | `S1-VPN-003` | Completed locally: `vless-reality-raw` default, `vless-reality-xhttp` alternate; Helix/Verta/Beep remain off | `39_STAGE1_VPN_003_PROTOCOL_LIST_EVIDENCE.md` |
 | Gateway/client boundary | `S1-VPN-004`...`S1-VPN-006` | Completed locally through mockable Remnawave gateway, paid/trial contracts and retry behavior | `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md`, `41_STAGE1_VPN_005_PAID_PROVISIONING_EVIDENCE.md`, `42_STAGE1_VPN_006_PROVISIONING_RETRY_EVIDENCE.md` |
-| Trial provisioning | `S1-VPN-004` | Completed locally through mockable S1 Remnawave gateway; real staging/prod trial evidence still required | `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md` |
+| Trial provisioning | `S1-VPN-004` | Completed locally through mockable S1 Remnawave gateway and proven on rented production through real VLESS links plus Xray client-connect | `40_STAGE1_VPN_004_TRIAL_PROVISIONING_EVIDENCE.md`; `docs/evidence/releases/stage1-rented-prod-07-backend-trial-client-connect-20260520T065023Z.md` |
 | Paid provisioning | `S1-VPN-005` | Completed locally through mockable S1 Remnawave gateway; payment webhook integration, retry behavior and real staging/prod paid evidence still required | `41_STAGE1_VPN_005_PAID_PROVISIONING_EVIDENCE.md` |
 | Retry behavior | `S1-VPN-006` | Completed locally: Remnawave outage queues retry, later succeeds, exhaustion dead-letters | `42_STAGE1_VPN_006_PROVISIONING_RETRY_EVIDENCE.md` |
 | Expiry/grace disable | `S1-VPN-007` | Completed locally: paid access disables only after 72h grace; trial disables at expiry; durable DB/worker and staging/prod proof still required | `44_STAGE1_VPN_007_EXPIRY_GRACE_DISABLE_EVIDENCE.md` |
@@ -13544,7 +13544,7 @@ S1 trial defaults implemented locally:
 | Device limit | `1` |
 | Traffic limit | `2 GiB` |
 | Traffic reset strategy | `NO_RESET` |
-| Remnawave username | deterministic non-PII `cvpn_trial_<customer_uuid_hex>` |
+| Remnawave username | deterministic non-PII `cvpn_t_<first_28_customer_uuid_hex>`; stays within Remnawave 36-character username limit |
 | Public runtime gate | `STAGE1_TRIAL_PROVISIONING_ENABLED=false` by default |
 
 The runtime gate is intentionally off by default so local/dev/test environments do not accidentally create upstream Remnawave users. S1 beta environments must explicitly enable it only after Remnawave staging/prod profile evidence exists.

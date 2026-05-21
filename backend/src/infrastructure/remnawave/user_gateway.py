@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -12,8 +13,12 @@ from src.infrastructure.remnawave.contracts import (
     RemnawaveUserResponse,
 )
 from src.infrastructure.remnawave.mappers.user_mapper import map_remnawave_user
+from src.infrastructure.remnawave.response_validator import response_validator
 
 logger = logging.getLogger(__name__)
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_EMAIL_PLACEHOLDER_SUFFIXES = (".local", ".localhost")
 
 
 class RemnawaveUserGateway:
@@ -86,7 +91,14 @@ class RemnawaveUserGateway:
 
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         try:
-            data = await self._client.get_validated(f"/api/users/by-telegram-id/{telegram_id}", RemnawaveUserResponse)
+            raw = await self._client.get(f"/api/users/by-telegram-id/{telegram_id}")
+            if raw == []:
+                return None
+            data = response_validator.validate_single(
+                raw,
+                RemnawaveUserResponse,
+                f"GET /api/users/by-telegram-id/{telegram_id}",
+            )
             return map_remnawave_user(self._dump_validated_model(data))
         except Exception as e:
             logger.warning("Failed to fetch user by telegram_id %s from Remnawave: %s", telegram_id, e)
@@ -123,11 +135,28 @@ class RemnawaveUserGateway:
         if isinstance(expire_at, datetime):
             payload["expireAt"] = expire_at.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
+        if payload.get("email"):
+            payload["email"] = RemnawaveUserGateway._normalize_remnawave_email(
+                str(payload["email"]),
+                fallback_source=str(payload.get("username") or payload.get("uuid") or "user"),
+            )
+
         # Remnawave generates protocol secrets itself; our local password field is not part
         # of the upstream contract.
         payload.pop("password", None)
 
         return payload
+
+    @staticmethod
+    def _normalize_remnawave_email(email: str, *, fallback_source: str) -> str:
+        normalized = email.strip().lower()
+        domain = normalized.rsplit("@", 1)[-1] if "@" in normalized else ""
+        if _EMAIL_RE.match(normalized) and not domain.endswith(_EMAIL_PLACEHOLDER_SUFFIXES):
+            return normalized
+
+        safe_local_part = re.sub(r"[^a-z0-9._-]+", "-", fallback_source.strip().lower())
+        safe_local_part = safe_local_part.strip(".-_")[:48] or "user"
+        return f"{safe_local_part}@cyber-vpn.net"
 
     @staticmethod
     def _build_default_expire_at() -> str:

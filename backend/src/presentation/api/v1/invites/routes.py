@@ -7,6 +7,7 @@ Provides:
 """
 
 import logging
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -17,6 +18,11 @@ from src.application.services.config_service import ConfigService
 from src.application.use_cases.growth_notifications.fanout import PlanCustomerGrowthNotificationFanoutUseCase
 from src.application.use_cases.invites.admin_create_invite import AdminCreateInviteUseCase
 from src.application.use_cases.invites.redeem_invite import RedeemInviteUseCase
+from src.application.use_cases.trial.stage1_trial_provisioning import (
+    Stage1TrialProvisioningGateway,
+    Stage1TrialProvisioningService,
+)
+from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.domain.exceptions import (
     InviteCodeAlreadyUsedError,
@@ -24,7 +30,9 @@ from src.domain.exceptions import (
     InviteCodeNotFoundError,
 )
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.instrumentation.growth_codes import (
     ADMIN_GROWTH_SURFACE,
@@ -34,6 +42,9 @@ from src.infrastructure.monitoring.instrumentation.growth_codes import (
     observe_growth_code_issue,
 )
 from src.infrastructure.monitoring.instrumentation.routes import track_invite_operation
+from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
+from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -44,6 +55,47 @@ from .schemas import AdminCreateInviteRequest, InviteCodeResponse, RedeemInviteR
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/invites", tags=["invites"])
+
+
+async def _get_stage1_invite_provisioning_gateway(
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+) -> Stage1TrialProvisioningGateway | None:
+    if not settings.stage1_trial_provisioning_enabled:
+        return None
+    return RemnawaveStage1TrialProvisioningGateway(RemnawaveUserGateway(remnawave_client))
+
+
+async def _provision_redeemed_invite_access(
+    *,
+    db: AsyncSession,
+    user_id: UUID,
+    result,
+    provisioning_gateway: Stage1TrialProvisioningGateway | None,
+) -> None:
+    if provisioning_gateway is None:
+        return
+
+    user_repo = MobileUserRepository(db)
+    user = await user_repo.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mobile user not found")
+
+    grant = await db.get(EntitlementGrantModel, result.entitlement_grant_id)
+    access_expires_at = grant.expires_at if grant is not None and grant.expires_at is not None else None
+    if access_expires_at is None:
+        access_expires_at = datetime.now(UTC) + timedelta(days=int(result.invite.free_days))
+
+    provisioning = await Stage1TrialProvisioningService(provisioning_gateway).provision(
+        customer_account_id=user_id,
+        email=user.email,
+        username=user.username,
+        telegram_id=user.telegram_id,
+        trial_expires_at=access_expires_at,
+        existing_remnawave_uuid=user.remnawave_uuid,
+    )
+    user.remnawave_uuid = provisioning.remnawave_uuid
+    user.subscription_url = provisioning.subscription_url
+    await user_repo.update(user)
 
 
 @router.post(
@@ -61,6 +113,7 @@ async def redeem_invite(
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
+    provisioning_gateway: Stage1TrialProvisioningGateway | None = Depends(_get_stage1_invite_provisioning_gateway),
 ) -> InviteCodeResponse:
     """Redeem an invite code for the authenticated mobile user."""
     use_case = RedeemInviteUseCase(db)
@@ -79,6 +132,31 @@ async def redeem_invite(
     except ValueError as exc:
         track_invite_operation(operation="redeem", success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    try:
+        await _provision_redeemed_invite_access(
+            db=db,
+            user_id=user_id,
+            result=result,
+            provisioning_gateway=provisioning_gateway,
+        )
+    except HTTPException:
+        track_invite_operation(operation="redeem", success=False)
+        raise
+    except Exception as exc:
+        track_invite_operation(operation="redeem", success=False)
+        logger.exception(
+            "invite_vpn_provisioning_failed",
+            extra={
+                "user_id": str(user_id),
+                "invite_id": str(result.invite.id),
+                "entitlement_grant_id": str(result.entitlement_grant_id),
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="VPN access provisioning failed",
+        ) from exc
 
     track_invite_operation(operation="redeem", success=True)
     await EventOutboxService(db).append_event(

@@ -6,9 +6,9 @@
   "created_at": "2026-05-08",
   "decision_context": {
     "primary_public_domain": "cyber-vpn.net",
-    "public_mirror_domain": "cyber-vpn.org",
     "primary_admin_domain": "admin.cyber-vpn.net",
-    "admin_mirror_domain": "admin.cyber-vpn.org",
+    "org_reserved_domain": "cyber-vpn.org",
+    "org_stage1_role": "vpn_nodes_and_future_subscription_delivery_only",
     "stage1_topology": "Simple Controlled Hybrid Container Topology",
     "production_public_entrypoints_must_be_external": true,
     "home_lab_allowed_for_non_critical_evidence_only": true
@@ -44,8 +44,8 @@
     },
     {
       "domain": "cyber-vpn.org",
-      "role": "mirror_redirect",
-      "dns_mode": "proxied_for_redirect_surfaces",
+      "role": "vpn_node_and_future_subscription_zone",
+      "dns_mode": "dns_only_for_vpn_nodes_future_subscription_requires_separate_approval",
       "required_before_go_live": true
     }
   ],
@@ -58,11 +58,11 @@
       "origin_expectation": "public ingress to frontend/web cabinet only"
     },
     {
-      "id": "public_mirror_redirect",
+      "id": "org_reserved_zone",
       "hosts": ["cyber-vpn.org", "www.cyber-vpn.org"],
-      "public": true,
-      "edge_controls": ["https_redirect_to_primary", "managed_waf"],
-      "origin_expectation": "redirect only to cyber-vpn.net"
+      "public": false,
+      "edge_controls": ["no_customer_web_mirror", "no_admin_routes", "vpn_node_records_dns_only"],
+      "origin_expectation": "reserved for VPN node DNS and future subscription delivery only"
     },
     {
       "id": "api",
@@ -79,11 +79,11 @@
       "origin_expectation": "admin ingress protected before any go-live"
     },
     {
-      "id": "admin_mirror_redirect",
+      "id": "admin_org_reserved",
       "hosts": ["admin.cyber-vpn.org"],
       "public": false,
-      "edge_controls": ["https_redirect_to_primary_admin"],
-      "origin_expectation": "redirect only to admin.cyber-vpn.net; no independent admin session surface"
+      "edge_controls": ["no_admin_origin", "no_independent_admin_session", "no_public_admin_login"],
+      "origin_expectation": "must not serve S1 admin"
     },
     {
       "id": "telegram_webhook",
@@ -327,10 +327,10 @@
   ],
   "evidence_required_before_go_live": [
     "Cloudflare or equivalent edge account and zone IDs recorded outside repo",
-    "DNS records for cyber-vpn.net and cyber-vpn.org are proxied where applicable",
-    "TLS certificate evidence for primary and mirror domains",
-    "cyber-vpn.org redirects to cyber-vpn.net",
-    "admin.cyber-vpn.org redirects to admin.cyber-vpn.net",
+    "DNS records for cyber-vpn.net are proxied where applicable and .org VPN node records are DNS-only",
+    "TLS certificate evidence for primary .net domains",
+    "cyber-vpn.org does not serve a customer web mirror",
+    "admin.cyber-vpn.org does not serve S1 admin",
     "admin.cyber-vpn.net protected by Cloudflare Access, IP allowlist, or equivalent before login page exposure",
     "WAF managed rules are enabled and false-positive review is captured",
     "custom sensitive-path block rule evidence shows expected 403 or block event",

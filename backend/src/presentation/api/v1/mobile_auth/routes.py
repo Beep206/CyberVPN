@@ -7,7 +7,7 @@ import logging
 from time import perf_counter
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.dto.mobile_auth import (
@@ -37,6 +37,7 @@ from src.application.use_cases.growth_notifications.automation import (
     AutomateCustomerGrowthNotificationRepairUseCase,
 )
 from src.application.use_cases.mobile_auth.complete_two_factor import MobileCompleteTwoFactorUseCase
+from src.application.use_cases.mobile_auth.delete_account import MobileDeleteAccountUseCase
 from src.application.use_cases.mobile_auth.device import MobileDeviceRegistrationUseCase
 from src.application.use_cases.mobile_auth.list_devices import MobileListDevicesUseCase
 from src.application.use_cases.mobile_auth.login import MobileLoginUseCase
@@ -89,9 +90,12 @@ from src.infrastructure.remnawave.subscription_client import (
     CachedSubscriptionClient,
     RemnawaveSubscriptionClient,
 )
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.infrastructure.totp.totp_service import TOTPService
+from src.presentation.api.v1.auth.cookies import clear_auth_cookies
 from src.presentation.api.v1.mobile_auth.schemas import (
     AuthResponse,
+    DeleteMobileAccountResponse,
     DeviceRegistrationRequest,
     DeviceResponse,
     DeviceSessionResponse,
@@ -115,6 +119,7 @@ from src.presentation.dependencies.auth import (
     get_current_mobile_user_id,
     get_current_pending_mobile_2fa_context,
 )
+from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.mobile_rate_limit import (
     LoginRateLimit,
@@ -605,6 +610,60 @@ async def get_me(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "USER_NOT_FOUND", "message": "User not found"},
         )
+
+
+@router.delete(
+    "/me",
+    response_model=DeleteMobileAccountResponse,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": MobileAuthError,
+            "description": "Not authenticated",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": MobileAuthError,
+            "description": "User not found",
+        },
+        status.HTTP_502_BAD_GATEWAY: {
+            "model": MobileAuthError,
+            "description": "VPN access could not be revoked",
+        },
+    },
+)
+async def delete_me(
+    response: Response,
+    user_id: UUID = Depends(get_current_mobile_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis_client=Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+) -> DeleteMobileAccountResponse:
+    """Delete the current mobile account and revoke VPN access."""
+    user_repo = MobileUserRepository(db)
+    use_case = MobileDeleteAccountUseCase(
+        user_repo=user_repo,
+        user_gateway=RemnawaveUserGateway(remnawave_client),
+        redis_client=redis_client,
+    )
+
+    try:
+        await use_case.execute(user_id)
+        await db.commit()
+        clear_auth_cookies(response, cookie_namespace=current_realm.cookie_namespace)
+        await sync_auth_security_posture(db)
+        return DeleteMobileAccountResponse()
+    except UserNotFoundError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "USER_NOT_FOUND", "message": "User not found"},
+        ) from None
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("mobile_account_delete_failed", extra={"user_id": str(user_id)})
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={"code": "VPN_REVOKE_FAILED", "message": "VPN access could not be revoked"},
+        ) from exc
 
 
 @router.get(

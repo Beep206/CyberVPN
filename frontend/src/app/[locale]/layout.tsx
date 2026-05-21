@@ -71,6 +71,10 @@ export default async function RootLayout({
         >
           <MotionProvider>
             <AuthSessionBootstrap />
+            <Script
+              src="https://telegram.org/js/telegram-web-app.js"
+              strategy="beforeInteractive"
+            />
             <SkipNavLink label={t('skipToMainContent')} />
             <div className="relative z-10 min-h-full w-full">{children}</div>
             <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />

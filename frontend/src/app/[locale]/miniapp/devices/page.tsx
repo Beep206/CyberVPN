@@ -13,10 +13,10 @@ export default async function DevicesPage({
     <div className="space-y-6 p-4">
       <div>
         <h1 className="text-2xl font-display text-neon-cyan mb-2">
-          {t('title') || 'Active Devices'}
+          {t('title')}
         </h1>
         <p className="text-muted-foreground text-sm">
-          {t('subtitle') || 'Manage your active sessions and devices'}
+          {t('subtitle')}
         </p>
       </div>
 

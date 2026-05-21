@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from pydantic import SecretStr, ValidationError
 
@@ -80,3 +82,51 @@ def test_cryptobot_production_accepts_non_placeholder_provider_shaped_token() ->
     settings = _production_settings(cryptobot_token=SecretStr("ValidProviderTokenValueForChecksOnly"))
 
     assert settings.cryptobot_token.get_secret_value() == "ValidProviderTokenValueForChecksOnly"
+
+
+@pytest.mark.asyncio
+async def test_cryptobot_create_invoice_uses_fiat_contract_for_usd() -> None:
+    with patch("src.infrastructure.payments.cryptobot.client.AsyncClient") as client_cls:
+        http_client = MagicMock()
+        http_client.is_closed = False
+        response = MagicMock()
+        response.json.return_value = {"ok": True, "result": {"invoice_id": 123}}
+        http_client.post = AsyncMock(return_value=response)
+        client_cls.return_value = http_client
+
+        client = CryptoBotClient(token=SecretStr("cryptobot-token-redacted"), network="mainnet")
+        await client.create_invoice(
+            amount="9.99",
+            currency="USD",
+            description="CyberVPN Basic",
+            payload="user:plan",
+        )
+
+    _, kwargs = http_client.post.call_args
+    assert kwargs["json"]["currency_type"] == "fiat"
+    assert kwargs["json"]["fiat"] == "USD"
+    assert "asset" not in kwargs["json"]
+
+
+@pytest.mark.asyncio
+async def test_cryptobot_create_invoice_uses_crypto_contract_for_usdt() -> None:
+    with patch("src.infrastructure.payments.cryptobot.client.AsyncClient") as client_cls:
+        http_client = MagicMock()
+        http_client.is_closed = False
+        response = MagicMock()
+        response.json.return_value = {"ok": True, "result": {"invoice_id": 123}}
+        http_client.post = AsyncMock(return_value=response)
+        client_cls.return_value = http_client
+
+        client = CryptoBotClient(token=SecretStr("cryptobot-token-redacted"), network="mainnet")
+        await client.create_invoice(
+            amount="9.99",
+            currency="USDT",
+            description="CyberVPN Basic",
+            payload="user:plan",
+        )
+
+    _, kwargs = http_client.post.call_args
+    assert kwargs["json"]["currency_type"] == "crypto"
+    assert kwargs["json"]["asset"] == "USDT"
+    assert "fiat" not in kwargs["json"]

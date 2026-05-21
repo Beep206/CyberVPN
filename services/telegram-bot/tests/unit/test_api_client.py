@@ -181,6 +181,31 @@ class TestTelegramChannelParityReads:
 
         await client.close()
 
+    async def test_get_invite_codes_success(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        invites = [
+            {
+                "id": "invite-1",
+                "code": "OWNER123",
+                "free_days": 7,
+                "is_used": False,
+                "expires_at": "2026-05-24T11:54:13Z",
+                "created_at": "2026-05-21T11:54:13Z",
+            }
+        ]
+
+        with respx.mock:
+            route = respx.get("https://api.test.cybervpn.local/telegram/bot/user/123456/invite-codes").mock(
+                return_value=httpx.Response(200, json=invites)
+            )
+
+            result = await client.get_invite_codes(123456)
+
+            assert result == invites
+            assert route.called
+
+        await client.close()
+
 
 @pytest.mark.asyncio
 class TestTelegramStarsAPIClient:

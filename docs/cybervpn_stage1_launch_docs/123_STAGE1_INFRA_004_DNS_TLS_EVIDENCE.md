@@ -13,9 +13,9 @@
 For S1 Controlled Public Beta:
 
 - `cyber-vpn.net` is the primary public domain;
-- `cyber-vpn.org` is a mirror/redirect surface to the primary public domain;
+- `cyber-vpn.org` is reserved for VPN node hostnames and future subscription delivery only, not a mirror/redirect surface to the primary public domain;
 - `admin.cyber-vpn.net` is the canonical admin host;
-- `admin.cyber-vpn.org` redirects to `admin.cyber-vpn.net` and must not serve an independent admin session;
+- `admin.cyber-vpn.org` is not used for S1 admin and must not serve an independent admin session;
 - API/webhooks/OAuth use `api.cyber-vpn.net`;
 - S1 status uses `https://cyber-vpn.net/status`; a separate status subdomain is not required for S1;
 - payment webhooks, Telegram webhooks and OAuth callbacks must not be placed behind interactive browser challenges;
@@ -38,9 +38,11 @@ For S1 Controlled Public Beta:
 | `www.cyber-vpn.net` | Redirect to `https://cyber-vpn.net` |
 | `api.cyber-vpn.net` | Backend API, payment webhooks, Telegram webhook and OAuth callbacks |
 | `admin.cyber-vpn.net` | Protected admin canonical host |
-| `cyber-vpn.org` | Mirror/redirect to `https://cyber-vpn.net` |
-| `www.cyber-vpn.org` | Mirror/redirect to `https://cyber-vpn.net` |
-| `admin.cyber-vpn.org` | Redirect to `https://admin.cyber-vpn.net`; no independent admin session |
+| `cyber-vpn.org` | Reserved for VPN nodes and future subscription delivery; no customer web mirror |
+| `www.cyber-vpn.org` | Not used for S1 customer web |
+| `admin.cyber-vpn.org` | Not used for S1 admin; no independent admin session |
+| `de-1.cyber-vpn.org` | Production VPN node hostname, DNS-only |
+| `de-1.node.cyber-vpn.org` | Production VPN node alias, DNS-only |
 | `https://cyber-vpn.net/status` | S1 status endpoint |
 
 ## TLS Requirements
@@ -52,7 +54,7 @@ For S1 Controlled Public Beta:
 | TLS mode | Full strict or equivalent before go-live |
 | Minimum TLS | 1.2 minimum; TLS 1.3 preferred |
 | HSTS | Enable only after DNS/TLS/redirects/subdomains are verified |
-| Certificate hosts | `.net` primary, API/admin, `.org` mirror/admin mirror |
+| Certificate hosts | `.net` primary, API/admin; future `.org` subscription host only after approval |
 | Certificate private keys | Never committed |
 
 ## Live Evidence Required Before Go-Live
@@ -63,8 +65,8 @@ The following proof must be attached later, after DNS provider access and produc
 2. TLS certificate check for every required host.
 3. HTTP to HTTPS redirect proof.
 4. `www.cyber-vpn.net` redirect proof.
-5. `cyber-vpn.org` and `www.cyber-vpn.org` redirect/mirror proof.
-6. `admin.cyber-vpn.org` redirect to `admin.cyber-vpn.net`.
+5. Proof that `.org` customer/admin mirror routes are not enabled.
+6. VPN node DNS proof for approved `.org` node hostnames.
 7. `https://cyber-vpn.net/status` route proof.
 8. Admin access protection before login.
 9. Payment webhook no-interactive-challenge probe.
@@ -77,10 +79,10 @@ No DNS provider or edge configuration was changed during this task. The no-cost 
 
 | Probe | Current result | S1 interpretation |
 |---|---|---|
-| Apex DNS for `cyber-vpn.net` and `cyber-vpn.org` | Resolves to public addresses | Partial only; public IPs are intentionally not recorded in docs |
-| DNS for `www.cyber-vpn.net`, `api.cyber-vpn.net`, `admin.cyber-vpn.net`, `www.cyber-vpn.org`, `admin.cyber-vpn.org` | Not resolved from this workspace | Blocker for live DNS/TLS evidence |
+| Apex DNS for `cyber-vpn.net` and `cyber-vpn.org` | Resolves to public addresses | Partial only; public IPs are intentionally not recorded in docs; `.org` is not a customer mirror |
+| DNS for `www.cyber-vpn.net`, `api.cyber-vpn.net`, `admin.cyber-vpn.net` | Not resolved from this workspace | Blocker for live DNS/TLS evidence |
 | TLS certificate probe for `cyber-vpn.net` | Public Let's Encrypt certificate observed, CN `cyber-vpn.net`, valid May 3-Aug 1 2026 | Partial only; does not prove app readiness, redirects, API/admin hosts or required full host coverage |
-| TLS certificate probe for `cyber-vpn.org` | Public Let's Encrypt certificate observed, CN `cyber-vpn.org`, valid May 3-Aug 1 2026 | Partial only; does not prove mirror redirect behavior |
+| TLS certificate probe for `cyber-vpn.org` | Public Let's Encrypt certificate observed, CN `cyber-vpn.org`, valid May 3-Aug 1 2026 | Historical partial probe only; `.org` is now reserved for nodes/future subscription, not customer mirror behavior |
 | `http://cyber-vpn.net/` | Returned HTTP 200 without required HTTP->HTTPS redirect | Blocker; required behavior is 301/308 to HTTPS |
 | HTTPS app/status curl probes | HTTPS application responses for apex/status did not complete within the local probe timeout | Blocker until a production edge/app target is configured and evidenced |
 | Admin protection, payment webhook, Telegram webhook and OAuth callback no-challenge probes | Not provable because required API/admin hosts do not resolve | Blocker before go-live |
@@ -95,14 +97,11 @@ dig +short www.cyber-vpn.net
 dig +short api.cyber-vpn.net
 dig +short admin.cyber-vpn.net
 dig +short cyber-vpn.org
-dig +short www.cyber-vpn.org
-dig +short admin.cyber-vpn.org
+dig +short de-1.cyber-vpn.org
+dig +short de-1.node.cyber-vpn.org
 
 curl -I http://cyber-vpn.net/
 curl -I https://www.cyber-vpn.net/
-curl -I https://cyber-vpn.org/
-curl -I https://www.cyber-vpn.org/
-curl -I https://admin.cyber-vpn.org/
 curl -I https://cyber-vpn.net/status
 
 openssl s_client -connect cyber-vpn.net:443 -servername cyber-vpn.net </dev/null
@@ -178,6 +177,28 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 
 Next ID superseded by `124_STAGE1_INFRA_005_PROTECTED_INGRESS_EVIDENCE.md`, `125_STAGE1_PAY_001_PRIMARY_PAYMENT_PROVIDER_EVIDENCE.md`, `126_STAGE1_PAY_002_CRYPTOBOT_SANDBOX_EVIDENCE.md`, `127_STAGE1_PAY_003_CRYPTOBOT_PRODUCTION_CREDENTIALS_EVIDENCE.md`, `36_STAGE1_PAY_004_PROVIDER_STATUS_MAPPING_EVIDENCE.md`, `46_STAGE1_PAY_005_WEBHOOK_SIGNATURE_VERIFICATION_EVIDENCE.md`, `37_STAGE1_PAY_006_WEBHOOK_IDEMPOTENCY_EVIDENCE.md`, `38_STAGE1_PAY_007_ORPHAN_PAYMENT_POLICY_EVIDENCE.md`, `45_STAGE1_PAY_008_PAYMENT_PROVISIONING_FAILURE_EVIDENCE.md`, `81_STAGE1_PAY_009_REFUND_DISPUTE_PROCESS_EVIDENCE.md` and `82_STAGE1_PAY_010_WALLET_PAYMENT_HISTORY_EVIDENCE.md`; current next ID to execute is `S1-OBS-004` - live alert delivery evidence follow-up.
 
+## 2026-05-19 Domain Decision Update
+
+Owner decision: `.org` is no longer a customer/admin mirror for `.net`.
+
+Updated contract:
+
+- `.net` remains the only S1 customer/admin/API surface;
+- `.org` is reserved for VPN nodes and future subscription delivery;
+- `de-1.cyber-vpn.org` and `de-1.node.cyber-vpn.org` are DNS-only VPN node hostnames;
+- `admin.cyber-vpn.org` must not serve S1 admin;
+- future `.org` subscription delivery requires separate DNS/TLS/route evidence before live traffic is moved.
+
+Revalidation:
+
+```text
+python scripts/validate_s1_dns_tls_contract.py
+Result: S1-INFRA-004 DNS/TLS contract validation passed
+
+PYENV_VERSION=3.13.11 pytest infra/tests/test_stage1_dns_tls_contract.py -q
+Result: 5 passed
+```
+
 ## 2026-05-09 Batch Revalidation
 
 `S1-INFRA-004` was re-run as item 4 in the owner-requested batch:
@@ -214,10 +235,9 @@ No-cost live probe from this workspace:
 | `www.cyber-vpn.net` DNS | Not resolved | Blocker |
 | `api.cyber-vpn.net` DNS | Not resolved | Blocker |
 | `admin.cyber-vpn.net` DNS | Not resolved | Blocker |
-| `www.cyber-vpn.org` DNS | Not resolved | Blocker |
-| `admin.cyber-vpn.org` DNS | Not resolved | Blocker |
+| `.org` customer/admin mirror DNS | Not required after 2026-05-19 domain decision | Not a blocker |
 | `cyber-vpn.net` TLS | Certificate CN `cyber-vpn.net`, valid until Aug 1 2026 GMT | Partial only |
-| `cyber-vpn.org` TLS | Certificate CN `cyber-vpn.org`, valid until Aug 1 2026 GMT | Partial only |
+| `cyber-vpn.org` TLS | Certificate CN `cyber-vpn.org`, valid until Aug 1 2026 GMT | Historical partial probe only; `.org` is now node/future subscription zone |
 | Required subdomain TLS | Failed because required subdomains do not resolve | Blocker |
 | `http://cyber-vpn.net/` | HTTP 200, no redirect location | Blocker; required behavior is HTTP -> HTTPS redirect |
 | HTTPS app/status probes | Timed out or failed from this workspace | Blocker until edge/app target is configured |

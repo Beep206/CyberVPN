@@ -225,6 +225,30 @@ referral-withdraw-success = ✅ Withdrawal request created.
     Amount: { $amount }
     Status: { $status }
 
+my-invites-info = 🎟 <b>My invites</b>
+
+    Total: <b>{ $count }</b>
+    Active: <b>{ $active_count }</b>
+
+    { $items }
+
+my-invites-empty = No invite codes have been issued to your account yet.
+
+my-invites-item = <blockquote>
+    Code: <code>{ $code }</code>
+    Status: { $status }
+    Bonus: { $days ->
+        [one] { $days } day
+       *[other] { $days } days
+    }
+    Expires: { $expires }
+    Issued: { $created }
+    </blockquote>
+
+my-invites-status-active = active
+my-invites-status-used = used
+my-invites-status-expired = expired
+
 # ── Promo Codes ──────────────────────────────────────────────────────────
 promo-enter = 🎟 Enter promo code:
 

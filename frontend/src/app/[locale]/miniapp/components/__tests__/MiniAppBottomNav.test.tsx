@@ -196,19 +196,18 @@ describe('MiniAppBottomNav', () => {
       const { container } = render(<MiniAppBottomNav />);
 
       const nav = container.querySelector('nav');
-      expect(nav?.className).toContain('bg-[var(--tg-bg-color');
-      expect(nav?.className).toContain('border-[var(--tg-hint-color');
+      expect(nav?.className).toContain('bg-[oklch(0.045_0.014_260)]');
+      expect(nav?.className).toContain('border-[oklch(0.25_0.10_195)]');
     });
 
-    it('test_uses_light_theme_colors_when_light_mode', () => {
+    it('test_keeps_brand_surface_when_telegram_uses_light_mode', () => {
       cleanupTelegramWebAppMock();
       setupTelegramWebAppMock({ colorScheme: 'light' });
 
       const { container } = render(<MiniAppBottomNav />);
 
       const nav = container.querySelector('nav');
-      // Component uses colorScheme to pick different CSS classes
-      expect(nav?.className).toContain('bg-[var(--tg-bg-color');
+      expect(nav?.className).toContain('bg-[oklch(0.045_0.014_260)]');
     });
 
     it('test_applies_telegram_theme_params', () => {

@@ -22,11 +22,10 @@ export function MiniAppBottomSheet({
   onClose,
   title,
   children,
-  colorScheme = 'dark',
+  colorScheme: _colorScheme = 'dark',
 }: MiniAppBottomSheetProps) {
-  const isDark = colorScheme === 'dark';
-  const sheetBg = isDark ? 'bg-[var(--tg-bg-color,oklch(0.06_0.015_260))]' : 'bg-[var(--tg-bg-color,oklch(0.70_0.010_250))]';
-  const borderColor = isDark ? 'border-[var(--tg-hint-color,oklch(0.25_0.10_195))]' : 'border-[var(--tg-hint-color,oklch(0.45_0.03_250))]';
+  const sheetBg = 'bg-[oklch(0.06_0.015_260)]';
+  const borderColor = 'border-[oklch(0.25_0.10_195)]';
 
   useEffect(() => {
     if (!isOpen) {

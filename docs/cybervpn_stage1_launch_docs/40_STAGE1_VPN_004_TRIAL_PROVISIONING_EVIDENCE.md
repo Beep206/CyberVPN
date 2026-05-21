@@ -1,7 +1,7 @@
 > CyberVPN Launch Program
 > Evidence ID: S1-VPN-004
 > Date: 2026-05-04
-> Status: local mock provisioning proof complete; real staging/prod Remnawave trial evidence still required
+> Status: local mock provisioning proof complete; rented production trial/client-connect proof complete; controlled public enablement still gated
 
 # S1-VPN-004 Trial Provisioning Evidence
 
@@ -9,7 +9,7 @@
 
 This document closes the local implementation/evidence part of `S1-VPN-004`: trial activation must be able to create VPN access through the S1 Remnawave provisioning contract.
 
-This does not prove staging or production Remnawave readiness. It proves that the backend has a mockable S1 trial provisioning boundary and that trial activation can call it safely.
+The original local proof showed that the backend has a mockable S1 trial provisioning boundary and that trial activation can call it safely. A later rented production proof also confirmed the real CyberVPN backend, Remnawave control-plane, subscription URL route and VPN node can complete the Stage 1 trial path end to end.
 
 ## Decision
 
@@ -27,7 +27,7 @@ S1 trial defaults implemented locally:
 | Device limit | `1` |
 | Traffic limit | `2 GiB` |
 | Traffic reset strategy | `NO_RESET` |
-| Remnawave username | deterministic non-PII `cvpn_trial_<customer_uuid_hex>` |
+| Remnawave username | deterministic non-PII `cvpn_t_<first_28_customer_uuid_hex>`; stays within Remnawave 36-character username limit |
 | Public runtime gate | `STAGE1_TRIAL_PROVISIONING_ENABLED=false` by default |
 
 The runtime gate is intentionally off by default so local/dev/test environments do not accidentally create upstream Remnawave users. S1 beta environments must explicitly enable it only after Remnawave staging/prod profile evidence exists.
@@ -99,16 +99,36 @@ Official context:
 - Remnawave Config Profiles: `https://docs.rw/docs/learn-en/config-profiles/`
 - Remnawave API Specification: `https://docs.rw/api/`
 
+## 2026-05-20 Rented Production Proof
+
+Evidence:
+
+```text
+docs/evidence/releases/stage1-rented-prod-07-backend-trial-client-connect-20260520T065023Z.md
+```
+
+Result:
+
+- trial activation returned `HTTP 200`;
+- Remnawave user was created and active;
+- subscription URL host was `api.cyber-vpn.net`;
+- Mini App config returned a subscription delivery response;
+- subscription fetch returned `HTTP 200`;
+- Remnawave generated two real VLESS links for `de-1.cyber-vpn.org`;
+- generated TCP Reality link connected through the production VPN node;
+- Xray client proof showed proxied egress matched `77.90.13.29`;
+- disposable proof user was deleted from CyberVPN and Remnawave;
+- `STAGE1_TRIAL_PROVISIONING_ENABLED=false` was restored after the proof.
+
 ## Remaining Work Before Real Beta
 
 The following items remain blocking before this can be called real beta evidence:
 
-1. enable `STAGE1_TRIAL_PROVISIONING_ENABLED=true` in staging only after S1 Remnawave profiles/inbounds are configured;
-2. execute trial activation against staging Remnawave and record redacted `remnawave_uuid`, profile, expiry, traffic/device limits and sanitized delivery proof;
-3. repeat against production before public beta go-live;
-4. prove subscription URL/QR/config delivery path and log sanitization;
-5. add alerting for trial provisioning failures and latency in `trial/pay -> VPN ready` metrics;
-6. keep the feature kill-switch documented and tested.
+1. keep `STAGE1_TRIAL_PROVISIONING_ENABLED=false` until the controlled beta launch gate is opened;
+2. repeat the proof immediately before enabling the first beta cohort if runtime tags or Remnawave settings changed;
+3. keep subscription URL/QR/config delivery logs sanitized;
+4. add alerting review for trial provisioning failures and latency in `trial/pay -> VPN ready` metrics;
+5. keep the feature kill-switch documented and tested.
 
 ## 2026-05-09 Ordered Batch Revalidation
 

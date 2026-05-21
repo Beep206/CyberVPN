@@ -15,7 +15,8 @@ For S1 Controlled Public Beta:
 - backend and admin container ports must not be directly public;
 - `api.cyber-vpn.net` is the only approved public backend API host;
 - `admin.cyber-vpn.net` is the only canonical admin host and must be protected before the admin login page;
-- `admin.cyber-vpn.org` is redirect-only to `admin.cyber-vpn.net`;
+- `admin.cyber-vpn.org` is not used for S1 admin and must not serve admin;
+- `cyber-vpn.org` is reserved for VPN node hostnames and future subscription delivery only, not customer/admin mirror traffic;
 - customer domains must not serve admin/internal/operator routes;
 - payment, Telegram and OAuth callback paths must not receive interactive browser challenges;
 - Remnawave API, PostgreSQL, Valkey/Redis and observability ports must stay private;
@@ -36,11 +37,11 @@ For S1 Controlled Public Beta:
 |---|---|
 | `cyber-vpn.net` | Public customer web/cabinet only |
 | `www.cyber-vpn.net` | Redirect to primary `.net` |
-| `cyber-vpn.org` | Redirect/mirror to primary `.net` |
-| `www.cyber-vpn.org` | Redirect/mirror to primary `.net` |
+| `cyber-vpn.org` | Reserved for VPN nodes and future subscription delivery; no customer web mirror |
+| `www.cyber-vpn.org` | Not used for S1 customer web |
 | `api.cyber-vpn.net` | Controlled public backend API, payment webhooks, Telegram webhook and OAuth callbacks |
 | `admin.cyber-vpn.net` | Protected admin entrypoint only |
-| `admin.cyber-vpn.org` | Redirect-only to `admin.cyber-vpn.net`; no independent session |
+| `admin.cyber-vpn.org` | Not used for S1 admin; no independent session |
 
 ## Required Controls
 
@@ -48,7 +49,7 @@ For S1 Controlled Public Beta:
 |---|---|
 | Public API | TLS, security headers, CORS allowlist, CSRF for cookie flows, Swagger disabled, application and edge rate limits |
 | Admin primary | TLS, Cloudflare Access/IP allowlist/private VPN or equivalent, backend admin host guard, mandatory 2FA, RBAC, audit and admin rate limits |
-| Admin mirror | Redirect-only to primary admin, no independent session cookie and no admin backend origin |
+| `.org` admin surface | Must not serve admin; no independent session cookie and no admin backend origin |
 | Payment webhooks | Provider signature or status recheck, idempotency, conservative rate limit and no interactive challenge |
 | Telegram webhook | Telegram secret/signature validation, conservative rate limit and no interactive challenge |
 | OAuth callbacks | Google/GitHub only, state/nonce validation, callback allowlist and no interactive challenge |
@@ -58,7 +59,7 @@ For S1 Controlled Public Beta:
 
 | Policy | Hosts | Paths |
 |---|---|---|
-| Customer web cannot serve admin/internal paths | `cyber-vpn.net`, `www.cyber-vpn.net`, `.org` mirrors | `/admin/*`, `/api/v1/admin/*`, `/operator/*`, `/internal/*` |
+| Customer web cannot serve admin/internal paths | `cyber-vpn.net`, `www.cyber-vpn.net`; `.org` is not customer web | `/admin/*`, `/api/v1/admin/*`, `/operator/*`, `/internal/*` |
 | Production API docs disabled publicly | `api.cyber-vpn.net` | `/docs`, `/redoc`, `/openapi.json` |
 | Internal/worker/debug APIs disabled publicly | `api.cyber-vpn.net` | `/api/v1/internal/*`, `/api/v1/worker/*`, `/api/v1/debug/*` |
 
@@ -70,7 +71,7 @@ The following proof must be attached later, after external ingress exists:
 2. redacted reverse proxy configuration;
 3. origin firewall/security-group proof showing backend/admin container ports are not directly public;
 4. `admin.cyber-vpn.net` Access/IP allowlist/private VPN proof before login page;
-5. `admin.cyber-vpn.org` redirect proof to `admin.cyber-vpn.net`;
+5. proof that `admin.cyber-vpn.org` is not serving S1 admin;
 6. public customer domains cannot serve admin/internal routes;
 7. `api.cyber-vpn.net` Swagger/OpenAPI disabled proof;
 8. `api.cyber-vpn.net` CORS/cookie/CSRF proof for approved domains only;
@@ -93,7 +94,7 @@ No edge, firewall, reverse proxy or DNS provider configuration was changed durin
 | `https://cyber-vpn.net/admin/` and `https://cyber-vpn.net/api/v1/admin/users` | HTTPS requests did not complete within the local probe timeout | Blocker; customer-domain admin/internal route behavior is not live-proven |
 | `https://api.cyber-vpn.net/docs` and `https://api.cyber-vpn.net/openapi.json` | `api.cyber-vpn.net` did not resolve from this workspace | Blocker; production Swagger/OpenAPI disablement is not live-proven |
 | `https://admin.cyber-vpn.net/` | `admin.cyber-vpn.net` did not resolve from this workspace | Blocker; admin access gate before login is not live-proven |
-| `https://admin.cyber-vpn.org/` | `admin.cyber-vpn.org` did not resolve from this workspace | Blocker; admin mirror redirect is not live-proven |
+| `https://admin.cyber-vpn.org/` | `admin.cyber-vpn.org` did not resolve from this workspace | Accepted after 2026-05-19 domain decision; admin `.org` mirror is not required |
 | Telegram/payment/OAuth callback probes on `api.cyber-vpn.net` | `api.cyber-vpn.net` did not resolve from this workspace | Blocker; no-interactive-challenge callback behavior is not live-proven |
 | Remnawave/PostgreSQL/Valkey/private observability ingress | No external production private network exists in this no-cost task | Blocker until production/staging private network evidence is attached |
 
@@ -106,7 +107,6 @@ curl -I https://cyber-vpn.net/admin/
 curl -I https://cyber-vpn.net/api/v1/admin/users
 curl -I https://api.cyber-vpn.net/docs
 curl -I https://api.cyber-vpn.net/openapi.json
-curl -I https://admin.cyber-vpn.org/
 curl -I https://admin.cyber-vpn.net/
 curl -I https://api.cyber-vpn.net/api/v1/telegram/webhook
 curl -I https://api.cyber-vpn.net/api/v1/webhooks/payments/example
@@ -146,7 +146,7 @@ docker ps --format '{{.Names}}\t{{.Status}}'
 | Combined infra pytest regression | Passed: 27 passed |
 | Ruff | Passed for protected ingress, DNS/TLS, edge WAF, production environment, topology and staging validators/tests |
 | No-cost live customer/admin path probes | Failed/blocking: `cyber-vpn.net` admin/internal route probes did not complete within the local timeout |
-| No-cost live API/admin host probes | Failed/blocking: `api.cyber-vpn.net`, `admin.cyber-vpn.net` and `admin.cyber-vpn.org` did not resolve from this workspace |
+| No-cost live API/admin host probes | Failed/blocking: `api.cyber-vpn.net` and `admin.cyber-vpn.net` did not resolve from this workspace; `admin.cyber-vpn.org` is no longer an S1 admin mirror |
 | No-cost live webhook/OAuth callback probes | Failed/blocking: no-interactive-challenge behavior cannot be proven until `api.cyber-vpn.net` resolves and routes to deployed production/staging ingress |
 | Diff whitespace check | Passed for new S1-INFRA-005 artifacts |
 | High/critical npm production audit | Passed; current npm audit threshold is clean for high/critical findings and still reports only the tracked moderate Next/PostCSS advisory |
@@ -226,6 +226,27 @@ No-cost live probe result from this workspace remains blocker evidence:
 | `https://api.cyber-vpn.net/docs` | HTTP `000`, host did not resolve |
 | `https://api.cyber-vpn.net/openapi.json` | HTTP `000`, host did not resolve |
 | `https://admin.cyber-vpn.net/` | HTTP `000`, host did not resolve |
-| `https://admin.cyber-vpn.org/` | HTTP `000`, host did not resolve |
 
 Local acceptance remains unchanged. Real edge/reverse-proxy/firewall/admin-access and webhook/OAuth no-challenge evidence remain required before go-live.
+
+## 2026-05-19 Domain Decision Update
+
+Owner decision: `.org` is no longer a customer/admin mirror for `.net`.
+
+Updated ingress contract:
+
+- customer web is served only from `.net` approved hosts;
+- `admin.cyber-vpn.net` remains the only canonical S1 admin host;
+- `admin.cyber-vpn.org` is reserved/not used and must not serve admin;
+- `.org` is reserved for VPN node hostnames and future subscription delivery;
+- future subscription delivery on `.org` requires separate ingress/DNS/TLS evidence.
+
+Revalidation:
+
+```text
+python scripts/validate_s1_protected_ingress.py
+Result: S1-INFRA-005 protected ingress contract validation passed
+
+PYENV_VERSION=3.13.11 pytest infra/tests/test_stage1_protected_ingress.py -q
+Result: 6 passed
+```

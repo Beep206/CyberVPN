@@ -43,7 +43,7 @@ class Stage1TrialProvisioningRequest:
     def remnawave_username(self) -> str:
         """Return a deterministic non-PII username for Remnawave."""
 
-        return f"cvpn_trial_{self.customer_account_id.hex}"
+        return f"cvpn_t_{self.customer_account_id.hex[:28]}"
 
 
 @dataclass(frozen=True, slots=True)

@@ -20,6 +20,8 @@ from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCa
 from src.application.use_cases.mobile_auth.register import MobileRegisterUseCase
 from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
 from src.application.use_cases.mobile_auth.telegram_oidc_auth import MobileTelegramOIDCAuthUseCase
+from src.presentation.api.v1.telegram import routes as telegram_routes
+from src.presentation.api.v1.telegram.schemas import TelegramBotUserCreateRequest
 
 
 def _device() -> DeviceInfoDTO:
@@ -181,6 +183,135 @@ async def test_telegram_miniapp_new_account_creation_blocked_when_paused():
 
     user_repo.create.assert_not_called()
     user_repo.get_by_login.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_telegram_miniapp_bootstrap_allowlist_can_create_owner_when_paused():
+    created_user = MagicMock()
+    created_user.id = uuid4()
+    created_user.role = "viewer"
+
+    user_repo = AsyncMock()
+    user_repo.get_by_telegram_id.return_value = None
+    user_repo.get_by_login.return_value = None
+    user_repo.create.return_value = created_user
+    telegram_provider = MagicMock()
+    telegram_provider.validate_init_data.return_value = {
+        "id": "424242",
+        "username": "Sasha_Beep",
+        "first_name": "Sasha",
+    }
+    session = AsyncMock()
+    use_case = TelegramMiniAppUseCase(
+        user_repo=user_repo,
+        auth_service=_auth_service(),
+        session=session,
+        telegram_provider=telegram_provider,
+        remnawave_gateway=AsyncMock(),
+        allow_new_users=False,
+        bootstrap_usernames="@sasha_beep",
+    )
+
+    result = await use_case.execute("valid-init-data")
+
+    assert result.is_new_user is True
+    assert result.user is created_user
+    user_repo.create.assert_called_once()
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_telegram_bot_bootstrap_allowlist_can_create_beta_user_when_paused(monkeypatch):
+    class FakeAdminUserRepository:
+        def __init__(self, db):
+            self.db = db
+            self.created_users: list[object] = []
+
+        async def get_by_telegram_id(self, telegram_id):
+            return None
+
+        async def get_by_login(self, login):
+            return None
+
+        async def create(self, user):
+            user.id = uuid4()
+            user.created_at = datetime.now(UTC)
+            user.updated_at = user.created_at
+            self.created_users.append(user)
+            return user
+
+    async def fake_ensure_mobile_user(*args, **kwargs):
+        return SimpleNamespace(id=uuid4())
+
+    class FakeEntitlementsUseCase:
+        def __init__(self, db):
+            self.db = db
+
+        async def execute(self, user_id):
+            return {}
+
+    monkeypatch.setattr(telegram_routes, "AdminUserRepository", FakeAdminUserRepository)
+    monkeypatch.setattr(telegram_routes, "_ensure_mobile_user", fake_ensure_mobile_user)
+    monkeypatch.setattr(telegram_routes, "GetCurrentEntitlementsUseCase", FakeEntitlementsUseCase)
+    monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda secret: None)
+    monkeypatch.setattr(telegram_routes.settings, "registration_enabled", False)
+    monkeypatch.setattr(telegram_routes.settings, "telegram_bot_bootstrap_usernames", "@sasha_beep_kz")
+
+    auth_service = _auth_service()
+    remnawave_adapter = AsyncMock()
+
+    response = await telegram_routes.create_or_bootstrap_bot_user(
+        TelegramBotUserCreateRequest(
+            telegram_id=42424242,
+            username="Sasha_Beep_KZ",
+            first_name="Sasha",
+            language_code="ru",
+        ),
+        telegram_bot_secret="test",
+        db=AsyncMock(),
+        auth_service=auth_service,
+        remnawave_adapter=remnawave_adapter,
+    )
+
+    assert response.telegram_id == 42424242
+    assert response.username == "Sasha_Beep_KZ"
+    assert response.first_name == "Sasha"
+    assert response.language_code == "ru"
+    remnawave_adapter.create_user.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_telegram_bot_bootstrap_allowlist_keeps_unknown_user_blocked_when_paused(monkeypatch):
+    class FakeAdminUserRepository:
+        def __init__(self, db):
+            self.db = db
+
+        async def get_by_telegram_id(self, telegram_id):
+            return None
+
+        async def create(self, user):
+            raise AssertionError("blocked registration must not create a user")
+
+    monkeypatch.setattr(telegram_routes, "AdminUserRepository", FakeAdminUserRepository)
+    monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda secret: None)
+    monkeypatch.setattr(telegram_routes.settings, "registration_enabled", False)
+    monkeypatch.setattr(telegram_routes.settings, "telegram_bot_bootstrap_usernames", "@sasha_beep_kz")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await telegram_routes.create_or_bootstrap_bot_user(
+            TelegramBotUserCreateRequest(
+                telegram_id=777,
+                username="not_allowed",
+                first_name="User",
+                language_code="ru",
+            ),
+            telegram_bot_secret="test",
+            db=AsyncMock(),
+            auth_service=_auth_service(),
+            remnawave_adapter=AsyncMock(),
+        )
+
+    assert exc_info.value.status_code == 403
 
 
 @pytest.mark.asyncio

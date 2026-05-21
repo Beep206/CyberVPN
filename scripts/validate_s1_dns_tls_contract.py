@@ -18,15 +18,19 @@ REQUIRED_RECORDS = {
     "public_www_primary": "www.cyber-vpn.net",
     "public_api_primary": "api.cyber-vpn.net",
     "admin_primary": "admin.cyber-vpn.net",
-    "public_apex_mirror": "cyber-vpn.org",
-    "public_www_mirror": "www.cyber-vpn.org",
-    "admin_mirror": "admin.cyber-vpn.org",
+    "vpn_node_de_1": "de-1.cyber-vpn.org",
+    "vpn_node_de_1_alias": "de-1.node.cyber-vpn.org",
+    "future_subscription_org_reserved": "cyber-vpn.org",
 }
-REQUIRED_CERT_HOSTS = set(REQUIRED_RECORDS.values())
+REQUIRED_CERT_HOSTS = {
+    "cyber-vpn.net",
+    "www.cyber-vpn.net",
+    "api.cyber-vpn.net",
+    "admin.cyber-vpn.net",
+}
 REQUIRED_ADMIN_CONTROLS = {
     "admin_canonical_host_is_admin_cyber_vpn_net",
-    "admin_mirror_redirects_to_primary_admin",
-    "admin_mirror_must_not_set_independent_session_cookie",
+    "admin_cyber_vpn_org_must_not_serve_s1_admin",
     "admin_primary_requires_cloudflare_access_ip_allowlist_or_equivalent_before_login",
     "admin_primary_requires_backend_admin_host_guard",
     "admin_primary_requires_admin_2fa",
@@ -42,8 +46,8 @@ REQUIRED_WEBHOOK_CONTROLS = {
 REQUIRED_EVIDENCE_COMMANDS = {
     "dig_or_equivalent_for_each_required_host",
     "curl_head_http_to_https_redirect_for_each_public_host",
-    "curl_head_www_and_org_redirects_to_canonical",
-    "curl_head_admin_org_redirects_to_admin_cyber_vpn_net",
+    "vpn_node_org_dns_reachability_probe",
+    "org_customer_admin_mirror_routes_disabled_probe",
     "openssl_or_equivalent_tls_certificate_check_for_each_required_host",
     "curl_status_route_https_check_for_https_cyber_vpn_net_status",
     "admin_access_protection_browser_or_curl_proof",
@@ -56,6 +60,8 @@ REQUIRED_NOT_ALLOWED = {
     "dns_records_pointing_to_home_lab_origins_for_customer_path",
     "wildcard_dns_records_without_explicit_review",
     "admin_cyber_vpn_org_serving_independent_admin_session",
+    "cyber_vpn_org_serving_customer_web_mirror",
+    "www_cyber_vpn_org_serving_customer_web_mirror",
     "public_remnawave_api_dns_record",
     "public_postgresql_dns_record",
     "public_valkey_dns_record",
@@ -149,8 +155,12 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
         record = _by_id(records, record_id)
         if record.get("host") != host:
             errors.append(f"{record_id} host must be {host}")
-        if record.get("proxied_or_edge_terminated") is not True:
+        if record_id.startswith("vpn_node_") and record.get("proxied_or_edge_terminated") is not False:
+            errors.append(f"{record_id} must be DNS-only, not edge terminated")
+        elif not record_id.startswith("vpn_node_") and record_id != "future_subscription_org_reserved" and record.get("proxied_or_edge_terminated") is not True:
             errors.append(f"{record_id} must be proxied or edge terminated")
+        if record_id == "future_subscription_org_reserved" and record.get("behavior") != "no_customer_web_or_admin_mirror":
+            errors.append("future_subscription_org_reserved must not serve customer web or admin")
         if "staging" in str(record.get("record_policy", "")).lower():
             errors.append(f"{record_id} must not reference staging in record_policy")
 
@@ -161,10 +171,6 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     admin_record = _by_id(records, "admin_primary")
     if "access_protection" not in str(admin_record.get("behavior", "")):
         errors.append("admin primary behavior must require access protection")
-
-    admin_mirror = _by_id(records, "admin_mirror")
-    if admin_mirror.get("behavior") != "redirect_to_https_admin_cyber_vpn_net_preserve_path_no_independent_session":
-        errors.append("admin mirror must redirect to primary admin without independent session")
 
     status_endpoint = data.get("status_endpoint", {})
     if status_endpoint.get("canonical_url") != "https://cyber-vpn.net/status":
@@ -189,8 +195,6 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     redirect_targets = {item.get("target") for item in redirects}
     if "https://cyber-vpn.net/$path" not in redirect_targets:
         errors.append("redirects must include canonical public .net target")
-    if "https://admin.cyber-vpn.net/$path" not in redirect_targets:
-        errors.append("redirects must include canonical admin .net target")
     if not all(item.get("status") == "301_or_308" for item in redirects):
         errors.append("all redirects must use 301_or_308")
 

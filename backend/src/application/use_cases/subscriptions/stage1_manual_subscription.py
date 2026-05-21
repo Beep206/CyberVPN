@@ -51,7 +51,7 @@ class Stage1ManualSubscriptionRequest:
     def remnawave_username(self) -> str:
         """Return a deterministic non-PII username for manual S1 grants."""
 
-        return f"cvpn_manual_{self.customer_account_id.hex}"
+        return f"cvpn_m_{self.customer_account_id.hex[:28]}"
 
 
 @dataclass(frozen=True, slots=True)

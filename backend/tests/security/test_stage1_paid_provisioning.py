@@ -95,7 +95,8 @@ def test_stage1_paid_request_creates_access_from_requested_time() -> None:
     assert request.traffic_limit_bytes == 200 * 1024 * 1024 * 1024
     assert request.device_limit == 3
     assert request.traffic_limit_strategy == STAGE1_PAID_TRAFFIC_LIMIT_STRATEGY
-    assert request.remnawave_username == f"cvpn_paid_{user_id.hex}"
+    assert request.remnawave_username == f"cvpn_p_{user_id.hex[:28]}"
+    assert len(request.remnawave_username) <= 36
 
 
 def test_stage1_paid_request_extends_from_existing_future_access() -> None:

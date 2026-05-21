@@ -5,6 +5,7 @@ btn-connect = 🚀 Connect
 btn-devices = 📱 My Devices
 btn-subscription = 💳 Subscription
 btn-invite = 👥 Invite
+btn-my-invites = 🎟 My invites
 btn-support = 🆘 Support
 btn-profile = 👤 Profile
 btn-language = 🌐 Language

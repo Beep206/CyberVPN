@@ -1,9 +1,10 @@
 """Alembic environment configuration for async SQLAlchemy migrations."""
 
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
 from pathlib import Path
-import sys
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -14,6 +15,10 @@ from alembic import context
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+runtime_database_url = os.getenv("DATABASE_URL") or os.getenv("CYBERVPN_DATABASE_URL")
+if runtime_database_url:
+    config.set_main_option("sqlalchemy.url", runtime_database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -28,8 +33,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.infrastructure.database.models import *  # noqa: F403  # Import all models to register with MetaData
 from src.infrastructure.database.session import Base
-from src.infrastructure.database.models import *  # Import all models to register with MetaData
 
 target_metadata = Base.metadata
 

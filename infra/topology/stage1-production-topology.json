@@ -253,11 +253,11 @@
       "required_controls": ["tls", "security_headers", "managed_waf_if_available", "frontend_bundle_env_scan"]
     },
     {
-      "id": "public_site_mirror",
+      "id": "org_reserved_zone",
       "hosts": ["cyber-vpn.org", "www.cyber-vpn.org"],
-      "target_component": "edge_tls_waf",
-      "allowed_paths": ["redirect_only_to_cyber-vpn.net"],
-      "required_controls": ["tls", "301_or_308_redirect", "no_independent_auth_surface"]
+      "target_component": "vpn_node_and_future_subscription_zone",
+      "allowed_paths": ["vpn_node_dns_only", "future_subscription_delivery_after_separate_approval"],
+      "required_controls": ["no_customer_web_mirror", "no_admin_routes", "vpn_node_records_dns_only"]
     },
     {
       "id": "api_public",
@@ -291,11 +291,11 @@
       "required_controls": ["tls", "cloudflare_access_or_ip_allowlist_or_equivalent", "admin_host_guard", "admin_2fa", "rbac", "audit_log"]
     },
     {
-      "id": "admin_mirror",
+      "id": "admin_org_reserved",
       "hosts": ["admin.cyber-vpn.org"],
-      "target_component": "edge_tls_waf",
-      "allowed_paths": ["redirect_only_to_admin.cyber-vpn.net"],
-      "required_controls": ["tls", "301_or_308_redirect", "no_independent_admin_session_surface"]
+      "target_component": "reserved_no_admin",
+      "allowed_paths": ["no_s1_admin"],
+      "required_controls": ["no_public_admin_login", "no_independent_admin_session_surface", "no_admin_backend_origin"]
     },
     {
       "id": "telegram_webhook",

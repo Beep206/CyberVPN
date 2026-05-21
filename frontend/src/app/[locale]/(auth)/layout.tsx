@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
+import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { AUTH_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import { getCachedTranslations } from '@/i18n/server';
@@ -72,7 +73,9 @@ export default async function AuthLayout({
         </MiniAppNavGuard>
 
         <main id="main-content" tabIndex={-1} className="keyboard-safe-bottom relative z-10 w-full max-w-lg px-[calc(var(--mobile-page-gutter)+var(--safe-area-left))] pr-[calc(var(--mobile-page-gutter)+var(--safe-area-right))] pt-[calc(var(--safe-area-top)+5.5rem)] pb-[calc(var(--safe-area-bottom)+2rem)] focus:outline-hidden md:px-4 md:py-20">
-          <TelegramMiniAppAuthProvider>{children}</TelegramMiniAppAuthProvider>
+          <QueryProvider>
+            <TelegramMiniAppAuthProvider>{children}</TelegramMiniAppAuthProvider>
+          </QueryProvider>
         </main>
 
         <div className="fixed bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent z-20" />

@@ -8,7 +8,7 @@ from aiogram.filters import CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, User
 
-from src.handlers.menu import connect_command_handler, main_menu_command_handler
+from src.handlers.menu import connect_command_handler, invite_codes_command_handler, main_menu_command_handler
 from src.handlers.start import start_handler
 from src.handlers.subscription import plans_command_handler
 from src.handlers.support import support_command
@@ -156,6 +156,33 @@ async def test_trial_command_activates_trial_and_prompts_for_config() -> None:
     assert "trial-activated" in message.answer.await_args_list[0].kwargs["text"]
     assert message.answer.await_args_list[1].kwargs["text"] == "config-delivery-prompt"
     assert message.answer.await_args_list[1].kwargs["reply_markup"] is not None
+
+
+@pytest.mark.asyncio
+async def test_invites_command_shows_owned_invite_codes() -> None:
+    message = _message()
+    api_client = SimpleNamespace(
+        get_invite_codes=AsyncMock(
+            return_value=[
+                {
+                    "id": "invite-1",
+                    "code": "OWNER123",
+                    "free_days": 7,
+                    "is_used": False,
+                    "expires_at": "2026-05-24T11:54:13Z",
+                    "created_at": "2026-05-21T11:54:13Z",
+                }
+            ]
+        )
+    )
+
+    await invite_codes_command_handler(message, _I18nStub(), api_client)
+
+    api_client.get_invite_codes.assert_awaited_once_with(123456)
+    message.answer.assert_awaited_once()
+    assert "my-invites-info" in message.answer.await_args.kwargs["text"]
+    assert "OWNER123" in message.answer.await_args.kwargs["text"]
+    assert message.answer.await_args.kwargs["reply_markup"] is not None
 
 
 @pytest.mark.asyncio

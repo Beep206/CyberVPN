@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from html import escape
 from typing import TYPE_CHECKING
 
 import structlog
@@ -7,6 +9,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 
 from src.keyboards.menu import main_menu_keyboard, profile_kb
+from src.keyboards.referral import invite_codes_keyboard
 from src.keyboards.subscription import subscription_keyboard
 
 if TYPE_CHECKING:
@@ -19,6 +22,87 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 router = Router(name="menu")
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str) or not value:
+        return None
+
+    normalized = value.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
+def _format_invite_date(value: object) -> str:
+    parsed = _parse_datetime(value)
+    if parsed is None:
+        return "N/A"
+    return parsed.astimezone(UTC).strftime("%Y-%m-%d")
+
+
+def _is_invite_expired(invite: dict[str, object]) -> bool:
+    expires_at = _parse_datetime(invite.get("expires_at"))
+    if expires_at is None:
+        return False
+    return expires_at.astimezone(UTC) <= datetime.now(UTC)
+
+
+def _invite_status_key(invite: dict[str, object]) -> str:
+    if bool(invite.get("is_used")):
+        return "my-invites-status-used"
+    if _is_invite_expired(invite):
+        return "my-invites-status-expired"
+    return "my-invites-status-active"
+
+
+def _render_invite_items(invites: list[dict[str, object]], i18n: I18nContext) -> str:
+    if not invites:
+        return i18n.get("my-invites-empty")
+
+    items: list[str] = []
+    for invite in invites[:10]:
+        code = escape(str(invite.get("code") or "N/A"))
+        free_days = int(invite.get("free_days") or 0)
+        status = i18n.get(_invite_status_key(invite))
+        expires = _format_invite_date(invite.get("expires_at"))
+        created = _format_invite_date(invite.get("created_at"))
+        items.append(
+            i18n.get(
+                "my-invites-item",
+                code=code,
+                days=free_days,
+                status=status,
+                expires=expires,
+                created=created,
+            )
+        )
+
+    return "\n\n".join(items)
+
+
+async def _build_my_invites_response(
+    *,
+    user_id: int,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+) -> tuple[str, InlineKeyboardMarkup]:
+    invites = await api_client.get_invite_codes(user_id)
+    active_count = sum(
+        1
+        for invite in invites
+        if not bool(invite.get("is_used")) and not _is_invite_expired(invite)
+    )
+    text = i18n.get(
+        "my-invites-info",
+        count=len(invites),
+        active_count=active_count,
+        items=_render_invite_items(invites, i18n),
+    )
+    return text, invite_codes_keyboard(i18n)
 
 
 async def _build_connect_menu_response(
@@ -154,33 +238,20 @@ async def invite_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
-    settings: BotSettings,
 ) -> None:
-    """Handle invite/referral menu callback."""
+    """Handle invite-code menu callback."""
     user_id = callback.from_user.id
 
     try:
-        # Get referral stats
-        stats = await api_client.get_referral_stats(user_id)
-        referral_count = stats.get("total_referrals", 0)
-        referral_bonus = stats.get("bonus_days", stats.get("total_bonus", 0))
-
-        # Generate referral link
-        bot_username = settings.bot_username or "CyberVPNBot"
-        referral_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
-
-        text = i18n.get(
-            "referral-info",
-            link=referral_link,
-            count=referral_count,
-            bonus_days=referral_bonus,
+        text, reply_markup = await _build_my_invites_response(
+            user_id=user_id,
+            i18n=i18n,
+            api_client=api_client,
         )
-
-        from src.keyboards.referral import referral_keyboard
 
         await callback.message.edit_text(
             text=text,
-            reply_markup=referral_keyboard(i18n, stats),
+            reply_markup=reply_markup,
         )
     except Exception as e:
         logger.error("invite_menu_error", user_id=user_id, error=str(e))
@@ -188,6 +259,41 @@ async def invite_menu_handler(
         return
 
     await callback.answer()
+
+
+@router.callback_query(F.data == "referral:invites")
+async def invite_codes_refresh_handler(
+    callback: CallbackQuery,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+) -> None:
+    """Refresh the invite-code list from the bot UI."""
+    await invite_menu_handler(callback, i18n, api_client)
+
+
+@router.message(Command("invites"))
+async def invite_codes_command_handler(
+    message: Message,
+    i18n: I18nContext,
+    api_client: CyberVPNAPIClient,
+) -> None:
+    """Open manually issued invite codes from the Telegram command list."""
+    if message.from_user is None:
+        return
+
+    user_id = message.from_user.id
+    try:
+        text, reply_markup = await _build_my_invites_response(
+            user_id=user_id,
+            i18n=i18n,
+            api_client=api_client,
+        )
+    except Exception as e:
+        logger.error("invite_codes_command_error", user_id=user_id, error=str(e))
+        await message.answer(i18n.get("error-generic"))
+        return
+
+    await message.answer(text=text, reply_markup=reply_markup)
 
 
 @router.callback_query(F.data == "menu:profile")

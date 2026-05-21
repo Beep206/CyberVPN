@@ -18,13 +18,17 @@
     "expires": "Expires",
     "never": "Never",
     "unknown": "Unknown",
+    "defaultPlan": "Premium",
     "trialPlan": "3-Day Free Trial",
     "daysRemaining": "Days Remaining",
     "noSubscriptionDescription": "You don't have an active subscription. Activate a trial or choose a plan to get started.",
     "usage": "Usage Statistics",
+    "usageUnavailable": "Usage unavailable",
     "dataUsed": "Data Used",
     "connections": "Connections",
     "lastConnected": "Last Connected",
+    "provider": "Provider",
+    "channel": "Channel",
     "trialAvailable": "Free Trial Available",
     "trialDescription": "Try CyberVPN free for 3 days on 1 device.",
     "activateTrial": "Activate Trial",
@@ -39,6 +43,7 @@
     "viewQR": "View QR Code",
     "openInApp": "Open in App",
     "configCopied": "VPN config copied to clipboard!",
+    "configCopyError": "Failed to copy VPN config",
     "configQRTitle": "VPN Config QR Code",
     "configQRDescription": "Scan this QR code with your mobile device to import the VPN configuration",
     "noConfigAvailable": "No VPN config available",
@@ -47,6 +52,8 @@
     "serviceMaintenanceDescription": "Mini App is temporarily in maintenance mode. Some actions may be unavailable.",
     "limitedRolloutDescription": "Mini App is currently in limited canary rollout. Access is restricted to approved Telegram users.",
     "rollbackDescription": "Mini App trial and checkout are temporarily paused while rollback is in progress.",
+    "sessionRestoringTitle": "Restoring Telegram sign-in",
+    "sessionRestoringDescription": "The Mini App session is being refreshed. If the screen does not update automatically, close and reopen the Mini App from the bot.",
     "trafficLimit": "Traffic"
   },
   "wallet": {
@@ -106,6 +113,12 @@
       "annual": "365 days",
       "custom": "{days} days"
     },
+    "planNames": {
+      "basic": "Basic",
+      "plus": "Plus",
+      "pro": "Pro",
+      "max": "Max"
+    },
     "addonsTitle": "Add-ons",
     "addonsDescription": "Extra devices and Dedicated IP stay separate from the main tier ladder. That keeps the catalog short and the quote logic predictable.",
     "addonsUpgradeLocked": "Upgrade first, then attach add-ons. The current API treats upgrade and add-on purchase as two clean operations.",
@@ -122,6 +135,7 @@
     "promoCodePlaceholder": "SAVE20",
     "apply": "Apply code",
     "promoApplied": "Checkout code applied: {code}",
+    "checkoutCodeDisabled": "Checkout codes are temporarily disabled.",
     "checkoutCodeEmpty": "Enter a checkout code first.",
     "checkoutCodeAccepted": "Checkout code accepted: {code}",
     "checkoutCodeAcceptedReferral": "Referral friend discount accepted for this checkout.",
@@ -178,7 +192,22 @@
     "limitedRolloutDescription": "Mini App is currently in limited canary rollout. Access is restricted to approved Telegram users.",
     "rollbackDescription": "Mini App trial and checkout are temporarily paused while rollback is in progress.",
     "billingCurrencyNotice": "Charged in {currency}",
-    "localEstimate": "Approx. {price} display only"
+    "localEstimate": "Approx. {price} display only",
+    "trafficUnlimited": "Unlimited",
+    "connectionModes": {
+      "standard": "standard",
+      "stealth": "stealth",
+      "manualConfig": "manual setup",
+      "dedicatedIp": "dedicated IP",
+      "experimental": "experimental"
+    },
+    "serverPools": {
+      "shared": "shared pool",
+      "sharedPlus": "shared+ pool",
+      "premiumShared": "premium shared pool",
+      "premium": "premium pool",
+      "exclusive": "exclusive pool"
+    }
   },
   "profile": {
     "guest": "Guest User",
@@ -191,6 +220,20 @@
     "referralShareText": "Join CyberVPN with my code: {code}",
     "totalReferrals": "Total Referrals",
     "totalEarnings": "Total Earnings",
+    "myInvites": "My invites",
+    "myInvitesSubtitle": "Invite codes manually issued to your account for the controlled beta.",
+    "myInvitesError": "Failed to load invites. Refresh the Mini App or open it again.",
+    "noInvites": "No invite codes yet",
+    "copyInvite": "Copy invite",
+    "inviteCopied": "Invite code copied",
+    "inviteStatus": {
+      "active": "Active",
+      "used": "Used",
+      "expired": "Expired"
+    },
+    "inviteDays": "{days} free days",
+    "inviteExpires": "Expires {date}",
+    "inviteCreated": "Issued {date}",
     "security": "Security",
     "twoFactorAuth": "Two-Factor Authentication",
     "enabled": "Enabled",
@@ -200,6 +243,7 @@
     "activeDevices": "Active Devices",
     "securityNote": "Manage your password and 2FA settings in the full dashboard",
     "paymentHistory": "Payment History",
+    "orderFallback": "Order",
     "viewAll": "View All",
     "noPayments": "No payment history yet",
     "settings": "Settings",
@@ -234,6 +278,7 @@
     "deleteAccount": "Delete Account",
     "deleteAccountConfirm": "Are you sure? This action cannot be undone.",
     "accountDeleted": "Account deleted successfully",
+    "deletingAccount": "Deleting account...",
     "deleteAccountError": "Failed to delete account. Please try again.",
     "copyError": "Failed to copy to clipboard",
     "passwordChange": {

@@ -21,6 +21,19 @@ from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 logger = logging.getLogger(__name__)
 
 
+def _normalize_bootstrap_usernames(value: str | None) -> frozenset[str]:
+    """Return normalized Telegram usernames allowed for closed beta bootstrap."""
+    if not value:
+        return frozenset()
+
+    usernames: set[str] = set()
+    for item in value.replace(";", ",").split(","):
+        username = item.strip().lstrip("@").casefold()
+        if username:
+            usernames.add(username)
+    return frozenset(usernames)
+
+
 class TelegramMiniAppResult:
     """Result of Telegram Mini App authentication."""
 
@@ -56,6 +69,7 @@ class TelegramMiniAppUseCase:
         telegram_provider: TelegramOAuthProvider,
         remnawave_gateway: RemnawaveGateway | None = None,
         allow_new_users: bool = True,
+        bootstrap_usernames: str | None = None,
     ) -> None:
         self._user_repo = user_repo
         self._auth_service = auth_service
@@ -63,6 +77,12 @@ class TelegramMiniAppUseCase:
         self._telegram = telegram_provider
         self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
+        self._bootstrap_usernames = _normalize_bootstrap_usernames(bootstrap_usernames)
+
+    def _is_bootstrap_username_allowed(self, username: str | None) -> bool:
+        if not username or not self._bootstrap_usernames:
+            return False
+        return username.strip().lstrip("@").casefold() in self._bootstrap_usernames
 
     async def execute(self, init_data: str) -> TelegramMiniAppResult:
         """Validate initData, extract Telegram user, auto-login or auto-register.
@@ -94,10 +114,17 @@ class TelegramMiniAppUseCase:
 
         if not user:
             # Step 3: Auto-register with Telegram-first onboarding
-            ensure_public_registration_enabled(
-                channel="telegram_miniapp",
-                registration_enabled=self._allow_new_users,
-            )
+            bootstrap_allowed = self._is_bootstrap_username_allowed(username)
+            if not bootstrap_allowed:
+                ensure_public_registration_enabled(
+                    channel="telegram_miniapp",
+                    registration_enabled=self._allow_new_users,
+                )
+            elif not self._allow_new_users:
+                logger.warning(
+                    "Telegram Mini App bootstrap allowlist used while public registration is paused",
+                    extra={"bootstrap_usernames_count": len(self._bootstrap_usernames)},
+                )
             login = OAuthLoginUseCase._generate_telegram_login(
                 username=username,
                 first_name=first_name,

@@ -72,7 +72,8 @@ def test_stage1_trial_request_uses_default_vpn_profile_and_limits() -> None:
     assert request.traffic_limit_bytes == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
     assert request.device_limit == STAGE1_TRIAL_DEVICE_LIMIT
     assert request.traffic_limit_strategy == STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY
-    assert request.remnawave_username == f"cvpn_trial_{user_id.hex}"
+    assert request.remnawave_username == f"cvpn_t_{user_id.hex[:28]}"
+    assert len(request.remnawave_username) <= 36
 
 
 @pytest.mark.asyncio
@@ -224,3 +225,164 @@ async def test_activate_trial_use_case_rejects_duplicate_trial(monkeypatch: pyte
         await ActivateTrialUseCase(object()).execute(user_id)
 
     assert repo.updated is None
+
+
+@pytest.mark.asyncio
+async def test_miniapp_trial_activation_passes_provisioning_gateway(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.presentation.api.v1.miniapp import routes as miniapp_routes
+
+    user_id = uuid4()
+    gateway = object()
+    seen: dict[str, object | None] = {}
+
+    class FakeRedis:
+        async def get(self, _key: str) -> None:
+            return None
+
+        async def ttl(self, _key: str) -> int:
+            return 0
+
+        def pipeline(self):
+            class FakePipeline:
+                async def incr(self, _key: str):
+                    return self
+
+                async def expire(self, _key: str, _ttl: int):
+                    return self
+
+                async def execute(self) -> None:
+                    return None
+
+            return FakePipeline()
+
+    class FakeActivateTrialUseCase:
+        def __init__(self, _db, provisioning_gateway=None) -> None:
+            seen["gateway"] = provisioning_gateway
+
+        async def execute(self, _user_id: UUID):
+            return SimpleNamespace(
+                activated=True,
+                trial_end=datetime.now(UTC) + timedelta(days=STAGE1_TRIAL_DURATION_DAYS),
+                message="Trial activated successfully.",
+            )
+
+    async def fake_runtime_config(_db=None):
+        return miniapp_routes.MiniAppRuntimeConfig()
+
+    monkeypatch.setattr(miniapp_routes, "ActivateTrialUseCase", FakeActivateTrialUseCase)
+    monkeypatch.setattr(miniapp_routes, "_get_miniapp_runtime_config", fake_runtime_config)
+
+    response = await miniapp_routes.activate_miniapp_trial(
+        db=object(),
+        user_id=user_id,
+        redis_client=FakeRedis(),
+        provisioning_gateway=gateway,
+    )
+
+    assert response.activated is True
+    assert seen["gateway"] is gateway
+
+
+@pytest.mark.asyncio
+async def test_telegram_bot_trial_activation_passes_provisioning_gateway(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.presentation.api.v1.telegram import routes as telegram_routes
+    from src.presentation.api.v1.telegram.schemas import TelegramBotTrialStatusResponse
+
+    user_id = uuid4()
+    gateway = object()
+    user = SimpleNamespace(id=user_id)
+    seen: dict[str, object | None] = {}
+
+    class FakeActivateTrialUseCase:
+        def __init__(self, _db, provisioning_gateway=None) -> None:
+            seen["gateway"] = provisioning_gateway
+
+        async def execute(self, _user_id: UUID):
+            return SimpleNamespace(activated=True)
+
+    async def fake_get_user(_db, _telegram_id: int):
+        return user
+
+    status_calls = {"count": 0}
+
+    async def fake_trial_status(_db, _user):
+        status_calls["count"] += 1
+        return TelegramBotTrialStatusResponse(
+            eligible=status_calls["count"] == 1,
+            reason=None,
+            is_trial_active=status_calls["count"] > 1,
+            trial_start=None,
+            trial_end=datetime.now(UTC) + timedelta(days=STAGE1_TRIAL_DURATION_DAYS),
+            days_remaining=STAGE1_TRIAL_DURATION_DAYS,
+            duration_days=STAGE1_TRIAL_DURATION_DAYS,
+        )
+
+    monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda _secret: None)
+    monkeypatch.setattr(telegram_routes, "_get_mobile_user_or_404", fake_get_user)
+    monkeypatch.setattr(telegram_routes, "_build_mobile_trial_status", fake_trial_status)
+    monkeypatch.setattr(telegram_routes, "ActivateTrialUseCase", FakeActivateTrialUseCase)
+
+    response = await telegram_routes.activate_bot_user_trial(
+        telegram_id=123456,
+        telegram_bot_secret="internal-secret",
+        db=object(),
+        provisioning_gateway=gateway,
+    )
+
+    assert response.is_trial_active is True
+    assert seen["gateway"] is gateway
+
+
+@pytest.mark.asyncio
+async def test_telegram_bot_config_uses_local_remnawave_uuid_before_telegram_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.presentation.api.v1.telegram import routes as telegram_routes
+
+    remnawave_uuid = uuid4()
+    seen: dict[str, object] = {}
+
+    class FakeMobileUserRepo:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_telegram_id(self, _telegram_id: int):
+            return SimpleNamespace(
+                remnawave_uuid=str(remnawave_uuid),
+                subscription_url="https://legacy.example/sub",
+            )
+
+    class FakeGenerateConfigUseCase:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def execute(self, user_uuid):
+            seen["user_uuid"] = user_uuid
+            return {
+                "config_string": "vless://generated",
+                "client_type": "vless",
+            }
+
+    class UnexpectedGateway:
+        def __init__(self, *args, **kwargs) -> None:
+            raise AssertionError("telegram_id Remnawave lookup should not run when local Remnawave UUID exists")
+
+    monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda _secret: None)
+    monkeypatch.setattr(telegram_routes, "MobileUserRepository", FakeMobileUserRepo)
+    monkeypatch.setattr(telegram_routes, "GenerateConfigUseCase", FakeGenerateConfigUseCase)
+    monkeypatch.setattr(telegram_routes, "RemnawaveUserGateway", UnexpectedGateway)
+
+    response = await telegram_routes.get_bot_user_config(
+        telegram_id=123456,
+        telegram_bot_secret="internal-secret",
+        db=object(),
+        remnawave_client=object(),
+    )
+
+    assert seen["user_uuid"] == str(remnawave_uuid)
+    assert response.config_string == "vless://generated"
+    assert response.client_type == "vless"
