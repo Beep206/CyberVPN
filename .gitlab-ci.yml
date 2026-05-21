@@ -710,11 +710,7 @@ stage1:deploy:backend:
     - .stage1_deploy_job
   variables:
     STAGE1_DEPLOY_SERVICES: backend
-  needs:
-    - job: backend:lint
-      optional: true
-    - job: backend:test:smoke
-      optional: true
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
       changes:
@@ -738,13 +734,7 @@ stage1:deploy:frontend:
     - .stage1_deploy_job
   variables:
     STAGE1_DEPLOY_SERVICES: frontend
-  needs:
-    - job: frontend:lint
-      optional: true
-    - job: frontend:test
-      optional: true
-    - job: frontend:build
-      optional: true
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
       changes:
@@ -768,13 +758,7 @@ stage1:deploy:admin:
     - .stage1_deploy_job
   variables:
     STAGE1_DEPLOY_SERVICES: admin
-  needs:
-    - job: admin:lint
-      optional: true
-    - job: admin:test
-      optional: true
-    - job: admin:build
-      optional: true
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
       changes:
@@ -798,11 +782,7 @@ stage1:deploy:telegram-bot:
     - .stage1_deploy_job
   variables:
     STAGE1_DEPLOY_SERVICES: telegram-bot
-  needs:
-    - job: telegram-bot:lint
-      optional: true
-    - job: telegram-bot:test:smoke
-      optional: true
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
       changes:
@@ -826,11 +806,7 @@ stage1:deploy:task-worker:
     - .stage1_deploy_job
   variables:
     STAGE1_DEPLOY_SERVICES: task-worker
-  needs:
-    - job: task-worker:lint
-      optional: true
-    - job: task-worker:test:smoke
-      optional: true
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $STAGE1_AUTO_DEPLOY == "true"'
       changes:
@@ -854,17 +830,7 @@ stage1:deploy:all:
     - .stage1_deploy_job
   variables:
     STAGE1_DEPLOY_SERVICES: all
-  needs:
-    - job: frontend:build
-      optional: true
-    - job: admin:build
-      optional: true
-    - job: backend:test:smoke
-      optional: true
-    - job: telegram-bot:test:smoke
-      optional: true
-    - job: task-worker:test:smoke
-      optional: true
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual

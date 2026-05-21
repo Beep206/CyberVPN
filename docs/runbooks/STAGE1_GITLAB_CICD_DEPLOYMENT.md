@@ -71,6 +71,8 @@ Runner contract:
 
 Keep the deploy runner separate from the normal `h-docker` runner. Do not run untagged jobs on it.
 
+Deploy jobs intentionally use `needs: []`. This keeps Stage 1 emergency/hotfix deploys manually available even when unrelated Stage 2/Stage 3 or optional quality jobs fail in the same pipeline. The human operator must still review relevant failed jobs before pressing deploy.
+
 ## Required Protected CI Variables
 
 Set these in GitLab project/group CI/CD variables. Mark secret values as masked and protected.
