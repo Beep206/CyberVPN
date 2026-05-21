@@ -89,10 +89,15 @@ ssh_key_file="${STAGE1_PROD_SSH_KEY_FILE:-}"
 temporary_key_file=""
 if [[ -z "$ssh_key_file" ]]; then
   [[ -n "${STAGE1_PROD_SSH_PRIVATE_KEY:-}" ]] || fail "STAGE1_PROD_SSH_PRIVATE_KEY or STAGE1_PROD_SSH_KEY_FILE is required"
-  temporary_key_file="$(mktemp)"
-  printf '%s\n' "$STAGE1_PROD_SSH_PRIVATE_KEY" >"$temporary_key_file"
-  chmod 600 "$temporary_key_file"
-  ssh_key_file="$temporary_key_file"
+  if [[ -f "$STAGE1_PROD_SSH_PRIVATE_KEY" ]]; then
+    ssh_key_file="$STAGE1_PROD_SSH_PRIVATE_KEY"
+    chmod 600 "$ssh_key_file" 2>/dev/null || true
+  else
+    temporary_key_file="$(mktemp)"
+    printf '%s\n' "$STAGE1_PROD_SSH_PRIVATE_KEY" >"$temporary_key_file"
+    chmod 600 "$temporary_key_file"
+    ssh_key_file="$temporary_key_file"
+  fi
 fi
 
 known_hosts_file="$(mktemp)"
