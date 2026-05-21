@@ -28,7 +28,6 @@ import {
   getUnsupportedCheckoutCodeMessage,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
 import { formatMoney, getPricePresentation } from '@/widgets/pricing/utils';
-import { getLocalDisplayEstimate } from '@/shared/lib/pricing-display';
 import { STAGE1_CHECKOUT_CODES_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 import type { PricingTierCode } from '@/widgets/pricing/types';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
@@ -303,7 +302,6 @@ function QuoteBreakdown({
   quote: CheckoutQuoteResponse;
 }) {
   const entitlements = quote.entitlements_snapshot.effective_entitlements;
-  const quoteLocalEstimate = getLocalDisplayEstimate(locale, quote.displayed_price);
 
   return (
     <div className="space-y-4">
@@ -327,13 +325,6 @@ function QuoteBreakdown({
             <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/42">
               {t('billingCurrencyNotice', { currency: 'USD' })}
             </p>
-            {quoteLocalEstimate ? (
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-neon-cyan/75">
-                {t('localEstimate', {
-                  price: formatMoney(locale, quoteLocalEstimate.amount, quoteLocalEstimate.currency),
-                })}
-              </p>
-            ) : null}
           </div>
         </div>
       </div>
@@ -1065,17 +1056,6 @@ export default function MiniAppPlansPage() {
                     <p className="mt-1 text-sm font-mono text-white/60">
                       {formatPlanDisplayName(t, selectedFamily)} · {selectedPrice}
                     </p>
-                    {selectedPricePresentation?.localEstimate ? (
-                      <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">
-                        {t('localEstimate', {
-                          price: formatMoney(
-                            locale,
-                            selectedPricePresentation.localEstimate.amount,
-                            selectedPricePresentation.localEstimate.currency,
-                          ),
-                        })}
-                      </p>
-                    ) : null}
                   </div>
                   <span className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
                     {flowLabel}
@@ -1107,17 +1087,6 @@ export default function MiniAppPlansPage() {
                         <div className="mt-1 text-xs font-mono text-white/55">
                           {formatMoney(locale, periodPrice.billing.amount, periodPrice.billing.currency)}
                         </div>
-                        {periodPrice.localEstimate ? (
-                          <div className="mt-1 text-[11px] font-mono text-neon-cyan/70">
-                            {t('localEstimate', {
-                              price: formatMoney(
-                                locale,
-                                periodPrice.localEstimate.amount,
-                                periodPrice.localEstimate.currency,
-                              ),
-                            })}
-                          </div>
-                        ) : null}
                         {period.invite_bundle.count > 0 ? (
                           <div className="mt-2 text-[11px] font-mono text-matrix-green">
                             {t('periodInviteBonus', {
@@ -1172,17 +1141,6 @@ export default function MiniAppPlansPage() {
                             })
                           : t('addonUnavailable')}
                       </p>
-                      {extraDevicePricePresentation?.localEstimate ? (
-                        <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">
-                          {t('localEstimate', {
-                            price: formatMoney(
-                              locale,
-                              extraDevicePricePresentation.localEstimate.amount,
-                              extraDevicePricePresentation.localEstimate.currency,
-                            ),
-                          })}
-                        </p>
-                      ) : null}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -1238,17 +1196,6 @@ export default function MiniAppPlansPage() {
                             })
                           : t('addonUnavailable')}
                       </p>
-                      {dedicatedIpPricePresentation?.localEstimate ? (
-                        <p className="mt-1 text-xs font-mono uppercase tracking-[0.14em] text-neon-cyan/70">
-                          {t('localEstimate', {
-                            price: formatMoney(
-                              locale,
-                              dedicatedIpPricePresentation.localEstimate.amount,
-                              dedicatedIpPricePresentation.localEstimate.currency,
-                            ),
-                          })}
-                        </p>
-                      ) : null}
                     </div>
                   </label>
 

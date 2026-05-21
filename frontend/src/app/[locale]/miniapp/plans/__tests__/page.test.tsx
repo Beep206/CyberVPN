@@ -308,6 +308,7 @@ describe('MiniAppPlansPage', () => {
       expect(screen.getByText('Basic')).toBeInTheDocument();
       expect(screen.getByText('Plus')).toBeInTheDocument();
       expect(screen.getByText('Annual')).toBeInTheDocument();
+      expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
     });
   });
 

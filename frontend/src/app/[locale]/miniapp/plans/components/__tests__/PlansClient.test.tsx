@@ -306,6 +306,7 @@ describe('MiniApp Plans Page', () => {
       expect(screen.getByText('Basic')).toBeInTheDocument();
       expect(screen.getByText('Plus')).toBeInTheDocument();
       expect(screen.getByText('Annual')).toBeInTheDocument();
+      expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
       expect(apiMocks.miniappApi.quoteCheckout).toHaveBeenCalledWith(
         expect.objectContaining({
           plan_id: 'plan-plus-365',
