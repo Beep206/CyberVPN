@@ -111,7 +111,7 @@ if [[ -n "${STAGE1_PROD_KNOWN_HOSTS:-}" ]]; then
   printf '%s\n' "$STAGE1_PROD_KNOWN_HOSTS" >"$known_hosts_file"
 else
   log "STAGE1_PROD_KNOWN_HOSTS is not set; collecting host key with ssh-keyscan"
-  ssh-keyscan -p "$port" -H "$host" >"$known_hosts_file" 2>/dev/null
+  ssh-keyscan -t rsa,ecdsa,ed25519 -p "$port" -H "$host" >"$known_hosts_file" 2>/dev/null
 fi
 
 ssh_base=(
