@@ -130,7 +130,7 @@ ssh_cmd() {
 remote_src="$release_root/src-$release_tag"
 
 log "creating remote source directory $remote_src"
-ssh_cmd "mkdir -p '$remote_src'"
+ssh_cmd "$remote_sudo install -d -o '$user' -g '$user' '$remote_src'"
 
 log "syncing source without secrets/heavy build artifacts"
 rsync -az --delete \
