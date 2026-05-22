@@ -399,7 +399,8 @@ docs/evidence/releases/s2-stage-05-auth-registration-YYYYMMDD.md
 8. Confirm payment reconciliation dashboard.
 9. Confirm refund handling.
 10. Confirm Telegram Stars behavior stays Telegram-only.
-11. Keep autoprolongation disabled unless the recurring consent/cancel/failure/refund evidence is complete.
+11. Build referral/promo/gift payment safety only behind kill switches.
+12. Keep autoprolongation disabled until recurring consent/cancel/failure/refund evidence is complete.
 
 **Evidence:**
 
@@ -432,6 +433,7 @@ docs/evidence/releases/s2-stage-06-payment-hardening-YYYYMMDD.md
 7. Confirm renewal invoice/link flow if used.
 8. Confirm refund state and access state after refund.
 9. Confirm UI messages for expired, active, payment pending, provisioning pending, and config unavailable.
+10. Confirm autoprolongation consent, cancellation, failed-renewal and reminder flows before enabling true recurring billing.
 
 **Evidence:**
 
@@ -635,11 +637,12 @@ docs/evidence/releases/s2-stage-12-backup-restore-dr-YYYYMMDD.md
 5. Confirm payment webhook routes are protected but not blocked by challenge pages.
 6. Confirm auth abuse controls.
 7. Confirm trial abuse controls.
-8. Confirm invite/referral abuse controls if any remain enabled.
+8. Confirm invite/referral/promo/gift abuse controls before public enablement.
 9. Confirm PII/log redaction.
 10. Confirm admin domain protection.
 11. Confirm support privacy boundaries.
 12. Confirm no raw subscription URLs or VPN credentials are exposed in logs.
+13. Confirm referral/promo/gift/autoprolongation kill switches and audit trails.
 
 **Evidence:**
 
@@ -899,4 +902,3 @@ S2-STAGE-01: Local Fast-Fix And Test Baseline
 ```
 
 This should reduce the time spent on small production fixes before we touch larger S2 work.
-

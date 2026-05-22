@@ -89,7 +89,7 @@ These items are required before CyberVPN can be called Public Release 1.0.
 | `S2-REQ-008` | `S2-STAGE-06` | Orphan payment controls | Paid-but-no-access/orphan queue with `<24h` escalation policy proven |
 | `S2-REQ-009` | `S2-STAGE-06` | Reconciliation proof | Payment reconciliation process and dashboard evidence |
 | `S2-REQ-010` | `S2-STAGE-07` | Subscription lifecycle proof | Active/expired/grace/manual-renewal/refund state behavior documented and tested |
-| `S2-REQ-011` | `S2-STAGE-07` | Customer-visible lifecycle copy | No misleading autoprolongation or refund promises |
+| `S2-REQ-011` | `S2-STAGE-07` | Customer-visible lifecycle copy | No misleading renewal/autoprolongation/refund promises; recurring copy appears only after consent/cancel evidence |
 | `S2-REQ-012` | `S2-STAGE-08` | Remnawave provisioning proof | Trial/paid/manual grant provisioning proof |
 | `S2-REQ-013` | `S2-STAGE-08` | Subscription URL proof | Primary config delivery uses subscription URL where appropriate, not raw `vless://` by default |
 | `S2-REQ-014` | `S2-STAGE-08` | XHTTP proof | XHTTP available through subscription output where expected |
@@ -107,29 +107,42 @@ These items are required before CyberVPN can be called Public Release 1.0.
 | `S2-REQ-026` | `S2-STAGE-16` | Production canary | Small public cohort proves register/pay/provision/connect/support |
 | `S2-REQ-027` | `S2-STAGE-17` | Owner Go/No-Go | Formal owner decision for public B2C opening |
 | `S2-REQ-028` | `S2-STAGE-18` | Stabilization loop | Daily post-launch checks and S3 readiness decision |
+| `S2-REQ-029` | `S2-STAGE-06` | Growth and recurring payment safety | Promo, gift, referral-related discounts and recurring payment events have signature, idempotency, refund, orphan and reconciliation evidence |
+| `S2-REQ-030` | `S2-STAGE-07` | Autoprolongation lifecycle | User consent, cancel flow, failed-renewal handling, renewal notices and access state transitions are documented and tested |
+| `S2-REQ-031` | `S2-STAGE-13` | Referral/promo/gift abuse gate | Self-referral, duplicate redemption, code leakage, stacking, rate limits, kill switches and audit trails are proven before public enablement |
+| `S2-REQ-032` | `S2-STAGE-09` | Growth and recurring support workflow | Support can diagnose and reverse referral/promo/gift/autoprolongation issues without developer-only database access |
 
 ---
 
-## 5. Optional S2 Backlog
+## 5. Approved Gated S2 Expansion Scope
+
+The owner explicitly approved these items for S2 on 2026-05-22. They are part of S2, but they must remain disabled or hidden until their gates are proven. This keeps the public release controlled while still allowing the implementation to happen before S3.
+
+| ID | Stage | Gated Item | Gate |
+|---|---|---|---|
+| `S2-GATED-001` | `S2-STAGE-13` | Public referral flow | Kill switch, self-referral prevention, duplicate-subject controls, rate limits, audit trail, support reversal workflow and legal copy evidence |
+| `S2-GATED-002` | `S2-STAGE-06` | Promo/checkout discounts | Code validation, stacking rules, idempotency, refund behavior, reconciliation, audit trail and abuse limits |
+| `S2-GATED-003` | `S2-STAGE-06` | Gift purchase/redeem flow | Payment ownership, gift delivery, redeem idempotency, refund behavior, orphan policy, support lookup and abuse limits |
+| `S2-GATED-004` | `S2-STAGE-07` | True autoprolongation | Provider recurring support, explicit user consent, cancel flow, failed-renewal handling, webhook idempotency, refund policy, reminders and staging/prod evidence |
+
+## 6. Optional Infrastructure S2 Backlog
 
 These are allowed during S2 only if the required public-release path remains stable. They are not blockers for S2 Public Release 1.0.
 
 | ID | Stage | Optional Item | Gate |
 |---|---|---|---|
 | `S2-OPT-001` | `S2-STAGE-06` | Additional payment methods | Only after primary payment path is stable |
-| `S2-OPT-002` | `S2-STAGE-07` | True autoprolongation | Only after provider recurring support, user consent, cancel flow, failed-renewal handling, webhook idempotency, refund policy and staging/prod evidence |
-| `S2-OPT-003` | `S2-STAGE-08` | Second VPN node | Add if canary/load/availability evidence requires it |
-| `S2-OPT-004` | `S2-STAGE-03` | Load balancer / second app server | Add if traffic or availability evidence requires it |
-| `S2-OPT-005` | `S2-STAGE-12` | Managed PostgreSQL HA | Add if budget and recovery goals require it |
-| `S2-OPT-006` | `S2-STAGE-12` | Managed Redis/Valkey | Add if worker/cache availability requires it |
-| `S2-OPT-007` | `S2-STAGE-11` | Public status page | Allowed after status source is reliable |
-| `S2-OPT-008` | `S2-STAGE-04` | More languages beyond en/ru | Only after critical path copy is reviewed, not fallback-only |
-| `S2-OPT-009` | `S2-STAGE-13` | Public referral/promo/gift/checkout discounts | Only after anti-abuse, idempotency, payment/refund tests, support workflow, legal copy and kill-switch evidence |
-| `S2-OPT-010` | `S2-STAGE-08` | VMess/Trojan/Shadowsocks | Only if real S2 user need is proven; not part of default release |
+| `S2-OPT-002` | `S2-STAGE-08` | Second VPN node | Add if canary/load/availability evidence requires it |
+| `S2-OPT-003` | `S2-STAGE-03` | Load balancer / second app server | Add if traffic or availability evidence requires it |
+| `S2-OPT-004` | `S2-STAGE-12` | Managed PostgreSQL HA | Add if budget and recovery goals require it |
+| `S2-OPT-005` | `S2-STAGE-12` | Managed Redis/Valkey | Add if worker/cache availability requires it |
+| `S2-OPT-006` | `S2-STAGE-11` | Public status page | Allowed after status source is reliable |
+| `S2-OPT-007` | `S2-STAGE-04` | More languages beyond en/ru | Only after critical path copy is reviewed, not fallback-only |
+| `S2-OPT-008` | `S2-STAGE-08` | VMess/Trojan/Shadowsocks | Only if real S2 user need is proven; not part of default release |
 
 ---
 
-## 6. Deferred To S3+
+## 7. Deferred To S3+
 
 These must not be treated as S2 blockers.
 
@@ -151,7 +164,7 @@ These must not be treated as S2 blockers.
 
 ---
 
-## 7. Owner Decisions Frozen For S2
+## 8. Owner Decisions Frozen For S2
 
 | Decision | S2 Value |
 |---|---|
@@ -165,12 +178,12 @@ These must not be treated as S2 blockers.
 | Release authority | Immutable SHA/tag |
 | Public signup | To be opened only after `S2-STAGE-05` controls |
 | Payment opening | To be opened only after `S2-STAGE-06` evidence |
-| Autoprolongation | Not promised by default; optional only with full recurring evidence |
-| Public growth/referral/promo/gift flows | Not required for S2; default disabled unless optional S2 gate is fully met |
+| Autoprolongation | Approved for gated S2 implementation; must stay disabled until recurring evidence is complete |
+| Public growth/referral/promo/gift flows | Approved for gated S2 implementation; must stay disabled/hidden until abuse, payment/refund, support, legal and kill-switch evidence is complete |
 
 ---
 
-## 8. S2 Go/No-Go Rules
+## 9. S2 Go/No-Go Rules
 
 ### Go Criteria
 
@@ -188,7 +201,8 @@ CyberVPN can proceed to public B2C opening only if:
 10. Alerts reach Telegram/email.
 11. Backup/restore/rollback evidence exists.
 12. Security/abuse/privacy gate has no high/critical blocker.
-13. Owner accepts residual risks.
+13. Referral/promo/gift/autoprolongation gates are either complete or intentionally disabled by owner for the public opening.
+14. Owner accepts residual risks.
 
 ### No-Go Criteria
 
@@ -205,11 +219,12 @@ CyberVPN must not open public B2C release if any of these remain unresolved:
 9. alert delivery is unproven;
 10. rollback/restore is theoretical only;
 11. high/critical security issue is open;
-12. owner/support availability is not accepted for launch window.
+12. referral/promo/gift/autoprolongation are publicly enabled without their required evidence;
+13. owner/support availability is not accepted for launch window.
 
 ---
 
-## 9. Change Control
+## 10. Change Control
 
 After this freeze:
 
@@ -221,7 +236,7 @@ After this freeze:
 
 ---
 
-## 10. Next Stage
+## 11. Next Stage
 
 After this freeze, proceed to:
 
