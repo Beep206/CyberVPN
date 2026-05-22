@@ -14,6 +14,8 @@ DASHBOARD_DIR = ROOT / "infra" / "grafana" / "dashboards"
 RULES_PATH = ROOT / "infra" / "prometheus" / "rules" / "stage2_analytics_alerts.yml"
 PROMETHEUS_CONFIG_PATH = ROOT / "infra" / "prometheus" / "prometheus.yml"
 TARGETS_PATH = ROOT / "infra" / "prometheus" / "targets" / "stage2-public-endpoints.json"
+SUBSCRIPTION_TARGETS_PATH = ROOT / "infra" / "prometheus" / "targets" / "stage2-subscription-route.json"
+VPN_NODE_TARGETS_PATH = ROOT / "infra" / "prometheus" / "targets" / "stage2-vpn-node-tcp.json"
 BLACKBOX_CONFIG_PATH = ROOT / "infra" / "blackbox" / "blackbox.yml"
 COMPOSE_PATH = ROOT / "infra" / "docker-compose.yml"
 PLAN_PATH = ROOT / "docs" / "plans" / "2026-05-10-cybervpn-stage2-analytics-quality-gates-plan.md"
@@ -56,6 +58,9 @@ REQUIRED_DASHBOARDS = {
         "uid": "stage2-status-page",
         "fragments": {
             "stage2:status_public_endpoint_success_ratio:5m",
+            "stage2:customer_edge_success_ratio:5m",
+            "stage2:subscription_route_success_ratio:5m",
+            "stage2:vpn_node_tcp_success_ratio:5m",
             "stage2:tls_cert_min_days",
             "probe_success",
         },
@@ -97,6 +102,10 @@ REQUIRED_RECORDING_RULES = {
     "stage2:support_sla_overdue:current",
     "stage2:support_first_response_p95_seconds",
     "stage2:support_resolution_p95_seconds",
+    "stage2:customer_edge_success_ratio:5m",
+    "stage2:home_ops_edge_success_ratio:5m",
+    "stage2:subscription_route_success_ratio:5m",
+    "stage2:vpn_node_tcp_success_ratio:5m",
     "stage2:status_public_endpoint_success_ratio:5m",
     "stage2:synthetic_failures:15m",
     "stage2:synthetic_slow_probes:15m",
@@ -119,6 +128,10 @@ REQUIRED_ALERTS = {
     "Stage2SubscriptionExpiryBacklog",
     "Stage2SupportSlaBreach",
     "Stage2StatusEndpointDown",
+    "Stage2CustomerEdgeProbeFailed",
+    "Stage2SubscriptionRouteProbeFailed",
+    "Stage2VpnNodeTcpProbeFailed",
+    "Stage2HomeOpsEdgeProbeFailed",
     "Stage2TlsCertificateExpiresSoon",
     "Stage2AnalyticsIngestionDroppingEvents",
     "Stage2RestoreDrillOverdue",
@@ -183,13 +196,39 @@ def main() -> int:
     prometheus_config = _read(PROMETHEUS_CONFIG_PATH)
     assert "stage2_analytics_alerts.yml" in prometheus_config
     assert "stage2-public-endpoints" in prometheus_config
+    assert "stage2-subscription-route" in prometheus_config
+    assert "stage2-vpn-node-tcp" in prometheus_config
     assert "blackbox-exporter:9115" in prometheus_config
 
     targets = json.loads(_read(TARGETS_PATH))
     assert targets and targets[0].get("targets"), "Stage 2 public endpoint target list is empty"
     assert all("ozoxy.ru" not in target for item in targets for target in item.get("targets", []))
+    target_text = "\n".join(target for item in targets for target in item.get("targets", []))
+    for fragment in (
+        "https://cyber-vpn.net/",
+        "https://api.cyber-vpn.net/health",
+        "https://cyber-vpn.net/ru-RU/miniapp/home",
+        "https://admin.cyber-vpn.net/ru-RU/login",
+        "https://gitlab.h.cyber-vpn.net/users/sign_in",
+    ):
+        assert fragment in target_text, f"Missing Stage 2 public endpoint target {fragment!r}"
 
-    assert "http_2xx" in _read(BLACKBOX_CONFIG_PATH)
+    subscription_targets = json.loads(_read(SUBSCRIPTION_TARGETS_PATH))
+    subscription_text = "\n".join(
+        target for item in subscription_targets for target in item.get("targets", [])
+    )
+    assert "https://cyber-vpn.net/api/sub/" in subscription_text
+    assert "delivery_domain_expected" in json.dumps(subscription_targets)
+
+    vpn_targets = json.loads(_read(VPN_NODE_TARGETS_PATH))
+    vpn_text = "\n".join(target for item in vpn_targets for target in item.get("targets", []))
+    assert "de-1.cyber-vpn.org:443" in vpn_text
+    assert "de-1.cyber-vpn.org:8443" in vpn_text
+
+    blackbox = _read(BLACKBOX_CONFIG_PATH)
+    assert "http_2xx" in blackbox
+    assert "http_2xx_3xx_4xx" in blackbox
+    assert "tcp_connect" in blackbox
     assert "blackbox-exporter" in _read(COMPOSE_PATH)
 
     _read(PLAN_PATH)
@@ -199,6 +238,8 @@ def main() -> int:
         "Product analytics ingestion",
         "Sentry source maps",
         "Synthetic Checks",
+        "Subscription route",
+        "VPN node",
         "CI quality gates",
     ):
         assert fragment in runbook, f"Runbook missing section {fragment!r}"

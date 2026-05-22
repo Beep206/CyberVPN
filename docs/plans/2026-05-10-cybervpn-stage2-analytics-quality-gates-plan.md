@@ -86,19 +86,19 @@ The Stage 2 public endpoint target file is:
 
 ```text
 infra/prometheus/targets/stage2-public-endpoints.json
+infra/prometheus/targets/stage2-subscription-route.json
+infra/prometheus/targets/stage2-vpn-node-tcp.json
 ```
 
-Initial CyberVPN-only targets:
+CyberVPN-only target groups:
 
-- `https://gitlab.h.cyber-vpn.net/users/sign_in`
-- `https://registry.h.cyber-vpn.net/v2/`
-- `https://grafana.h.cyber-vpn.net/.well-known/cybervpn-edge-health`
-- `https://sentry.h.cyber-vpn.net/_health/`
-- `https://prometheus.h.cyber-vpn.net/.well-known/cybervpn-edge-health`
-- `https://alerts.h.cyber-vpn.net/.well-known/cybervpn-edge-health`
-- `https://uptime.h.cyber-vpn.net/.well-known/cybervpn-edge-health`
+- `stage2-public-endpoints.json`: `.net` customer paths, API health, admin login, Mini App paths, status page, Cloudflare edge health, and `*.h.cyber-vpn.net` home-ops services.
+- `stage2-subscription-route.json`: Cloudflare-proxied subscription route existence using a synthetic unknown subscription token. The route may answer `404`, `401` or `403`; timeout and `5xx` are failures.
+- `stage2-vpn-node-tcp.json`: `.org` VPN node TCP ports, currently `de-1.cyber-vpn.org:443` and `de-1.cyber-vpn.org:8443`.
 
 Non-CyberVPN domains are out of scope.
+
+The `.org` zone is reserved for subscription delivery and VPN node records. It is not a general website mirror for Stage 2. Because the home observability host has a known direct path issue to `45.87.41.146`, continuous home probing may use the Cloudflare-proxied subscription route while `.org` subscription delivery is separately proven by external release smoke.
 
 ### 3.4 Status Page Data Source
 
@@ -181,6 +181,10 @@ Security gates from Phase 20 remain in force:
 | support/admin user operations | `user_management_total` |
 | restore drill freshness | `stage1_restore_drill_last_success_unixtime` |
 | public probes | `probe_success`, `probe_duration_seconds`, `probe_ssl_earliest_cert_expiry` |
+| Stage 2 customer edge success | `stage2:customer_edge_success_ratio:5m` |
+| Stage 2 subscription route success | `stage2:subscription_route_success_ratio:5m` |
+| Stage 2 VPN node TCP success | `stage2:vpn_node_tcp_success_ratio:5m` |
+| Stage 2 home ops edge success | `stage2:home_ops_edge_success_ratio:5m` |
 
 ### 4.2 New Or Future Metrics Expected For Full Stage 2
 
@@ -224,7 +228,8 @@ Dashboards use `or vector(0)` so they can be provisioned before every future met
 
 - All Stage 2 dashboard JSON files exist and are valid JSON.
 - `stage2_analytics_alerts.yml` is loaded by Prometheus.
-- `stage2-public-endpoints.json` contains CyberVPN-only endpoints.
+- `stage2-public-endpoints.json`, `stage2-subscription-route.json`, and `stage2-vpn-node-tcp.json` contain CyberVPN-only endpoints.
+- Customer `.net`, subscription route, VPN node `.org`, and home-ops `*.h.cyber-vpn.net` probes are separated by labels and alert severity.
 - Stage 2 artifact validator passes.
 - Prometheus rule validation passes.
 - Grafana has the Stage 2 dashboards provisioned.

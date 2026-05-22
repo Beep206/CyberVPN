@@ -160,6 +160,8 @@ variables:
         - scripts/status/**/*
         - scripts/validate-stage2-analytics-artifacts.py
         - docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md
+        - docs/cybervpn_stage2_launch_docs/10_STAGE2_OBSERVABILITY_ANALYTICS.md
+        - docs/evidence/releases/s2-stage-11-observability-analytics-*.md
         - docs/plans/2026-05-10-cybervpn-stage2-analytics-quality-gates-plan.md
     - when: never
 
@@ -560,7 +562,7 @@ observability:stage2-artifacts:
   image: python:3.13-alpine
   extends:
     - .rules_observability
-  allow_failure: true
+  allow_failure: false
   script:
     - python scripts/validate-stage2-analytics-artifacts.py
 

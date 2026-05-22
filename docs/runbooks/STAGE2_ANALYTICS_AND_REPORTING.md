@@ -2,7 +2,7 @@
 
 **Scope:** CyberVPN Stage 2 analytics, reporting, synthetic checks, Sentry frontend releases, and CI quality gates.  
 **Primary host:** `10.10.10.34`  
-**Public domain scope:** `*.h.cyber-vpn.net`
+**Public domain scope:** `cyber-vpn.net`, `*.cyber-vpn.net`, `cyber-vpn.org` subscription/VPN delivery records, and `*.h.cyber-vpn.net` home-ops services.
 
 ---
 
@@ -126,6 +126,10 @@ Use this when:
 Primary signals:
 
 - `stage2:status_public_endpoint_success_ratio:5m`
+- `stage2:customer_edge_success_ratio:5m`
+- `stage2:subscription_route_success_ratio:5m`
+- `stage2:vpn_node_tcp_success_ratio:5m`
+- `stage2:home_ops_edge_success_ratio:5m`
 - `stage2:synthetic_failures:15m`
 - `stage2:synthetic_slow_probes:15m`
 - `stage2:tls_cert_min_days`
@@ -167,7 +171,8 @@ Rules:
 2. Frontend must never block page rendering on analytics.
 3. Drop or sample non-critical analytics before slowing checkout, auth, or support flows.
 4. Do not log tokens, payment payloads, subscription URLs, full request bodies, or PII.
-5. Use stable event names and bounded label cardinality.
+5. Treat subscription URL tokens and VPN config URLs as secrets in logs, analytics events, Sentry payloads and evidence.
+6. Use stable event names and bounded label cardinality.
 
 ### Release quality gates
 
@@ -197,6 +202,9 @@ Operator notes:
 Treat as release/customer-impact blockers:
 
 - `Stage2StatusEndpointDown`
+- `Stage2CustomerEdgeProbeFailed`
+- `Stage2SubscriptionRouteProbeFailed`
+- `Stage2VpnNodeTcpProbeFailed`
 - `Stage2SecurityQualityGateFailed`
 
 Actions:
@@ -216,6 +224,7 @@ Treat as operator action required:
 - `Stage2RenewalFailures`
 - `Stage2SubscriptionExpiryBacklog`
 - `Stage2SupportSlaBreach`
+- `Stage2HomeOpsEdgeProbeFailed`
 - `Stage2TlsCertificateExpiresSoon`
 - `Stage2AnalyticsIngestionDroppingEvents`
 - `Stage2RestoreDrillOverdue`
@@ -237,21 +246,41 @@ Targets live in:
 
 ```text
 infra/prometheus/targets/stage2-public-endpoints.json
+infra/prometheus/targets/stage2-subscription-route.json
+infra/prometheus/targets/stage2-vpn-node-tcp.json
 ```
 
 Server path:
 
 ```text
 /srv/cybervpn-h/configs/prometheus/targets/stage2-public-endpoints.json
+/srv/cybervpn-h/configs/prometheus/targets/stage2-subscription-route.json
+/srv/cybervpn-h/configs/prometheus/targets/stage2-vpn-node-tcp.json
 ```
+
+Target groups:
+
+| Group | File | Purpose | Failure severity |
+|---|---|---|---|
+| Customer edge | `stage2-public-endpoints.json` | Website, API, admin login, status page, Mini App and Cloudflare edge health on `.net` | P0 |
+| Subscription route | `stage2-subscription-route.json` | Cloudflare-proxied subscription route existence; a synthetic unknown token may return `404`, `401` or `403`, but must not return timeout/5xx | P0 |
+| VPN node TCP | `stage2-vpn-node-tcp.json` | `.org` VPN node ports such as `de-1.cyber-vpn.org:443` and `:8443` | P0 |
+| Home ops edge | `stage2-public-endpoints.json` | GitLab, Grafana, Sentry, Prometheus, Alertmanager, Uptime Kuma public management paths on `*.h.cyber-vpn.net` | P1 |
 
 Verify Prometheus target state:
 
 ```bash
-curl -fsS http://127.0.0.1:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job=="stage2-public-endpoints") | {health, scrapeUrl, lastError}'
+curl -fsS http://127.0.0.1:9090/api/v1/targets \
+  | jq '.data.activeTargets[] | select(.labels.stage=="s2" and (.labels.job | test("stage2-(public-endpoints|subscription-route|vpn-node-tcp)"))) | {job: .labels.job, instance: .labels.instance, health, lastError}'
 ```
 
 Do not include non-CyberVPN domains in this target file.
+
+Telegram Bot does not require a public health endpoint for Stage 2. Its direct health source is the internal `cybervpn-telegram-bot` metrics/health target; the customer-facing Telegram path is covered indirectly by Mini App, API, webhook/payment metrics and bot container metrics. Add a public bot health endpoint only if it can be exposed without leaking webhook or token details.
+
+The product subscription delivery domain remains `.org`, but the continuous home Prometheus probe uses the Cloudflare-proxied subscription route while direct home-to-`45.87.41.146` probing remains unreliable. Before unrestricted S2 opening, keep a separate release-smoke check that an actual `.org` subscription URL returns a valid user config from an external network.
+
+HTTP/3/QUIC must remain enabled at Cloudflare. The current blackbox exporter validates HTTPS/TLS/HTTP reachability but does not prove QUIC negotiation. If a QUIC-capable probe client is added later, keep it as an additive check and do not disable HTTP/3/QUIC while debugging ordinary HTTPS probes.
 
 ---
 
@@ -444,3 +473,5 @@ Some dashboards intentionally include future metric names. They are provision-sa
 - product analytics ingestion;
 - CI quality gate metric export;
 - Sentry frontend error metric export.
+
+Current synthetic coverage intentionally separates `.net` user paths from `.org` delivery paths. The `.org` zone remains reserved for subscription delivery and VPN node records; it must not be reintroduced as a public website mirror.

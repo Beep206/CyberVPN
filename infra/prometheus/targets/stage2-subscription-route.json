@@ -1,0 +1,17 @@
+[
+  {
+    "targets": [
+      "https://cyber-vpn.net/api/sub/stage2-observability-synthetic-probe"
+    ],
+    "labels": {
+      "environment": "rented-production",
+      "stage": "s2",
+      "owner": "cybervpn",
+      "role": "stage2-subscription-route",
+      "probe_group": "subscription-route",
+      "continuous_probe_authority": "cloudflare-user-path",
+      "delivery_domain_expected": "cyber-vpn.org",
+      "expected_status": "404_or_auth"
+    }
+  }
+]

@@ -192,3 +192,35 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox-exporter:9115
     scrape_interval: 30s
+
+  - job_name: 'stage2-subscription-route'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/stage2-subscription-route.json
+    metrics_path: /probe
+    params:
+      module: [http_2xx_3xx_4xx]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+    scrape_interval: 30s
+
+  - job_name: 'stage2-vpn-node-tcp'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/stage2-vpn-node-tcp.json
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+    scrape_interval: 30s

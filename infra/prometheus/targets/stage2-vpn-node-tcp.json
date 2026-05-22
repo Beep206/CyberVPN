@@ -1,0 +1,16 @@
+[
+  {
+    "targets": [
+      "de-1.cyber-vpn.org:443",
+      "de-1.cyber-vpn.org:8443"
+    ],
+    "labels": {
+      "environment": "rented-production",
+      "stage": "s2",
+      "owner": "cybervpn",
+      "role": "stage2-vpn-node",
+      "probe_group": "vpn-node",
+      "node": "de-1"
+    }
+  }
+]

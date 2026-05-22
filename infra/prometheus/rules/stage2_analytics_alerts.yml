@@ -94,21 +94,37 @@ groups:
             sum(rate(cybervpn_support_resolution_seconds_bucket[1h])) by (le)
           ) or vector(0)
 
+      - record: stage2:customer_edge_success_ratio:5m
+        expr: |
+          avg(probe_success{job="stage2-public-endpoints", probe_group="customer-edge"}) or vector(0)
+
+      - record: stage2:home_ops_edge_success_ratio:5m
+        expr: |
+          avg(probe_success{job="stage2-public-endpoints", probe_group="home-ops-edge"}) or vector(0)
+
+      - record: stage2:subscription_route_success_ratio:5m
+        expr: |
+          avg(probe_success{job="stage2-subscription-route"}) or vector(0)
+
+      - record: stage2:vpn_node_tcp_success_ratio:5m
+        expr: |
+          avg(probe_success{job="stage2-vpn-node-tcp"}) or vector(0)
+
       - record: stage2:status_public_endpoint_success_ratio:5m
         expr: |
-          avg(probe_success{job=~"blackbox.*|stage2-public-endpoints"}) or vector(0)
+          avg(probe_success{job=~"blackbox.*|stage2-public-endpoints|stage2-subscription-route|stage2-vpn-node-tcp"}) or vector(0)
 
       - record: stage2:synthetic_failures:15m
         expr: |
-          count_over_time((probe_success{job=~"blackbox.*|stage2-public-endpoints"} == 0)[15m:30s]) or vector(0)
+          count_over_time((probe_success{job=~"blackbox.*|stage2-public-endpoints|stage2-subscription-route|stage2-vpn-node-tcp"} == 0)[15m:30s]) or vector(0)
 
       - record: stage2:synthetic_slow_probes:15m
         expr: |
-          count_over_time((probe_duration_seconds{job=~"blackbox.*|stage2-public-endpoints"} > 3)[15m:30s]) or vector(0)
+          count_over_time((probe_duration_seconds{job=~"blackbox.*|stage2-public-endpoints|stage2-subscription-route|stage2-vpn-node-tcp"} > 3)[15m:30s]) or vector(0)
 
       - record: stage2:tls_cert_min_days
         expr: |
-          min((probe_ssl_earliest_cert_expiry{job=~"blackbox.*|stage2-public-endpoints"} - time()) / 86400) or vector(0)
+          min((probe_ssl_earliest_cert_expiry{job=~"blackbox.*|stage2-public-endpoints|stage2-subscription-route"} - time()) / 86400) or vector(0)
 
       - record: stage2:analytics_ingestion_dropped:15m
         expr: |
@@ -252,6 +268,66 @@ groups:
         annotations:
           summary: "Stage 2 public endpoint synthetic success is low"
           description: "Blackbox probes show public endpoint availability below 95 percent."
+          dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2CustomerEdgeProbeFailed
+        expr: |
+          stage2:customer_edge_success_ratio:5m < 1
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: edge
+          stage: s2
+        annotations:
+          summary: "Stage 2 customer edge probe failed"
+          description: "At least one customer-facing .net website, API, admin, status, or Mini App probe is failing."
+          dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2SubscriptionRouteProbeFailed
+        expr: |
+          stage2:subscription_route_success_ratio:5m < 1
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: subscription-delivery
+          stage: s2
+        annotations:
+          summary: "Stage 2 subscription route probe failed"
+          description: "The .org subscription URL route is not responding with an accepted synthetic status."
+          dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2VpnNodeTcpProbeFailed
+        expr: |
+          stage2:vpn_node_tcp_success_ratio:5m < 1
+        for: 5m
+        labels:
+          severity: critical
+          priority: p0
+          service: vpn-node
+          stage: s2
+        annotations:
+          summary: "Stage 2 VPN node TCP probe failed"
+          description: "At least one configured .org VPN node TCP probe is failing."
+          dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2HomeOpsEdgeProbeFailed
+        expr: |
+          stage2:home_ops_edge_success_ratio:5m < 1
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: home-ops
+          stage: s2
+        annotations:
+          summary: "Stage 2 home ops public probe failed"
+          description: "At least one home observability/GitLab/Sentry public management endpoint is failing."
           dashboard_path: "/d/stage2-status-page/stage-2-status-page-data-source"
           runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
 
