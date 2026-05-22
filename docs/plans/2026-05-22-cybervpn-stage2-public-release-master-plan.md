@@ -458,6 +458,14 @@ docs/evidence/releases/s2-stage-07-subscription-lifecycle-YYYYMMDD.md
 - user and support both understand the subscription lifecycle;
 - no paid user silently loses access without visible/supportable state.
 
+**Result:** Local lifecycle baseline is approved. Backend now has a side-effect-free S2 subscription lifecycle contract for trial, paid active access, paid grace, expiry, payment pending/failed, provisioning pending/config unavailable, refund review/refunded suspension, manual renewal and autoprolongation evidence gating.
+
+**Completed Evidence:**
+
+```text
+docs/evidence/releases/s2-stage-07-subscription-lifecycle-20260522.md
+```
+
 ---
 
 ## S2-STAGE-08: VPN Provisioning, Protocols, And Capacity
