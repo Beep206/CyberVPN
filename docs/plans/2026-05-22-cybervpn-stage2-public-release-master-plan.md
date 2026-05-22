@@ -424,6 +424,8 @@ docs/evidence/releases/s2-stage-06-payment-hardening-YYYYMMDD.md
 - failed, duplicate, orphan, refund, and reconciliation paths are proven;
 - payment support can operate without developer-only database access.
 
+**Result:** Local payment hardening baseline is approved. CryptoBot/Crypto Pay is the primary S2 payment candidate; Telegram Stars remains Telegram-only; other providers stay conditional until credential/callback/refund/reconciliation evidence. CryptoBot webhook processing now uses Redis/Valkey idempotency in the real route, validates invoice terminal events before side effects, suppresses duplicate paid webhooks, and keeps `payment_not_found` orphan events open for manual review. Evidence: `docs/evidence/releases/s2-stage-06-payment-hardening-20260522.md`.
+
 ---
 
 ## S2-STAGE-07: Subscription, Renewal, Expiry, And Refund Flows

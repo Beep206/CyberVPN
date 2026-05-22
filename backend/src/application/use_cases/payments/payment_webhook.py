@@ -44,12 +44,38 @@ class ProcessPaymentWebhookUseCase:
         update_type = payload.get("update_type")
         invoice = payload.get("payload", {})
         invoice_id = invoice.get("invoice_id")
+        external_id = str(invoice_id or "")
+
+        if update_type in {"invoice_paid", "invoice_expired", "invoice_cancelled", "invoice_failed"}:
+            payment_valid, validation_error = await self._handler.validate_payment(
+                external_id,
+                body=body,
+                signature=signature,
+            )
+            if not payment_valid:
+                if validation_error == "Invoice already processed":
+                    return {"status": "already_processed", "invoice_id": external_id}
+                return {
+                    "status": "invalid_payment",
+                    "invoice_id": external_id or None,
+                    "reason": validation_error or "Invalid payment webhook",
+                }
+
         if update_type == "invoice_paid":
-            return await self._handle_invoice_paid(str(invoice_id))
+            result = await self._handle_invoice_paid(external_id)
+            await self._mark_invoice_paid_processed_after_result(external_id, result)
+            return result
         if update_type in {"invoice_expired", "invoice_cancelled", "invoice_failed"}:
-            return await self._handle_invoice_failed(str(invoice_id), update_type)
+            return await self._handle_invoice_failed(external_id, update_type)
 
         return {"status": "ignored", "update_type": update_type}
+
+    async def _mark_invoice_paid_processed_after_result(self, external_id: str, result: dict) -> None:
+        """Mark a paid webhook only after safe paid side effects finished."""
+        if result.get("warning") == "payment_not_found":
+            return
+        if result.get("status") in {"processed", "already_processed", "ignored_terminal_attempt"}:
+            await self._handler.mark_invoice_processed(external_id)
 
     async def _handle_invoice_paid(self, external_id: str) -> dict:
         """Process a paid invoice: mark completed, run post-payment logic."""

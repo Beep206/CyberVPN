@@ -78,7 +78,14 @@ class CryptoBotWebhookHandler:
             return False
 
         key = f"{self.PROCESSED_PREFIX}{invoice_id}"
-        exists = await self._redis.exists(key)
+        try:
+            exists = await self._redis.exists(key)
+        except redis.RedisError:
+            logger.exception(
+                "Payment idempotency check failed; falling back to database terminal-state guard",
+                extra={"invoice_id": invoice_id},
+            )
+            return False
         return exists > 0
 
     async def mark_invoice_processed(self, invoice_id: str) -> None:
@@ -91,7 +98,14 @@ class CryptoBotWebhookHandler:
             return
 
         key = f"{self.PROCESSED_PREFIX}{invoice_id}"
-        await self._redis.setex(key, self.PROCESSED_TTL, "processed")
+        try:
+            await self._redis.setex(key, self.PROCESSED_TTL, "processed")
+        except redis.RedisError:
+            logger.exception(
+                "Payment idempotency mark failed; database terminal-state guard remains authoritative",
+                extra={"invoice_id": invoice_id},
+            )
+            return
 
         logger.debug(
             "Invoice marked as processed",

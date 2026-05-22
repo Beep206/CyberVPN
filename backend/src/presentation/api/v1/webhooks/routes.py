@@ -3,12 +3,14 @@
 import logging
 
 from fastapi import APIRouter, Depends, Request, status
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
 from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
 from src.config.settings import settings
 from src.domain.exceptions.domain_errors import InvalidWebhookSignatureError
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.monitoring.metrics import webhook_operations_total
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
@@ -62,6 +64,7 @@ async def remnawave_webhook(
 async def cryptobot_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    redis_client: Redis = Depends(get_redis),
 ) -> dict[str, str]:
     """Handle webhook callbacks from CryptoBot payment service."""
     body = await request.body()
@@ -78,7 +81,7 @@ async def cryptobot_webhook(
         webhook_operations_total.labels(provider="cryptobot", status=signature_decision.status.value).inc()
         raise InvalidWebhookSignatureError()
 
-    handler = CryptoBotWebhookHandler(cryptobot_token)
+    handler = CryptoBotWebhookHandler(cryptobot_token, redis_client=redis_client)
     use_case = ProcessPaymentWebhookUseCase(webhook_handler=handler, session=db)
 
     result = await use_case.execute(provider="cryptobot", body=body, signature=signature)
