@@ -502,6 +502,14 @@ docs/evidence/releases/s2-stage-08-vpn-provisioning-capacity-YYYYMMDD.md
 - VLESS/XHTTP expectations are proven;
 - support can resolve provisioning failures.
 
+**Result:** Approved with limits. Production runtime proof confirms `.org` subscription delivery, primary subscription URL delivery instead of raw `vless://`, VLESS Reality RAW/TCP plus XHTTP in subscription output, one connected DE node and node-only policy. One node is acceptable for constrained S2 public canary/small invite cohort, but not for unrestricted full public opening.
+
+**Completed Evidence:**
+
+```text
+docs/evidence/releases/s2-stage-08-vpn-provisioning-capacity-20260522.md
+```
+
 ---
 
 ## S2-STAGE-09: Support And Admin Operations
