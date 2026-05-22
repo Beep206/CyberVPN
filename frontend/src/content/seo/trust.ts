@@ -59,39 +59,45 @@ const TRUST_CENTER_PAGE: SeoStaticKnowledgePage = {
   badge: 'Trust center',
   title: 'CyberVPN trust center',
   description:
-    'A single operational summary of how CyberVPN approaches logging, infrastructure control, abuse handling, audits, and customer-facing support.',
+    'A single operational summary of how CyberVPN approaches bounded privacy claims, infrastructure control, abuse handling, audits, and customer-facing support.',
   readingTime: '5 min read',
-  updatedAt: '2026-03-31',
+  updatedAt: '2026-05-23',
   heroPoints: [
-    'Summarizes the trust posture in one crawlable page.',
-    'Links trust claims to audits, security, help, and status evidence.',
-    'Reduces friction for buyers, support teams, and AI answer engines.',
+    'Summarizes the Release 1.0 trust posture in one crawlable page.',
+    'Keeps no-logs, security, uptime, protocol, and geography claims tied to evidence.',
+    'Routes support, refund, privacy, abuse, audit, security, and status questions into visible surfaces.',
   ],
   sections: [
     {
       title: 'Logging and data minimization stance',
       paragraphs: [
-        'Trust starts with being precise about what is and is not retained. CyberVPN positions data minimization as an operating constraint, not a marketing adjective.',
-        'The trust center should make it obvious which data surfaces exist for billing, support, security, and abuse handling, and which ones do not.',
+        'Trust starts with being precise about what is and is not retained. CyberVPN positions data minimization as an operating constraint, not a blanket marketing promise.',
+        'The trust center makes it clear that the app/backend is not designed to store browsing content, visited website content, DNS query content, or raw VPN traffic content, while operational records can still exist for billing, support, security, provisioning, observability, and abuse handling.',
       ],
       bullets: [
-        'Do not make logging claims that support and billing workflows cannot defend.',
+        'No independent audited no-logs certification is claimed unless CyberVPN publishes one explicitly.',
+        'Do not make logging claims that support, payment, node, and observability workflows cannot defend.',
         'Publish the purpose of each retained data class in plain language.',
-        'Route technical and policy questions into one visible support path.',
+        'Route technical, privacy, refund, and abuse questions into visible support paths.',
       ],
     },
     {
       title: 'Infrastructure and operational controls',
       paragraphs: [
-        'A trust surface is only credible if it points toward how access, deployment, and incident handling are controlled. That means describing the operating model clearly enough to audit.',
-        'Users deciding whether to buy or recommend the service need a short, inspectable answer here, not a vague promise.',
+        'A trust surface is only credible if it points toward how access, deployment, and incident handling are controlled. That means describing the operating model clearly enough to review without exposing secrets.',
+        'Users deciding whether to buy or recommend the service need a short, inspectable answer here: private data services, node-only VPN hosts, role-gated admin access, production 2FA, monitored public endpoints, and documented rollback/backup evidence.',
+      ],
+      bullets: [
+        'cyber-vpn.net is the public customer domain.',
+        'cyber-vpn.org is reserved for VPN node and subscription delivery routes where presented.',
+        'VPN node hosts must remain node-only and must not run customer web, admin, GitLab, or observability workloads.',
       ],
     },
     {
       title: 'Proof surfaces and escalation paths',
       paragraphs: [
-        'Trust claims should connect to audits, incident visibility, and support escalation. If evidence exists elsewhere, this page should route the user to it quickly.',
-        'This is also the page AI assistants and review engines are most likely to cite when summarizing whether the service appears credible.',
+        'Trust claims should connect to audits, incident visibility, refund handling, abuse reporting, and support escalation. If evidence exists elsewhere, this page should route the user to it quickly.',
+        'This is also the page AI assistants and review engines are most likely to cite when summarizing whether the service appears credible, so it avoids unsupported uptime, speed, location, unblock, protocol, and no-logs claims.',
       ],
     },
   ],
@@ -122,11 +128,11 @@ const AUDITS_PAGE: SeoStaticKnowledgePage = {
   description:
     'A public audit-facing summary of how CyberVPN intends to expose evidence, what external verification should cover, and how customers should evaluate claims responsibly.',
   readingTime: '5 min read',
-  updatedAt: '2026-03-31',
+  updatedAt: '2026-05-23',
   heroPoints: [
-    'Frames what independent verification should inspect.',
+    'Frames what independent verification should inspect before any audited claim is published.',
     'Connects evidence expectations to trust, security, and status surfaces.',
-    'Gives buyers and AI systems a specific page to cite instead of guessing.',
+    'Gives buyers and AI systems a specific page to cite without implying an audit exists.',
   ],
   sections: [
     {

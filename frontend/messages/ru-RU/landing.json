@@ -1,152 +1,182 @@
 {
   "hero": {
-    "protocol_badge": "S1 ПРОТОКОЛЫ: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
-    "title": "CONTROLLED BETA VPN. РАБОТАЕТ НА VLESS REALITY",
-    "titleHighlight": "CONTROLLED BETA VPN",
-    "subtitle": "Controlled Public Beta с S1-утверждёнными транспортами, evidence-gated регионами, ручным продлением и support recovery path.",
-    "cta_telegram": "ЗАПУСТИТЬ В TELEGRAM",
-    "cta_app": "СКАЧАТЬ ПРИЛОЖЕНИЕ"
+    "protocol_badge": "PUBLIC RELEASE PROTOCOLS: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
+    "title": "PUBLIC VPN ACCESS. POWERED BY VLESS REALITY",
+    "titleHighlight": "PUBLIC VPN ACCESS",
+    "subtitle": "Публичный B2C VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
+    "cta_telegram": "LAUNCH IN TELEGRAM",
+    "cta_app": "DOWNLOAD APP"
   },
   "features": {
-    "badge": "МАТРИЦА ВОЗМОЖНОСТЕЙ",
-    "sectionTitle": "ТЕХНОЛОГИЧЕСКОЕ ПРЕВОСХОДСТВО",
-    "sectionSubtitle": "Шесть уровней защиты для современного кибер-гражданина",
+    "badge": "FEATURE MATRIX",
+    "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
+    "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
     "stats": {
-      "locations": "стартовых регионов",
-      "bandwidth": "утверждённых транспорта",
-      "uptime": "beta-статус",
-      "logs": "ограниченные claims"
+      "locations": "enabled regions",
+      "bandwidth": "approved transports",
+      "uptime": "monitored status",
+      "logs": "bounded claims"
     },
     "stealth": {
-      "title": "Стелс Режим (Reality)",
-      "desc": "VLESS Reality является S1 default path для сетей, где стандартные VPN-отпечатки ненадёжны. Доступность зависит от evidence по реальным нодам."
+      "title": "Stealth Mode (Reality)",
+      "desc": "VLESS Reality is the default path for networks where standard VPN fingerprints are unreliable. Availability depends on real node evidence."
     },
     "backbone": {
-      "title": "Магистральная Производительность",
-      "desc": "Стартовые регионы включаются только после Remnawave node evidence, monitoring, support recovery и rollback proof."
+      "title": "Backbone Performance",
+      "desc": "Regions are enabled only after Remnawave node evidence, monitoring, support recovery, and rollback proof are available."
     },
     "ram": {
-      "title": "Ограниченная privacy-позиция",
-      "desc": "Публичные privacy-формулировки ограничены тем, что подтверждено S1 evidence. Operational metadata может существовать для security, billing, support и provisioning."
+      "title": "Privacy-Bounded Operations",
+      "desc": "Public privacy wording is limited to what current evidence can support. Operational metadata may exist for security, billing, support, and provisioning."
     },
     "routing": {
-      "title": "Умная Маршрутизация",
-      "desc": "Регион показывается только после готовности node health, profile mapping и support handling."
+      "title": "Intelligent Routing",
+      "desc": "Region visibility is evidence-gated: a location is shown only when node health, profile mapping, and support handling are ready."
     },
     "multiplatform": {
-      "title": "Нативная Кроссплатформенность",
-      "desc": "S1 поддерживает web-кабинет, Telegram Bot/Mini App и инструкции импорта в сторонние клиенты для Android, iOS, Windows, macOS и Linux."
+      "title": "Multi-Platform Access",
+      "desc": "CyberVPN supports web cabinet, Telegram Bot/Mini App, and standard third-party client import instructions for Android, iOS, Windows, macOS, and Linux."
     },
     "protocols": {
-      "title": "Продвинутые Протоколы",
-      "desc": "S1 включает VLESS Reality RAW как default и VLESS Reality XHTTP как alternate path. Остальные транспорты остаются вне S1 до отдельного approval."
+      "title": "Advanced Protocols",
+      "desc": "CyberVPN exposes VLESS Reality RAW as default and VLESS Reality XHTTP as the alternate path. Other transports stay out of default public scope until separately approved."
     }
   },
   "how_it_works": {
-    "badge": "ANTI-DPI ДВИЖОК",
-    "title": "Как работает Reality",
-    "desc": "Reality-профили настраиваются так, чтобы напоминать обычные HTTPS-потоки, но rollout остаётся evidence-driven. XHTTP считается S1 alternate path, а не универсальным обещанием обхода."
+    "badge": "ANTI-DPI ENGINE",
+    "title": "How Reality Works",
+    "desc": "Reality-based profiles are configured to resemble ordinary HTTPS flows while keeping rollout evidence-driven. XHTTP is treated as an alternate path, not as a universal bypass promise."
   },
   "comparison_table": {
-    "title": "Устаревшее против Нового поколения",
+    "title": "Legacy vs Next-Gen",
     "headers": {
-      "feature": "Функция",
-      "legacy": "Устаревший VPN (WireGuard/OpenVPN)",
+      "feature": "Feature",
+      "legacy": "Legacy VPN (WireGuard/OpenVPN)",
       "cybervpn": "CyberVPN (VLESS-Reality)"
     },
     "rows": {
       "dpi": {
-        "feature": "Обнаружение DPI",
-        "legacy": "Легко определяется и блокируется",
+        "feature": "DPI Detection",
+        "legacy": "Easily fingerprinted and blocked",
         "cybervpn": "HTTPS-like Reality profile"
       },
       "speed": {
-        "feature": "Скорость под нагрузкой",
-        "legacy": "Ограничивается провайдером",
-        "cybervpn": "Измеряется по включённой ноде"
+        "feature": "Speed under Load",
+        "legacy": "Throttled by ISP deep inspection",
+        "cybervpn": "Measured per enabled node"
       },
       "ip_blocking": {
-        "feature": "Риск блокировки IP",
-        "legacy": "Высокий (статичные паттерны)",
-        "cybervpn": "Ниже при актуальном node evidence"
+        "feature": "IP Blocking Risk",
+        "legacy": "High (static patterns)",
+        "cybervpn": "Lower when node evidence is current"
       },
       "privacy": {
-        "feature": "Уровень Приватности",
-        "legacy": "Стандартное шифрование",
-        "cybervpn": "Privacy claims ограничены evidence"
+        "feature": "Privacy Layer",
+        "legacy": "Standard encryption",
+        "cybervpn": "Bounded privacy claims tied to evidence"
       }
     }
   },
   "status_board": {
-    "title": "Статус Узлов",
+    "title": "Node Status Dashboard",
     "item_online": "EVIDENCE OK",
-    "live": "S1 READY",
+    "live": "READY",
     "protocols": {
       "reality": "Reality",
       "xhttp": "Reality XHTTP"
     }
   },
   "technical": {
-    "specificationsTitle": "Технические характеристики",
+    "specificationsTitle": "Technical Specifications",
     "labels": {
-      "encryption": "Шифрование",
-      "transport": "Транспорт",
-      "network": "Сеть"
+      "encryption": "Encryption",
+      "transport": "Transport",
+      "network": "Network"
     },
     "networkLabels": {
-      "bandwidth": "Beta capacity",
-      "nodes": "Включённые регионы",
-      "coverage": "Покрытие",
+      "bandwidth": "Public capacity",
+      "nodes": "Enabled regions",
+      "coverage": "Coverage",
       "uptime": "Monitoring posture"
     }
   },
   "quick_start": {
-    "badge": "Быстрый старт",
-    "title": "Путь в 30 Секунд",
-    "step1": "Запустите бота (@CyberVPN_Bot)",
-    "step2": "Активация Trial в один клик (3 дня / 1 устройство)",
-    "step3": "Импортируйте QR, subscription URL или config в поддерживаемый клиент",
-    "terminalTitle": "Развертывание подключения",
-    "terminalComment": "# Автоматическое развёртывание VPN-туннеля...",
-    "terminalStatus": "> VPN-доступ готов, когда provisioning evidence и support recovery проходят gate."
+    "badge": "Fast Track",
+    "title": "30-Second Path",
+    "step1": "Launch the Telegram bot",
+    "step2": "Activate trial or choose a plan",
+    "step3": "Import QR, subscription URL, or config into a supported client",
+    "terminalTitle": "Deploy Connection",
+    "terminalComment": "# Auto-provisioning VPN tunnel...",
+    "terminalStatus": "> VPN access ready when provisioning and support recovery pass."
   },
   "network_stats": {
-    "title": "Сетевая Инфраструктура",
-    "bandwidth": "Capacity показывается после node evidence",
-    "nodes": "12 стартовых регионов, включение по evidence",
-    "coverage": "Для S1 только country-level регионы",
-    "uptime": "Monitoring и alerts обязательны до go-live"
+    "title": "Network Infrastructure",
+    "bandwidth": "Capacity shown after node evidence",
+    "nodes": "Enabled regions only",
+    "coverage": "Country-level public regions",
+    "uptime": "Monitoring and alerts active"
   },
   "tech_specs": {
-    "encryption": "Шифрование: ChaCha20-Poly1305 / AES-128-GCM",
-    "transport": "Транспорт: XHTTP (Next-Gen), gRPC, Reality-TCP",
-    "network": "Сеть: S1 startup regions, monitored node evidence"
+    "encryption": "Encryption: profile-dependent Xray transport security",
+    "transport": "Transport: VLESS Reality RAW and XHTTP where configured",
+    "network": "Network: monitored public regions with node evidence"
   },
   "speed_tunnel": {
-    "titleStart": "ГЛОБАЛЬНАЯ",
-    "titleHighlight": "УЛЬТРАСКОРОСТНАЯ",
-    "titleEnd": "СЕТЬ",
-    "subtitle": "S1 startup regions. Evidence-gated ноды. Fair-use policy.",
-    "online": "S1 SLOT",
+    "titleStart": "GLOBAL",
+    "titleHighlight": "MONITORED",
+    "titleEnd": "NETWORK",
+    "subtitle": "Evidence-gated nodes. Fair-use policy. Bounded public claims.",
+    "online": "PUBLIC SLOT",
     "featureTorrent": "P2P restricted",
     "featureNoAds": "HTTPS-like profile",
     "servers": {
-      "newYork": { "country": "США", "city": "Нью-Йорк" },
-      "frankfurt": { "country": "Германия", "city": "Франкфурт" },
-      "amsterdam": { "country": "Нидерланды", "city": "Амстердам" },
-      "tokyo": { "country": "Япония", "city": "Токио" },
-      "singapore": { "country": "Сингапур", "city": "Сингапур" },
-      "london": { "country": "Великобритания", "city": "Лондон" },
-      "paris": { "country": "Франция", "city": "Париж" },
-      "toronto": { "country": "Канада", "city": "Торонто" },
-      "sydney": { "country": "Австралия", "city": "Сидней" },
-      "seoul": { "country": "Южная Корея", "city": "Сеул" }
+      "newYork": {
+        "country": "USA",
+        "city": "New York"
+      },
+      "frankfurt": {
+        "country": "Germany",
+        "city": "Frankfurt"
+      },
+      "amsterdam": {
+        "country": "Netherlands",
+        "city": "Amsterdam"
+      },
+      "tokyo": {
+        "country": "Japan",
+        "city": "Tokyo"
+      },
+      "singapore": {
+        "country": "Singapore",
+        "city": "Singapore"
+      },
+      "london": {
+        "country": "United Kingdom",
+        "city": "London"
+      },
+      "paris": {
+        "country": "France",
+        "city": "Paris"
+      },
+      "toronto": {
+        "country": "Canada",
+        "city": "Toronto"
+      },
+      "sydney": {
+        "country": "Australia",
+        "city": "Sydney"
+      },
+      "seoul": {
+        "country": "South Korea",
+        "city": "Seoul"
+      }
     }
   },
   "pricing": {
-    "basic": "Basic: Пробный / Начальный уровень",
-    "pro": "Pro: Самый популярный",
-    "ultra": "Ultra: Высокая пропускная способность",
-    "cyber": "Cyber: Премиум / Полный доступ"
+    "basic": "Basic: Trial / Entry level",
+    "pro": "Pro: Most popular",
+    "ultra": "Ultra: High bandwidth",
+    "cyber": "Cyber: Premium / Full access"
   }
 }

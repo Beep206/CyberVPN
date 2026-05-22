@@ -586,6 +586,15 @@ docs/evidence/releases/s2-stage-10-legal-trust-copy-YYYYMMDD.md
 - public legal pack is ready;
 - marketing/trust text does not make claims the system cannot support.
 
+**Completed Evidence:**
+
+```text
+docs/cybervpn_stage2_launch_docs/09_STAGE2_LEGAL_TRUST_COPY.md
+docs/evidence/releases/s2-stage-10-legal-trust-copy-20260523.md
+```
+
+**Result:** Completed locally on 2026-05-23. Public legal/trust copy was moved from S1 candidate wording to S2 Public Release 1.0 wording, `.org` was kept node/subscription-only in public copy, support/privacy/abuse/refund contacts were made explicit, and no-logs/privacy/SLA/protocol/geography claims were bounded to the current evidence model.
+
 ---
 
 ## S2-STAGE-11: Observability And Analytics

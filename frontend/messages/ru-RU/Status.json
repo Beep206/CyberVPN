@@ -1,6 +1,6 @@
 {
-  "title": "S1 STATUS",
-  "subtitle": "Controlled Public Beta monitoring surface",
+  "title": "SERVICE STATUS",
+  "subtitle": "Public release monitoring surface",
   "metrics": {
     "uptime": "AVAILABILITY WINDOW",
     "status_nominal": "READY SIGNALS NOMINAL",
@@ -8,16 +8,16 @@
     "status_outage": "INCIDENT REVIEW REQUIRED",
     "active_nodes": "ENABLED REGIONS",
     "bandwidth": "OBSERVED TRAFFIC",
-    "latency": "СРЕДНИЙ ПИНГ"
+    "latency": "AVG LATENCY"
   },
   "history": {
-    "title": "Beta evidence window",
-    "tooltip_date": "Дата",
-    "tooltip_status": "Статус"
+    "title": "Evidence Window",
+    "tooltip_date": "Date",
+    "tooltip_status": "Status"
   },
   "incidents": {
-    "title": "ЛОГ ИНЦИДЕНТОВ",
-    "empty": "В этом local status snapshot активных incidents не записано.",
-    "view_all": "СМОТРЕТЬ АРХИВ"
+    "title": "INCIDENT LOG",
+    "empty": "No active incidents recorded in this local status snapshot.",
+    "view_all": "VIEW ARCHIVE"
   }
 }

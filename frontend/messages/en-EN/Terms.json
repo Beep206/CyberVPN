@@ -1,14 +1,14 @@
 {
   "title": "Terms of Service",
-  "description": "Controlled Public Beta service terms. Final legal seller display and jurisdiction must be approved before go-live.",
+  "description": "CyberVPN Public Release 1.0 service terms for accounts, trials, paid plans, support and VPN access.",
   "sections": {
     "acceptance": {
       "title": "01. Agreement and seller",
-      "content": "These Terms govern access to CyberVPN through cyber-vpn.net, cyber-vpn.org, Telegram Bot, Telegram Mini App and related customer interfaces. By creating an account, starting a trial, paying for a plan or using the VPN service, you agree to these Terms and the linked Privacy Policy, Acceptable Use Policy and Refund Policy. For Stage 1 the legal seller is the individual founder/owner of CyberVPN; the public seller display name, contact details and governing jurisdiction must be approved by owner/legal review before these Terms are published as final."
+      "content": "These Terms govern access to CyberVPN through cyber-vpn.net, Telegram Bot, Telegram Mini App and related customer interfaces. cyber-vpn.org is used only where CyberVPN presents VPN node or subscription delivery routes. By creating an account, starting a trial, paying for a plan or using the VPN service, you agree to these Terms and the linked Privacy Policy, Acceptable Use Policy, Refund Policy and Cookie Policy. The legal seller category for this release is the CyberVPN project owner, individual founder/owner. Public support, privacy, abuse and refund contacts are published through CyberVPN support channels."
     },
     "prohibited": {
       "title": "02. Acceptable use",
-      "content": "CyberVPN is provided for lawful private network access, privacy protection and resilience against censorship. You must not use the service to harm other systems, abuse third parties, violate applicable law or bypass provider restrictions. The following activity is prohibited:",
+      "content": "CyberVPN is provided for lawful private network access, privacy protection and resilience on restricted or untrusted networks. You must not use the service to harm other systems, abuse third parties, violate applicable law or bypass provider restrictions. The following activity is prohibited:",
       "rules": {
         "abuse": "Attacks against networks, services, devices or accounts, including DDoS, flooding and unauthorized scanning",
         "spam": "Spam, phishing, credential stuffing, fraud, impersonation or bulk unsolicited messaging",
@@ -20,15 +20,15 @@
     },
     "service": {
       "title": "03. Service, trial and billing",
-      "content": "Stage 1 is a Controlled Public Beta. Features, regions, nodes, speeds, payment methods, Telegram flows and provisioning paths may be limited, changed, paused or removed while the service is being stabilized. Trial access and paid access are provisioned through the approved CyberVPN flow and Remnawave-backed VPN access. Paid access starts only after a provider final-success payment state is verified. CyberVPN does not promise automatic renewal in Stage 1; renewal is manual unless a later approved recurring-billing flow is introduced with explicit consent. Do not rely on any uptime, speed, location, no-logs, privacy or unblock claim unless it is supported by the final public policy and evidence."
+      "content": "CyberVPN Public Release 1.0 provides public B2C access through the approved website, Telegram and backend provisioning flows. Features, regions, nodes, speeds, payment methods, Telegram flows and provisioning paths may be limited, changed, paused or removed for security, provider, support or operational reasons. Trial access and paid access are provisioned through the approved CyberVPN flow and Remnawave-backed VPN access. Paid access starts only after a provider final-success payment state is verified. Automatic renewal is available only where the checkout explicitly says so and the provider flow has been enabled with user consent. Do not rely on any uptime, speed, location, no-logs, privacy or unblock claim unless it is stated in the public policy or product surface and supported by the current service evidence."
     },
     "liability": {
       "title": "04. Responsibility and limitations",
-      "content": "You are responsible for how you use the service, for complying with laws that apply to you, and for keeping your account, devices and configuration links secure. The service is provided as-is and as-available during Stage 1. To the maximum extent permitted by applicable law, CyberVPN is not responsible for indirect, incidental, special, consequential or lost-profit damages, provider outages, third-party blocking, device issues or unlawful user conduct. Nothing in these Terms limits rights or liabilities that cannot legally be limited."
+      "content": "You are responsible for how you use the service, for complying with laws that apply to you, and for keeping your account, devices and configuration links secure. The service is provided as-is and as-available. To the maximum extent permitted by applicable law, CyberVPN is not responsible for indirect, incidental, special, consequential or lost-profit damages, provider outages, third-party blocking, device issues or unlawful user conduct. Nothing in these Terms limits rights or liabilities that cannot legally be limited."
     },
     "termination": {
       "title": "05. Suspension, termination and support",
-      "content": "CyberVPN may suspend, limit or terminate access for non-payment, abuse, security risk, provider requirement, violation of these Terms or emergency operational need. Where practical, support will use the approved support path before final action, but urgent abuse, legal or infrastructure-risk cases may be escalated immediately. Refund requests are handled through refund@cyber-vpn.net under the final Refund Policy and provider-specific rules. General support is available through support@cyber-vpn.net and Telegram support flows. Do not share passwords, 2FA codes, full card numbers, CVV/CVC, raw QR codes, raw subscription URLs or raw config files in support chats."
+      "content": "CyberVPN may suspend, limit or terminate access for non-payment, abuse, security risk, provider requirement, violation of these Terms or emergency operational need. Where practical, support will use the approved support path before final action, but urgent abuse, legal or infrastructure-risk cases may be escalated immediately. Refund requests are handled through refund@cyber-vpn.net under the Refund Policy and provider-specific rules. Abuse reports go to abuse@cyber-vpn.net. General support is available through support@cyber-vpn.net and Telegram support flows. Do not share passwords, 2FA codes, full card numbers, CVV/CVC, raw QR codes, raw subscription URLs or raw config files in support chats."
     }
   },
   "status": {
@@ -36,7 +36,7 @@
     "acknowledged": "ACKNOWLEDGED"
   },
   "terminal": {
-    "prompt": "Review the beta Terms before continuing.",
+    "prompt": "Review the Terms before continuing.",
     "command": "ACCEPT TERMS",
     "verified": "Terms acknowledged for this session."
   }

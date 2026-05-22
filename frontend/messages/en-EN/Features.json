@@ -1,31 +1,31 @@
 {
-  "title": "Stage 1 Capabilities",
-  "description": "The Controlled Public Beta feature set focuses on login, trial or payment, Remnawave provisioning, config delivery, support recovery, and monitored operations.",
+  "title": "Public Release Capabilities",
+  "description": "The public release feature set focuses on login, trial or payment, Remnawave provisioning, config delivery, support recovery, and monitored operations.",
   "features": {
     "quantum": {
-      "title": "S1 Protocol Baseline",
+      "title": "Protocol Baseline",
       "subtitle": "VLESS Reality RAW + XHTTP",
-      "description": "Stage 1 keeps the VPN transport surface narrow: VLESS Reality RAW is the default profile and VLESS Reality XHTTP is the alternate path after evidence.",
+      "description": "CyberVPN keeps the public VPN transport surface narrow: VLESS Reality RAW is the default profile and VLESS Reality XHTTP is the alternate path where configured and evidenced.",
       "specs": [
         "Default: VLESS Reality RAW",
         "Alternate: VLESS Reality XHTTP",
-        "Out of S1: Helix, Verta, Beep production"
+        "Out of public default: Helix, Verta, Beep production"
       ]
     },
     "multihop": {
       "title": "Evidence-Gated Regions",
-      "subtitle": "Country-level startup inventory",
-      "description": "Regions are not public promises until staging or production node evidence exists. The S1 catalogue starts with country-level slots and hides unavailable nodes.",
+      "subtitle": "Country-level public inventory",
+      "description": "Regions are not public promises until staging or production node evidence exists. The catalogue hides unavailable nodes.",
       "specs": [
-        "Startup inventory: 12 region slots",
-        "Public display: only enabled nodes",
-        "Required proof: health, profile, monitoring"
+        "Public display: enabled nodes only",
+        "Required proof: health, profile, monitoring",
+        "Node-only policy for VPN hosts"
       ]
     },
     "obfuscation": {
       "title": "DPI-Resistant Profiles",
       "subtitle": "No universal unblock promise",
-      "description": "Reality-based profiles are designed for restricted networks, but S1 copy stays bounded: performance and access depend on the user's network and current node evidence.",
+      "description": "Reality-based profiles are designed for restricted networks, but public copy stays bounded: performance and access depend on the user's network and current node evidence.",
       "specs": [
         "Profile: HTTPS-like Reality transport",
         "Fallback: XHTTP where configured",
@@ -35,28 +35,28 @@
     "killswitch": {
       "title": "Support Recovery Path",
       "subtitle": "Payment and provisioning safeguards",
-      "description": "The S1 product surface prioritizes recoverability: paid-but-no-access cases, provisioning failures, expired access, and support escalation have explicit handling.",
+      "description": "The product surface prioritizes recoverability: paid-but-no-access cases, provisioning failures, expired access, and support escalation have explicit handling.",
       "specs": [
-        "SLA: paid orphan review within 24h",
+        "Policy: paid orphan review within 24h",
         "Provisioning: retry and support escalation",
         "Admin: audited manual recovery actions"
       ]
     }
   },
   "secondary": {
-    "title": "S1 Operating Boundaries",
+    "title": "Operating Boundaries",
     "items": [
       {
         "title": "Bounded Privacy Copy",
-        "desc": "CyberVPN does not make an absolute privacy claim in S1. Operational metadata may exist for security, billing, support, and provisioning."
+        "desc": "CyberVPN does not make an independent audited no-logs claim. Operational metadata may exist for security, billing, support, and provisioning."
       },
       {
         "title": "Plan-Based Device Limits",
         "desc": "Device counts depend on the selected plan and must be enforced by the backend and support process."
       },
       {
-        "title": "Manual Renewal First",
-        "desc": "S1 does not promise automatic renewal. Renewal reminders and invoice links are allowed only after evidence."
+        "title": "Renewal Controls",
+        "desc": "Automatic renewal appears only where the provider flow, user consent, cancel flow and evidence support it."
       },
       {
         "title": "P2P Restricted by Default",

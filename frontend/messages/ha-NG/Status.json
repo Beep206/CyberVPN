@@ -1,6 +1,6 @@
 {
-  "title": "S1 STATUS",
-  "subtitle": "Controlled Public Beta monitoring surface",
+  "title": "SERVICE STATUS",
+  "subtitle": "Public release monitoring surface",
   "metrics": {
     "uptime": "AVAILABILITY WINDOW",
     "status_nominal": "READY SIGNALS NOMINAL",
@@ -11,7 +11,7 @@
     "latency": "AVG LATENCY"
   },
   "history": {
-    "title": "Beta Evidence Window",
+    "title": "Evidence Window",
     "tooltip_date": "Date",
     "tooltip_status": "Status"
   },

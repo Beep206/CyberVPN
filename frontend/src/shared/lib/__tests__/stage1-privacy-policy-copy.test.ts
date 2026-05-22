@@ -54,13 +54,13 @@ function readLocaleFile(fileName: string): Array<{ locale: string; messages: Mes
     });
 }
 
-describe('stage1 privacy policy copy', () => {
-  it('states S1 data categories, retention criteria and privacy contact', () => {
+describe('stage2 privacy policy copy', () => {
+  it('states S2 data categories, retention criteria and privacy contact', () => {
     const policyText = `${flattenMessages(enPolicy)}\n${flattenMessages(ruPolicy)}`;
     const summaryText = `${flattenMessages(enPrivacy)}\n${flattenMessages(ruPrivacy)}`;
     const combined = `${policyText}\n${summaryText}`.toLowerCase();
 
-    expect(combined).toContain('controlled public beta');
+    expect(combined).toContain('public release 1.0');
     expect(combined).toContain('privacy@cyber-vpn.net');
     expect(combined).toContain('individual founder/owner');
     expect(combined).toContain('telegram');
@@ -70,9 +70,8 @@ describe('stage1 privacy policy copy', () => {
     expect(combined).toContain('user-agent');
     expect(combined).toContain('payment providers');
     expect(combined).toContain('support tickets');
-    expect(combined).toContain('postgresql backups');
+    expect(combined).toContain('postgresql backup');
     expect(combined).toContain('30 days');
-    expect(combined).toContain('14 days');
     expect(combined).toContain('90 days');
   });
 
@@ -95,9 +94,9 @@ describe('stage1 privacy policy copy', () => {
   it('keeps no-logs wording bounded instead of absolute', () => {
     const text = flattenMessages(enPolicy).toLowerCase();
 
-    expect(text).toContain('do not treat this as a final audited no-logs claim');
-    expect(text).toContain('must be validated against backend logs');
-    expect(text).toContain('vpn node logs');
-    expect(text).toContain('observability tools');
+    expect(text).toContain('not an independent audited no-logs certification');
+    expect(text).toContain('operational data');
+    expect(text).toContain('node and observability records');
+    expect(text).toContain('raw vpn traffic content');
   });
 });

@@ -10,12 +10,11 @@ import ruFooter from '../../../../messages/ru-RU/footer.json';
 type Messages = Record<string, unknown>;
 
 const requiredPhrases = [
-  'controlled public beta',
+  'public release 1.0',
   'cookie policy',
   'cyber-vpn.net',
   'cyber-vpn.org',
   'admin.cyber-vpn.net',
-  'admin.cyber-vpn.org',
   'next-intl',
   'next_locale',
   'access_token',
@@ -95,8 +94,8 @@ function readLocaleFile(fileName: string): Array<{ locale: string; messages: Mes
     });
 }
 
-describe('stage1 cookie policy copy', () => {
-  it('states required S1 cookie/storage inventory, consent rules and evidence blockers', () => {
+describe('stage2 cookie policy copy', () => {
+  it('states required S2 cookie/storage inventory, consent rules and evidence controls', () => {
     const combined = `${flattenMessages(enCookiePolicy)}\n${flattenMessages(ruCookiePolicy)}`.toLowerCase();
 
     for (const phrase of requiredPhrases) {
@@ -113,6 +112,7 @@ describe('stage1 cookie policy copy', () => {
     const combined = `${flattenMessages(enCookiePolicy)}\n${flattenMessages(ruCookiePolicy)}`.toLowerCase();
 
     expect(combined).toContain('non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default');
+    expect(combined).toContain('posthog or other analytics/observability services');
     expect(combined).toContain('posthog, ga4, marketing pixels and advertising tracking are disabled unless');
     expect(combined).toContain('consent banner/settings evidence proving default-off behavior and withdrawal controls');
   });

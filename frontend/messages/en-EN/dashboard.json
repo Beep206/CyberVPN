@@ -1,289 +1,289 @@
 {
-    "meta": {
-        "title": "Dashboard - VPN Command Center",
-        "description": "Secure VPN administration dashboard with real-time monitoring, analytics, and network management"
+  "meta": {
+    "title": "Dashboard - VPN Command Center",
+    "description": "Secure VPN administration dashboard with real-time monitoring, analytics, and network management"
+  },
+  "title": "VPN COMMAND CENTER",
+  "statusLabel": "SYSTEM STATUS:",
+  "statusValue": "OPTIMAL",
+  "connectionStatus": "SECURE CONNECTION ESTABLISHED",
+  "encryptionStatus": "ENCRYPTION: QUANTUM-SAFE",
+  "serverStatus": "SERVER STATUS",
+  "nodesOnline": "NODES ONLINE",
+  "activeSessions": "ACTIVE SESSIONS",
+  "currentConnections": "Current connections",
+  "networkLoad": "NETWORK LOAD",
+  "aggregateThroughput": "Aggregate throughput",
+  "trafficToday": "Traffic transferred today",
+  "serverMatrix": "SERVER MATRIX",
+  "vpnUsage": "VPN USAGE",
+  "activeConnections": "Active Connections",
+  "errorLoadingServers": "Error loading servers",
+  "noServers": "No servers available",
+  "networkRecap": "REMNAWAVE RECAP",
+  "opsBaseline": "Users, nodes, traffic, and geographic coverage",
+  "thisMonth": "This month",
+  "monthlyRecapUnavailable": "Monthly recap unavailable",
+  "totalUsers": "Total Users",
+  "totalNodes": "Total Nodes",
+  "lifetimeTraffic": "Lifetime Traffic",
+  "countries": "Countries",
+  "cabinet": {
+    "eyebrow": "PRIVATE ACCESS COCKPIT",
+    "title": "CyberVPN Personal Cabinet",
+    "subtitle": "A customer-first control room for your plan, VPN readiness, traffic, wallet, rewards, notifications, and security posture.",
+    "statusLabel": "ACCOUNT CHANNEL:",
+    "statusValue": "ENCRYPTED",
+    "connectionStatus": "PRIVATE ACCESS READY",
+    "encryptionStatus": "SESSION: HTTPONLY COOKIE",
+    "anonymousUser": "CyberVPN user",
+    "pendingProvisioning": "Pending provisioning",
+    "noActivePlan": "No active plan",
+    "unknownDate": "Date unavailable",
+    "metricUnavailable": "Data is temporarily unavailable",
+    "retry": "Retry",
+    "unavailable": "Unavailable",
+    "unlimited": "Unlimited",
+    "sync": {
+      "title": "Backend sync state",
+      "status": {
+        "live": "LIVE SYNC",
+        "loading": "SYNCING",
+        "degraded": "PARTIAL DATA"
+      },
+      "clean": "All cabinet resources are responding.",
+      "loading": "{count} cabinet resources are still loading.",
+      "issues": "{count} cabinet resources need retry.",
+      "lastSynced": "Last synced: {value}",
+      "neverSynced": "No backend snapshot has been loaded yet.",
+      "retryAll": "Retry all"
     },
-    "title": "VPN COMMAND CENTER",
-    "statusLabel": "SYSTEM STATUS:",
-    "statusValue": "OPTIMAL",
-    "connectionStatus": "SECURE CONNECTION ESTABLISHED",
-    "encryptionStatus": "ENCRYPTION: QUANTUM-SAFE",
-    "serverStatus": "SERVER STATUS",
-    "nodesOnline": "NODES ONLINE",
-    "activeSessions": "ACTIVE SESSIONS",
-    "currentConnections": "Current connections",
-    "networkLoad": "NETWORK LOAD",
-    "aggregateThroughput": "Aggregate throughput",
-    "trafficToday": "Traffic transferred today",
-    "serverMatrix": "SERVER MATRIX",
-    "vpnUsage": "VPN USAGE",
-    "activeConnections": "Active Connections",
-    "errorLoadingServers": "Error loading servers",
-    "noServers": "No servers available",
-    "networkRecap": "REMNAWAVE RECAP",
-    "opsBaseline": "Users, nodes, traffic, and geographic coverage",
-    "thisMonth": "This month",
-    "monthlyRecapUnavailable": "Monthly recap unavailable",
-    "totalUsers": "Total Users",
-    "totalNodes": "Total Nodes",
-    "lifetimeTraffic": "Lifetime Traffic",
-    "countries": "Countries",
-    "cabinet": {
-        "eyebrow": "PRIVATE ACCESS COCKPIT",
-        "title": "CyberVPN Personal Cabinet",
-        "subtitle": "A customer-first control room for your plan, VPN readiness, traffic, wallet, rewards, notifications, and security posture.",
-        "statusLabel": "ACCOUNT CHANNEL:",
-        "statusValue": "ENCRYPTED",
-        "connectionStatus": "PRIVATE ACCESS READY",
-        "encryptionStatus": "SESSION: HTTPONLY COOKIE",
-        "anonymousUser": "CyberVPN user",
-        "pendingProvisioning": "Pending provisioning",
-        "noActivePlan": "No active plan",
-        "unknownDate": "Date unavailable",
-        "metricUnavailable": "Data is temporarily unavailable",
-        "retry": "Retry",
-        "unavailable": "Unavailable",
-        "unlimited": "Unlimited",
-        "sync": {
-            "title": "Backend sync state",
-            "status": {
-                "live": "LIVE SYNC",
-                "loading": "SYNCING",
-                "degraded": "PARTIAL DATA"
-            },
-            "clean": "All cabinet resources are responding.",
-            "loading": "{count} cabinet resources are still loading.",
-            "issues": "{count} cabinet resources need retry.",
-            "lastSynced": "Last synced: {value}",
-            "neverSynced": "No backend snapshot has been loaded yet.",
-            "retryAll": "Retry all"
+    "health": {
+      "healthy": {
+        "title": "Healthy",
+        "description": "Your account has an active service state and no urgent customer actions."
+      },
+      "attention": {
+        "title": "Needs attention",
+        "description": "One or more account signals need review: provisioning, traffic, expiry, or notifications."
+      },
+      "critical": {
+        "title": "Action required",
+        "description": "Your VPN access may be expired, blocked, or near a usage limit. Review the next actions before connecting."
+      }
+    },
+    "hero": {
+      "eyebrow": "Authenticated account",
+      "plan": "Plan",
+      "renewal": "Renewal",
+      "status": "Health"
+    },
+    "actions": {
+      "managePlan": "Manage plan",
+      "managePlanDescription": "Renew, upgrade, or review active limits.",
+      "getConfig": "Get VPN access",
+      "getConfigDescription": "Open servers and import connection profiles.",
+      "finishProvisioning": "Finish VPN setup",
+      "finishProvisioningDescription": "Provision the missing access channel or credential.",
+      "reviewNotifications": "Review alerts",
+      "reviewNotificationsDescription": "Open action-required delivery and reward updates.",
+      "secureAccount": "Secure account",
+      "secureAccountDescription": "Review 2FA, devices, and anti-phishing.",
+      "startTrial": "Start trial",
+      "startTrialDescription": "Activate your eligible trial before choosing a plan.",
+      "watchTraffic": "Review traffic",
+      "watchTrafficDescription": "Check usage before the current period closes.",
+      "invite": "Invite friends",
+      "inviteDescription": "Share rewards and track pending payouts."
+    },
+    "metrics": {
+      "traffic": {
+        "title": "Traffic",
+        "meta": "Limit: {limit}",
+        "empty": "Usage snapshot is not loaded yet",
+        "unmetered": "Current plan has no traffic cap",
+        "percentage": "{percentage}% of traffic limit used"
+      },
+      "devices": {
+        "title": "Connections",
+        "meta": "Active sessions against plan limit",
+        "metaWithLimit": "Device entitlement: {limit}"
+      },
+      "wallet": {
+        "title": "Wallet",
+        "meta": "Frozen balance: {frozen}",
+        "empty": "Wallet snapshot is not loaded yet"
+      },
+      "notifications": {
+        "title": "Inbox",
+        "meta": "{actionRequired} action required from {total} total",
+        "empty": "Notification counters are not loaded yet"
+      }
+    },
+    "readiness": {
+      "eyebrow": "VPN readiness",
+      "title": "Connection delivery state",
+      "description": "This panel checks whether your subscription, provisioning profile, device credential, and access channel line up with the backend.",
+      "degraded": "DEGRADED",
+      "channel": "Access channel",
+      "profile": "Provisioning profile",
+      "credential": "Credential",
+      "lastConnection": "Last connection",
+      "noConnectionYet": "No connection yet"
+    },
+    "plan": {
+      "eyebrow": "Entitlements",
+      "title": "Plan capabilities",
+      "traffic": "Traffic policy",
+      "security": "Connection modes",
+      "support": "Support lane",
+      "defaultSecurity": "Standard encrypted tunnels",
+      "standardSupport": "Standard support",
+      "trialActive": "Trial is active. {days} days remaining."
+    },
+    "notifications": {
+      "eyebrow": "Customer notifications",
+      "title": "Latest account signals",
+      "description": "Recent delivery, rewards, payment, and admin updates from the backend notification system.",
+      "refresh": "Refresh inbox",
+      "empty": "No visible customer notifications right now.",
+      "errorTitle": "Notification stream unavailable",
+      "errorDescription": "The dashboard is still usable. Retry the notification stream or continue to settings and payments.",
+      "actionRequired": "Action required",
+      "unread": "Unread"
+    },
+    "rewards": {
+      "eyebrow": "Growth rewards",
+      "title": "Referral earnings",
+      "referrals": "Referrals",
+      "totalReferrals": "Total invited customers",
+      "available": "Available",
+      "availableMeta": "Ready for wallet usage",
+      "pending": "Pending",
+      "pendingMeta": "Held until reward release"
+    },
+    "security": {
+      "eyebrow": "Privacy and security",
+      "title": "Account protection checklist",
+      "items": {
+        "cookieSession": "Web auth uses httpOnly cookies; tokens are not exposed to browser JavaScript.",
+        "twoFactor": "Enable or review two-factor authentication in settings.",
+        "antiPhishing": "Set an anti-phishing code before trusting operational emails.",
+        "notifications": "Keep critical delivery and payment notifications enabled."
+      },
+      "cta": "Open security settings"
+    },
+    "stage1States": {
+      "ariaLabel": "Release access, payment, and provisioning states",
+      "access": {
+        "eyebrow": "Access",
+        "active": {
+          "title": "Access active",
+          "description": "Paid VPN access is active and ready for normal connection delivery."
         },
-        "health": {
-            "healthy": {
-                "title": "Healthy",
-                "description": "Your account has an active service state and no urgent customer actions."
-            },
-            "attention": {
-                "title": "Needs attention",
-                "description": "One or more account signals need review: provisioning, traffic, expiry, or notifications."
-            },
-            "critical": {
-                "title": "Action required",
-                "description": "Your VPN access may be expired, blocked, or near a usage limit. Review the next actions before connecting."
-            }
+        "trial_active": {
+          "title": "Trial active",
+          "description": "Trial access is active. Review the expiry date before the trial window closes."
         },
-        "hero": {
-            "eyebrow": "Authenticated account",
-            "plan": "Plan",
-            "renewal": "Renewal",
-            "status": "Health"
+        "grace": {
+          "title": "Grace period",
+          "description": "VPN access remains available during the 72-hour grace window. Renew manually before it closes."
         },
-        "actions": {
-            "managePlan": "Manage plan",
-            "managePlanDescription": "Renew, upgrade, or review active limits.",
-            "getConfig": "Get VPN access",
-            "getConfigDescription": "Open servers and import connection profiles.",
-            "finishProvisioning": "Finish VPN setup",
-            "finishProvisioningDescription": "Provision the missing access channel or credential.",
-            "reviewNotifications": "Review alerts",
-            "reviewNotificationsDescription": "Open action-required delivery and reward updates.",
-            "secureAccount": "Secure account",
-            "secureAccountDescription": "Review 2FA, devices, and anti-phishing.",
-            "startTrial": "Start trial",
-            "startTrialDescription": "Activate your eligible trial before choosing a plan.",
-            "watchTraffic": "Review traffic",
-            "watchTrafficDescription": "Check usage before the current period closes.",
-            "invite": "Invite friends",
-            "inviteDescription": "Share rewards and track pending payouts."
+        "expired": {
+          "title": "Access expired",
+          "description": "VPN access is expired or disabled. Renew the plan or contact support before connecting."
         },
-        "metrics": {
-            "traffic": {
-                "title": "Traffic",
-                "meta": "Limit: {limit}",
-                "empty": "Usage snapshot is not loaded yet",
-                "unmetered": "Current plan has no traffic cap",
-                "percentage": "{percentage}% of traffic limit used"
-            },
-            "devices": {
-                "title": "Connections",
-                "meta": "Active sessions against plan limit",
-                "metaWithLimit": "Device entitlement: {limit}"
-            },
-            "wallet": {
-                "title": "Wallet",
-                "meta": "Frozen balance: {frozen}",
-                "empty": "Wallet snapshot is not loaded yet"
-            },
-            "notifications": {
-                "title": "Inbox",
-                "meta": "{actionRequired} action required from {total} total",
-                "empty": "Notification counters are not loaded yet"
-            }
+        "payment_pending": {
+          "title": "Payment pending",
+          "description": "Payment is not final yet. Access will be issued after payment confirmation and reconciliation."
         },
-        "readiness": {
-            "eyebrow": "VPN readiness",
-            "title": "Connection delivery state",
-            "description": "This panel checks whether your subscription, provisioning profile, device credential, and access channel line up with the backend.",
-            "degraded": "DEGRADED",
-            "channel": "Access channel",
-            "profile": "Provisioning profile",
-            "credential": "Credential",
-            "lastConnection": "Last connection",
-            "noConnectionYet": "No connection yet"
+        "provisioning_pending": {
+          "title": "Provisioning pending",
+          "description": "The plan exists, but VPN delivery is still preparing credentials or an access channel."
         },
-        "plan": {
-            "eyebrow": "Entitlements",
-            "title": "Plan capabilities",
-            "traffic": "Traffic policy",
-            "security": "Connection modes",
-            "support": "Support lane",
-            "defaultSecurity": "Standard encrypted tunnels",
-            "standardSupport": "Standard support",
-            "trialActive": "Trial is active. {days} days remaining."
+        "no_access": {
+          "title": "No access yet",
+          "description": "No active entitlement is available. Start trial or choose a plan to request VPN access."
         },
-        "notifications": {
-            "eyebrow": "Customer notifications",
-            "title": "Latest account signals",
-            "description": "Recent delivery, rewards, payment, and admin updates from the backend notification system.",
-            "refresh": "Refresh inbox",
-            "empty": "No visible customer notifications right now.",
-            "errorTitle": "Notification stream unavailable",
-            "errorDescription": "The dashboard is still usable. Retry the notification stream or continue to settings and payments.",
-            "actionRequired": "Action required",
-            "unread": "Unread"
-        },
-        "rewards": {
-            "eyebrow": "Growth rewards",
-            "title": "Referral earnings",
-            "referrals": "Referrals",
-            "totalReferrals": "Total invited customers",
-            "available": "Available",
-            "availableMeta": "Ready for wallet usage",
-            "pending": "Pending",
-            "pendingMeta": "Held until reward release"
-        },
-        "security": {
-            "eyebrow": "Privacy and security",
-            "title": "Account protection checklist",
-            "items": {
-                "cookieSession": "Web auth uses httpOnly cookies; tokens are not exposed to browser JavaScript.",
-                "twoFactor": "Enable or review two-factor authentication in settings.",
-                "antiPhishing": "Set an anti-phishing code before trusting operational emails.",
-                "notifications": "Keep critical delivery and payment notifications enabled."
-            },
-            "cta": "Open security settings"
-        },
-        "stage1States": {
-            "ariaLabel": "Stage 1 access, payment, and provisioning states",
-            "access": {
-                "eyebrow": "Access",
-                "active": {
-                    "title": "Access active",
-                    "description": "Paid VPN access is active and ready for normal connection delivery."
-                },
-                "trial_active": {
-                    "title": "Trial active",
-                    "description": "Trial access is active. Review the expiry date before the trial window closes."
-                },
-                "grace": {
-                    "title": "Grace period",
-                    "description": "VPN access remains available during the 72-hour grace window. Renew manually before it closes."
-                },
-                "expired": {
-                    "title": "Access expired",
-                    "description": "VPN access is expired or disabled. Renew the plan or contact support before connecting."
-                },
-                "payment_pending": {
-                    "title": "Payment pending",
-                    "description": "Payment is not final yet. Access will be issued after payment confirmation and reconciliation."
-                },
-                "provisioning_pending": {
-                    "title": "Provisioning pending",
-                    "description": "The plan exists, but VPN delivery is still preparing credentials or an access channel."
-                },
-                "no_access": {
-                    "title": "No access yet",
-                    "description": "No active entitlement is available. Start trial or choose a plan to request VPN access."
-                },
-                "checking": {
-                    "title": "Checking access",
-                    "description": "The dashboard is loading the latest entitlement snapshot before showing the final access state."
-                }
-            },
-            "payment": {
-                "eyebrow": "Payment",
-                "paid": {
-                    "title": "Payment accepted",
-                    "description": "Billing state is settled for the current access window."
-                },
-                "not_started": {
-                    "title": "Payment not started",
-                    "description": "No live payment is attached to the current access state."
-                },
-                "pending": {
-                    "title": "Payment pending",
-                    "description": "Provider confirmation is still pending. Keep this payment under review until it becomes final."
-                },
-                "processing": {
-                    "title": "Payment processing",
-                    "description": "Provider processing is in progress. Do not retry the same checkout until the status is final."
-                },
-                "failed": {
-                    "title": "Payment failed",
-                    "description": "Payment failed or was rejected. Use a new checkout or contact support if funds were reserved."
-                },
-                "expired": {
-                    "title": "Payment expired",
-                    "description": "The payment window has expired. Create a new renewal or plan invoice."
-                },
-                "refunded": {
-                    "title": "Refund recorded",
-                    "description": "A refund is recorded for this billing state. Access may need manual support review."
-                },
-                "reconciliation_required": {
-                    "title": "Manual review required",
-                    "description": "Payment and access state need manual reconciliation. Support should resolve it within the S1 24-hour policy."
-                },
-                "checking": {
-                    "title": "Checking payment",
-                    "description": "The dashboard is loading billing signals before showing the final payment state."
-                }
-            },
-            "provisioning": {
-                "eyebrow": "Provisioning",
-                "ready": {
-                    "title": "VPN ready",
-                    "description": "Remnawave delivery has a service identity, credential, profile, and access channel."
-                },
-                "pending": {
-                    "title": "Provisioning pending",
-                    "description": "VPN credentials or delivery channel are not ready yet. Retry or wait for worker reconciliation."
-                },
-                "retrying": {
-                    "title": "Provisioning retrying",
-                    "description": "The backend is retrying VPN delivery. Contact support if this does not resolve quickly."
-                },
-                "failed": {
-                    "title": "Provisioning failed",
-                    "description": "VPN delivery failed. Support must re-run provisioning or issue manual remediation."
-                },
-                "remnawave_unavailable": {
-                    "title": "Remnawave unavailable",
-                    "description": "The dashboard cannot reach the provisioning state. Retry before changing access or payment data."
-                },
-                "reconciliation_required": {
-                    "title": "Provisioning review required",
-                    "description": "Payment/access and VPN delivery disagree. Support must reconcile before go-live evidence can pass."
-                },
-                "not_required": {
-                    "title": "Not required yet",
-                    "description": "Provisioning starts after trial activation or a final paid access decision."
-                },
-                "checking": {
-                    "title": "Checking provisioning",
-                    "description": "The dashboard is loading VPN delivery signals before showing the final provisioning state."
-                }
-            }
+        "checking": {
+          "title": "Checking access",
+          "description": "The dashboard is loading the latest entitlement snapshot before showing the final access state."
         }
+      },
+      "payment": {
+        "eyebrow": "Payment",
+        "paid": {
+          "title": "Payment accepted",
+          "description": "Billing state is settled for the current access window."
+        },
+        "not_started": {
+          "title": "Payment not started",
+          "description": "No live payment is attached to the current access state."
+        },
+        "pending": {
+          "title": "Payment pending",
+          "description": "Provider confirmation is still pending. Keep this payment under review until it becomes final."
+        },
+        "processing": {
+          "title": "Payment processing",
+          "description": "Provider processing is in progress. Do not retry the same checkout until the status is final."
+        },
+        "failed": {
+          "title": "Payment failed",
+          "description": "Payment failed or was rejected. Use a new checkout or contact support if funds were reserved."
+        },
+        "expired": {
+          "title": "Payment expired",
+          "description": "The payment window has expired. Create a new renewal or plan invoice."
+        },
+        "refunded": {
+          "title": "Refund recorded",
+          "description": "A refund is recorded for this billing state. Access may need manual support review."
+        },
+        "reconciliation_required": {
+          "title": "Manual review required",
+          "description": "Payment and access state need manual reconciliation. Support should resolve it within the S1 24-hour policy."
+        },
+        "checking": {
+          "title": "Checking payment",
+          "description": "The dashboard is loading billing signals before showing the final payment state."
+        }
+      },
+      "provisioning": {
+        "eyebrow": "Provisioning",
+        "ready": {
+          "title": "VPN ready",
+          "description": "Remnawave delivery has a service identity, credential, profile, and access channel."
+        },
+        "pending": {
+          "title": "Provisioning pending",
+          "description": "VPN credentials or delivery channel are not ready yet. Retry or wait for worker reconciliation."
+        },
+        "retrying": {
+          "title": "Provisioning retrying",
+          "description": "The backend is retrying VPN delivery. Contact support if this does not resolve quickly."
+        },
+        "failed": {
+          "title": "Provisioning failed",
+          "description": "VPN delivery failed. Support must re-run provisioning or issue manual remediation."
+        },
+        "remnawave_unavailable": {
+          "title": "Remnawave unavailable",
+          "description": "The dashboard cannot reach the provisioning state. Retry before changing access or payment data."
+        },
+        "reconciliation_required": {
+          "title": "Provisioning review required",
+          "description": "Payment/access and VPN delivery disagree. Support must reconcile under the paid entitlement escalation policy."
+        },
+        "not_required": {
+          "title": "Not required yet",
+          "description": "Provisioning starts after trial activation or a final paid access decision."
+        },
+        "checking": {
+          "title": "Checking provisioning",
+          "description": "The dashboard is loading VPN delivery signals before showing the final provisioning state."
+        }
+      }
     }
+  }
 }

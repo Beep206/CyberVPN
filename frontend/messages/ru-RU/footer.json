@@ -1,41 +1,41 @@
 {
-    "brandDescription": "Controlled Public Beta VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
-    "sections": {
-        "product": "Продукт",
-        "support": "Поддержка",
-        "knowledge": "База знаний",
-        "paymentMethods": "Способы оплаты",
-        "stayConnected": "Оставайтесь на связи"
-    },
-    "knowledgeLinks": {
-        "guides": "Гайды",
-        "compare": "Сравнения",
-        "devices": "Устройства",
-        "trust": "Центр доверия",
-        "audits": "Аудиты"
-    },
-    "newsletter": {
-        "description": "Получайте обновления по включённым регионам, S1 support notices и изменениям launch-readiness.",
-        "prompt": "root@user:~$",
-        "placeholder": "введите_email.exe",
-        "cta": "СТАРТ"
-    },
-    "operationalStatus": "S1 monitoring активен; публичная доступность остаётся evidence-bound.",
-    "links": {
-        "features": "Возможности",
-        "pricing": "Цены",
-        "servers": "Серверы",
-        "download": "Скачать",
-        "api": "API",
-        "helpCenter": "Центр помощи",
-        "status": "Статус системы",
-        "contact": "Контакты",
-        "documentation": "Документация",
-        "privacy": "Политика конфиденциальности",
-        "terms": "Условия использования",
-        "acceptableUse": "Правила использования",
-        "refundPolicy": "Политика возвратов",
-        "cookiePolicy": "Политика cookies",
-        "security": "Безопасность"
-    }
+  "brandDescription": "Публичный B2C VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
+  "sections": {
+    "product": "Продукт",
+    "support": "Поддержка",
+    "knowledge": "База знаний",
+    "paymentMethods": "Способы оплаты",
+    "stayConnected": "Оставайтесь на связи"
+  },
+  "knowledgeLinks": {
+    "guides": "Guides",
+    "compare": "Compare",
+    "devices": "Devices",
+    "trust": "Trust center",
+    "audits": "Audits"
+  },
+  "newsletter": {
+    "description": "Получайте обновления по включённым регионам, support notices и release changes.",
+    "prompt": "root@user:~$",
+    "placeholder": "enter_email.exe",
+    "cta": "INIT"
+  },
+  "operationalStatus": "Public release monitoring active; availability remains evidence-bound.",
+  "links": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "servers": "Servers",
+    "download": "Download",
+    "api": "API",
+    "helpCenter": "Центр помощи",
+    "status": "Статус системы",
+    "contact": "Контакты",
+    "documentation": "Docs",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "acceptableUse": "Правила использования",
+    "refundPolicy": "Политика возвратов",
+    "cookiePolicy": "Политика cookies",
+    "security": "Безопасность"
+  }
 }

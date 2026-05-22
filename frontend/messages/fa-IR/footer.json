@@ -1,41 +1,41 @@
 {
-    "brandDescription": "Controlled Public Beta VPN access with evidence-gated regions, bounded privacy claims, and monitored support recovery paths.",
-    "sections": {
-        "product": "Product",
-        "support": "Support",
-        "knowledge": "Knowledge",
-        "paymentMethods": "Payment methods",
-        "stayConnected": "Stay Connected"
-    },
-    "knowledgeLinks": {
-        "guides": "Guides",
-        "compare": "Compare",
-        "devices": "Devices",
-        "trust": "Trust center",
-        "audits": "Audits"
-    },
-    "newsletter": {
-        "description": "Get updates on enabled regions, S1 support notices, and launch-readiness changes.",
-        "prompt": "root@user:~$",
-        "placeholder": "enter_email.exe",
-        "cta": "INIT"
-    },
-    "operationalStatus": "S1 monitoring active; public availability remains evidence-bound.",
-    "links": {
-        "features": "Features",
-        "pricing": "Pricing",
-        "servers": "Servers",
-        "download": "Download",
-        "api": "API",
-        "helpCenter": "Help Center",
-        "status": "System Status",
-        "contact": "Contact",
-        "documentation": "Docs",
-        "privacy": "Privacy Policy",
-        "terms": "Terms of Service",
-        "acceptableUse": "Acceptable Use",
-        "refundPolicy": "Refund Policy",
-        "cookiePolicy": "Cookie Policy",
-        "security": "Security"
-    }
+  "brandDescription": "Public B2C VPN access with evidence-gated regions, bounded privacy claims, and monitored support recovery paths.",
+  "sections": {
+    "product": "Product",
+    "support": "Support",
+    "knowledge": "Knowledge",
+    "paymentMethods": "Payment methods",
+    "stayConnected": "Stay Connected"
+  },
+  "knowledgeLinks": {
+    "guides": "Guides",
+    "compare": "Compare",
+    "devices": "Devices",
+    "trust": "Trust center",
+    "audits": "Audits"
+  },
+  "newsletter": {
+    "description": "Get updates on enabled regions, support notices, and release changes.",
+    "prompt": "root@user:~$",
+    "placeholder": "enter_email.exe",
+    "cta": "INIT"
+  },
+  "operationalStatus": "Public release monitoring active; availability remains evidence-bound.",
+  "links": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "servers": "Servers",
+    "download": "Download",
+    "api": "API",
+    "helpCenter": "Help Center",
+    "status": "System Status",
+    "contact": "Contact",
+    "documentation": "Docs",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "acceptableUse": "Acceptable Use",
+    "refundPolicy": "Refund Policy",
+    "cookiePolicy": "Cookie Policy",
+    "security": "Security"
+  }
 }

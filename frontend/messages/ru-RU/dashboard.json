@@ -1,281 +1,281 @@
 {
-    "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
-    "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
-    "statusValue": "ОПТИМАЛЬНО",
-    "connectionStatus": "ЗАЩИЩЕННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО",
-    "encryptionStatus": "ШИФРОВАНИЕ: КВАНТОВО-УСТОЙЧИВОЕ",
-    "serverStatus": "СТАТУС СЕРВЕРОВ",
-    "nodesOnline": "УЗЛОВ В СЕТИ",
-    "activeSessions": "АКТИВНЫЕ СЕССИИ",
-    "currentConnections": "Текущие подключения",
-    "networkLoad": "НАГРУЗКА СЕТИ",
-    "aggregateThroughput": "Суммарная пропускная способность",
-    "trafficToday": "Переданный трафик за сегодня",
-    "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
-    "networkRecap": "СВОДКА REMNAWAVE",
-    "opsBaseline": "Пользователи, узлы, трафик и географическое покрытие",
-    "thisMonth": "Этот месяц",
-    "monthlyRecapUnavailable": "Сводка за месяц недоступна",
-    "totalUsers": "Всего пользователей",
-    "totalNodes": "Всего узлов",
-    "lifetimeTraffic": "Трафик за всё время",
-    "countries": "Страны",
-    "cabinet": {
-        "eyebrow": "ЛИЧНЫЙ КОНТУР ДОСТУПА",
-        "title": "Личный кабинет CyberVPN",
-        "subtitle": "Пользовательский центр управления тарифом, готовностью VPN, трафиком, кошельком, наградами, уведомлениями и безопасностью.",
-        "statusLabel": "КАНАЛ АККАУНТА:",
-        "statusValue": "ЗАШИФРОВАН",
-        "connectionStatus": "ПРИВАТНЫЙ ДОСТУП ГОТОВ",
-        "encryptionStatus": "СЕССИЯ: HTTPONLY COOKIE",
-        "anonymousUser": "Пользователь CyberVPN",
-        "pendingProvisioning": "Ожидает подготовки",
-        "noActivePlan": "Нет активного тарифа",
-        "unknownDate": "Дата недоступна",
-        "metricUnavailable": "Данные временно недоступны",
-        "retry": "Повторить",
-        "unavailable": "Недоступно",
-        "unlimited": "Безлимитно",
-        "sync": {
-            "title": "Состояние синхронизации backend",
-            "status": {
-                "live": "LIVE SYNC",
-                "loading": "СИНХРОНИЗАЦИЯ",
-                "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ"
-            },
-            "clean": "Все ресурсы кабинета отвечают.",
-            "loading": "{count} ресурсов кабинета ещё загружаются.",
-            "issues": "{count} ресурсов кабинета требуют повтора.",
-            "lastSynced": "Последняя синхронизация: {value}",
-            "neverSynced": "Снимок backend ещё не загружен.",
-            "retryAll": "Повторить всё"
+  "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
+  "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
+  "statusValue": "ОПТИМАЛЬНО",
+  "connectionStatus": "ЗАЩИЩЕННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО",
+  "encryptionStatus": "ШИФРОВАНИЕ: КВАНТОВО-УСТОЙЧИВОЕ",
+  "serverStatus": "СТАТУС СЕРВЕРОВ",
+  "nodesOnline": "УЗЛОВ В СЕТИ",
+  "activeSessions": "АКТИВНЫЕ СЕССИИ",
+  "currentConnections": "Текущие подключения",
+  "networkLoad": "НАГРУЗКА СЕТИ",
+  "aggregateThroughput": "Суммарная пропускная способность",
+  "trafficToday": "Переданный трафик за сегодня",
+  "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
+  "networkRecap": "СВОДКА REMNAWAVE",
+  "opsBaseline": "Пользователи, узлы, трафик и географическое покрытие",
+  "thisMonth": "Этот месяц",
+  "monthlyRecapUnavailable": "Сводка за месяц недоступна",
+  "totalUsers": "Всего пользователей",
+  "totalNodes": "Всего узлов",
+  "lifetimeTraffic": "Трафик за всё время",
+  "countries": "Страны",
+  "cabinet": {
+    "eyebrow": "ЛИЧНЫЙ КОНТУР ДОСТУПА",
+    "title": "Личный кабинет CyberVPN",
+    "subtitle": "Пользовательский центр управления тарифом, готовностью VPN, трафиком, кошельком, наградами, уведомлениями и безопасностью.",
+    "statusLabel": "КАНАЛ АККАУНТА:",
+    "statusValue": "ЗАШИФРОВАН",
+    "connectionStatus": "ПРИВАТНЫЙ ДОСТУП ГОТОВ",
+    "encryptionStatus": "СЕССИЯ: HTTPONLY COOKIE",
+    "anonymousUser": "Пользователь CyberVPN",
+    "pendingProvisioning": "Ожидает подготовки",
+    "noActivePlan": "Нет активного тарифа",
+    "unknownDate": "Дата недоступна",
+    "metricUnavailable": "Данные временно недоступны",
+    "retry": "Повторить",
+    "unavailable": "Недоступно",
+    "unlimited": "Безлимитно",
+    "sync": {
+      "title": "Состояние синхронизации backend",
+      "status": {
+        "live": "LIVE SYNC",
+        "loading": "СИНХРОНИЗАЦИЯ",
+        "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ"
+      },
+      "clean": "Все ресурсы кабинета отвечают.",
+      "loading": "{count} ресурсов кабинета ещё загружаются.",
+      "issues": "{count} ресурсов кабинета требуют повтора.",
+      "lastSynced": "Последняя синхронизация: {value}",
+      "neverSynced": "Снимок backend ещё не загружен.",
+      "retryAll": "Повторить всё"
+    },
+    "health": {
+      "healthy": {
+        "title": "В норме",
+        "description": "Аккаунт активен, сервис подготовлен, срочных действий нет."
+      },
+      "attention": {
+        "title": "Нужно внимание",
+        "description": "Один или несколько сигналов требуют проверки: подготовка доступа, трафик, срок тарифа или уведомления."
+      },
+      "critical": {
+        "title": "Требуется действие",
+        "description": "VPN-доступ может быть истёкшим, заблокированным или близким к лимиту. Проверьте следующие действия перед подключением."
+      }
+    },
+    "hero": {
+      "eyebrow": "Авторизованный аккаунт",
+      "plan": "Тариф",
+      "renewal": "Продление",
+      "status": "Состояние"
+    },
+    "actions": {
+      "managePlan": "Управлять тарифом",
+      "managePlanDescription": "Продлить, улучшить или проверить лимиты.",
+      "getConfig": "Получить VPN-доступ",
+      "getConfigDescription": "Открыть серверы и импортировать профили.",
+      "finishProvisioning": "Завершить настройку VPN",
+      "finishProvisioningDescription": "Подготовить недостающий канал доступа или credential.",
+      "reviewNotifications": "Проверить алерты",
+      "reviewNotificationsDescription": "Открыть важные обновления по доставке, наградам и оплатам.",
+      "secureAccount": "Защитить аккаунт",
+      "secureAccountDescription": "Проверить 2FA, устройства и антифишинг.",
+      "startTrial": "Запустить trial",
+      "startTrialDescription": "Активировать доступный пробный период перед выбором тарифа.",
+      "watchTraffic": "Проверить трафик",
+      "watchTrafficDescription": "Посмотреть usage до окончания текущего периода.",
+      "invite": "Пригласить друзей",
+      "inviteDescription": "Делиться наградами и отслеживать выплаты."
+    },
+    "metrics": {
+      "traffic": {
+        "title": "Трафик",
+        "meta": "Лимит: {limit}",
+        "empty": "Снимок usage ещё не загружен",
+        "unmetered": "В текущем тарифе нет лимита трафика",
+        "percentage": "Использовано {percentage}% лимита трафика"
+      },
+      "devices": {
+        "title": "Подключения",
+        "meta": "Активные сессии относительно лимита тарифа",
+        "metaWithLimit": "Лимит устройств: {limit}"
+      },
+      "wallet": {
+        "title": "Кошелёк",
+        "meta": "Замороженный баланс: {frozen}",
+        "empty": "Снимок кошелька ещё не загружен"
+      },
+      "notifications": {
+        "title": "Входящие",
+        "meta": "{actionRequired} требуют действия из {total} всего",
+        "empty": "Счётчики уведомлений ещё не загружены"
+      }
+    },
+    "readiness": {
+      "eyebrow": "Готовность VPN",
+      "title": "Состояние доставки подключения",
+      "description": "Панель проверяет, согласованы ли подписка, профиль подготовки, credential устройства и канал доступа с backend.",
+      "degraded": "ДЕГРАДАЦИЯ",
+      "channel": "Канал доступа",
+      "profile": "Профиль подготовки",
+      "credential": "Credential",
+      "lastConnection": "Последнее подключение",
+      "noConnectionYet": "Подключений ещё не было"
+    },
+    "plan": {
+      "eyebrow": "Права тарифа",
+      "title": "Возможности плана",
+      "traffic": "Политика трафика",
+      "security": "Режимы подключения",
+      "support": "Линия поддержки",
+      "defaultSecurity": "Стандартные зашифрованные туннели",
+      "standardSupport": "Стандартная поддержка",
+      "trialActive": "Пробный период активен. Осталось дней: {days}."
+    },
+    "notifications": {
+      "eyebrow": "Пользовательские уведомления",
+      "title": "Последние сигналы аккаунта",
+      "description": "Свежие обновления по доставке доступа, наградам, оплатам и админским событиям из backend notification system.",
+      "refresh": "Обновить входящие",
+      "empty": "Сейчас нет видимых пользовательских уведомлений.",
+      "errorTitle": "Поток уведомлений недоступен",
+      "errorDescription": "Кабинет остаётся рабочим. Повторите загрузку уведомлений или продолжите в настройках и оплатах.",
+      "actionRequired": "Требуется действие",
+      "unread": "Не прочитано"
+    },
+    "rewards": {
+      "eyebrow": "Growth-награды",
+      "title": "Реферальный доход",
+      "referrals": "Рефералы",
+      "totalReferrals": "Всего приглашённых клиентов",
+      "available": "Доступно",
+      "availableMeta": "Можно использовать в кошельке",
+      "pending": "В ожидании",
+      "pendingMeta": "Удерживается до релиза награды"
+    },
+    "security": {
+      "eyebrow": "Приватность и безопасность",
+      "title": "Чеклист защиты аккаунта",
+      "items": {
+        "cookieSession": "Web-auth использует httpOnly cookies; токены не доступны JavaScript в браузере.",
+        "twoFactor": "Включите или проверьте двухфакторную аутентификацию в настройках.",
+        "antiPhishing": "Задайте антифишинговый код перед доверием операционным письмам.",
+        "notifications": "Оставьте критические уведомления по доставке и оплатам включёнными."
+      },
+      "cta": "Открыть настройки безопасности"
+    },
+    "stage1States": {
+      "ariaLabel": "Состояния доступа, оплаты и provisioning для public release",
+      "access": {
+        "eyebrow": "Доступ",
+        "active": {
+          "title": "Доступ активен",
+          "description": "Оплаченный VPN-доступ активен и готов к штатной выдаче подключения."
         },
-        "health": {
-            "healthy": {
-                "title": "В норме",
-                "description": "Аккаунт активен, сервис подготовлен, срочных действий нет."
-            },
-            "attention": {
-                "title": "Нужно внимание",
-                "description": "Один или несколько сигналов требуют проверки: подготовка доступа, трафик, срок тарифа или уведомления."
-            },
-            "critical": {
-                "title": "Требуется действие",
-                "description": "VPN-доступ может быть истёкшим, заблокированным или близким к лимиту. Проверьте следующие действия перед подключением."
-            }
+        "trial_active": {
+          "title": "Trial активен",
+          "description": "Пробный доступ активен. Проверьте дату окончания до закрытия trial-окна."
         },
-        "hero": {
-            "eyebrow": "Авторизованный аккаунт",
-            "plan": "Тариф",
-            "renewal": "Продление",
-            "status": "Состояние"
+        "grace": {
+          "title": "Grace-период",
+          "description": "VPN-доступ остаётся доступным в течение 72-часового grace-окна. Продлите вручную до его закрытия."
         },
-        "actions": {
-            "managePlan": "Управлять тарифом",
-            "managePlanDescription": "Продлить, улучшить или проверить лимиты.",
-            "getConfig": "Получить VPN-доступ",
-            "getConfigDescription": "Открыть серверы и импортировать профили.",
-            "finishProvisioning": "Завершить настройку VPN",
-            "finishProvisioningDescription": "Подготовить недостающий канал доступа или credential.",
-            "reviewNotifications": "Проверить алерты",
-            "reviewNotificationsDescription": "Открыть важные обновления по доставке, наградам и оплатам.",
-            "secureAccount": "Защитить аккаунт",
-            "secureAccountDescription": "Проверить 2FA, устройства и антифишинг.",
-            "startTrial": "Запустить trial",
-            "startTrialDescription": "Активировать доступный пробный период перед выбором тарифа.",
-            "watchTraffic": "Проверить трафик",
-            "watchTrafficDescription": "Посмотреть usage до окончания текущего периода.",
-            "invite": "Пригласить друзей",
-            "inviteDescription": "Делиться наградами и отслеживать выплаты."
+        "expired": {
+          "title": "Доступ истёк",
+          "description": "VPN-доступ истёк или отключён. Продлите тариф или обратитесь в поддержку перед подключением."
         },
-        "metrics": {
-            "traffic": {
-                "title": "Трафик",
-                "meta": "Лимит: {limit}",
-                "empty": "Снимок usage ещё не загружен",
-                "unmetered": "В текущем тарифе нет лимита трафика",
-                "percentage": "Использовано {percentage}% лимита трафика"
-            },
-            "devices": {
-                "title": "Подключения",
-                "meta": "Активные сессии относительно лимита тарифа",
-                "metaWithLimit": "Лимит устройств: {limit}"
-            },
-            "wallet": {
-                "title": "Кошелёк",
-                "meta": "Замороженный баланс: {frozen}",
-                "empty": "Снимок кошелька ещё не загружен"
-            },
-            "notifications": {
-                "title": "Входящие",
-                "meta": "{actionRequired} требуют действия из {total} всего",
-                "empty": "Счётчики уведомлений ещё не загружены"
-            }
+        "payment_pending": {
+          "title": "Оплата ожидается",
+          "description": "Оплата ещё не финальна. Доступ будет выдан после подтверждения и сверки платежа."
         },
-        "readiness": {
-            "eyebrow": "Готовность VPN",
-            "title": "Состояние доставки подключения",
-            "description": "Панель проверяет, согласованы ли подписка, профиль подготовки, credential устройства и канал доступа с backend.",
-            "degraded": "ДЕГРАДАЦИЯ",
-            "channel": "Канал доступа",
-            "profile": "Профиль подготовки",
-            "credential": "Credential",
-            "lastConnection": "Последнее подключение",
-            "noConnectionYet": "Подключений ещё не было"
+        "provisioning_pending": {
+          "title": "Provisioning ожидается",
+          "description": "Тариф есть, но выдача VPN ещё готовит credential или канал доступа."
         },
-        "plan": {
-            "eyebrow": "Права тарифа",
-            "title": "Возможности плана",
-            "traffic": "Политика трафика",
-            "security": "Режимы подключения",
-            "support": "Линия поддержки",
-            "defaultSecurity": "Стандартные зашифрованные туннели",
-            "standardSupport": "Стандартная поддержка",
-            "trialActive": "Пробный период активен. Осталось дней: {days}."
+        "no_access": {
+          "title": "Доступа пока нет",
+          "description": "Активных прав доступа нет. Запустите trial или выберите тариф для запроса VPN-доступа."
         },
-        "notifications": {
-            "eyebrow": "Пользовательские уведомления",
-            "title": "Последние сигналы аккаунта",
-            "description": "Свежие обновления по доставке доступа, наградам, оплатам и админским событиям из backend notification system.",
-            "refresh": "Обновить входящие",
-            "empty": "Сейчас нет видимых пользовательских уведомлений.",
-            "errorTitle": "Поток уведомлений недоступен",
-            "errorDescription": "Кабинет остаётся рабочим. Повторите загрузку уведомлений или продолжите в настройках и оплатах.",
-            "actionRequired": "Требуется действие",
-            "unread": "Не прочитано"
-        },
-        "rewards": {
-            "eyebrow": "Growth-награды",
-            "title": "Реферальный доход",
-            "referrals": "Рефералы",
-            "totalReferrals": "Всего приглашённых клиентов",
-            "available": "Доступно",
-            "availableMeta": "Можно использовать в кошельке",
-            "pending": "В ожидании",
-            "pendingMeta": "Удерживается до релиза награды"
-        },
-        "security": {
-            "eyebrow": "Приватность и безопасность",
-            "title": "Чеклист защиты аккаунта",
-            "items": {
-                "cookieSession": "Web-auth использует httpOnly cookies; токены не доступны JavaScript в браузере.",
-                "twoFactor": "Включите или проверьте двухфакторную аутентификацию в настройках.",
-                "antiPhishing": "Задайте антифишинговый код перед доверием операционным письмам.",
-                "notifications": "Оставьте критические уведомления по доставке и оплатам включёнными."
-            },
-            "cta": "Открыть настройки безопасности"
-        },
-        "stage1States": {
-            "ariaLabel": "Состояния доступа, оплаты и provisioning для Stage 1",
-            "access": {
-                "eyebrow": "Доступ",
-                "active": {
-                    "title": "Доступ активен",
-                    "description": "Оплаченный VPN-доступ активен и готов к штатной выдаче подключения."
-                },
-                "trial_active": {
-                    "title": "Trial активен",
-                    "description": "Пробный доступ активен. Проверьте дату окончания до закрытия trial-окна."
-                },
-                "grace": {
-                    "title": "Grace-период",
-                    "description": "VPN-доступ остаётся доступным в течение 72-часового grace-окна. Продлите вручную до его закрытия."
-                },
-                "expired": {
-                    "title": "Доступ истёк",
-                    "description": "VPN-доступ истёк или отключён. Продлите тариф или обратитесь в поддержку перед подключением."
-                },
-                "payment_pending": {
-                    "title": "Оплата ожидается",
-                    "description": "Оплата ещё не финальна. Доступ будет выдан после подтверждения и сверки платежа."
-                },
-                "provisioning_pending": {
-                    "title": "Provisioning ожидается",
-                    "description": "Тариф есть, но выдача VPN ещё готовит credential или канал доступа."
-                },
-                "no_access": {
-                    "title": "Доступа пока нет",
-                    "description": "Активных прав доступа нет. Запустите trial или выберите тариф для запроса VPN-доступа."
-                },
-                "checking": {
-                    "title": "Проверяем доступ",
-                    "description": "Dashboard загружает последний снимок прав доступа перед показом финального состояния."
-                }
-            },
-            "payment": {
-                "eyebrow": "Оплата",
-                "paid": {
-                    "title": "Оплата принята",
-                    "description": "Billing-состояние закрыто для текущего окна доступа."
-                },
-                "not_started": {
-                    "title": "Оплата не начата",
-                    "description": "К текущему состоянию доступа не привязан live-платёж."
-                },
-                "pending": {
-                    "title": "Оплата ожидается",
-                    "description": "Подтверждение провайдера ещё ожидается. Платёж должен оставаться на контроле до финального статуса."
-                },
-                "processing": {
-                    "title": "Оплата обрабатывается",
-                    "description": "Провайдер ещё обрабатывает платёж. Не повторяйте тот же checkout до финального статуса."
-                },
-                "failed": {
-                    "title": "Оплата не прошла",
-                    "description": "Платёж отклонён или завершился ошибкой. Создайте новый checkout или обратитесь в поддержку, если средства были зарезервированы."
-                },
-                "expired": {
-                    "title": "Оплата истекла",
-                    "description": "Окно оплаты истекло. Создайте новый invoice для продления или тарифа."
-                },
-                "refunded": {
-                    "title": "Возврат зафиксирован",
-                    "description": "По billing-состоянию зафиксирован refund. Доступ может требовать ручной проверки поддержки."
-                },
-                "reconciliation_required": {
-                    "title": "Нужна ручная сверка",
-                    "description": "Оплата и доступ требуют ручной сверки. Поддержка должна закрыть это в рамках S1-политики 24 часов."
-                },
-                "checking": {
-                    "title": "Проверяем оплату",
-                    "description": "Dashboard загружает billing-сигналы перед показом финального состояния оплаты."
-                }
-            },
-            "provisioning": {
-                "eyebrow": "Provisioning",
-                "ready": {
-                    "title": "VPN готов",
-                    "description": "В Remnawave delivery есть service identity, credential, profile и access channel."
-                },
-                "pending": {
-                    "title": "Provisioning ожидается",
-                    "description": "VPN credentials или delivery channel ещё не готовы. Повторите проверку или дождитесь worker-сверки."
-                },
-                "retrying": {
-                    "title": "Provisioning повторяется",
-                    "description": "Backend повторяет выдачу VPN. Обратитесь в поддержку, если состояние быстро не исправится."
-                },
-                "failed": {
-                    "title": "Provisioning не прошёл",
-                    "description": "Выдача VPN завершилась ошибкой. Поддержка должна повторить provisioning или выполнить ручное исправление."
-                },
-                "remnawave_unavailable": {
-                    "title": "Remnawave недоступен",
-                    "description": "Dashboard не может получить состояние provisioning. Повторите проверку перед изменением доступа или оплаты."
-                },
-                "reconciliation_required": {
-                    "title": "Нужна проверка provisioning",
-                    "description": "Оплата/доступ и VPN delivery расходятся. Поддержка должна сверить состояние до прохождения go-live evidence."
-                },
-                "not_required": {
-                    "title": "Пока не требуется",
-                    "description": "Provisioning начинается после активации trial или финального решения по платному доступу."
-                },
-                "checking": {
-                    "title": "Проверяем provisioning",
-                    "description": "Dashboard загружает сигналы VPN delivery перед показом финального состояния provisioning."
-                }
-            }
+        "checking": {
+          "title": "Проверяем доступ",
+          "description": "Dashboard загружает последний снимок прав доступа перед показом финального состояния."
         }
+      },
+      "payment": {
+        "eyebrow": "Оплата",
+        "paid": {
+          "title": "Оплата принята",
+          "description": "Billing-состояние закрыто для текущего окна доступа."
+        },
+        "not_started": {
+          "title": "Оплата не начата",
+          "description": "К текущему состоянию доступа не привязан live-платёж."
+        },
+        "pending": {
+          "title": "Оплата ожидается",
+          "description": "Подтверждение провайдера ещё ожидается. Платёж должен оставаться на контроле до финального статуса."
+        },
+        "processing": {
+          "title": "Оплата обрабатывается",
+          "description": "Провайдер ещё обрабатывает платёж. Не повторяйте тот же checkout до финального статуса."
+        },
+        "failed": {
+          "title": "Оплата не прошла",
+          "description": "Платёж отклонён или завершился ошибкой. Создайте новый checkout или обратитесь в поддержку, если средства были зарезервированы."
+        },
+        "expired": {
+          "title": "Оплата истекла",
+          "description": "Окно оплаты истекло. Создайте новый invoice для продления или тарифа."
+        },
+        "refunded": {
+          "title": "Возврат зафиксирован",
+          "description": "По billing-состоянию зафиксирован refund. Доступ может требовать ручной проверки поддержки."
+        },
+        "reconciliation_required": {
+          "title": "Нужна ручная сверка",
+          "description": "Оплата и доступ требуют ручной сверки. Поддержка должна закрыть это в рамках S1-политики 24 часов."
+        },
+        "checking": {
+          "title": "Проверяем оплату",
+          "description": "Dashboard загружает billing-сигналы перед показом финального состояния оплаты."
+        }
+      },
+      "provisioning": {
+        "eyebrow": "Provisioning",
+        "ready": {
+          "title": "VPN готов",
+          "description": "В Remnawave delivery есть service identity, credential, profile и access channel."
+        },
+        "pending": {
+          "title": "Provisioning ожидается",
+          "description": "VPN credentials или delivery channel ещё не готовы. Повторите проверку или дождитесь worker-сверки."
+        },
+        "retrying": {
+          "title": "Provisioning повторяется",
+          "description": "Backend повторяет выдачу VPN. Обратитесь в поддержку, если состояние быстро не исправится."
+        },
+        "failed": {
+          "title": "Provisioning не прошёл",
+          "description": "Выдача VPN завершилась ошибкой. Поддержка должна повторить provisioning или выполнить ручное исправление."
+        },
+        "remnawave_unavailable": {
+          "title": "Remnawave недоступен",
+          "description": "Dashboard не может получить состояние provisioning. Повторите проверку перед изменением доступа или оплаты."
+        },
+        "reconciliation_required": {
+          "title": "Нужна проверка provisioning",
+          "description": "Оплата/доступ и VPN delivery расходятся. Поддержка должна сверить состояние до прохождения go-live evidence."
+        },
+        "not_required": {
+          "title": "Пока не требуется",
+          "description": "Provisioning начинается после активации trial или финального решения по платному доступу."
+        },
+        "checking": {
+          "title": "Проверяем provisioning",
+          "description": "Dashboard загружает сигналы VPN delivery перед показом финального состояния provisioning."
+        }
+      }
     }
+  }
 }

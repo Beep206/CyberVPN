@@ -1,31 +1,31 @@
 {
-  "title": "Возможности Stage 1",
-  "description": "Controlled Public Beta фокусируется на логине, trial или оплате, Remnawave provisioning, выдаче config, support recovery и наблюдаемой эксплуатации.",
+  "title": "Возможности Public Release",
+  "description": "Public release feature set фокусируется на логине, trial или оплате, Remnawave provisioning, config delivery, support recovery и наблюдаемой эксплуатации.",
   "features": {
     "quantum": {
-      "title": "S1 protocol baseline",
+      "title": "Protocol Baseline",
       "subtitle": "VLESS Reality RAW + XHTTP",
-      "description": "Stage 1 держит VPN transport surface узким: VLESS Reality RAW является default profile, а VLESS Reality XHTTP включается как alternate path после evidence.",
+      "description": "CyberVPN keeps the public VPN transport surface narrow: VLESS Reality RAW is the default profile and VLESS Reality XHTTP is the alternate path where configured and evidenced.",
       "specs": [
         "Default: VLESS Reality RAW",
         "Alternate: VLESS Reality XHTTP",
-        "Вне S1: Helix, Verta, Beep production"
+        "Out of public default: Helix, Verta, Beep production"
       ]
     },
     "multihop": {
-      "title": "Evidence-gated регионы",
-      "subtitle": "Country-level startup inventory",
-      "description": "Регионы не являются публичным обещанием, пока нет staging или production node evidence. S1-каталог стартует с country-level слотов и скрывает недоступные ноды.",
+      "title": "Evidence-Gated Regions",
+      "subtitle": "Country-level public inventory",
+      "description": "Regions are not public promises until staging or production node evidence exists. The catalogue hides unavailable nodes.",
       "specs": [
-        "Startup inventory: 12 region slots",
-        "Публичный показ: только enabled nodes",
-        "Proof: health, profile, monitoring"
+        "Public display: enabled nodes only",
+        "Required proof: health, profile, monitoring",
+        "Node-only policy for VPN hosts"
       ]
     },
     "obfuscation": {
-      "title": "DPI-resistant profiles",
-      "subtitle": "Без универсального unblock-обещания",
-      "description": "Reality-профили рассчитаны на restricted networks, но S1-copy остаётся ограниченным: результат зависит от сети пользователя и текущего node evidence.",
+      "title": "DPI-Resistant Profiles",
+      "subtitle": "No universal unblock promise",
+      "description": "Reality-based profiles are designed for restricted networks, but public copy stays bounded: performance and access depend on the user's network and current node evidence.",
       "specs": [
         "Profile: HTTPS-like Reality transport",
         "Fallback: XHTTP where configured",
@@ -33,34 +33,34 @@
       ]
     },
     "killswitch": {
-      "title": "Support recovery path",
-      "subtitle": "Payment и provisioning safeguards",
-      "description": "S1 surface ставит на первое место recoverability: paid-but-no-access, provisioning failures, expired access и support escalation имеют явную обработку.",
+      "title": "Support Recovery Path",
+      "subtitle": "Payment and provisioning safeguards",
+      "description": "The product surface prioritizes recoverability: paid-but-no-access cases, provisioning failures, expired access, and support escalation have explicit handling.",
       "specs": [
-        "SLA: paid orphan review within 24h",
+        "Policy: paid orphan review within 24h",
         "Provisioning: retry and support escalation",
         "Admin: audited manual recovery actions"
       ]
     }
   },
   "secondary": {
-    "title": "S1 operating boundaries",
+    "title": "Operating Boundaries",
     "items": [
       {
-        "title": "Ограниченная privacy-copy",
-        "desc": "CyberVPN не делает absolute privacy claim в S1. Operational metadata может существовать для security, billing, support и provisioning."
+        "title": "Bounded Privacy Copy",
+        "desc": "CyberVPN does not make an independent audited no-logs claim. Operational metadata may exist for security, billing, support, and provisioning."
       },
       {
-        "title": "Plan-based device limits",
-        "desc": "Количество устройств зависит от выбранного плана и должно подтверждаться backend и support process."
+        "title": "Plan-Based Device Limits",
+        "desc": "Device counts depend on the selected plan and must be enforced by the backend and support process."
       },
       {
-        "title": "Сначала ручное продление",
-        "desc": "S1 не обещает автоматическое продление. Renewal reminders и invoice links допустимы только после evidence."
+        "title": "Renewal Controls",
+        "desc": "Automatic renewal appears only where the provider flow, user consent, cancel flow and evidence support it."
       },
       {
-        "title": "P2P restricted by default",
-        "desc": "Torrent/P2P не рекламируется как широко доступный. Node policy и provider rules решают, что включено."
+        "title": "P2P Restricted by Default",
+        "desc": "Torrent/P2P access is not advertised as broadly available. Node policy and provider rules control what is enabled."
       }
     ]
   }

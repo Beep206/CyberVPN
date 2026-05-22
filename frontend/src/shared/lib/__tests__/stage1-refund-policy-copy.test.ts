@@ -12,7 +12,7 @@ import ruRefundPolicy from '../../../../messages/ru-RU/RefundPolicy.json';
 type Messages = Record<string, unknown>;
 
 const requiredPhrases = [
-  'controlled public beta',
+  'public release 1.0',
   'refund@cyber-vpn.net',
   'payram',
   'nowpayments',
@@ -20,7 +20,7 @@ const requiredPhrases = [
   'telegram stars',
   'digiseller',
   'yookassa',
-  'manual finance/support review',
+  'finance/support review',
   'paid-but-no-access',
   '24 hours',
   'no automatic refund is promised',
@@ -80,8 +80,8 @@ function readLocaleFile(fileName: string): Array<{ locale: string; messages: Mes
     });
 }
 
-describe('stage1 refund policy copy', () => {
-  it('states required S1 refund contacts, provider rules and review constraints', () => {
+describe('stage2 refund policy copy', () => {
+  it('states required S2 refund contacts, provider rules and review constraints', () => {
     const combined = `${flattenMessages(enRefundPolicy)}\n${flattenMessages(ruRefundPolicy)}`.toLowerCase();
 
     for (const phrase of requiredPhrases) {

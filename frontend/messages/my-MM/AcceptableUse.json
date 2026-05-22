@@ -1,71 +1,71 @@
 {
-    "meta": {
-        "title": "Acceptable Use Policy",
-        "description": "Stage 1 Acceptable Use Policy candidate for CyberVPN Controlled Public Beta."
-    },
+  "meta": {
     "title": "Acceptable Use Policy",
-    "lastUpdated": "S1 candidate updated May 5, 2026",
-    "intro": "This Acceptable Use Policy is a Stage 1 candidate for the CyberVPN Controlled Public Beta. It explains how the service may and may not be used across cyber-vpn.net, cyber-vpn.org, Telegram Bot, Telegram Mini App, customer web interfaces and VPN access provisioned through CyberVPN. It must be reviewed and approved by the project owner and legal reviewer before it is treated as final public legal copy.",
-    "sections": {
-        "scope": {
-            "title": "1. Scope",
-            "content": "This policy applies to all CyberVPN accounts, trials, paid subscriptions, support flows, configuration links, QR codes, subscription URLs and VPN credentials issued during Stage 1. If this policy conflicts with a final approved Terms of Service, Privacy Policy or provider-specific node rule, the stricter operational rule may be enforced until the documents are reconciled."
-        },
-        "allowedUse": {
-            "title": "2. Intended Use",
-            "items": {
-                "privateAccess": "Use CyberVPN for lawful private network access, personal privacy, safer access on untrusted networks and availability of ordinary internet services where allowed by applicable law.",
-                "personalSubscription": "Use only the accounts, devices, subscription URLs, QR codes and configuration files that CyberVPN issued to you or explicitly authorized for your plan.",
-                "support": "Contact support when a connection, payment, trial, renewal or provisioning issue prevents normal use."
-            }
-        },
-        "prohibited": {
-            "title": "3. Prohibited Activities",
-            "intro": "You may not use CyberVPN, CyberVPN accounts, VPN nodes, subscription URLs, QR codes or configuration files for any activity that harms CyberVPN, other users, providers or third parties. Prohibited activities include:",
-            "items": {
-                "spam": "Sending spam, bulk unsolicited messages, abusive advertising, robocalls, mass account creation or similar messaging abuse.",
-                "phishing": "Phishing, impersonation, social engineering, credential theft, account takeover, payment fraud, scams or attempts to collect sensitive data without authorization.",
-                "credentialStuffing": "Credential stuffing, password spraying, brute force login attempts, automated account checking or any attack against authentication systems.",
-                "malware": "Creating, hosting, distributing, controlling or helping malware, ransomware, botnets, command-and-control systems, exploit kits or malicious payloads.",
-                "attacks": "DDoS attacks, flooding, intrusion attempts, vulnerability exploitation, unauthorized port scanning, network reconnaissance or traffic intended to disrupt another service.",
-                "scraping": "High-volume scraping, abusive crawling, spam SEO automation, ticket buying automation, fake engagement, content abuse or activity that violates another service's terms or rate limits.",
-                "illegalContent": "Accessing, storing, transmitting or helping distribute illegal content, child sexual abuse material, material exploiting minors, terrorist content or content that is unlawful in the relevant jurisdiction.",
-                "rightsAbuse": "Copyright infringement, trademark abuse, counterfeit activity or other use that violates third-party rights where CyberVPN receives a valid complaint or provider requirement.",
-                "sanctions": "Using the service in a way that violates applicable sanctions, export controls, payment-provider rules, hosting-provider rules or legal restrictions that apply to CyberVPN.",
-                "resale": "Reselling, sharing, publicly posting or commercially redistributing accounts, subscription URLs, QR codes, configs or credentials unless CyberVPN explicitly approved that use in writing.",
-                "publicProxy": "Running public proxies, open relays, exit nodes, reverse proxies, hosting services, crypto-mining infrastructure or server workloads through a personal CyberVPN account."
-            }
-        },
-        "network": {
-            "title": "4. Network, Torrent and Resource Rules",
-            "items": {
-                "fairUse": "Stage 1 plans may be subject to fair-use limits, rate limits, device limits, traffic limits and anti-abuse controls to protect the beta service and other users.",
-                "torrent": "CyberVPN does not promise that torrent or P2P traffic is available on every node. Torrent or P2P traffic may be blocked, throttled or restricted on nodes where provider policy, law, abuse risk or operational evidence requires it.",
-                "nodeRules": "Node-specific rules may be stricter than this public policy. If a provider, jurisdiction or beta rollout requires a node to block a traffic category, CyberVPN may enforce that rule without treating it as a breach of service.",
-                "automation": "Automated high-volume traffic, mining, bot automation, scraping, port scanning, brute force workflows and load patterns that degrade the service may be limited or suspended.",
-                "configSafety": "Do not publish raw subscription URLs, QR codes, private keys or configuration files in public channels. If credentials are exposed, CyberVPN may revoke and reissue them."
-            }
-        },
-        "enforcement": {
-            "title": "5. Enforcement",
-            "items": {
-                "controls": "CyberVPN may warn, rate limit, throttle, block provisioning, suspend VPN access, revoke credentials, disable trials, terminate accounts or refuse renewal when abuse is detected or credibly reported.",
-                "review": "Paid-but-no-access and abuse-related support cases must be reviewed through the S1 manual review or support escalation process. CyberVPN should avoid permanent action without enough evidence unless immediate action is needed to prevent harm.",
-                "evidence": "CyberVPN may preserve account, payment, support, security and operational evidence needed to investigate abuse, comply with provider requirements, process disputes or satisfy legal obligations.",
-                "refunds": "Refund handling is governed by the Refund Policy and support process. Abuse, fraud or policy violations may affect refund eligibility where allowed by applicable law."
-            }
-        },
-        "reporting": {
-            "title": "6. Reporting Abuse",
-            "items": {
-                "abuseEmail": "Report abuse to abuse@cyber-vpn.net. This mailbox must have delivery evidence before go-live.",
-                "supportEmail": "For ordinary account, billing, trial or connection issues, contact support@cyber-vpn.net.",
-                "details": "Reports should include timestamps, affected IPs or domains, relevant logs, message headers, account identifiers and a concise description of the suspected abuse where available."
-            }
-        },
-        "changes": {
-            "title": "7. Changes Before Go-Live",
-            "content": "This S1 candidate may change before public go-live. Final publication requires owner/legal approval, abuse mailbox proof, node/provider torrent policy evidence and support/admin enforcement evidence."
-        }
+    "description": "Public Release 1.0 Acceptable Use Policy for CyberVPN."
+  },
+  "title": "Acceptable Use Policy",
+  "lastUpdated": "Updated May 23, 2026",
+  "intro": "This Acceptable Use Policy explains how CyberVPN may and may not be used across cyber-vpn.net, Telegram Bot, Telegram Mini App, customer web interfaces and VPN access provisioned through CyberVPN. cyber-vpn.org is reserved for VPN node and subscription delivery routes where CyberVPN presents them.",
+  "sections": {
+    "scope": {
+      "title": "1. Scope",
+      "content": "This policy applies to all CyberVPN accounts, trials, paid subscriptions, support flows, configuration links, QR codes, subscription URLs and VPN credentials. If this policy conflicts with Terms of Service, Privacy Policy or provider-specific node rules, the stricter operational rule may be enforced until the documents are reconciled."
+    },
+    "allowedUse": {
+      "title": "2. Intended Use",
+      "items": {
+        "privateAccess": "Use CyberVPN for lawful private network access, personal privacy, safer access on untrusted networks and availability of ordinary internet services where allowed by applicable law.",
+        "personalSubscription": "Use only the accounts, devices, subscription URLs, QR codes and configuration files that CyberVPN issued to you or explicitly authorized for your plan.",
+        "support": "Contact support when a connection, payment, trial, renewal or provisioning issue prevents normal use."
+      }
+    },
+    "prohibited": {
+      "title": "3. Prohibited Activities",
+      "intro": "You may not use CyberVPN, CyberVPN accounts, VPN nodes, subscription URLs, QR codes or configuration files for any activity that harms CyberVPN, other users, providers or third parties. Prohibited activities include:",
+      "items": {
+        "spam": "Sending spam, bulk unsolicited messages, abusive advertising, robocalls, mass account creation or similar messaging abuse.",
+        "phishing": "Phishing, impersonation, social engineering, credential theft, account takeover, payment fraud, scams or attempts to collect sensitive data without authorization.",
+        "credentialStuffing": "Credential stuffing, password spraying, brute force login attempts, automated account checking or any attack against authentication systems.",
+        "malware": "Creating, hosting, distributing, controlling or helping malware, ransomware, botnets, command-and-control systems, exploit kits or malicious payloads.",
+        "attacks": "DDoS attacks, flooding, intrusion attempts, vulnerability exploitation, unauthorized port scanning, network reconnaissance or traffic intended to disrupt another service.",
+        "scraping": "High-volume scraping, abusive crawling, spam SEO automation, ticket buying automation, fake engagement, content abuse or activity that violates another service's terms or rate limits.",
+        "illegalContent": "Accessing, storing, transmitting or helping distribute illegal content, child sexual abuse material, material exploiting minors, terrorist content or content that is unlawful in the relevant jurisdiction.",
+        "rightsAbuse": "Copyright infringement, trademark abuse, counterfeit activity or other use that violates third-party rights where CyberVPN receives a valid complaint or provider requirement.",
+        "sanctions": "Using the service in a way that violates applicable sanctions, export controls, payment-provider rules, hosting-provider rules or legal restrictions that apply to CyberVPN.",
+        "resale": "Reselling, sharing, publicly posting or commercially redistributing accounts, subscription URLs, QR codes, configs or credentials unless CyberVPN explicitly approved that use in writing.",
+        "publicProxy": "Running public proxies, open relays, exit nodes, reverse proxies, hosting services, crypto-mining infrastructure or server workloads through a personal CyberVPN account."
+      }
+    },
+    "network": {
+      "title": "4. Network, Torrent and Resource Rules",
+      "items": {
+        "fairUse": "Plans may be subject to fair-use limits, rate limits, device limits, traffic limits and anti-abuse controls to protect the service and other users.",
+        "torrent": "CyberVPN does not promise that torrent or P2P traffic is available on every node. Torrent or P2P traffic may be blocked, throttled or restricted on nodes where provider policy, law, abuse risk or operational evidence requires it.",
+        "nodeRules": "Node-specific rules may be stricter than this public policy. If a provider, jurisdiction or rollout requires a node to block a traffic category, CyberVPN may enforce that rule without treating it as a breach of service.",
+        "automation": "Automated high-volume traffic, mining, bot automation, scraping, port scanning, brute force workflows and load patterns that degrade the service may be limited or suspended.",
+        "configSafety": "Do not publish raw subscription URLs, QR codes, private keys or configuration files in public channels. If credentials are exposed, CyberVPN may revoke and reissue them."
+      }
+    },
+    "enforcement": {
+      "title": "5. Enforcement",
+      "items": {
+        "controls": "CyberVPN may warn, rate limit, throttle, block provisioning, suspend VPN access, revoke credentials, disable trials, terminate accounts or refuse renewal when abuse is detected or credibly reported.",
+        "review": "Paid-but-no-access and abuse-related support cases are reviewed through the support escalation process. CyberVPN should avoid permanent action without enough evidence unless immediate action is needed to prevent harm.",
+        "evidence": "CyberVPN may preserve account, payment, support, security and operational evidence needed to investigate abuse, comply with provider requirements, process disputes or satisfy legal obligations.",
+        "refunds": "Refund handling is governed by the Refund Policy and support process. Abuse, fraud or policy violations may affect refund eligibility where allowed by applicable law."
+      }
+    },
+    "reporting": {
+      "title": "6. Reporting Abuse",
+      "items": {
+        "abuseEmail": "Report abuse to abuse@cyber-vpn.net.",
+        "supportEmail": "For ordinary account, billing, trial or connection issues, contact support@cyber-vpn.net.",
+        "details": "Reports should include timestamps, affected IPs or domains, relevant logs, message headers, account identifiers and a concise description of the suspected abuse where available."
+      }
+    },
+    "changes": {
+      "title": "7. Changes",
+      "content": "CyberVPN may update this policy when provider rules, node policies, abuse patterns, product flows or legal requirements change. Changes should stay aligned with the Terms of Service, Privacy Policy, Refund Policy and Cookie Policy."
     }
+  }
 }

@@ -44,16 +44,16 @@ function readAllTermsMessages(): Array<{ locale: string; messages: TermsMessages
     });
 }
 
-describe('S1 Terms of Service copy', () => {
-  it('keeps EN/RU public terms aligned with S1 legal decisions and support contacts', () => {
+describe('S2 Terms of Service copy', () => {
+  it('keeps EN/RU public terms aligned with S2 legal decisions and support contacts', () => {
     for (const messages of [enTerms, ruTerms]) {
       const body = flattenTerms(messages).toLowerCase();
 
       expect(body).toContain('individual founder/owner');
-      expect(body).toMatch(/jurisdiction|юрисдик/);
+      expect(body).toContain('public release 1.0');
       expect(body).toContain('support@cyber-vpn.net');
       expect(body).toContain('refund@cyber-vpn.net');
-      expect(body).toContain('controlled public beta');
+      expect(body).toContain('abuse@cyber-vpn.net');
       expect(body).toContain('remnawave');
       expect(body).toContain('2fa');
       expect(body).toContain('cvv');
@@ -71,7 +71,7 @@ describe('S1 Terms of Service copy', () => {
     }
   });
 
-  it('covers S1 abuse categories required before a public beta terms page', () => {
+  it('covers abuse categories required before a public release terms page', () => {
     const rules = enTerms.sections.prohibited.rules;
 
     expect(Object.values(rules).join('\n').toLowerCase()).toContain('credential stuffing');

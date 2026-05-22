@@ -1,9 +1,9 @@
 {
   "hero": {
-    "protocol_badge": "S1 PROTOCOLS: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
-    "title": "CONTROLLED BETA VPN. POWERED BY VLESS REALITY",
-    "titleHighlight": "CONTROLLED BETA VPN",
-    "subtitle": "Controlled Public Beta access with S1-approved transports, evidence-gated regions, manual renewal, and support recovery paths.",
+    "protocol_badge": "PUBLIC RELEASE PROTOCOLS: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
+    "title": "PUBLIC VPN ACCESS. POWERED BY VLESS REALITY",
+    "titleHighlight": "PUBLIC VPN ACCESS",
+    "subtitle": "Public B2C VPN access with evidence-gated regions, bounded privacy claims, and monitored support recovery paths.",
     "cta_telegram": "LAUNCH IN TELEGRAM",
     "cta_app": "DOWNLOAD APP"
   },
@@ -12,40 +12,40 @@
     "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
     "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
     "stats": {
-      "locations": "startup regions",
+      "locations": "enabled regions",
       "bandwidth": "approved transports",
-      "uptime": "beta status",
+      "uptime": "monitored status",
       "logs": "bounded claims"
     },
     "stealth": {
       "title": "Stealth Mode (Reality)",
-      "desc": "VLESS Reality is the S1 default path for networks where standard VPN fingerprints are unreliable. Availability depends on real node evidence."
+      "desc": "VLESS Reality is the default path for networks where standard VPN fingerprints are unreliable. Availability depends on real node evidence."
     },
     "backbone": {
       "title": "Backbone Performance",
-      "desc": "Startup regions are enabled only after Remnawave node evidence, monitoring, support recovery, and rollback proof are available."
+      "desc": "Regions are enabled only after Remnawave node evidence, monitoring, support recovery, and rollback proof are available."
     },
     "ram": {
       "title": "Privacy-Bounded Operations",
-      "desc": "Public privacy wording is limited to what S1 evidence can support. Operational metadata may exist for security, billing, support, and provisioning."
+      "desc": "Public privacy wording is limited to what current evidence can support. Operational metadata may exist for security, billing, support, and provisioning."
     },
     "routing": {
       "title": "Intelligent Routing",
       "desc": "Region visibility is evidence-gated: a location is shown only when node health, profile mapping, and support handling are ready."
     },
     "multiplatform": {
-      "title": "Native Multi-Platform",
-      "desc": "S1 supports web cabinet, Telegram Bot/Mini App, and standard third-party client import instructions for Android, iOS, Windows, macOS, and Linux."
+      "title": "Multi-Platform Access",
+      "desc": "CyberVPN supports web cabinet, Telegram Bot/Mini App, and standard third-party client import instructions for Android, iOS, Windows, macOS, and Linux."
     },
     "protocols": {
       "title": "Advanced Protocols",
-      "desc": "S1 exposes VLESS Reality RAW as default and VLESS Reality XHTTP as the alternate path. Other transports stay out of scope until separately approved."
+      "desc": "CyberVPN exposes VLESS Reality RAW as default and VLESS Reality XHTTP as the alternate path. Other transports stay out of default public scope until separately approved."
     }
   },
   "how_it_works": {
     "badge": "ANTI-DPI ENGINE",
     "title": "How Reality Works",
-    "desc": "Reality-based profiles are configured to resemble ordinary HTTPS flows while keeping the rollout evidence-driven. XHTTP is treated as the S1 alternate path, not as a universal bypass promise."
+    "desc": "Reality-based profiles are configured to resemble ordinary HTTPS flows while keeping rollout evidence-driven. XHTTP is treated as an alternate path, not as a universal bypass promise."
   },
   "comparison_table": {
     "title": "Legacy vs Next-Gen",
@@ -80,7 +80,7 @@
   "status_board": {
     "title": "Node Status Dashboard",
     "item_online": "EVIDENCE OK",
-    "live": "S1 READY",
+    "live": "READY",
     "protocols": {
       "reality": "Reality",
       "xhttp": "Reality XHTTP"
@@ -94,7 +94,7 @@
       "network": "Network"
     },
     "networkLabels": {
-      "bandwidth": "Beta capacity",
+      "bandwidth": "Public capacity",
       "nodes": "Enabled regions",
       "coverage": "Coverage",
       "uptime": "Monitoring posture"
@@ -103,44 +103,74 @@
   "quick_start": {
     "badge": "Fast Track",
     "title": "30-Second Path",
-    "step1": "Launch the bot (@CyberVPN_Bot)",
-    "step2": "One-tap Trial Activation (3 days / 1 device)",
+    "step1": "Launch the Telegram bot",
+    "step2": "Activate trial or choose a plan",
     "step3": "Import QR, subscription URL, or config into a supported client",
     "terminalTitle": "Deploy Connection",
     "terminalComment": "# Auto-provisioning VPN tunnel...",
-    "terminalStatus": "> VPN access ready when provisioning evidence and support recovery pass."
+    "terminalStatus": "> VPN access ready when provisioning and support recovery pass."
   },
   "network_stats": {
     "title": "Network Infrastructure",
     "bandwidth": "Capacity shown after node evidence",
-    "nodes": "12 startup regions, enabled by evidence",
-    "coverage": "Country-level regions only for S1",
-    "uptime": "Monitoring and alerts required before go-live"
+    "nodes": "Enabled regions only",
+    "coverage": "Country-level public regions",
+    "uptime": "Monitoring and alerts active"
   },
   "tech_specs": {
-    "encryption": "Encryption: ChaCha20-Poly1305 / AES-128-GCM",
-    "transport": "Transport: XHTTP (Next-Gen), gRPC, Reality-TCP",
-    "network": "Network: S1 startup regions, monitored node evidence"
+    "encryption": "Encryption: profile-dependent Xray transport security",
+    "transport": "Transport: VLESS Reality RAW and XHTTP where configured",
+    "network": "Network: monitored public regions with node evidence"
   },
   "speed_tunnel": {
     "titleStart": "GLOBAL",
-    "titleHighlight": "ULTRASPEED",
+    "titleHighlight": "MONITORED",
     "titleEnd": "NETWORK",
-    "subtitle": "S1 startup regions. Evidence-gated nodes. Fair-use policy.",
-    "online": "S1 SLOT",
+    "subtitle": "Evidence-gated nodes. Fair-use policy. Bounded public claims.",
+    "online": "PUBLIC SLOT",
     "featureTorrent": "P2P restricted",
     "featureNoAds": "HTTPS-like profile",
     "servers": {
-      "newYork": { "country": "USA", "city": "New York" },
-      "frankfurt": { "country": "Germany", "city": "Frankfurt" },
-      "amsterdam": { "country": "Netherlands", "city": "Amsterdam" },
-      "tokyo": { "country": "Japan", "city": "Tokyo" },
-      "singapore": { "country": "Singapore", "city": "Singapore" },
-      "london": { "country": "United Kingdom", "city": "London" },
-      "paris": { "country": "France", "city": "Paris" },
-      "toronto": { "country": "Canada", "city": "Toronto" },
-      "sydney": { "country": "Australia", "city": "Sydney" },
-      "seoul": { "country": "South Korea", "city": "Seoul" }
+      "newYork": {
+        "country": "USA",
+        "city": "New York"
+      },
+      "frankfurt": {
+        "country": "Germany",
+        "city": "Frankfurt"
+      },
+      "amsterdam": {
+        "country": "Netherlands",
+        "city": "Amsterdam"
+      },
+      "tokyo": {
+        "country": "Japan",
+        "city": "Tokyo"
+      },
+      "singapore": {
+        "country": "Singapore",
+        "city": "Singapore"
+      },
+      "london": {
+        "country": "United Kingdom",
+        "city": "London"
+      },
+      "paris": {
+        "country": "France",
+        "city": "Paris"
+      },
+      "toronto": {
+        "country": "Canada",
+        "city": "Toronto"
+      },
+      "sydney": {
+        "country": "Australia",
+        "city": "Sydney"
+      },
+      "seoul": {
+        "country": "South Korea",
+        "city": "Seoul"
+      }
     }
   },
   "pricing": {

@@ -1,34 +1,34 @@
 {
-  "title": "PRIVACY READINESS",
-  "description": "S1 CONTROLLED PUBLIC BETA PRIVACY SUMMARY",
+  "title": "PRIVACY SUMMARY",
+  "description": "PUBLIC RELEASE 1.0 PRIVACY SUMMARY",
   "sections": {
     "introduction": {
-      "title": "01. S1 PRIVACY SUMMARY",
-      "content": "Эта страница кратко описывает S1 privacy posture и связана по смыслу с полной Privacy Policy. Это controlled-beta candidate, а не final legal approval. Final public seller display, jurisdiction, processor list и retention wording должны быть утверждены before go-live."
+      "title": "01. PRIVACY SUMMARY",
+      "content": "Эта страница кратко описывает privacy posture CyberVPN и связана по смыслу с полной Privacy Policy. Публичные claims ограничены тем, что могут подтвердить текущие backend, Remnawave, node, support, payment и observability evidence."
     },
     "dataCollection": {
       "title": "02. DATA CATEGORIES",
-      "content": "CyberVPN обрабатывает account, authentication, Telegram/OAuth linking, payment, subscription, wallet, provisioning, support, security, audit, notification, webhook и observability data, необходимые для beta. Финальный публичный список должен совпадать с deployed backend, Remnawave, provider и support evidence.",
+      "content": "CyberVPN обрабатывает account, authentication, Telegram/OAuth linking, payment, subscription, wallet, provisioning, support, security, audit, notification, webhook и observability data, необходимые для работы сервиса. Публичный список должен соответствовать deployed backend, Remnawave, provider и support evidence.",
       "radarLabels": {
-        "collected": "S1 SERVICE DATA",
+        "collected": "SERVICE DATA",
         "blocked": "BROWSING CONTENT"
       }
     },
     "noLogs": {
       "title": "03. NO-LOGS LIMITS",
-      "content": "CyberVPN не намерен хранить browsing content или raw VPN traffic content в app/backend systems. Не считайте это final audited no-logs claim: IP address, user-agent, timestamps, provider IDs, support records и provisioning metadata могут существовать в security, payment, support, node или observability systems до проверки."
+      "content": "CyberVPN app/backend не спроектирован для хранения browsing content, visited website content, DNS query content или raw VPN traffic content. Это не independent audited no-logs certification: operational metadata может существовать для security, payments, support, provisioning, observability и abuse handling."
     },
     "encryption": {
       "title": "04. SECURITY CONTROLS",
-      "content": "S1 security опирается на hashed passwords, hashed refresh tokens, encrypted selected secrets/tokens where implemented, production admin 2FA, RBAC, audit logs, private PostgreSQL, private Valkey/Redis, private Remnawave API и HTTPS-only public ingress. Более сильные crypto или no-logs claims требуют evidence."
+      "content": "Security опирается на hashed passwords, hashed refresh tokens, encrypted selected secrets/tokens where implemented, production admin 2FA, RBAC, audit logs, private PostgreSQL, private Valkey/Redis, private Remnawave API и HTTPS-only public ingress. Более сильные crypto или no-logs claims требуют published evidence."
     },
     "thirdParties": {
       "title": "05. PROVIDER BOUNDARIES",
-      "content": "S1 может использовать payment providers, Telegram, Google/GitHub OAuth, Remnawave, VPN node hosts, email/support tooling и observability providers. Каждый enabled provider требует privacy/refund wording, credentials, webhook/status evidence и PII controls before public launch."
+      "content": "CyberVPN может использовать payment providers, Telegram, Google/GitHub OAuth, Remnawave, VPN node hosts, email/support tooling и observability providers. Enabled providers требуют privacy/refund wording, credentials, webhook/status evidence и PII controls."
     }
   },
   "status": {
-    "encrypted": "PENDING",
+    "encrypted": "BOUNDED",
     "decrypted": "REVIEWED",
     "decrypting": "ACTIVE"
   }

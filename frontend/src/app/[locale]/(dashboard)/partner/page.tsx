@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PartnerPageProps) {
 
   return withSiteMetadata({
     title: 'Not Found',
-    description: 'This customer dashboard surface is not available during Stage 1.',
+    description: 'This customer dashboard surface is not available during the current public release.',
   }, {
     locale,
     canonicalPath: '/partner',

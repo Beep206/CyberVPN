@@ -10,7 +10,7 @@ import ruFooter from '../../../../messages/ru-RU/footer.json';
 type Messages = Record<string, unknown>;
 
 const requiredPhrases = [
-  'controlled public beta',
+  'public release 1.0',
   'abuse@cyber-vpn.net',
   'support@cyber-vpn.net',
   'spam',
@@ -79,8 +79,8 @@ function readLocaleFile(fileName: string): Array<{ locale: string; messages: Mes
     });
 }
 
-describe('stage1 acceptable use policy copy', () => {
-  it('states required S1 AUP abuse, network and reporting controls', () => {
+describe('stage2 acceptable use policy copy', () => {
+  it('states required S2 AUP abuse, network and reporting controls', () => {
     const combined = `${flattenMessages(enAcceptableUse)}\n${flattenMessages(ruAcceptableUse)}`.toLowerCase();
 
     for (const phrase of requiredPhrases) {
