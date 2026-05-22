@@ -16,6 +16,27 @@ logger = structlog.get_logger(__name__)
 router = Router(name="config")
 
 
+def _select_subscription_url(config: dict[str, object]) -> str | None:
+    """Return only an HTTP(S) subscription URL, never a raw proxy URI."""
+    for key in (
+        "subscription_url",
+        "subscriptionUrl",
+        "config_url",
+        "configUrl",
+        "url",
+        "config_string",
+        "configString",
+        "config",
+    ):
+        value = config.get(key)
+        if not isinstance(value, str):
+            continue
+        candidate = value.strip()
+        if candidate.lower().startswith(("https://", "http://")):
+            return candidate
+    return None
+
+
 @router.callback_query(F.data == "config:menu")
 async def config_menu_handler(
     callback: CallbackQuery,
@@ -42,7 +63,7 @@ async def send_config_link_handler(
 
     try:
         config = await api_client.get_user_config(user_id)
-        config_url = config.get("config_url") or config.get("url") or config.get("subscription_url")
+        config_url = _select_subscription_url(config)
 
         if not config_url:
             await callback.answer(i18n.get("error-config-not-ready"), show_alert=True)
@@ -73,7 +94,7 @@ async def send_config_qr_handler(
 
     try:
         config = await api_client.get_user_config(user_id)
-        config_url = config.get("config_url") or config.get("url") or config.get("subscription_url")
+        config_url = _select_subscription_url(config)
 
         if not config_url:
             await callback.answer(i18n.get("error-config-not-ready"), show_alert=True)

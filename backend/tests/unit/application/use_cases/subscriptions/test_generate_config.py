@@ -10,7 +10,7 @@ from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsR
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_generate_config_prefers_first_real_link() -> None:
+async def test_generate_config_prefers_subscription_url_over_direct_links() -> None:
     client = AsyncMock()
     client.get_validated = AsyncMock(
         return_value=RemnawaveSubscriptionDetailsResponse(
@@ -31,9 +31,9 @@ async def test_generate_config_prefers_first_real_link() -> None:
 
     result = await GenerateConfigUseCase(client).execute("user-1")
 
-    assert result["config"] == "vless://11111111-1111-1111-1111-111111111111@example.com:443?security=tls"
+    assert result["config"] == "https://sub.example.com/user-1"
     assert result["config_string"] == result["config"]
-    assert result["client_type"] == "vless"
+    assert result["client_type"] == "subscription"
     assert result["subscription_url"] == "https://sub.example.com/user-1"
 
 

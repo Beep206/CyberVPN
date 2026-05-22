@@ -645,7 +645,7 @@ export default function MiniAppPlansPage() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] }),
       queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
-      queryClient.invalidateQueries({ queryKey: ['miniapp-config'] }),
+      queryClient.resetQueries({ queryKey: ['miniapp-config'], exact: true }),
       queryClient.invalidateQueries({ queryKey: ['usage'] }),
       queryClient.invalidateQueries({ queryKey: ['miniapp-profile-invites'] }),
     ]);

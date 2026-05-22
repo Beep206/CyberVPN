@@ -10,6 +10,8 @@ from src.application.use_cases.subscriptions.stage1_manual_subscription import (
     Stage1ManualSubscriptionResult,
 )
 from src.domain.enums import UserStatus
+from src.infrastructure.remnawave.stage1_ru_bundle import resolve_stage1_ru_bundle_external_squad_uuid
+from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
 
@@ -32,6 +34,8 @@ class RemnawaveStage1ManualSubscriptionGateway:
             "hwid_device_limit": request.device_limit,
             "status": UserStatus.ACTIVE,
         }
+        if ru_bundle_squad_uuid := resolve_stage1_ru_bundle_external_squad_uuid(request.plan_code):
+            payload["external_squad_uuid"] = ru_bundle_squad_uuid
         payload = {key: value for key, value in payload.items() if value is not None or key == "traffic_limit_bytes"}
 
         if request.existing_remnawave_uuid:
@@ -47,9 +51,8 @@ class RemnawaveStage1ManualSubscriptionGateway:
             )
             created = True
 
-        subscription_url_changed = bool(
-            user.subscription_url and user.subscription_url != request.previous_subscription_url
-        )
+        subscription_url = normalize_public_subscription_url(user.subscription_url)
+        subscription_url_changed = bool(subscription_url and subscription_url != request.previous_subscription_url)
         return Stage1ManualSubscriptionResult(
             customer_account_id=request.customer_account_id,
             remnawave_uuid=str(user.uuid),
@@ -59,7 +62,7 @@ class RemnawaveStage1ManualSubscriptionGateway:
             duration_days=request.duration_days,
             previous_expires_at=request.current_access_expires_at,
             expires_at=user.expires_at or request.access_expires_at,
-            subscription_url=user.subscription_url,
+            subscription_url=subscription_url,
             subscription_url_changed=subscription_url_changed,
             created=created,
         )

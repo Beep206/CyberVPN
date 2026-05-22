@@ -89,8 +89,13 @@ class ConfigResponse(BaseModel):
         }
     )
 
-    config_string: str = Field(..., max_length=5000, description="VPN configuration string")
+    config_string: str = Field(..., max_length=5000, description="Primary VPN subscription URL or fallback config")
     client_type: str = Field(..., max_length=50, description="VPN client type (vless, vmess, etc.)")
+    subscription_url: str | None = Field(
+        None,
+        max_length=5000,
+        description="Canonical subscription URL when available",
+    )
 
 
 class NotifyRequest(BaseModel):

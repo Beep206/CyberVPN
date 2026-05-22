@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { VpnConfigCard } from '../VpnConfigCard';
 
 const apiMocks = vi.hoisted(() => ({
@@ -14,14 +14,20 @@ const runtimeAnalyticsMocks = vi.hoisted(() => ({
   emitMiniAppRuntimeEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+const telegramMocks = vi.hoisted(() => ({
+  showAlert: vi.fn(),
+  openLink: vi.fn(),
+  haptic: vi.fn(),
+}));
+
 vi.mock('@/lib/api', () => apiMocks);
 
 vi.mock('../../hooks/useTelegramWebApp', () => ({
   useTelegramWebApp: () => ({
-    haptic: vi.fn(),
+    haptic: telegramMocks.haptic,
     webApp: {
-      showAlert: vi.fn(),
-      openLink: vi.fn(),
+      showAlert: telegramMocks.showAlert,
+      openLink: telegramMocks.openLink,
     },
   }),
 }));
@@ -54,6 +60,12 @@ function createWrapper() {
 describe('VpnConfigCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
   it('emits config_loaded for generated Mini App configs', async () => {
@@ -85,6 +97,33 @@ describe('VpnConfigCard', () => {
         }),
       );
     });
+  });
+
+  it('uses the subscription URL for copy and app-open actions when direct links are present', async () => {
+    apiMocks.miniappApi.getConfig.mockResolvedValue({
+      data: {
+        config: 'vless://generated-direct-link',
+        configString: 'vless://generated-direct-link',
+        clientType: 'vless',
+        source: 'remnawave_generated',
+        isFound: true,
+        links: ['vless://generated-direct-link'],
+        ssConfLinks: {},
+        subscriptionUrl: 'https://cyber-vpn.org/api/sub/redacted',
+        generatedAt: '2026-04-22T12:00:00Z',
+      },
+    });
+
+    render(<VpnConfigCard colorScheme="dark" page="home" />, { wrapper: createWrapper() });
+
+    await screen.findByText('vpnConfigTitle');
+    fireEvent.click(screen.getByText('copyConfig'));
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://cyber-vpn.org/api/sub/redacted');
+    });
+
+    fireEvent.click(screen.getByText('openInApp'));
+    expect(telegramMocks.openLink).toHaveBeenCalledWith('https://cyber-vpn.org/api/sub/redacted');
   });
 
   it('emits config_failed when config fetch fails', async () => {

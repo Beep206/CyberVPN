@@ -16,6 +16,7 @@ from src.application.use_cases.subscriptions.stage1_manual_subscription import (
     build_stage1_manual_subscription_request,
     can_apply_stage1_manual_subscription,
 )
+from src.config.settings import settings
 from src.domain.entities.user import User
 from src.domain.enums import AdminRole, UserStatus
 from src.infrastructure.remnawave.stage1_manual_subscription_gateway import (
@@ -108,16 +109,20 @@ async def test_stage1_manual_subscription_service_extends_from_current_expiry_wi
 
 
 @pytest.mark.asyncio
-async def test_stage1_manual_subscription_gateway_creates_new_remnawave_user() -> None:
+async def test_stage1_manual_subscription_gateway_creates_new_remnawave_user(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
     customer_id = uuid4()
     remnawave_uuid = uuid4()
+    ru_bundle_squad_uuid = str(uuid4())
+    monkeypatch.setattr(settings, "remnawave_ru_bundle_external_squad_uuid", ru_bundle_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_ru_bundle_plan_codes", "ru_start,ru_basic")
     request = build_stage1_manual_subscription_request(
         customer_account_id=customer_id,
         actor_admin_id=uuid4(),
         email="Beta@Example.Test",
         username=None,
         telegram_id=None,
+        plan_code="ru_basic",
         reason="grant controlled beta access",
         duration_days=14,
         requested_at=now,
@@ -146,6 +151,7 @@ async def test_stage1_manual_subscription_gateway_creates_new_remnawave_user() -
     assert payload["traffic_limit_bytes"] is None
     assert payload["hwid_device_limit"] == 2
     assert payload["status"] == UserStatus.ACTIVE
+    assert payload["external_squad_uuid"] == ru_bundle_squad_uuid
 
 
 def test_stage1_manual_subscription_request_rejects_unsafe_values() -> None:

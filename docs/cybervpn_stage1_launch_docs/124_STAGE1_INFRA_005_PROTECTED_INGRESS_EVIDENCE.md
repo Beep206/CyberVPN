@@ -16,7 +16,7 @@ For S1 Controlled Public Beta:
 - `api.cyber-vpn.net` is the only approved public backend API host;
 - `admin.cyber-vpn.net` is the only canonical admin host and must be protected before the admin login page;
 - `admin.cyber-vpn.org` is not used for S1 admin and must not serve admin;
-- `cyber-vpn.org` is reserved for VPN node hostnames and future subscription delivery only, not customer/admin mirror traffic;
+- `cyber-vpn.org` is reserved for VPN node hostnames and approved subscription delivery (`/api/sub*`) only, not customer/admin mirror traffic;
 - customer domains must not serve admin/internal/operator routes;
 - payment, Telegram and OAuth callback paths must not receive interactive browser challenges;
 - Remnawave API, PostgreSQL, Valkey/Redis and observability ports must stay private;
@@ -37,7 +37,7 @@ For S1 Controlled Public Beta:
 |---|---|
 | `cyber-vpn.net` | Public customer web/cabinet only |
 | `www.cyber-vpn.net` | Redirect to primary `.net` |
-| `cyber-vpn.org` | Reserved for VPN nodes and future subscription delivery; no customer web mirror |
+| `cyber-vpn.org` | Reserved for VPN nodes and subscription delivery (`/api/sub*`); no customer web mirror |
 | `www.cyber-vpn.org` | Not used for S1 customer web |
 | `api.cyber-vpn.net` | Controlled public backend API, payment webhooks, Telegram webhook and OAuth callbacks |
 | `admin.cyber-vpn.net` | Protected admin entrypoint only |
@@ -238,8 +238,8 @@ Updated ingress contract:
 - customer web is served only from `.net` approved hosts;
 - `admin.cyber-vpn.net` remains the only canonical S1 admin host;
 - `admin.cyber-vpn.org` is reserved/not used and must not serve admin;
-- `.org` is reserved for VPN node hostnames and future subscription delivery;
-- future subscription delivery on `.org` requires separate ingress/DNS/TLS evidence.
+- `.org` is reserved for VPN node hostnames and subscription delivery;
+- subscription delivery on `.org` is limited to `/api/sub*` and requires ingress/DNS/TLS evidence.
 
 Revalidation:
 

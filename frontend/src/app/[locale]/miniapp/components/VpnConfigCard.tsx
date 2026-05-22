@@ -51,6 +51,7 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
       ? t('noConfigDescription')
       : getApiErrorMessage(error, t('noConfigDescription'))
     : null;
+  const primaryConfigValue = configData?.subscriptionUrl || configData?.config;
 
   useEffect(() => {
     if (!configData || loadedTracked.current) return;
@@ -84,9 +85,9 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
 
   const copyConfig = async () => {
     haptic('medium');
-    if (configData?.config) {
+    if (primaryConfigValue) {
       try {
-        await navigator.clipboard.writeText(configData.config);
+        await navigator.clipboard.writeText(primaryConfigValue);
         webApp?.showAlert(t('configCopied'));
       } catch {
         webApp?.showAlert(t('configCopyError'));
@@ -96,9 +97,8 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
 
   const openInApp = () => {
     haptic('medium');
-    const linkUrl = configData?.subscriptionUrl || configData?.config;
-    if (linkUrl) {
-      webApp?.openLink(linkUrl);
+    if (primaryConfigValue) {
+      webApp?.openLink(primaryConfigValue);
     }
   };
 
@@ -212,10 +212,10 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
             {t('configQRDescription')}
           </p>
 
-          {configData?.config && (
+          {primaryConfigValue && (
             <div className="flex justify-center p-6 bg-white rounded-lg">
               <QRCodeComponent
-                value={configData.config}
+                value={primaryConfigValue}
                 size={250}
                 level="M"
                 fgColor="#000000"

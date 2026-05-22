@@ -33,6 +33,7 @@ class Stage1ManualSubscriptionRequest:
     email: str
     username: str | None
     telegram_id: int | None
+    plan_code: str | None
     reason: str
     duration_days: int
     requested_at: datetime
@@ -124,6 +125,7 @@ def build_stage1_manual_subscription_request(
     email: str,
     username: str | None,
     telegram_id: int | None,
+    plan_code: str | None = None,
     reason: str,
     duration_days: int,
     requested_at: datetime | None = None,
@@ -175,6 +177,7 @@ def build_stage1_manual_subscription_request(
         email=email.strip().lower(),
         username=username,
         telegram_id=telegram_id,
+        plan_code=plan_code.strip().lower() if plan_code else None,
         reason=reason,
         duration_days=duration_days,
         requested_at=requested_at_utc,

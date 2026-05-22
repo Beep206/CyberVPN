@@ -384,5 +384,6 @@ async def test_telegram_bot_config_uses_local_remnawave_uuid_before_telegram_loo
     )
 
     assert seen["user_uuid"] == str(remnawave_uuid)
-    assert response.config_string == "vless://generated"
-    assert response.client_type == "vless"
+    assert response.config_string == "https://legacy.example/sub"
+    assert response.client_type == "subscription"
+    assert response.subscription_url == "https://legacy.example/sub"

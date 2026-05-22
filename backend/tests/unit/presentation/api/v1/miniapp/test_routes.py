@@ -316,9 +316,9 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
         )
     )
 
-    assert response.config == "vless://generated"
-    assert response.config_string == "vless://generated"
-    assert response.client_type == "vless"
+    assert response.config == "https://generated.example/sub"
+    assert response.config_string == "https://generated.example/sub"
+    assert response.client_type == "subscription"
     assert response.source == "remnawave_generated"
     assert response.subscription_url == "https://generated.example/sub"
 

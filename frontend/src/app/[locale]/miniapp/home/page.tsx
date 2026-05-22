@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import { miniappApi } from '@/lib/api';
+import { invitesApi, miniappApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import {
   AlertTriangle,
+  Check,
   Shield,
   Zap,
   CreditCard,
@@ -16,6 +17,8 @@ import {
   Server,
   Gift,
   ExternalLink,
+  Loader2,
+  Users,
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { Link } from '@/i18n/navigation';
@@ -40,7 +43,11 @@ function translateOrFallback(t: ReturnType<typeof useTranslations>, key: string,
 export default function MiniAppHomePage() {
   const locale = useLocale();
   const t = useTranslations('MiniApp.home');
-  const { haptic, colorScheme, webApp } = useTelegramWebApp();
+  const tPlans = useTranslations('MiniApp.plans');
+  const queryClient = useQueryClient();
+  const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteFeedback, setInviteFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const openedTracked = useRef(false);
   const loadedTracked = useRef(false);
   const failedTracked = useRef(false);
@@ -91,6 +98,41 @@ export default function MiniAppHomePage() {
   const usageUnavailableLabel = translateOrFallback(t, 'usageUnavailable', 'Usage unavailable');
   const isLoading = bootstrapQuery.isLoading;
   const isSessionRestoring = bootstrapQuery.isError && !bootstrap;
+
+  async function refreshMiniAppAccessState() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['miniapp-bootstrap'] }),
+      queryClient.resetQueries({ queryKey: ['miniapp-config'], exact: true }),
+      queryClient.invalidateQueries({ queryKey: ['miniapp-offers'] }),
+      queryClient.invalidateQueries({ queryKey: ['usage'] }),
+    ]);
+  }
+
+  const redeemInviteMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const normalizedCode = code.trim().toUpperCase();
+      const { data } = await invitesApi.redeem({ code: normalizedCode });
+      return data;
+    },
+    onSuccess: async (data) => {
+      hapticNotification('success');
+      const reward = data.free_days
+        ? tPlans('inviteRewardDays', { count: data.free_days })
+        : tPlans('inviteRewardDefault');
+      const message = tPlans('inviteRedeemed', { reward });
+      setInviteFeedback({ tone: 'success', message });
+      setInviteCode('');
+      await refreshMiniAppAccessState();
+      webApp?.showAlert(message);
+    },
+    onError: (error: unknown) => {
+      hapticNotification('error');
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      const message = axiosError.response?.data?.detail || tPlans('inviteInvalid');
+      setInviteFeedback({ tone: 'error', message });
+      webApp?.showAlert(message);
+    },
+  });
 
   useEffect(() => {
     if (openedTracked.current) return;
@@ -245,6 +287,61 @@ export default function MiniAppHomePage() {
               <p className="mt-1 text-xs font-mono text-amber-100/80">{rolloutBannerMessage}</p>
             </div>
           </div>
+        </motion.div>
+      ) : null}
+
+      {!hasActiveSubscription && !isOnTrial ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className={`${cardBg} ${borderColor} border rounded-lg p-4`}
+        >
+          <div className="mb-3 flex items-center gap-2">
+            <Users className="h-5 w-5 text-neon-purple" />
+            <h3 className="font-display text-sm uppercase tracking-[0.14em]">
+              {tPlans('haveInviteCode')}
+            </h3>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={inviteCode}
+              onChange={(event) => {
+                setInviteCode(event.target.value.toUpperCase());
+                if (inviteFeedback) {
+                  setInviteFeedback(null);
+                }
+              }}
+              placeholder={tPlans('inviteCodePlaceholder')}
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
+            />
+            <button
+              type="button"
+              onClick={() => redeemInviteMutation.mutate(inviteCode)}
+              disabled={!inviteCode.trim() || redeemInviteMutation.isPending}
+              className="rounded-xl bg-neon-purple px-4 py-3 font-mono text-sm text-white disabled:opacity-50"
+            >
+              {redeemInviteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                tPlans('redeem')
+              )}
+            </button>
+          </div>
+          {inviteFeedback ? (
+            <div
+              className={`mt-3 flex items-center gap-2 text-xs font-mono ${
+                inviteFeedback.tone === 'error' ? 'text-neon-pink' : 'text-neon-cyan'
+              }`}
+            >
+              <Check className="h-3 w-3" />
+              {inviteFeedback.message}
+            </div>
+          ) : null}
+          <p className="mt-2 text-xs font-mono text-muted-foreground">
+            {tPlans('inviteCodeNote')}
+          </p>
         </motion.div>
       ) : null}
 

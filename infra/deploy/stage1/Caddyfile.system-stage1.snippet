@@ -78,7 +78,14 @@ api.cyber-vpn.net {
 
 cyber-vpn.org {
 	import cybervpn_tls
-	redir https://cyber-vpn.net{uri} permanent
+	import standard_proxy
+	import stage1_app_security_headers
+	import stage1_backend_routes
+
+	@non_subscription {
+		not path /api/sub*
+	}
+	redir @non_subscription https://cyber-vpn.net{uri} permanent
 }
 
 admin.cyber-vpn.net {

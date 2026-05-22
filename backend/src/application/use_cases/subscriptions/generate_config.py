@@ -5,6 +5,10 @@ from httpx import HTTPStatusError
 
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
+from src.infrastructure.remnawave.subscription_urls import (
+    normalize_public_subscription_url,
+    normalize_public_subscription_urls,
+)
 
 
 class GenerateConfigUseCase:
@@ -28,10 +32,13 @@ class GenerateConfigUseCase:
         links: list[str],
         subscription_url: str | None,
     ) -> str:
+        if subscription_url:
+            return subscription_url
+
         for link in links:
             if link and not cls._is_placeholder_link(link):
                 return link
-        return subscription_url or (links[0] if links else "")
+        return links[0] if links else ""
 
     @staticmethod
     def _detect_client_type(config: str) -> str:
@@ -66,16 +73,18 @@ class GenerateConfigUseCase:
                 detail="Subscription expired",
             )
 
+        links = normalize_public_subscription_urls(data.links)
+        subscription_url = normalize_public_subscription_url(data.subscription_url)
         config = self._select_primary_config(
-            links=data.links,
-            subscription_url=data.subscription_url,
+            links=links,
+            subscription_url=subscription_url,
         )
         return {
             "config": config,
             "config_string": config,
             "client_type": self._detect_client_type(config),
             "is_found": data.is_found,
-            "links": data.links,
+            "links": links,
             "ss_conf_links": data.ss_conf_links,
-            "subscription_url": data.subscription_url,
+            "subscription_url": subscription_url,
         }

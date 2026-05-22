@@ -3,6 +3,7 @@ from uuid import UUID
 
 from src.domain.entities.user import User
 from src.domain.enums import UserStatus
+from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 
 
 def map_remnawave_user(data: dict) -> User:
@@ -36,5 +37,5 @@ def map_remnawave_user(data: dict) -> User:
         telegram_id=data.get("telegramId"),
         email=data.get("email"),
         hwid_device_limit=data.get("hwidDeviceLimit"),
-        subscription_url=data.get("subscriptionUrl") or data.get("subscriptionURL"),
+        subscription_url=normalize_public_subscription_url(data.get("subscriptionUrl") or data.get("subscriptionURL")),
     )

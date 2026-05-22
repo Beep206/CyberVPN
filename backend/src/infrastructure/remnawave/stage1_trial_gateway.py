@@ -10,6 +10,7 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningResult,
 )
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 
 
 class RemnawaveStage1TrialProvisioningGateway:
@@ -51,6 +52,6 @@ class RemnawaveStage1TrialProvisioningGateway:
             profile_id=request.profile_id,
             status=user.status.value.lower() if hasattr(user.status, "value") else str(user.status).lower(),
             expires_at=user.expires_at or request.trial_expires_at,
-            subscription_url=user.subscription_url,
+            subscription_url=normalize_public_subscription_url(user.subscription_url),
             created=created,
         )

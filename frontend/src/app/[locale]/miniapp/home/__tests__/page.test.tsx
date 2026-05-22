@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -163,12 +163,23 @@ function createBootstrap(overrides: Record<string, unknown> = {}) {
 describe('MiniAppHomePage', () => {
   let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
   let currentBootstrap: ReturnType<typeof createBootstrap>;
+  let redeemedInviteCode: string | null;
 
   beforeEach(() => {
     telegramMock = setupTelegramWebAppMock();
     currentBootstrap = createBootstrap();
+    redeemedInviteCode = null;
     server.use(
       http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+      http.post(`${API_BASE}/invites/redeem`, async ({ request }) => {
+        const body = await request.json() as { code?: string };
+        redeemedInviteCode = body.code ?? null;
+        return HttpResponse.json({
+          code: body.code,
+          free_days: 7,
+          subscription_expires_at: '2026-06-01T00:00:00Z',
+        });
+      }),
     );
   });
 
@@ -197,7 +208,27 @@ describe('MiniAppHomePage', () => {
     });
 
     expect(screen.getByText('noSubscriptionDescription')).toBeInTheDocument();
+    expect(screen.getByText('haveInviteCode')).toBeInTheDocument();
     expect(screen.getByText('trialAvailable')).toBeInTheDocument();
+  });
+
+  it('redeems invite codes from the home page before trial activation', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('haveInviteCode')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('inviteCodePlaceholder'), {
+      target: { value: 'invite123' },
+    });
+    await user.click(screen.getByRole('button', { name: 'redeem' }));
+
+    await waitFor(() => {
+      expect(redeemedInviteCode).toBe('INVITE123');
+      expect(screen.getByText('inviteRedeemed')).toBeInTheDocument();
+    });
   });
 
   it('renders active subscription, provider, channel, and usage stats', async () => {

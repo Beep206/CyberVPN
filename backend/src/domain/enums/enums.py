@@ -252,6 +252,8 @@ class PlanTier(StrEnum):
 
 class PlanCode(StrEnum):
     START = "start"
+    RU_START = "ru_start"
+    RU_BASIC = "ru_basic"
     BASIC = "basic"
     PLUS = "plus"
     PRO = "pro"

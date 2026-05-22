@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, Integer, Numeric, String
+from sqlalchemy import BigInteger, Boolean, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -18,7 +18,7 @@ class SubscriptionPlanModel(Base):
     display_name: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     catalog_visibility: Mapped[str] = mapped_column(String(20), nullable=False, default="hidden")
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)
-    traffic_limit_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    traffic_limit_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     device_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     price_usd: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     price_rub: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)

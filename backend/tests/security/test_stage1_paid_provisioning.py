@@ -20,6 +20,7 @@ from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
     Stage1PaidProvisioningService,
     build_stage1_paid_provisioning_request,
 )
+from src.config.settings import settings
 from src.infrastructure.remnawave.stage1_paid_gateway import RemnawaveStage1PaidProvisioningGateway
 from src.presentation.api.shared import STAGE1_DEFAULT_VPN_PROFILE_ID, STAGE1_XHTTP_VPN_PROFILE_ID
 
@@ -252,17 +253,21 @@ async def test_stage1_paid_provisioning_service_updates_existing_access_with_xht
 
 
 @pytest.mark.asyncio
-async def test_remnawave_paid_gateway_uses_create_and_update_contracts() -> None:
+async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypatch: pytest.MonkeyPatch) -> None:
     user_gateway = FakeRemnawaveUserGateway()
     gateway = RemnawaveStage1PaidProvisioningGateway(user_gateway)  # type: ignore[arg-type]
     requested_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
     existing_remnawave_uuid = uuid4()
+    ru_bundle_squad_uuid = str(uuid4())
+    monkeypatch.setattr(settings, "remnawave_ru_bundle_external_squad_uuid", ru_bundle_squad_uuid)
+    monkeypatch.setattr(settings, "remnawave_ru_bundle_plan_codes", "ru_start,ru_basic")
     create_request = build_stage1_paid_provisioning_request(
         customer_account_id=uuid4(),
         order_id=uuid4(),
         email="paid-user@example.test",
         username=None,
         telegram_id=None,
+        plan_code="ru_start",
         order_status=STAGE1_PAID_ORDER_STATUS,
         settlement_status=STAGE1_PAID_SETTLEMENT_STATUS,
         plan_duration_days=30,
@@ -295,10 +300,12 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts() -> None
     assert user_gateway.created_payloads[0][0] == create_request.remnawave_username
     assert user_gateway.created_payloads[0][1]["expire_at"] == create_request.access_expires_at
     assert user_gateway.created_payloads[0][1]["traffic_limit_bytes"] == create_request.traffic_limit_bytes
+    assert user_gateway.created_payloads[0][1]["external_squad_uuid"] == ru_bundle_squad_uuid
     assert user_gateway.updated_payloads[0][0] == existing_remnawave_uuid
     assert user_gateway.updated_payloads[0][1]["expire_at"] == update_request.access_expires_at
     assert user_gateway.updated_payloads[0][1]["traffic_limit_bytes"] is None
     assert user_gateway.updated_payloads[0][1]["hwid_device_limit"] == 5
+    assert "external_squad_uuid" not in user_gateway.updated_payloads[0][1]
 
 
 @pytest.mark.asyncio

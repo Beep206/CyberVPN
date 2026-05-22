@@ -54,6 +54,7 @@ from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remn
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveCreatedSubscriptionResponse
 from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
+from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.shared.stage1_payment_runtime import (
     require_stage1_payments_enabled,
@@ -724,9 +725,12 @@ async def get_user_config(
     result = await GenerateConfigUseCase(remnawave_client).execute(user.uuid)
 
     route_operations_total.labels(route="telegram", action="get_config", status="success").inc()
+    subscription_url = result.get("subscription_url")
+    config_string = subscription_url or result.get("config_string", "")
     return ConfigResponse(
-        config_string=str(result.get("config_string", "")),
-        client_type=str(result.get("client_type", "subscription")),
+        config_string=str(config_string),
+        client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
+        subscription_url=str(subscription_url) if subscription_url else None,
     )
 
 
@@ -1569,20 +1573,32 @@ async def get_bot_user_config(
             if exc.status_code != status.HTTP_404_NOT_FOUND:
                 raise
         else:
+            subscription_url = result.get("subscription_url") or (
+                normalize_public_subscription_url(mobile_user.subscription_url)
+                if mobile_user.subscription_url
+                else None
+            )
+            config_string = subscription_url or result.get("config_string", "")
             route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
             return ConfigResponse(
-                config_string=str(result.get("config_string", "")),
-                client_type=str(result.get("client_type", "subscription")),
+                config_string=str(config_string),
+                client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
+                subscription_url=str(subscription_url) if subscription_url else None,
             )
 
     gateway = RemnawaveUserGateway(client=remnawave_client)
     user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
     if not user:
         if mobile_user and mobile_user.subscription_url:
+            subscription_url = (
+                normalize_public_subscription_url(mobile_user.subscription_url)
+                or mobile_user.subscription_url
+            )
             route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
             return ConfigResponse(
-                config_string=str(mobile_user.subscription_url),
+                config_string=str(subscription_url),
                 client_type="subscription",
+                subscription_url=str(subscription_url),
             )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1590,8 +1606,15 @@ async def get_bot_user_config(
         )
 
     result = await GenerateConfigUseCase(remnawave_client).execute(user.uuid)
+    subscription_url = result.get("subscription_url") or (
+        normalize_public_subscription_url(mobile_user.subscription_url)
+        if mobile_user and mobile_user.subscription_url
+        else None
+    )
+    config_string = subscription_url or result.get("config_string", "")
     route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
     return ConfigResponse(
-        config_string=str(result.get("config_string", "")),
-        client_type=str(result.get("client_type", "subscription")),
+        config_string=str(config_string),
+        client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
+        subscription_url=str(subscription_url) if subscription_url else None,
     )

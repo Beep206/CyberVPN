@@ -381,6 +381,7 @@ describe('MiniAppPlansPage', () => {
   it('test_redeems_invite_code_through_invites_endpoint', async () => {
     const user = userEvent.setup();
     const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    const resetSpy = vi.spyOn(QueryClient.prototype, 'resetQueries');
 
     try {
       render(<PlansPage />, { wrapper: createWrapper() });
@@ -398,9 +399,10 @@ describe('MiniAppPlansPage', () => {
         expect(telegramMock.showAlert).toHaveBeenCalledWith('Invite redeemed 14 free days');
       });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-bootstrap'] });
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-config'] });
+      expect(resetSpy).toHaveBeenCalledWith({ queryKey: ['miniapp-config'], exact: true });
     } finally {
       invalidateSpy.mockRestore();
+      resetSpy.mockRestore();
     }
   });
 });

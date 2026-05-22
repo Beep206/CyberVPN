@@ -10,9 +10,11 @@ from src.application.services.stage1_plan_policy import S1_PAID_PLAN_DURATIONS, 
 def test_plan_seed_contains_full_canonical_matrix() -> None:
     specs = build_plan_seed_specs()
 
-    assert len(specs) == 28
+    assert len(specs) == 36
     assert {spec.plan_code for spec in specs} == {
         "start",
+        "ru_start",
+        "ru_basic",
         "basic",
         "plus",
         "pro",
@@ -57,6 +59,23 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
     assert specs["start_365"].catalog_visibility == "hidden"
     assert specs["start_365"].device_limit == 1
     assert specs["start_365"].invite_bundle == {"count": 1, "friend_days": 7, "expiry_days": 30}
+
+    assert specs["ru_start_30"].display_name == "Россия Старт"
+    assert specs["ru_start_30"].catalog_visibility == "hidden"
+    assert specs["ru_start_30"].sale_channels == ["admin"]
+    assert specs["ru_start_30"].device_limit == 1
+    assert specs["ru_start_30"].traffic_limit_bytes == 30 * 1024**3
+    assert specs["ru_start_30"].features["remnawave_subscription_template"] == "Mihomo (RU bundle)"
+    assert specs["ru_start_30"].features["remnawave_subscription_template_scope"] == "mihomo_only"
+
+    assert specs["ru_basic_30"].display_name == "Россия Базовый"
+    assert specs["ru_basic_30"].catalog_visibility == "hidden"
+    assert specs["ru_basic_30"].sale_channels == ["admin"]
+    assert specs["ru_basic_30"].device_limit == 2
+    assert specs["ru_basic_30"].traffic_limit_bytes == 60 * 1024**3
+    assert specs["ru_basic_30"].features["traffic_per_device_gib"] == 30
+    assert specs["ru_basic_30"].features["remnawave_external_squad"] == "S1_RU_BUNDLE"
+    assert specs["ru_basic_30"].features["remnawave_subscription_template"] == "Mihomo (RU bundle)"
 
     assert specs["test_365"].connection_modes[-1] == "experimental"
     assert specs["test_365"].invite_bundle == {"count": 3, "friend_days": 14, "expiry_days": 60}

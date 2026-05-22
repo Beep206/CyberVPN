@@ -70,7 +70,8 @@ Keep operations and customer surfaces separated.
 | `api.cyber-vpn.net` | Backend API, payment webhooks, Telegram webhooks | Add Caddy route and no-challenge webhook exceptions |
 | `admin.cyber-vpn.net` | Admin UI/API entry | Add protected route, 2FA/RBAC/audit required |
 | `status.cyber-vpn.net` | Status page | Add static/status route or Uptime-backed public page |
-| `cyber-vpn.org` / `admin.cyber-vpn.org` | Mirrors | Redirect-only to `.net` |
+| `cyber-vpn.org` | VPN node/subscription zone | Serve only approved `/api/sub*` subscription delivery; all other customer web traffic redirects to `.net` |
+| `admin.cyber-vpn.org` | Not used for S1 admin | Must not serve an independent admin session; redirect or refuse traffic |
 
 Do not publish customer-facing services under `*.h.cyber-vpn.net` except for temporary internal smoke tests.
 
@@ -571,7 +572,7 @@ curl -I https://admin.cyber-vpn.net
 
 1. Deploy frontend.
 2. Route `cyber-vpn.net` and `www.cyber-vpn.net`.
-3. Route `cyber-vpn.org` as redirect-only mirror.
+3. Route `cyber-vpn.org` as VPN subscription delivery zone: `/api/sub*` must stay reachable on `.org`; non-subscription web traffic redirects to `.net`.
 4. Check legal pages.
 5. Check pricing, devices, help, status.
 6. Check dashboard states.
@@ -587,12 +588,14 @@ curl -fsS https://cyber-vpn.net/
 curl -fsS https://cyber-vpn.net/en-EN/pricing
 curl -fsS https://cyber-vpn.net/ru-RU/privacy-policy
 curl -I https://cyber-vpn.org/
+curl -I https://cyber-vpn.org/api/sub/health-smoke
 ```
 
 **Exit criteria:**
 
 - Public web routes load over HTTPS.
-- Mirrors redirect to `.net`.
+- `.org` non-subscription routes redirect to `.net`.
+- `.org` subscription routes do not redirect to `.net` and are routed to Remnawave subscription delivery.
 - Legal pages have no placeholders.
 - No private env value appears in client bundles.
 - Public endpoint probes are visible in Grafana.
@@ -998,11 +1001,13 @@ curl -I https://cyber-vpn.org/
 7. Run trial activation through CyberVPN.
 8. Confirm Remnawave user/profile creation or update.
 9. Confirm QR/subscription URL/config delivery.
-10. Import the config into a real client and capture redacted connection evidence.
-11. Prove credential regeneration.
-12. Prove expiry/grace disable behavior.
-13. Capture median/p95 `trial/pay -> VPN ready` latency from the smoke events.
-14. Re-disable trial provisioning if the production cohort is not starting immediately.
+10. Confirm the user-facing subscription URL is issued under `https://cyber-vpn.org/api/sub/{short_uuid}`.
+11. Confirm the subscription content includes both Stage 1 transports: VLESS Reality RAW and VLESS Reality XHTTP.
+12. Import the config into a real client and capture redacted connection evidence.
+13. Prove credential regeneration.
+14. Prove expiry/grace disable behavior.
+15. Capture median/p95 `trial/pay -> VPN ready` latency from the smoke events.
+16. Re-disable trial provisioning if the production cohort is not starting immediately.
 
 **Exit criteria:**
 
@@ -1010,6 +1015,7 @@ curl -I https://cyber-vpn.org/
 - Node health is proven by Remnawave API and Prometheus.
 - Trial provisioning works against the production node.
 - QR/subscription URL/config are generated.
+- Subscription URL uses `.org` and subscription content includes XHTTP, not only VLESS RAW.
 - A real client can connect.
 - Support/admin can see the resulting state.
 - No trial/provisioning/payment secret is printed into evidence.

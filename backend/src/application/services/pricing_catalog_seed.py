@@ -28,6 +28,7 @@ PUBLIC_CHANNELS = [
 ]
 ADMIN_ONLY_CHANNELS = [SaleChannel.ADMIN.value]
 STANDARD_DURATIONS = list(S1_PAID_PLAN_DURATIONS)
+GIB = 1024**3
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,18 @@ PLAN_PRICE_USD: dict[str, dict[int, Decimal]] = {
         90: Decimal("11.99"),
         180: Decimal("21.99"),
         365: Decimal("39.99"),
+    },
+    PlanCode.RU_START.value: {
+        30: Decimal("4.99"),
+        90: Decimal("11.99"),
+        180: Decimal("21.99"),
+        365: Decimal("39.99"),
+    },
+    PlanCode.RU_BASIC.value: {
+        30: Decimal("5.99"),
+        90: Decimal("14.99"),
+        180: Decimal("27.99"),
+        365: Decimal("49.99"),
     },
     PlanCode.BASIC.value: {
         30: Decimal("5.99"),
@@ -135,6 +148,59 @@ PLAN_FAMILY_CONFIG: dict[str, dict[str, Any]] = {
         "features": {
             "internal_notes": "Hidden entry plan for direct/admin distribution.",
             "public_badge": None,
+        },
+        "trial_eligible": False,
+        "is_active": True,
+    },
+    PlanCode.RU_START.value: {
+        "display_name": "Россия Старт",
+        "catalog_visibility": CatalogVisibility.HIDDEN.value,
+        "device_limit": 1,
+        "traffic_limit_bytes": 30 * GIB,
+        "sale_channels": ADMIN_ONLY_CHANNELS,
+        "traffic_policy": {
+            "mode": "hard_cap",
+            "display_label": "30 GB",
+            "enforcement_profile": "ru_entry_30gb",
+        },
+        "connection_modes": ["standard"],
+        "server_pool": ["shared"],
+        "support_sla": SupportSLA.STANDARD.value,
+        "dedicated_ip": {"included": 0, "eligible": False},
+        "features": {
+            "internal_notes": "Hidden Russia-only start plan for direct/admin distribution.",
+            "market": "RU",
+            "traffic_per_device_gib": 30,
+            "remnawave_external_squad": "S1_RU_BUNDLE",
+            "remnawave_subscription_template": "Mihomo (RU bundle)",
+            "remnawave_subscription_template_scope": "mihomo_only",
+        },
+        "trial_eligible": False,
+        "is_active": True,
+    },
+    PlanCode.RU_BASIC.value: {
+        "display_name": "Россия Базовый",
+        "catalog_visibility": CatalogVisibility.HIDDEN.value,
+        "device_limit": 2,
+        "traffic_limit_bytes": 60 * GIB,
+        "sale_channels": ADMIN_ONLY_CHANNELS,
+        "traffic_policy": {
+            "mode": "hard_cap_per_device",
+            "display_label": "30 GB per device",
+            "enforcement_profile": "ru_basic_30gb_per_device",
+        },
+        "connection_modes": ["standard"],
+        "server_pool": ["shared"],
+        "support_sla": SupportSLA.STANDARD.value,
+        "dedicated_ip": {"included": 0, "eligible": False},
+        "features": {
+            "internal_notes": "Hidden Russia-only basic plan for direct/admin distribution.",
+            "market": "RU",
+            "traffic_per_device_gib": 30,
+            "total_traffic_gib": 60,
+            "remnawave_external_squad": "S1_RU_BUNDLE",
+            "remnawave_subscription_template": "Mihomo (RU bundle)",
+            "remnawave_subscription_template_scope": "mihomo_only",
         },
         "trial_eligible": False,
         "is_active": True,
@@ -296,6 +362,8 @@ def build_plan_seed_specs() -> list[PlanSeedSpec]:
     specs: list[PlanSeedSpec] = []
     family_order = {
         PlanCode.START.value: 10,
+        PlanCode.RU_START.value: 12,
+        PlanCode.RU_BASIC.value: 14,
         PlanCode.BASIC.value: 20,
         PlanCode.PLUS.value: 30,
         PlanCode.PRO.value: 40,
@@ -331,6 +399,7 @@ def build_plan_seed_specs() -> list[PlanSeedSpec]:
                     },
                     is_active=bool(config["is_active"]),
                     sort_order=family_order[plan_code] + duration_index,
+                    traffic_limit_bytes=config.get("traffic_limit_bytes"),
                 )
             )
     return specs
@@ -349,6 +418,8 @@ def build_addon_seed_specs() -> list[AddonSeedSpec]:
             price_rub=None,
             max_quantity_by_plan={
                 PlanCode.START.value: 1,
+                PlanCode.RU_START.value: 0,
+                PlanCode.RU_BASIC.value: 0,
                 PlanCode.BASIC.value: 2,
                 PlanCode.PLUS.value: 3,
                 PlanCode.PRO.value: 5,

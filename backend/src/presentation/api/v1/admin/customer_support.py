@@ -485,6 +485,7 @@ async def apply_manual_customer_subscription(
             email=user.email,
             username=user.username,
             telegram_id=user.telegram_id,
+            plan_code=body.plan_code,
             reason=body.reason,
             duration_days=body.duration_days,
             current_access_expires_at=current_expires_at,

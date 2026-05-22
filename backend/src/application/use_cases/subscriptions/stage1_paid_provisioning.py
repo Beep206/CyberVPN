@@ -30,6 +30,7 @@ class Stage1PaidProvisioningRequest:
     email: str
     username: str | None
     telegram_id: int | None
+    plan_code: str | None
     plan_duration_days: int
     paid_at: datetime
     access_starts_at: datetime
@@ -95,6 +96,7 @@ def build_stage1_paid_provisioning_request(
     email: str,
     username: str | None,
     telegram_id: int | None,
+    plan_code: str | None = None,
     order_status: str,
     settlement_status: str,
     plan_duration_days: int,
@@ -137,6 +139,7 @@ def build_stage1_paid_provisioning_request(
         email=email,
         username=username,
         telegram_id=telegram_id,
+        plan_code=plan_code.strip().lower() if plan_code else None,
         plan_duration_days=plan_duration_days,
         paid_at=paid_at_utc,
         access_starts_at=access_starts_at,
@@ -164,6 +167,7 @@ class Stage1PaidProvisioningService:
         email: str,
         username: str | None,
         telegram_id: int | None,
+        plan_code: str | None = None,
         order_status: str,
         settlement_status: str,
         plan_duration_days: int,
@@ -183,6 +187,7 @@ class Stage1PaidProvisioningService:
             email=email,
             username=username,
             telegram_id=telegram_id,
+            plan_code=plan_code,
             order_status=order_status,
             settlement_status=settlement_status,
             plan_duration_days=plan_duration_days,

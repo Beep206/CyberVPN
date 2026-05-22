@@ -59,6 +59,7 @@ from src.infrastructure.monitoring.instrumentation.routes import (
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
 from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
+from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.shared.stage1_payment_runtime import (
     require_stage1_payments_enabled,
@@ -424,15 +425,16 @@ def _serialize_addon(addon) -> AddonResponse:
 
 
 def _build_legacy_config_response(subscription_url: str) -> MiniAppConfigResponse:
+    normalized_subscription_url = normalize_public_subscription_url(subscription_url) or subscription_url
     return MiniAppConfigResponse(
-        config=subscription_url,
-        configString=subscription_url,
+        config=normalized_subscription_url,
+        configString=normalized_subscription_url,
         clientType="subscription",
         isFound=True,
-        links=[subscription_url],
+        links=[normalized_subscription_url],
         ssConfLinks={},
         source="legacy_subscription_url",
-        subscriptionUrl=subscription_url,
+        subscriptionUrl=normalized_subscription_url,
         generatedAt=datetime.now(UTC),
     )
 
@@ -1106,17 +1108,23 @@ async def get_miniapp_config(
                 if exc.status_code != status.HTTP_404_NOT_FOUND:
                     raise
             else:
+                subscription_url = result.get("subscription_url") or (
+                    normalize_public_subscription_url(mobile_user.subscription_url)
+                    if mobile_user.subscription_url
+                    else None
+                )
+                config_string = subscription_url or result.get("config_string", "")
                 config_source = "remnawave_generated"
                 track_miniapp_config_delivery(source=config_source, status="success")
                 return MiniAppConfigResponse(
-                    config=str(result.get("config", "")),
-                    configString=str(result.get("config_string", "")),
-                    clientType=str(result.get("client_type", "subscription")),
+                    config=str(config_string),
+                    configString=str(config_string),
+                    clientType="subscription" if subscription_url else str(result.get("client_type", "subscription")),
                     isFound=bool(result.get("is_found", True)),
                     links=list(result.get("links", [])),
                     ssConfLinks=dict(result.get("ss_conf_links", {})),
                     source="remnawave_generated",
-                    subscriptionUrl=result.get("subscription_url"),
+                    subscriptionUrl=subscription_url,
                     generatedAt=datetime.now(UTC),
                 )
 
@@ -1126,17 +1134,23 @@ async def get_miniapp_config(
         )
         if remnawave_user is not None:
             result = await GenerateConfigUseCase(remnawave_client).execute(remnawave_user.uuid)
+            subscription_url = result.get("subscription_url") or (
+                normalize_public_subscription_url(mobile_user.subscription_url)
+                if mobile_user.subscription_url
+                else None
+            )
+            config_string = subscription_url or result.get("config_string", "")
             config_source = "remnawave_generated"
             track_miniapp_config_delivery(source=config_source, status="success")
             return MiniAppConfigResponse(
-                config=str(result.get("config", "")),
-                configString=str(result.get("config_string", "")),
-                clientType=str(result.get("client_type", "subscription")),
+                config=str(config_string),
+                configString=str(config_string),
+                clientType="subscription" if subscription_url else str(result.get("client_type", "subscription")),
                 isFound=bool(result.get("is_found", True)),
                 links=list(result.get("links", [])),
                 ssConfLinks=dict(result.get("ss_conf_links", {})),
                 source="remnawave_generated",
-                subscriptionUrl=result.get("subscription_url"),
+                subscriptionUrl=subscription_url,
                 generatedAt=datetime.now(UTC),
             )
 

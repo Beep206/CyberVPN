@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     remnawave_default_user_expire_days: int = 7
     remnawave_default_internal_squad_uuid: str = ""
     remnawave_default_internal_squad_name: str = "Default-Squad"
+    remnawave_subscription_public_base_url: str = "https://cyber-vpn.org/api/sub"
+    remnawave_ru_bundle_external_squad_uuid: str = ""
+    remnawave_ru_bundle_plan_codes: str = "ru_start,ru_basic"
+    remnawave_ru_bundle_subscription_template_name: str = "Mihomo (RU bundle)"
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25
     stage1_trial_provisioning_enabled: bool = False

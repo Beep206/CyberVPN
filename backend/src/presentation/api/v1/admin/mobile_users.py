@@ -17,6 +17,10 @@ from src.infrastructure.database.repositories.mobile_user_repo import MobileUser
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
+from src.infrastructure.remnawave.subscription_urls import (
+    normalize_public_subscription_url,
+    normalize_public_subscription_urls,
+)
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
@@ -62,7 +66,7 @@ def _serialize_mobile_user_list_item(
 def _serialize_mobile_user_detail(user: MobileUserModel) -> AdminMobileUserDetailResponse:
     return AdminMobileUserDetailResponse(
         **_serialize_mobile_user_list_item(user, len(user.devices)).model_dump(),
-        subscription_url=user.subscription_url,
+        subscription_url=normalize_public_subscription_url(user.subscription_url),
         updated_at=user.updated_at,
         devices=list(user.devices),
     )
@@ -202,7 +206,7 @@ async def build_mobile_user_subscription_snapshot(
         return AdminMobileUserSubscriptionSnapshotResponse(
             exists=False,
             remnawave_uuid=None,
-            subscription_url=user.subscription_url,
+            subscription_url=normalize_public_subscription_url(user.subscription_url),
             config_error="Customer has no linked VPN user",
         )
 
@@ -212,7 +216,7 @@ async def build_mobile_user_subscription_snapshot(
         return AdminMobileUserSubscriptionSnapshotResponse(
             exists=False,
             remnawave_uuid=user.remnawave_uuid,
-            subscription_url=user.subscription_url,
+            subscription_url=normalize_public_subscription_url(user.subscription_url),
             config_error="Invalid Remnawave UUID",
         )
 
@@ -233,9 +237,9 @@ async def build_mobile_user_subscription_snapshot(
     except Exception:
         config_error = "Subscription snapshot unavailable"
 
-    links = details.links if details is not None else []
+    links = normalize_public_subscription_urls(details.links if details is not None else [])
     ss_conf_links = details.ss_conf_links if details is not None else {}
-    subscription_url = (
+    subscription_url = normalize_public_subscription_url(
         details.subscription_url
         if details is not None and details.subscription_url
         else vpn_user.subscription_url if vpn_user is not None else user.subscription_url

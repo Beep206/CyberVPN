@@ -1,6 +1,7 @@
 import type React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MiniAppHomePage from '../../page';
 import {
@@ -8,14 +9,18 @@ import {
   setupTelegramWebAppMock,
 } from '@/test/mocks/telegram-webapp';
 
-const { mockGetBootstrap, mockEmitMiniAppRuntimeEvent } = vi.hoisted(() => ({
+const { mockGetBootstrap, mockRedeemInvite, mockEmitMiniAppRuntimeEvent } = vi.hoisted(() => ({
   mockGetBootstrap: vi.fn(),
+  mockRedeemInvite: vi.fn(),
   mockEmitMiniAppRuntimeEvent: vi.fn(),
 }));
 
 vi.mock('@/lib/api', () => ({
   miniappApi: {
     getBootstrap: mockGetBootstrap,
+  },
+  invitesApi: {
+    redeem: mockRedeemInvite,
   },
 }));
 
@@ -206,6 +211,13 @@ describe('MiniApp Home Page', () => {
   beforeEach(() => {
     setupTelegramWebAppMock();
     mockGetBootstrap.mockResolvedValue({ data: bootstrap() });
+    mockRedeemInvite.mockResolvedValue({
+      data: {
+        code: 'INVITE123',
+        free_days: 7,
+        subscription_expires_at: '2026-06-01T00:00:00Z',
+      },
+    });
     mockEmitMiniAppRuntimeEvent.mockResolvedValue(undefined);
   });
 
@@ -231,6 +243,27 @@ describe('MiniApp Home Page', () => {
 
     expect(screen.queryByText('usage')).not.toBeInTheDocument();
     expect(screen.queryByText('vpnConfig')).not.toBeInTheDocument();
+    expect(screen.getByText('haveInviteCode')).toBeInTheDocument();
+  });
+
+  it('test_redeems_invite_code_from_home_page', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<MiniAppHomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('haveInviteCode')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('inviteCodePlaceholder'), {
+      target: { value: 'invite123' },
+    });
+    await user.click(screen.getByRole('button', { name: 'redeem' }));
+
+    await waitFor(() => {
+      expect(mockRedeemInvite).toHaveBeenCalledWith({ code: 'INVITE123' });
+      expect(screen.getByText('inviteRedeemed')).toBeInTheDocument();
+    });
   });
 
   it('test_displays_active_subscription_summary', async () => {

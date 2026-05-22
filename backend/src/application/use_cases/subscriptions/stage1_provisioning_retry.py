@@ -409,6 +409,7 @@ def _safe_paid_request_payload(request: Stage1PaidProvisioningRequest) -> dict[s
     return {
         "customer_account_id": str(request.customer_account_id),
         "order_id": str(request.order_id),
+        "plan_code": request.plan_code,
         "profile_id": request.profile_id,
         "access_expires_at": request.access_expires_at.isoformat(),
         "traffic_limit_bytes": request.traffic_limit_bytes,

@@ -8,6 +8,7 @@ from aiogram.filters import CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, User
 
+from src.handlers.config import send_config_link_handler
 from src.handlers.menu import connect_command_handler, invite_codes_command_handler, main_menu_command_handler
 from src.handlers.start import start_handler
 from src.handlers.subscription import plans_command_handler
@@ -183,6 +184,57 @@ async def test_invites_command_shows_owned_invite_codes() -> None:
     assert "my-invites-info" in message.answer.await_args.kwargs["text"]
     assert "OWNER123" in message.answer.await_args.kwargs["text"]
     assert message.answer.await_args.kwargs["reply_markup"] is not None
+
+
+@pytest.mark.asyncio
+async def test_config_link_handler_sends_subscription_url_not_direct_proxy_uri() -> None:
+    from aiogram.types import CallbackQuery
+
+    callback = MagicMock(spec=CallbackQuery)
+    callback.from_user = User(id=123456, is_bot=False, first_name="Test")
+    callback.message = MagicMock()
+    callback.message.answer = AsyncMock()
+    callback.answer = AsyncMock()
+    api_client = SimpleNamespace(
+        get_user_config=AsyncMock(
+            return_value={
+                "config_string": "vless://direct-proxy-uri",
+                "client_type": "vless",
+                "subscription_url": "https://cyber-vpn.org/api/sub/redacted",
+            }
+        )
+    )
+
+    await send_config_link_handler(callback, _I18nStub(), api_client)
+
+    callback.message.answer.assert_awaited_once()
+    text = callback.message.answer.await_args.kwargs["text"]
+    assert "https://cyber-vpn.org/api/sub/redacted" in text
+    assert "vless://direct-proxy-uri" not in text
+
+
+@pytest.mark.asyncio
+async def test_config_link_handler_rejects_direct_proxy_uri_without_subscription_url() -> None:
+    from aiogram.types import CallbackQuery
+
+    callback = MagicMock(spec=CallbackQuery)
+    callback.from_user = User(id=123456, is_bot=False, first_name="Test")
+    callback.message = MagicMock()
+    callback.message.answer = AsyncMock()
+    callback.answer = AsyncMock()
+    api_client = SimpleNamespace(
+        get_user_config=AsyncMock(
+            return_value={
+                "config_string": "vless://direct-proxy-uri",
+                "client_type": "vless",
+            }
+        )
+    )
+
+    await send_config_link_handler(callback, _I18nStub(), api_client)
+
+    callback.message.answer.assert_not_awaited()
+    callback.answer.assert_any_await("error-config-not-ready", show_alert=True)
 
 
 @pytest.mark.asyncio

@@ -47,6 +47,7 @@ class AdminCustomerCredentialRegenerationRequest(BaseModel):
 
 class AdminCustomerManualSubscriptionRequest(BaseModel):
     reason: str = Field(..., min_length=3, max_length=1000)
+    plan_code: str | None = Field(None, min_length=1, max_length=20)
     duration_days: int = Field(..., ge=1, le=365)
     device_limit: int = Field(1, ge=1, le=10)
     traffic_limit_bytes: int | None = Field(None, gt=0)
