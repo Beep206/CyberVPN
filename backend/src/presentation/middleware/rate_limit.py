@@ -364,6 +364,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                         "/api/v1/auth/resend-verification",
                         "/api/v1/auth/magic-link",
                         "/api/v1/auth/magic-link/verify",
+                        "/api/v1/auth/magic-link/verify-otp",
                         "/api/v1/auth/telegram/miniapp",
                         "/api/v1/auth/telegram/web",
                         "/api/v1/auth/telegram/bot-link",
@@ -427,6 +428,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 exact_paths=frozenset(
                     {
                         "/api/v1/promo/validate",
+                        "/api/v1/invites/redeem",
                         "/api/v1/gifts/purchase/quote",
                         "/api/v1/gifts/purchase/commit",
                         "/api/v1/gifts/redeem",

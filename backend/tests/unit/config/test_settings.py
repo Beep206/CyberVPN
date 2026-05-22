@@ -40,6 +40,7 @@ class TestWeakSecretPatterns:
                 remnawave_token=SecretStr(self.VALID_TOKEN),
                 cryptobot_token=SecretStr(self.VALID_TOKEN),
                 cors_origins=self.PRODUCTION_CORS_ORIGINS,
+                oauth_enabled_login_providers=[],
                 admin_2fa_required=True,
             )
 
@@ -57,6 +58,7 @@ class TestWeakSecretPatterns:
             cryptobot_token=SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
             cors_origins=self.PRODUCTION_CORS_ORIGINS,
             oauth_token_encryption_key=SecretStr(self.STRONG_SECRET),
+            oauth_enabled_login_providers=[],
             cookie_secure=True,
             admin_2fa_required=True,
         )
@@ -131,6 +133,7 @@ class TestS1CorsAndCookieSettings:
             "remnawave_token": SecretStr(self.VALID_TOKEN),
             "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
             "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
+            "oauth_enabled_login_providers": [],
             "cors_origins": [
                 "https://cyber-vpn.net",
                 "https://admin.cyber-vpn.net",
@@ -220,3 +223,73 @@ class TestS1CorsAndCookieSettings:
     def test_s1_production_rejects_unapproved_admin_allowed_hosts(self, host: str) -> None:
         with pytest.raises(ValidationError, match="ADMIN_ALLOWED_HOSTS"):
             self._production_settings(admin_allowed_hosts=f"admin.cyber-vpn.net,{host}")
+
+
+class TestS2OAuthProductionReadiness:
+    """Test S2 production OAuth login provider credential guards."""
+
+    STRONG_SECRET = TestWeakSecretPatterns.STRONG_SECRET
+    VALID_TOKEN = TestWeakSecretPatterns.VALID_TOKEN
+    VALID_PRODUCTION_PROVIDER_TOKEN = TestWeakSecretPatterns.VALID_PRODUCTION_PROVIDER_TOKEN
+
+    def _production_settings(self, **overrides):
+        values = {
+            "environment": "production",
+            "jwt_secret": SecretStr(self.STRONG_SECRET),
+            "remnawave_token": SecretStr(self.VALID_TOKEN),
+            "cryptobot_token": SecretStr(self.VALID_PRODUCTION_PROVIDER_TOKEN),
+            "oauth_token_encryption_key": SecretStr(self.STRONG_SECRET),
+            "oauth_web_base_url": "",
+            "google_client_id": "",
+            "google_client_secret": SecretStr(""),
+            "github_client_id": "",
+            "github_client_secret": SecretStr(""),
+            "cors_origins": list(S1_PRODUCTION_CORS_ORIGINS),
+            "cookie_secure": True,
+            "admin_2fa_required": True,
+        }
+        values.update(overrides)
+        return Settings(**values)
+
+    def test_production_allows_oauth_disabled_without_provider_credentials(self) -> None:
+        settings = self._production_settings(oauth_enabled_login_providers=[])
+
+        assert settings.oauth_enabled_login_providers == []
+
+    def test_production_rejects_google_oauth_without_credentials(self) -> None:
+        with pytest.raises(ValidationError, match="GOOGLE_CLIENT_ID"):
+            self._production_settings(
+                oauth_enabled_login_providers=["google"],
+                oauth_web_base_url="https://cyber-vpn.net",
+            )
+
+    def test_production_rejects_github_oauth_without_credentials(self) -> None:
+        with pytest.raises(ValidationError, match="GITHUB_CLIENT_ID"):
+            self._production_settings(
+                oauth_enabled_login_providers=["github"],
+                oauth_web_base_url="https://cyber-vpn.net",
+            )
+
+    def test_production_rejects_oauth_enabled_without_web_base_url(self) -> None:
+        with pytest.raises(ValidationError, match="OAUTH_WEB_BASE_URL"):
+            self._production_settings(
+                oauth_enabled_login_providers=["google"],
+                google_client_id="google-client-id",
+                google_client_secret=SecretStr("google-client-secret"),
+            )
+
+    def test_production_accepts_google_and_github_oauth_with_credentials(self) -> None:
+        settings = self._production_settings(
+            oauth_enabled_login_providers="google,github",
+            oauth_web_base_url="https://cyber-vpn.net",
+            google_client_id="google-client-id",
+            google_client_secret=SecretStr("google-client-secret"),
+            github_client_id="github-client-id",
+            github_client_secret=SecretStr("github-client-secret"),
+        )
+
+        assert settings.oauth_enabled_login_providers == ["google", "github"]
+
+    def test_runtime_rejects_unsupported_oauth_login_provider(self) -> None:
+        with pytest.raises(ValidationError, match="only supports google and github"):
+            self._production_settings(oauth_enabled_login_providers=["google", "facebook"])

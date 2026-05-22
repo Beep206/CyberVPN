@@ -182,6 +182,7 @@ def test_stage1_production_app_enforces_csrf_for_cookie_auth_unsafe_requests() -
         "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
         "TOTP_ENCRYPTION_KEY": _non_secret_test_value("totp"),
         "OAUTH_TOKEN_ENCRYPTION_KEY": _non_secret_test_value("oauth"),
+        "OAUTH_ENABLED_LOGIN_PROVIDERS": "",
         "PYTHONPATH": str(repo_root / "backend"),
     }
 

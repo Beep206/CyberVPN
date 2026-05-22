@@ -3,6 +3,7 @@
 import time
 from unittest.mock import MagicMock, patch
 
+import pytest
 from starlette.requests import Request
 
 from src.presentation.middleware.rate_limit import CircuitBreaker
@@ -238,3 +239,40 @@ class TestRateLimitMiddlewareConfig:
 
             assert middleware._requests_budget_for(admin_post) == 100
             assert middleware._requests_budget_for(public_get) == 100
+
+    @pytest.mark.parametrize(
+        ("method", "path", "expected_budget", "expected_bucket"),
+        [
+            ("POST", "/api/v1/auth/login", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/auth/register", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/auth/magic-link/verify-otp", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/auth/telegram/miniapp", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/oauth/google/login/callback", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/oauth/github/login/callback", 7, "s1_auth_sensitive"),
+            ("POST", "/api/v1/invites/redeem", 11, "s1_growth_sensitive"),
+        ],
+    )
+    def test_stage2_public_auth_registration_paths_use_sensitive_buckets(
+        self,
+        method: str,
+        path: str,
+        expected_budget: int,
+        expected_bucket: str,
+    ):
+        """S2 public auth and invite entrypoints use bounded launch-sensitive budgets."""
+        from src.presentation.middleware.rate_limit import RateLimitMiddleware
+
+        RateLimitMiddleware._circuit_breaker = None
+
+        app = MagicMock()
+        middleware = RateLimitMiddleware(
+            app,
+            requests_per_minute=100,
+            fail_open=False,
+            auth_sensitive_requests_per_minute=7,
+            growth_sensitive_requests_per_minute=11,
+        )
+        request = Request({"type": "http", "method": method, "path": path, "headers": []})
+
+        assert middleware._requests_budget_for(request) == expected_budget
+        assert middleware._rate_limit_bucket_for(request) == expected_bucket

@@ -349,6 +349,8 @@ docs/evidence/releases/s2-stage-04-public-catalog-20260522.md
 
 **Purpose:** Move from beta/invite-heavy access to safe public registration.
 
+**Status:** Completed locally on 2026-05-22.
+
 **Do First Locally:** Yes, then staging/prod-like smoke.
 
 **Work:**
@@ -383,6 +385,8 @@ docs/evidence/releases/s2-stage-05-auth-registration-YYYYMMDD.md
 - public auth is safe enough to open beyond the first beta cohort;
 - abuse controls exist;
 - support can diagnose auth problems without seeing secrets.
+
+**Result:** Gradual public-registration posture is fixed; Google/GitHub OAuth are conditional on production credentials; unsupported OAuth providers stay out of S2; `magic-link/verify-otp` and `invites/redeem` are covered by launch-sensitive rate-limit buckets; deletion/privacy request paths are documented. Evidence: `docs/evidence/releases/s2-stage-05-auth-registration-20260522.md`.
 
 ---
 

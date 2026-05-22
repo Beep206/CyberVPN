@@ -33,6 +33,7 @@ def _production_settings(**overrides: object) -> Settings:
         "cookie_secure": True,
         "totp_encryption_key": SecretStr(STRONG_SECRET),
         "oauth_token_encryption_key": SecretStr(STRONG_SECRET),
+        "oauth_enabled_login_providers": [],
     }
     values.update(overrides)
     return _settings(**values)

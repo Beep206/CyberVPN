@@ -1,9 +1,9 @@
 import json
 import logging
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, ClassVar, Literal, Self
 from urllib.parse import urlparse
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode
 
 _logger = logging.getLogger(__name__)
@@ -429,6 +429,38 @@ class Settings(BaseSettings):
             raise ValueError("OAUTH_WEB_BASE_URL must not include a path, query, or fragment.")
 
         return f"{parsed.scheme}://{parsed.netloc}"
+
+    @model_validator(mode="after")
+    def validate_s2_oauth_login_provider_credentials(self) -> Self:
+        """Fail fast if a production OAuth login provider is enabled without credentials."""
+        enabled = {provider.strip().lower() for provider in self.oauth_enabled_login_providers if provider.strip()}
+        unsupported = enabled - {"google", "github"}
+        if unsupported:
+            raise ValueError("OAUTH_ENABLED_LOGIN_PROVIDERS only supports google and github in S2.")
+
+        if self.environment.lower() != "production" or not enabled:
+            return self
+
+        if not self.oauth_web_base_url:
+            raise ValueError(
+                "OAUTH_WEB_BASE_URL is required in production when OAuth login providers are enabled."
+            )
+        if "google" in enabled and (
+            not self.google_client_id.strip() or not self.google_client_secret.get_secret_value().strip()
+        ):
+            raise ValueError(
+                "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required in production "
+                "when google OAuth login is enabled."
+            )
+        if "github" in enabled and (
+            not self.github_client_id.strip() or not self.github_client_secret.get_secret_value().strip()
+        ):
+            raise ValueError(
+                "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are required in production "
+                "when github OAuth login is enabled."
+            )
+
+        return self
 
     @field_validator("cookie_domain", mode="before")
     @classmethod
