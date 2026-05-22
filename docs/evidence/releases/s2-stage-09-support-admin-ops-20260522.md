@@ -2,7 +2,7 @@
 
 **Stage:** `S2-STAGE-09`
 **Date:** 2026-05-22
-**Status:** Passed locally with production role gap
+**Status:** Passed with owner-operated production admin/2FA proof
 **Scope:** CyberVPN Public Release 1.0 support/admin operations
 
 ---
@@ -165,7 +165,7 @@ payment_disputes|0
 support_profiles|1
 ```
 
-Observed admin role/2FA summary:
+Original admin role/2FA summary:
 
 ```text
 viewer|active=true|totp_enabled=false|2
@@ -174,8 +174,43 @@ viewer|active=true|totp_enabled=false|2
 Interpretation:
 
 1. production runtime and DB support/admin surfaces exist;
-2. no privileged production support/admin role is currently proven;
-3. privileged production users must be created/promoted and protected with 2FA before unrestricted S2 public opening.
+2. original production users were viewer-only and could not satisfy unrestricted S2 admin operations;
+3. privileged production access needed a 2FA-protected account before moving forward.
+
+Production mutation:
+
+```text
+backup: /srv/cybervpn/backups/admin-support-gap-prechange-20260522T173656Z.sql
+handoff: /root/cybervpn-admin-handoff/s2-admin-ops-20260522T173735Z.secret.json
+login: s2_admin_ops
+email: s2-admin-ops@cyber-vpn.net
+role: admin
+totp_enabled: true
+audit action: s2.admin_ops_account_created
+```
+
+The handoff file is root-only on `prod-app-1` and contains the temporary password, TOTP secret and setup URI. Secrets are intentionally excluded from this evidence.
+
+Production proof:
+
+```text
+POST /api/v1/auth/login -> 200
+requires_2fa -> true
+POST /api/v1/2fa/complete -> 200
+auth_realm_key -> admin
+principal_type -> admin
+GET /api/v1/admin/mobile-users?limit=1 -> 200
+POST /api/v1/auth/logout -> 204
+```
+
+Post-change role/2FA summary:
+
+```text
+admin|active=true|totp_enabled=true|1
+viewer|active=true|totp_enabled=false|2
+```
+
+This is intentionally minimal: one 2FA-protected owner-operated admin account for S2 continuation. Named human `support`, `finance` and `operator` accounts should be created later when those roles are assigned to separate people.
 
 ---
 
@@ -220,7 +255,7 @@ Result:
 59 passed
 ```
 
-DB-backed integration test attempted:
+DB-backed integration test rerun:
 
 ```bash
 cd backend
@@ -230,13 +265,25 @@ uv run pytest tests/integration/test_admin_customer_operations_insight.py -q --n
 Result:
 
 ```text
-4 failed
-pytest test DB bootstrap skipped: [Errno 111] Connect call failed ('127.0.0.1', 6767)
+4 passed in 50.73s
 ```
 
 Interpretation:
 
-The local integration test requires an intentional local PostgreSQL test DB. Docker/test DB was not running during this stage. Repeat this proof when local Docker/test DB is deliberately started.
+The original failure was not a business-logic failure. After local Docker PostgreSQL/Valkey was started, the remaining 404 came from `AdminHostGuardMiddleware` because the test used the generic `http://test` host for admin-only routes. The test now sends `Host: admin.cyber-vpn.net`, matching the protected admin route contract.
+
+Additional lint:
+
+```bash
+cd backend
+uv run ruff check tests/integration/test_admin_customer_operations_insight.py
+```
+
+Result:
+
+```text
+All checks passed
+```
 
 ---
 
@@ -254,20 +301,19 @@ Positive findings:
 
 Residual risks:
 
-1. production privileged support/admin account is not yet present;
-2. production privileged admin 2FA evidence is not yet present;
-3. DB-backed admin operations integration proof must be rerun with local/staging DB;
-4. growth/autoprolongation support reversal is documented but must be rechecked when those gates are enabled.
+1. `s2_admin_ops` is an owner-operated S2 account, not a replacement for named human role separation;
+2. temporary password must be rotated after owner handoff;
+3. growth/autoprolongation support reversal is documented but must be rechecked when those gates are enabled.
 
 ---
 
 ## 9. Decision
 
-`S2-STAGE-09` is closed for local code/docs/test baseline.
+`S2-STAGE-09` is closed for local code/docs/test baseline, DB-backed operations insight proof and owner-operated production privileged admin/2FA proof.
 
-Do not treat it as approval for unrestricted S2 opening until:
+Do not treat it as approval for a larger multi-operator S2 opening until:
 
-1. privileged production support/admin roles are configured;
-2. 2FA is enabled;
-3. DB-backed operations insight proof is rerun;
-4. redacted support workflow evidence is captured with a real internal support/admin operator.
+1. named human support/admin/finance/operator accounts are configured where needed;
+2. 2FA is enabled individually for those accounts;
+3. redacted support workflow evidence is captured with a real internal support/admin operator;
+4. the temporary `s2_admin_ops` password is rotated after owner handoff.

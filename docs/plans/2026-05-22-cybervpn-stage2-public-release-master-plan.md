@@ -547,7 +547,7 @@ docs/evidence/releases/s2-stage-09-support-admin-ops-YYYYMMDD.md
 - support actions are audited;
 - admin access remains protected.
 
-**Result:** Local S2 support/admin contract is closed with a production role gap. Code now defines required S2 support cases, role/action permissions, redaction rules and readiness evaluation. Subscription resync admin output was tightened so raw subscription URLs are not returned; responses use redacted values plus presence booleans. Production runtime and support/admin tables are healthy, but current production `admin_users` are `viewer` with 2FA disabled, so privileged support/admin accounts must be created/promoted and 2FA-enabled before unrestricted S2 opening.
+**Result:** S2 support/admin contract is closed for owner-operated S2 continuation. Code defines required S2 support cases, role/action permissions, redaction rules and readiness evaluation. Subscription resync admin output was tightened so raw subscription URLs are not returned; responses use redacted values plus presence booleans. Production now has a minimal privileged `s2_admin_ops` admin account with mandatory 2FA proven through login, 2FA completion, protected admin read and logout. The DB-backed `test_admin_customer_operations_insight.py` proof was rerun with local Docker PostgreSQL/Valkey and now passes. Before a broader multi-operator S2 opening, create named human support/finance/operator/admin accounts with individual 2FA and rotate the temporary handoff password.
 
 **Completed Evidence:**
 

@@ -1,7 +1,7 @@
 # Stage 2 Support And Admin Operations
 
 **Stage:** `S2-STAGE-09`
-**Status:** Approved local contract; production role assignment remains required before unrestricted S2 opening
+**Status:** Approved with owner-operated production admin/2FA proof
 **Date:** 2026-05-22
 **Product stage:** CyberVPN Public Release 1.0
 
@@ -157,13 +157,43 @@ payment_disputes=0
 support_profiles=1
 ```
 
-Current role gap:
+Original role gap:
 
 ```text
 admin_users role summary: viewer=2, active=true, totp_enabled=false
 ```
 
-This means production has healthy runtime and support/admin tables, but it does not yet have a proven privileged support/admin operator with 2FA enabled. Before unrestricted S2 opening, create or promote the required admin/support/finance/operator accounts and enable 2FA.
+Production now has one minimal privileged owner-operated account for S2 handoff:
+
+```text
+login: s2_admin_ops
+role: admin
+totp_enabled: true
+handoff: /root/cybervpn-admin-handoff/s2-admin-ops-20260522T173735Z.secret.json
+```
+
+The handoff file is root-only on `prod-app-1` and contains the temporary password, TOTP secret and setup URI. These values must not be copied into repository docs or chat.
+
+Production proof:
+
+```text
+login_status=200
+login_requires_2fa=true
+2fa_complete_status=200
+auth_realm_key=admin
+principal_type=admin
+admin_mobile_users_status=200
+logout_status=204
+```
+
+Post-change role summary:
+
+```text
+admin|active=true|totp_enabled=true|1
+viewer|active=true|totp_enabled=false|2
+```
+
+This closes the immediate owner-operated S2 admin access gap without creating unnecessary generic support/finance/operator accounts. Before a broader unrestricted S2 opening with more operators, replace this with named human `support`, `finance`, `operator` and `admin` accounts, each with individual 2FA.
 
 ---
 
@@ -197,19 +227,23 @@ Result:
 59 passed
 ```
 
-Not closed locally:
+DB-backed admin operations integration proof:
 
 ```text
 tests/integration/test_admin_customer_operations_insight.py
 ```
 
-Reason:
+Result after starting local Docker PostgreSQL/Valkey:
 
 ```text
-Local PostgreSQL test DB on 127.0.0.1:6767 was unavailable; pytest DB bootstrap was skipped and the test returned 404 fixtures.
+4 passed in 50.73s
 ```
 
-This is not a production runtime failure. It means the DB-backed integration proof must be repeated when local Docker/test DB is intentionally running.
+Fix applied:
+
+```text
+The test now sends Host: admin.cyber-vpn.net for admin-only routes, matching AdminHostGuardMiddleware instead of using the generic http://test host.
+```
 
 ---
 
@@ -229,11 +263,11 @@ Do not widen S2 public release if any condition is true:
 
 ## 9. Exit Decision
 
-`S2-STAGE-09` is closed for local S2 support/admin contract and redaction baseline.
+`S2-STAGE-09` is closed for the local S2 support/admin contract, redaction baseline, production owner-operated privileged admin proof and DB-backed operations-insight proof.
 
-It is not closed for unrestricted S2 public opening until the production privileged role gap is closed:
+Remaining S2 scale-up requirement:
 
-1. create/promote named support/admin/finance/operator accounts as needed;
-2. enable mandatory 2FA;
-3. rerun DB-backed admin operations integration proof against intentional local/staging DB;
+1. create/promote named human support/admin/finance/operator accounts when separate people exist;
+2. enable mandatory 2FA for each account;
+3. rotate the temporary `s2_admin_ops` password after owner handoff;
 4. capture redacted evidence that a support/admin operator can diagnose a user without developer-only DB access.

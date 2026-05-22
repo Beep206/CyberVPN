@@ -47,6 +47,18 @@ from tests.integration.test_partner_portal_reporting_reads import _seed_order_li
 
 pytestmark = [pytest.mark.integration]
 
+_ADMIN_HOST_HEADERS = {
+    "Host": "admin.cyber-vpn.net",
+    "X-Auth-Realm": "admin",
+}
+
+
+def _admin_auth_headers(token: str) -> dict[str, str]:
+    return {
+        **_ADMIN_HOST_HEADERS,
+        "Authorization": f"Bearer {token}",
+    }
+
 
 def _make_admin_access_token(
     auth_service: AuthService,
@@ -395,10 +407,7 @@ async def test_admin_customer_operations_insight_returns_full_role_scoped_payloa
             seeded = await _seed_customer_operations_context(sessionmaker, auth_service)
             response = await async_client.get(
                 f"/api/v1/admin/mobile-users/{seeded['user_id']}/operations-insight",
-                headers={
-                    "Authorization": f"Bearer {seeded['admin_token']}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_admin_auth_headers(seeded["admin_token"]),
             )
 
             assert response.status_code == 200
@@ -452,10 +461,7 @@ async def test_support_customer_operations_insight_hides_finance_and_risk_sectio
             seeded = await _seed_customer_operations_context(sessionmaker, auth_service)
             response = await async_client.get(
                 f"/api/v1/admin/mobile-users/{seeded['user_id']}/operations-insight",
-                headers={
-                    "Authorization": f"Bearer {seeded['support_token']}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_admin_auth_headers(seeded["support_token"]),
             )
 
             assert response.status_code == 200
@@ -562,10 +568,7 @@ async def test_admin_customer_operations_action_executes_canonical_maker_checker
 
             read_response = await async_client.get(
                 f"/api/v1/admin/mobile-users/{seeded['user_id']}/operations-insight",
-                headers={
-                    "Authorization": f"Bearer {seeded['admin_token']}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_admin_auth_headers(seeded["admin_token"]),
             )
             assert read_response.status_code == 200
             read_payload = read_response.json()
@@ -581,10 +584,7 @@ async def test_admin_customer_operations_action_executes_canonical_maker_checker
 
             verify_response = await async_client.post(
                 f"/api/v1/admin/mobile-users/{seeded['user_id']}/operations-insight/actions",
-                headers={
-                    "Authorization": f"Bearer {seeded['admin_token']}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_admin_auth_headers(seeded["admin_token"]),
                 json={
                     "action_kind": "verify_payout_account",
                     "payout_account_id": str(pending_payout_account.id),
@@ -602,10 +602,7 @@ async def test_admin_customer_operations_action_executes_canonical_maker_checker
 
             approve_response = await async_client.post(
                 f"/api/v1/admin/mobile-users/{seeded['user_id']}/operations-insight/actions",
-                headers={
-                    "Authorization": f"Bearer {seeded['admin_token']}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_admin_auth_headers(seeded["admin_token"]),
                 json={
                     "action_kind": "approve_payout_instruction",
                     "payout_instruction_id": str(pending_instruction.id),
@@ -642,10 +639,7 @@ async def test_admin_customer_operations_exports_return_role_scoped_download_pay
     try:
         async with override_realm_test_db(sessionmaker):
             seeded = await _seed_customer_operations_context(sessionmaker, auth_service)
-            headers = {
-                "Authorization": f"Bearer {seeded['admin_token']}",
-                "X-Auth-Realm": "admin",
-            }
+            headers = _admin_auth_headers(seeded["admin_token"])
 
             workspace_response = await async_client.get(
                 f"/api/v1/admin/mobile-users/{seeded['user_id']}/operations-insight/exports/workspaces/{seeded['workspace_id']}",
