@@ -128,7 +128,7 @@ class TestMenuHandlers:
 
     async def test_callback_with_keyboard_update(self) -> None:
         """Test callback that updates keyboard."""
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        from aiogram.types import InlineKeyboardButton
         from aiogram.utils.keyboard import InlineKeyboardBuilder
 
         callback = MagicMock(spec=CallbackQuery)
