@@ -305,6 +305,8 @@ docs/evidence/releases/s2-stage-03-route-contract-YYYYMMDD.md
 
 **Purpose:** Make pricing public-release ready.
 
+**Status:** Completed locally on 2026-05-22.
+
 **Do First Locally:** Yes. Seed data and UI must be tested locally.
 
 **Work:**
@@ -329,6 +331,8 @@ docs/evidence/releases/s2-stage-03-route-contract-YYYYMMDD.md
 
 ```text
 docs/evidence/releases/s2-stage-04-public-catalog-YYYYMMDD.md
+docs/cybervpn_stage2_launch_docs/03_STAGE2_PUBLIC_CATALOG_PRICING_CONTRACT.md
+docs/evidence/releases/s2-stage-04-public-catalog-20260522.md
 ```
 
 **Exit Criteria:**
@@ -336,6 +340,8 @@ docs/evidence/releases/s2-stage-04-public-catalog-YYYYMMDD.md
 - public catalog is final for S2;
 - hidden/special tariffs are intentionally hidden or intentionally exposed;
 - no mixed-language UX in core flows.
+
+**Result:** Public plans remain Basic/Plus/Pro/Max; RU plans remain hidden/admin-only with `Mihomo (RU bundle)`; fake local currency display-only estimates were removed from public pricing/dashboard checkout surfaces; targeted frontend/backend tests passed.
 
 ---
 

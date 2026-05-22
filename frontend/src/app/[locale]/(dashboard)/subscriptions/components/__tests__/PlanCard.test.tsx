@@ -93,6 +93,19 @@ describe('PlanCard', () => {
       expect(screen.getByText('Premium access')).toBeInTheDocument();
     });
 
+    it('test_does_not_render_display_only_local_price_estimate', () => {
+      render(
+        <PlanCard
+          plan={createPlan({ price_rub: 999 })}
+          onPurchase={mockOnPurchase}
+        />,
+      );
+
+      expect(screen.getByText('$9.99')).toBeInTheDocument();
+      expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/approx/i)).not.toBeInTheDocument();
+    });
+
     it('test_formats_30_day_duration_correctly', () => {
       render(<PlanCard plan={mockPlan} onPurchase={mockOnPurchase} />);
 

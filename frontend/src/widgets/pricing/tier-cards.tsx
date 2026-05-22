@@ -192,17 +192,6 @@ export function TierCards({
                     currency: pricePresentation.billing.currency,
                   })}
                 </p>
-                {pricePresentation.localEstimate ? (
-                  <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-neon-cyan/70">
-                    {t('labels.localDisplayEstimate', {
-                      price: formatMoney(
-                        locale,
-                        pricePresentation.localEstimate.amount,
-                        pricePresentation.localEstimate.currency,
-                      ),
-                    })}
-                  </p>
-                ) : null}
                 <p className="mt-4 min-h-[4.25rem] text-sm font-mono leading-relaxed text-white/72">
                   {t(`tiers.${plan.code}.description`)}
                 </p>

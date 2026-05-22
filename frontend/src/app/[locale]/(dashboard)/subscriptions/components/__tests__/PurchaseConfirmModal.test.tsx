@@ -309,6 +309,27 @@ describe('PurchaseConfirmModal', () => {
     expect(screen.getByText('Checkout total')).toBeInTheDocument();
   });
 
+  it('does not render display-only local price estimates in checkout copy', async () => {
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>
+        HttpResponse.json(createQuoteSession(), { status: 201 })),
+    );
+
+    renderWithProviders(
+      <PurchaseConfirmModal
+        isOpen={true}
+        onClose={vi.fn()}
+        plan={createPlan({ price_rub: 2999 })}
+      />,
+    );
+
+    await screen.findByText('Checkout total');
+
+    expect(screen.getByText('Charged in USD')).toBeInTheDocument();
+    expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/approx/i)).not.toBeInTheDocument();
+  });
+
   it('hides checkout code entry while S1 growth flows are disabled', async () => {
     server.use(
       http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>

@@ -257,18 +257,6 @@ export function FeatureMatrix({
                     </div>
                   </div>
 
-                  {pricePresentation.localEstimate ? (
-                    <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.16em] text-neon-cyan/70">
-                      {t('labels.localDisplayEstimate', {
-                        price: formatMoney(
-                          locale,
-                          pricePresentation.localEstimate.amount,
-                          pricePresentation.localEstimate.currency,
-                        ),
-                      })}
-                    </p>
-                  ) : null}
-
                   <div className="mt-4 flex items-start gap-2 text-sm font-mono text-white/75">
                     <Dot className="mt-0.5 h-4 w-4 shrink-0 text-neon-cyan" />
                     <span>{availability}</span>

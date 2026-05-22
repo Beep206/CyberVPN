@@ -9,6 +9,7 @@ from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
     CheckoutUseCase,
 )
+from src.config.settings import settings
 
 
 def _build_plan(**overrides):
@@ -53,7 +54,8 @@ def _build_addon(**overrides):
 
 
 @pytest.mark.asyncio
-async def test_checkout_quote_applies_addons_to_entitlements() -> None:
+async def test_checkout_quote_applies_addons_to_entitlements(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "stage1_addons_enabled", True)
     session = SimpleNamespace(get=AsyncMock(return_value=None))
     use_case = CheckoutUseCase(session)
     plan = _build_plan()

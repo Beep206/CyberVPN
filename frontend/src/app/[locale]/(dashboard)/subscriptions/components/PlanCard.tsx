@@ -129,11 +129,6 @@ export function PlanCard({ plan, isCurrentPlan = false, onPurchase }: PlanCardPr
               <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
                 Charged in {price.currency}
               </p>
-              {price.localEstimate ? (
-                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-neon-cyan/70">
-                  Approx. {price.localEstimate.formatted} display only
-                </p>
-              ) : null}
             </div>
             <span className={cn('rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em]', config.chip)}>
               {formatSupportLabel(plan.support_sla)}
