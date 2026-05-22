@@ -96,6 +96,9 @@ class AdminCustomerSubscriptionResyncResponse(BaseModel):
     previous_subscription_url: str | None = None
     stored_subscription_url: str | None = None
     upstream_subscription_url: str
+    previous_subscription_url_present: bool = False
+    stored_subscription_url_present: bool = False
+    upstream_subscription_url_present: bool = False
     changed: bool = False
     config_available: bool = False
     config_client_type: str | None = None

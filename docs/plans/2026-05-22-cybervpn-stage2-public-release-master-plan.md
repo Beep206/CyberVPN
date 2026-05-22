@@ -547,6 +547,14 @@ docs/evidence/releases/s2-stage-09-support-admin-ops-YYYYMMDD.md
 - support actions are audited;
 - admin access remains protected.
 
+**Result:** Local S2 support/admin contract is closed with a production role gap. Code now defines required S2 support cases, role/action permissions, redaction rules and readiness evaluation. Subscription resync admin output was tightened so raw subscription URLs are not returned; responses use redacted values plus presence booleans. Production runtime and support/admin tables are healthy, but current production `admin_users` are `viewer` with 2FA disabled, so privileged support/admin accounts must be created/promoted and 2FA-enabled before unrestricted S2 opening.
+
+**Completed Evidence:**
+
+```text
+docs/evidence/releases/s2-stage-09-support-admin-ops-20260522.md
+```
+
 ---
 
 ## S2-STAGE-10: Legal, Public Copy, And Trust Pages

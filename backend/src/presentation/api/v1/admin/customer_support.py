@@ -71,6 +71,7 @@ router = APIRouter(prefix="/admin/mobile-users", tags=["admin", "customer-suppor
 logger = logging.getLogger(__name__)
 
 TEMP_PASSWORD_SPECIALS = "!@#$%^&*()-_=+[]{}"  # noqa: S105 - alphabet for generated temporary passwords.
+REDACTED_ADMIN_URL = "[REDACTED]"
 
 
 def _actor_label(actor: AdminUserModel | None) -> str | None:
@@ -176,6 +177,10 @@ def _generate_temporary_password(length: int = 18) -> str:
     password_chars.extend(secrets.choice(alphabet) for _ in range(length - len(password_chars)))
     secrets.SystemRandom().shuffle(password_chars)
     return "".join(password_chars)
+
+
+def _redact_admin_url(value: str | None) -> str | None:
+    return REDACTED_ADMIN_URL if value else None
 
 
 def _serialize_vpn_user(remnawave_uuid: str | None, vpn_user) -> AdminCustomerVpnUserResponse:
@@ -718,9 +723,9 @@ async def resync_customer_subscription(
         actor=current_user,
         request=request,
         details={
-            "previous_subscription_url": previous_subscription_url,
-            "stored_subscription_url": snapshot.subscription_url,
-            "upstream_subscription_url": snapshot.subscription_url,
+            "previous_subscription_url_present": previous_subscription_url is not None,
+            "stored_subscription_url_present": snapshot.subscription_url is not None,
+            "upstream_subscription_url_present": snapshot.subscription_url is not None,
             "changed": changed,
             "config_available": snapshot.config_available,
             "config_client_type": snapshot.config_client_type,
@@ -736,9 +741,12 @@ async def resync_customer_subscription(
     ).inc()
     return AdminCustomerSubscriptionResyncResponse(
         user_id=user_id,
-        previous_subscription_url=previous_subscription_url,
-        stored_subscription_url=snapshot.subscription_url,
-        upstream_subscription_url=snapshot.subscription_url,
+        previous_subscription_url=_redact_admin_url(previous_subscription_url),
+        stored_subscription_url=_redact_admin_url(snapshot.subscription_url),
+        upstream_subscription_url=_redact_admin_url(snapshot.subscription_url) or REDACTED_ADMIN_URL,
+        previous_subscription_url_present=previous_subscription_url is not None,
+        stored_subscription_url_present=snapshot.subscription_url is not None,
+        upstream_subscription_url_present=snapshot.subscription_url is not None,
         changed=changed,
         config_available=snapshot.config_available,
         config_client_type=snapshot.config_client_type,
