@@ -26,6 +26,7 @@ Recommended protected CI variables:
   STAGE1_PROD_USER=deploy
   STAGE1_PROD_PORT=22
   STAGE1_PROD_KNOWN_HOSTS=<ssh-keyscan output>
+  STAGE1_DEPLOY_DRY_RUN=true for no-network CI deploy contract validation
 USAGE
 }
 
@@ -35,7 +36,16 @@ services_input="${1:-${STAGE1_DEPLOY_SERVICES:-}}"
   fail "service list is required"
 }
 
+deploy_dry_run="${STAGE1_DEPLOY_DRY_RUN:-false}"
+case "$deploy_dry_run" in
+  true|false) ;;
+  *) fail "STAGE1_DEPLOY_DRY_RUN must be true or false" ;;
+esac
+
 host="${STAGE1_PROD_HOST:-}"
+if [[ "$deploy_dry_run" == "true" && -z "$host" ]]; then
+  host="dry-run.invalid"
+fi
 [[ -n "$host" ]] || fail "STAGE1_PROD_HOST is required"
 
 user="${STAGE1_PROD_USER:-deploy}"
@@ -82,8 +92,32 @@ if [[ -n "${requested[all]:-}" ]]; then
   )
 fi
 
+services_csv="$(IFS=,; echo "${!requested[*]}")"
+
 mkdir -p "$evidence_dir"
 evidence_file="$evidence_dir/stage1-gitlab-deploy-${release_tag}.md"
+
+if [[ "$deploy_dry_run" == "true" ]]; then
+  {
+    echo "# Stage 1 GitLab Deploy Dry Run"
+    echo
+    echo "Release tag: \`$release_tag\`"
+    echo "Commit: \`${CI_COMMIT_SHA:-local}\`"
+    echo "Pipeline: \`${CI_PIPELINE_URL:-local}\`"
+    echo "Services: \`$services_csv\`"
+    echo "Host: \`$host\`"
+    echo "Compose dir: \`$compose_dir\`"
+    echo "Release root: \`$release_root\`"
+    echo "Image registry: \`$image_registry\`"
+    echo "Dry run: \`true\`"
+    echo "Checked at: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`"
+    echo
+    echo "No SSH, rsync, Docker build, compose restart or public smoke was executed."
+  } >"$evidence_file"
+  cat "$evidence_file"
+  log "dry-run evidence written to $evidence_file"
+  exit 0
+fi
 
 ssh_key_file="${STAGE1_PROD_SSH_KEY_FILE:-}"
 temporary_key_file=""
@@ -153,8 +187,6 @@ rsync -az --delete \
   --exclude='.coverage.*' \
   -e "${ssh_base[*]}" \
   ./ "$user@$host:$remote_src/"
-
-services_csv="$(IFS=,; echo "${!requested[*]}")"
 
 {
   echo "# Stage 1 GitLab Deploy"

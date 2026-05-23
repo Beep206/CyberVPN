@@ -64,6 +64,8 @@ REQUIRED_JOBS = (
     "stage1:deploy:telegram-bot:",
     "stage1:deploy:task-worker:",
     "stage1:deploy:all:",
+    "stage2:release-evidence-pack:",
+    "stage2:deploy:dry-run:",
     "stage1:limited-publication-preflight:",
 )
 
@@ -76,6 +78,7 @@ REQUIRED_RULE_ANCHORS = (
     ".rules_task_worker:",
     ".rules_security:",
     ".rules_stage1_limited_publication:",
+    ".rules_stage2_release_speed:",
 )
 
 REQUIRED_PATH_MARKERS = (
@@ -117,11 +120,24 @@ REQUIRED_STAGE1_PUBLICATION_MARKERS = (
     "STAGE1_REQUIRE_BETA_GO",
     "STAGE1_AUTO_DEPLOY",
     "STAGE1_PROD_SSH_PRIVATE_KEY",
+    "STAGE1_DEPLOY_DRY_RUN",
     "scripts/deploy/stage1-gitlab-deploy.sh",
     "resource_group: stage1-production",
     "docs/evidence/releases/ci-stage1/",
     "https://cyber-vpn.net/en-EN/status",
     "https://api.cyber-vpn.net/healthz",
+)
+
+REQUIRED_STAGE2_RELEASE_SPEED_MARKERS = (
+    "STAGE2_RELEASE_SPEED",
+    "S2_RELEASE_TAG",
+    "S2_DRY_RUN_SERVICES",
+    "stage2/public-release",
+    "stage2:release-evidence-pack:",
+    "stage2:deploy:dry-run:",
+    "docs/evidence/releases/ci-stage2/",
+    "stage2-public-rc",
+    "Production deploys must use immutable SHA/tag",
 )
 
 FORBIDDEN_MARKERS = (
@@ -157,6 +173,9 @@ def main() -> int:
     failures.extend(require_all(content, REQUIRED_SECURITY_RULE_MARKERS, "security rule marker"))
     failures.extend(require_all(content, REQUIRED_SECURITY_SCRIPT_MARKERS, "security script marker"))
     failures.extend(require_all(content, REQUIRED_STAGE1_PUBLICATION_MARKERS, "stage1 publication marker"))
+    failures.extend(
+        require_all(content, REQUIRED_STAGE2_RELEASE_SPEED_MARKERS, "stage2 release-speed marker")
+    )
 
     for marker in FORBIDDEN_MARKERS:
         if marker in content:

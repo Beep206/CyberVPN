@@ -745,6 +745,8 @@ docs/evidence/releases/s2-stage-14-gitlab-cicd-release-speed-YYYYMMDD.md
 - GitHub remains a fallback;
 - release artifacts are reproducible.
 
+**Result:** Completed on 2026-05-23. GitLab and GitHub were synchronized before the patch; the home GitLab runner was up; the CI contract validator was extended for Stage 2 release-speed jobs; `.gitlab-ci.yml` now includes `stage2:release-evidence-pack` and `stage2:deploy:dry-run`; the production deploy script now supports `STAGE1_DEPLOY_DRY_RUN=true` for no-network deploy contract validation; local dry-run evidence proved no SSH, rsync, Docker build, compose restart or public smoke is executed. Result: `PASS_WITH_CONTROLLED_GAPS`. Evidence: `docs/evidence/releases/s2-stage-14-gitlab-cicd-release-speed-20260523.md`.
+
 ---
 
 ## S2-STAGE-15: Full Staging/Public-Release Rehearsal
