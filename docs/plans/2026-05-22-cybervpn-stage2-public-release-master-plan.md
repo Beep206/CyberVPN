@@ -705,6 +705,8 @@ docs/evidence/releases/s2-stage-13-security-abuse-privacy-YYYYMMDD.md
 - public abuse paths have controls;
 - privacy-sensitive data is not leaking through logs, analytics, support views, or evidence.
 
+**Result:** Completed on 2026-05-23. Dependency, secret, bundle/env and backend security gates passed; a task-worker dependency blocker was closed by upgrading `idna`, `starlette` and `urllib3`; production webhook invalid-request probes returned JSON without challenge pages; production runtime flags show fail-closed rate limits, admin host guard and required admin 2FA; production log privacy scan returned zero risky payload matches. An admin public-header hygiene issue where `Link` exposed internal `127.0.0.1` origin fragments was fixed by making admin root metadata private/noindex and stripping downstream `Link` headers on the admin edge route. Result: `PASS_WITH_CONTROLLED_GAPS`. Evidence: `docs/evidence/releases/s2-stage-13-security-abuse-privacy-20260523.md`.
+
 ---
 
 ## S2-STAGE-14: GitLab CI/CD And Release Speed

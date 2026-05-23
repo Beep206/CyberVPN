@@ -59,8 +59,7 @@ export async function generateMetadata({
     },
     {
       locale,
-      canonicalPath: '/',
-      routeType: 'public',
+      routeType: 'private',
     },
   );
 }
