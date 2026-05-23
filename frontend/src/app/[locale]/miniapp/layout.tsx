@@ -37,7 +37,7 @@ export default async function MiniAppLayout({
     <ScopedIntlProvider locale={locale} namespaces={MINI_APP_CLIENT_NAMESPACES}>
       <QueryProvider>
         <TelegramMiniAppAuthProvider>
-          <div className="flex flex-col min-h-screen w-full bg-background text-foreground">
+          <div className="miniapp-shell flex min-h-screen w-full flex-col">
             <a
               href="#main-content"
               className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
@@ -49,7 +49,7 @@ export default async function MiniAppLayout({
               <main
                 id="main-content"
                 tabIndex={-1}
-                className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-20"
+                className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-[calc(5rem+var(--safe-area-bottom))]"
                 aria-live="polite"
               >
                 {children}

@@ -22,10 +22,9 @@ export function MiniAppBottomSheet({
   onClose,
   title,
   children,
-  colorScheme: _colorScheme = 'dark',
 }: MiniAppBottomSheetProps) {
-  const sheetBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const sheetBg = 'miniapp-sheet';
+  const borderColor = 'border';
 
   useEffect(() => {
     if (!isOpen) {

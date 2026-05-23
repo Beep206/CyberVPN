@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Loader2
 } from 'lucide-react';
-import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 
 /**
  * Mini App Payment History page
@@ -20,7 +19,6 @@ import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
  */
 export default function MiniAppPaymentsPage() {
   const t = useTranslations('MiniApp.payments');
-  const { colorScheme } = useTelegramWebApp();
 
   const { data: orderHistory, isLoading } = useQuery({
     queryKey: ['miniapp-order-history'],
@@ -32,8 +30,8 @@ export default function MiniAppPaymentsPage() {
 
   const orders = orderHistory || [];
 
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -83,7 +81,6 @@ export default function MiniAppPaymentsPage() {
               key={order.id}
               order={order}
               index={index}
-              colorScheme={colorScheme}
               formatCurrency={formatCurrency}
               t={t}
             />
@@ -98,7 +95,6 @@ export default function MiniAppPaymentsPage() {
 function PaymentCard({
   order,
   index,
-  colorScheme,
   formatCurrency,
   t,
 }: {
@@ -112,12 +108,11 @@ function PaymentCard({
     items?: Array<{ display_name?: string | null }>;
   };
   index: number;
-  colorScheme: 'light' | 'dark';
   formatCurrency: (amount: number, currency: string) => string;
   t: (key: string) => string;
 }) {
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   return (
     <motion.div

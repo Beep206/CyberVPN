@@ -104,9 +104,8 @@ function formatGiftStatus(status: string): 'active' | 'redeemed' | 'expired' | '
 }
 
 function MiniAppReferralPaused() {
-  const { colorScheme } = useTelegramWebApp();
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   return (
     <main className="min-h-screen px-4 py-6 pb-24">
@@ -143,7 +142,7 @@ export default function MiniAppReferralPage() {
 function MiniAppReferralExperience() {
   const t = useTranslations('MiniApp.referral');
   const locale = useLocale();
-  const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();
+  const { haptic, hapticNotification, webApp } = useTelegramWebApp();
 
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemError, setRedeemError] = useState('');
@@ -308,8 +307,8 @@ function MiniAppReferralExperience() {
     }
   };
 
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   return (
     <div className="max-w-screen-sm mx-auto space-y-4">

@@ -27,58 +27,9 @@ export function ThemeToggle() {
         <MagneticButton strength={20}>
             <motion.button
                 onClick={async (e) => {
+                    e.preventDefault();
                     const newTheme = isDark ? "light" : "dark";
-
-                    // Check if View Transitions API is supported
-                    if (
-                        !document.startViewTransition ||
-                        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                    ) {
-                        setTheme(newTheme);
-                        return;
-                    }
-
-                    // Get click coordinates
-                    const x = e.clientX;
-                    const y = e.clientY;
-
-                    // Calculate radius to the farthest corner
-                    const endRadius = Math.hypot(
-                        Math.max(x, innerWidth - x),
-                        Math.max(y, innerHeight - y)
-                    );
-
-                    // Start the view transition
-                    const transition = document.startViewTransition(async () => {
-                        // Use flushSync to ensure DOM updates happen immediately
-                        // within the transition callback
-                        const { flushSync } = await import('react-dom');
-                        flushSync(() => {
-                            setTheme(newTheme);
-                        });
-                    });
-
-                    // Wait for the pseudo-elements to be created
-                    await transition.ready;
-
-                    // Animate the circle reveal
-                    document.documentElement.animate(
-                        {
-                            clipPath: [
-                                `circle(0px at ${x}px ${y}px)`,
-                                `circle(${endRadius}px at ${x}px ${y}px)`,
-                            ],
-                        },
-                        {
-                            duration: 2500,
-                            easing: "cubic-bezier(0.23, 1, 0.32, 1)", // ease-cyber
-                            pseudoElement: "::view-transition-new(root)",
-                        }
-                    );
-
-                    // Allow the transition to finish when the animation completes
-                    // (Though view transitions usually wait for animations on the pseudo-elements automatically,
-                    // this is a safe guard if we needed manual cleanup, but standard API handles it)
+                    setTheme(newTheme);
                 }}
                 className="touch-target relative flex items-center justify-center rounded-lg border border-grid-line/30 bg-terminal-surface/30 text-muted-foreground transition-colors duration-300 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
                 whileHover={{ rotate: 180 }}

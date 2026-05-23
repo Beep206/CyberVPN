@@ -50,12 +50,9 @@ export function MiniAppBottomNav() {
     hapticSelection();
   };
 
-  const bgColor = 'bg-[oklch(0.045_0.014_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
-
   return (
     <nav
-      className={`fixed bottom-0 left-0 right-0 z-50 ${bgColor} border-t ${borderColor} backdrop-blur-xl`}
+      className="miniapp-nav fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl"
       role="navigation"
       aria-label={t('bottomNav')}
     >

@@ -192,22 +192,22 @@ describe('MiniAppBottomNav', () => {
   });
 
   describe('Theme Integration', () => {
-    it('test_uses_dark_theme_colors_by_default', () => {
+    it('test_uses_scoped_miniapp_nav_surface', () => {
       const { container } = render(<MiniAppBottomNav />);
 
       const nav = container.querySelector('nav');
-      expect(nav?.className).toContain('bg-[oklch(0.045_0.014_260)]');
-      expect(nav?.className).toContain('border-[oklch(0.25_0.10_195)]');
+      expect(nav?.className).toContain('miniapp-nav');
+      expect(nav?.className).toContain('border-t');
     });
 
-    it('test_keeps_brand_surface_when_telegram_uses_light_mode', () => {
+    it('test_keeps_scoped_surface_when_telegram_uses_light_mode', () => {
       cleanupTelegramWebAppMock();
       setupTelegramWebAppMock({ colorScheme: 'light' });
 
       const { container } = render(<MiniAppBottomNav />);
 
       const nav = container.querySelector('nav');
-      expect(nav?.className).toContain('bg-[oklch(0.045_0.014_260)]');
+      expect(nav?.className).toContain('miniapp-nav');
     });
 
     it('test_applies_telegram_theme_params', () => {

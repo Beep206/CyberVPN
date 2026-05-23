@@ -80,8 +80,8 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
     });
   }, [isError, locale, page]);
 
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   const copyConfig = async () => {
     haptic('medium');
@@ -176,7 +176,7 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={copyConfig}
-            className="py-2 px-3 bg-neon-cyan text-black rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation flex flex-col items-center justify-center gap-1"
+            className="miniapp-primary-button py-2 px-3 rounded-lg transition-colors touch-manipulation flex flex-col items-center justify-center gap-1"
           >
             <Copy className="h-4 w-4" />
             <span className="text-xs font-mono">{t('copyConfig')}</span>
@@ -184,7 +184,7 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
 
           <button
             onClick={showQRCode}
-            className="py-2 px-3 bg-neon-purple text-white rounded-lg hover:bg-neon-purple/90 transition-colors touch-manipulation flex flex-col items-center justify-center gap-1"
+            className="miniapp-purple-button py-2 px-3 rounded-lg transition-colors touch-manipulation flex flex-col items-center justify-center gap-1"
           >
             <QrCode className="h-4 w-4" />
             <span className="text-xs font-mono">{t('viewQR')}</span>
@@ -192,7 +192,7 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
 
           <button
             onClick={openInApp}
-            className="py-2 px-3 bg-muted border border-border rounded-lg hover:bg-muted/70 transition-colors touch-manipulation flex flex-col items-center justify-center gap-1"
+            className="miniapp-secondary-button py-2 px-3 border rounded-lg transition-colors touch-manipulation flex flex-col items-center justify-center gap-1"
           >
             <ExternalLink className="h-4 w-4" />
             <span className="text-xs font-mono">{t('openInApp')}</span>

@@ -26,7 +26,7 @@ type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
  */
 export default function MiniAppWalletPage() {
   const t = useTranslations('MiniApp.wallet');
-  const { webApp, haptic, hapticNotification, colorScheme } = useTelegramWebApp();
+  const { webApp, haptic, hapticNotification } = useTelegramWebApp();
   const [showWithdrawSheet, setShowWithdrawSheet] = useState(false);
   const walletWithdrawalsEnabled = isStage1WalletWithdrawalUiEnabled();
 
@@ -74,8 +74,8 @@ export default function MiniAppWalletPage() {
 
   const allTransactions = transactionsData?.pages.flatMap((page) => (Array.isArray(page) ? page : [])) || [];
 
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
   const accentColor = 'text-[var(--tg-link-color,var(--color-neon-cyan))]';
 
   const formatCurrency = (amount: number) => {
@@ -161,7 +161,6 @@ export default function MiniAppWalletPage() {
             <TransactionCard
               key={transaction.id || index}
               transaction={transaction}
-              colorScheme={colorScheme}
               formatCurrency={formatCurrency}
               t={t}
             />
@@ -196,7 +195,6 @@ export default function MiniAppWalletPage() {
           isOpen={showWithdrawSheet}
           onClose={() => setShowWithdrawSheet(false)}
           balance={walletData?.balance || 0}
-          colorScheme={colorScheme}
           haptic={haptic}
           showError={showError}
           t={t}
@@ -210,7 +208,6 @@ export default function MiniAppWalletPage() {
 // Transaction Card Component
 function TransactionCard({
   transaction,
-  colorScheme,
   formatCurrency,
   t,
 }: {
@@ -223,12 +220,11 @@ function TransactionCard({
     created_at?: string;
     reason?: string;
   };
-  colorScheme: 'light' | 'dark';
   formatCurrency: (amount: number) => string;
   t: (key: string) => string;
 }) {
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   const isIncoming = transaction.type === 'deposit' || transaction.type === 'referral_commission' || transaction.type === 'refund';
   const Icon = isIncoming ? ArrowDownRight : ArrowUpRight;
@@ -290,7 +286,6 @@ function WithdrawSheet({
   isOpen,
   onClose,
   balance,
-  colorScheme,
   haptic,
   showError,
   t,
@@ -299,7 +294,6 @@ function WithdrawSheet({
   isOpen: boolean;
   onClose: () => void;
   balance: number;
-  colorScheme: 'light' | 'dark';
   haptic: (style: 'light' | 'medium' | 'heavy') => void;
   showError: (msg: string) => void;
   t: (key: string) => string;
@@ -348,7 +342,7 @@ function WithdrawSheet({
     withdrawMutation.mutate({ amount: amountNum, method: paymentMethod });
   };
 
-  const bgColor = 'bg-[oklch(0.045_0.014_260)]';
+  const bgColor = 'miniapp-sheet';
 
   return (
     <AnimatePresence>

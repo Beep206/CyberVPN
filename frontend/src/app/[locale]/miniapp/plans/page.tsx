@@ -851,8 +851,8 @@ export default function MiniAppPlansPage() {
     : currentMatch
       ? formatPlanDisplayName(t, currentMatch.family)
       : currentEntitlements?.display_name || t('trialLabel');
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   const selectedPricePresentation = selectedSku ? getPricePresentation(locale, selectedSku) : null;
   const selectedPrice = selectedPricePresentation

@@ -170,8 +170,8 @@ export default function MiniAppHomePage() {
     });
   }, [bootstrapQuery.isError, locale]);
 
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
   const accentColor = 'text-[var(--tg-link-color,var(--color-neon-cyan))]';
 
   return (
@@ -314,13 +314,13 @@ export default function MiniAppHomePage() {
                 }
               }}
               placeholder={tPlans('inviteCodePlaceholder')}
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-white/35"
+              className="miniapp-input min-w-0 flex-1 rounded-xl border px-3 py-3 font-mono text-sm outline-none"
             />
             <button
               type="button"
               onClick={() => redeemInviteMutation.mutate(inviteCode)}
               disabled={!inviteCode.trim() || redeemInviteMutation.isPending}
-              className="rounded-xl bg-neon-purple px-4 py-3 font-mono text-sm text-white disabled:opacity-50"
+              className="miniapp-purple-button rounded-xl px-4 py-3 font-mono text-sm disabled:opacity-50"
             >
               {redeemInviteMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -488,8 +488,8 @@ function QuickActionCard({
   label: string;
   onPress: () => void;
 }) {
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   return (
     <Link

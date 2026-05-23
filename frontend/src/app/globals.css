@@ -418,6 +418,136 @@ body {
   }
 }
 
+.miniapp-shell {
+  --miniapp-bg: var(--tg-theme-bg-color, var(--background));
+  --miniapp-surface: var(--tg-theme-secondary-bg-color, var(--card));
+  --miniapp-surface-muted: color-mix(in oklab, var(--miniapp-surface) 86%, var(--miniapp-bg));
+  --miniapp-text: var(--tg-theme-text-color, var(--foreground));
+  --miniapp-muted: var(--tg-theme-hint-color, var(--muted-foreground));
+  --miniapp-link: var(--tg-theme-link-color, var(--color-neon-cyan));
+  --miniapp-button: var(--tg-theme-button-color, var(--color-neon-cyan));
+  --miniapp-button-text: var(--tg-theme-button-text-color, #000);
+  --miniapp-border: color-mix(in oklab, var(--miniapp-text) 15%, transparent);
+  --miniapp-shadow: 0 14px 36px color-mix(in oklab, var(--miniapp-text) 9%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--miniapp-bg) 92%, var(--miniapp-link)) 0%, var(--miniapp-bg) 44%),
+    var(--miniapp-bg);
+  color: var(--miniapp-text);
+  color-scheme: light dark;
+}
+
+.miniapp-card,
+.miniapp-sheet,
+.miniapp-nav {
+  background: color-mix(in oklab, var(--miniapp-surface) 96%, transparent);
+  border-color: var(--miniapp-border);
+  color: var(--miniapp-text);
+  box-shadow: var(--miniapp-shadow);
+}
+
+.miniapp-panel {
+  background: var(--miniapp-surface-muted);
+  border-color: var(--miniapp-border);
+  color: var(--miniapp-text);
+}
+
+.miniapp-input {
+  background: var(--miniapp-surface-muted);
+  border-color: var(--miniapp-border);
+  color: var(--miniapp-text);
+}
+
+.miniapp-input::placeholder {
+  color: color-mix(in oklab, var(--miniapp-muted) 74%, transparent);
+}
+
+.miniapp-primary-button {
+  background: var(--miniapp-button);
+  color: var(--miniapp-button-text);
+}
+
+.miniapp-secondary-button {
+  background: var(--miniapp-surface-muted);
+  border-color: var(--miniapp-border);
+  color: var(--miniapp-text);
+}
+
+.miniapp-purple-button {
+  background: var(--color-neon-purple);
+  color: #fff;
+}
+
+.miniapp-shell .text-muted-foreground,
+.miniapp-shell .text-muted-foreground-low {
+  color: var(--miniapp-muted) !important;
+}
+
+.miniapp-shell .text-foreground {
+  color: var(--miniapp-text) !important;
+}
+
+.miniapp-shell .bg-\[oklch\(0\.06_0\.015_260\)\],
+.miniapp-shell .bg-\[oklch\(0\.045_0\.014_260\)\] {
+  background: color-mix(in oklab, var(--miniapp-surface) 96%, transparent) !important;
+}
+
+.miniapp-shell .border-\[oklch\(0\.25_0\.10_195\)\],
+.miniapp-shell .border-white\/10,
+.miniapp-shell .border-border,
+.miniapp-shell .border-border\/60 {
+  border-color: var(--miniapp-border) !important;
+}
+
+.miniapp-shell .bg-black\/20,
+.miniapp-shell .bg-black\/25,
+.miniapp-shell .bg-black\/30,
+.miniapp-shell .bg-black\/35,
+.miniapp-shell .bg-black\/40,
+.miniapp-shell .bg-white\/\[0\.03\],
+.miniapp-shell .bg-white\/\[0\.06\],
+.miniapp-shell .bg-muted,
+.miniapp-shell .bg-muted\/30,
+.miniapp-shell .bg-muted\/40,
+.miniapp-shell .bg-muted\/50 {
+  background: var(--miniapp-surface-muted) !important;
+}
+
+.miniapp-shell .text-white,
+.miniapp-shell .text-white\/72,
+.miniapp-shell .text-white\/75,
+.miniapp-shell .text-white\/70,
+.miniapp-shell .text-white\/60,
+.miniapp-shell .text-white\/55,
+.miniapp-shell .text-white\/45,
+.miniapp-shell .text-white\/42 {
+  color: var(--miniapp-text) !important;
+}
+
+.miniapp-shell .bg-neon-pink.text-white,
+.miniapp-shell .bg-neon-purple.text-white,
+.miniapp-shell .miniapp-purple-button,
+.miniapp-shell .miniapp-purple-button .text-white {
+  color: #fff !important;
+}
+
+.miniapp-shell input:not([type="checkbox"]),
+.miniapp-shell textarea,
+.miniapp-shell select {
+  background: var(--miniapp-surface-muted);
+  border-color: var(--miniapp-border);
+  color: var(--miniapp-text);
+}
+
+.miniapp-shell input::placeholder,
+.miniapp-shell textarea::placeholder {
+  color: color-mix(in oklab, var(--miniapp-muted) 74%, transparent);
+}
+
+.miniapp-shell a,
+.miniapp-shell .text-\[var\(--tg-link-color\,var\(--color-neon-cyan\)\)\] {
+  color: var(--miniapp-link);
+}
+
 @utility glow-* {
   filter: drop-shadow(0 0 calc(--value * 1px) currentColor);
 }

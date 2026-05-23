@@ -20,16 +20,12 @@ vi.mock('@/lib/utils', () => ({
       .trim(),
 }));
 
-const EXPECTED_PROVIDERS = ['telegram', 'google', 'github', 'discord', 'facebook', 'microsoft', 'twitter'] as const;
+const EXPECTED_PROVIDERS = ['telegram', 'google', 'github'] as const;
 
 const EXPECTED_ARIA_LABELS: Record<string, string> = {
   telegram: 'Sign in with Telegram',
   google: 'Sign in with Google',
   github: 'Sign in with GitHub',
-  discord: 'Sign in with Discord',
-  facebook: 'Sign in with Facebook',
-  microsoft: 'Sign in with Microsoft',
-  twitter: 'Sign in with X',
 };
 
 describe('SocialAuthButtons', () => {
@@ -37,7 +33,7 @@ describe('SocialAuthButtons', () => {
     vi.clearAllMocks();
   });
 
-  it('renders all 7 provider buttons', () => {
+  it('renders only the public S2 provider buttons', () => {
     render(<SocialAuthButtons />);
 
     const buttons = screen.getAllByRole('button');
@@ -88,31 +84,6 @@ describe('SocialAuthButtons', () => {
 
     handleClick.mockClear();
 
-    // Click Discord button
-    const discordButton = screen.getByLabelText('Sign in with Discord');
-    await user.click(discordButton);
-    expect(handleClick).toHaveBeenCalledWith('discord');
-
-    handleClick.mockClear();
-
-    // Click Facebook button
-    const facebookButton = screen.getByLabelText('Sign in with Facebook');
-    await user.click(facebookButton);
-    expect(handleClick).toHaveBeenCalledWith('facebook');
-
-    handleClick.mockClear();
-
-    // Click Microsoft button
-    const microsoftButton = screen.getByLabelText('Sign in with Microsoft');
-    await user.click(microsoftButton);
-    expect(handleClick).toHaveBeenCalledWith('microsoft');
-
-    handleClick.mockClear();
-
-    // Click X/Twitter button
-    const twitterButton = screen.getByLabelText('Sign in with X');
-    await user.click(twitterButton);
-    expect(handleClick).toHaveBeenCalledWith('twitter');
   });
 
   it('does not call onProviderClick when no handler is provided', async () => {
@@ -175,9 +146,13 @@ describe('SocialAuthButtons', () => {
     }
   });
 
-  it('does not render the disabled Apple button', () => {
+  it('does not render disabled or non-public providers', () => {
     render(<SocialAuthButtons />);
 
     expect(screen.queryByLabelText('Sign in with Apple')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign in with Discord')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign in with Facebook')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign in with Microsoft')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Sign in with X')).not.toBeInTheDocument();
   });
 });

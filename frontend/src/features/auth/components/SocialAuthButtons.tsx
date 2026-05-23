@@ -82,9 +82,8 @@ const PROVIDERS = {
     },
 };
 
-// Row groupings for compact layout below Telegram
-const COMPACT_ROW_1: Array<keyof typeof PROVIDERS> = ['google', 'github', 'discord'];
-const COMPACT_ROW_2: Array<keyof typeof PROVIDERS> = ['facebook', 'microsoft', 'twitter'];
+// S2 public auth surface: Telegram plus Google/GitHub only.
+const COMPACT_PROVIDERS: Array<keyof typeof PROVIDERS> = ['google', 'github'];
 
 interface SocialAuthButtonsProps {
     onProviderClick?: (provider: OAuthProvider) => void;
@@ -141,9 +140,9 @@ export function SocialAuthButtons({
                 </div>
             </div>
 
-            {/* Row 1: Google, GitHub, Discord */}
+            {/* Google and GitHub */}
             <div className="flex gap-3">
-                {COMPACT_ROW_1.map((provider, index) => {
+                {COMPACT_PROVIDERS.map((provider, index) => {
                     const { name, icon, colors } = PROVIDERS[provider];
                     return (
                         <MagneticButton key={provider} className="flex-1">
@@ -151,43 +150,6 @@ export function SocialAuthButtons({
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.05 * (index + 1), duration: 0.3 }}
-                                type="button"
-                                data-provider={provider}
-                                onClick={() => onProviderClick?.(provider)}
-                                disabled={disabled}
-                                className={cn(
-                                    "w-full flex items-center justify-center gap-2",
-                                    "py-3 px-4 rounded-lg",
-                                    "bg-terminal-bg/50 dark:bg-black/40",
-                                    "border border-grid-line/30",
-                                    "text-muted-foreground",
-                                    "font-mono text-sm",
-                                    "transition-all duration-200",
-                                    "cursor-pointer",
-                                    colors,
-                                    disabled && "opacity-50 cursor-not-allowed",
-                                    "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
-                                )}
-                                aria-label={`Sign in with ${name}`}
-                            >
-                                {icon}
-                                <span className="hidden sm:inline">{name}</span>
-                            </motion.button>
-                        </MagneticButton>
-                    );
-                })}
-            </div>
-
-            {/* Row 2: Facebook, Microsoft, X */}
-            <div className="flex gap-3">
-                {COMPACT_ROW_2.map((provider, index) => {
-                    const { name, icon, colors } = PROVIDERS[provider];
-                    return (
-                        <MagneticButton key={provider} className="flex-1">
-                            <motion.button
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.05 * (index + 4), duration: 0.3 }}
                                 type="button"
                                 data-provider={provider}
                                 onClick={() => onProviderClick?.(provider)}

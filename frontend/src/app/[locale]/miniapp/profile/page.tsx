@@ -406,8 +406,8 @@ export default function MiniAppProfilePage() {
     bindPartnerMutation.mutate(partnerCode);
   };
 
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
   const displayEmail = getDisplayEmail(user?.email);
 
   return (
@@ -1009,8 +1009,8 @@ function CollapsibleSection({
   onToggle: () => void;
   children: React.ReactNode;
 }) {
-  const cardBg = 'bg-[oklch(0.06_0.015_260)]';
-  const borderColor = 'border-[oklch(0.25_0.10_195)]';
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
 
   return (
     <motion.div
