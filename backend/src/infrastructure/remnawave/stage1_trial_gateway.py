@@ -9,8 +9,8 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningRequest,
     Stage1TrialProvisioningResult,
 )
-from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
 
 class RemnawaveStage1TrialProvisioningGateway:

@@ -33,10 +33,12 @@ stage2-public-rc.1
 
 `stage2-public-rc.1` exposed a CI packaging blocker after GitLab tag pipeline execution: two Prometheus target JSON files required by validation jobs were local but ignored by `.gitignore`, so they were missing from the tagged repository snapshot.
 
+`stage2-public-rc.2` fixed the missing target files and allowed the GitLab validation jobs to pass, then exposed an existing backend lint blocker in `backend/src/infrastructure/remnawave/stage1_trial_gateway.py`.
+
 The accepted follow-up RC for canary is:
 
 ```text
-stage2-public-rc.2
+stage2-public-rc.3
 ```
 
 Deployment and rollback must use immutable tag or commit SHA. Floating `main` is not an accepted production release identity.
@@ -194,15 +196,16 @@ Proceed to `S2-STAGE-16` only if all are true:
 
 1. `stage2-public-rc.1` exists in GitLab first and GitHub mirror;
 2. `stage2-public-rc.2` exists after the RC1 packaging blocker fix;
-3. deploy dry-run for all app services passes;
-4. public customer routes return expected statuses;
-5. API health returns `ok`;
-6. admin route is reachable and protected by the admin host boundary;
-7. `.org` stays subscription/node-only;
-8. VPN node remains node-only;
-9. observability stack is reachable;
-10. rollback artifact is available;
-11. owner accepts the controlled gaps for live canary execution.
+3. `stage2-public-rc.3` exists after the backend lint blocker fix;
+4. deploy dry-run for all app services passes;
+5. public customer routes return expected statuses;
+6. API health returns `ok`;
+7. admin route is reachable and protected by the admin host boundary;
+8. `.org` stays subscription/node-only;
+9. VPN node remains node-only;
+10. observability stack is reachable;
+11. rollback artifact is available;
+12. owner accepts the controlled gaps for live canary execution.
 
 No-Go if:
 
