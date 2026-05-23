@@ -645,6 +645,8 @@ docs/evidence/releases/s2-stage-11-observability-analytics-YYYYMMDD.md
 
 **Purpose:** Ensure public release can survive operational mistakes and service failures.
 
+**Status:** Passed with controlled gaps on 2026-05-23. See `docs/cybervpn_stage2_launch_docs/11_STAGE2_BACKUP_RESTORE_DR.md`, `docs/runbooks/STAGE2_BACKUP_RESTORE_DR.md` and `docs/evidence/releases/s2-stage-12-backup-restore-dr-20260523.md`.
+
 **Work:**
 
 1. Confirm PostgreSQL backup schedule.
