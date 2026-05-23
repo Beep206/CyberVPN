@@ -908,6 +908,8 @@ docs/evidence/releases/s2-stage-18-stabilization-YYYYMMDD.md
 - or S2 is paused with clear blockers;
 - or owner approves planning for S3.
 
+**Result:** First stabilization snapshot completed on 2026-05-23. Runtime remained healthy on `stage2-public-rc.5`; public endpoints, API health, Mini App, admin login and HTTP/3/QUIC passed probes; Alertmanager had zero active alerts; payment/orphan/refund/dispute queues were empty; Postgres/Valkey and Remnawave data services were healthy; the VPN node stayed node-only; backup and rollback artifacts were present. Decision: `REMAIN_PUBLIC_AND_CONTINUE_STABILIZATION`. S3 execution is not approved yet: 17 pending `outbox_events` for invite/growth/entitlement publication should be resolved or explicitly accepted before growth/partner expansion. Evidence: `docs/evidence/releases/s2-stage-18-stabilization-20260523.md`.
+
 ---
 
 ## 6. Recommended Execution Order
