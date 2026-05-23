@@ -10,6 +10,24 @@
 
 ---
 
+## Stage 3 Entry Gate
+
+Before executing this plan, complete:
+
+```text
+S3-STAGE-00: Partner/Event Backbone Readiness Decision
+```
+
+Decision document:
+
+```text
+docs/plans/2026-05-23-cybervpn-s3-stage00-partner-event-backbone-readiness-decision.md
+```
+
+Current recommendation is to prepare S3 documents and non-production event-backbone proof first, while keeping production partner event backbone, partner payouts and reseller storefronts disabled. The S2 `accepted_no_transport` outbox closure is valid S2 stabilization evidence, but it is not evidence of real broker delivery for S3.
+
+---
+
 ## Task 1: Partner Lab Skeleton
 
 **Files:**

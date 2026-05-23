@@ -414,3 +414,124 @@ SECURITY_ARTIFACT_DIR=.tmp/s2-stage18-security-docs GITLEAKS_EXIT_CODE=1 bash sc
 result=no leaks found
 scanned_bytes=159109277
 ```
+
+---
+
+## 16. Post-Outbox Daily Snapshot Addendum
+
+**Snapshot time:** 2026-05-23T11:50:07Z
+**Reason:** Continue the daily `S2-STAGE-18` stabilization loop after the outbox backlog closure.
+**Decision:** `CONTINUE_S2_DAILY_STABILIZATION`
+
+Runtime remained on the same immutable release:
+
+```text
+CYBERVPN_IMAGE_TAG=stage2-public-rc.5
+```
+
+Production flags remained intentionally conservative:
+
+```text
+OAUTH_ENABLED_LOGIN_PROVIDERS=
+PAYMENTS_ENABLED=false
+TELEGRAM_STARS_ENABLED=true
+PAYMENT_RECONCILIATION_ENABLED=false
+PAYMENT_AUTORENEWAL_ENABLED=false
+PAYMENT_ORPHAN_MAX_AGE_HOURS=24
+REGISTRATION_ENABLED=true
+REGISTRATION_INVITE_REQUIRED=false
+PARTNER_EVENT_BACKBONE_ENABLED=false
+```
+
+All customer-facing app containers stayed healthy:
+
+```text
+cybervpn-admin                running   healthy
+cybervpn-backend              running   healthy
+cybervpn-frontend             running   healthy
+cybervpn-postgres             running   healthy
+cybervpn-postgres-exporter    running   healthy
+cybervpn-redis-exporter       running   healthy
+cybervpn-remnawave            running   healthy
+cybervpn-remnawave-postgres   running   healthy
+cybervpn-remnawave-valkey     running   healthy
+cybervpn-scheduler            running   healthy
+cybervpn-telegram-bot         running   healthy
+cybervpn-valkey               running   healthy
+cybervpn-worker               running   healthy
+```
+
+Public routes remained reachable:
+
+```text
+https://cyber-vpn.net/ru-RU                              http=200
+https://cyber-vpn.net/ru-RU/register                     http=200
+https://cyber-vpn.net/ru-RU/pricing                      http=200
+https://cyber-vpn.net/ru-RU/status                       http=200
+https://cyber-vpn.net/ru-RU/help                         http=200
+https://cyber-vpn.net/ru-RU/miniapp/home                 http=200
+https://admin.cyber-vpn.net/ru-RU/login                  http=200
+https://api.cyber-vpn.net/health                         http=200
+https://api.cyber-vpn.net/docs                           http=404
+https://cyber-vpn.org/api/sub/<redacted-invalid-token>   http=404
+```
+
+HTTP/3/QUIC and HSTS remained present:
+
+```text
+alt-svc: h3=":443"; ma=86400
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+```
+
+Operational counters after outbox closure:
+
+```text
+mobile_users_total|5
+mobile_users_active|3
+mobile_users_with_subscription_url|3
+mobile_users_with_remnawave_uuid|3
+payment_attempts_by_status|{}
+payments_by_status|{}
+payment_attempts_nonterminal_gt24h|0
+payments_nonterminal_gt24h|0
+outbox_events_by_event_status|{"published": 17}
+outbox_publications_by_status|{"published": 34}
+outbox_pending_events|0
+outbox_pending_publications|0
+outbox_accepted_no_transport|34
+```
+
+Interpretation:
+
+- the S2 outbox backlog remains closed;
+- no new pending outbox backlog appeared during this snapshot;
+- `accepted_no_transport` remains an explicit S2 stabilization marker, not proof of real NATS/broker delivery;
+- S3 Partner/Reseller execution remains gated until real event-backbone evidence exists.
+
+Home observability remained usable:
+
+```text
+Prometheus Server is Ready.
+Alertmanager active_alerts=0
+Sentry health=ok
+root disk: 10% used
+/srv/storage: 1% used
+memory: 46Gi total, 28Gi available
+swap: 31Gi total, 934Mi used
+```
+
+VPN node remained node-only and healthy:
+
+```text
+cybervpn-remnawave-node   Up 3 days
+listening ports: 443, 8443, 22230
+disk: /dev/sda1 72G total, 4.1G used, 68G available, 6% used
+```
+
+Stabilization outcome:
+
+```text
+CONTINUE_S2_DAILY_STABILIZATION
+```
+
+No new P0/P1 launch blocker was found in this post-outbox daily snapshot.

@@ -912,6 +912,8 @@ docs/evidence/releases/s2-stage-18-stabilization-YYYYMMDD.md
 
 **Addendum:** The `outbox_events` backlog was closed on 2026-05-23 after a fresh production backup. Because S2 production intentionally has `PARTNER_EVENT_BACKBONE_ENABLED=false` and no production NATS service, the 34 publication rows were closed through the existing `claim -> submitted -> published` lifecycle with `publication_payload.status=accepted_no_transport`; pending events/publications became zero and runtime health remained green. This clears the S2 stabilization backlog but does not prove S3 event-backbone readiness. Evidence: `docs/evidence/releases/s2-stage-18-outbox-backlog-closure-20260523.md`.
 
+**Addendum:** The same-day post-outbox daily snapshot confirmed the closure held: `outbox_pending_events=0`, `outbox_pending_publications=0`, public routes remained healthy, Alertmanager had zero active alerts, HTTP/3/QUIC remained enabled, and the VPN node stayed node-only. S3 execution is still gated by a separate decision document: `docs/plans/2026-05-23-cybervpn-s3-stage00-partner-event-backbone-readiness-decision.md`.
+
 ---
 
 ## 6. Recommended Execution Order
