@@ -305,7 +305,16 @@ async def test_on_startup_configures_stage1_commands_and_menu() -> None:
     bot.get_me.assert_awaited_once()
     bot.set_my_commands.assert_awaited_once()
     command_names = [command.command for command in bot.set_my_commands.await_args.kwargs["commands"]]
-    assert command_names == ["start", "menu", "connect", "plans", "trial", "support", "paysupport"]
+    assert command_names == [
+        "start",
+        "menu",
+        "connect",
+        "plans",
+        "trial",
+        "invites",
+        "support",
+        "paysupport",
+    ]
     bot.set_chat_menu_button.assert_awaited_once()
     assert bot.set_chat_menu_button.await_args.kwargs["menu_button"].type.value == "commands"
 

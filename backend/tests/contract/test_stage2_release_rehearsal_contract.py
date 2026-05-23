@@ -23,6 +23,7 @@ def test_stage2_release_rehearsal_docs_exist_and_cover_required_surfaces() -> No
         "stage2-public-rc.2",
         "stage2-public-rc.3",
         "stage2-public-rc.4",
+        "stage2-public-rc.5",
         "deploy dry-run",
         "public frontend route probes",
         "home observability",

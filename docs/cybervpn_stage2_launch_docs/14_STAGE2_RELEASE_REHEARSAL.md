@@ -37,10 +37,12 @@ stage2-public-rc.1
 
 `stage2-public-rc.3` fixed backend lint and then exposed a frontend locale test failure: Russian footer copy still used `Privacy Policy` instead of `Политика конфиденциальности`.
 
+`stage2-public-rc.4` fixed the frontend locale test and then exposed a Telegram Bot smoke-test expectation that did not include the now-live `invites` bot command.
+
 The accepted follow-up RC for canary is:
 
 ```text
-stage2-public-rc.4
+stage2-public-rc.5
 ```
 
 Deployment and rollback must use immutable tag or commit SHA. Floating `main` is not an accepted production release identity.
@@ -200,15 +202,16 @@ Proceed to `S2-STAGE-16` only if all are true:
 2. `stage2-public-rc.2` exists after the RC1 packaging blocker fix;
 3. `stage2-public-rc.3` exists after the backend lint blocker fix;
 4. `stage2-public-rc.4` exists after the frontend locale blocker fix;
-5. deploy dry-run for all app services passes;
-6. public customer routes return expected statuses;
-7. API health returns `ok`;
-8. admin route is reachable and protected by the admin host boundary;
-9. `.org` stays subscription/node-only;
-10. VPN node remains node-only;
-11. observability stack is reachable;
-12. rollback artifact is available;
-13. owner accepts the controlled gaps for live canary execution.
+5. `stage2-public-rc.5` exists after the Telegram Bot smoke expectation fix;
+6. deploy dry-run for all app services passes;
+7. public customer routes return expected statuses;
+8. API health returns `ok`;
+9. admin route is reachable and protected by the admin host boundary;
+10. `.org` stays subscription/node-only;
+11. VPN node remains node-only;
+12. observability stack is reachable;
+13. rollback artifact is available;
+14. owner accepts the controlled gaps for live canary execution.
 
 No-Go if:
 
