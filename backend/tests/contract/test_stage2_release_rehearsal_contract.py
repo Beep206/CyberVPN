@@ -20,6 +20,7 @@ def test_stage2_release_rehearsal_docs_exist_and_cover_required_surfaces() -> No
 
     for fragment in (
         "stage2-public-rc.1",
+        "stage2-public-rc.2",
         "deploy dry-run",
         "public frontend route probes",
         "home observability",

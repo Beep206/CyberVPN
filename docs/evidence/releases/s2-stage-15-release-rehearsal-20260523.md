@@ -15,6 +15,7 @@ Covered:
 
 - GitLab/GitHub synchronized baseline;
 - `stage2-public-rc.1` release candidate plan;
+- `stage2-public-rc.2` follow-up candidate after CI packaging blocker fix;
 - deploy dry-run contract for all app services;
 - public route probes;
 - public frontend route probes;
@@ -80,6 +81,39 @@ Interpretation:
 
 ```text
 The S2 RC deploy contract can be validated without production network access or runtime mutation.
+```
+
+---
+
+## 3A. GitLab Tag Pipeline Follow-Up
+
+After `stage2-public-rc.1` was pushed, GitLab created the tag pipeline and exposed two launch-packaging issues:
+
+```text
+pipeline 59 stage2-public-rc.1 pending before tag protection
+pipeline 60 stage2-public-rc.1 failed after manual rerun
+failed jobs:
+observability:stage2-artifacts -> Missing file: infra/prometheus/targets/stage2-public-endpoints.json
+partner:stage3-artifacts       -> Missing file: infra/prometheus/targets/stage3-storefront-endpoints.json
+```
+
+Root cause:
+
+```text
+The required target JSON files existed locally but were ignored by .gitignore and were not present in the immutable RC1 repository snapshot.
+```
+
+Fix:
+
+```text
+.gitignore now explicitly allows the Stage 2 and Stage 3 Prometheus target JSON files required by CI validation.
+stage2-public-rc.2 is the corrected follow-up RC for S2 canary.
+```
+
+GitLab runner/protected-tag follow-up:
+
+```text
+Protected tag pattern added in GitLab: stage2-public-rc.*
 ```
 
 ---
@@ -304,9 +338,9 @@ git diff whitespace check passed
 
 ## 12. Result
 
-`S2-STAGE-15` passes with controlled gaps.
+`S2-STAGE-15` passes with controlled gaps after the RC1 packaging blocker is classified and fixed in the RC2 snapshot.
 
-The release candidate is ready to be tagged and moved to owner-controlled canary, provided the owner accepts the controlled gaps and runs the live user journey in `S2-STAGE-16`.
+The corrected release candidate is ready to be tagged as `stage2-public-rc.2` and moved to owner-controlled canary, provided the owner accepts the controlled gaps and runs the live user journey in `S2-STAGE-16`.
 
 Next stage:
 

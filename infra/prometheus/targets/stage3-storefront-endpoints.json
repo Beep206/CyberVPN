@@ -1,0 +1,15 @@
+[
+  {
+    "targets": [
+      "https://partner.h.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://storefront.h.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://reseller.h.cyber-vpn.net/.well-known/cybervpn-edge-health"
+    ],
+    "labels": {
+      "environment": "partner-staging",
+      "stage": "s3",
+      "owner": "cybervpn",
+      "activation": "requires_dns_before_live_scrape"
+    }
+  }
+]

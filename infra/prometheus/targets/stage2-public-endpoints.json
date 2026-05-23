@@ -1,0 +1,46 @@
+[
+  {
+    "targets": [
+      "https://cyber-vpn.net/",
+      "https://www.cyber-vpn.net/",
+      "https://cyber-vpn.net/en-EN",
+      "https://cyber-vpn.net/ru-RU",
+      "https://cyber-vpn.net/ru-RU/miniapp/home",
+      "https://cyber-vpn.net/ru-RU/miniapp/plans",
+      "https://api.cyber-vpn.net/health",
+      "https://api.cyber-vpn.net/healthz",
+      "https://admin.cyber-vpn.net/ru-RU/login",
+      "https://status.cyber-vpn.net/",
+      "https://cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://www.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://api.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://admin.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://status.cyber-vpn.net/.well-known/cybervpn-edge-health"
+    ],
+    "labels": {
+      "environment": "rented-production",
+      "stage": "s2",
+      "owner": "cybervpn",
+      "role": "stage2-customer-http",
+      "probe_group": "customer-edge"
+    }
+  },
+  {
+    "targets": [
+      "https://gitlab.h.cyber-vpn.net/users/sign_in",
+      "https://registry.h.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://grafana.h.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://sentry.h.cyber-vpn.net/_health/",
+      "https://prometheus.h.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://alerts.h.cyber-vpn.net/.well-known/cybervpn-edge-health",
+      "https://uptime.h.cyber-vpn.net/.well-known/cybervpn-edge-health"
+    ],
+    "labels": {
+      "environment": "home-public",
+      "stage": "s2",
+      "owner": "cybervpn",
+      "role": "stage2-home-ops-http",
+      "probe_group": "home-ops-edge"
+    }
+  }
+]

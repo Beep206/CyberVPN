@@ -177,3 +177,7 @@ infra/ansible/inventories/*/generated.hosts.json
 infra/prometheus/targets/*.json
 !infra/prometheus/targets/stage1-public-web.json
 !infra/prometheus/targets/stage1-vpn-node-tcp.json
+!infra/prometheus/targets/stage2-public-endpoints.json
+!infra/prometheus/targets/stage2-subscription-route.json
+!infra/prometheus/targets/stage2-vpn-node-tcp.json
+!infra/prometheus/targets/stage3-storefront-endpoints.json

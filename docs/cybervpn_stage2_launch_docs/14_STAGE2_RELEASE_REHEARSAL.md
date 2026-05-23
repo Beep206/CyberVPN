@@ -25,10 +25,18 @@ Stage 2 release candidates use immutable tags:
 stage2-public-rc.N
 ```
 
-The first S2 public-release candidate is:
+The first S2 public-release candidate was:
 
 ```text
 stage2-public-rc.1
+```
+
+`stage2-public-rc.1` exposed a CI packaging blocker after GitLab tag pipeline execution: two Prometheus target JSON files required by validation jobs were local but ignored by `.gitignore`, so they were missing from the tagged repository snapshot.
+
+The accepted follow-up RC for canary is:
+
+```text
+stage2-public-rc.2
 ```
 
 Deployment and rollback must use immutable tag or commit SHA. Floating `main` is not an accepted production release identity.
@@ -185,15 +193,16 @@ Before any S2 canary deploy, run a new rollback dry-run if the runtime image inv
 Proceed to `S2-STAGE-16` only if all are true:
 
 1. `stage2-public-rc.1` exists in GitLab first and GitHub mirror;
-2. deploy dry-run for all app services passes;
-3. public customer routes return expected statuses;
-4. API health returns `ok`;
-5. admin route is reachable and protected by the admin host boundary;
-6. `.org` stays subscription/node-only;
-7. VPN node remains node-only;
-8. observability stack is reachable;
-9. rollback artifact is available;
-10. owner accepts the controlled gaps for live canary execution.
+2. `stage2-public-rc.2` exists after the RC1 packaging blocker fix;
+3. deploy dry-run for all app services passes;
+4. public customer routes return expected statuses;
+5. API health returns `ok`;
+6. admin route is reachable and protected by the admin host boundary;
+7. `.org` stays subscription/node-only;
+8. VPN node remains node-only;
+9. observability stack is reachable;
+10. rollback artifact is available;
+11. owner accepts the controlled gaps for live canary execution.
 
 No-Go if:
 
