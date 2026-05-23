@@ -17,6 +17,7 @@ Covered:
 - `stage2-public-rc.1` release candidate plan;
 - `stage2-public-rc.2` follow-up candidate after CI packaging blocker fix;
 - `stage2-public-rc.3` follow-up candidate after backend lint blocker fix;
+- `stage2-public-rc.4` follow-up candidate after frontend locale blocker fix;
 - deploy dry-run contract for all app services;
 - public route probes;
 - public frontend route probes;
@@ -109,7 +110,8 @@ Fix:
 ```text
 .gitignore now explicitly allows the Stage 2 and Stage 3 Prometheus target JSON files required by CI validation.
 stage2-public-rc.2 fixed the missing target files and allowed the failed validation jobs to pass.
-stage2-public-rc.3 is the corrected follow-up RC for S2 canary after the backend lint blocker fix.
+stage2-public-rc.3 fixed the backend lint blocker and exposed a frontend locale test failure.
+stage2-public-rc.4 is the corrected follow-up RC for S2 canary after the frontend locale blocker fix.
 ```
 
 GitLab runner/protected-tag follow-up:
@@ -125,6 +127,16 @@ stage2-public-rc.2 exposed a backend ruff import-order failure in
 backend/src/infrastructure/remnawave/stage1_trial_gateway.py.
 
 The import order was fixed locally with ruff and will be released as stage2-public-rc.3.
+```
+
+Frontend locale follow-up:
+
+```text
+stage2-public-rc.3 exposed a frontend test failure in
+frontend/src/i18n/__tests__/request.test.ts.
+
+Root cause: frontend/messages/ru-RU/footer.json used "Privacy Policy" for Footer.links.privacy.
+Fix: Footer.links.privacy now uses "Политика конфиденциальности" and will be released as stage2-public-rc.4.
 ```
 
 ---
@@ -349,9 +361,9 @@ git diff whitespace check passed
 
 ## 12. Result
 
-`S2-STAGE-15` passes with controlled gaps after the RC1 packaging blocker is classified in RC2 and the backend lint blocker is fixed in the RC3 snapshot.
+`S2-STAGE-15` passes with controlled gaps after the RC1 packaging blocker is classified in RC2, the backend lint blocker is fixed in RC3, and the frontend locale blocker is fixed in RC4.
 
-The corrected release candidate is ready to be tagged as `stage2-public-rc.3` and moved to owner-controlled canary, provided the owner accepts the controlled gaps and runs the live user journey in `S2-STAGE-16`.
+The corrected release candidate is ready to be tagged as `stage2-public-rc.4` and moved to owner-controlled canary, provided the owner accepts the controlled gaps and runs the live user journey in `S2-STAGE-16`.
 
 Next stage:
 
