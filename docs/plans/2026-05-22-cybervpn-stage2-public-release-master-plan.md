@@ -784,6 +784,8 @@ docs/evidence/releases/s2-stage-15-release-rehearsal-YYYYMMDD.md
 - rollback is available;
 - unresolved issues are classified before canary.
 
+**Result:** Completed on 2026-05-23. `stage2-public-rc.1` was selected as the first immutable Stage 2 public-release candidate; a no-network deploy dry-run for frontend, backend, admin, Telegram Bot and task-worker passed; public website/login/pricing/Mini App/admin/API/.org subscription-boundary probes passed; HTTP/3/QUIC headers remained enabled; `prod-app-1` runtime and the `de-1.cyber-vpn.org` node-only boundary were verified; home observability and rollback artifacts were available. Result: `PASS_WITH_CONTROLLED_GAPS`. Live payment/trial/provisioning/client-connect/refund mutations are intentionally deferred to owner-controlled `S2-STAGE-16` canary. Evidence: `docs/evidence/releases/s2-stage-15-release-rehearsal-20260523.md`.
+
 ---
 
 ## S2-STAGE-16: Production Canary Release
