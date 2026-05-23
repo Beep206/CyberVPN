@@ -203,15 +203,16 @@ Proceed to `S2-STAGE-16` only if all are true:
 3. `stage2-public-rc.3` exists after the backend lint blocker fix;
 4. `stage2-public-rc.4` exists after the frontend locale blocker fix;
 5. `stage2-public-rc.5` exists after the Telegram Bot smoke expectation fix;
-6. deploy dry-run for all app services passes;
-7. public customer routes return expected statuses;
-8. API health returns `ok`;
-9. admin route is reachable and protected by the admin host boundary;
-10. `.org` stays subscription/node-only;
-11. VPN node remains node-only;
-12. observability stack is reachable;
-13. rollback artifact is available;
-14. owner accepts the controlled gaps for live canary execution.
+6. GitLab tag pipeline for `stage2-public-rc.5` passes all hard jobs;
+7. deploy dry-run for all app services passes;
+8. public customer routes return expected statuses;
+9. API health returns `ok`;
+10. admin route is reachable and protected by the admin host boundary;
+11. `.org` stays subscription/node-only;
+12. VPN node remains node-only;
+13. observability stack is reachable;
+14. rollback artifact is available;
+15. owner accepts the controlled gaps for live canary execution.
 
 No-Go if:
 

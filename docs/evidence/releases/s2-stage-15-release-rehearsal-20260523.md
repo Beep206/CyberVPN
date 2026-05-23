@@ -116,6 +116,43 @@ stage2-public-rc.4 fixed the frontend locale blocker and exposed a Telegram Bot 
 stage2-public-rc.5 is the corrected follow-up RC for S2 canary after the Telegram Bot smoke expectation fix.
 ```
 
+Final RC pipeline result:
+
+```text
+GitLab pipeline 68
+ref=stage2-public-rc.5
+sha=3c3a7b1a
+status=success
+
+Hard jobs passed:
+gitlab:ci-contract
+observability:stage2-artifacts
+admin:lint
+backend:lint
+frontend:lint
+telegram-bot:lint
+admin:test
+backend:test:smoke
+frontend:test
+telegram-bot:test:smoke
+admin:build
+frontend:build
+container-scan:trivy-grype
+npm-audit:high
+pip-audit:python-locks
+sbom:release-candidate
+secret-pattern-scan
+security:gitleaks
+quality:release-comparison-report
+stage2:release-evidence-pack
+stage2:deploy:dry-run
+
+Allowed failures observed and classified as non-blocking S2 technical debt:
+task-worker:lint
+partner:test
+task-worker:test:smoke
+```
+
 GitLab runner/protected-tag follow-up:
 
 ```text
@@ -375,7 +412,7 @@ git diff whitespace check passed
 
 `S2-STAGE-15` passes with controlled gaps after the RC1 packaging blocker is classified in RC2, the backend lint blocker is fixed in RC3, the frontend locale blocker is fixed in RC4, and the Telegram Bot smoke expectation blocker is fixed in RC5.
 
-The corrected release candidate is ready to be tagged as `stage2-public-rc.5` and moved to owner-controlled canary, provided the owner accepts the controlled gaps and runs the live user journey in `S2-STAGE-16`.
+The corrected release candidate `stage2-public-rc.5` has a successful GitLab tag pipeline and is ready to move to owner-controlled canary, provided the owner accepts the controlled gaps and runs the live user journey in `S2-STAGE-16`.
 
 Next stage:
 
