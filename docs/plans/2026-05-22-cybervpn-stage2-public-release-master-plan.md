@@ -827,6 +827,8 @@ docs/evidence/releases/s2-stage-16-production-canary-YYYYMMDD.md
 - no unresolved paid-but-no-access older than 24h;
 - no P0/P1 issue remains open.
 
+**Result:** Started on 2026-05-23. `stage2-public-rc.5` was deployed to `prod-app-1` after a successful pre-deploy backup. The first deploy attempt correctly failed closed because production had `OAUTH_ENABLED_LOGIN_PROVIDERS=google,github` without Google/GitHub production credentials; runtime was rolled back successfully to `stage1-direct-suburl-refresh-20260522T091303Z`, API health returned to `200`, and all app services became healthy. The canary runtime was then redeployed with the approved safe OAuth posture `OAUTH_ENABLED_LOGIN_PROVIDERS=` and invite-gated registration `REGISTRATION_ENABLED=true`, `REGISTRATION_INVITE_REQUIRED=true`. Final app runtime is healthy on `stage2-public-rc.5`; public route probes pass; HTTP/3/QUIC remains enabled; `.org` remains subscription/node-boundary only; VPN node remains node-only; nonterminal payment/orphan counters older than 24h are zero. Status: `CANARY_RUNTIME_DEPLOYED_WITH_OWNER_LIVE_FLOW_PENDING`. Owner/internal live proof for invite registration, trial or selected payment path, provisioning, `.org` subscription delivery and VPN client connection remains required before `S2-STAGE-17`. Evidence: `docs/evidence/releases/s2-stage-16-production-canary-20260523.md`.
+
 ---
 
 ## S2-STAGE-17: Public Release 1.0 Go/No-Go
