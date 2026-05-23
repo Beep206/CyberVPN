@@ -374,7 +374,7 @@ The low bot metric counts are expected after runtime restarts and do not indicat
 
 | Severity | Item | Current impact | Recommendation |
 |---|---|---|---|
-| P2 | `outbox_events` has 17 `pending_publication` events for invite/growth/entitlement | Not blocking current S2 customer runtime, but weakens event-driven growth readiness | Add a focused task to verify outbox dispatcher, publish or archive stale events, and add an alert for old pending events before S3 |
+| Closed | `outbox_events` had 17 `pending_publication` events for invite/growth/entitlement | Closed after this snapshot with `accepted_no_transport` publication payloads because S2 production has `PARTNER_EVENT_BACKBONE_ENABLED=false` and no NATS service | Evidence: `docs/evidence/releases/s2-stage-18-outbox-backlog-closure-20260523.md`; before S3, prove real NATS/dispatcher publication and do not treat accepted-no-transport as broker delivery |
 | P2 | Generic payment providers remain disabled | Public generic checkout is not available | Enable providers one by one only after live callback/reconciliation evidence |
 | P2 | OAuth remains disabled | Google/GitHub login unavailable | Add credentials, prove callback routes, then enable |
 | P2 | Payment reconciliation is disabled | Acceptable while generic payment rails are disabled; must change before broad provider rollout | Enable with provider evidence |

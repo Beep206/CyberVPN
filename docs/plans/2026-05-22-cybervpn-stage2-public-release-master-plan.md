@@ -910,6 +910,8 @@ docs/evidence/releases/s2-stage-18-stabilization-YYYYMMDD.md
 
 **Result:** First stabilization snapshot completed on 2026-05-23. Runtime remained healthy on `stage2-public-rc.5`; public endpoints, API health, Mini App, admin login and HTTP/3/QUIC passed probes; Alertmanager had zero active alerts; payment/orphan/refund/dispute queues were empty; Postgres/Valkey and Remnawave data services were healthy; the VPN node stayed node-only; backup and rollback artifacts were present. Decision: `REMAIN_PUBLIC_AND_CONTINUE_STABILIZATION`. S3 execution is not approved yet: 17 pending `outbox_events` for invite/growth/entitlement publication should be resolved or explicitly accepted before growth/partner expansion. Evidence: `docs/evidence/releases/s2-stage-18-stabilization-20260523.md`.
 
+**Addendum:** The `outbox_events` backlog was closed on 2026-05-23 after a fresh production backup. Because S2 production intentionally has `PARTNER_EVENT_BACKBONE_ENABLED=false` and no production NATS service, the 34 publication rows were closed through the existing `claim -> submitted -> published` lifecycle with `publication_payload.status=accepted_no_transport`; pending events/publications became zero and runtime health remained green. This clears the S2 stabilization backlog but does not prove S3 event-backbone readiness. Evidence: `docs/evidence/releases/s2-stage-18-outbox-backlog-closure-20260523.md`.
+
 ---
 
 ## 6. Recommended Execution Order
