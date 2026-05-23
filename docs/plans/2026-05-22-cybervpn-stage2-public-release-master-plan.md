@@ -869,6 +869,8 @@ docs/evidence/releases/s2-stage-17-go-no-go-YYYYMMDD.md
 
 - CyberVPN is either opened for public B2C release or paused with exact blockers.
 
+**Result:** Completed on 2026-05-23 with owner approval. Production runtime remains on immutable `stage2-public-rc.5`; public registration was opened with `REGISTRATION_ENABLED=true` and `REGISTRATION_INVITE_REQUIRED=false`; OAuth remains disabled until production Google/GitHub credentials and callback evidence exist; Telegram Stars remains enabled for Telegram/Mini App; generic payment rails remain gated with `PAYMENTS_ENABLED=false`; autoprolongation remains disabled; public website/API/Mini App/admin/legal/support routes passed probes; HTTP/3/QUIC remained enabled; `/docs` remains closed; `.org` remains node/subscription-boundary only; `de-1.cyber-vpn.org` remains node-only; pre-open backup completed; payment/orphan backlog older than 24h was zero. Decision: `GO_PUBLIC_RELEASE_1_0_WITH_CONTROLLED_RESIDUALS`. Evidence: `docs/evidence/releases/s2-stage-17-go-no-go-20260523.md`.
+
 ---
 
 ## S2-STAGE-18: Post-Launch Stabilization And S3 Readiness
