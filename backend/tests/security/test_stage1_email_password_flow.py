@@ -18,11 +18,13 @@ from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.login import LoginUseCase
 from src.application.use_cases.auth.logout import LogoutUseCase
 from src.application.use_cases.auth.refresh_token import RefreshTokenUseCase
+from src.config.settings import settings
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.remnawave.adapters import get_remnawave_adapter
+from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
 from src.main import app
 from src.presentation.api.v1.auth.cookies import clear_auth_cookies, set_auth_cookies
 
@@ -88,6 +90,31 @@ class _FakeUserRepo:
         if self.user.login == login_or_email or (self.user.email and self.user.email.lower() == normalized):
             return self.user
         return None
+
+
+class _RecordingEmailDispatcher:
+    def __init__(self) -> None:
+        self.otp_emails: list[dict[str, Any]] = []
+
+    async def dispatch_otp_email(
+        self,
+        *,
+        email: str,
+        otp_code: str,
+        locale: str = "en-EN",
+        is_resend: bool = False,
+        channel: str = "web",
+    ) -> str:
+        self.otp_emails.append(
+            {
+                "email": email,
+                "otp_code": otp_code,
+                "locale": locale,
+                "is_resend": is_resend,
+                "channel": channel,
+            }
+        )
+        return f"otp-email-{len(self.otp_emails)}"
 
 
 async def _stage1_user(*, active: bool = True, verified: bool = True) -> AdminUserModel:
@@ -349,3 +376,52 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
         json={"refresh_token": refresh_response.json()["refresh_token"]},
     )
     assert replay_response.status_code == 401
+
+
+@pytest.mark.integration
+async def test_stage1_register_existing_unverified_email_resends_code_without_duplicate_error(
+    async_client: AsyncClient,
+    db: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    email = f"s1resume{secrets.token_hex(4)}@example.com"
+    register_data = {
+        "login": f"s1resume{secrets.token_hex(4)}",
+        "email": email,
+        "password": "Stage1StrongPassword123!",
+        "locale": "ru-RU",
+        "tos_accepted": True,
+    }
+    dispatcher = _RecordingEmailDispatcher()
+    app.dependency_overrides[get_email_dispatcher] = lambda: dispatcher
+
+    try:
+        with monkeypatch.context() as registration_patch:
+            registration_patch.setattr(settings, "registration_enabled", True)
+            registration_patch.setattr(settings, "registration_invite_required", False)
+            first_response = await async_client.post("/api/v1/auth/register", json=register_data)
+            second_response = await async_client.post("/api/v1/auth/register", json=register_data)
+
+        assert first_response.status_code == 201
+        assert second_response.status_code == 201
+        assert second_response.json()["id"] == first_response.json()["id"]
+        assert second_response.json()["is_active"] is False
+        assert second_response.json()["is_email_verified"] is False
+        assert (
+            second_response.json()["message"]
+            == "Verification code sent. Please check your email and enter the code."
+        )
+
+        users = (
+            await db.execute(select(AdminUserModel).where(AdminUserModel.email == email))
+        ).scalars().all()
+        assert len(users) == 1
+        assert len(dispatcher.otp_emails) == 2
+        assert dispatcher.otp_emails[0]["is_resend"] is False
+        assert dispatcher.otp_emails[1]["is_resend"] is True
+        assert dispatcher.otp_emails[1]["email"] == email
+        assert dispatcher.otp_emails[1]["locale"] == "ru-RU"
+        assert len(dispatcher.otp_emails[1]["otp_code"]) == 6
+        assert dispatcher.otp_emails[1]["otp_code"].isdigit()
+    finally:
+        app.dependency_overrides.pop(get_email_dispatcher, None)

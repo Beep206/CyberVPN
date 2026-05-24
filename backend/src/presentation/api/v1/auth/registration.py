@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.invite_service import InviteTokenService
-from src.application.services.otp_service import OtpService
+from src.application.services.otp_service import OtpRateLimitError, OtpService
 from src.application.services.public_registration_policy import PublicRegistrationDisabledError
 from src.application.use_cases.auth.register import RegisterUseCase
 from src.application.use_cases.auth_realms import RealmResolution
@@ -204,17 +204,29 @@ async def register(
         email_dispatcher=email_dispatcher,
     )
 
-    result = await use_case.execute(
-        login=request.login,
-        email=request.email,
-        password=request.password,
-        tos_accepted=request.tos_accepted,
-        marketing_consent=request.marketing_consent,
-        role=role,
-        locale=request.locale or "en-EN",
-        auth_realm_id=current_realm.auth_realm.id,
-        include_legacy_default=current_realm.realm_key == "admin",
-    )
+    try:
+        result = await use_case.execute(
+            login=request.login,
+            email=request.email,
+            password=request.password,
+            tos_accepted=request.tos_accepted,
+            marketing_consent=request.marketing_consent,
+            role=role,
+            locale=request.locale or "en-EN",
+            auth_realm_id=current_realm.auth_realm.id,
+            include_legacy_default=current_realm.realm_key == "admin",
+        )
+    except OtpRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "detail": str(exc),
+                "code": "RATE_LIMITED",
+                "next_resend_available_at": exc.next_available_at.isoformat()
+                if exc.next_available_at
+                else None,
+            },
+        ) from exc
 
     registration_method = "email" if request.email else "username"
     password_identifier_type = "email" if request.email else "username"
@@ -283,15 +295,23 @@ async def register(
     )
 
     logger.info(
-        "User registered successfully",
+        "User registration flow completed",
         extra={
             "user_id": str(result.user.id),
             "login": result.user.login,
             "email": result.user.email,
             "role": role.value,
             "invite_used": bool(invite_token),
+            "resumed_unverified_registration": result.resumed_unverified_registration,
         },
     )
+
+    if result.resumed_unverified_registration:
+        message = "Verification code sent. Please check your email and enter the code."
+    elif request.email:
+        message = "Registration successful. Please check your email for verification code."
+    else:
+        message = "Registration successful. You can sign in with your username and password."
 
     return RegisterResponse(
         id=result.user.id,
@@ -299,9 +319,5 @@ async def register(
         email=result.user.email or "",
         is_active=result.user.is_active,
         is_email_verified=result.user.is_email_verified,
-        message=(
-            "Registration successful. Please check your email for verification code."
-            if request.email
-            else "Registration successful. You can sign in with your username and password."
-        ),
+        message=message,
     )

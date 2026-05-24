@@ -35,9 +35,16 @@ class EmailTaskDispatcher(Protocol):
 class RegisterResult:
     """Result of registration operation."""
 
-    def __init__(self, user: AdminUserModel, otp_sent: bool = True) -> None:
+    def __init__(
+        self,
+        user: AdminUserModel,
+        otp_sent: bool = True,
+        *,
+        resumed_unverified_registration: bool = False,
+    ) -> None:
         self.user = user
         self.otp_sent = otp_sent
+        self.resumed_unverified_registration = resumed_unverified_registration
 
 
 class RegisterUseCase:
@@ -93,28 +100,39 @@ class RegisterUseCase:
         Raises:
             DuplicateUsernameError: If login or email already exists
         """
-        # Check login uniqueness
-        existing_user = await self._user_repo.get_by_login(
+        # Require tos_accepted before creating or resuming a registration.
+        if not tos_accepted:
+            raise ValueError("Terms of Service must be accepted to register.")
+
+        # Check uniqueness. Email registrations may resume an inactive,
+        # unverified account by resending the verification code; username-only
+        # registrations still require a unique login.
+        existing_by_login = await self._user_repo.get_by_login(
             login,
             realm_id=auth_realm_id,
             include_legacy_default=include_legacy_default,
         )
-        if existing_user:
-            raise DuplicateUsernameError(username=login)
-
-        # Check email uniqueness (only if email provided)
+        existing_by_email: AdminUserModel | None = None
         if email:
-            existing_user = await self._user_repo.get_by_email(
+            existing_by_email = await self._user_repo.get_by_email(
                 email,
                 realm_id=auth_realm_id,
                 include_legacy_default=include_legacy_default,
             )
-            if existing_user:
-                raise DuplicateUsernameError(username=email)
 
-        # Require tos_accepted
-        if not tos_accepted:
-            raise ValueError("Terms of Service must be accepted to register.")
+        if email and existing_by_email:
+            if self._can_resume_unverified_email_registration(existing_by_email):
+                if existing_by_login and existing_by_login.id != existing_by_email.id:
+                    raise DuplicateUsernameError(username=login)
+                return await self._resend_unverified_registration_otp(
+                    user=existing_by_email,
+                    email=email,
+                    locale=locale,
+                )
+            raise DuplicateUsernameError(username=email)
+
+        if existing_by_login:
+            raise DuplicateUsernameError(username=login)
 
         # Hash password
         password_hash = await self._auth_service.hash_password(password)
@@ -157,3 +175,43 @@ class RegisterUseCase:
                 logger.warning("Failed to dispatch OTP email during registration: %s", e)
 
         return RegisterResult(user=created_user, otp_sent=otp_sent)
+
+    @staticmethod
+    def _can_resume_unverified_email_registration(user: AdminUserModel) -> bool:
+        return bool(user.email and not user.is_active and not user.is_email_verified)
+
+    async def _resend_unverified_registration_otp(
+        self,
+        *,
+        user: AdminUserModel,
+        email: str,
+        locale: str,
+    ) -> RegisterResult:
+        otp_sent = False
+        if self._email_dispatcher:
+            otp = await self._otp_service.resend_existing_otp(
+                user_id=user.id,
+                purpose="email_verification",
+            )
+            if otp is None:
+                otp = await self._otp_service.generate_otp(
+                    user_id=user.id,
+                    purpose="email_verification",
+                    is_resend=False,
+                )
+            try:
+                await self._email_dispatcher.dispatch_otp_email(
+                    email=email,
+                    otp_code=otp.code,
+                    locale=locale,
+                    is_resend=True,
+                )
+                otp_sent = True
+            except Exception as e:  # noqa: S110
+                logger.warning("Failed to dispatch OTP email while resuming registration: %s", e)
+
+        return RegisterResult(
+            user=user,
+            otp_sent=otp_sent,
+            resumed_unverified_registration=True,
+        )
