@@ -42,6 +42,25 @@ class _FailingSmtpClient:
         raise TimeoutError("smtp timed out")
 
 
+class _SuccessfulApiClient:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def send_otp(self, **kwargs):
+        return {"id": "msg-resend-fallback-1"}
+
+
+class _UnexpectedApiClient:
+    async def __aenter__(self):
+        raise AssertionError("unexpected provider selected")
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
 @pytest.mark.asyncio
 async def test_send_otp_email_emits_success_metrics():
     """OTP task should emit success counters for auth delivery dashboards."""
@@ -111,6 +130,30 @@ async def test_send_otp_email_emits_success_metrics():
         )
         == before_context_total + 1
     )
+
+
+@pytest.mark.asyncio
+async def test_send_otp_resend_falls_back_to_resend_when_brevo_is_not_configured():
+    """A resend request must still deliver during S2 when Brevo credentials are absent."""
+    settings = MagicMock()
+    settings.email_dev_mode = False
+    settings.brevo_api_key = None
+
+    with patch("src.tasks.email.send_otp.get_settings", return_value=settings), patch(
+        "src.tasks.email.send_otp.ResendClient",
+        _SuccessfulApiClient,
+    ), patch("src.tasks.email.send_otp.BrevoClient", _UnexpectedApiClient):
+        result = await send_otp_email.original_func(
+            email="metrics@example.com",
+            otp_code="123456",
+            locale="en-EN",
+            is_resend=True,
+            channel="web",
+        )
+
+    assert result["success"] is True
+    assert result["provider"] == "resend"
+    assert result["message_id"] == "msg-resend-fallback-1"
 
 
 @pytest.mark.asyncio

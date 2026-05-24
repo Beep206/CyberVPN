@@ -37,6 +37,22 @@ def _normalize_locale(locale: str | None) -> str:
     return normalized or "unknown"
 
 
+def _has_secret(secret: object) -> bool:
+    get_secret_value = getattr(secret, "get_secret_value", None)
+    if get_secret_value is None:
+        return bool(str(secret or "").strip())
+    return bool(str(get_secret_value()).strip())
+
+
+def _select_api_provider(*, is_resend: bool, settings: object) -> str:
+    if not is_resend:
+        return "resend"
+    if _has_secret(getattr(settings, "brevo_api_key", None)):
+        return "brevo"
+    logger.warning("brevo_api_key_not_configured_falling_back_to_resend", is_resend=is_resend)
+    return "resend"
+
+
 @broker.task(
     task_name="send_magic_link_email",
     queue="email",
@@ -154,8 +170,9 @@ async def send_magic_link_email(
             )
             raise
 
-    # Production mode: Use API providers
-    provider = "brevo" if is_resend else "resend"
+    # Production mode: use Brevo for resend only when it is configured.
+    # During S2, Resend is the confirmed production provider; Brevo remains optional.
+    provider = _select_api_provider(is_resend=is_resend, settings=settings)
 
     logger.info(
         "sending_magic_link_email",
@@ -166,7 +183,7 @@ async def send_magic_link_email(
     )
 
     try:
-        if is_resend:
+        if provider == "brevo":
             async with BrevoClient() as client:
                 result = await client.send_magic_link(
                     email=email,
