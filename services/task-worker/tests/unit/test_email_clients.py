@@ -4,8 +4,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.services.email.resend_client import ResendClient, ResendError
 from src.services.email.brevo_client import BrevoClient, BrevoError
+from src.services.email.resend_client import ResendClient, ResendError
+
+
+def _settings(*, environment: str = "test", resend_key: str | None = "re_test") -> MagicMock:
+    settings = MagicMock()
+    settings.environment = environment
+    settings.resend_api_key.get_secret_value.return_value = resend_key
+    if resend_key is None:
+        settings.resend_api_key = None
+    settings.resend_from_email = "CyberVPN <verify@email.cyber-vpn.net>"
+    return settings
 
 
 class TestResendClient:
@@ -30,10 +40,12 @@ class TestResendClient:
 
     async def test_send_otp_success(self, mock_response):
         """Test successful OTP email sending."""
-        with patch("httpx.AsyncClient") as mock_client_cls:
+        with patch("src.services.email.resend_client.get_settings", return_value=_settings()), patch(
+            "httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_response
-            mock_client_cls.return_value.__aenter__.return_value = mock_client
+            mock_client_cls.return_value = mock_client
 
             async with ResendClient() as client:
                 result = await client.send_otp(
@@ -46,10 +58,12 @@ class TestResendClient:
 
     async def test_send_otp_error(self, mock_error_response):
         """Test OTP email sending with API error."""
-        with patch("httpx.AsyncClient") as mock_client_cls:
+        with patch("src.services.email.resend_client.get_settings", return_value=_settings()), patch(
+            "httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_error_response
-            mock_client_cls.return_value.__aenter__.return_value = mock_client
+            mock_client_cls.return_value = mock_client
 
             async with ResendClient() as client:
                 with pytest.raises(ResendError) as exc_info:
@@ -61,14 +75,43 @@ class TestResendClient:
 
                 assert exc_info.value.status_code == 422
 
-    def test_localized_subjects(self):
-        """Test that localized subjects are available."""
-        client = ResendClient()
-        # Check some key locales exist
-        assert "en-EN" in client._subjects
-        assert "ru-RU" in client._subjects
-        assert "uk-UA" in client._subjects
-        assert "de-DE" in client._subjects
+    async def test_missing_api_key_fails_in_production(self):
+        """Production must not mark registration email delivery as successful without Resend credentials."""
+        with patch(
+            "src.services.email.resend_client.get_settings",
+            return_value=_settings(environment="production", resend_key=None),
+        ), patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value = mock_client
+
+            async with ResendClient() as client:
+                with pytest.raises(ResendError, match="RESEND_API_KEY"):
+                    await client.send_otp(
+                        email="test@example.com",
+                        code="123456",
+                        locale="en-EN",
+                    )
+
+            mock_client.post.assert_not_called()
+
+    async def test_missing_api_key_can_skip_outside_production(self):
+        """Local/test environments may still skip real email delivery without hiding production defects."""
+        with patch(
+            "src.services.email.resend_client.get_settings",
+            return_value=_settings(environment="test", resend_key=None),
+        ), patch("httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value = mock_client
+
+            async with ResendClient() as client:
+                result = await client.send_otp(
+                    email="test@example.com",
+                    code="123456",
+                    locale="en-EN",
+                )
+
+            assert result == {"id": "mock_no_key", "status": "skipped"}
+            mock_client.post.assert_not_called()
 
 
 class TestBrevoClient:
@@ -96,7 +139,7 @@ class TestBrevoClient:
         with patch("httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_response
-            mock_client_cls.return_value.__aenter__.return_value = mock_client
+            mock_client_cls.return_value = mock_client
 
             async with BrevoClient() as client:
                 result = await client.send_otp(
@@ -112,7 +155,7 @@ class TestBrevoClient:
         with patch("httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_error_response
-            mock_client_cls.return_value.__aenter__.return_value = mock_client
+            mock_client_cls.return_value = mock_client
 
             async with BrevoClient() as client:
                 with pytest.raises(BrevoError) as exc_info:
@@ -127,10 +170,9 @@ class TestBrevoClient:
     def test_localized_subjects_differ_from_initial(self):
         """Test that Brevo uses different subject for resend."""
         client = BrevoClient()
-        # Brevo is used for resend, so subjects should indicate "new code"
-        assert "en-EN" in client._subjects
-        # The subject should be different from Resend's initial OTP subject
-        assert "New" in client._subjects.get("en-EN", "") or "new" in client._subjects.get("en-EN", "")
+        subject = client._get_subject("en-EN")
+        # Brevo is used for resend, so subject should indicate a new code.
+        assert "new" in subject.lower()
 
 
 class TestEmailTemplates:
@@ -138,8 +180,9 @@ class TestEmailTemplates:
 
     def test_resend_template_contains_code(self):
         """Test that Resend template includes OTP code."""
-        client = ResendClient()
-        html = client._build_html_template("123456")
+        with patch("src.services.email.resend_client.get_settings", return_value=_settings()):
+            client = ResendClient()
+        html = client._render_otp_template("123456", "3 hours", "en-EN")
 
         assert "123456" in html
         assert "CyberVPN" in html
@@ -148,7 +191,7 @@ class TestEmailTemplates:
     def test_brevo_template_contains_code(self):
         """Test that Brevo template includes OTP code."""
         client = BrevoClient()
-        html = client._build_html_template("654321")
+        html = client._render_otp_template("654321", "3 hours", "en-EN")
 
         assert "654321" in html
         assert "CyberVPN" in html

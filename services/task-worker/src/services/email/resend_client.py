@@ -41,6 +41,7 @@ class ResendClient:
         settings = get_settings()
         self._api_key = settings.resend_api_key.get_secret_value() if settings.resend_api_key else None
         self._from_email = settings.resend_from_email
+        self._environment = settings.environment
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "ResendClient":
@@ -87,8 +88,7 @@ class ResendClient:
             raise ResendError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("resend_skipped_no_api_key", email=email)
-            return {"id": "mock_no_key", "status": "skipped"}
+            return self._handle_missing_api_key(email)
 
         html_content = self._render_otp_template(code, expires_in, locale)
         subject = self._get_subject(locale)
@@ -152,8 +152,7 @@ class ResendClient:
             raise ResendError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("resend_skipped_no_api_key", email=email)
-            return {"id": "mock_no_key", "status": "skipped"}
+            return self._handle_missing_api_key(email)
 
         html_content = self._render_magic_link_template(magic_link_url, expires_in, locale, otp_code)
         subject = self._get_magic_link_subject(locale)
@@ -202,8 +201,7 @@ class ResendClient:
             raise ResendError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("resend_skipped_no_api_key", email=email)
-            return {"id": "mock_no_key", "status": "skipped"}
+            return self._handle_missing_api_key(email)
 
         payload = {
             "from": self._from_email,
@@ -252,8 +250,7 @@ class ResendClient:
             raise ResendError("Client not initialized. Use async context manager.")
 
         if not self._api_key:
-            logger.warning("resend_skipped_no_api_key", email=email)
-            return {"id": "mock_no_key", "status": "skipped"}
+            return self._handle_missing_api_key(email)
 
         payload = {
             "from": self._from_email,
@@ -295,6 +292,14 @@ class ResendClient:
             "fr-FR": "CyberVPN - Connexion par lien magique",
         }
         return subjects.get(locale, subjects["en-EN"])
+
+    def _handle_missing_api_key(self, email: str) -> dict[str, Any]:
+        """Fail production delivery when Resend credentials are absent."""
+        if self._environment.lower() == "production":
+            logger.error("resend_api_key_missing_production", email=email)
+            raise ResendError("RESEND_API_KEY is required for production email delivery.")
+        logger.warning("resend_skipped_no_api_key", email=email)
+        return {"id": "mock_no_key", "status": "skipped"}
 
     def _render_magic_link_template(self, magic_link_url: str, expires_in: str, locale: str, otp_code: str = "") -> str:
         """Render email-compatible magic link template."""

@@ -122,11 +122,11 @@ class Settings(BaseSettings):
     # Email Provider Configuration (OTP)
     # Primary: Resend.com (initial OTP)
     resend_api_key: SecretStr | None = None
-    resend_from_email: str = "CyberVPN <verify@cybervpn.io>"
+    resend_from_email: str = "CyberVPN <verify@email.cyber-vpn.net>"
 
     # Secondary: Brevo (resend OTP)
     brevo_api_key: SecretStr | None = None
-    brevo_from_email: str = "CyberVPN <noreply@cybervpn.io>"
+    brevo_from_email: str = "CyberVPN <noreply@email.cyber-vpn.net>"
 
     # Magic Link
     magic_link_base_url: str = (
