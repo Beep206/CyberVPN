@@ -48,6 +48,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/legal-documents/sets/resolve",
     "/api/v1/realms/resolve",
     "/api/v1/public/network",
+    "/api/v1/storefronts",
 )
 
 
