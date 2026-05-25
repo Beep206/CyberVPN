@@ -1,7 +1,7 @@
 # Stage 3 First Partner Code Redemption, Attribution, Reporting, And Settlement Sandbox Proof
 
 **Stage:** `S3-STAGE-17B`
-**Status:** Passed with paid-conversion boundary
+**Status:** Passed including controlled synthetic paid conversion/earning fixture
 **Date:** 2026-05-25
 **Parent stage:** `S3-STAGE-17: Controlled Partner Pilot`
 **Runtime tag:** `s3-stage17-controlled-partner-pilot.3`
@@ -19,7 +19,8 @@ This proof is intentionally narrow and finance-safe:
 3. verify canonical customer commercial binding in the production database;
 4. verify partner reporting summary access and reconciliation status;
 5. verify settlement sandbox policy and payout block posture;
-6. keep real payments, partner earnings, statements and payout execution untouched.
+6. keep real customer payments, statements and payout execution untouched;
+7. create an owner-approved synthetic paid conversion/earning fixture for reporting proof.
 
 ---
 
@@ -60,7 +61,7 @@ email=stage3-partner-redemption-20260525@cyber-vpn.net
 status=active
 ```
 
-No real customer, real payment, VPN subscription, payout account or payout instruction was created by this proof.
+No real customer payment, VPN subscription, payout account or payout instruction was created by this proof.
 
 ---
 
@@ -124,7 +125,7 @@ reason_code=customer_partner_bind
 evidence_source=partner_bind_endpoint
 ```
 
-This is the S3 production attribution proof for controlled partner code redemption. It does not create a paid order attribution result because no real or synthetic paid order was created.
+This is the S3 production attribution proof for controlled partner code redemption.
 
 ---
 
@@ -139,7 +140,7 @@ reconciliation.status=green
 reconciliation.blocking_mismatch_count=0
 ```
 
-Important metrics at this point:
+Initial controlled binding-only metrics:
 
 ```text
 paid_conversions=0
@@ -151,6 +152,43 @@ visible_customer_count=0
 ```
 
 These values are expected. `S3-STAGE-17B` used a controlled binding proof without creating a paid checkout. Paid conversion reporting should only become non-zero after a real payment or an explicitly approved synthetic finance fixture.
+
+After owner approval, a controlled synthetic paid conversion/earning fixture was created with:
+
+```text
+evidence_id=S3-17B-PAID-FIXTURE-20260525
+order_id=0008ee0f-a451-4e13-aff8-6660b65318e0
+payment_id=f53021ff-143f-4541-9c85-99e95bf8d3aa
+order_attribution_result_id=4dc2fe33-e66d-4923-93cb-000573997fe7
+partner_earning_id=789f6bac-2554-4d63-bc91-d4838cb21e4d
+earning_event_id=1bff423d-7277-4bfd-aa4f-2de128af1b74
+base_price=20.00 USD
+commission_pct=10.00
+commission_amount=2.00 USD
+```
+
+Reporting metrics after the synthetic paid fixture:
+
+```text
+active_users=1
+paid_users=1
+paid_conversions=1
+refunds=0
+chargebacks=0
+available_earnings=2.00 USD
+visible_customer_count=1
+reconciliation.status=green
+```
+
+Conversion records showed:
+
+```text
+kind=first_paid
+status=commissionable
+code_label=S3PILOT1
+amount=20.00 USD
+customer_scope=workspace_scoped
+```
 
 Partner export redaction policy was present and excludes sensitive fields:
 
@@ -181,7 +219,7 @@ requires_maker_checker=true
 same_admin_approval_allowed=false
 ```
 
-Eligibility returned:
+Initial binding-only eligibility returned:
 
 ```text
 settlement_simulation_reproducible=false
@@ -203,6 +241,18 @@ no_approved_instruction_for_dry_run
 
 This is correct for the current pilot state because there is no paid conversion, no closed positive statement and no approved payout account.
 
+After the controlled paid conversion fixture, settlement sandbox returned:
+
+```text
+settlement_simulation_reproducible=true
+payout_instruction_allowed=false
+dry_run_execution_allowed=false
+live_payout_allowed=false
+blocked_reasons=stage_blocks_live_payout,no_closed_positive_statement,payout_account_not_approved,no_approved_instruction_for_dry_run
+```
+
+This is the expected safe state: paid conversion and earning are visible, but payout remains blocked until a closed positive statement, approved payout account, approved instruction and later owner approval exist.
+
 ---
 
 ## 7. Database Proof
@@ -215,6 +265,12 @@ binding|29ac8ae7-64de-489a-bed8-8bfbaa9ecaa5|reseller_binding|active|reseller|95
 counts|partner_earnings=0|order_attribution_results=0|outbox_pending_or_failed=0
 ```
 
+Post paid-fixture DB snapshot:
+
+```text
+fixture_counts|orders=1|payments=1|order_attribution_results=1|partner_earnings=1|earning_events=1|outbox_pending_or_failed=0
+```
+
 ---
 
 ## 8. Boundary
@@ -224,11 +280,11 @@ This stage proves controlled code redemption and persistent attribution binding.
 1. automatic payouts;
 2. partner self-serve withdrawals;
 3. broad public partner acquisition;
-4. fake production revenue;
+4. broad synthetic production revenue;
 5. synthetic finance records in production without owner approval;
-6. treating zero paid conversions as partner revenue evidence.
+6. payout execution based only on a synthetic fixture.
 
-If owner wants a money-impacting proof before expanding external partners, create a separate explicit gate for a real low-value payment or owner-approved synthetic finance fixture.
+The fixture is explicitly synthetic and cleanup-allowed. It must not be counted as real revenue.
 
 ---
 
@@ -261,12 +317,59 @@ where id = '066aae6e-55c0-4de3-87ff-75ce09199504';
 
 Do not delete the workspace after real customer bindings, paid orders, earnings, statements or payout instructions are created.
 
+Synthetic paid-fixture cleanup:
+
+```sql
+begin;
+
+create temporary table tmp_s3_17b_fixture_orders on commit drop as
+select id, checkout_session_id, quote_session_id
+from orders
+where policy_snapshot->>'evidence_id' = 'S3-17B-PAID-FIXTURE-20260525';
+
+create temporary table tmp_s3_17b_fixture_payments on commit drop as
+select id
+from payments
+where metadata->>'evidence_id' = 'S3-17B-PAID-FIXTURE-20260525';
+
+delete from earning_events
+where order_id in (select id from tmp_s3_17b_fixture_orders)
+   or payment_id in (select id from tmp_s3_17b_fixture_payments);
+
+delete from commissionability_evaluations
+where order_id in (select id from tmp_s3_17b_fixture_orders);
+
+delete from order_attribution_results
+where order_id in (select id from tmp_s3_17b_fixture_orders);
+
+delete from order_items
+where order_id in (select id from tmp_s3_17b_fixture_orders);
+
+delete from partner_earnings
+where payment_id in (select id from tmp_s3_17b_fixture_payments);
+
+delete from payments
+where id in (select id from tmp_s3_17b_fixture_payments);
+
+delete from orders
+where id in (select id from tmp_s3_17b_fixture_orders);
+
+delete from checkout_sessions
+where id in (select checkout_session_id from tmp_s3_17b_fixture_orders);
+
+delete from quote_sessions
+where id in (select quote_session_id from tmp_s3_17b_fixture_orders);
+
+commit;
+```
+
 ---
 
 ## 10. Exit Decision
 
 ```text
 S3-STAGE-17B_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF_PASSED
+S3-STAGE-17B_SYNTHETIC_PAID_CONVERSION_EARNING_FIXTURE_PASSED
 ```
 
 Recommended next working step:
@@ -275,8 +378,4 @@ Recommended next working step:
 S3-STAGE-17C: Controlled External Pilot Partner/User Confirmation And Daily Watch
 ```
 
-Optional finance step before expansion:
-
-```text
-S3-STAGE-17C-FINANCE: Paid Partner Conversion Evidence Or Owner Waiver
-```
+Paid conversion/earning evidence is now complete through the controlled synthetic fixture. Any real money-impacting partner proof must be approved as a separate owner decision.

@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-25
 **Stage:** `S3-STAGE-17B`
-**Status:** Passed with paid-conversion boundary
+**Status:** Passed including controlled synthetic paid conversion/earning fixture
 **Parent stage:** `S3-STAGE-17`
 **Runtime tag:** `s3-stage17-controlled-partner-pilot.3`
 **Stage document:** `docs/cybervpn_stage3_launch_docs/17B_STAGE3_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF.md`
@@ -232,12 +232,19 @@ This evidence does not prove:
 
 Those require either a real low-value payment or an explicitly approved synthetic finance fixture.
 
+Owner approved the synthetic finance fixture after the initial binding-only proof. Additional evidence:
+
+```text
+docs/evidence/releases/s3-stage-17b-paid-conversion-earning-fixture-20260525.md
+```
+
 ---
 
 ## 8. Decision
 
 ```text
 S3-STAGE-17B_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF_PASSED
+S3-STAGE-17B_SYNTHETIC_PAID_CONVERSION_EARNING_FIXTURE_PASSED
 ```
 
 Next working step:
@@ -245,4 +252,3 @@ Next working step:
 ```text
 S3-STAGE-17C: Controlled External Pilot Partner/User Confirmation And Daily Watch
 ```
-

@@ -1,7 +1,7 @@
 # Stage 3 Controlled Partner Pilot
 
 **Stage:** `S3-STAGE-17`
-**Status:** Runtime enabled; first pilot workspace/code proof passed; controlled redemption/reporting/settlement proof passed
+**Status:** Runtime enabled; first pilot workspace/code proof passed; controlled redemption/reporting/settlement proof passed; internal daily watch passed
 **Date:** 2026-05-25
 **Product stage:** CyberVPN Partner / Reseller Platform
 **Prior gate:** `S3-STAGE-16A: GitLab CI Runner And Tag Pipeline Closure`
@@ -174,7 +174,43 @@ docs/cybervpn_stage3_launch_docs/17B_STAGE3_FIRST_PARTNER_CODE_REDEMPTION_ATTRIB
 docs/evidence/releases/s3-stage-17b-first-partner-code-redemption-attribution-reporting-settlement-20260525.md
 ```
 
-This proof did not create a paid checkout, partner earning, partner statement or payout instruction. Paid conversion evidence remains a separate owner decision if required before broader partner expansion.
+Owner then approved a controlled synthetic paid conversion/earning fixture:
+
+```text
+evidence_id=S3-17B-PAID-FIXTURE-20260525
+paid_conversions=1
+paid_users=1
+available_earnings=2.00 USD
+reporting_reconciliation=green
+settlement_simulation_reproducible=true
+live_payout_allowed=false
+```
+
+Evidence:
+
+```text
+docs/evidence/releases/s3-stage-17b-paid-conversion-earning-fixture-20260525.md
+```
+
+`S3-STAGE-17C` then completed the first internal pilot daily watch:
+
+```text
+container_count=14
+unhealthy_services=0
+api_health=ok
+outbox_pending_or_failed=0
+payout_instructions=0
+payout_executions=0
+postback_delivery_status=paused
+external_pilot_list_required=true
+```
+
+Evidence:
+
+```text
+docs/cybervpn_stage3_launch_docs/17C_STAGE3_CONTROLLED_EXTERNAL_PILOT_PARTNER_USER_CONFIRMATION_DAILY_WATCH.md
+docs/evidence/releases/s3-stage-17c-controlled-external-pilot-daily-watch-20260525.md
+```
 
 ---
 
@@ -223,11 +259,13 @@ Prior disabled-state tag: s3-stage16-disabled-state.3
 S3-STAGE-17_RUNTIME_ENABLEMENT_PASSED
 S3-STAGE-17A_FIRST_PILOT_WORKSPACE_CODE_PROOF_PASSED
 S3-STAGE-17B_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF_PASSED
-S3-STAGE-17_PAID_PARTNER_CONVERSION_EVIDENCE_OPTIONAL_BEFORE_EXPANSION
+S3-STAGE-17B_SYNTHETIC_PAID_CONVERSION_EARNING_FIXTURE_PASSED
+S3-STAGE-17C_INTERNAL_PILOT_DAILY_WATCH_PASSED
+S3-STAGE-17C_EXTERNAL_PILOT_LIST_REQUIRED_BEFORE_EXPANSION
 ```
 
 Recommended next working step:
 
 ```text
-S3-STAGE-17C: Controlled External Pilot Partner/User Confirmation And Daily Watch
+S3-STAGE-18: S3 Stabilization And Scale Decision
 ```
