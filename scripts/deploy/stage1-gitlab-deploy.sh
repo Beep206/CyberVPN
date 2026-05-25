@@ -294,6 +294,9 @@ build_service() {
         --build-arg NEXT_WORKSPACE=frontend \
         --build-arg NEXT_PUBLIC_SITE_URL="${STAGE1_FRONTEND_PUBLIC_URL:-https://cyber-vpn.net}" \
         --build-arg NEXT_PUBLIC_API_URL="${STAGE1_FRONTEND_API_URL:-https://cyber-vpn.net}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PORTAL_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_PORTAL_ENABLED:-${NEXT_PUBLIC_PARTNER_PORTAL_ENABLED:-false}}" \
+        --build-arg NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED:-${NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED:-false}}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PILOT_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-${NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-false}}" \
         --build-arg API_INTERNAL_ORIGIN="${STAGE1_API_INTERNAL_ORIGIN:-http://cybervpn-backend:8000}" \
         -t "${repo}:${RELEASE_TAG}" .
       ;;
@@ -333,6 +336,14 @@ for service in backend frontend admin telegram-bot task-worker; do
     fi
   fi
 done
+
+if [ -f "$REMOTE_SRC/infra/deploy/stage1/docker-compose.stage1.yml" ]; then
+  compose_backup="$COMPOSE_DIR/docker-compose.yml.pre-${RELEASE_TAG}"
+  log "updating compose file from release source"
+  $REMOTE_SUDO cp "$COMPOSE_DIR/docker-compose.yml" "$compose_backup"
+  $REMOTE_SUDO install -m 0644 "$REMOTE_SRC/infra/deploy/stage1/docker-compose.stage1.yml" "$COMPOSE_DIR/docker-compose.yml"
+  log "compose backup: ${compose_backup}"
+fi
 
 cd "$COMPOSE_DIR"
 $REMOTE_SUDO sed -i "s/^CYBERVPN_IMAGE_TAG=.*/CYBERVPN_IMAGE_TAG=${RELEASE_TAG}/" .env

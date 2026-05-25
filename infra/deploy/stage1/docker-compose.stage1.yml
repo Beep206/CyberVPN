@@ -113,6 +113,20 @@ services:
       UVICORN_ACCESS_LOG: "false"
       TRUST_PROXY_HEADERS: "true"
       TRUSTED_PROXY_IPS: 172.16.0.0/12,10.0.0.0/8,192.168.0.0/16
+      PARTNER_PORTAL_ENABLED: ${PARTNER_PORTAL_ENABLED:-false}
+      PARTNER_APPLICATIONS_ENABLED: ${PARTNER_APPLICATIONS_ENABLED:-false}
+      PARTNER_CODES_ENABLED: ${PARTNER_CODES_ENABLED:-false}
+      PARTNER_ATTRIBUTION_ENABLED: ${PARTNER_ATTRIBUTION_ENABLED:-false}
+      PARTNER_STOREFRONTS_ENABLED: ${PARTNER_STOREFRONTS_ENABLED:-false}
+      PARTNER_REPORTING_ENABLED: ${PARTNER_REPORTING_ENABLED:-false}
+      PARTNER_SETTLEMENT_SANDBOX_ENABLED: ${PARTNER_SETTLEMENT_SANDBOX_ENABLED:-false}
+      PARTNER_WEBHOOKS_ENABLED: ${PARTNER_WEBHOOKS_ENABLED:-false}
+      PARTNER_PAYOUTS_ENABLED: ${PARTNER_PAYOUTS_ENABLED:-false}
+      PARTNER_EVENT_BACKBONE_ENABLED: ${PARTNER_EVENT_BACKBONE_ENABLED:-false}
+      NATS_URL: ${NATS_URL:-nats://cybervpn-nats:4222}
+    depends_on:
+      cybervpn-nats:
+        condition: service_healthy
     networks:
       cybervpn-backend: {}
       cybervpn-data: {}
@@ -444,6 +458,9 @@ services:
       NEXT_PUBLIC_SITE_URL: https://cyber-vpn.net
       NEXT_PUBLIC_API_URL: https://cyber-vpn.net
       NEXT_PUBLIC_ADMIN_URL: https://admin.cyber-vpn.net
+      NEXT_PUBLIC_PARTNER_PORTAL_ENABLED: ${NEXT_PUBLIC_PARTNER_PORTAL_ENABLED:-false}
+      NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED: ${NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED:-false}
+      NEXT_PUBLIC_PARTNER_PILOT_ENABLED: ${NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-false}
       API_URL: http://cybervpn-backend:8000
       API_INTERNAL_ORIGIN: http://cybervpn-backend:8000
     networks:
@@ -642,6 +659,41 @@ services:
       prometheus.job: redis
       prometheus.service: cybervpn-valkey
 
+  cybervpn-nats:
+    <<: *runtime-defaults
+    image: nats:2.12.7-alpine
+    command:
+      - -js
+      - -sd
+      - /data/jetstream
+      - -m
+      - "8222"
+    expose:
+      - "4222"
+      - "8222"
+    volumes:
+      - cybervpn-nats-jetstream:/data/jetstream
+    networks:
+      cybervpn-backend: {}
+      cybervpn-metrics: {}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 256m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-nats
+      prometheus.io/scrape: "true"
+      prometheus.io/path: /varz
+      prometheus.io/port: "8222"
+      prometheus.job: nats
+      prometheus.service: cybervpn-nats
+
 networks:
   cybervpn-public:
     name: cybervpn_stage1_public
@@ -669,3 +721,5 @@ volumes:
     name: cybervpn_stage1_postgres_data
   cybervpn-remnawave-postgres-data:
     name: cybervpn_stage1_remnawave_postgres_data
+  cybervpn-nats-jetstream:
+    name: cybervpn_stage1_nats_jetstream
