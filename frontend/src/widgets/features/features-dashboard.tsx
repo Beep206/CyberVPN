@@ -114,7 +114,7 @@ export function FeaturesDashboard() {
       animate={isFull ? { opacity: 1, y: 0 } : undefined}
       transition={isFull ? { duration: 0.8 } : undefined}
     >
-      <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-white md:text-5xl lg:text-6xl">
+      <h1 className="font-display text-4xl font-black uppercase tracking-tighter text-foreground dark:text-white md:text-5xl lg:text-6xl">
         {t('title')}
       </h1>
       <p className="mt-4 max-w-md font-mono text-muted-foreground">
@@ -161,7 +161,7 @@ export function FeaturesDashboard() {
 
   return (
     <ResponsiveSplitShell
-      className="min-h-[calc(100dvh-4rem)] bg-black"
+      className="min-h-[calc(100dvh-4rem)] bg-background text-foreground"
       containerClassName="max-w-[1680px]"
       contentPaneClassName="lg:col-span-5"
       contentStackClassName="gap-10 md:gap-12"

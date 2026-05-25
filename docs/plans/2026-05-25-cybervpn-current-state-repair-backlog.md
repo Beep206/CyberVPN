@@ -13,6 +13,13 @@
 5. Deploy выполняется только после прохождения всего списка или отдельного owner approval на частичный hotfix.
 6. Секреты, токены, 2FA seed, SMTP/API keys и admin-реквизиты в этот документ не записываются.
 
+## Batch status
+
+| Batch | Status | Evidence |
+|---|---|---|
+| Batch A: `FIX-001` - `FIX-005` | Completed | `docs/evidence/releases/current-state-fix-batch-a-20260525.md` |
+| Batch B: `FIX-006` - `FIX-018` | Implemented; `FIX-018` has operational Telegram chat membership/token blocker | `docs/evidence/releases/fix-batch-b-20260525T185152Z.md` |
+
 ## Порядок выполнения
 
 | ID | Блок | Что исправляем | Где искать | Acceptance evidence |

@@ -36,10 +36,10 @@ export function NetworkDashboard() {
   const sceneConnections = useMemo(() => buildSceneConnections(sceneServers), [sceneServers]);
 
   return (
-    <div className="relative w-full min-h-[calc(100vh-4rem)] bg-black overflow-hidden flex flex-col md:flex-row">
+    <div className="relative w-full min-h-[calc(100vh-4rem)] bg-background text-foreground overflow-hidden flex flex-col md:flex-row">
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.85)_100%)] z-10 pointer-events-none" />
-        <div className="absolute inset-0 opacity-80 mix-blend-screen overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,var(--background)_100%)] z-10 pointer-events-none dark:bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.85)_100%)]" />
+        <div className="absolute inset-0 overflow-hidden opacity-60 mix-blend-multiply dark:opacity-80 dark:mix-blend-screen">
           <GlobalNetworkScene
             activeNodeId={activeNodeId}
             connections={sceneConnections}
@@ -51,7 +51,7 @@ export function NetworkDashboard() {
       <div className="relative z-20 w-full h-full flex flex-col md:flex-row p-6 md:p-8 lg:p-12 gap-8 pointer-events-none">
         <div className="w-full md:w-[360px] lg:w-[420px] flex-shrink-0 flex flex-col pointer-events-auto">
           <div className="mb-8">
-            <h1 className="font-display text-4xl font-black text-white uppercase tracking-tighter mix-blend-difference drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+            <h1 className="font-display text-4xl font-black text-foreground uppercase tracking-tighter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] dark:text-white dark:mix-blend-difference">
               {t('title')}
             </h1>
             <p className="font-mono text-muted-foreground mt-4 text-sm max-w-sm">
@@ -60,7 +60,7 @@ export function NetworkDashboard() {
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/network/dpi-resistance"
-                className="inline-flex items-center rounded-full border border-neon-cyan/35 bg-black/40 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.18em] text-neon-cyan transition-colors hover:border-neon-cyan hover:text-white"
+                className="inline-flex items-center rounded-full border border-neon-cyan/35 bg-background/60 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.18em] text-neon-cyan transition-colors hover:border-neon-cyan hover:text-foreground dark:bg-black/40 dark:hover:text-white"
               >
                 {t('actions.dpiResistance')}
               </Link>

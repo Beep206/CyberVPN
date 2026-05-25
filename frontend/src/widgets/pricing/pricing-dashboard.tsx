@@ -121,26 +121,26 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
       >
         {t('subtitle')}
       </p>
-      <h1 className="font-display text-5xl font-black uppercase tracking-widest text-white shadow-black drop-shadow-2xl md:text-7xl">
+      <h1 className="font-display text-5xl font-black uppercase tracking-widest text-foreground shadow-black drop-shadow-2xl dark:text-white md:text-7xl">
         {t('title')}
       </h1>
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-3 px-4">
         {headerPills.map((pill) => (
           <span
             key={pill.label}
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white/70 backdrop-blur"
+            className="rounded-full border border-border/60 bg-background/55 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-white/70"
           >
             {pill.label}
           </span>
         ))}
       </div>
-      <div className="mx-auto max-w-4xl rounded-[1.75rem] border border-white/10 bg-black/45 px-4 py-5 backdrop-blur-xl">
+      <div className="mx-auto max-w-4xl rounded-[1.75rem] border border-border/70 bg-card/70 px-4 py-5 backdrop-blur-xl dark:border-white/10 dark:bg-black/45">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="text-left">
-            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/50">
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
               {t('periods.label')}
             </p>
-            <p className="mt-1 text-sm font-mono text-white/70">
+            <p className="mt-1 text-sm font-mono text-muted-foreground">
               {t('periods.helper')}
             </p>
           </div>
@@ -159,13 +159,13 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
                 className={`rounded-2xl border px-4 py-3 text-left transition-all duration-300 ${
                   isSelected
                     ? 'border-neon-cyan bg-neon-cyan/10 shadow-[0_0_30px_rgba(0,255,255,0.12)]'
-                    : 'border-white/10 bg-white/[0.03] hover:border-white/30 hover:bg-white/[0.06]'
+                    : 'border-border/70 bg-background/35 hover:border-border hover:bg-background/60 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-white/30 dark:hover:bg-white/[0.06]'
                 }`}
               >
-                <div className="font-display text-lg uppercase tracking-[0.18em] text-white">
+                <div className="font-display text-lg uppercase tracking-[0.18em] text-foreground dark:text-white">
                   {t(`periods.options.${period}`)}
                 </div>
-                <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+                <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground dark:text-white/55">
                   {period === 365 ? t('periods.best') : t('periods.term')}
                 </div>
               </button>
@@ -209,15 +209,15 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
         />
       )}
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
-      <div className="pointer-events-none absolute left-0 top-0 h-full w-1/3 bg-gradient-to-r from-black" />
-      <div className="pointer-events-none absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-black" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background via-transparent to-background dark:from-black dark:to-black" />
+      <div className="pointer-events-none absolute left-0 top-0 h-full w-1/3 bg-gradient-to-r from-background dark:from-black" />
+      <div className="pointer-events-none absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-background dark:from-black" />
     </div>
   );
 
   return (
     <ResponsiveSplitShell
-      className="min-h-[calc(100dvh-4rem)] overflow-x-hidden bg-black"
+      className="min-h-[calc(100dvh-4rem)] overflow-x-hidden bg-background text-foreground"
       containerClassName="max-w-7xl"
       contentStackClassName="gap-10 md:gap-16"
       headerClassName="relative z-10"

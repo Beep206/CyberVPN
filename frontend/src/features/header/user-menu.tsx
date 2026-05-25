@@ -59,21 +59,21 @@ export function UserMenu() {
         {
             icon: UserCircle,
             label: 'Profile',
-            href: '/profile',
+            href: '/settings',
             color: 'text-neon-purple',
             desc: 'Account Details'
         },
         {
             icon: Shield,
             label: 'Security',
-            href: '/security',
+            href: '/settings',
             color: 'text-matrix-green',
             desc: '2FA & Password'
         },
         {
             icon: CreditCard,
             label: 'Billing',
-            href: '/billing',
+            href: '/subscriptions',
             color: 'text-neon-yellow',
             desc: 'Manage Plan'
         },

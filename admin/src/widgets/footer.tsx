@@ -18,8 +18,8 @@ import { FooterLiveStrip } from '@/widgets/footer-live-strip';
 const COPYRIGHT_YEAR = '2026';
 
 const ENTITY_LINKS = [
-  { icon: Send, href: 'https://t.me/cybervpn', label: 'Telegram community', external: true },
-  { icon: Shield, href: 'https://t.me/cybervpn_bot', label: 'Telegram bot', external: true },
+  { icon: Send, href: 'https://t.me/C_y_b_e_r_VPN_Bot', label: 'Telegram community', external: true },
+  { icon: Shield, href: 'https://t.me/C_y_b_e_r_VPN_Bot', label: 'Telegram bot', external: true },
   { icon: Zap, href: '/status', label: 'Status page', external: false },
   { icon: Terminal, href: '/docs', label: 'Documentation', external: false },
 ] as const;

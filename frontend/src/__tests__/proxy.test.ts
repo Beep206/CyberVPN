@@ -26,18 +26,18 @@ function createRequest(path: string, cookies?: Record<string, string>, baseUrl =
 }
 
 describe('proxy routing', () => {
-  it('passes dashboard route through to intlMiddleware (auth handled by AuthGuard)', () => {
-    const req = createRequest('/en-EN/dashboard/servers');
+  it('passes dashboard route through on cabinet host (auth handled by AuthGuard)', () => {
+    const req = createRequest('/en-EN/dashboard/servers', undefined, 'https://my.cyber-vpn.net');
     const res = proxy(req);
 
     // No redirect — AuthGuard in the (dashboard) layout handles auth
     expect(res.status).toBe(200);
   });
 
-  it('passes dashboard route with auth cookie through', () => {
+  it('passes dashboard route with auth cookie through on cabinet host', () => {
     const req = createRequest('/en-EN/dashboard/servers', {
       access_token: 'some-token-value',
-    });
+    }, 'https://my.cyber-vpn.net');
     const res = proxy(req);
 
     expect(res.status).toBe(200);
@@ -50,12 +50,12 @@ describe('proxy routing', () => {
     expect(res.status).toBe(200);
   });
 
-  it('passes ru-RU dashboard route through without redirect', () => {
-    const req = createRequest('/ru-RU/dashboard/analytics');
+  it('redirects public dashboard route to cabinet host', () => {
+    const req = createRequest('/ru-RU/dashboard/analytics', undefined, 'https://cyber-vpn.net');
     const res = proxy(req);
 
-    // No redirect — auth is handled client-side by AuthGuard
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/ru-RU/dashboard/analytics');
   });
 
   it('passes register route through', () => {
@@ -71,5 +71,28 @@ describe('proxy routing', () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://admin.cyber-vpn.net/en-EN/dashboard?tab=ops');
+  });
+
+  it('redirects cabinet root to localized dashboard', () => {
+    const req = createRequest('/', undefined, 'https://my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://my.cyber-vpn.net/en-EN/dashboard');
+  });
+
+  it('keeps public marketing routes canonical on public host', () => {
+    const req = createRequest('/ru-RU/pricing', undefined, 'https://cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('redirects marketing routes away from cabinet host', () => {
+    const req = createRequest('/ru-RU/pricing', undefined, 'https://my.cyber-vpn.net');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('https://cyber-vpn.net/ru-RU/pricing');
   });
 });

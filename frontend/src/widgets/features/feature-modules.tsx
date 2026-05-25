@@ -40,7 +40,7 @@ export function FeatureModules({ activeFeature, setActiveFeature }: FeatureModul
                             "relative w-full text-left p-6 rounded-xl border transition-all duration-300 group overflow-hidden",
                             isActive 
                                 ? "bg-neon-cyan/10 border-neon-cyan shadow-[0_0_30px_rgba(0,255,255,0.15)]" 
-                                : "bg-terminal-bg/50 border-grid-line/50 hover:border-neon-cyan/50 hover:bg-terminal-bg"
+                                : "border-border/60 bg-card/70 hover:border-neon-cyan/50 hover:bg-muted/60 dark:border-grid-line/50 dark:bg-terminal-bg/50 dark:hover:bg-terminal-bg"
                         )}
                     >
                         {/* Interactive scanline sweep on active or hover */}
@@ -54,7 +54,7 @@ export function FeatureModules({ activeFeature, setActiveFeature }: FeatureModul
                                 "flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center border transition-colors duration-300",
                                 isActive
                                     ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.4)]"
-                                    : "bg-black/50 border-grid-line/50 text-muted-foreground group-hover:text-white group-hover:border-neon-cyan/30"
+                                    : "border-border/60 bg-muted/70 text-muted-foreground group-hover:border-neon-cyan/30 group-hover:text-foreground dark:border-grid-line/50 dark:bg-black/50 dark:group-hover:text-white"
                             )}>
                                 <Icon className="w-6 h-6" />
                             </div>
@@ -74,7 +74,7 @@ export function FeatureModules({ activeFeature, setActiveFeature }: FeatureModul
                                 
                                 <h3 className={cn(
                                     "font-display text-xl md:text-2xl font-bold tracking-tight transition-colors duration-300",
-                                    isActive ? "text-neon-cyan" : "text-white group-hover:text-neon-cyan/80"
+                                    isActive ? "text-neon-cyan" : "text-foreground group-hover:text-neon-cyan/80 dark:text-white"
                                 )}>
                                     {t(`features.${id}.title`)}
                                 </h3>

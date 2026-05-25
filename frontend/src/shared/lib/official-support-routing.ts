@@ -24,7 +24,7 @@ export function getOfficialSupportProfile(): OfficialSupportProfile {
     responseWindow: '<=12h beta first response',
     helpCenterPath: '/help',
     webTicketPath: '/contact',
-    telegramBotUrl: 'https://t.me/cybervpn_bot',
+    telegramBotUrl: 'https://t.me/C_y_b_e_r_VPN_Bot',
     communicationSenderName: 'CyberVPN',
     communicationSenderEmail: 'support@cyber-vpn.net',
     legalPaths: {

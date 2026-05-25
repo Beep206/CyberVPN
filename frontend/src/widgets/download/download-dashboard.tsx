@@ -112,7 +112,7 @@ export function DownloadDashboard() {
       <p className="font-mono text-xs uppercase tracking-widest text-neon-cyan">
         {t('subtitle')}
       </p>
-      <h1 className="font-display text-4xl font-black uppercase tracking-widest text-white shadow-black drop-shadow-lg md:text-6xl">
+      <h1 className="font-display text-4xl font-black uppercase tracking-widest text-foreground shadow-black drop-shadow-lg dark:text-white md:text-6xl">
         {t('title')}
       </h1>
     </header>
@@ -139,21 +139,21 @@ export function DownloadDashboard() {
         <DownloadVisualFallback selectedOS={selectedOS} visualTier={visualTier === 'full' ? 'reduced' : visualTier} />
       )}
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/90 via-transparent to-black/90" />
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/2 bg-gradient-to-r from-black via-black/80 to-transparent md:block" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/90 via-transparent to-background/90 dark:from-black/90 dark:to-black/90" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/2 bg-gradient-to-r from-background via-background/80 to-transparent dark:from-black dark:via-black/80 md:block" />
     </div>
   );
 
   return (
     <ResponsiveSplitShell
-      className="min-h-[calc(100dvh-4rem)] bg-black"
+      className="min-h-[calc(100dvh-4rem)] bg-background text-foreground"
       containerClassName="max-w-7xl"
       contentStackClassName="gap-8 md:gap-10"
       header={header}
       content={content}
       visual={visual}
       visualMode="background"
-      visualPaneClassName="pointer-events-none rounded-[1.75rem] border border-white/5 bg-black/70 lg:rounded-none lg:border-0"
+      visualPaneClassName="pointer-events-none rounded-[1.75rem] border border-border/30 bg-background/70 dark:border-white/5 dark:bg-black/70 lg:rounded-none lg:border-0"
     />
   );
 }

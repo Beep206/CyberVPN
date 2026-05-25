@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Crown, Orbit, ShieldCheck, Sparkles } from 'lucide-react';
+import { useCurrencyPreference } from '@/features/currency-selector';
 import { Link } from '@/i18n/navigation';
 import { TierLevel } from './pricing-dashboard';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ export function TierCards({
 }: TierCardsProps) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
+  const { currency } = useCurrencyPreference(locale);
 
   return (
     <div className="grid max-w-7xl grid-cols-1 gap-6 px-4 md:grid-cols-2 xl:grid-cols-4">
@@ -74,7 +76,7 @@ export function TierCards({
         const Icon = config.icon;
         const isHovered = hoveredTier === plan.code;
         const activePeriod = getPlanPeriod(plan, selectedPeriod);
-        const pricePresentation = getPricePresentation(locale, activePeriod);
+        const pricePresentation = getPricePresentation(locale, activePeriod, currency);
         const monthlyEquivalent =
           pricePresentation.billing.amount / Math.max(activePeriod.duration_days / 30, 1);
         const modeLabel = plan.connection_modes
@@ -117,7 +119,7 @@ export function TierCards({
             onMouseEnter={() => onHover(plan.code)}
             onMouseLeave={() => onHover('plus')}
             className={cn(
-              'group relative flex min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border bg-black/45 p-7 backdrop-blur-2xl transition-all duration-500',
+              'group relative flex min-h-[38rem] flex-col overflow-hidden rounded-[2rem] border bg-card/80 p-7 backdrop-blur-2xl transition-all duration-500 dark:bg-black/45',
               config.border,
               config.bgHover,
               isHovered ? `-translate-y-3 scale-[1.01] ${config.glow}` : 'translate-y-0',
@@ -144,10 +146,10 @@ export function TierCards({
                     <Icon className="h-6 w-6" style={{ color: config.color }} />
                   </div>
                   <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/45">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground dark:text-white/45">
                       {t(`tiers.${plan.code}.eyebrow`)}
                     </p>
-                    <h3 className="mt-1 font-display text-2xl font-bold uppercase tracking-[0.18em] text-white">
+                    <h3 className="mt-1 font-display text-2xl font-bold uppercase tracking-[0.18em] text-foreground dark:text-white">
                       {plan.display_name}
                     </h3>
                   </div>
@@ -167,18 +169,18 @@ export function TierCards({
 
               <div className="mb-6">
                 <div className="flex items-end gap-3">
-                  <span className="font-display text-5xl font-black tracking-tight text-white">
+                  <span className="font-display text-5xl font-black tracking-tight text-foreground dark:text-white">
                     {formatMoney(
                       locale,
                       pricePresentation.billing.amount,
                       pricePresentation.billing.currency,
                     )}
                   </span>
-                  <span className="pb-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white/45">
+                  <span className="pb-2 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground dark:text-white/45">
                     {t('labels.perSelectedTerm', { days: activePeriod.duration_days })}
                   </span>
                 </div>
-                <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-white/55">
+                <p className="mt-2 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground dark:text-white/55">
                   {t('labels.monthlyEquivalent', {
                     price: formatMoney(
                       locale,
@@ -187,21 +189,21 @@ export function TierCards({
                     ),
                   })}
                 </p>
-                <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/42">
+                <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
                   {t('labels.chargedInBillingCurrency', {
                     currency: pricePresentation.billing.currency,
                   })}
                 </p>
-                <p className="mt-4 min-h-[4.25rem] text-sm font-mono leading-relaxed text-white/72">
+                <p className="mt-4 min-h-[4.25rem] text-sm font-mono leading-relaxed text-muted-foreground dark:text-white/72">
                   {t(`tiers.${plan.code}.description`)}
                 </p>
               </div>
 
               <div className="mb-6 flex flex-wrap gap-2">
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/60">
+                <span className="rounded-full border border-border/60 bg-background/45 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground dark:border-white/10 dark:bg-white/[0.03] dark:text-white/60">
                   {t(`tiers.${plan.code}.audience`)}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/60">
+                <span className="rounded-full border border-border/60 bg-background/45 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground dark:border-white/10 dark:bg-white/[0.03] dark:text-white/60">
                   {t(`supportNames.${plan.support_sla}`)}
                 </span>
               </div>
@@ -214,7 +216,7 @@ export function TierCards({
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.08 + featureIndex * 0.04 }}
-                      className="flex items-start gap-3 text-sm font-mono text-white/78"
+                      className="flex items-start gap-3 text-sm font-mono text-foreground/80 dark:text-white/78"
                     >
                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: config.color }} />
                       <span>{feature}</span>
@@ -224,18 +226,18 @@ export function TierCards({
               </div>
 
               <div className="mt-8 grid gap-3">
-                <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+                <div className="rounded-2xl border border-border/60 bg-background/45 px-4 py-3 dark:border-white/10 dark:bg-black/40">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground dark:text-white/45">
                     {t('summary.selectedTerm', { days: activePeriod.duration_days })}
                   </p>
-                  <p className="mt-1 text-sm font-mono text-white/75">
+                  <p className="mt-1 text-sm font-mono text-foreground/80 dark:text-white/75">
                     {activePeriod.invite_bundle.count > 0 ? inviteLabel : t('summary.noInviteBonus')}
                   </p>
                 </div>
 
                 <Link
                   href="/register"
-                  className="inline-flex h-14 items-center justify-center rounded-2xl border bg-black px-6 text-center font-display text-sm font-bold uppercase tracking-[0.24em] text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:text-black"
+                  className="inline-flex h-14 items-center justify-center rounded-2xl border bg-background px-6 text-center font-display text-sm font-bold uppercase tracking-[0.24em] text-foreground transition-all duration-300 hover:-translate-y-0.5 hover:bg-foreground hover:text-background dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                   style={{ borderColor: config.color }}
                 >
                   {t(`tiers.${plan.code}.button`)}

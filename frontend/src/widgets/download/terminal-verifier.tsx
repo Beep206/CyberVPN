@@ -66,11 +66,11 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
     }, [logs]);
 
     return (
-        <div className="flex-1 min-h-[250px] border border-white/10 bg-black/60 backdrop-blur-xl rounded-xl flex flex-col overflow-hidden relative shadow-2xl">
+        <div className="relative flex min-h-[250px] flex-1 flex-col overflow-hidden rounded-xl border border-border/60 bg-card/85 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-black/60">
             {/* Terminal Header */}
-            <div className="p-3 border-b border-white/5 flex gap-2 items-center bg-white/[0.02]">
+            <div className="flex items-center gap-2 border-b border-border/60 bg-muted/40 p-3 dark:border-white/5 dark:bg-white/[0.02]">
                 <Terminal className="w-4 h-4 text-neon-cyan" />
-                <span className="font-mono text-xs text-white/50 uppercase tracking-widest">Compiler.exe</span>
+                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground dark:text-white/50">Compiler.exe</span>
             </div>
 
             {/* Terminal Output */}
@@ -82,7 +82,7 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
                         animate={{ opacity: 1, x: 0 }}
                     >
                         <span className="text-neon-cyan/50 mr-2">{'>'}</span>
-                        <span className={log.includes('[OK]') || log.includes('READY') ? 'text-matrix-green' : 'text-white/80'}>
+                        <span className={log.includes('[OK]') || log.includes('READY') ? 'text-matrix-green' : 'text-foreground/80 dark:text-white/80'}>
                             {log}
                         </span>
                     </motion.div>
@@ -90,7 +90,7 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
             </div>
 
             {/* Action Bar (Revealed when ready) */}
-            <div className="p-4 border-t border-white/5 bg-black/40 min-h-[80px] flex items-center justify-center">
+            <div className="flex min-h-[80px] items-center justify-center border-t border-border/60 bg-muted/40 p-4 dark:border-white/5 dark:bg-black/40">
                 <AnimatePresence mode="wait">
                     {isReady ? (
                         <motion.div
@@ -105,7 +105,7 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
                                 <DownloadIcon className="w-4 h-4 mr-2" />
                                 {t('button')}
                             </Button>
-                            <div className="mt-2 text-center text-[10px] font-mono text-white/30 uppercase tracking-wider">
+                            <div className="mt-2 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground dark:text-white/30">
                                 {t('version')} <CypherText text="v2.4.1" className="text-neon-cyan" />
                             </div>
                         </motion.div>
@@ -115,9 +115,9 @@ export function TerminalVerifier({ selectedOS }: TerminalVerifierProps) {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="font-mono text-xs text-white/20 uppercase tracking-widest animate-pulse flex items-center gap-2"
+                            className="flex animate-pulse items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground dark:text-white/20"
                         >
-                            <span className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 dark:bg-white/20" />
                             Awaiting Signal
                         </motion.div>
                     )}

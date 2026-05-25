@@ -30,7 +30,7 @@ export function ServerLocationsList({
         {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
-            className="h-[74px] rounded-lg border border-grid-line/20 bg-terminal-bg/60 backdrop-blur-md"
+            className="h-[74px] rounded-lg border border-border/60 bg-card/70 backdrop-blur-md dark:border-grid-line/20 dark:bg-terminal-bg/60"
           />
         ))}
       </div>
@@ -56,7 +56,7 @@ export function ServerLocationsList({
               'relative w-full text-left p-4 rounded-lg border transition-all duration-300 group overflow-hidden',
               isActive
                 ? 'bg-neon-cyan/10 border-neon-cyan shadow-[0_0_20px_rgba(0,255,255,0.1)]'
-                : 'bg-terminal-bg/80 backdrop-blur-md border-grid-line/30 hover:border-neon-cyan/50 hover:bg-terminal-bg',
+                : 'border-border/60 bg-card/80 backdrop-blur-md hover:border-neon-cyan/50 hover:bg-muted/60 dark:border-grid-line/30 dark:bg-terminal-bg/80 dark:hover:bg-terminal-bg',
             )}
           >
             <div
@@ -82,14 +82,14 @@ export function ServerLocationsList({
                   <span
                     className={cn(
                       'font-mono text-sm transition-colors duration-300 truncate',
-                      isActive ? 'text-white font-bold' : 'text-muted-foreground group-hover:text-white',
+                      isActive ? 'font-bold text-foreground dark:text-white' : 'text-muted-foreground group-hover:text-foreground dark:group-hover:text-white',
                     )}
                   >
                     {regionLabel}
                   </span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[11px] text-white/55">
+                <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[11px] text-muted-foreground dark:text-white/55">
                   <span className="inline-flex items-center gap-1.5">
                     <Server className="h-3 w-3 text-matrix-green/70" />
                     {onlineServersLabel}

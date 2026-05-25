@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Dot, Minus, PlugZap } from 'lucide-react';
+import { useCurrencyPreference } from '@/features/currency-selector';
 import { MobileDataList } from '@/shared/ui/mobile-data-list';
 import type { PricingAddon, PricingPlanFamily, PricingTierCode } from './types';
 import {
@@ -90,6 +91,7 @@ export function FeatureMatrix({
 }) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
+  const { currency } = useCurrencyPreference(locale);
   const extraDeviceAddon = addons.find((addon) => addon.code === 'extra_device');
   const dedicatedIpAddon = addons.find((addon) => addon.code === 'dedicated_ip');
   const dedicatedIpAddonAvailable = Boolean(dedicatedIpAddon);
@@ -137,18 +139,18 @@ export function FeatureMatrix({
   );
 
   return (
-    <div className="w-full overflow-hidden rounded-[2rem] border border-white/10 bg-black/60 p-6 backdrop-blur-xl md:p-10">
+    <div className="w-full overflow-hidden rounded-[2rem] border border-border/70 bg-card/80 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/60 md:p-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h3 className="flex items-center gap-4 font-display text-2xl font-bold uppercase tracking-widest text-white">
+          <h3 className="flex items-center gap-4 font-display text-2xl font-bold uppercase tracking-widest text-foreground dark:text-white">
             <span className="inline-block h-6 w-2 animate-pulse rounded-sm bg-neon-cyan" />
             {t('matrix.title')}
           </h3>
-          <p className="mt-3 max-w-3xl text-sm font-mono leading-relaxed text-white/65">
+          <p className="mt-3 max-w-3xl text-sm font-mono leading-relaxed text-muted-foreground dark:text-white/65">
             {t('matrix.subtitle')}
           </p>
         </div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/45">
+        <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground dark:text-white/45">
           {t('summary.selectedTerm', { days: selectedPeriod })}
         </p>
       </div>
@@ -184,7 +186,7 @@ export function FeatureMatrix({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5 font-mono text-sm text-white/80">
+          <tbody className="divide-y divide-border/50 font-mono text-sm text-foreground/80 dark:divide-white/5 dark:text-white/80">
             {rows.map((row, rowIndex) => (
               <motion.tr
                 key={row.key}
@@ -192,7 +194,7 @@ export function FeatureMatrix({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ delay: rowIndex * 0.05 }}
-                className="group transition-colors hover:bg-white/[0.02]"
+                className="group transition-colors hover:bg-foreground/[0.03] dark:hover:bg-white/[0.02]"
               >
                 <td className="px-4 py-4 font-medium">{row.name}</td>
                 {plans.map((plan, index) => (
@@ -210,14 +212,14 @@ export function FeatureMatrix({
       </div>
 
       {addonCards.length > 0 ? (
-        <div className="mt-10 rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 md:p-6">
+        <div className="mt-10 rounded-[1.75rem] border border-border/70 bg-background/40 p-5 dark:border-white/10 dark:bg-white/[0.03] md:p-6">
           <div className="mb-5 flex items-center gap-3">
             <PlugZap className="h-5 w-5 text-neon-cyan" />
             <div>
-              <h4 className="font-display text-xl font-bold uppercase tracking-[0.18em] text-white">
+              <h4 className="font-display text-xl font-bold uppercase tracking-[0.18em] text-foreground dark:text-white">
                 {t('addons.title')}
               </h4>
-              <p className="mt-1 text-sm font-mono text-white/62">
+              <p className="mt-1 text-sm font-mono text-muted-foreground dark:text-white/62">
                 {t('addons.subtitle')}
               </p>
             </div>
@@ -225,7 +227,7 @@ export function FeatureMatrix({
 
           <div className="grid gap-4 md:grid-cols-2">
             {addonCards.map((addon) => {
-              const pricePresentation = getPricePresentation(locale, addon);
+              const pricePresentation = getPricePresentation(locale, addon, currency);
               const availability = addon.code === 'extra_device'
                 ? t('addons.extra_device.availability', {
                     limits: formatPlanLimitSummary(extraDeviceAddon, PLAN_ORDER),
@@ -235,18 +237,18 @@ export function FeatureMatrix({
               return (
                 <div
                   key={addon.code}
-                  className="rounded-[1.5rem] border border-white/10 bg-black/35 p-5"
+                  className="rounded-[1.5rem] border border-border/60 bg-card/65 p-5 dark:border-white/10 dark:bg-black/35"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-display text-lg uppercase tracking-[0.14em] text-white">
+                      <p className="font-display text-lg uppercase tracking-[0.14em] text-foreground dark:text-white">
                         {t(`addons.${addon.code}.title`)}
                       </p>
-                      <p className="mt-3 text-sm font-mono leading-relaxed text-white/66">
+                      <p className="mt-3 text-sm font-mono leading-relaxed text-muted-foreground dark:text-white/66">
                         {t(`addons.${addon.code}.description`)}
                       </p>
                     </div>
-                    <div className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+                    <div className="rounded-full border border-border/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground dark:border-white/10 dark:text-white/55">
                       {t('addons.priceLabel', {
                         price: formatMoney(
                           locale,

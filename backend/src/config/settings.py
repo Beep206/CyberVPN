@@ -11,6 +11,7 @@ _logger = logging.getLogger(__name__)
 S1_PRODUCTION_CORS_ORIGINS = frozenset(
     {
         "https://cyber-vpn.net",
+        "https://my.cyber-vpn.net",
         "https://admin.cyber-vpn.net",
     }
 )
@@ -23,7 +24,7 @@ S1_REDIRECT_ONLY_ORIGINS = frozenset(
 S1_PRODUCTION_COOKIE_DOMAINS = frozenset({"", "cyber-vpn.net"})
 S1_PRODUCTION_ADMIN_ALLOWED_HOSTS = frozenset({"admin.cyber-vpn.net"})
 S1_REDIRECT_ONLY_ADMIN_HOSTS = frozenset({"admin.cyber-vpn.org"})
-S1_PUBLIC_NON_ADMIN_HOSTS = frozenset({"cyber-vpn.net", "cyber-vpn.org"})
+S1_PUBLIC_NON_ADMIN_HOSTS = frozenset({"cyber-vpn.net", "my.cyber-vpn.net", "cyber-vpn.org"})
 
 
 class Settings(BaseSettings):

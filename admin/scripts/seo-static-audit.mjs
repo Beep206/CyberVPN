@@ -459,7 +459,7 @@ function assertHomeJsonLdAndCtas(homeHtml) {
   assert(!jsonLd.includes('SearchAction'), 'Homepage JSON-LD must not advertise SearchAction');
   assert(!jsonLd.includes('/search'), 'Homepage JSON-LD must not point to a fake /search route');
   assert(
-    homeHtml.includes('https://t.me/cybervpn_bot'),
+    homeHtml.includes('https://t.me/C_y_b_e_r_VPN_Bot'),
     'Homepage prerender output must include the Telegram acquisition URL',
   );
   assert(
@@ -467,7 +467,7 @@ function assertHomeJsonLdAndCtas(homeHtml) {
     'Homepage prerender output must include the download route',
   );
   assert(
-    homeHtml.includes('https://t.me/cybervpn'),
+    homeHtml.includes('https://t.me/C_y_b_e_r_VPN_Bot'),
     'Homepage prerender output must include the brand entity URL',
   );
 }

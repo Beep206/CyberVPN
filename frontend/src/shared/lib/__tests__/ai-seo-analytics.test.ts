@@ -43,7 +43,7 @@ describe('ai-seo-analytics', () => {
     expect(isAcquisitionRoute('/ru-RU/dashboard')).toBe(false);
     expect(classifyCtaHref('/ru-RU/pricing', 'https://cyber-vpn.net')).toBe('pricing');
     expect(classifyCtaHref('/ru-RU/contact', 'https://cyber-vpn.net')).toBe('contact');
-    expect(classifyCtaHref('https://t.me/cybervpn', 'https://cyber-vpn.net')).toBe('telegram');
+    expect(classifyCtaHref('https://t.me/C_y_b_e_r_VPN_Bot', 'https://cyber-vpn.net')).toBe('telegram');
   });
 
   it('reads UTM parameters without leaking unrelated query params', () => {

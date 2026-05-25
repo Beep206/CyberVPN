@@ -16,6 +16,7 @@ const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const FRONTEND_PRIMARY_ORIGIN = "cyber-vpn.net";
 const FRONTEND_WWW_ORIGIN = "www.cyber-vpn.net";
+const FRONTEND_CABINET_ORIGIN = "my.cyber-vpn.net";
 const FRONTEND_LOCAL_ORIGINS = ["localhost:3000", "127.0.0.1:3000"];
 const apiInternalOrigin = (
   process.env.API_INTERNAL_ORIGIN?.trim() ||
@@ -59,14 +60,19 @@ const config: NextConfigWithCompiler = {
         }
       : {}),
     serverActions: {
-      allowedOrigins: [FRONTEND_PRIMARY_ORIGIN, FRONTEND_WWW_ORIGIN],
+            allowedOrigins: [
+                FRONTEND_PRIMARY_ORIGIN,
+                FRONTEND_WWW_ORIGIN,
+                FRONTEND_CABINET_ORIGIN,
+            ],
     },
   },
-  allowedDevOrigins: [
-    FRONTEND_PRIMARY_ORIGIN,
-    FRONTEND_WWW_ORIGIN,
-    ...FRONTEND_LOCAL_ORIGINS,
-  ],
+    allowedDevOrigins: [
+        FRONTEND_PRIMARY_ORIGIN,
+        FRONTEND_WWW_ORIGIN,
+        FRONTEND_CABINET_ORIGIN,
+        ...FRONTEND_LOCAL_ORIGINS,
+    ],
   cacheComponents: true,
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactCompiler: true,

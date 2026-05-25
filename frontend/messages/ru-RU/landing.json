@@ -130,6 +130,10 @@
     "online": "PUBLIC SLOT",
     "featureTorrent": "P2P restricted",
     "featureNoAds": "HTTPS-like profile",
+    "seoCopy": {
+      "primary": "CyberVPN показывает только те регионы, которые прошли проверку здоровья ноды, доставки подписки, rollback, поддержки и abuse-контроля.",
+      "secondary": "Доступ VLESS Reality и XHTTP выдаётся через мониторимые ссылки подписки, а расширение beta-ёмкости идёт только после подтверждённых метрик и поддержки."
+    },
     "servers": {
       "newYork": {
         "country": "USA",

@@ -56,7 +56,7 @@ export default async function FeaturesPage({ params }: { params: Promise<{ local
 
     return (
         <>
-            <main className="min-h-screen bg-black text-terminal-text selection:bg-neon-cyan/30 flex flex-col font-mono overflow-x-hidden">
+            <main className="min-h-screen bg-background text-foreground selection:bg-neon-cyan/30 flex flex-col font-mono overflow-x-hidden">
                 <PublicTerminalHeader locale={locale} />
                 
                 <section className="flex-1 relative w-full pt-16">

@@ -42,7 +42,7 @@ export async function HelpContact({ locale: providedLocale }: { locale?: string 
 
           <Reveal delay={0.2}>
             <a
-              href="https://t.me/cybervpn_bot"
+              href="https://t.me/C_y_b_e_r_VPN_Bot"
               target="_blank"
               rel="noopener noreferrer"
               className="group inline-flex h-14 flex-1 items-center justify-center rounded-md bg-matrix-green px-8 font-bold tracking-wide text-black shadow-[0_0_15px_rgba(0,255,136,0.3)] transition-all hover:bg-matrix-green/80 hover:shadow-[0_0_25px_rgba(0,255,136,0.5)] sm:flex-none"

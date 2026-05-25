@@ -61,7 +61,7 @@ function createBootstrap(overrides: Record<string, unknown> = {}) {
       brand: {
         name: 'CyberVPN',
         primaryColor: '#00ffff',
-        supportUrl: 'https://t.me/cybervpn_bot?start=support',
+        supportUrl: 'https://t.me/C_y_b_e_r_VPN_Bot?start=support',
         legalName: 'CyberVPN',
       },
       commercialPolicy: {
@@ -128,7 +128,7 @@ function createBootstrap(overrides: Record<string, unknown> = {}) {
     },
     referral: {
       code: 'REF12345',
-      inviteUrl: 'https://t.me/cybervpn_bot?startapp=ref_REF12345',
+      inviteUrl: 'https://t.me/C_y_b_e_r_VPN_Bot?startapp=ref_REF12345',
       shareText: 'Try CyberVPN',
     },
     payment: {
@@ -136,7 +136,7 @@ function createBootstrap(overrides: Record<string, unknown> = {}) {
       lastStatus: null,
     },
     support: {
-      url: 'https://t.me/cybervpn_bot?start=support',
+      url: 'https://t.me/C_y_b_e_r_VPN_Bot?start=support',
       paysupportCommandAvailable: true,
     },
     rollout: {

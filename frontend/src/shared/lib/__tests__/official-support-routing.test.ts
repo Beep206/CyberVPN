@@ -16,6 +16,6 @@ describe('official support routing profile', () => {
 
     expect(profile.webTicketPath).toBe('/contact');
     expect(profile.helpCenterPath).toBe('/help');
-    expect(profile.telegramBotUrl).toBe('https://t.me/cybervpn_bot');
+    expect(profile.telegramBotUrl).toBe('https://t.me/C_y_b_e_r_VPN_Bot');
   });
 });

@@ -49,7 +49,7 @@ export async function LandingHero({ locale: providedLocale }: { locale?: string 
         <Reveal delay={0.4} className="flex flex-col sm:flex-row gap-4 w-full justify-center">
           <MagneticButton className="inline-block">
             <a
-              href="https://t.me/cybervpn_bot"
+              href="https://t.me/C_y_b_e_r_VPN_Bot"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-12 items-center justify-center rounded-md bg-neon-cyan px-8 text-base font-bold tracking-wide text-black shadow-neon-cyan transition-all hover:bg-neon-cyan/80 hover:shadow-neon-cyan/50 group"

@@ -38,7 +38,7 @@ export function GlobalMetricsHud() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="bg-[#050510]/80 backdrop-blur-md border border-neon-cyan/20 rounded-lg p-5 flex-1 md:w-48 relative overflow-hidden group shadow-[0_0_30px_rgba(0,255,255,0.05)]"
+                className="group relative flex-1 overflow-hidden rounded-lg border border-neon-cyan/20 bg-card/85 p-5 shadow-[0_0_30px_rgba(0,255,255,0.05)] backdrop-blur-md dark:bg-[#050510]/80 md:w-48"
             >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-50" />
                 <div className="flex items-center gap-3 mb-2">
@@ -47,7 +47,7 @@ export function GlobalMetricsHud() {
                         {t('labels.totalBandwidth')}
                     </span>
                 </div>
-                <div className="font-display text-2xl font-black text-white">
+                <div className="font-display text-2xl font-black text-foreground dark:text-white">
                     {monthlyTraffic}
                 </div>
             </motion.div>
@@ -56,7 +56,7 @@ export function GlobalMetricsHud() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="bg-[#050510]/80 backdrop-blur-md border border-matrix-green/20 rounded-lg p-5 flex-1 md:w-48 relative overflow-hidden group shadow-[0_0_30px_rgba(0,255,136,0.05)]"
+                className="group relative flex-1 overflow-hidden rounded-lg border border-matrix-green/20 bg-card/85 p-5 shadow-[0_0_30px_rgba(0,255,136,0.05)] backdrop-blur-md dark:bg-[#050510]/80 md:w-48"
             >
                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-matrix-green to-transparent opacity-50" />
                 <div className="flex items-center gap-3 mb-2">
@@ -65,7 +65,7 @@ export function GlobalMetricsHud() {
                         {t('labels.activeNodes')}
                     </span>
                 </div>
-                <div className="font-display text-2xl font-black text-white">
+                <div className="font-display text-2xl font-black text-foreground dark:text-white">
                     {onlineServers}
                 </div>
             </motion.div>
@@ -74,7 +74,7 @@ export function GlobalMetricsHud() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="bg-[#050510]/80 backdrop-blur-md border border-neon-pink/20 rounded-lg p-5 flex-1 md:w-56 relative overflow-hidden group shadow-[0_0_30px_rgba(255,0,255,0.05)]"
+                className="group relative flex-1 overflow-hidden rounded-lg border border-neon-pink/20 bg-card/85 p-5 shadow-[0_0_30px_rgba(255,0,255,0.05)] backdrop-blur-md dark:bg-[#050510]/80 md:w-56"
             >
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-pink to-transparent opacity-50" />
                 <div className="flex items-center gap-3 mb-2">
@@ -83,7 +83,7 @@ export function GlobalMetricsHud() {
                         {t('labels.threatsIntercepted')}
                     </span>
                 </div>
-                <div className="font-display text-2xl font-black text-white font-mono">
+                <div className="font-mono font-display text-2xl font-black text-foreground dark:text-white">
                     {liveUsers}
                 </div>
             </motion.div>

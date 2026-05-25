@@ -130,6 +130,10 @@
     "online": "PUBLIC SLOT",
     "featureTorrent": "P2P restricted",
     "featureNoAds": "HTTPS-like profile",
+    "seoCopy": {
+      "primary": "CyberVPN publishes only regions that pass node health, subscription delivery, rollback, support, and abuse-control checks.",
+      "secondary": "VLESS Reality and XHTTP access is issued through monitored subscription links, with user-facing status and support before beta capacity expands."
+    },
     "servers": {
       "newYork": {
         "country": "USA",

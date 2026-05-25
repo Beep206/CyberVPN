@@ -1195,6 +1195,10 @@
       "featureNoAds": "HTTPS-like profile",
       "featureTorrent": "P2P restricted",
       "online": "PUBLIC SLOT",
+      "seoCopy": {
+        "primary": "CyberVPN publishes only regions that pass node health, subscription delivery, rollback, support, and abuse-control checks.",
+        "secondary": "VLESS Reality and XHTTP access is issued through monitored subscription links, with user-facing status and support before beta capacity expands."
+      },
       "servers": {
         "amsterdam": {
           "city": "Amsterdam",

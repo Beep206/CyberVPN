@@ -116,7 +116,7 @@ export default async function RootLayout({
             name: 'CyberVPN',
             url: SITE_URL,
             logo: `${SITE_URL}/logo.png`,
-            sameAs: ['https://t.me/cybervpn'],
+            sameAs: ['https://t.me/C_y_b_e_r_VPN_Bot'],
           }}
         />
 

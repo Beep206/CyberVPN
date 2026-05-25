@@ -14,7 +14,7 @@ export function FAQAccordion({ showAddonFaq = true }: { showAddonFaq?: boolean }
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <h3 className="mb-4 flex items-center justify-center gap-4 text-center font-display text-2xl font-bold uppercase tracking-widest text-white">
+      <h3 className="mb-4 flex items-center justify-center gap-4 text-center font-display text-2xl font-bold uppercase tracking-widest text-foreground dark:text-white">
         <Database className="h-6 w-6 text-matrix-green" />
         {t('title')}
       </h3>
@@ -33,8 +33,8 @@ export function FAQAccordion({ showAddonFaq = true }: { showAddonFaq?: boolean }
               className={cn(
                 'overflow-hidden rounded-[1.5rem] border backdrop-blur-xl transition-colors duration-300',
                 isOpen
-                  ? 'border-matrix-green/45 bg-black/80 shadow-[0_0_24px_-10px_rgba(0,255,136,0.28)]'
-                  : 'border-white/10 bg-black/40 hover:border-white/30',
+                  ? 'border-matrix-green/45 bg-card/90 shadow-[0_0_24px_-10px_rgba(0,255,136,0.28)] dark:bg-black/80'
+                  : 'border-border/70 bg-card/70 hover:border-border dark:border-white/10 dark:bg-black/40 dark:hover:border-white/30',
               )}
             >
               <button
@@ -45,7 +45,7 @@ export function FAQAccordion({ showAddonFaq = true }: { showAddonFaq?: boolean }
                 <span
                   className={cn(
                     'font-mono text-sm uppercase tracking-[0.18em] transition-colors md:text-base',
-                    isOpen ? 'font-bold text-matrix-green' : 'text-white/80',
+                    isOpen ? 'font-bold text-matrix-green' : 'text-foreground/80 dark:text-white/80',
                   )}
                 >
                   {faq.q}
@@ -55,7 +55,7 @@ export function FAQAccordion({ showAddonFaq = true }: { showAddonFaq?: boolean }
                     'ml-4 shrink-0 rounded-xl border p-2 transition-all duration-300',
                     isOpen
                       ? 'border-matrix-green bg-matrix-green/10 text-matrix-green'
-                      : 'border-white/10 text-white/50',
+                      : 'border-border/70 text-muted-foreground dark:border-white/10 dark:text-white/50',
                   )}
                 >
                   {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}

@@ -189,7 +189,7 @@ function MiniAppReferralExperience() {
     [recentActivity],
   );
   const eligibleGiftPlans = useMemo(() => giftPlans ?? [], [giftPlans]);
-  const referralLink = referralCode ? `https://t.me/cybervpn_bot?start=${referralCode}` : '';
+  const referralLink = referralCode ? `https://t.me/C_y_b_e_r_VPN_Bot?start=${referralCode}` : '';
 
   const overview = useMemo(() => {
     const activeInvites = invites.filter(

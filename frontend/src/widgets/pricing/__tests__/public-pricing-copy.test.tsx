@@ -127,7 +127,7 @@ describe('public pricing copy', () => {
       />,
     );
 
-    expect(screen.getByText(/Charged in USD/i)).toBeInTheDocument();
+    expect(screen.getByText(/Charged in RUB/i)).toBeInTheDocument();
     expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/approx/i)).not.toBeInTheDocument();
   });

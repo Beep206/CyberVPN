@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PublicTerminalHeader } from '../public-terminal-header';
 import { PublicTerminalHeaderControls } from '../public-terminal-header-controls';
 
@@ -13,6 +13,21 @@ vi.mock('@/features/theme-toggle', () => ({
 
 vi.mock('@/features/language-selector', () => ({
   LanguageSelector: () => <div data-testid="language-selector" />,
+}));
+
+vi.mock('@/features/currency-selector', () => ({
+  CurrencySelector: () => <div data-testid="currency-selector" />,
+}));
+
+vi.mock('@/features/header/user-menu', () => ({
+  UserMenu: () => <div data-testid="user-menu" />,
+}));
+
+let isAuthenticated = false;
+
+vi.mock('@/stores/auth-store', () => ({
+  useAuthStore: (selector: (state: { isAuthenticated: boolean }) => unknown) =>
+    selector({ isAuthenticated }),
 }));
 
 vi.mock('@/widgets/terminal-header-performance', () => ({
@@ -30,6 +45,10 @@ vi.mock('@/widgets/terminal-header-performance', () => ({
 }));
 
 describe('PublicTerminalHeaderControls', () => {
+  beforeEach(() => {
+    isAuthenticated = false;
+  });
+
   it('keeps theme and language affordances while rendering static public CTAs', () => {
     render(
       <PublicTerminalHeaderControls
@@ -41,6 +60,7 @@ describe('PublicTerminalHeaderControls', () => {
 
     expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
     expect(screen.getByTestId('language-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('currency-selector')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
       'href',
       '/download',
@@ -66,10 +86,28 @@ describe('PublicTerminalHeaderControls', () => {
       'register',
     );
   });
+
+  it('replaces auth CTAs with profile controls for authenticated users', () => {
+    isAuthenticated = true;
+
+    render(
+      <PublicTerminalHeaderControls
+        downloadLabel="Download"
+        loginLabel="Sign In"
+        registerLabel="Create Account"
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: 'Sign In' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create Account' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /notifications are not available yet/i })).toBeDisabled();
+    expect(screen.getByTestId('user-menu')).toBeInTheDocument();
+  });
 });
 
 describe('PublicTerminalHeader', () => {
   async function renderHeader() {
+    isAuthenticated = false;
     render(await PublicTerminalHeader({ performanceMode: 'always' }));
   }
 

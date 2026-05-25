@@ -52,6 +52,19 @@ cyber-vpn.net {
 	}
 }
 
+my.cyber-vpn.net {
+	import stage1_security_headers
+	import stage1_api_routes
+
+	encode zstd gzip
+	reverse_proxy cybervpn-frontend:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+	}
+}
+
 www.cyber-vpn.net {
 	redir https://cyber-vpn.net{uri} permanent
 }

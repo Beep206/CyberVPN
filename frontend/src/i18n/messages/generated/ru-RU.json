@@ -1136,6 +1136,10 @@
       "featureNoAds": "HTTPS-like profile",
       "featureTorrent": "P2P restricted",
       "online": "PUBLIC SLOT",
+      "seoCopy": {
+        "primary": "CyberVPN показывает только те регионы, которые прошли проверку здоровья ноды, доставки подписки, rollback, поддержки и abuse-контроля.",
+        "secondary": "Доступ VLESS Reality и XHTTP выдаётся через мониторимые ссылки подписки, а расширение beta-ёмкости идёт только после подтверждённых метрик и поддержки."
+      },
       "servers": {
         "amsterdam": {
           "city": "Amsterdam",

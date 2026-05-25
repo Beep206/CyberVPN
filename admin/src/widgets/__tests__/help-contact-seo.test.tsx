@@ -37,7 +37,7 @@ describe('HelpContact SEO links', () => {
     );
     expect(screen.getByRole('link', { name: 'contact_button_telegram' })).toHaveAttribute(
       'href',
-      'https://t.me/cybervpn_bot',
+      'https://t.me/C_y_b_e_r_VPN_Bot',
     );
     expect(screen.getByRole('link', { name: 'contact_button_telegram' })).toHaveAttribute(
       'data-seo-cta',

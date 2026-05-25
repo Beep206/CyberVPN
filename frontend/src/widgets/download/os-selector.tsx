@@ -27,7 +27,7 @@ export function OSSelector({ selectedOS, onSelect }: OSSelectorProps) {
             {platforms.map((platform, i) => {
                 const Icon = platform.icon;
                 const isSelected = selectedOS === platform.id;
-                
+
                 return (
                     <motion.button
                         key={platform.id}
@@ -37,9 +37,9 @@ export function OSSelector({ selectedOS, onSelect }: OSSelectorProps) {
                         onClick={() => onSelect(platform.id)}
                         className={cn(
                             "relative flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 overflow-hidden text-left outline-none group",
-                            isSelected 
-                                ? "bg-black/80 border-white/40 shadow-lg scale-[1.02]" 
-                                : "bg-black/40 border-white/10 hover:border-white/30 hover:bg-black/60"
+                            isSelected
+                                ? "border-border bg-card shadow-lg scale-[1.02] dark:border-white/40 dark:bg-black/80"
+                                : "border-border/60 bg-card/70 hover:border-border hover:bg-muted/60 dark:border-white/10 dark:bg-black/40 dark:hover:border-white/30 dark:hover:bg-black/60"
                         )}
                         style={{
                             boxShadow: isSelected ? `0 0 20px -5px ${platform.color}` : 'none'
@@ -47,37 +47,37 @@ export function OSSelector({ selectedOS, onSelect }: OSSelectorProps) {
                     >
                         {/* Hover & Active Glare */}
                         {isSelected && (
-                            <div 
+                            <div
                                 className="absolute inset-0 opacity-20 bg-gradient-to-r pointer-events-none"
                                 style={{ backgroundImage: `linear-gradient(to right, ${platform.color}, transparent)` }}
                             />
                         )}
 
-                        <div 
+                        <div
                             className={cn(
-                                "flex items-center justify-center w-10 h-10 rounded-lg border bg-black/50 transition-colors",
-                                isSelected ? "border-transparent" : "border-white/10 group-hover:border-white/20"
+                                "flex items-center justify-center w-10 h-10 rounded-lg border bg-muted/70 transition-colors dark:bg-black/50",
+                                isSelected ? "border-transparent" : "border-border/60 group-hover:border-border dark:border-white/10 dark:group-hover:border-white/20"
                             )}
-                            style={{ 
+                            style={{
                                 backgroundColor: isSelected ? `${platform.color}15` : '',
                                 borderColor: isSelected ? platform.color : ''
                             }}
                         >
-                            <Icon 
-                                className="w-5 h-5 transition-transform group-hover:scale-110" 
-                                style={{ color: isSelected ? platform.color : '#666' }} 
+                            <Icon
+                                className="w-5 h-5 transition-transform group-hover:scale-110"
+                                style={{ color: isSelected ? platform.color : '#666' }}
                             />
                         </div>
 
                         <div className="flex-1">
                             <span className={cn(
                                 "font-mono text-sm tracking-widest uppercase transition-colors",
-                                isSelected ? "text-white font-bold" : "text-muted-foreground group-hover:text-white/80"
+                                isSelected ? "text-foreground font-bold dark:text-white" : "text-muted-foreground group-hover:text-foreground dark:group-hover:text-white/80"
                             )}>
                                 {t(platform.labelKey)}
                             </span>
                         </div>
-                        
+
                         {/* Status Dot */}
                         <div className={cn(
                             "w-2 h-2 rounded-full transition-all duration-500",

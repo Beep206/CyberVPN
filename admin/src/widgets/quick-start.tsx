@@ -43,7 +43,7 @@ export async function QuickStart() {
               </div>
               <div className="flex flex-col items-center gap-3 w-full">
                 <p className="text-foreground font-mono text-lg">{t('step1')}</p>
-                <QuickStartCopyButton value="@CyberVPN_Bot" />
+                <QuickStartCopyButton value="@C_y_b_e_r_VPN_Bot" />
               </div>
             </TiltCard>
           </Reveal>

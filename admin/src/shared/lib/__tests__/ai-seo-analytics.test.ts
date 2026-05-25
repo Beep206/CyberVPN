@@ -43,7 +43,7 @@ describe('ai-seo-analytics', () => {
     expect(isAcquisitionRoute('/ru-RU/dashboard')).toBe(false);
     expect(classifyCtaHref('/ru-RU/pricing', 'https://vpn.ozoxy.ru')).toBe('pricing');
     expect(classifyCtaHref('/ru-RU/contact', 'https://vpn.ozoxy.ru')).toBe('contact');
-    expect(classifyCtaHref('https://t.me/cybervpn', 'https://vpn.ozoxy.ru')).toBe('telegram');
+    expect(classifyCtaHref('https://t.me/C_y_b_e_r_VPN_Bot', 'https://vpn.ozoxy.ru')).toBe('telegram');
   });
 
   it('reads UTM parameters without leaking unrelated query params', () => {

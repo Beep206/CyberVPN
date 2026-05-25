@@ -25,7 +25,7 @@ describe('Footer SEO links', () => {
 
     expect(screen.getByRole('link', { name: 'Telegram community' })).toHaveAttribute(
       'href',
-      'https://t.me/cybervpn',
+      'https://t.me/C_y_b_e_r_VPN_Bot',
     );
     expect(screen.getByRole('link', { name: 'Telegram community' })).toHaveAttribute(
       'data-seo-zone',
@@ -33,7 +33,7 @@ describe('Footer SEO links', () => {
     );
     expect(screen.getByRole('link', { name: 'Telegram bot' })).toHaveAttribute(
       'href',
-      'https://t.me/cybervpn_bot',
+      'https://t.me/C_y_b_e_r_VPN_Bot',
     );
     expect(screen.getByRole('link', { name: 'Telegram bot' })).toHaveAttribute(
       'data-seo-cta',

@@ -45,6 +45,14 @@ export async function SpeedTunnel() {
           <p className="text-muted-foreground font-mono text-lg max-w-2xl mx-auto">
             {t('subtitle')}
           </p>
+          <div className="mx-auto mt-5 grid max-w-4xl gap-3 text-sm font-mono text-muted-foreground md:grid-cols-2">
+            <p className="rounded-lg border border-border/50 bg-card/70 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-black/35">
+              {t('seoCopy.primary')}
+            </p>
+            <p className="rounded-lg border border-border/50 bg-card/70 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-black/35">
+              {t('seoCopy.secondary')}
+            </p>
+          </div>
         </Reveal>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -66,17 +74,17 @@ export async function SpeedTunnel() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="p-3 rounded-lg bg-black/20 border border-white/5 flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card/70 p-3 dark:border-white/5 dark:bg-black/20">
                     <Zap className="w-4 h-4 text-neon-cyan" />
                     <span className="text-sm font-mono font-bold text-foreground">S1</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-black/20 border border-white/5 flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card/70 p-3 dark:border-white/5 dark:bg-black/20">
                     <Shield className="w-4 h-4 text-neon-purple" />
                     <span className="text-sm font-mono font-bold text-foreground">XHTTP</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between pt-4 border-t border-border/50 dark:border-white/5">
                   <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">
                     <Check className="w-3 h-3 text-green-500" />
                     <span>{t('featureTorrent')}</span>
