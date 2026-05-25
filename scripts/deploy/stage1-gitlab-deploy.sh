@@ -180,6 +180,8 @@ rsync -az --delete \
   --exclude='**/.venv/' \
   --exclude='.next/' \
   --exclude='**/.next/' \
+  --exclude='.next-*' \
+  --exclude='**/.next-*' \
   --exclude='.dart_tool/' \
   --exclude='**/.dart_tool/' \
   --exclude='.gradle/' \
