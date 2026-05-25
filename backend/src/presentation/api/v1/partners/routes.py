@@ -59,6 +59,7 @@ from src.domain.enums import (
     PartnerPayoutAccountStatus,
     PartnerPayoutAccountVerificationStatus,
     PartnerStatementStatus,
+    PayoutExecutionMode,
     PayoutExecutionStatus,
     PayoutInstructionStatus,
 )
@@ -105,6 +106,7 @@ from src.infrastructure.monitoring.instrumentation.partner_runtime import (
     bind_partner_context_from_realm,
     bind_partner_runtime_context,
     log_partner_runtime_event,
+    observe_partner_admin_ops_overview,
     observe_partner_bootstrap,
     observe_partner_notification_state_change,
 )
@@ -142,6 +144,9 @@ from .schemas import (
     CreatePartnerWorkspacePayoutAccountRequest,
     CreatePartnerWorkspaceRequest,
     MarkPartnerWorkspaceCaseReadyForOpsRequest,
+    PartnerAdminOpsActionResponse,
+    PartnerAdminOpsOverviewResponse,
+    PartnerAdminPayoutReviewItemResponse,
     PartnerApplicationAdminDetailResponse,
     PartnerApplicationAdminSummaryResponse,
     PartnerApplicationApplicantSummaryResponse,
@@ -183,12 +188,20 @@ from .schemas import (
     PartnerWorkspaceProgramLaneResponse,
     PartnerWorkspaceProgramReadinessItemResponse,
     PartnerWorkspaceProgramsResponse,
+    PartnerWorkspaceReportExportRedactionResponse,
     PartnerWorkspaceReportExportResponse,
+    PartnerWorkspaceReportingReconciliationResponse,
+    PartnerWorkspaceReportingSummaryMetricResponse,
+    PartnerWorkspaceReportingSummaryResponse,
     PartnerWorkspaceResellerVoucherBatchResponse,
     PartnerWorkspaceResponse,
     PartnerWorkspaceReviewRequestResponse,
     PartnerWorkspaceRoleResponse,
     PartnerWorkspaceSettingsResponse,
+    PartnerWorkspaceSettlementSandboxEligibilityResponse,
+    PartnerWorkspaceSettlementSandboxMetricResponse,
+    PartnerWorkspaceSettlementSandboxPolicyResponse,
+    PartnerWorkspaceSettlementSandboxSimulationResponse,
     PartnerWorkspaceThreadEventResponse,
     PartnerWorkspaceTrafficDeclarationResponse,
     PromotePartnerRequest,
@@ -205,9 +218,11 @@ from .schemas import (
     SubmitPartnerWorkspaceTrafficDeclarationRequest,
     UpdateMarkupRequest,
     UpdatePartnerLaneApplicationRequest,
+    UpdatePartnerWorkspaceCodeStatusRequest,
     UpdatePartnerWorkspaceMemberRequest,
     UpdatePartnerWorkspaceOrganizationProfileRequest,
     UpdatePartnerWorkspaceSettingsRequest,
+    UpdatePartnerWorkspaceStatusRequest,
     UpsertPartnerApplicationDraftRequest,
 )
 
@@ -218,11 +233,40 @@ router = APIRouter(tags=["partners"])
 _WORKSPACE_REVIEW_REQUEST_SUBJECT_KIND = "review_request"
 _WORKSPACE_CASE_SUBJECT_KIND = "case"
 _WORKSPACE_REPORT_EXPORT_SUBJECT_KIND = "report_export"
+_WORKSPACE_ADMIN_OPS_SUBJECT_KIND = "admin_ops"
+_WORKSPACE_PARTNER_CODE_SUBJECT_KIND = "partner_code"
 _WORKSPACE_REVIEW_REQUEST_RESPONSE_ACTION = "partner_response_submitted"
 _WORKSPACE_CASE_REPLY_ACTION = "partner_reply"
 _WORKSPACE_CASE_READY_FOR_OPS_ACTION = "partner_ready_for_ops"
 _WORKSPACE_REPORT_EXPORT_SCHEDULE_ACTION = "partner_export_requested"
+_WORKSPACE_STATUS_CHANGED_ACTION = "workspace_status_changed"
+_WORKSPACE_PARTNER_CODE_STATUS_CHANGED_ACTION = "partner_code_status_changed"
 _WORKSPACE_MEMBER_STATUSES = {"active", "invited", "limited"}
+_ADMIN_READ_PARTNER_PERMISSIONS = frozenset(
+    {
+        PartnerPermission.WORKSPACE_READ.value,
+        PartnerPermission.MEMBERSHIP_READ.value,
+        PartnerPermission.CODES_READ.value,
+        PartnerPermission.EARNINGS_READ.value,
+        PartnerPermission.PAYOUTS_READ.value,
+        PartnerPermission.TRAFFIC_READ.value,
+        PartnerPermission.INTEGRATIONS_READ.value,
+    }
+)
+_WORKSPACE_OWNER_ROLE_KEY = "owner"
+_WORKSPACE_ADMIN_STATUS_VALUES = {
+    "draft",
+    "email_verified",
+    "submitted",
+    "under_review",
+    "needs_info",
+    "approved_probation",
+    "active",
+    "restricted",
+    "suspended",
+    "rejected",
+    "terminated",
+}
 _WORKSPACE_CAMPAIGN_CHANNELS = {
     "content",
     "telegram",
@@ -319,6 +363,77 @@ def _build_workspace_role_key_by_admin_user_id(workspace_payload: dict) -> dict[
         for membership in workspace_payload["memberships"]
         if membership.role_id in role_by_id
     }
+
+
+def _build_internal_admin_read_workspace_access(workspace) -> PartnerWorkspaceAccess:
+    return PartnerWorkspaceAccess(
+        workspace=workspace,
+        membership=None,
+        role=None,
+        permission_keys=_ADMIN_READ_PARTNER_PERMISSIONS,
+        is_internal_admin_override=True,
+    )
+
+
+async def _count_active_workspace_owners(
+    repo: PartnerAccountRepository,
+    *,
+    workspace_id: UUID,
+) -> int:
+    memberships = await repo.list_memberships(workspace_id)
+    owner_count = 0
+    for item in memberships:
+        if item.membership_status != "active":
+            continue
+        item_role = await repo.get_role_by_id(item.role_id)
+        if item_role is not None and item_role.role_key == _WORKSPACE_OWNER_ROLE_KEY:
+            owner_count += 1
+    return owner_count
+
+
+async def _enforce_workspace_owner_role_update_guard(
+    repo: PartnerAccountRepository,
+    *,
+    access: PartnerWorkspaceAccess,
+    membership,
+    current_role_key: str,
+    requested_role_key: str,
+    requested_membership_status: str,
+) -> None:
+    touches_owner_role = (
+        current_role_key == _WORKSPACE_OWNER_ROLE_KEY
+        or requested_role_key == _WORKSPACE_OWNER_ROLE_KEY
+    )
+    if not touches_owner_role:
+        return
+
+    actor_role_key = access.role.role_key if access.role is not None else None
+    if not access.is_internal_admin_override and actor_role_key != _WORKSPACE_OWNER_ROLE_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only partner workspace owners can change owner-role memberships",
+        )
+
+    keeps_target_as_active_owner = (
+        requested_role_key == _WORKSPACE_OWNER_ROLE_KEY
+        and requested_membership_status == "active"
+    )
+    if keeps_target_as_active_owner:
+        return
+
+    active_owner_count = await _count_active_workspace_owners(
+        repo,
+        workspace_id=access.workspace.id,
+    )
+    if (
+        current_role_key == _WORKSPACE_OWNER_ROLE_KEY
+        and membership.membership_status == "active"
+        and active_owner_count <= 1
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Partner workspace must keep at least one active owner",
+        )
 
 
 def _build_workspace_notification_preferences(
@@ -1929,6 +2044,577 @@ def _build_workspace_analytics_metrics(
     ]
 
 
+def _build_workspace_reporting_summary(
+    *,
+    partner_account_id: UUID,
+    report_pack: dict,
+) -> PartnerWorkspaceReportingSummaryResponse:
+    workspace_id = str(partner_account_id)
+    metadata = dict(report_pack.get("metadata") or {})
+    reconciliation = dict(report_pack.get("reconciliation") or {})
+    partner_row = _get_workspace_partner_reporting_row(
+        report_pack=report_pack,
+        partner_account_id=partner_account_id,
+    )
+    workspace_orders = [
+        item
+        for item in report_pack.get("order_reporting_mart", [])
+        if item.get("partner_account_id") == workspace_id
+    ]
+    paid_rows = [
+        item
+        for item in workspace_orders
+        if item.get("is_paid_conversion")
+        and not item.get("has_refund")
+        and not item.get("has_open_dispute")
+        and not item.get("has_chargeback")
+    ]
+    paid_user_ids = {str(item.get("user_id")) for item in paid_rows if item.get("user_id")}
+    all_user_ids = {str(item.get("user_id")) for item in workspace_orders if item.get("user_id")}
+    currency_codes = list(partner_row.get("currency_codes") or [])
+    currency_code = str(currency_codes[0]) if currency_codes else "USD"
+    mismatch_counts = {
+        str(key): int(value)
+        for key, value in dict(reconciliation.get("mismatch_counts") or {}).items()
+    }
+    blocking_mismatches = list(reconciliation.get("blocking_mismatches") or [])
+
+    metrics = [
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="active_users",
+            value=str(len(paid_user_ids)),
+            source_of_truth="order_reporting_mart",
+            notes=[
+                "Workspace-scoped unique paid users after refund and chargeback exclusions.",
+                "This is a paid-user activity proxy until subscription-state mart is approved.",
+            ],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="trial_users",
+            value="not_available",
+            source_of_truth="not_available_in_s3_stage_10",
+            notes=[
+                "Partner trial attribution is not present in the current backend reporting mart.",
+                "Do not expose trial-user totals as a source-of-truth metric yet.",
+            ],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="paid_users",
+            value=str(len(paid_user_ids)),
+            source_of_truth="order_reporting_mart",
+            notes=["Unique customer labels are counted without exposing raw customer PII."],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="paid_conversions",
+            value=str(int(partner_row.get("paid_conversion_count", 0) or 0)),
+            source_of_truth="partner_reporting_mart",
+            notes=["Canonical paid conversion count for this partner workspace."],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="refunds",
+            value=str(int(partner_row.get("refund_count", 0) or 0)),
+            source_of_truth="partner_reporting_mart",
+            notes=["Refund impact from canonical refund rows joined to workspace orders."],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="chargebacks",
+            value=str(int(partner_row.get("chargeback_count", 0) or 0)),
+            source_of_truth="partner_reporting_mart",
+            notes=["Chargeback impact from payment dispute rows joined to workspace orders."],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="available_earnings",
+            value=_format_money(
+                float(partner_row.get("available_earnings_amount", 0) or 0),
+                currency_code,
+            ),
+            source_of_truth="earning_events",
+            notes=["Source-of-truth amount remains settlement/earning events, not dashboard math."],
+        ),
+        PartnerWorkspaceReportingSummaryMetricResponse(
+            key="visible_customer_count",
+            value=str(len(all_user_ids)),
+            source_of_truth="order_reporting_mart",
+            notes=["Count only; exports must keep customer identity redacted."],
+        ),
+    ]
+
+    reconciliation_notes = [
+        "Green means no reporting mart mismatch was detected for this workspace snapshot.",
+        "Yellow requires operator review before treating reports as final.",
+        "Red blocks partner pilot expansion until the listed mismatches are resolved.",
+    ]
+    return PartnerWorkspaceReportingSummaryResponse(
+        workspace_id=partner_account_id,
+        generated_at=datetime.now(UTC),
+        report_version=str(metadata.get("report_version") or "phase7-reporting-marts-v1"),
+        metrics=metrics,
+        reconciliation=PartnerWorkspaceReportingReconciliationResponse(
+            status=str(reconciliation.get("status") or "green"),
+            mismatch_counts=mismatch_counts,
+            blocking_mismatch_count=len(blocking_mismatches),
+            notes=reconciliation_notes,
+        ),
+        export_redaction=PartnerWorkspaceReportExportRedactionResponse(
+            policy="redacted_partner_export",
+            pii_fields_excluded=[
+                "email",
+                "telegram_id",
+                "phone",
+                "raw_user_id",
+                "ip_address",
+                "payment_provider_payload",
+                "provider_customer_id",
+                "vpn_subscription_url",
+            ],
+            masked_fields=[
+                "customer_label",
+                "geo",
+                "source",
+            ],
+            notes=[
+                "Partner exports must use masked customer labels and aggregated geography only.",
+                "Raw payment provider payloads and VPN subscription links are never export fields.",
+            ],
+        ),
+        source_of_truth_notes=[
+            "Conversions are sourced from orders, attribution results, renewal lineage, refunds and disputes.",
+            "Earnings are sourced from earning events and partner statement snapshots.",
+            "Outbox consumer health is used only to qualify report freshness and replay risk.",
+            "Trial attribution is intentionally marked not available until a canonical trial mart exists.",
+        ],
+    )
+
+
+def _build_workspace_settlement_sandbox_simulation(
+    *,
+    partner_account_id: UUID,
+    report_pack: dict,
+    statements: list,
+    payout_accounts: list,
+    payout_instructions: list,
+    payout_executions: list,
+) -> PartnerWorkspaceSettlementSandboxSimulationResponse:
+    partner_row = _get_workspace_partner_reporting_row(
+        report_pack=report_pack,
+        partner_account_id=partner_account_id,
+    )
+    currency_codes = list(partner_row.get("currency_codes") or [])
+    if currency_codes:
+        currency_code = str(currency_codes[0]).upper()
+    elif statements:
+        currency_code = str(getattr(statements[0], "currency_code", "USD") or "USD").upper()
+    else:
+        currency_code = "USD"
+
+    closed_positive_statements = [
+        statement
+        for statement in statements
+        if getattr(statement, "statement_status", None) == PartnerStatementStatus.CLOSED.value
+        and getattr(statement, "superseded_by_statement_id", None) is None
+        and float(getattr(statement, "available_amount", 0) or 0) > 0
+    ]
+    eligible_payout_accounts = [
+        account
+        for account in payout_accounts
+        if getattr(account, "account_status", None) == PartnerPayoutAccountStatus.ACTIVE.value
+        and getattr(account, "verification_status", None) == PartnerPayoutAccountVerificationStatus.VERIFIED.value
+        and getattr(account, "approval_status", None) == PartnerPayoutAccountApprovalStatus.APPROVED.value
+    ]
+    pending_instructions = [
+        instruction
+        for instruction in payout_instructions
+        if getattr(instruction, "instruction_status", None) == PayoutInstructionStatus.PENDING_APPROVAL.value
+    ]
+    approved_instructions = [
+        instruction
+        for instruction in payout_instructions
+        if getattr(instruction, "instruction_status", None) == PayoutInstructionStatus.APPROVED.value
+    ]
+    active_executions = [
+        execution
+        for execution in payout_executions
+        if getattr(execution, "execution_status", None)
+        in {
+            PayoutExecutionStatus.REQUESTED.value,
+            PayoutExecutionStatus.SUBMITTED.value,
+        }
+    ]
+    dry_run_executions = [
+        execution
+        for execution in payout_executions
+        if getattr(execution, "execution_mode", None) == PayoutExecutionMode.DRY_RUN.value
+    ]
+    live_executions = [
+        execution
+        for execution in payout_executions
+        if getattr(execution, "execution_mode", None) == PayoutExecutionMode.LIVE.value
+    ]
+
+    blocked_reasons = ["stage_blocks_live_payout"]
+    if not closed_positive_statements:
+        blocked_reasons.append("no_closed_positive_statement")
+    if not eligible_payout_accounts:
+        blocked_reasons.append("payout_account_not_approved")
+    if pending_instructions:
+        blocked_reasons.append("payout_instruction_awaiting_maker_checker")
+    if not approved_instructions:
+        blocked_reasons.append("no_approved_instruction_for_dry_run")
+    if active_executions:
+        blocked_reasons.append("active_payout_execution_exists")
+
+    payout_instruction_allowed = bool(closed_positive_statements and eligible_payout_accounts and not active_executions)
+    dry_run_execution_allowed = bool(approved_instructions and not active_executions)
+    available_statement_amount = sum(
+        float(getattr(item, "available_amount", 0) or 0)
+        for item in closed_positive_statements
+    )
+    on_hold_amount = sum(float(getattr(item, "on_hold_amount", 0) or 0) for item in statements)
+    reserve_amount = sum(float(getattr(item, "reserve_amount", 0) or 0) for item in statements)
+    adjustment_net_amount = sum(float(getattr(item, "adjustment_net_amount", 0) or 0) for item in statements)
+
+    metrics = [
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="available_statement_amount",
+            value=_format_money(available_statement_amount, currency_code),
+            source_of_truth="partner_statements.available_amount",
+            notes=["Only latest closed positive statements are counted as payout candidates."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="on_hold_amount",
+            value=_format_money(on_hold_amount, currency_code),
+            source_of_truth="partner_statements.on_hold_amount",
+            notes=["Held earnings remain excluded from payout readiness."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="reserve_amount",
+            value=_format_money(reserve_amount, currency_code),
+            source_of_truth="partner_statements.reserve_amount",
+            notes=["Reserve impact is visible before any payout action is allowed."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="adjustment_net_amount",
+            value=_format_money(adjustment_net_amount, currency_code),
+            source_of_truth="partner_statements.adjustment_net_amount",
+            notes=["Refund and chargeback adjustments must remain explainable from statement data."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="paid_conversion_count",
+            value=str(int(partner_row.get("paid_conversion_count", 0) or 0)),
+            source_of_truth="partner_reporting_mart",
+            notes=["Used for finance review only; payouts are sourced from statements."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="refund_count",
+            value=str(int(partner_row.get("refund_count", 0) or 0)),
+            source_of_truth="partner_reporting_mart",
+            notes=["Refund impact must be reviewed before statement approval."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="chargeback_count",
+            value=str(int(partner_row.get("chargeback_count", 0) or 0)),
+            source_of_truth="partner_reporting_mart",
+            notes=["Chargeback impact blocks careless payout expansion."],
+        ),
+        PartnerWorkspaceSettlementSandboxMetricResponse(
+            key="payout_export_status",
+            value="disabled_by_default",
+            source_of_truth="S3-STAGE-11 policy",
+            notes=["No partner self-serve payout export is enabled in this stage."],
+        ),
+    ]
+
+    return PartnerWorkspaceSettlementSandboxSimulationResponse(
+        workspace_id=partner_account_id,
+        generated_at=datetime.now(UTC),
+        currency_code=currency_code,
+        metrics=metrics,
+        eligibility=PartnerWorkspaceSettlementSandboxEligibilityResponse(
+            settlement_simulation_reproducible=bool(partner_row or statements),
+            payout_instruction_allowed=payout_instruction_allowed,
+            dry_run_execution_allowed=dry_run_execution_allowed,
+            live_payout_allowed=False,
+            manual_approval_required=True,
+            maker_checker_required=True,
+            blocked_reasons=blocked_reasons,
+            eligible_statement_count=len(closed_positive_statements),
+            eligible_payout_account_count=len(eligible_payout_accounts),
+            pending_instruction_count=len(pending_instructions),
+            approved_instruction_count=len(approved_instructions),
+            dry_run_execution_count=len(dry_run_executions),
+            live_execution_count=len(live_executions),
+        ),
+        policy=PartnerWorkspaceSettlementSandboxPolicyResponse(
+            required_next_stages=[
+                "S3-STAGE-12",
+                "S3-STAGE-14",
+                "S3-STAGE-15",
+                "S3-STAGE-17",
+            ],
+            notes=[
+                "S3-STAGE-11 is sandbox-only and does not permit live payouts.",
+                "Finance approval must use maker-checker; maker and checker cannot be the same admin.",
+                "Partner self-serve withdrawal and mass payout remain out of scope.",
+            ],
+        ),
+        calculation_notes=[
+            "Payout readiness is derived from closed positive statements, approved payout accounts and payout "
+            "workflow state.",
+            "Live payout remains blocked regardless of eligibility until later S3 finance, legal, staging and "
+            "pilot gates pass.",
+            "Refunds, chargebacks, holds and reserves are surfaced for review before any payout expansion.",
+        ],
+    )
+
+
+async def _load_workspace_payout_history(
+    *,
+    access: PartnerWorkspaceAccess,
+    db: AsyncSession,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[PartnerWorkspacePayoutHistoryResponse]:
+    statements = await ListPartnerStatementsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        settlement_period_id=None,
+        statement_status=None,
+        limit=500,
+        offset=0,
+    )
+    payout_accounts = await ListPartnerPayoutAccountsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        limit=500,
+        offset=0,
+    )
+    instructions = await ListPayoutInstructionsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        limit=limit,
+        offset=offset,
+    )
+    executions = await ListPayoutExecutionsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        limit=500,
+        offset=0,
+    )
+    return _build_partner_workspace_payout_history(
+        instructions=instructions,
+        executions=executions,
+        statements=statements,
+        payout_accounts=payout_accounts,
+    )
+
+
+async def _load_workspace_settlement_sandbox(
+    *,
+    access: PartnerWorkspaceAccess,
+    db: AsyncSession,
+) -> PartnerWorkspaceSettlementSandboxSimulationResponse:
+    reporting_context = await BuildPartnerWorkspaceReportingUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        order_limit=500,
+        order_offset=0,
+        statement_limit=200,
+        statement_offset=0,
+        payout_limit=100,
+        payout_offset=0,
+    )
+    payout_instructions = await ListPayoutInstructionsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        limit=200,
+        offset=0,
+    )
+    payout_executions = await ListPayoutExecutionsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        limit=200,
+        offset=0,
+    )
+    return _build_workspace_settlement_sandbox_simulation(
+        partner_account_id=access.workspace.id,
+        report_pack=reporting_context.report_pack,
+        statements=reporting_context.statements,
+        payout_accounts=reporting_context.payout_accounts,
+        payout_instructions=payout_instructions,
+        payout_executions=payout_executions,
+    )
+
+
+def _build_partner_admin_payout_review_queue(
+    *,
+    workspace_id: UUID,
+    cases: list[PartnerWorkspaceCaseResponse],
+    payout_history: list[PartnerWorkspacePayoutHistoryResponse],
+    settlement_sandbox: PartnerWorkspaceSettlementSandboxSimulationResponse,
+) -> list[PartnerAdminPayoutReviewItemResponse]:
+    review_items: list[PartnerAdminPayoutReviewItemResponse] = []
+    finance_case_kinds = {"finance_onboarding", "payout_dispute", "statement_question"}
+    for item in cases:
+        if item.kind not in finance_case_kinds or item.status == "resolved":
+            continue
+        review_items.append(
+            PartnerAdminPayoutReviewItemResponse(
+                id=f"case:{item.id}",
+                kind=item.kind,
+                status=item.status,
+                source="workspace_case",
+                required_role=AdminRole.FINANCE.value,
+                updated_at=item.updated_at,
+                notes=list(item.notes or []),
+            )
+        )
+
+    for item in payout_history:
+        if item.lifecycle_status not in {"pending_review", "queued", "in_flight", "failed", "blocked"}:
+            continue
+        review_items.append(
+            PartnerAdminPayoutReviewItemResponse(
+                id=item.id,
+                kind="payout_instruction",
+                status=item.lifecycle_status,
+                source="payout_workflow",
+                required_role=AdminRole.FINANCE.value,
+                updated_at=item.updated_at,
+                amount=_format_money(item.amount, item.currency_code),
+                notes=list(item.notes or []),
+            )
+        )
+
+    if not settlement_sandbox.eligibility.live_payout_allowed:
+        review_items.append(
+            PartnerAdminPayoutReviewItemResponse(
+                id=f"settlement-sandbox:{workspace_id}",
+                kind="settlement_policy",
+                status="blocked",
+                source="settlement_sandbox",
+                required_role=AdminRole.FINANCE.value,
+                updated_at=settlement_sandbox.generated_at,
+                notes=[
+                    "Live payouts are blocked by S3 policy.",
+                    *settlement_sandbox.eligibility.blocked_reasons,
+                ],
+            )
+        )
+
+    review_items.sort(key=lambda item: _normalize_utc(item.updated_at), reverse=True)
+    return review_items
+
+
+def _build_partner_admin_ops_actions(
+    *,
+    workspace: PartnerWorkspaceResponse,
+    active_code_count: int,
+    payout_review_count: int,
+) -> list[PartnerAdminOpsActionResponse]:
+    frozen = workspace.status in {"suspended", "rejected", "terminated"}
+    return [
+        PartnerAdminOpsActionResponse(
+            key="freeze_workspace",
+            status="blocked" if frozen else "available",
+            required_role=AdminRole.ADMIN.value,
+            notes=["Use `/admin/partner-workspaces/{workspace_id}/status` with a reason."],
+        ),
+        PartnerAdminOpsActionResponse(
+            key="unfreeze_workspace",
+            status="available" if workspace.status in {"restricted", "suspended"} else "blocked",
+            required_role=AdminRole.ADMIN.value,
+            notes=["Restore only after open support/finance blockers are classified."],
+        ),
+        PartnerAdminOpsActionResponse(
+            key="disable_partner_code",
+            status="available" if active_code_count > 0 else "blocked",
+            required_role=AdminRole.ADMIN.value,
+            notes=["Use the admin code status route; every change writes a workspace workflow event."],
+        ),
+        PartnerAdminOpsActionResponse(
+            key="review_payout_queue",
+            status="available" if payout_review_count > 0 else "not_required",
+            required_role=AdminRole.FINANCE.value,
+            notes=["Read-only queue; live payout remains controlled by the payout gates."],
+        ),
+        PartnerAdminOpsActionResponse(
+            key="manual_grant_revoke",
+            status="deferred_to_customer_support_flow",
+            required_role=AdminRole.OPERATOR.value,
+            notes=[
+                "S3 partner ops can reference existing S1/S2 support grants; no partner self-service grant is opened."
+            ],
+        ),
+    ]
+
+
+async def _load_partner_admin_ops_overview(
+    *,
+    workspace_id: UUID,
+    db: AsyncSession,
+) -> PartnerAdminOpsOverviewResponse:
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    access = _build_internal_admin_read_workspace_access(workspace)
+    workspace_payload = await GetPartnerWorkspaceUseCase(partner_account_repo, PartnerRepository(db)).execute(
+        workspace.id
+    )
+    serialized_workspace = _serialize_workspace_response(workspace_payload)
+    review_requests = await _load_workspace_review_requests(access=access, db=db)
+    cases = await _load_workspace_cases(access=access, db=db)
+    payout_history = await _load_workspace_payout_history(access=access, db=db)
+    settlement_sandbox = await _load_workspace_settlement_sandbox(access=access, db=db)
+    payout_review_queue = _build_partner_admin_payout_review_queue(
+        workspace_id=workspace.id,
+        cases=cases,
+        payout_history=payout_history,
+        settlement_sandbox=settlement_sandbox,
+    )
+    workflow_events = await ListPartnerWorkspaceWorkflowEventsUseCase(db).execute(
+        partner_account_id=workspace.id,
+        limit=50,
+        offset=0,
+    )
+    recent_audit_events = [
+        _serialize_workspace_thread_event(item)
+        for item in sorted(workflow_events, key=lambda event: event.created_at, reverse=True)
+    ]
+
+    overview = PartnerAdminOpsOverviewResponse(
+        workspace=serialized_workspace,
+        generated_at=datetime.now(UTC),
+        open_cases=sum(1 for item in cases if item.status != "resolved"),
+        waiting_on_ops_cases=sum(1 for item in cases if item.status == "waiting_on_ops"),
+        open_review_requests=sum(1 for item in review_requests if item.status == "open"),
+        payout_review_items=len(payout_review_queue),
+        frozen=workspace.status in {"suspended", "rejected", "terminated"},
+        cases=cases,
+        review_requests=review_requests,
+        payout_review_queue=payout_review_queue,
+        recent_audit_events=recent_audit_events,
+        available_admin_actions=_build_partner_admin_ops_actions(
+            workspace=serialized_workspace,
+            active_code_count=serialized_workspace.active_code_count,
+            payout_review_count=len(payout_review_queue),
+        ),
+        escalation_path=[
+            "support_triage",
+            "finance_review",
+            "admin_decision",
+            "owner_escalation_if_payout_or_abuse_risk",
+        ],
+        redaction_notes=[
+            "Customer identifiers remain masked in partner workspace records.",
+            "Raw payment provider payloads and VPN subscription links are not exposed in this overview.",
+            "Use customer support/admin customer operations for customer-specific manual grants.",
+        ],
+    )
+    observe_partner_admin_ops_overview(
+        workspace_status=workspace.status,
+        open_cases=overview.open_cases,
+        waiting_on_ops_cases=overview.waiting_on_ops_cases,
+        payout_review_queue=overview.payout_review_queue,
+        recent_audit_events=overview.recent_audit_events,
+    )
+    return overview
+
+
 def _build_workspace_report_exports(
     *,
     access: PartnerWorkspaceAccess,
@@ -2025,6 +2711,16 @@ def _build_workspace_report_exports(
     ]
 
     exports: list[PartnerWorkspaceReportExportResponse] = []
+    excluded_pii_fields = [
+        "email",
+        "telegram_id",
+        "phone",
+        "raw_user_id",
+        "ip_address",
+        "payment_provider_payload",
+        "provider_customer_id",
+        "vpn_subscription_url",
+    ]
     for item in export_definitions:
         thread_events = _get_subject_thread_events(
             grouped_events=workflow_events_by_subject,
@@ -2038,6 +2734,9 @@ def _build_workspace_report_exports(
                 kind=str(item["kind"]),
                 status=status,
                 cadence=str(item["cadence"]),
+                source_of_truth="workspace_scoped_backend_reporting_marts",
+                redaction_policy="redacted_partner_export",
+                pii_fields_excluded=list(excluded_pii_fields),
                 notes=list(item["notes"]),
                 available_actions=(
                     ["schedule_export"]
@@ -3164,6 +3863,130 @@ async def get_admin_partner_workspace(
 
 
 @router.get(
+    "/admin/partner-workspaces/{workspace_id}/ops-overview",
+    response_model=PartnerAdminOpsOverviewResponse,
+)
+async def get_admin_partner_workspace_ops_overview(
+    workspace_id: UUID,
+    _current_user: AdminUserModel = Depends(require_role(AdminRole.SUPPORT)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerAdminOpsOverviewResponse:
+    overview = await _load_partner_admin_ops_overview(workspace_id=workspace_id, db=db)
+    track_partner_operation(operation="get_admin_workspace_ops_overview")
+    return overview
+
+
+@router.get(
+    "/admin/partner-workspaces/{workspace_id}/payout-review-queue",
+    response_model=list[PartnerAdminPayoutReviewItemResponse],
+)
+async def list_admin_partner_workspace_payout_review_queue(
+    workspace_id: UUID,
+    _current_user: AdminUserModel = Depends(require_role(AdminRole.FINANCE)),
+    db: AsyncSession = Depends(get_db),
+) -> list[PartnerAdminPayoutReviewItemResponse]:
+    overview = await _load_partner_admin_ops_overview(workspace_id=workspace_id, db=db)
+    track_partner_operation(operation="list_admin_workspace_payout_review_queue")
+    return overview.payout_review_queue
+
+
+@router.patch(
+    "/admin/partner-workspaces/{workspace_id}/status",
+    response_model=PartnerWorkspaceResponse,
+)
+async def update_admin_partner_workspace_status(
+    workspace_id: UUID,
+    body: UpdatePartnerWorkspaceStatusRequest,
+    current_user: AdminUserModel = Depends(require_role(AdminRole.ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceResponse:
+    if body.workspace_status not in _WORKSPACE_ADMIN_STATUS_VALUES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid partner workspace status")
+
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    previous_status = workspace.status
+    workspace.status = body.workspace_status
+    await partner_account_repo.update_account(workspace)
+    reason = body.reason or "No reason provided"
+    try:
+        await CreatePartnerWorkspaceWorkflowEventUseCase(db).execute(
+            partner_account_id=workspace.id,
+            subject_kind=_WORKSPACE_ADMIN_OPS_SUBJECT_KIND,
+            subject_id=f"workspace:{workspace.id}",
+            action_kind=_WORKSPACE_STATUS_CHANGED_ACTION,
+            message=f"Workspace status changed from {previous_status} to {body.workspace_status}: {reason}",
+            event_payload={
+                "old_status": previous_status,
+                "new_status": body.workspace_status,
+                "reason": reason,
+                "stage": "S3-STAGE-12",
+            },
+            created_by_admin_user_id=current_user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    payload = await GetPartnerWorkspaceUseCase(partner_account_repo, PartnerRepository(db)).execute(workspace.id)
+    track_partner_operation(operation=f"update_workspace_status:{body.workspace_status}")
+    return _serialize_workspace_response(payload)
+
+
+@router.patch(
+    "/admin/partner-workspaces/{workspace_id}/codes/{code_id}/status",
+    response_model=PartnerWorkspaceCodeResponse,
+)
+async def update_admin_partner_workspace_code_status(
+    workspace_id: UUID,
+    code_id: UUID,
+    body: UpdatePartnerWorkspaceCodeStatusRequest,
+    current_user: AdminUserModel = Depends(require_role(AdminRole.ADMIN)),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceCodeResponse:
+    partner_account_repo = PartnerAccountRepository(db)
+    workspace = await partner_account_repo.get_account_by_id(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
+
+    partner_repo = PartnerRepository(db)
+    code_model = await partner_repo.get_code_by_id(code_id)
+    if code_model is None or code_model.partner_account_id != workspace.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner code not found")
+
+    previous_active = bool(code_model.is_active)
+    code_model.is_active = body.is_active
+    updated = await partner_repo.update_code(code_model)
+    try:
+        await CreatePartnerWorkspaceWorkflowEventUseCase(db).execute(
+            partner_account_id=workspace.id,
+            subject_kind=_WORKSPACE_PARTNER_CODE_SUBJECT_KIND,
+            subject_id=str(updated.id),
+            action_kind=_WORKSPACE_PARTNER_CODE_STATUS_CHANGED_ACTION,
+            message=(
+                f"Partner code {updated.code} active status changed from "
+                f"{previous_active} to {body.is_active}: {body.reason}"
+            ),
+            event_payload={
+                "code_id": str(updated.id),
+                "code": updated.code,
+                "old_is_active": previous_active,
+                "new_is_active": body.is_active,
+                "reason": body.reason,
+                "stage": "S3-STAGE-12",
+            },
+            created_by_admin_user_id=current_user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    track_partner_operation(operation=f"admin_workspace_code_status:{body.is_active}")
+    return _serialize_workspace_code(updated)
+
+
+@router.get(
     "/admin/partner-applications",
     response_model=list[PartnerApplicationAdminSummaryResponse],
 )
@@ -3604,7 +4427,7 @@ async def get_partner_session_bootstrap(
 
     track_partner_operation(operation="get_session_bootstrap")
     active_workspace_status = active_workspace.status if active_workspace is not None else "none"
-    primary_blocked_reason = blocked_reasons[0].reason_code if blocked_reasons else None
+    primary_blocked_reason = blocked_reasons[0].code if blocked_reasons else None
     bind_partner_context_from_realm(
         current_realm=current_realm,
         route_group="bootstrap",
@@ -3624,7 +4447,7 @@ async def get_partner_session_bootstrap(
         workspace_status=active_workspace_status,
         release_ring=release_ring,
         pending_task_count=len(pending_tasks),
-        blocked_reason_codes=[item.reason_code for item in blocked_reasons],
+        blocked_reason_codes=[item.code for item in blocked_reasons],
         unread_notifications=notification_counters.unread_notifications,
     )
     return PartnerSessionBootstrapResponse(
@@ -4395,22 +5218,36 @@ async def update_partner_workspace_member(
     if membership is None or membership.partner_account_id != access.workspace.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace member not found")
 
+    current_role = await repo.get_role_by_id(membership.role_id)
+    if current_role is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Partner workspace role is missing",
+        )
+
     if body.role_key is not None:
         role = await repo.get_role_by_key(body.role_key)
         if role is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Partner workspace role not found")
-        membership.role_id = role.id
     else:
-        role = await repo.get_role_by_id(membership.role_id)
-        if role is None:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Partner workspace role is missing",
-            )
+        role = current_role
 
+    requested_membership_status = body.membership_status or membership.membership_status
     if body.membership_status is not None:
         if body.membership_status not in _WORKSPACE_MEMBER_STATUSES:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid workspace member status")
+
+    await _enforce_workspace_owner_role_update_guard(
+        repo,
+        access=access,
+        membership=membership,
+        current_role_key=current_role.role_key,
+        requested_role_key=role.role_key,
+        requested_membership_status=requested_membership_status,
+    )
+
+    membership.role_id = role.id
+    if body.membership_status is not None:
         membership.membership_status = body.membership_status
 
     membership = await repo.update_membership(membership)
@@ -4914,35 +5751,8 @@ async def list_partner_workspace_payout_history(
     ),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspacePayoutHistoryResponse]:
-    statements = await ListPartnerStatementsUseCase(db).execute(
-        partner_account_id=access.workspace.id,
-        settlement_period_id=None,
-        statement_status=None,
-        limit=500,
-        offset=0,
-    )
-    payout_accounts = await ListPartnerPayoutAccountsUseCase(db).execute(
-        partner_account_id=access.workspace.id,
-        limit=500,
-        offset=0,
-    )
-    instructions = await ListPayoutInstructionsUseCase(db).execute(
-        partner_account_id=access.workspace.id,
-        limit=limit,
-        offset=offset,
-    )
-    executions = await ListPayoutExecutionsUseCase(db).execute(
-        partner_account_id=access.workspace.id,
-        limit=500,
-        offset=0,
-    )
     track_partner_operation(operation="list_workspace_payout_history")
-    return _build_partner_workspace_payout_history(
-        instructions=instructions,
-        executions=executions,
-        statements=statements,
-        payout_accounts=payout_accounts,
-    )
+    return await _load_workspace_payout_history(access=access, db=db, limit=limit, offset=offset)
 
 
 @router.get(
@@ -5024,6 +5834,48 @@ async def list_partner_workspace_analytics_metrics(
         partner_account_id=access.workspace.id,
         report_pack=reporting_context.report_pack,
     )
+
+
+@router.get(
+    "/partner-workspaces/{workspace_id}/reporting-summary",
+    response_model=PartnerWorkspaceReportingSummaryResponse,
+)
+async def get_partner_workspace_reporting_summary(
+    workspace_id: UUID,
+    access: PartnerWorkspaceAccess = Depends(
+        require_partner_workspace_permission(PartnerPermission.EARNINGS_READ)
+    ),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceReportingSummaryResponse:
+    reporting_context = await BuildPartnerWorkspaceReportingUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        order_limit=500,
+        order_offset=0,
+        statement_limit=200,
+        statement_offset=0,
+        payout_limit=100,
+        payout_offset=0,
+    )
+    track_partner_operation(operation="get_workspace_reporting_summary")
+    return _build_workspace_reporting_summary(
+        partner_account_id=access.workspace.id,
+        report_pack=reporting_context.report_pack,
+    )
+
+
+@router.get(
+    "/partner-workspaces/{workspace_id}/settlement-sandbox",
+    response_model=PartnerWorkspaceSettlementSandboxSimulationResponse,
+)
+async def get_partner_workspace_settlement_sandbox(
+    workspace_id: UUID,
+    access: PartnerWorkspaceAccess = Depends(
+        require_partner_workspace_permission(PartnerPermission.PAYOUTS_READ)
+    ),
+    db: AsyncSession = Depends(get_db),
+) -> PartnerWorkspaceSettlementSandboxSimulationResponse:
+    track_partner_operation(operation="get_workspace_settlement_sandbox")
+    return await _load_workspace_settlement_sandbox(access=access, db=db)
 
 
 @router.get(

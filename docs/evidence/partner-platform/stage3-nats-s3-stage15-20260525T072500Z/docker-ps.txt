@@ -1,0 +1,2 @@
+NAME                            IMAGE                COMMAND                  SERVICE        CREATED         STATUS         PORTS
+cybervpn-partner-nats-nonprod   nats:2.12.7-alpine   "docker-entrypoint.s…"   partner-nats   8 seconds ago   Up 7 seconds   127.0.0.1:4222->4222/tcp, 127.0.0.1:8222->8222/tcp

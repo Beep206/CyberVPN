@@ -26,6 +26,11 @@ def test_partner_statement_and_settlement_period_routes_exist_in_openapi() -> No
         in paths
     )
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/analytics-metrics" in paths
+    assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/reporting-summary" in paths
+    assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/settlement-sandbox" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/ops-overview" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/payout-review-queue" in paths
+    assert f"{API_V1_PREFIX}/admin/partner-workspaces/{{workspace_id}}/codes/{{code_id}}/status" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/report-exports" in paths
     assert (
         f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/report-exports/{{export_id}}/schedule"
@@ -44,6 +49,18 @@ def test_partner_statement_and_settlement_period_routes_exist_in_openapi() -> No
     assert "PartnerWorkspaceCodeResponse" in components
     assert "PartnerWorkspaceConversionRecordResponse" in components
     assert "PartnerWorkspaceAnalyticsMetricResponse" in components
+    assert "PartnerWorkspaceReportingSummaryResponse" in components
+    assert "PartnerWorkspaceReportingSummaryMetricResponse" in components
+    assert "PartnerWorkspaceReportingReconciliationResponse" in components
+    assert "PartnerWorkspaceSettlementSandboxSimulationResponse" in components
+    assert "PartnerWorkspaceSettlementSandboxEligibilityResponse" in components
+    assert "PartnerWorkspaceSettlementSandboxPolicyResponse" in components
+    assert "PartnerWorkspaceSettlementSandboxMetricResponse" in components
+    assert "PartnerAdminOpsOverviewResponse" in components
+    assert "PartnerAdminOpsActionResponse" in components
+    assert "PartnerAdminPayoutReviewItemResponse" in components
+    assert "UpdatePartnerWorkspaceCodeStatusRequest" in components
+    assert "PartnerWorkspaceReportExportRedactionResponse" in components
     assert "PartnerWorkspaceReportExportResponse" in components
     assert "SchedulePartnerWorkspaceReportExportRequest" in components
     assert "PartnerWorkspaceReviewRequestResponse" in components

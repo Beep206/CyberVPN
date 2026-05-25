@@ -245,6 +245,15 @@ class Settings(BaseSettings):
     metrics_port: int = 9091  # Separate port for /metrics, not exposed publicly
 
     # Partner event backbone / realtime
+    partner_portal_enabled: bool = False
+    partner_applications_enabled: bool = False
+    partner_codes_enabled: bool = False
+    partner_attribution_enabled: bool = False
+    partner_storefronts_enabled: bool = False
+    partner_reporting_enabled: bool = False
+    partner_settlement_sandbox_enabled: bool = False
+    partner_webhooks_enabled: bool = False
+    partner_payouts_enabled: bool = False
     partner_event_backbone_enabled: bool = False
     nats_url: str = "nats://localhost:4222"
     nats_partner_stream_name: str = "PARTNER_EVENTS"
@@ -253,6 +262,7 @@ class Settings(BaseSettings):
     outbox_dispatch_interval_seconds: float = 1.0
     outbox_dispatch_lease_seconds: int = 30
     outbox_dispatch_retry_after_seconds: int = 5
+    outbox_dispatch_dead_letter_after_attempts: int = 5
     nats_consumer_fetch_batch_size: int = 25
     nats_consumer_fetch_timeout_seconds: float = 1.0
     partner_realtime_backlog_limit: int = 100

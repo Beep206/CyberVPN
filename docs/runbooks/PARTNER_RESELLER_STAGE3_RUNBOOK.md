@@ -90,9 +90,24 @@ Do not expose this receiver through Caddy until all of these are done:
 
 - DNS records exist;
 - HMAC signature is required;
+- replay guard is enabled through timestamp and stable event id headers;
 - rate-limit policy is written;
 - evidence retention policy is accepted;
 - public webhook test route has a rollback plan.
+
+Required webhook test headers:
+
+```text
+X-CyberVPN-Partner-Signature: sha256=<hmac_sha256(body)>
+X-CyberVPN-Partner-Timestamp: <unix_seconds>
+X-CyberVPN-Partner-Event-Id: <stable_event_id>
+```
+
+Replay window:
+
+```text
+PARTNER_WEBHOOK_REPLAY_WINDOW_SECONDS=300
+```
 
 ---
 
@@ -149,6 +164,33 @@ Operator use:
 - use Stage 3 dashboards for readiness and sandbox evidence;
 - use existing partner dashboards for runtime/UX drilldown;
 - do not treat Prometheus as the long-term settlement ledger.
+
+Stage 3 Prometheus assets:
+
+```text
+infra/prometheus/rules/stage3_partner_reseller_alerts.yml
+infra/prometheus/targets/stage3-storefront-endpoints.json
+```
+
+Prometheus must load:
+
+```text
+stage3-storefront-endpoints
+cybervpn_stage3_partner_reseller_recording_rules
+cybervpn_stage3_partner_reseller_alerts
+```
+
+Minimum alert families:
+
+- storefront synthetic failure;
+- partner outbox lag, publish failure and dead-letter;
+- payout review backlog;
+- settlement dry-run / payout simulation failures;
+- risk review backlog;
+- audit log failure;
+- webhook receiver failures;
+- attribution no-owner spike;
+- frontend errors.
 
 ---
 

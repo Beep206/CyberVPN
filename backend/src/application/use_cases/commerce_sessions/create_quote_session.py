@@ -15,6 +15,7 @@ from src.application.use_cases.commerce_sessions.quote_serialization import (
 )
 from src.application.use_cases.growth_codes.reservations import GrowthCodeReservationService
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
+from src.config.settings import settings
 from src.domain.enums import AttributionTouchpointType, GrowthCodeType
 from src.infrastructure.database.models.quote_session_model import QuoteSessionModel
 from src.infrastructure.database.repositories.commerce_session_repo import CommerceSessionRepository
@@ -136,43 +137,44 @@ class CreateQuoteSessionUseCase:
             created.quote_snapshot = serialize_checkout_result(checkout_result)
             await self._session.flush()
 
-        await self._touchpoints.execute(
-            current_realm=current_realm,
-            touchpoint_type=AttributionTouchpointType.STOREFRONT_ORIGIN.value,
-            user_id=user_id,
-            storefront_id=resolved_context.storefront.id,
-            quote_session_id=created.id,
-            sale_channel=channel,
-            source_host=source_host,
-            source_path=source_path,
-            campaign_params=dict(campaign_params or {}),
-            evidence_payload={
-                "source": "quote_session_create",
-                "storefront_key": resolved_context.storefront.storefront_key,
-            },
-            commit=False,
-        )
         normalized_partner_code = partner_code.strip() if partner_code else None
-        if normalized_partner_code and checkout_result.partner_code_id is not None:
+        if settings.partner_attribution_enabled:
             await self._touchpoints.execute(
                 current_realm=current_realm,
-                touchpoint_type=AttributionTouchpointType.EXPLICIT_CODE.value,
+                touchpoint_type=AttributionTouchpointType.STOREFRONT_ORIGIN.value,
                 user_id=user_id,
                 storefront_id=resolved_context.storefront.id,
                 quote_session_id=created.id,
-                partner_code=normalized_partner_code,
-                partner_code_id=checkout_result.partner_code_id,
                 sale_channel=channel,
                 source_host=source_host,
                 source_path=source_path,
                 campaign_params=dict(campaign_params or {}),
                 evidence_payload={
                     "source": "quote_session_create",
-                    "entry_mode": "request_payload",
                     "storefront_key": resolved_context.storefront.storefront_key,
                 },
                 commit=False,
             )
+            if normalized_partner_code and checkout_result.partner_code_id is not None:
+                await self._touchpoints.execute(
+                    current_realm=current_realm,
+                    touchpoint_type=AttributionTouchpointType.EXPLICIT_CODE.value,
+                    user_id=user_id,
+                    storefront_id=resolved_context.storefront.id,
+                    quote_session_id=created.id,
+                    partner_code=normalized_partner_code,
+                    partner_code_id=checkout_result.partner_code_id,
+                    sale_channel=channel,
+                    source_host=source_host,
+                    source_path=source_path,
+                    campaign_params=dict(campaign_params or {}),
+                    evidence_payload={
+                        "source": "quote_session_create",
+                        "entry_mode": "request_payload",
+                        "storefront_key": resolved_context.storefront.storefront_key,
+                    },
+                    commit=False,
+                )
 
         await self._session.commit()
         await self._session.refresh(created)

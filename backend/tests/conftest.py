@@ -36,6 +36,12 @@ def test_settings():
     """Set up test environment variables."""
     # Store original values
     original_env = {}
+    original_partner_flags = {
+        "partner_portal_enabled": settings.partner_portal_enabled,
+        "partner_codes_enabled": settings.partner_codes_enabled,
+        "partner_attribution_enabled": settings.partner_attribution_enabled,
+        "partner_reporting_enabled": settings.partner_reporting_enabled,
+    }
 
     # Test environment variables
     test_env = {
@@ -55,7 +61,15 @@ def test_settings():
         original_env[key] = os.environ.get(key)
         os.environ[key] = value
 
+    settings.partner_portal_enabled = True
+    settings.partner_codes_enabled = True
+    settings.partner_attribution_enabled = True
+    settings.partner_reporting_enabled = True
+
     yield test_env
+
+    for attr, value in original_partner_flags.items():
+        setattr(settings, attr, value)
 
     # Restore original environment variables
     for key, original_value in original_env.items():

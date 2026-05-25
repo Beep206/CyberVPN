@@ -15,9 +15,10 @@
 ```text
 Stage: S3-STAGE-00
 Name: Partner/Event Backbone Readiness Decision
-Status: PREPARED_NOT_APPROVED
-Date: 2026-05-23
-Owner decision required: yes
+Status: APPROVED_OPTION_A
+Prepared: 2026-05-23
+Approved: 2026-05-24
+Owner decision required: closed
 Runtime implementation allowed by this document: no
 ```
 
@@ -198,6 +199,15 @@ The recommended owner decision is:
 S3-STAGE-00_DECISION=APPROVE_OPTION_A
 ```
 
+Owner execution decision captured on 2026-05-24:
+
+```text
+S3-STAGE-00_DECISION=APPROVE_OPTION_A
+S3_PRODUCTION_PARTNER_RUNTIME=DISABLED_UNTIL_EVIDENCE
+S3_PRODUCTION_EVENT_BACKBONE=DISABLED_UNTIL_REAL_BROKER_PROOF
+S3_PRODUCTION_PAYOUTS=DISABLED_UNTIL_MAKER_CHECKER_AUDIT_AND_SANDBOX_EVIDENCE
+```
+
 Meaning:
 
 - continue daily S2 stabilization snapshots;
@@ -237,17 +247,18 @@ Meaning:
 
 ---
 
-## 8. First S3 Work If Option A Is Approved
+## 8. First S3 Work After Option A Approval
 
-The next practical S3 stages should be:
+The next practical S3 stages must follow the permanent S3 roadmap numbering exactly:
 
-1. `S3-STAGE-01: Partner Scope, Backlog, And Role Freeze`
-2. `S3-STAGE-02: Non-Prod Event Backbone Topology`
-3. `S3-STAGE-03: Outbox Dispatcher And Consumer Proof`
-4. `S3-STAGE-04: Partner Portal Disabled-State Production Boundary`
-5. `S3-STAGE-05: Partner Reporting And Settlement Sandbox`
+1. `S3-STAGE-01: S3 Scope, Backlog, And Decision Freeze`
+2. `S3-STAGE-02: Partner Domain Model And Role Contract`
+3. `S3-STAGE-03: Non-Prod Event Backbone Topology`
+4. `S3-STAGE-04: Outbox Dispatcher And Consumer Proof`
+5. `S3-STAGE-05: Partner Portal Disabled-State Boundary`
 
-Do not start `S3-STAGE-03` before `S3-STAGE-02` has real non-production broker evidence.
+Do not start `S3-STAGE-04` before `S3-STAGE-03` has real non-production broker evidence.
+Do not enable production partner portal, storefronts, event fan-out or payouts before `S3-STAGE-16` and `S3-STAGE-17` evidence gates.
 
 ---
 

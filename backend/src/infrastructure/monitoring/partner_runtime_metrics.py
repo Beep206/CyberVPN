@@ -11,7 +11,7 @@ generic application telemetry to explicit partner portal signals:
 - outbox publication lifecycle
 """
 
-from prometheus_client import Counter, Histogram
+from prometheus_client import Counter, Gauge, Histogram
 
 _REQUEST_DURATION_BUCKETS = (0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
 _APPLICATION_DECISION_DURATION_BUCKETS = (
@@ -182,6 +182,30 @@ cybervpn_partner_case_actions_total = Counter(
     "cybervpn_partner_case_actions_total",
     "Partner case actions emitted by admin or partner operators.",
     ["surface", "case_type", "action", "result"],
+)
+
+cybervpn_partner_support_cases_open = Gauge(
+    "cybervpn_partner_support_cases_open",
+    "Current partner support/admin case backlog observed by partner ops overview.",
+    ["surface", "case_status"],
+)
+
+cybervpn_partner_admin_ops_overview_requests_total = Counter(
+    "cybervpn_partner_admin_ops_overview_requests_total",
+    "Partner admin ops overview requests.",
+    ["surface", "workspace_status", "result"],
+)
+
+cybervpn_partner_payout_review_queue_items = Gauge(
+    "cybervpn_partner_payout_review_queue_items",
+    "Current partner payout review queue items observed by partner ops overview.",
+    ["surface", "kind", "status"],
+)
+
+cybervpn_partner_audit_events_observed_total = Counter(
+    "cybervpn_partner_audit_events_observed_total",
+    "Partner audit/workflow events observed by partner admin ops overview.",
+    ["surface", "action_kind", "result"],
 )
 
 cybervpn_partner_statements_closed_total = Counter(

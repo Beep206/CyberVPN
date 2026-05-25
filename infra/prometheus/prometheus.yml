@@ -25,6 +25,7 @@ rule_files:
   - /etc/prometheus/rules/stage1_dashboard_recording_rules.yml
   - /etc/prometheus/rules/stage1_alerts.yml
   - /etc/prometheus/rules/stage2_analytics_alerts.yml
+  - /etc/prometheus/rules/stage3_partner_reseller_alerts.yml
 
 scrape_configs:
   - job_name: 'cybervpn-local-backend'
@@ -216,6 +217,22 @@ scrape_configs:
     metrics_path: /probe
     params:
       module: [tcp_connect]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+    scrape_interval: 30s
+
+  - job_name: 'stage3-storefront-endpoints'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/stage3-storefront-endpoints.json
+    metrics_path: /probe
+    params:
+      module: [http_2xx_3xx_4xx]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

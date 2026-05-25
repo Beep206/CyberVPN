@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
@@ -10,6 +11,7 @@ from sqlalchemy import select
 from src.application.services.auth_service import AuthService
 from src.application.services.phase4_reconciliation import build_phase4_settlement_reconciliation_pack
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -193,7 +195,11 @@ def _serialize_phase4_snapshot(db, *, partner_account_id: uuid.UUID) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_phase4_settlement_foundations_end_to_end(async_client: AsyncClient) -> None:
+async def test_phase4_settlement_foundations_end_to_end(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_payouts_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -307,6 +313,7 @@ async def test_phase4_settlement_foundations_end_to_end(async_client: AsyncClien
 
             with sessionmaker() as db:
                 adapter = SyncSessionAdapter(db)
+                payment_created_at = datetime(2026, 4, 18, 18, 0, tzinfo=UTC)
                 payment = PaymentModel(
                     id=uuid.uuid4(),
                     user_uuid=uuid.UUID(seeded["customer_user_id"]),
@@ -318,6 +325,8 @@ async def test_phase4_settlement_foundations_end_to_end(async_client: AsyncClien
                     plan_id=uuid.UUID(seeded["plan_id"]),
                     partner_code_id=partner_code.id,
                     metadata_={"commission_base_amount": str(order_payload["commission_base_amount"])},
+                    created_at=payment_created_at,
+                    updated_at=payment_created_at,
                 )
                 attempt = PaymentAttemptModel(
                     id=uuid.uuid4(),
@@ -334,6 +343,9 @@ async def test_phase4_settlement_foundations_end_to_end(async_client: AsyncClien
                     idempotency_key="phase4-dry-run-attempt",
                     provider_snapshot={},
                     request_snapshot={},
+                    terminal_at=payment_created_at,
+                    created_at=payment_created_at,
+                    updated_at=payment_created_at,
                 )
                 db.add_all([payment, attempt])
                 db.commit()
@@ -397,9 +409,10 @@ async def test_phase4_settlement_foundations_end_to_end(async_client: AsyncClien
                 headers=maker_headers,
                 json={
                     "partner_account_id": str(partner_account.id),
+                    "source_earning_event_id": earning_event_id,
                     "amount": _quantize_money(reserve_amount),
                     "currency_code": "usd",
-                    "reserve_scope": "partner_account",
+                    "reserve_scope": "earning_event",
                     "reserve_reason_type": "manual",
                     "reason_code": "phase4_dry_run_buffer",
                     "reserve_payload": {"source": "phase4-dry-run-e2e"},

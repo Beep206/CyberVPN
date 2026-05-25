@@ -6,9 +6,11 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.commercial_bindings import CreateCustomerCommercialBindingUseCase
+from src.config.settings import settings
 from src.domain.enums import CommercialOwnerType, CustomerCommercialBindingType
 from src.domain.exceptions import PartnerCodeNotFoundError, UserAlreadyBoundToPartnerError
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 
 logger = logging.getLogger(__name__)
@@ -38,12 +40,8 @@ class BindPartnerUseCase:
             msg = f"User not found: {user_id}"
             raise ValueError(msg)
 
-        if user.partner_user_id is not None:
-            logger.warning(
-                "bind_partner_already_bound",
-                extra={"user_id": str(user_id), "existing_partner": str(user.partner_user_id)},
-            )
-            raise UserAlreadyBoundToPartnerError(str(user_id))
+        if not settings.partner_codes_enabled:
+            raise ValueError("Partner codes are not enabled for this release")
 
         code_model = await self._partner_repo.get_active_code_by_code(partner_code)
         if code_model is None:
@@ -53,7 +51,19 @@ class BindPartnerUseCase:
             )
             raise PartnerCodeNotFoundError(partner_code)
 
-        if code_model.partner_user_id == user_id:
+        if user.partner_user_id is not None:
+            if (
+                user.partner_user_id == code_model.partner_user_id
+                and user.partner_account_id == code_model.partner_account_id
+            ):
+                return user
+            logger.warning(
+                "bind_partner_already_bound",
+                extra={"user_id": str(user_id), "existing_partner": str(user.partner_user_id)},
+            )
+            raise UserAlreadyBoundToPartnerError(str(user_id))
+
+        if await self._is_self_partner_code(user=user, partner_code=code_model):
             msg = "Cannot bind to own partner code"
             raise ValueError(msg)
 
@@ -91,3 +101,13 @@ class BindPartnerUseCase:
         )
 
         return user
+
+    async def _is_self_partner_code(self, *, user: MobileUserModel, partner_code) -> bool:
+        if partner_code.partner_user_id == user.id:
+            return True
+        if partner_code.partner_account_id is None:
+            return False
+        if user.partner_account_id == partner_code.partner_account_id:
+            return True
+        account = await self._session.get(PartnerAccountModel, partner_code.partner_account_id)
+        return account is not None and account.legacy_owner_user_id == user.id

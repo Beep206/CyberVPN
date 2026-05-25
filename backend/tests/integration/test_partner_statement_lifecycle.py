@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -146,6 +147,7 @@ async def test_partner_statement_lifecycle_close_reopen_and_adjustments(async_cl
 
             with sessionmaker() as db:
                 adapter = SyncSessionAdapter(db)
+                payment_created_at = datetime(2026, 4, 18, 18, 0, tzinfo=UTC)
                 payment = PaymentModel(
                     id=uuid.uuid4(),
                     user_uuid=uuid.UUID(seeded["customer_user_id"]),
@@ -157,6 +159,8 @@ async def test_partner_statement_lifecycle_close_reopen_and_adjustments(async_cl
                     plan_id=uuid.UUID(seeded["plan_id"]),
                     partner_code_id=partner_code.id,
                     metadata_={"commission_base_amount": str(order_payload["commission_base_amount"])},
+                    created_at=payment_created_at,
+                    updated_at=payment_created_at,
                 )
                 attempt = PaymentAttemptModel(
                     id=uuid.uuid4(),
@@ -173,6 +177,9 @@ async def test_partner_statement_lifecycle_close_reopen_and_adjustments(async_cl
                     idempotency_key="phase4-statement-attempt",
                     provider_snapshot={},
                     request_snapshot={},
+                    terminal_at=payment_created_at,
+                    created_at=payment_created_at,
+                    updated_at=payment_created_at,
                 )
                 db.add_all([payment, attempt])
                 db.commit()

@@ -1,0 +1,98 @@
+{
+  "captured_at": "2026-05-24T17:23:16.843874+00:00",
+  "counts": {
+    "dead_letter_publications": 0,
+    "events": 1,
+    "pending_publications": 0,
+    "publications": 2,
+    "published_publications": 2
+  },
+  "events": [
+    {
+      "actor_context": {
+        "principal_id": "stage3-outbox-proof",
+        "principal_type": "service"
+      },
+      "aggregate_id": "7fe36ac1-f4ad-4d4c-9822-960f22f028e2",
+      "aggregate_type": "entitlement_grant",
+      "created_at": "2026-05-24T17:23:16.698170+00:00",
+      "event_family": "entitlement",
+      "event_key": "evt_6a95b273e7504f52975dcbeaac4072f7",
+      "event_name": "entitlement.grant.activated",
+      "event_payload": {
+        "customer_account_id": "stage3-customer-proof",
+        "entitlement_grant_id": "7fe36ac1-f4ad-4d4c-9822-960f22f028e2",
+        "grant_status": "active",
+        "partner_account_id": "acc84e19-69df-4b4a-a880-4c0e04385443",
+        "source_type": "stage3_proof",
+        "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+      },
+      "event_status": "published",
+      "id": "e7a94e6e-18eb-45f6-b7b5-fcf6738c0e7e",
+      "occurred_at": "2026-05-24T17:23:16.696295+00:00",
+      "partition_key": "acc84e19-69df-4b4a-a880-4c0e04385443",
+      "schema_version": 1,
+      "source_context": {
+        "stage": "S3-STAGE-04",
+        "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+      },
+      "updated_at": "2026-05-24T17:23:16.837712+00:00"
+    }
+  ],
+  "publications": [
+    {
+      "attempts": 1,
+      "consumer_key": "analytics_mart",
+      "created_at": "2026-05-24T17:23:16.699923+00:00",
+      "id": "52c2518a-1d9e-4af7-bd1e-af8ac1d3b3a0",
+      "last_error": null,
+      "lease_owner": null,
+      "leased_until": null,
+      "next_attempt_at": "2026-05-24T17:23:16.696298+00:00",
+      "outbox_event_id": "e7a94e6e-18eb-45f6-b7b5-fcf6738c0e7e",
+      "publication_payload": {
+        "broker_sequence": 1,
+        "consumer_key": "analytics_mart",
+        "duplicate": false,
+        "event_version": 1,
+        "idempotency_key": "analytics_mart:evt_6a95b273e7504f52975dcbeaac4072f7",
+        "published_at": "2026-05-24T17:23:16.812350+00:00",
+        "sequence": 1,
+        "status": "published",
+        "stream": "PARTNER_EVENTS",
+        "subject": "partner.analytics_mart.entitlement.grant.activated.v1"
+      },
+      "publication_status": "published",
+      "published_at": "2026-05-24T17:23:16.818004+00:00",
+      "submitted_at": "2026-05-24T17:23:16.815564+00:00",
+      "updated_at": "2026-05-24T17:23:16.818314+00:00"
+    },
+    {
+      "attempts": 1,
+      "consumer_key": "operational_replay",
+      "created_at": "2026-05-24T17:23:16.699925+00:00",
+      "id": "ee3013c4-99ec-4219-8c9e-e15fa7fcfb67",
+      "last_error": null,
+      "lease_owner": null,
+      "leased_until": null,
+      "next_attempt_at": "2026-05-24T17:23:16.696298+00:00",
+      "outbox_event_id": "e7a94e6e-18eb-45f6-b7b5-fcf6738c0e7e",
+      "publication_payload": {
+        "broker_sequence": 2,
+        "consumer_key": "operational_replay",
+        "duplicate": false,
+        "event_version": 1,
+        "idempotency_key": "operational_replay:evt_6a95b273e7504f52975dcbeaac4072f7",
+        "published_at": "2026-05-24T17:23:16.831903+00:00",
+        "sequence": 2,
+        "status": "published",
+        "stream": "PARTNER_EVENTS",
+        "subject": "partner.operational_replay.entitlement.grant.activated.v1"
+      },
+      "publication_status": "published",
+      "published_at": "2026-05-24T17:23:16.835926+00:00",
+      "submitted_at": "2026-05-24T17:23:16.834071+00:00",
+      "updated_at": "2026-05-24T17:23:16.836056+00:00"
+    }
+  ]
+}

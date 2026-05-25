@@ -1,0 +1,513 @@
+{
+  "captured_at": "2026-05-25T07:23:44.616127+00:00",
+  "labeled_samples": [
+    {
+      "labels": {
+        "aggregate_type": "entitlement_grant",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_created_total",
+      "value": 2.0
+    },
+    {
+      "labels": {
+        "aggregate_type": "entitlement_grant",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_created_created",
+      "value": 1779693824.369513
+    },
+    {
+      "labels": {
+        "aggregate_type": "invite_code",
+        "event_type": "invite.redeemed",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_created_total",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "aggregate_type": "invite_code",
+        "event_type": "invite.redeemed",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_created_created",
+      "value": 1779693824.6046336
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_published_total",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_published_created",
+      "value": 1779693824.4992945
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_published_total",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_events_published_created",
+      "value": 1779693824.521568
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_publish_failures_total",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_publish_failures_created",
+      "value": 1779693824.5934906
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "1.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "5.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "10.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "30.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "60.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "300.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "900.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "3600.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "21600.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "86400.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "+Inf",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_count",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_sum",
+      "value": 0.132869
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_created",
+      "value": 1779693824.4993079
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "1.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "5.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "10.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "30.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "60.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "300.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "900.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "3600.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "21600.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "86400.0",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "le": "+Inf",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_count",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_sum",
+      "value": 0.1552
+    },
+    {
+      "labels": {
+        "consumer_name": "operational_replay",
+        "event_type": "entitlement.grant.activated",
+        "result": "success"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_created",
+      "value": 1779693824.5215816
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "1.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "5.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "10.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "30.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "60.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "300.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "900.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "3600.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "21600.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "86400.0",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "le": "+Inf",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_bucket",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_count",
+      "value": 1.0
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_sum",
+      "value": 0.021626
+    },
+    {
+      "labels": {
+        "consumer_name": "analytics_mart",
+        "event_type": "entitlement.grant.activated",
+        "result": "dead_letter"
+      },
+      "name": "cybervpn_partner_outbox_lag_seconds_created",
+      "value": 1779693824.5935037
+    }
+  ],
+  "note": "Prometheus samples are emitted in-process. This snapshot captures label-specific sample values for the S3-STAGE-04 proof process.",
+  "registered_metric_names": [
+    "cybervpn_partner_outbox_events_created_total",
+    "cybervpn_partner_outbox_events_published_total",
+    "cybervpn_partner_outbox_publish_failures_total",
+    "cybervpn_partner_outbox_lag_seconds"
+  ]
+}

@@ -6,8 +6,10 @@ from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
+from prometheus_client import REGISTRY
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.billing_descriptor_model import BillingDescriptorModel
@@ -54,6 +56,10 @@ from tests.helpers.realm_auth import (
 )
 
 pytestmark = [pytest.mark.integration]
+
+
+def _metric_value(name: str, labels: dict[str, str]) -> float:
+    return REGISTRY.get_sample_value(name, labels) or 0.0
 
 
 async def _create_admin_user(
@@ -510,7 +516,10 @@ def _seed_workspace_reporting_outbox(
 @pytest.mark.asyncio
 async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_members(
     async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(settings, "partner_settlement_sandbox_enabled", True)
+
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -555,6 +564,24 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                     password="PortalReportingOutsider123!",
                     role="viewer",
                 )
+                await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=admin_realm.id,
+                    login="portal_reporting_support",
+                    email="portal-reporting-support@example.com",
+                    password="PortalReportingSupport123!",
+                    role="support",
+                )
+                await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=admin_realm.id,
+                    login="portal_reporting_finance",
+                    email="portal-reporting-finance@example.com",
+                    password="PortalReportingFinance123!",
+                    role="finance",
+                )
 
             admin_token = await _login(async_client, "portal-reporting-admin@example.com", "PortalReportingAdmin123!")
             owner_token = await _login(async_client, "portal-reporting-owner@example.com", "PortalReportingOwner123!")
@@ -563,8 +590,32 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 "portal-reporting-outsider@example.com",
                 "PortalReportingOutsider123!",
             )
+            support_token = await _login(
+                async_client,
+                "portal-reporting-support@example.com",
+                "PortalReportingSupport123!",
+            )
+            finance_token = await _login(
+                async_client,
+                "portal-reporting-finance@example.com",
+                "PortalReportingFinance123!",
+            )
 
-            admin_headers = {"Authorization": f"Bearer {admin_token}", "X-Auth-Realm": "admin"}
+            admin_headers = {
+                "Authorization": f"Bearer {admin_token}",
+                "X-Auth-Realm": "admin",
+                "Host": "admin.cyber-vpn.net",
+            }
+            support_headers = {
+                "Authorization": f"Bearer {support_token}",
+                "X-Auth-Realm": "admin",
+                "Host": "admin.cyber-vpn.net",
+            }
+            finance_headers = {
+                "Authorization": f"Bearer {finance_token}",
+                "X-Auth-Realm": "admin",
+                "Host": "admin.cyber-vpn.net",
+            }
             owner_headers = {"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"}
             outsider_headers = {"Authorization": f"Bearer {outsider_token}", "X-Auth-Realm": "admin"}
 
@@ -828,6 +879,78 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 "Reporting publication backlog detected: 1." in note
                 for note in analytics_payload["earnings_available"]["notes"]
             )
+            assert analytics_payload["first_paid"]["source_of_truth"] == "partner_reporting_mart"
+            assert analytics_payload["first_paid"]["workspace_scoped"] is True
+            assert analytics_payload["first_paid"]["pii_redacted"] is True
+
+            reporting_summary_response = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}/reporting-summary",
+                headers=owner_headers,
+            )
+            assert reporting_summary_response.status_code == 200
+            reporting_summary_payload = reporting_summary_response.json()
+            assert reporting_summary_payload["workspace_id"] == workspace_id
+            summary_metrics = {
+                item["key"]: item for item in reporting_summary_payload["metrics"]
+            }
+            assert summary_metrics["active_users"]["value"] == "1"
+            assert summary_metrics["paid_users"]["value"] == "1"
+            assert summary_metrics["paid_conversions"]["value"] == "3"
+            assert summary_metrics["trial_users"]["value"] == "not_available"
+            assert summary_metrics["trial_users"]["source_of_truth"] == "not_available_in_s3_stage_10"
+            assert reporting_summary_payload["reconciliation"]["status"] == "yellow"
+            assert (
+                reporting_summary_payload["reconciliation"]["mismatch_counts"][
+                    "reporting_publication_backlog_present"
+                ]
+                == 1
+            )
+            assert "email" in reporting_summary_payload["export_redaction"]["pii_fields_excluded"]
+            assert "customer_label" in reporting_summary_payload["export_redaction"]["masked_fields"]
+            assert any(
+                "Trial attribution is intentionally marked not available" in note
+                for note in reporting_summary_payload["source_of_truth_notes"]
+            )
+
+            settlement_sandbox_response = await async_client.get(
+                f"/api/v1/partner-workspaces/{workspace_id}/settlement-sandbox",
+                headers=owner_headers,
+            )
+            assert settlement_sandbox_response.status_code == 200
+            settlement_sandbox_payload = settlement_sandbox_response.json()
+            assert settlement_sandbox_payload["workspace_id"] == workspace_id
+            assert settlement_sandbox_payload["currency_code"] == "USD"
+            settlement_metrics = {
+                item["key"]: item for item in settlement_sandbox_payload["metrics"]
+            }
+            assert settlement_metrics["available_statement_amount"]["value"] == "125.00 USD"
+            assert settlement_metrics["on_hold_amount"]["value"] == "15.00 USD"
+            assert settlement_metrics["reserve_amount"]["value"] == "10.00 USD"
+            assert settlement_metrics["paid_conversion_count"]["value"] == "3"
+            assert settlement_metrics["payout_export_status"]["value"] == "disabled_by_default"
+            assert (
+                settlement_metrics["available_statement_amount"]["source_of_truth"]
+                == "partner_statements.available_amount"
+            )
+            settlement_eligibility = settlement_sandbox_payload["eligibility"]
+            assert settlement_eligibility["settlement_simulation_reproducible"] is True
+            assert settlement_eligibility["eligible_statement_count"] == 1
+            assert settlement_eligibility["eligible_payout_account_count"] == 0
+            assert settlement_eligibility["payout_instruction_allowed"] is False
+            assert settlement_eligibility["dry_run_execution_allowed"] is False
+            assert settlement_eligibility["live_payout_allowed"] is False
+            assert settlement_eligibility["manual_approval_required"] is True
+            assert settlement_eligibility["maker_checker_required"] is True
+            assert "stage_blocks_live_payout" in settlement_eligibility["blocked_reasons"]
+            assert "payout_account_not_approved" in settlement_eligibility["blocked_reasons"]
+            settlement_policy = settlement_sandbox_payload["policy"]
+            assert settlement_policy["stage"] == "S3-STAGE-11"
+            assert settlement_policy["mode"] == "sandbox_only"
+            assert settlement_policy["payout_export_status"] == "disabled_by_default"
+            assert settlement_policy["live_payouts_enabled"] is False
+            assert settlement_policy["requires_finance_approval"] is True
+            assert settlement_policy["requires_maker_checker"] is True
+            assert settlement_policy["same_admin_approval_allowed"] is False
 
             exports_response = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}/report-exports",
@@ -841,6 +964,8 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
             assert exports_payload["statement_export"]["last_requested_at"] is None
             assert exports_payload["payout_status_export"]["status"] == "available"
             assert exports_payload["explainability_report"]["status"] == "scheduled"
+            assert exports_payload["statement_export"]["redaction_policy"] == "redacted_partner_export"
+            assert "raw_user_id" in exports_payload["statement_export"]["pii_fields_excluded"]
 
             schedule_export_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/report-exports/statement-export/schedule",
@@ -919,9 +1044,119 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
                 for note in cases_payload["payout_dispute"]["notes"]
             )
 
+            support_ops_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/ops-overview",
+                headers=support_headers,
+            )
+            assert support_ops_response.status_code == 200
+            support_ops_payload = support_ops_response.json()
+            assert support_ops_payload["workspace"]["id"] == workspace_id
+            assert support_ops_payload["open_cases"] >= 3
+            assert support_ops_payload["waiting_on_ops_cases"] >= 2
+            assert support_ops_payload["payout_review_items"] >= 1
+            assert support_ops_payload["frozen"] is False
+            admin_actions = {
+                item["key"]: item for item in support_ops_payload["available_admin_actions"]
+            }
+            assert admin_actions["freeze_workspace"]["status"] == "available"
+            assert admin_actions["disable_partner_code"]["required_role"] == "admin"
+            assert admin_actions["review_payout_queue"]["required_role"] == "finance"
+            assert any("Raw payment provider payloads" in note for note in support_ops_payload["redaction_notes"])
+            finance_onboarding_review_item = next(
+                item for item in support_ops_payload["payout_review_queue"] if item["kind"] == "finance_onboarding"
+            )
+            assert _metric_value(
+                "cybervpn_partner_admin_ops_overview_requests_total",
+                {
+                    "surface": "partner_admin",
+                    "workspace_status": "needs_info",
+                    "result": "success",
+                },
+            ) > 0
+            assert _metric_value(
+                "cybervpn_partner_support_cases_open",
+                {
+                    "surface": "partner_admin",
+                    "case_status": "waiting_on_ops",
+                },
+            ) >= 2
+            assert _metric_value(
+                "cybervpn_partner_payout_review_queue_items",
+                {
+                    "surface": "partner_admin",
+                    "kind": "finance_onboarding",
+                    "status": finance_onboarding_review_item["status"],
+                },
+            ) >= 1
+
+            finance_queue_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/payout-review-queue",
+                headers=finance_headers,
+            )
+            assert finance_queue_response.status_code == 200
+            finance_queue_payload = finance_queue_response.json()
+            assert any(item["kind"] == "settlement_policy" for item in finance_queue_payload)
+            assert any("stage_blocks_live_payout" in item["notes"] for item in finance_queue_payload)
+
+            support_finance_queue_attempt = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/payout-review-queue",
+                headers=support_headers,
+            )
+            assert support_finance_queue_attempt.status_code == 403
+
+            disable_code_response = await async_client.patch(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/codes/{partner_code.id}/status",
+                headers=admin_headers,
+                json={
+                    "is_active": False,
+                    "reason": "S3-STAGE-12 support/admin ops code disable proof",
+                },
+            )
+            assert disable_code_response.status_code == 200
+            assert disable_code_response.json()["is_active"] is False
+
+            freeze_workspace_response = await async_client.patch(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/status",
+                headers=admin_headers,
+                json={
+                    "workspace_status": "suspended",
+                    "reason": "S3-STAGE-12 support/admin ops freeze proof",
+                },
+            )
+            assert freeze_workspace_response.status_code == 200
+            assert freeze_workspace_response.json()["status"] == "suspended"
+
+            frozen_ops_response = await async_client.get(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/ops-overview",
+                headers=support_headers,
+            )
+            assert frozen_ops_response.status_code == 200
+            frozen_ops_payload = frozen_ops_response.json()
+            assert frozen_ops_payload["frozen"] is True
+            frozen_actions = {
+                item["key"]: item for item in frozen_ops_payload["available_admin_actions"]
+            }
+            assert frozen_actions["freeze_workspace"]["status"] == "blocked"
+            assert frozen_actions["unfreeze_workspace"]["status"] == "available"
+            audit_action_kinds = {
+                item["action_kind"] for item in frozen_ops_payload["recent_audit_events"]
+            }
+            assert "partner_code_status_changed" in audit_action_kinds
+            assert "workspace_status_changed" in audit_action_kinds
+            assert _metric_value(
+                "cybervpn_partner_audit_events_observed_total",
+                {
+                    "surface": "partner_admin",
+                    "action_kind": "workspace_status_changed",
+                    "result": "observed",
+                },
+            ) > 0
+
             for suffix in (
                 "conversion-records",
                 "analytics-metrics",
+                "reporting-summary",
+                "settlement-sandbox",
                 "report-exports",
                 f"conversion-records/{renewal_order.id}/explainability",
                 "review-requests",

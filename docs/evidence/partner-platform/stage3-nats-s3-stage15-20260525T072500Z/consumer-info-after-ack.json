@@ -1,0 +1,39 @@
+{
+  "stream_name": "PARTNER_EVENTS",
+  "name": "stage3-proof",
+  "config": {
+    "ack_policy": "explicit",
+    "ack_wait": 30000000000,
+    "deliver_policy": "all",
+    "durable_name": "stage3-proof",
+    "name": "stage3-proof",
+    "filter_subject": "partner.analytics_mart.\u003e",
+    "max_ack_pending": 1000,
+    "max_deliver": 3,
+    "max_waiting": 512,
+    "replay_policy": "instant",
+    "num_replicas": 0,
+    "metadata": {
+      "_nats.level": "3",
+      "_nats.req.level": "0",
+      "_nats.ver": "2.12.7"
+    },
+    "pause_until": "0001-01-01T00:00:00Z"
+  },
+  "created": "2026-05-25T07:23:27.700229745Z",
+  "delivered": {
+    "consumer_seq": 1,
+    "stream_seq": 1,
+    "last_active": "2026-05-25T07:23:28.513809542Z"
+  },
+  "ack_floor": {
+    "consumer_seq": 1,
+    "stream_seq": 1,
+    "last_active": "2026-05-25T07:23:28.513997883Z"
+  },
+  "num_ack_pending": 0,
+  "num_redelivered": 0,
+  "num_waiting": 0,
+  "num_pending": 0,
+  "ts": "2026-05-25T07:23:29.294245621Z"
+}

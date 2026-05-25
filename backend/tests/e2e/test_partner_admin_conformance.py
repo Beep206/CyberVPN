@@ -4,10 +4,12 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
+from src.presentation.middleware.rate_limit import RateLimitMiddleware
 from tests.helpers.realm_auth import (
     FakeRedis,
     SyncSessionAdapter,
@@ -18,6 +20,15 @@ from tests.helpers.realm_auth import (
 )
 
 pytestmark = [pytest.mark.e2e]
+
+
+@pytest.fixture(autouse=True)
+def _enable_partner_e2e_surfaces(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
+    monkeypatch.setattr(settings, "partner_applications_enabled", True)
+    monkeypatch.setattr(settings, "partner_payouts_enabled", True)
+    monkeypatch.setattr(settings, "admin_host_protection_enabled", False)
+    RateLimitMiddleware._circuit_breaker = None
 
 
 async def _create_admin_user(
@@ -139,7 +150,10 @@ async def test_e2e_partner_001_application_review_probation_legal_and_notificati
                 password="AuroraPartner123!",
             )
 
-            admin_headers = _auth_headers(token=reviewer_login["access_token"], realm_key="admin")
+            admin_headers = {
+                **_auth_headers(token=reviewer_login["access_token"], realm_key="admin"),
+                "Host": "admin.cyber-vpn.net",
+            }
             partner_headers = _auth_headers(token=applicant_login["access_token"], realm_key="partner")
 
             create_draft_response = await async_client.post(
@@ -281,7 +295,7 @@ async def test_e2e_partner_001_application_review_probation_legal_and_notificati
                     "reason_summary": "Approved to probation after evidence review.",
                 },
             )
-            assert approve_probation_response.status_code == 200
+            assert approve_probation_response.status_code == 200, approve_probation_response.text
             approve_probation_payload = approve_probation_response.json()
             assert approve_probation_payload["workspace"]["status"] == "approved_probation"
             assert approve_probation_payload["lane_applications"][0]["status"] == "approved_probation"
@@ -339,6 +353,112 @@ async def test_e2e_partner_001_application_review_probation_legal_and_notificati
 
 
 @pytest.mark.integration
+async def test_e2e_partner_002_application_reject_state_is_visible(
+    async_client: AsyncClient,
+) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            with sessionmaker() as db:
+                realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
+                admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
+
+                reviewer = await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=admin_realm.id,
+                    login="partner_reject_reviewer",
+                    email="partner-reject-reviewer@example.com",
+                    password="PartnerRejectReviewer123!",
+                    role="admin",
+                )
+                applicant = await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=partner_realm.id,
+                    login="rejected_partner",
+                    email="rejected-partner@example.com",
+                    password="RejectedPartner123!",
+                    role="operator",
+                )
+
+            reviewer_login = await _login(
+                async_client,
+                realm_key="admin",
+                login_or_email=reviewer.email,
+                password="PartnerRejectReviewer123!",
+            )
+            applicant_login = await _login(
+                async_client,
+                realm_key="partner",
+                login_or_email=applicant.email,
+                password="RejectedPartner123!",
+            )
+
+            admin_headers = {
+                **_auth_headers(token=reviewer_login["access_token"], realm_key="admin"),
+                "Host": "admin.cyber-vpn.net",
+            }
+            partner_headers = _auth_headers(token=applicant_login["access_token"], realm_key="partner")
+
+            create_draft_response = await async_client.post(
+                "/api/v1/partner-application-drafts",
+                headers=partner_headers,
+                json={"draft_payload": _application_payload()},
+            )
+            assert create_draft_response.status_code == 201
+            create_payload = create_draft_response.json()
+            draft_id = create_payload["draft"]["id"]
+            workspace_id = create_payload["draft"]["workspace"]["id"]
+
+            submit_response = await async_client.post(
+                f"/api/v1/partner-application-drafts/{draft_id}/submit",
+                headers=partner_headers,
+            )
+            assert submit_response.status_code == 200
+
+            reject_response = await async_client.post(
+                f"/api/v1/admin/partner-applications/{workspace_id}/reject",
+                headers=admin_headers,
+                json={
+                    "reason_code": "manual_review_failed",
+                    "reason_summary": "Rejected during controlled onboarding review.",
+                },
+            )
+            assert reject_response.status_code == 200, reject_response.text
+            reject_payload = reject_response.json()
+            assert reject_payload["workspace"]["status"] == "rejected"
+            assert reject_payload["lane_applications"][0]["status"] == "declined"
+
+            bootstrap_response = await async_client.get(
+                "/api/v1/partner-session/bootstrap",
+                headers=partner_headers,
+                params={"workspace_id": workspace_id},
+            )
+            assert bootstrap_response.status_code == 200
+            bootstrap_payload = bootstrap_response.json()
+            assert bootstrap_payload["active_workspace"]["status"] == "rejected"
+            assert any(
+                reason["code"] == "workspace_status:rejected"
+                for reason in bootstrap_payload["blocked_reasons"]
+            )
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.integration
 async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
     async_client: AsyncClient,
 ) -> None:
@@ -386,6 +506,15 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
                     password="Wb10Finance123!",
                     role="operator",
                 )
+                manager_user = await _create_admin_user(
+                    session=db,
+                    auth_service=auth_service,
+                    auth_realm_id=partner_realm.id,
+                    login="wb10_manager",
+                    email="wb10-manager@example.com",
+                    password="Wb10Manager123!",
+                    role="operator",
+                )
                 traffic_user = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
@@ -414,6 +543,12 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
                 login_or_email=finance_user.email,
                 password="Wb10Finance123!",
             )
+            manager_login = await _login(
+                async_client,
+                realm_key="partner",
+                login_or_email=manager_user.email,
+                password="Wb10Manager123!",
+            )
             traffic_login = await _login(
                 async_client,
                 realm_key="partner",
@@ -421,9 +556,13 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
                 password="Wb10Traffic123!",
             )
 
-            admin_headers = _auth_headers(token=admin_login["access_token"], realm_key="admin")
+            admin_headers = {
+                **_auth_headers(token=admin_login["access_token"], realm_key="admin"),
+                "Host": "admin.cyber-vpn.net",
+            }
             owner_headers = _auth_headers(token=owner_login["access_token"], realm_key="partner")
             finance_headers = _auth_headers(token=finance_login["access_token"], realm_key="partner")
+            manager_headers = _auth_headers(token=manager_login["access_token"], realm_key="partner")
             traffic_headers = _auth_headers(token=traffic_login["access_token"], realm_key="partner")
 
             workspace_response = await async_client.post(
@@ -435,7 +574,31 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
                 },
             )
             assert workspace_response.status_code == 201
-            workspace_id = workspace_response.json()["id"]
+            workspace_payload = workspace_response.json()
+            workspace_id = workspace_payload["id"]
+            owner_member_id = workspace_payload["members"][0]["id"]
+
+            add_manager_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/members",
+                headers=owner_headers,
+                json={"admin_user_id": str(manager_user.id), "role_key": "manager"},
+            )
+            assert add_manager_response.status_code == 201
+            manager_member_id = add_manager_response.json()["id"]
+
+            manager_owner_role_attempt = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/members/{owner_member_id}",
+                headers=manager_headers,
+                json={"role_key": "analyst"},
+            )
+            assert manager_owner_role_attempt.status_code == 403
+
+            owner_self_demote_attempt = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/members/{owner_member_id}",
+                headers=owner_headers,
+                json={"role_key": "analyst"},
+            )
+            assert owner_self_demote_attempt.status_code == 409
 
             add_finance_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
@@ -444,6 +607,7 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
             )
             assert add_finance_response.status_code == 201
             assert add_finance_response.json()["role_key"] == "finance"
+            finance_member_id = add_finance_response.json()["id"]
 
             add_traffic_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
@@ -539,13 +703,115 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
             assert finance_payout_accounts_response.json()[0]["verification_status"] == "verified"
             assert finance_payout_accounts_response.json()[0]["approval_status"] == "approved"
 
+            finance_to_analyst_response = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/members/{finance_member_id}",
+                headers=owner_headers,
+                json={"role_key": "analyst"},
+            )
+            assert finance_to_analyst_response.status_code == 200
+            assert finance_to_analyst_response.json()["role_key"] == "analyst"
+
+            finance_after_role_change_response = await async_client.get(
+                "/api/v1/partner-session/bootstrap",
+                headers=finance_headers,
+                params={"workspace_id": workspace_id},
+            )
+            assert finance_after_role_change_response.status_code == 200
+            finance_after_role_change = finance_after_role_change_response.json()
+            assert "earnings_read" in finance_after_role_change["current_permission_keys"]
+            assert "payouts_write" not in finance_after_role_change["current_permission_keys"]
+
+            finance_payout_after_role_change = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/payout-accounts",
+                headers=finance_headers,
+                json={
+                    "payout_rail": "manual",
+                    "display_label": "Analyst should not create payout routes",
+                    "destination_reference": "analyst@example.com",
+                    "destination_metadata": {"channel": "email"},
+                },
+            )
+            assert finance_payout_after_role_change.status_code == 403
+
+            enable_workspace_mfa_response = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/settings",
+                headers=owner_headers,
+                json={"require_mfa_for_workspace": True},
+            )
+            assert enable_workspace_mfa_response.status_code == 200
+            assert enable_workspace_mfa_response.json()["require_mfa_for_workspace"] is True
+
+            traffic_without_mfa_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/traffic-declarations",
+                headers=traffic_headers,
+                json={
+                    "declaration_kind": "approved_sources",
+                    "scope_label": "Traffic write must require 2FA",
+                    "declaration_payload": {"channels": ["search"]},
+                    "notes": ["Should be blocked until 2FA is enabled."],
+                },
+            )
+            assert traffic_without_mfa_response.status_code == 403
+            assert "2FA" in traffic_without_mfa_response.json()["detail"]
+
+            with sessionmaker() as db:
+                refreshed_traffic_user = db.get(AdminUserModel, traffic_user.id)
+                assert refreshed_traffic_user is not None
+                refreshed_traffic_user.totp_enabled = True
+                db.commit()
+
+            traffic_with_mfa_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/traffic-declarations",
+                headers=traffic_headers,
+                json={
+                    "declaration_kind": "approved_sources",
+                    "scope_label": "Traffic write after 2FA",
+                    "declaration_payload": {"channels": ["search"]},
+                    "notes": ["2FA-enabled traffic manager submitted the approved source list."],
+                },
+            )
+            assert traffic_with_mfa_response.status_code == 201
+
+            freeze_workspace_response = await async_client.patch(
+                f"/api/v1/admin/partner-workspaces/{workspace_id}/status",
+                headers=admin_headers,
+                json={
+                    "workspace_status": "suspended",
+                    "reason": "S3-STAGE-07 freeze proof",
+                },
+            )
+            assert freeze_workspace_response.status_code == 200
+            assert freeze_workspace_response.json()["status"] == "suspended"
+
+            traffic_after_freeze_response = await async_client.post(
+                f"/api/v1/partner-workspaces/{workspace_id}/traffic-declarations",
+                headers=traffic_headers,
+                json={
+                    "declaration_kind": "approved_sources",
+                    "scope_label": "Traffic write after freeze",
+                    "declaration_payload": {"channels": ["blocked"]},
+                    "notes": ["Should be blocked by workspace freeze."],
+                },
+            )
+            assert traffic_after_freeze_response.status_code == 403
+            assert "not writable" in traffic_after_freeze_response.json()["detail"]
+
             admin_traffic_list_response = await async_client.get(
                 "/api/v1/traffic-declarations/",
                 headers=admin_headers,
                 params={"partner_account_id": workspace_id},
             )
             assert admin_traffic_list_response.status_code == 200
-            assert admin_traffic_list_response.json()[0]["scope_label"] == "Traffic-managed acquisition set"
+            admin_traffic_scopes = {item["scope_label"] for item in admin_traffic_list_response.json()}
+            assert "Traffic-managed acquisition set" in admin_traffic_scopes
+            assert "Traffic write after 2FA" in admin_traffic_scopes
+
+            manager_suspend_attempt = await async_client.patch(
+                f"/api/v1/partner-workspaces/{workspace_id}/members/{manager_member_id}",
+                headers=manager_headers,
+                json={"membership_status": "limited"},
+            )
+            assert manager_suspend_attempt.status_code == 403
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
@@ -606,7 +872,10 @@ async def test_e2e_auth_010_016_partner_realm_bootstrap_requires_partner_session
                 password="ConformancePartner123!",
             )
 
-            admin_headers = _auth_headers(token=admin_login["access_token"], realm_key="admin")
+            admin_headers = {
+                **_auth_headers(token=admin_login["access_token"], realm_key="admin"),
+                "Host": "admin.cyber-vpn.net",
+            }
             partner_headers = _auth_headers(token=partner_login["access_token"], realm_key="partner")
 
             create_draft_response = await async_client.post(

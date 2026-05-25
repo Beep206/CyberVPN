@@ -1,0 +1,1 @@
+{"event_id":"s3-stage03-proof-001","event_type":"entitlement.grant.activated","event_version":1,"consumer_key":"analytics_mart","aggregate_type":"partner_workspace","aggregate_id":"stage3-nonprod-proof","correlation_id":"s3-stage03-proof-001","idempotency_key":"analytics_mart:s3-stage03-proof-001","payload":{"result":"stage3_nonprod_jetstream_proof"}}

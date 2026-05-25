@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-05-25T07:23:44.362658+00:00",
+  "counts": {
+    "dead_letter_publications": 0,
+    "events": 0,
+    "pending_publications": 0,
+    "publications": 0,
+    "published_publications": 0
+  },
+  "events": [],
+  "publications": []
+}

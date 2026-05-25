@@ -1,0 +1,38 @@
+[
+  {
+    "consumer_key": "analytics_mart",
+    "event_key": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "event_name": "entitlement.grant.activated",
+    "id": "19899230-1aef-4b88-b60e-9ce12624019b",
+    "metadata_payload": {
+      "status": "processed"
+    },
+    "processed_at": "2026-05-24T17:23:16.850352+00:00",
+    "status": "processed",
+    "subject": "partner.analytics_mart.entitlement.grant.activated.v1"
+  },
+  {
+    "consumer_key": "analytics_mart.transport",
+    "event_key": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "event_name": "subscription_activated",
+    "id": "ff869c48-1591-43fd-8e0b-c9133001b4ae",
+    "metadata_payload": {
+      "status": "disabled"
+    },
+    "processed_at": "2026-05-24T17:23:16.848984+00:00",
+    "status": "processed",
+    "subject": "partner.analytics_mart.entitlement.grant.activated.v1"
+  },
+  {
+    "consumer_key": "operational_replay",
+    "event_key": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "event_name": "entitlement.grant.activated",
+    "id": "518a9436-e38a-4c71-8a68-d6c1ae89569b",
+    "metadata_payload": {
+      "status": "processed"
+    },
+    "processed_at": "2026-05-24T17:23:16.862907+00:00",
+    "status": "processed",
+    "subject": "partner.operational_replay.entitlement.grant.activated.v1"
+  }
+]

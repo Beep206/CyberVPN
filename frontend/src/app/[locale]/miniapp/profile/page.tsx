@@ -32,6 +32,7 @@ import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from '../components/MiniAppBottomSheet';
 import { VpnConfigCard } from '../components/VpnConfigCard';
 import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
+import { STAGE3_PARTNER_PORTAL_UI_ENABLED } from '@/shared/lib/stage3-partner-flags';
 
 const TECHNICAL_TELEGRAM_EMAIL_SUFFIX = '@telegram.local';
 
@@ -204,6 +205,7 @@ export default function MiniAppProfilePage() {
       const { data } = await partnerApi.getDashboard();
       return data as typeof data & { is_partner?: boolean; tier?: string; codes: { partner_code?: string; markup_pct?: number; created_at?: string }[] };
     },
+    enabled: STAGE3_PARTNER_PORTAL_UI_ENABLED,
   });
 
   // Password change mutation
@@ -709,14 +711,15 @@ export default function MiniAppProfilePage() {
         </div>
       </CollapsibleSection>
 
-      {/* Partner Section */}
-      <CollapsibleSection
-        title={t('partner')}
-        icon={Briefcase}
-        isExpanded={expandedSections['partner']}
-        onToggle={() => toggleSection('partner')}
-      >
-        {partnerData?.is_partner ? (
+      {STAGE3_PARTNER_PORTAL_UI_ENABLED && (
+        /* Partner Section */
+        <CollapsibleSection
+          title={t('partner')}
+          icon={Briefcase}
+          isExpanded={expandedSections['partner']}
+          onToggle={() => toggleSection('partner')}
+        >
+          {partnerData?.is_partner ? (
           /* Partner Dashboard */
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-neon-cyan mb-3">
@@ -820,8 +823,9 @@ export default function MiniAppProfilePage() {
               )}
             </button>
           </div>
-        )}
-      </CollapsibleSection>
+          )}
+        </CollapsibleSection>
+      )}
 
       {/* Account Actions */}
       <motion.div

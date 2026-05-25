@@ -1,0 +1,13 @@
+started_at_utc=2026-05-24T17:23:11Z
+evidence_dir=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-outbox-20260524T170000Z
+python_bin=/home/beep/projects/VPNBussiness/backend/.venv/bin/python
+keep_lab=0
+stream_name=PARTNER_EVENTS
+subject_prefix=partner
+finished_at_utc=2026-05-24T17:23:17Z
+status=ok
+summary_json=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-outbox-20260524T170000Z/summary.json
+db_after_dispatch=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-outbox-20260524T170000Z/db-after-dispatch.json
+consumer_receipts=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-outbox-20260524T170000Z/consumer-receipts.json
+dead_letter_proof=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-outbox-20260524T170000Z/dead-letter-proof.json
+backlog_alert_input=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-outbox-20260524T170000Z/backlog-alert-input.json

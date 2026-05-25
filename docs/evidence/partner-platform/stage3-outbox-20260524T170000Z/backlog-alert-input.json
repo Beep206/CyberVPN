@@ -1,0 +1,66 @@
+{
+  "alert_rule_input": "pending_publications > 0 and age exceeds S3 threshold",
+  "event_key": "evt_7708e302be7c4abfa248dc1372696754",
+  "oldest_pending_next_attempt_at": "2026-05-24T17:23:16.909228+00:00",
+  "pending_publications": 1,
+  "snapshot": {
+    "captured_at": "2026-05-24T17:23:16.917915+00:00",
+    "counts": {
+      "dead_letter_publications": 0,
+      "events": 1,
+      "pending_publications": 1,
+      "publications": 1,
+      "published_publications": 0
+    },
+    "events": [
+      {
+        "actor_context": {
+          "principal_id": "stage3-outbox-proof",
+          "principal_type": "service"
+        },
+        "aggregate_id": "659c67c8-9ce0-4f0f-a5dd-9d756f2c9ff8",
+        "aggregate_type": "invite_code",
+        "created_at": "2026-05-24T17:23:16.909893+00:00",
+        "event_family": "invite",
+        "event_key": "evt_7708e302be7c4abfa248dc1372696754",
+        "event_name": "invite.redeemed",
+        "event_payload": {
+          "customer_account_id": "stage3-customer-proof",
+          "entitlement_grant_id": "659c67c8-9ce0-4f0f-a5dd-9d756f2c9ff8",
+          "grant_status": "active",
+          "partner_account_id": "acc84e19-69df-4b4a-a880-4c0e04385443",
+          "source_type": "stage3_proof",
+          "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+        },
+        "event_status": "pending_publication",
+        "id": "17d70365-17de-45f2-9d43-780ad77cd771",
+        "occurred_at": "2026-05-24T17:23:16.909226+00:00",
+        "partition_key": "acc84e19-69df-4b4a-a880-4c0e04385443",
+        "schema_version": 1,
+        "source_context": {
+          "stage": "S3-STAGE-04",
+          "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+        },
+        "updated_at": "2026-05-24T17:23:16.909894+00:00"
+      }
+    ],
+    "publications": [
+      {
+        "attempts": 0,
+        "consumer_key": "analytics_mart",
+        "created_at": "2026-05-24T17:23:16.910360+00:00",
+        "id": "fa977f0d-f932-47f5-8364-d06d9dee0e8e",
+        "last_error": null,
+        "lease_owner": null,
+        "leased_until": null,
+        "next_attempt_at": "2026-05-24T17:23:16.909228+00:00",
+        "outbox_event_id": "17d70365-17de-45f2-9d43-780ad77cd771",
+        "publication_payload": {},
+        "publication_status": "pending",
+        "published_at": null,
+        "submitted_at": null,
+        "updated_at": "2026-05-24T17:23:16.910362+00:00"
+      }
+    ]
+  }
+}

@@ -70,6 +70,8 @@ class RecordEarningEventUseCase:
             total_amount=float(legacy_partner_earning.total_earning),
             currency_code=legacy_partner_earning.currency or "USD",
             available_at=None if hold_days > 0 else created_at,
+            created_at=created_at,
+            updated_at=created_at,
             source_snapshot={
                 "order_settlement_status": order.settlement_status,
                 "order_currency_code": order.currency_code,
@@ -91,6 +93,8 @@ class RecordEarningEventUseCase:
                     reason_code="partner_payout_hold_policy",
                     hold_until=created_at + timedelta(days=hold_days),
                     hold_payload={"owner_type": owner_type, "hold_days": hold_days},
+                    created_at=created_at,
+                    updated_at=created_at,
                 )
             )
 

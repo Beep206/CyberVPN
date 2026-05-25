@@ -15,8 +15,23 @@ from src.infrastructure.database.models.partner_account_user_model import Partne
 from src.infrastructure.database.models.partner_model import PartnerAccountModel
 from src.infrastructure.database.models.partner_role_model import PartnerRoleModel
 from src.infrastructure.database.repositories.partner_account_repository import PartnerAccountRepository
+from src.infrastructure.database.repositories.partner_workspace_profile_repository import (
+    PartnerWorkspaceProfileRepository,
+)
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
+
+_WORKSPACE_WRITE_PERMISSIONS = frozenset(
+    {
+        PartnerPermission.OPERATIONS_WRITE.value,
+        PartnerPermission.MEMBERSHIP_WRITE.value,
+        PartnerPermission.CODES_WRITE.value,
+        PartnerPermission.PAYOUTS_WRITE.value,
+        PartnerPermission.TRAFFIC_WRITE.value,
+        PartnerPermission.INTEGRATIONS_WRITE.value,
+    }
+)
+_FROZEN_WORKSPACE_STATUSES = frozenset({"suspended", "rejected", "terminated"})
 
 
 @dataclass(frozen=True)
@@ -84,12 +99,45 @@ async def resolve_partner_workspace_access(
 def require_partner_workspace_permission(permission: PartnerPermission):
     async def permission_checker(
         access: PartnerWorkspaceAccess = Depends(get_partner_workspace_access),
+        current_user: AdminUserModel = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_db),
     ) -> PartnerWorkspaceAccess:
-        if permission.value not in access.permission_keys:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Missing partner workspace permission: {permission.value}",
-            )
+        await enforce_partner_workspace_permission(
+            access=access,
+            permission=permission,
+            current_user=current_user,
+            db=db,
+        )
         return access
 
     return permission_checker
+
+
+async def enforce_partner_workspace_permission(
+    *,
+    access: PartnerWorkspaceAccess,
+    permission: PartnerPermission,
+    current_user: AdminUserModel,
+    db: AsyncSession,
+) -> None:
+    if permission.value not in access.permission_keys:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Missing partner workspace permission: {permission.value}",
+        )
+
+    if permission.value not in _WORKSPACE_WRITE_PERMISSIONS or access.is_internal_admin_override:
+        return
+
+    if access.workspace.status in _FROZEN_WORKSPACE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Partner workspace is not writable in current status",
+        )
+
+    profile = await PartnerWorkspaceProfileRepository(db).get_by_account_id(access.workspace.id)
+    if profile is not None and profile.require_mfa_for_workspace and not current_user.totp_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Partner workspace 2FA required for privileged action",
+        )

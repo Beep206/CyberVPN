@@ -110,6 +110,10 @@ APPROVE_OPTION_A
 
 **Документ:** `docs/plans/2026-05-23-cybervpn-s3-stage00-partner-event-backbone-readiness-decision.md`
 
+**Decision evidence:** `docs/evidence/releases/s3-stage-00-readiness-decision-20260524.md`
+
+**Approved decision:** `APPROVE_OPTION_A`
+
 ---
 
 ## 5. S3-STAGE-01: S3 Scope, Backlog, And Decision Freeze
@@ -138,6 +142,12 @@ APPROVE_OPTION_A
 - S3 scope утверждён;
 - каждый runtime change будет ссылаться на `S3-STAGE-*`;
 - S3 не расширяет S2 customer risk.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/01_STAGE3_SCOPE_BACKLOG_FREEZE.md`
+
+**Decision evidence:** `docs/evidence/releases/s3-stage-01-scope-freeze-20260524.md`
+
+**Approved decision:** `APPROVED_EXECUTION_BASELINE`
 
 ---
 
@@ -169,6 +179,12 @@ APPROVE_OPTION_A
 - DB/API/UI используют одинаковую модель;
 - нет privilege escalation через customer session.
 
+**Документ:** `docs/cybervpn_stage3_launch_docs/02_STAGE3_PARTNER_DOMAIN_ROLE_CONTRACT.md`
+
+**Decision evidence:** `docs/evidence/releases/s3-stage-02-domain-role-contract-20260524.md`
+
+**Approved decision:** `APPROVED_DOMAIN_ROLE_BASELINE`
+
 ---
 
 ## 7. S3-STAGE-03: Non-Prod Event Backbone Topology
@@ -191,19 +207,36 @@ APPROVE_OPTION_A
 - начинать с non-prod на домашнем/лабораторном контуре, если это не влияет на customer runtime;
 - production partner event backbone оставить выключенным.
 
+**Документ:** `docs/cybervpn_stage3_launch_docs/03_STAGE3_NONPROD_EVENT_BACKBONE_TOPOLOGY.md`
+
+**Decision evidence:** `docs/evidence/releases/s3-stage-03-nonprod-event-backbone-topology-20260524.md`
+
+**Broker evidence:** `docs/evidence/partner-platform/stage3-nats-20260524T164000Z`
+
+**Approved decision:** `APPROVED_NONPROD_EVENT_BACKBONE=NATS_JETSTREAM_LOCAL_LAB`
+
 **Exit Criteria:**
 
-- stream creation proof;
-- publish proof;
-- consume proof;
-- replay proof;
-- alert proof.
+- stream creation proof: passed;
+- publish proof: passed;
+- consume proof: passed;
+- replay proof: passed;
+- alert input proof: passed through `/jsz` evidence;
+- production event backbone remains disabled: passed.
 
 ---
 
 ## 8. S3-STAGE-04: Outbox Dispatcher And Consumer Proof
 
 **Purpose:** доказать, что transactional outbox реально доставляет события.
+
+**Status 2026-05-24:** passed for local/non-production proof.
+
+**Stage document:** `docs/cybervpn_stage3_launch_docs/04_STAGE3_OUTBOX_DISPATCHER_CONSUMER_PROOF.md`
+
+**Evidence:** `docs/evidence/partner-platform/stage3-outbox-20260524T170000Z`
+
+**Release evidence:** `docs/evidence/releases/s3-stage-04-outbox-dispatcher-consumer-proof-20260524.md`
 
 **Входит:**
 
@@ -230,11 +263,28 @@ APPROVE_OPTION_A
 - повторная доставка безопасна;
 - alerts видят backlog.
 
+**Result 2026-05-24:**
+
+- event `entitlement.grant.activated` прошёл `outbox -> dispatcher -> NATS JetStream -> durable consumers`;
+- publications `analytics_mart` и `operational_replay` получили `published`;
+- consumer receipts persisted: `3`;
+- duplicate delivery idempotency: passed;
+- synthetic broker failure became `dead_letter`;
+- backlog alert input captured;
+- labeled Prometheus samples captured for outbox created/published/failure/lag;
+- production partner event backbone remains disabled.
+
 ---
 
 ## 9. S3-STAGE-05: Partner Portal Disabled-State Boundary
 
 **Purpose:** подготовить partner portal так, чтобы он не открылся случайно.
+
+**Status 2026-05-24:** passed for local code/evidence gate.
+
+**Stage document:** `docs/cybervpn_stage3_launch_docs/05_STAGE3_PARTNER_PORTAL_DISABLED_STATE_BOUNDARY.md`
+
+**Release evidence:** `docs/evidence/releases/s3-stage-05-partner-portal-disabled-boundary-20260524.md`
 
 **Входит:**
 
@@ -251,6 +301,15 @@ APPROVE_OPTION_A
 - portal можно задеплоить без публичного доступа;
 - unauthorized user не видит partner workspace;
 - UI объясняет gated состояние для operator/admin.
+
+**Result 2026-05-24:**
+
+- backend public/self-serve partner prefixes are blocked by default through `PartnerDisabledBoundaryMiddleware`;
+- payout and storefront API prefixes have separate disabled boundaries;
+- admin partner preview paths under `/api/v1/admin/partner...` remain under existing admin auth/RBAC/host controls;
+- Mini App hides the partner section and does not call `/partner/dashboard` while `NEXT_PUBLIC_PARTNER_PORTAL_ENABLED=false`;
+- dashboard partner client has a disabled-state surface for operator/admin preview;
+- production partner portal/event/payout/webhook/storefront flags remain disabled.
 
 ---
 
@@ -281,11 +340,22 @@ APPROVE_OPTION_A
 - решение пишется в audit log;
 - rejected/approved states корректно видны.
 
+**Result 2026-05-24:**
+
+- added separate `PARTNER_APPLICATIONS_ENABLED=false` backend/env gate;
+- `/api/v1/partner-application-drafts` now requires both `PARTNER_PORTAL_ENABLED=true` and `PARTNER_APPLICATIONS_ENABLED=true`;
+- OpenAPI contract confirms application draft, submit, withdraw, resubmit, admin review and lane routes;
+- e2e proof covers request-info/resubmit/approve-probation/legal-acceptance and reject visibility;
+- fixed existing workflow/observability blockers found by S3-STAGE-06 proof;
+- production partner onboarding remains disabled until explicit S3 production gate.
+
 ---
 
 ## 11. S3-STAGE-07: Partner Workspace, Team, And RBAC
 
 **Purpose:** дать партнёру безопасное рабочее пространство.
+
+**Status:** passed for local code/evidence gate on 2026-05-24.
 
 **Входит:**
 
@@ -296,12 +366,19 @@ APPROVE_OPTION_A
 - 2FA requirement for privileged partner users;
 - readonly/reporting access;
 - finance access separation.
+- owner-role guard;
+- admin workspace freeze via `suspended` status;
+- shared permission enforcement for workspace and standalone partner route families.
 
 **Exit Criteria:**
 
-- partner owner управляет командой в рамках permissions;
-- finance actions недоступны support/analyst ролям;
-- admin может заморозить workspace.
+- partner owner управляет командой в рамках permissions: passed locally;
+- finance actions недоступны support/analyst ролям: passed locally;
+- admin может заморозить workspace: passed locally.
+
+**Stage document:** `docs/cybervpn_stage3_launch_docs/07_STAGE3_PARTNER_WORKSPACE_TEAM_RBAC.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-07-partner-workspace-team-rbac-20260524.md`
 
 ---
 
@@ -333,6 +410,12 @@ APPROVE_OPTION_A
 - fraud cases попадают в review queue;
 - attribution result можно объяснить support/admin.
 
+**Status:** Passed for local code/evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/08_STAGE3_PARTNER_CODES_ATTRIBUTION_ANTI_ABUSE.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-08-partner-codes-attribution-anti-abuse-20260524.md`
+
 ---
 
 ## 13. S3-STAGE-09: Reseller Storefront Contract
@@ -360,6 +443,12 @@ APPROVE_OPTION_A
 - storefront contract утверждён;
 - route guards работают;
 - preview не влияет на обычный CyberVPN B2C checkout.
+
+**Status:** Passed for local code/evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/09_STAGE3_RESELLER_STOREFRONT_CONTRACT.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-09-reseller-storefront-contract-20260525.md`
 
 ---
 
@@ -391,6 +480,12 @@ APPROVE_OPTION_A
 - access isolation доказан;
 - export redaction работает.
 
+**Status:** Passed for local code/evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/10_STAGE3_PARTNER_REPORTING_ANALYTICS.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-10-partner-reporting-analytics-20260525.md`
+
 ---
 
 ## 15. S3-STAGE-11: Settlement Sandbox And Payout Policy
@@ -420,6 +515,12 @@ APPROVE_OPTION_A
 - finance/admin видит объяснение расчёта;
 - payout blocked until approval.
 
+**Status:** Passed for local code/evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/11_STAGE3_SETTLEMENT_SANDBOX_PAYOUT_POLICY.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-11-settlement-sandbox-payout-policy-20260525.md`
+
 ---
 
 ## 16. S3-STAGE-12: Partner Support, Admin Ops, And Audit
@@ -441,6 +542,12 @@ APPROVE_OPTION_A
 - support может диагностировать partner issue;
 - finance actions требуют правильной роли;
 - audit log покрывает sensitive actions.
+
+**Status:** Passed for local code/evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/12_STAGE3_PARTNER_SUPPORT_ADMIN_OPS_AUDIT.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-12-partner-support-admin-ops-audit-20260525.md`
 
 ---
 
@@ -475,6 +582,12 @@ APPROVE_OPTION_A
 - synthetic probes работают;
 - sensitive logging не найден.
 
+**Status:** Passed for local code/config/evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/13_STAGE3_PARTNER_OBSERVABILITY_ALERTING.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-13-partner-observability-alerting-20260525.md`
+
 ---
 
 ## 18. S3-STAGE-14: Security, Privacy, Legal, And Compliance Gate
@@ -500,6 +613,12 @@ APPROVE_OPTION_A
 - tenant isolation доказан;
 - no high/critical security blocker;
 - webhook signatures and replay protection proven.
+
+**Status:** Passed for local security/privacy/legal evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/14_STAGE3_SECURITY_PRIVACY_LEGAL_COMPLIANCE_GATE.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-14-security-privacy-legal-compliance-20260525.md`
 
 ---
 
@@ -528,6 +647,12 @@ APPROVE_OPTION_A
 - full staging flow completed;
 - evidence attached;
 - no production partner enablement yet.
+
+**Status:** Passed for local/non-prod full rehearsal evidence gate.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/15_STAGE3_FULL_PARTNER_STAGING_REHEARSAL.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-15-full-partner-staging-rehearsal-20260525.md`
 
 ---
 

@@ -1,0 +1,68 @@
+{
+  "analytics_mart": {
+    "actor_context": {
+      "principal_id": "stage3-outbox-proof",
+      "principal_type": "service"
+    },
+    "aggregate_id": "7fe36ac1-f4ad-4d4c-9822-960f22f028e2",
+    "aggregate_type": "entitlement_grant",
+    "consumer_key": "analytics_mart",
+    "correlation_id": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "environment": "stage3-lab",
+    "event_id": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "event_type": "entitlement.grant.activated",
+    "event_version": 1,
+    "idempotency_key": "analytics_mart:evt_6a95b273e7504f52975dcbeaac4072f7",
+    "occurred_at": "2026-05-24T17:23:16.696295+00:00",
+    "payload": {
+      "customer_account_id": "stage3-customer-proof",
+      "entitlement_grant_id": "7fe36ac1-f4ad-4d4c-9822-960f22f028e2",
+      "grant_status": "active",
+      "partner_account_id": "acc84e19-69df-4b4a-a880-4c0e04385443",
+      "source_type": "stage3_proof",
+      "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+    },
+    "pii_classification": "low",
+    "published_at": "2026-05-24T17:23:16.812325+00:00",
+    "schema_ref": "events/entitlement/grant/activated/v1.json",
+    "source": "cybervpn-backend",
+    "source_context": {
+      "stage": "S3-STAGE-04",
+      "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+    },
+    "subject": "partner.analytics_mart.entitlement.grant.activated.v1"
+  },
+  "operational_replay": {
+    "actor_context": {
+      "principal_id": "stage3-outbox-proof",
+      "principal_type": "service"
+    },
+    "aggregate_id": "7fe36ac1-f4ad-4d4c-9822-960f22f028e2",
+    "aggregate_type": "entitlement_grant",
+    "consumer_key": "operational_replay",
+    "correlation_id": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "environment": "stage3-lab",
+    "event_id": "evt_6a95b273e7504f52975dcbeaac4072f7",
+    "event_type": "entitlement.grant.activated",
+    "event_version": 1,
+    "idempotency_key": "operational_replay:evt_6a95b273e7504f52975dcbeaac4072f7",
+    "occurred_at": "2026-05-24T17:23:16.696295+00:00",
+    "payload": {
+      "customer_account_id": "stage3-customer-proof",
+      "entitlement_grant_id": "7fe36ac1-f4ad-4d4c-9822-960f22f028e2",
+      "grant_status": "active",
+      "partner_account_id": "acc84e19-69df-4b4a-a880-4c0e04385443",
+      "source_type": "stage3_proof",
+      "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+    },
+    "pii_classification": "low",
+    "published_at": "2026-05-24T17:23:16.831880+00:00",
+    "schema_ref": "events/entitlement/grant/activated/v1.json",
+    "source": "cybervpn-backend",
+    "source_context": {
+      "stage": "S3-STAGE-04",
+      "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+    },
+    "subject": "partner.operational_replay.entitlement.grant.activated.v1"
+  }
+}

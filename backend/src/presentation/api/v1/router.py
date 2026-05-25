@@ -81,6 +81,7 @@ from src.presentation.api.v1.settlement_periods.routes import router as settleme
 from src.presentation.api.v1.snippets.routes import router as snippets_router
 from src.presentation.api.v1.squads.routes import router as squads_router
 from src.presentation.api.v1.status.routes import router as status_router
+from src.presentation.api.v1.storefronts.routes import router as storefronts_router
 from src.presentation.api.v1.subscriptions.routes import router as subscriptions_router
 from src.presentation.api.v1.telegram.routes import router as telegram_router
 from src.presentation.api.v1.traffic_declarations.routes import router as traffic_declarations_router
@@ -184,6 +185,7 @@ api_router.include_router(addons_router)
 api_router.include_router(offers_router)
 api_router.include_router(pricebooks_router)
 api_router.include_router(program_eligibility_router)
+api_router.include_router(storefronts_router)
 api_router.include_router(merchant_profiles_router)
 api_router.include_router(invoice_profiles_router)
 api_router.include_router(billing_descriptors_router)

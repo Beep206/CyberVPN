@@ -1,0 +1,9 @@
+status=ok
+event_key=evt_b34900a93c0546acbc6f002b7a5ca5b3
+workspace_id=e1a39599-ba29-47b2-97bd-541c8d6a898c
+successful_event_status=published
+published_publications=2
+consumer_receipts=3
+duplicate_delivery_idempotent=True
+dead_letter_event_key=evt_00c265c5fcdb4854a8b862e112e80c11
+backlog_event_key=evt_10013997312b493d9128e9192068731b

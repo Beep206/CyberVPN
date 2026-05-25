@@ -1,0 +1,13 @@
+started_at_utc=2026-05-24T16:28:58Z
+evidence_dir=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-nats-20260524T164000Z
+stream_name=PARTNER_EVENTS
+subject_prefix=partner
+consumer_name=stage3-proof
+keep_lab=0
+finished_at_utc=2026-05-24T16:29:05Z
+status=ok
+stream_proof=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-nats-20260524T164000Z/stream-info-after-add.json
+publish_proof=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-nats-20260524T164000Z/publish.txt
+consume_proof=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-nats-20260524T164000Z/consumer-next.txt
+replay_proof=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-nats-20260524T164000Z/consumer-replay-next.txt
+alert_input_proof=/home/beep/projects/VPNBussiness/docs/evidence/partner-platform/stage3-nats-20260524T164000Z/jsz-after.json

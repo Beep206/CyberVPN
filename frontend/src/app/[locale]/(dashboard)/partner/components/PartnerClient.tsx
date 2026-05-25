@@ -8,6 +8,10 @@ import { MobileDataList, type MobileDataListItem } from '@/shared/ui/mobile-data
 import { motion } from 'motion/react';
 import { Handshake, DollarSign, Users, Code, Plus, CheckCircle } from 'lucide-react';
 import { isAxiosError } from 'axios';
+import {
+  STAGE3_PARTNER_PORTAL_DISABLED_REASON,
+  STAGE3_PARTNER_PORTAL_UI_ENABLED,
+} from '@/shared/lib/stage3-partner-flags';
 
 interface PartnerCode {
   id: string;
@@ -28,8 +32,10 @@ interface PartnerEarning {
 }
 
 export function PartnerClient() {
-  const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } = usePartnerDashboard();
-  const canLoadPartnerDetails = Boolean(dashboard) && !dashboardError;
+  const partnerPortalEnabled = STAGE3_PARTNER_PORTAL_UI_ENABLED;
+  const { data: dashboard, isLoading: dashboardLoading, error: dashboardError } =
+    usePartnerDashboard(partnerPortalEnabled);
+  const canLoadPartnerDetails = partnerPortalEnabled && Boolean(dashboard) && !dashboardError;
   const { data: codes, isLoading: codesLoading, refetch: refetchCodes } = usePartnerCodes(canLoadPartnerDetails);
   const { data: earnings } = usePartnerEarnings(canLoadPartnerDetails);
 
@@ -42,6 +48,29 @@ export function PartnerClient() {
   const [newCodeMarkup, setNewCodeMarkup] = useState('');
   const [creatingCode, setCreatingCode] = useState(false);
   const [createError, setCreateError] = useState('');
+
+  if (!partnerPortalEnabled) {
+    return (
+      <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="cyber-card p-8 text-center"
+        >
+          <Handshake className="h-16 w-16 text-neon-cyan mx-auto mb-4" />
+          <h2 className="text-2xl font-display text-neon-cyan mb-2">
+            Partner Portal Locked
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {STAGE3_PARTNER_PORTAL_DISABLED_REASON}
+          </p>
+          <div className="inline-flex rounded border border-neon-cyan/30 px-3 py-2 text-xs font-mono uppercase tracking-wider text-neon-cyan">
+            S3-STAGE-05 disabled boundary
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const codeItems: MobileDataListItem[] = (codes ?? []).map((code: PartnerCode) => ({
     id: code.id,

@@ -1,0 +1,60 @@
+{
+  "captured_at": "2026-05-24T17:23:16.908767+00:00",
+  "counts": {
+    "dead_letter_publications": 1,
+    "events": 1,
+    "pending_publications": 0,
+    "publications": 1,
+    "published_publications": 0
+  },
+  "events": [
+    {
+      "actor_context": {
+        "principal_id": "stage3-outbox-proof",
+        "principal_type": "service"
+      },
+      "aggregate_id": "c2e994ff-e4fd-4adf-9255-baf51a531e98",
+      "aggregate_type": "entitlement_grant",
+      "created_at": "2026-05-24T17:23:16.880182+00:00",
+      "event_family": "entitlement",
+      "event_key": "evt_cba4eafaf6b44a5c8b5a3a7ef8ad6e48",
+      "event_name": "entitlement.grant.activated",
+      "event_payload": {
+        "customer_account_id": "stage3-customer-proof",
+        "entitlement_grant_id": "c2e994ff-e4fd-4adf-9255-baf51a531e98",
+        "grant_status": "active",
+        "partner_account_id": "acc84e19-69df-4b4a-a880-4c0e04385443",
+        "source_type": "stage3_proof",
+        "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+      },
+      "event_status": "failed",
+      "id": "7f4cb747-74d1-44d6-a445-96adaaedcd90",
+      "occurred_at": "2026-05-24T17:23:16.879518+00:00",
+      "partition_key": "acc84e19-69df-4b4a-a880-4c0e04385443",
+      "schema_version": 1,
+      "source_context": {
+        "stage": "S3-STAGE-04",
+        "workspace_id": "acc84e19-69df-4b4a-a880-4c0e04385443"
+      },
+      "updated_at": "2026-05-24T17:23:16.901914+00:00"
+    }
+  ],
+  "publications": [
+    {
+      "attempts": 1,
+      "consumer_key": "analytics_mart",
+      "created_at": "2026-05-24T17:23:16.880869+00:00",
+      "id": "0d3e00fe-448d-47dd-a169-e30e0ac146ac",
+      "last_error": "stage3 synthetic broker unavailable",
+      "lease_owner": null,
+      "leased_until": null,
+      "next_attempt_at": "2026-05-24T17:23:16.899537+00:00",
+      "outbox_event_id": "7f4cb747-74d1-44d6-a445-96adaaedcd90",
+      "publication_payload": {},
+      "publication_status": "dead_letter",
+      "published_at": null,
+      "submitted_at": "2026-05-24T17:23:16.899537+00:00",
+      "updated_at": "2026-05-24T17:23:16.899932+00:00"
+    }
+  ]
+}

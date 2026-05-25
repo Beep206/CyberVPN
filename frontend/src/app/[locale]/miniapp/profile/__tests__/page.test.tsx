@@ -90,7 +90,7 @@ describe('MiniAppProfilePage', () => {
             code: 'OWNER123',
             free_days: 7,
             is_used: false,
-            expires_at: '2026-05-24T11:54:13Z',
+            expires_at: '2026-06-24T11:54:13Z',
             created_at: '2026-05-21T11:54:13Z',
           },
         ]);
@@ -122,6 +122,15 @@ describe('MiniAppProfilePage', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /referral/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('test_hides_partner_section_during_s3_disabled_boundary', async () => {
+    render(<ProfilePage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('testuser')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /partner/i })).not.toBeInTheDocument();
     });
   });
 

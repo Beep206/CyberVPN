@@ -1,0 +1,9 @@
+{
+  "after_feed_events": 1,
+  "after_receipts": 1,
+  "before_feed_events": 1,
+  "before_receipts": 1,
+  "consumer_key": "operational_replay",
+  "event_key": "evt_6a95b273e7504f52975dcbeaac4072f7",
+  "idempotent": true
+}

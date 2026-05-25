@@ -5,7 +5,8 @@ import secrets
 from uuid import UUID
 
 from src.application.services.config_service import ConfigService
-from src.domain.exceptions import MarkupExceedsLimitError
+from src.config.settings import settings
+from src.domain.exceptions import DomainError, MarkupExceedsLimitError
 from src.infrastructure.database.models.partner_model import PartnerCodeModel
 from src.infrastructure.database.repositories.partner_repo import PartnerRepository
 
@@ -40,6 +41,9 @@ class CreatePartnerCodeUseCase:
         Raises:
             MarkupExceedsLimitError: if markup_pct exceeds the configured maximum.
         """
+        if not settings.partner_codes_enabled:
+            raise DomainError("Partner codes are not enabled for this release")
+
         max_markup = await self._config.get_partner_max_markup_pct()
         if markup_pct > max_markup:
             logger.warning(

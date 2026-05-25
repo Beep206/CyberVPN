@@ -18,6 +18,7 @@ from opentelemetry import trace
 
 from src.application.use_cases.auth_realms import RealmResolution
 from src.infrastructure.monitoring.partner_runtime_metrics import (
+    cybervpn_partner_admin_ops_overview_requests_total,
     cybervpn_partner_application_decision_duration_seconds,
     cybervpn_partner_application_decisions_total,
     cybervpn_partner_application_drafts_created_total,
@@ -30,6 +31,7 @@ from src.infrastructure.monitoring.partner_runtime_metrics import (
     cybervpn_partner_attribution_no_owner_total,
     cybervpn_partner_attribution_resolution_duration_seconds,
     cybervpn_partner_attribution_resolutions_total,
+    cybervpn_partner_audit_events_observed_total,
     cybervpn_partner_auth_cross_realm_denied_total,
     cybervpn_partner_auth_email_verification_total,
     cybervpn_partner_auth_login_attempts_total,
@@ -69,9 +71,11 @@ from src.infrastructure.monitoring.partner_runtime_metrics import (
     cybervpn_partner_payout_executions_total,
     cybervpn_partner_payout_failures_total,
     cybervpn_partner_payout_instructions_created_total,
+    cybervpn_partner_payout_review_queue_items,
     cybervpn_partner_statement_close_duration_seconds,
     cybervpn_partner_statement_reopen_total,
     cybervpn_partner_statements_closed_total,
+    cybervpn_partner_support_cases_open,
     cybervpn_partner_touchpoints_recorded_total,
     cybervpn_partner_touchpoints_rejected_total,
 )
@@ -95,6 +99,12 @@ def _sanitize_label(value: str | None, *, default: str = "unknown") -> str:
         return default
     normalized = value.strip()
     return normalized or default
+
+
+def _ensure_aware_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _current_trace_fields() -> dict[str, str]:
@@ -653,9 +663,15 @@ def observe_partner_application_decision(
     ).inc()
     if submitted_at is None:
         return
-    resolved_decided_at = decided_at or datetime.now(UTC)
-    duration_seconds = max((resolved_decided_at - submitted_at).total_seconds(), 0.0)
-    cybervpn_partner_application_decision_duration_seconds.labels(**labels).observe(duration_seconds)
+    resolved_decided_at = _ensure_aware_utc(decided_at or datetime.now(UTC))
+    duration_seconds = max((resolved_decided_at - _ensure_aware_utc(submitted_at)).total_seconds(), 0.0)
+    cybervpn_partner_application_decision_duration_seconds.labels(
+        surface=labels["surface"],
+        lane=labels["lane"],
+        decision=labels["decision"],
+        review_level=labels["review_level"],
+        result=labels["result"],
+    ).observe(duration_seconds)
 
 
 def observe_partner_notification_generated(
@@ -714,6 +730,58 @@ def observe_partner_case_action(
     ).inc()
 
 
+def observe_partner_admin_ops_overview(
+    *,
+    workspace_status: str,
+    open_cases: int,
+    waiting_on_ops_cases: int,
+    payout_review_queue: list[Any],
+    recent_audit_events: list[Any],
+    result: str = "success",
+) -> None:
+    normalized_surface = PARTNER_ADMIN_SURFACE
+    normalized_status = _sanitize_label(workspace_status, default="unknown")
+    cybervpn_partner_admin_ops_overview_requests_total.labels(
+        surface=normalized_surface,
+        workspace_status=normalized_status,
+        result=_sanitize_label(result),
+    ).inc()
+    cybervpn_partner_support_cases_open.labels(
+        surface=normalized_surface,
+        case_status="open",
+    ).set(max(open_cases, 0))
+    cybervpn_partner_support_cases_open.labels(
+        surface=normalized_surface,
+        case_status="waiting_on_ops",
+    ).set(max(waiting_on_ops_cases, 0))
+
+    queue_counts: dict[tuple[str, str], int] = {}
+    for item in payout_review_queue:
+        kind = _sanitize_label(getattr(item, "kind", None), default="unknown")
+        status = _sanitize_label(getattr(item, "status", None), default="unknown")
+        queue_counts[(kind, status)] = queue_counts.get((kind, status), 0) + 1
+    if not queue_counts:
+        cybervpn_partner_payout_review_queue_items.labels(
+            surface=normalized_surface,
+            kind="none",
+            status="empty",
+        ).set(0)
+    for (kind, status), count in queue_counts.items():
+        cybervpn_partner_payout_review_queue_items.labels(
+            surface=normalized_surface,
+            kind=kind,
+            status=status,
+        ).set(count)
+
+    for item in recent_audit_events:
+        action_kind = _sanitize_label(getattr(item, "action_kind", None), default="unknown")
+        cybervpn_partner_audit_events_observed_total.labels(
+            surface=normalized_surface,
+            action_kind=action_kind,
+            result="observed",
+        ).inc()
+
+
 def observe_partner_statement_closed(
     *,
     surface: str,
@@ -729,8 +797,8 @@ def observe_partner_statement_closed(
     ).inc()
     if opened_at is None:
         return
-    resolved_closed_at = closed_at or datetime.now(UTC)
-    duration_seconds = max((resolved_closed_at - opened_at).total_seconds(), 0.0)
+    resolved_closed_at = _ensure_aware_utc(closed_at or datetime.now(UTC))
+    duration_seconds = max((resolved_closed_at - _ensure_aware_utc(opened_at)).total_seconds(), 0.0)
     cybervpn_partner_statement_close_duration_seconds.labels(
         surface=_sanitize_label(surface),
         result=_sanitize_label(result),
@@ -803,8 +871,8 @@ def observe_partner_payout_execution(
     cybervpn_partner_payout_executions_total.labels(**labels).inc()
     if started_at is None:
         return
-    resolved_finished_at = finished_at or datetime.now(UTC)
-    duration_seconds = max((resolved_finished_at - started_at).total_seconds(), 0.0)
+    resolved_finished_at = _ensure_aware_utc(finished_at or datetime.now(UTC))
+    duration_seconds = max((resolved_finished_at - _ensure_aware_utc(started_at)).total_seconds(), 0.0)
     cybervpn_partner_payout_execution_duration_seconds.labels(**labels).observe(duration_seconds)
 
 

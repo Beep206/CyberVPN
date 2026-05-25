@@ -1,0 +1,106 @@
+{
+  "memory": 0,
+  "storage": 2690,
+  "reserved_memory": 0,
+  "reserved_storage": 0,
+  "accounts": 1,
+  "ha_assets": 0,
+  "api": {
+    "level": 3,
+    "total": 6,
+    "errors": 3
+  },
+  "server_id": "NAS4VC3BMZHHAMNOZCAWOUIPYBGDIKLLTQ3H2YVDBWEXVLOSB7LIW6L3",
+  "now": "2026-05-24T17:23:17.169395453Z",
+  "config": {
+    "max_memory": 25243057152,
+    "max_storage": 575842821120,
+    "store_dir": "/data/jetstream/jetstream",
+    "sync_interval": 120000000000,
+    "strict": true
+  },
+  "limits": {},
+  "streams": 1,
+  "consumers": 2,
+  "messages": 2,
+  "bytes": 2690,
+  "account_details": [
+    {
+      "name": "$G",
+      "id": "$G",
+      "memory": 0,
+      "storage": 2690,
+      "reserved_memory": 18446744073709551615,
+      "reserved_storage": 18446744073709551615,
+      "accounts": 0,
+      "ha_assets": 0,
+      "api": {
+        "level": 0,
+        "total": 6,
+        "errors": 3
+      },
+      "stream_detail": [
+        {
+          "name": "PARTNER_EVENTS",
+          "created": "2026-05-24T17:23:16.795126721Z",
+          "cluster": {
+            "leader": "NAS4VC3BMZHHAMNOZCAWOUIPYBGDIKLLTQ3H2YVDBWEXVLOSB7LIW6L3"
+          },
+          "state": {
+            "messages": 2,
+            "bytes": 2690,
+            "first_seq": 1,
+            "first_ts": "2026-05-24T17:23:16.812631316Z",
+            "last_seq": 2,
+            "last_ts": "2026-05-24T17:23:16.832092447Z",
+            "num_subjects": 2,
+            "consumer_count": 2
+          },
+          "consumer_detail": [
+            {
+              "stream_name": "PARTNER_EVENTS",
+              "name": "stage3-proof-analytics_mart",
+              "created": "2026-05-24T17:23:16.845350736Z",
+              "delivered": {
+                "consumer_seq": 1,
+                "stream_seq": 1,
+                "last_active": "2026-05-24T17:23:16.84648172Z"
+              },
+              "ack_floor": {
+                "consumer_seq": 1,
+                "stream_seq": 1,
+                "last_active": "2026-05-24T17:23:16.85708612Z"
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2026-05-24T17:23:17.169412789Z"
+            },
+            {
+              "stream_name": "PARTNER_EVENTS",
+              "name": "stage3-proof-operational_replay",
+              "created": "2026-05-24T17:23:16.857517679Z",
+              "delivered": {
+                "consumer_seq": 1,
+                "stream_seq": 2,
+                "last_active": "2026-05-24T17:23:16.858443054Z"
+              },
+              "ack_floor": {
+                "consumer_seq": 1,
+                "stream_seq": 2,
+                "last_active": "2026-05-24T17:23:16.867220974Z"
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2026-05-24T17:23:17.169414769Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "total": 1
+}

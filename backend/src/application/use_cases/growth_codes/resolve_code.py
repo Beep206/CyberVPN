@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.growth_codes.hashing import hash_growth_code
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
+from src.config.settings import settings
 from src.domain.enums import (
     CommercialOwnerType,
     GrowthCodeActionContext,
@@ -21,6 +22,7 @@ from src.domain.enums import (
     InviteSource,
 )
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
     CustomerCommercialBindingRepository,
 )
@@ -222,9 +224,10 @@ class ResolveGrowthCodeUseCase:
 
         partner_code = await self._partners.get_code_by_code(normalized_code)
         if partner_code is not None:
-            outcome = self._resolve_partner_code(
+            outcome = await self._resolve_partner_code(
                 partner_code=partner_code,
                 action_context=action_context,
+                user_id=user_id,
                 existing_promo_present=existing_promo_present,
             )
             await self._registry.record_resolution_event(
@@ -657,14 +660,29 @@ class ResolveGrowthCodeUseCase:
             resolved_code_id=referral_owner.id,
         )
 
-    def _resolve_partner_code(
+    async def _resolve_partner_code(
         self,
         *,
         partner_code,
         action_context: GrowthCodeActionContext,
+        user_id: UUID | None,
         existing_promo_present: bool,
     ) -> GrowthCodeResolutionOutcome:
         owner_type = "reseller" if partner_code.partner_account_id is not None else "affiliate"
+        if not settings.partner_codes_enabled:
+            return GrowthCodeResolutionOutcome(
+                accepted=False,
+                code_type=GrowthCodeType.PARTNER,
+                action_context=action_context,
+                result=GrowthCodeResolutionStatus.REJECTED,
+                reject_reason=GrowthCodeRejectReason.CODE_NOT_ACTIVE,
+                user_message_key="growth_codes.partner.disabled",
+                issuer_type="partner",
+                owner_type=owner_type,
+                resolved_code_id=partner_code.id,
+                partner_code_id=partner_code.id,
+            )
+
         if action_context != GrowthCodeActionContext.CHECKOUT:
             return self._wrong_context(
                 code_type=GrowthCodeType.PARTNER,
@@ -685,6 +703,20 @@ class ResolveGrowthCodeUseCase:
                 reject_reason=GrowthCodeRejectReason.CODE_CONFLICTS_WITH_PROMO,
                 conflict_code="promo_present",
                 user_message_key="growth_codes.partner.promo_conflict",
+                issuer_type="partner",
+                owner_type=owner_type,
+                resolved_code_id=partner_code.id,
+                partner_code_id=partner_code.id,
+            )
+
+        if await self._is_partner_code_self_referral(partner_code=partner_code, user_id=user_id):
+            return GrowthCodeResolutionOutcome(
+                accepted=False,
+                code_type=GrowthCodeType.PARTNER,
+                action_context=action_context,
+                result=GrowthCodeResolutionStatus.BLOCKED_BY_RISK,
+                reject_reason=GrowthCodeRejectReason.CODE_BLOCKED_BY_RISK,
+                user_message_key="growth_codes.partner.self_referral_blocked",
                 issuer_type="partner",
                 owner_type=owner_type,
                 resolved_code_id=partner_code.id,
@@ -716,6 +748,20 @@ class ResolveGrowthCodeUseCase:
             resolved_code_id=partner_code.id,
             partner_code_id=partner_code.id,
         )
+
+    async def _is_partner_code_self_referral(self, *, partner_code, user_id: UUID | None) -> bool:
+        if user_id is None:
+            return False
+        if partner_code.partner_user_id == user_id:
+            return True
+        user = await self._session.get(MobileUserModel, user_id)
+        if user is not None and partner_code.partner_account_id is not None:
+            if user.partner_account_id == partner_code.partner_account_id:
+                return True
+            account = await self._session.get(PartnerAccountModel, partner_code.partner_account_id)
+            if account is not None and account.legacy_owner_user_id == user_id:
+                return True
+        return False
 
     @staticmethod
     def _with_growth_code_id(

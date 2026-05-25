@@ -1,0 +1,157 @@
+name: cybervpn-h-partner-lab
+services:
+  partner-nats:
+    profiles:
+      - manual
+    cpus: 0.5
+    command:
+      - -js
+      - -sd
+      - /data/jetstream
+      - -m
+      - "8222"
+      - --user
+      - stage3_lab
+      - --pass
+      - <redacted>
+    container_name: cybervpn-partner-nats-nonprod
+    image: nats:2.12.7-alpine
+    mem_limit: "402653184"
+    networks:
+      default: null
+    pids_limit: 128
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 4222
+        published: "4222"
+        protocol: tcp
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 8222
+        published: "8222"
+        protocol: tcp
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - type: volume
+        source: partner_nats_jetstream
+        target: /data/jetstream
+        volume: {}
+  partner-nats-box:
+    profiles:
+      - manual
+    cpus: 0.25
+    container_name: cybervpn-partner-nats-box
+    depends_on:
+      partner-nats:
+        condition: service_started
+        required: true
+    entrypoint:
+      - sleep
+      - infinity
+    environment:
+      NATS_URL: nats://stage3_lab:<redacted>@partner-nats:4222
+    image: natsio/nats-box:0.18.0
+    mem_limit: "134217728"
+    networks:
+      default: null
+    pids_limit: 64
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+  partner-postgres:
+    profiles:
+      - manual
+    cpus: 0.75
+    container_name: cybervpn-partner-postgres-nonprod
+    environment:
+      POSTGRES_DB: cybervpn_stage3
+      POSTGRES_PASSWORD: <redacted>
+      POSTGRES_USER: cybervpn_stage3
+      TZ: UTC
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+      timeout: 5s
+      interval: 2s
+      retries: 20
+    image: postgres:17.7-alpine
+    mem_limit: "536870912"
+    networks:
+      default: null
+    pids_limit: 256
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 5432
+        published: "6788"
+        protocol: tcp
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - type: volume
+        source: partner_postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
+  partner-webhook-test-receiver:
+    profiles:
+      - manual
+    cpus: 0.25
+    command:
+      - python
+      - /opt/cybervpn/run-webhook-test-receiver.py
+    container_name: cybervpn-partner-webhook-test-receiver
+    environment:
+      PARTNER_WEBHOOK_EVIDENCE_DIR: /evidence/webhook-receiver
+      PARTNER_WEBHOOK_MAX_BODY_BYTES: "262144"
+      PARTNER_WEBHOOK_RECEIVER_HOST: 0.0.0.0
+      PARTNER_WEBHOOK_RECEIVER_PORT: "9088"
+      PARTNER_WEBHOOK_REPLAY_WINDOW_SECONDS: "300"
+      PARTNER_WEBHOOK_SHARED_SECRET_FILE: /run/secrets/partner_webhook_test_secret
+    image: python:3.13-alpine
+    mem_limit: "134217728"
+    networks:
+      default: null
+    pids_limit: 64
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 9088
+        published: "9088"
+        protocol: tcp
+    read_only: true
+    restart: "no"
+    secrets:
+      - source: partner_webhook_test_secret
+        target: /run/secrets/partner_webhook_test_secret
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    volumes:
+      - type: bind
+        source: /srv/cybervpn-h/scripts/run-webhook-test-receiver.py
+        target: /opt/cybervpn/run-webhook-test-receiver.py
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /srv/storage/evidence/settlements
+        target: /evidence
+        bind: {}
+    working_dir: /opt/cybervpn
+networks:
+  default:
+    name: cybervpn-h-partner-lab_default
+volumes:
+  partner_nats_jetstream:
+    name: cybervpn-h-partner-lab_partner_nats_jetstream
+  partner_postgres_data:
+    name: cybervpn-h-partner-lab_partner_postgres_data
+secrets:
+  partner_webhook_test_secret:
+    name: cybervpn-h-partner-lab_partner_webhook_test_secret
+    file: /srv/cybervpn-h/secrets/partner-webhook-test.secret

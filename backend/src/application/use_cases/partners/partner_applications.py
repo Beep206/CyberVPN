@@ -15,6 +15,7 @@ from src.infrastructure.database.models.partner_application_model import (
     PartnerApplicationReviewRequestModel,
     PartnerLaneApplicationModel,
 )
+from src.infrastructure.database.models.partner_model import PartnerAccountModel
 from src.infrastructure.database.models.partner_workspace_workflow_event_model import (
     PartnerWorkspaceWorkflowEventModel,
 )
@@ -1051,19 +1052,7 @@ class PartnerApplicationWorkflowUseCase:
             raise ValueError("Partner application draft not found")
         return draft
 
-
-def _application_notification_type_for_action(action_kind: str) -> str | None:
-    if action_kind == "workspace_draft_created":
-        return "workspace_draft"
-    if action_kind in {"application_submitted", "application_resubmitted"}:
-        return "application_submitted"
-    if action_kind in {"application_approved_probation", "application_waitlisted", "application_rejected"}:
-        return action_kind
-    if action_kind in {"lane_application_approved", "lane_application_declined"}:
-        return "lane_membership_changed"
-    return None
-
-    async def _require_workspace(self, partner_account_id: UUID):
+    async def _require_workspace(self, partner_account_id: UUID) -> PartnerAccountModel:
         workspace = await self._partner_accounts.get_account_by_id(partner_account_id)
         if workspace is None:
             raise ValueError("Partner workspace not found")
@@ -1077,3 +1066,15 @@ def _application_notification_type_for_action(action_kind: str) -> str | None:
         if lane_application is None:
             raise ValueError("Lane application not found")
         return lane_application
+
+
+def _application_notification_type_for_action(action_kind: str) -> str | None:
+    if action_kind == "workspace_draft_created":
+        return "workspace_draft"
+    if action_kind in {"application_submitted", "application_resubmitted"}:
+        return "application_submitted"
+    if action_kind in {"application_approved_probation", "application_waitlisted", "application_rejected"}:
+        return action_kind
+    if action_kind in {"lane_application_approved", "lane_application_declined"}:
+        return "lane_membership_changed"
+    return None

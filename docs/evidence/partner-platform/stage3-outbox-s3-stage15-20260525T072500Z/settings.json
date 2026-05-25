@@ -1,0 +1,9 @@
+{
+  "environment": "stage3-lab",
+  "nats_partner_stream_name": "PARTNER_EVENTS",
+  "nats_partner_subject_prefix": "partner",
+  "outbox_dispatch_batch_size": 20,
+  "outbox_dispatch_dead_letter_after_attempts": 5,
+  "partner_event_backbone_enabled": true,
+  "posthog_enabled": false
+}

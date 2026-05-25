@@ -23,12 +23,17 @@ EVIDENCE_DIR = Path(os.environ.get("PARTNER_WEBHOOK_EVIDENCE_DIR", "docs/evidenc
 MAX_BODY_BYTES = int(os.environ.get("PARTNER_WEBHOOK_MAX_BODY_BYTES", "262144"))
 SECRET_FILE = os.environ.get("PARTNER_WEBHOOK_SHARED_SECRET_FILE")
 SECRET = os.environ.get("PARTNER_WEBHOOK_SHARED_SECRET", "")
+REPLAY_WINDOW_SECONDS = int(os.environ.get("PARTNER_WEBHOOK_REPLAY_WINDOW_SECONDS", "300"))
+SIGNATURE_HEADER = "X-CyberVPN-Partner-Signature"
+TIMESTAMP_HEADER = "X-CyberVPN-Partner-Timestamp"
+EVENT_ID_HEADER = "X-CyberVPN-Partner-Event-Id"
 
 SENSITIVE_KEYS = re.compile(
     r"(token|secret|password|authorization|signature|email|phone|telegram|subscription_url|payment_payload)",
     re.IGNORECASE,
 )
 IDENTIFIER_KEYS = re.compile(r"(^id$|_id$|uuid|external_id|order_id|partner_account_id|user_id)", re.IGNORECASE)
+SEEN_EVENTS: dict[str, float] = {}
 
 
 def _load_secret() -> bytes:
@@ -68,6 +73,47 @@ def _verify_signature(body: bytes, provided: str | None) -> bool:
     return hmac.compare_digest(expected, normalized)
 
 
+def _verify_timestamp(value: str | None, *, now: float | None = None) -> bool:
+    if not value:
+        return False
+    try:
+        timestamp = int(value)
+    except ValueError:
+        return False
+    current_time = int(now if now is not None else time.time())
+    return abs(current_time - timestamp) <= REPLAY_WINDOW_SECONDS
+
+
+def _remember_event_or_replay(event_id: str | None, *, body_sha: str, now: float | None = None) -> bool:
+    if not event_id:
+        return False
+    current_time = now if now is not None else time.time()
+    expired_before = current_time - REPLAY_WINDOW_SECONDS
+    for key, seen_at in list(SEEN_EVENTS.items()):
+        if seen_at < expired_before:
+            SEEN_EVENTS.pop(key, None)
+    replay_key = f"{event_id}:{body_sha}"
+    if replay_key in SEEN_EVENTS:
+        return False
+    SEEN_EVENTS[replay_key] = current_time
+    return True
+
+
+def _evidence_counts_by_result() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    if not EVIDENCE_DIR.exists():
+        return counts
+    for path in EVIDENCE_DIR.glob("partner-webhook-*.json"):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            result = "unreadable"
+        else:
+            result = str(payload.get("result") or "unknown")
+        counts[result] = counts.get(result, 0) + 1
+    return counts
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "CyberVPNPartnerWebhookTestReceiver/1.0"
 
@@ -91,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
 
         body = self.rfile.read(length)
         body_sha = hashlib.sha256(body).hexdigest()
-        signature = self.headers.get("X-CyberVPN-Partner-Signature")
+        signature = self.headers.get(SIGNATURE_HEADER)
         if not _verify_signature(body, signature):
             self._write_evidence(
                 result="invalid_signature",
@@ -102,10 +148,37 @@ class Handler(BaseHTTPRequestHandler):
             self._json_response(401, {"error": "invalid_signature"})
             return
 
+        if _load_secret():
+            timestamp = self.headers.get(TIMESTAMP_HEADER)
+            event_id = self.headers.get(EVENT_ID_HEADER)
+            if not _verify_timestamp(timestamp):
+                self._write_evidence(
+                    result="invalid_timestamp",
+                    body={},
+                    raw_sha256=body_sha,
+                    duration_seconds=time.time() - started,
+                )
+                self._json_response(401, {"error": "invalid_timestamp"})
+                return
+            if not _remember_event_or_replay(event_id, body_sha=body_sha):
+                self._write_evidence(
+                    result="replay",
+                    body={},
+                    raw_sha256=body_sha,
+                    duration_seconds=time.time() - started,
+                )
+                self._json_response(409, {"error": "replay_detected"})
+                return
+
         try:
             parsed = json.loads(body.decode("utf-8")) if body else {}
         except json.JSONDecodeError:
-            self._write_evidence(result="invalid_json", body={}, raw_sha256=body_sha, duration_seconds=time.time() - started)
+            self._write_evidence(
+                result="invalid_json",
+                body={},
+                raw_sha256=body_sha,
+                duration_seconds=time.time() - started,
+            )
             self._json_response(400, {"error": "invalid_json"})
             return
 
@@ -145,12 +218,23 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def _metrics_response(self) -> None:
-        count = len(list(EVIDENCE_DIR.glob("partner-webhook-*.json"))) if EVIDENCE_DIR.exists() else 0
-        body = (
+        counts = _evidence_counts_by_result()
+        count = sum(counts.values())
+        lines = [
             "# HELP cybervpn_partner_webhook_test_receiver_evidence_files Current evidence file count.\n"
             "# TYPE cybervpn_partner_webhook_test_receiver_evidence_files gauge\n"
             f"cybervpn_partner_webhook_test_receiver_evidence_files {count}\n"
-        ).encode("utf-8")
+            "# HELP cybervpn_partner_webhook_test_receiver_requests_total "
+            "Partner webhook test receiver requests by result.\n"
+            "# TYPE cybervpn_partner_webhook_test_receiver_requests_total counter\n"
+        ]
+        for result, result_count in sorted(counts.items()):
+            safe_result = re.sub(r"[^a-zA-Z0-9_:.-]", "_", result)
+            lines.append(
+                f'cybervpn_partner_webhook_test_receiver_requests_total{{result="{safe_result}"}} '
+                f"{result_count}\n"
+            )
+        body = "".join(lines).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; version=0.0.4")
         self.send_header("Content-Length", str(len(body)))

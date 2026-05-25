@@ -20,6 +20,11 @@ from src.infrastructure.messaging.partner_workspace_feed_broker import (
     PartnerWorkspaceFeedBroadcast,
     partner_workspace_feed_broker,
 )
+from src.infrastructure.monitoring.instrumentation.partner_runtime import (
+    log_partner_runtime_event,
+    observe_partner_outbox_event_published,
+    observe_partner_outbox_publish_failure,
+)
 
 logger = logging.getLogger("cybervpn")
 
@@ -160,6 +165,7 @@ class NatsPartnerRuntime:
                     publication = await repo.get_publication_by_id(publication_id)
                     if publication is None:
                         continue
+                    outbox_event = publication.outbox_event
                     await repo.mark_publication_submitted(
                         publication=publication,
                         lease_owner=lease_owner,
@@ -171,6 +177,24 @@ class NatsPartnerRuntime:
                         published_at=datetime.now(UTC),
                         publication_payload=ack,
                     )
+                    observe_partner_outbox_event_published(
+                        event_type=outbox_event.event_name,
+                        consumer_name=publication.consumer_key,
+                        result="success",
+                        lag_seconds=_lag_seconds(
+                            start=outbox_event.occurred_at,
+                            end=publication.published_at or datetime.now(UTC),
+                        ),
+                    )
+                    log_partner_runtime_event(
+                        "partner_outbox.publication_published",
+                        surface="partner_backend",
+                        route_group="outbox",
+                        event_type=outbox_event.event_name,
+                        consumer_name=publication.consumer_key,
+                        publication_id=str(publication.id),
+                        result="success",
+                    )
                     await session.commit()
             except asyncio.CancelledError:
                 raise
@@ -179,26 +203,67 @@ class NatsPartnerRuntime:
                     repo = OutboxRepository(session)
                     publication = await repo.get_publication_by_id(publication_id)
                     if publication is not None:
-                        await repo.mark_publication_failed(
-                            publication=publication,
-                            lease_owner=lease_owner,
-                            failed_at=datetime.now(UTC),
-                            retry_at=datetime.now(UTC).replace(microsecond=0)
-                            + timedelta(seconds=settings.outbox_dispatch_retry_after_seconds),
-                            error_message=str(exc),
+                        outbox_event = publication.outbox_event
+                        failed_at = datetime.now(UTC)
+                        error_message = str(exc)
+                        if int(publication.attempts or 0) >= settings.outbox_dispatch_dead_letter_after_attempts:
+                            await repo.mark_publication_dead_letter(
+                                publication=publication,
+                                lease_owner=lease_owner,
+                                failed_at=failed_at,
+                                error_message=error_message,
+                            )
+                            failure_result = "dead_letter"
+                        else:
+                            await repo.mark_publication_failed(
+                                publication=publication,
+                                lease_owner=lease_owner,
+                                failed_at=failed_at,
+                                retry_at=failed_at.replace(microsecond=0)
+                                + timedelta(seconds=settings.outbox_dispatch_retry_after_seconds),
+                                error_message=error_message,
+                            )
+                            failure_result = "failure"
+                        observe_partner_outbox_publish_failure(
+                            event_type=outbox_event.event_name,
+                            consumer_name=publication.consumer_key,
+                            result=failure_result,
+                            lag_seconds=_lag_seconds(start=outbox_event.occurred_at, end=failed_at),
+                        )
+                        log_partner_runtime_event(
+                            "partner_outbox.publication_failed",
+                            surface="partner_backend",
+                            route_group="outbox",
+                            event_type=outbox_event.event_name,
+                            consumer_name=publication.consumer_key,
+                            publication_id=str(publication.id),
+                            error_code=failure_result,
+                            result=failure_result,
                         )
                         await session.commit()
                 logger.exception("Partner outbox publication failed", extra={"consumer_key": consumer_key})
 
     async def _publish_envelope(self, envelope: OutboxEnvelope) -> dict[str, Any]:
         payload = json.dumps(envelope.as_payload(), separators=(",", ":"), default=str).encode("utf-8")
-        ack = await self._jetstream.publish(envelope.subject, payload)
+        idempotency_key = f"{envelope.consumer_key}:{envelope.event_key}"
+        published_at = datetime.now(UTC)
+        ack = await self._jetstream.publish(
+            envelope.subject,
+            payload,
+            stream=settings.nats_partner_stream_name,
+            headers={"Nats-Msg-Id": idempotency_key},
+        )
         return {
             "status": "published",
             "stream": getattr(ack, "stream", settings.nats_partner_stream_name),
             "sequence": getattr(ack, "seq", None),
+            "broker_sequence": getattr(ack, "seq", None),
+            "duplicate": bool(getattr(ack, "duplicate", False)),
             "subject": envelope.subject,
             "consumer_key": envelope.consumer_key,
+            "event_version": envelope.schema_version,
+            "idempotency_key": idempotency_key,
+            "published_at": published_at.isoformat(),
         }
 
     async def _consume_loop(self, consumer_key: str) -> None:
@@ -377,3 +442,7 @@ def _normalize_utc(value: datetime) -> datetime:
 
 def _parse_datetime(value: str) -> datetime:
     return _normalize_utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
+
+
+def _lag_seconds(*, start: datetime, end: datetime) -> float:
+    return max((_normalize_utc(end) - _normalize_utc(start)).total_seconds(), 0.0)

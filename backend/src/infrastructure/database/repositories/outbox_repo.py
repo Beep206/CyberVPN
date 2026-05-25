@@ -141,7 +141,17 @@ class OutboxRepository:
         await self._session.flush()
         for item in items:
             await self.refresh_event_status(item.outbox_event_id)
-        return items
+        if not items:
+            return []
+
+        item_ids = [item.id for item in items]
+        refreshed = await self._session.execute(
+            select(OutboxPublicationModel)
+            .execution_options(populate_existing=True)
+            .options(selectinload(OutboxPublicationModel.outbox_event))
+            .where(OutboxPublicationModel.id.in_(item_ids))
+        )
+        return list(refreshed.scalars().unique().all())
 
     async def mark_publication_submitted(
         self,
@@ -198,6 +208,25 @@ class OutboxRepository:
         await self.refresh_event_status(publication.outbox_event_id)
         return publication
 
+    async def mark_publication_dead_letter(
+        self,
+        *,
+        publication: OutboxPublicationModel,
+        lease_owner: str,
+        failed_at: datetime,
+        error_message: str,
+    ) -> OutboxPublicationModel:
+        _ensure_lease_owner(publication=publication, lease_owner=lease_owner)
+        publication.publication_status = OutboxPublicationStatus.DEAD_LETTER.value
+        publication.leased_until = None
+        publication.lease_owner = None
+        publication.next_attempt_at = failed_at
+        publication.last_error = error_message.strip()
+        publication.submitted_at = publication.submitted_at or failed_at
+        await self._session.flush()
+        await self.refresh_event_status(publication.outbox_event_id)
+        return publication
+
     async def refresh_event_status(self, outbox_event_id: UUID) -> OutboxEventModel | None:
         event = await self.get_event_by_id(outbox_event_id)
         if event is None:
@@ -214,7 +243,12 @@ class OutboxRepository:
             }
         ):
             event.event_status = OutboxEventStatus.PARTIALLY_PUBLISHED.value
-        elif publication_statuses == {OutboxPublicationStatus.FAILED.value}:
+        elif publication_statuses and publication_statuses.issubset(
+            {
+                OutboxPublicationStatus.FAILED.value,
+                OutboxPublicationStatus.DEAD_LETTER.value,
+            }
+        ):
             event.event_status = OutboxEventStatus.FAILED.value
         else:
             event.event_status = OutboxEventStatus.PENDING_PUBLICATION.value

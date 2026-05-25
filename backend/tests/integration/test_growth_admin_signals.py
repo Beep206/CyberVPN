@@ -146,6 +146,7 @@ async def test_admin_growth_signals_overview_returns_live_growth_metrics(async_c
                 headers={
                     "Authorization": f"Bearer {admin_token}",
                     "X-Auth-Realm": "admin",
+                    "Host": "testserver",
                 },
             )
 
@@ -233,6 +234,7 @@ async def test_admin_growth_abuse_queue_returns_resolution_clusters_and_blocked_
                 headers={
                     "Authorization": f"Bearer {admin_token}",
                     "X-Auth-Realm": "admin",
+                    "Host": "testserver",
                 },
             )
 
@@ -321,6 +323,7 @@ async def test_admin_referral_endpoints_return_canonical_reward_timeline(
             headers = {
                 "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                "Host": "testserver",
             }
 
             overview_response = await async_client.get(

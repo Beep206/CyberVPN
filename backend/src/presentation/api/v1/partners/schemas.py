@@ -79,6 +79,16 @@ class UpdatePartnerWorkspaceMemberRequest(BaseModel):
     membership_status: str | None = Field(default=None, min_length=1, max_length=20)
 
 
+class UpdatePartnerWorkspaceStatusRequest(BaseModel):
+    workspace_status: str = Field(min_length=1, max_length=20)
+    reason: str | None = Field(default=None, max_length=255)
+
+
+class UpdatePartnerWorkspaceCodeStatusRequest(BaseModel):
+    is_active: bool
+    reason: str = Field(..., min_length=1, max_length=255)
+
+
 class PartnerWorkspaceRoleResponse(BaseModel):
     id: UUID
     role_key: str
@@ -634,6 +644,41 @@ class PartnerWorkspaceCaseResponse(BaseModel):
     thread_events: list[PartnerWorkspaceThreadEventResponse] = Field(default_factory=list)
 
 
+class PartnerAdminOpsActionResponse(BaseModel):
+    key: str
+    status: str
+    required_role: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerAdminPayoutReviewItemResponse(BaseModel):
+    id: str
+    kind: str
+    status: str
+    source: str
+    required_role: str
+    updated_at: datetime
+    amount: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerAdminOpsOverviewResponse(BaseModel):
+    workspace: PartnerWorkspaceResponse
+    generated_at: datetime
+    open_cases: int = 0
+    waiting_on_ops_cases: int = 0
+    open_review_requests: int = 0
+    payout_review_items: int = 0
+    frozen: bool = False
+    cases: list[PartnerWorkspaceCaseResponse] = Field(default_factory=list)
+    review_requests: list[PartnerWorkspaceReviewRequestResponse] = Field(default_factory=list)
+    payout_review_queue: list[PartnerAdminPayoutReviewItemResponse] = Field(default_factory=list)
+    recent_audit_events: list[PartnerWorkspaceThreadEventResponse] = Field(default_factory=list)
+    available_admin_actions: list[PartnerAdminOpsActionResponse] = Field(default_factory=list)
+    escalation_path: list[str] = Field(default_factory=list)
+    redaction_notes: list[str] = Field(default_factory=list)
+
+
 class PartnerWorkspaceTrafficDeclarationResponse(BaseModel):
     id: str
     kind: str
@@ -682,7 +727,86 @@ class PartnerWorkspaceAnalyticsMetricResponse(BaseModel):
     key: str
     value: str
     trend: str
+    source_of_truth: str = "partner_reporting_mart"
+    workspace_scoped: bool = True
+    pii_redacted: bool = True
     notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceReportingSummaryMetricResponse(BaseModel):
+    key: str
+    value: str
+    source_of_truth: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceReportingReconciliationResponse(BaseModel):
+    status: str
+    mismatch_counts: dict[str, int] = Field(default_factory=dict)
+    blocking_mismatch_count: int = 0
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceReportExportRedactionResponse(BaseModel):
+    policy: str
+    pii_fields_excluded: list[str] = Field(default_factory=list)
+    masked_fields: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceReportingSummaryResponse(BaseModel):
+    workspace_id: UUID
+    generated_at: datetime
+    report_version: str
+    metrics: list[PartnerWorkspaceReportingSummaryMetricResponse] = Field(default_factory=list)
+    reconciliation: PartnerWorkspaceReportingReconciliationResponse
+    export_redaction: PartnerWorkspaceReportExportRedactionResponse
+    source_of_truth_notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceSettlementSandboxMetricResponse(BaseModel):
+    key: str
+    value: str
+    source_of_truth: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceSettlementSandboxEligibilityResponse(BaseModel):
+    settlement_simulation_reproducible: bool
+    payout_instruction_allowed: bool
+    dry_run_execution_allowed: bool
+    live_payout_allowed: bool
+    manual_approval_required: bool
+    maker_checker_required: bool
+    blocked_reasons: list[str] = Field(default_factory=list)
+    eligible_statement_count: int = 0
+    eligible_payout_account_count: int = 0
+    pending_instruction_count: int = 0
+    approved_instruction_count: int = 0
+    dry_run_execution_count: int = 0
+    live_execution_count: int = 0
+
+
+class PartnerWorkspaceSettlementSandboxPolicyResponse(BaseModel):
+    stage: str = "S3-STAGE-11"
+    mode: str = "sandbox_only"
+    payout_export_status: str = "disabled_by_default"
+    live_payouts_enabled: bool = False
+    requires_finance_approval: bool = True
+    requires_maker_checker: bool = True
+    same_admin_approval_allowed: bool = False
+    required_next_stages: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class PartnerWorkspaceSettlementSandboxSimulationResponse(BaseModel):
+    workspace_id: UUID
+    generated_at: datetime
+    currency_code: str
+    metrics: list[PartnerWorkspaceSettlementSandboxMetricResponse] = Field(default_factory=list)
+    eligibility: PartnerWorkspaceSettlementSandboxEligibilityResponse
+    policy: PartnerWorkspaceSettlementSandboxPolicyResponse
+    calculation_notes: list[str] = Field(default_factory=list)
 
 
 class PartnerWorkspaceReportExportResponse(BaseModel):
@@ -690,6 +814,9 @@ class PartnerWorkspaceReportExportResponse(BaseModel):
     kind: str
     status: str
     cadence: str
+    source_of_truth: str = "workspace_scoped_backend_reporting_marts"
+    redaction_policy: str = "redacted_partner_export"
+    pii_fields_excluded: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     available_actions: list[str] = Field(default_factory=list)
     thread_events: list[PartnerWorkspaceThreadEventResponse] = Field(default_factory=list)

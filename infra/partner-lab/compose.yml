@@ -1,6 +1,82 @@
 name: cybervpn-h-partner-lab
 
 services:
+  partner-postgres:
+    image: postgres:17.7-alpine
+    container_name: cybervpn-partner-postgres-nonprod
+    profiles:
+      - manual
+    restart: "no"
+    environment:
+      POSTGRES_USER: "${PARTNER_LAB_POSTGRES_USER:-cybervpn_stage3}"
+      POSTGRES_PASSWORD: "${PARTNER_LAB_POSTGRES_PASSWORD:?set PARTNER_LAB_POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${PARTNER_LAB_POSTGRES_DB:-cybervpn_stage3}"
+      TZ: UTC
+    ports:
+      - 127.0.0.1:6788:5432
+    volumes:
+      - partner_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    mem_limit: 512m
+    cpus: "0.75"
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+
+  partner-nats:
+    image: nats:2.12.7-alpine
+    container_name: cybervpn-partner-nats-nonprod
+    profiles:
+      - manual
+    restart: "no"
+    command:
+      - "-js"
+      - "-sd"
+      - "/data/jetstream"
+      - "-m"
+      - "8222"
+      - "--user"
+      - "${NATS_LAB_USER:?set NATS_LAB_USER}"
+      - "--pass"
+      - "${NATS_LAB_PASSWORD:?set NATS_LAB_PASSWORD}"
+    ports:
+      - 127.0.0.1:4222:4222
+      - 127.0.0.1:8222:8222
+    volumes:
+      - partner_nats_jetstream:/data/jetstream
+    mem_limit: 384m
+    cpus: "0.50"
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+
+  partner-nats-box:
+    image: natsio/nats-box:0.18.0
+    container_name: cybervpn-partner-nats-box
+    profiles:
+      - manual
+    restart: "no"
+    environment:
+      NATS_URL: "nats://${NATS_LAB_USER:?set NATS_LAB_USER}:${NATS_LAB_PASSWORD:?set NATS_LAB_PASSWORD}@partner-nats:4222"
+    depends_on:
+      - partner-nats
+    entrypoint:
+      - sleep
+      - infinity
+    mem_limit: 128m
+    cpus: "0.25"
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+
   partner-webhook-test-receiver:
     image: python:3.13-alpine
     container_name: cybervpn-partner-webhook-test-receiver
@@ -17,6 +93,7 @@ services:
       PARTNER_WEBHOOK_EVIDENCE_DIR: /evidence/webhook-receiver
       PARTNER_WEBHOOK_MAX_BODY_BYTES: "262144"
       PARTNER_WEBHOOK_SHARED_SECRET_FILE: /run/secrets/partner_webhook_test_secret
+      PARTNER_WEBHOOK_REPLAY_WINDOW_SECONDS: "300"
     ports:
       - 127.0.0.1:9088:9088
     volumes:
@@ -36,3 +113,7 @@ services:
 secrets:
   partner_webhook_test_secret:
     file: /srv/cybervpn-h/secrets/partner-webhook-test.secret
+
+volumes:
+  partner_postgres_data:
+  partner_nats_jetstream:

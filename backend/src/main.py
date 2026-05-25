@@ -57,6 +57,7 @@ from src.presentation.exception_handlers import (
 from src.presentation.middleware.admin_host_guard import AdminHostGuardMiddleware
 from src.presentation.middleware.csrf import CSRFMiddleware
 from src.presentation.middleware.logging import LoggingMiddleware
+from src.presentation.middleware.partner_disabled_boundary import PartnerDisabledBoundaryMiddleware
 from src.presentation.middleware.rate_limit import RateLimitMiddleware
 from src.presentation.middleware.request_id import RequestIDMiddleware
 from src.presentation.middleware.security_headers import SecurityHeadersMiddleware
@@ -418,6 +419,10 @@ if settings.admin_host_protection_enabled:
         environment=settings.environment,
         trust_proxy_headers=settings.trust_proxy_headers,
     )
+
+# S3-STAGE-05: keep partner self-serve surfaces deployable but externally gated.
+# Admin preview routes keep using their existing host/auth/RBAC boundary.
+app.add_middleware(PartnerDisabledBoundaryMiddleware)
 
 
 def register_exception_handler(exc: type[Exception], handler: Callable[..., Any]) -> None:

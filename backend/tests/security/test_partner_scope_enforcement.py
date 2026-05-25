@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
@@ -40,19 +41,37 @@ async def _create_admin_user(
     return user
 
 
-async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
+async def _login(
+    async_client: AsyncClient,
+    login_or_email: str,
+    password: str,
+    *,
+    realm: str,
+) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers={"X-Auth-Realm": realm},
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
     return response.json()["access_token"]
 
 
+def _auth_headers(token: str, *, realm: str, host: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token}",
+        "X-Auth-Realm": realm,
+        "Host": host,
+    }
+
+
 @pytest.mark.security
 @pytest.mark.integration
-async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) -> None:
+async def test_partner_workspace_scope_enforcement(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -68,6 +87,7 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                partner_realm = await realm_repo.get_or_create_default_realm("partner")
 
                 await _create_admin_user(
                     session=db,
@@ -81,7 +101,7 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
                 owner_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="scope_owner",
                     email="scope-owner@example.com",
                     password="ScopeOwnerP@ssword123!",
@@ -90,7 +110,7 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
                 analyst_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="scope_analyst",
                     email="scope-analyst@example.com",
                     password="ScopeAnalystP@ssword123!",
@@ -99,20 +119,22 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
                 outsider_operator = await _create_admin_user(
                     session=db,
                     auth_service=auth_service,
-                    auth_realm_id=admin_realm.id,
+                    auth_realm_id=partner_realm.id,
                     login="scope_outsider",
                     email="scope-outsider@example.com",
                     password="ScopeOutsiderP@ssword123!",
                     role="viewer",
                 )
 
-            admin_token = await _login(async_client, "scope-admin@example.com", "ScopeAdminP@ssword123!")
+            admin_token = await _login(
+                async_client,
+                "scope-admin@example.com",
+                "ScopeAdminP@ssword123!",
+                realm="admin",
+            )
             create_response = await async_client.post(
                 "/api/v1/admin/partner-workspaces",
-                headers={
-                    "Authorization": f"Bearer {admin_token}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_auth_headers(admin_token, realm="admin", host="admin.cyber-vpn.net"),
                 json={
                     "display_name": "Scope Guard Partners",
                     "owner_admin_user_id": str(owner_operator.id),
@@ -121,13 +143,15 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
             assert create_response.status_code == 201
             workspace_id = create_response.json()["id"]
 
-            owner_token = await _login(async_client, "scope-owner@example.com", "ScopeOwnerP@ssword123!")
+            owner_token = await _login(
+                async_client,
+                "scope-owner@example.com",
+                "ScopeOwnerP@ssword123!",
+                realm="partner",
+            )
             analyst_add_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers={
-                    "Authorization": f"Bearer {owner_token}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_auth_headers(owner_token, realm="partner", host="partner.h.cyber-vpn.net"),
                 json={
                     "admin_user_id": str(analyst_operator.id),
                     "role_key": "analyst",
@@ -135,23 +159,22 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
             )
             assert analyst_add_response.status_code == 201
 
-            analyst_token = await _login(async_client, "scope-analyst@example.com", "ScopeAnalystP@ssword123!")
+            analyst_token = await _login(
+                async_client,
+                "scope-analyst@example.com",
+                "ScopeAnalystP@ssword123!",
+                realm="partner",
+            )
             analyst_detail = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}",
-                headers={
-                    "Authorization": f"Bearer {analyst_token}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_auth_headers(analyst_token, realm="partner", host="partner.h.cyber-vpn.net"),
             )
             assert analyst_detail.status_code == 200
             assert analyst_detail.json()["current_role_key"] == "analyst"
 
             analyst_add_attempt = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers={
-                    "Authorization": f"Bearer {analyst_token}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_auth_headers(analyst_token, realm="partner", host="partner.h.cyber-vpn.net"),
                 json={
                     "admin_user_id": str(outsider_operator.id),
                     "role_key": "support_manager",
@@ -159,13 +182,15 @@ async def test_partner_workspace_scope_enforcement(async_client: AsyncClient) ->
             )
             assert analyst_add_attempt.status_code == 403
 
-            outsider_token = await _login(async_client, "scope-outsider@example.com", "ScopeOutsiderP@ssword123!")
+            outsider_token = await _login(
+                async_client,
+                "scope-outsider@example.com",
+                "ScopeOutsiderP@ssword123!",
+                realm="partner",
+            )
             outsider_detail = await async_client.get(
                 f"/api/v1/partner-workspaces/{workspace_id}",
-                headers={
-                    "Authorization": f"Bearer {outsider_token}",
-                    "X-Auth-Realm": "admin",
-                },
+                headers=_auth_headers(outsider_token, realm="partner", host="partner.h.cyber-vpn.net"),
             )
             assert outsider_detail.status_code == 403
     finally:

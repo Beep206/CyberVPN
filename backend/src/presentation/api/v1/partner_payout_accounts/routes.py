@@ -25,7 +25,10 @@ from src.domain.enums import (
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
-from src.presentation.dependencies.partner_workspace import resolve_partner_workspace_access
+from src.presentation.dependencies.partner_workspace import (
+    enforce_partner_workspace_permission,
+    resolve_partner_workspace_access,
+)
 from src.presentation.dependencies.roles import require_role
 
 from .schemas import (
@@ -82,11 +85,12 @@ async def _require_workspace_permission(
         current_user=current_user,
         db=db,
     )
-    if permission.value not in access.permission_keys:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Missing partner workspace permission: {permission.value}",
-        )
+    await enforce_partner_workspace_permission(
+        access=access,
+        permission=permission,
+        current_user=current_user,
+        db=db,
+    )
 
 
 @router.post("/", response_model=PartnerPayoutAccountResponse, status_code=status.HTTP_201_CREATED)

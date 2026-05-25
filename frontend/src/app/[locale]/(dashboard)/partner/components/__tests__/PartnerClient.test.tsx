@@ -19,6 +19,11 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
+vi.mock('@/shared/lib/stage3-partner-flags', () => ({
+  STAGE3_PARTNER_PORTAL_UI_ENABLED: true,
+  STAGE3_PARTNER_PORTAL_DISABLED_REASON: 'disabled',
+}));
+
 // Mock CyberInput
 vi.mock('@/features/auth/components/CyberInput', () => ({
   CyberInput: ({ label, value, onChange, error, placeholder, onKeyDown, disabled }: { label?: string; value?: string; onChange?: React.ChangeEventHandler<HTMLInputElement>; error?: string; placeholder?: string; onKeyDown?: React.KeyboardEventHandler; disabled?: boolean }) => (

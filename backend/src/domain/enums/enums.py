@@ -66,6 +66,7 @@ class OutboxPublicationStatus(StrEnum):
     SUBMITTED = "submitted"
     PUBLISHED = "published"
     FAILED = "failed"
+    DEAD_LETTER = "dead_letter"
 
 
 class PartnerIntegrationCredentialKind(StrEnum):

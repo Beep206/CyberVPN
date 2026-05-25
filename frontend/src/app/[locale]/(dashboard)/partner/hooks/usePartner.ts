@@ -4,7 +4,7 @@ import { partnerApi } from '@/lib/api/partner';
 /**
  * Hook to fetch partner dashboard data
  */
-export function usePartnerDashboard() {
+export function usePartnerDashboard(enabled = true) {
   return useQuery({
     queryKey: ['partner-dashboard'],
     queryFn: async () => {
@@ -13,6 +13,7 @@ export function usePartnerDashboard() {
     },
     staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
     retry: false, // Don't retry if user is not a partner (403)
+    enabled,
   });
 }
 

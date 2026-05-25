@@ -70,6 +70,26 @@ groups:
           sum(increase(cybervpn_partner_payout_failures_total[15m]))
           or vector(0)
 
+      - record: stage3:partner_outbox_publish_failures:15m
+        expr: |
+          sum(increase(cybervpn_partner_outbox_publish_failures_total[15m])) or vector(0)
+
+      - record: stage3:partner_outbox_dead_letters:24h
+        expr: |
+          sum(increase(cybervpn_partner_outbox_publish_failures_total{result="dead_letter"}[24h])) or vector(0)
+
+      - record: stage3:partner_outbox_lag_p95_seconds
+        expr: |
+          partner_platform:outbox_lag_seconds:p95_15m
+          or
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(cybervpn_partner_outbox_lag_seconds_bucket[15m])
+            )
+          )
+          or vector(0)
+
       - record: stage3:partner_commission_ledger_mismatches:24h
         expr: |
           sum(increase(cybervpn_partner_commission_ledger_mismatches_total[24h]))
@@ -88,6 +108,14 @@ groups:
       - record: stage3:partner_cases_created:24h
         expr: |
           sum(increase(cybervpn_partner_cases_created_total[24h])) or vector(0)
+
+      - record: stage3:partner_support_cases_open
+        expr: |
+          sum(cybervpn_partner_support_cases_open) or vector(0)
+
+      - record: stage3:partner_payout_review_queue_items
+        expr: |
+          sum(cybervpn_partner_payout_review_queue_items) or vector(0)
 
       - record: stage3:partner_risk_reviews_open
         expr: |
@@ -209,6 +237,66 @@ groups:
           dashboard_path: "/d/stage3-partner-settlement-payout/stage-3-partner-settlement-and-payout"
           runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
 
+      - alert: Stage3PartnerOutboxLagHigh
+        expr: |
+          stage3:partner_outbox_lag_p95_seconds > 60
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-outbox
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner outbox lag is high"
+          description: "Partner outbox publish lag p95 is above 60 seconds. Check dispatcher leases, NATS health and consumer receipts."
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerOutboxPublishFailure
+        expr: |
+          stage3:partner_outbox_publish_failures:15m > 0
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-outbox
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner outbox publish failure detected"
+          description: "Partner outbox publisher reported at least one failure. Preserve dispatcher logs and publication rows before retrying."
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerOutboxDeadLetter
+        expr: |
+          stage3:partner_outbox_dead_letters:24h > 0
+        for: 0m
+        labels:
+          severity: critical
+          priority: p0
+          service: partner-outbox
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner outbox dead-letter detected"
+          description: "A partner outbox publication entered dead_letter. Stop partner expansion until the event is classified and replay policy is written."
+          dashboard_path: "/d/partner-platform-runtime/partner-platform-runtime"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3PartnerPayoutReviewBacklog
+        expr: |
+          stage3:partner_payout_review_queue_items > 10
+        for: 1h
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-finance
+          stage: s3
+        annotations:
+          summary: "Stage 3 partner payout review backlog is high"
+          description: "Finance review queue is above the controlled-pilot threshold. Do not expand partner cohort until reviewed."
+          dashboard_path: "/d/stage3-partner-support-audit-risk/stage-3-partner-support-audit-risk"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
       - alert: Stage3PartnerRiskReviewBacklog
         expr: |
           stage3:partner_risk_reviews_open > 20
@@ -252,4 +340,19 @@ groups:
           summary: "Stage 3 partner webhook test receiver failures"
           description: "The partner webhook test receiver observed invalid JSON, signature failure, or request handling errors."
           dashboard_path: "/d/stage3-partner-staging-readiness/stage-3-partner-staging-readiness"
+          runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"
+
+      - alert: Stage3StorefrontSyntheticFailure
+        expr: |
+          stage3:storefront_synthetic_failures:15m > 0
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: partner-storefront
+          stage: s3
+        annotations:
+          summary: "Stage 3 storefront synthetic probe failed"
+          description: "At least one partner/storefront/reseller synthetic endpoint failed from the home observability blackbox path."
+          dashboard_path: "/d/stage3-partner-attribution-storefront/stage-3-partner-attribution-and-storefront"
           runbook_path: "docs/runbooks/PARTNER_RESELLER_STAGE3_RUNBOOK.md"

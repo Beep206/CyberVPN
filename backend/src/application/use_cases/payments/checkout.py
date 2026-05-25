@@ -27,6 +27,7 @@ from src.domain.enums import (
     GrowthCodeType,
 )
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel, PartnerCodeModel
 from src.infrastructure.database.models.plan_addon_model import PlanAddonModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.repositories.customer_commercial_binding_repo import (
@@ -147,12 +148,16 @@ class CheckoutUseCase:
         user = await self._session.get(MobileUserModel, user_id)
         normalized_partner_code = partner_code.strip() if partner_code else None
         if normalized_partner_code:
+            if not settings.partner_codes_enabled:
+                raise ValueError("Partner codes are not enabled for this release")
             explicit_code = await self._partner_repo.get_active_code_by_code(normalized_partner_code)
             if explicit_code is None:
                 raise ValueError("Partner code not found or inactive")
+            if await self._is_self_partner_code(user=user, partner_code=explicit_code):
+                raise ValueError("Partner code self-referral is blocked")
             partner_markup = base_price * (Decimal(str(explicit_code.markup_pct)) / Decimal("100"))
             partner_code_id = explicit_code.id
-        else:
+        elif settings.partner_attribution_enabled:
             active_code = await self._resolve_bound_partner_code(user=user, storefront_id=storefront_id)
             if active_code is not None:
                 partner_markup = base_price * (Decimal(str(active_code.markup_pct)) / Decimal("100"))
@@ -327,6 +332,23 @@ class CheckoutUseCase:
         codes = await self._partner_repo.get_codes_by_partner(user.partner_user_id)
         return next((code for code in codes if code.is_active), None)
 
+    async def _is_self_partner_code(
+        self,
+        *,
+        user: MobileUserModel | None,
+        partner_code: PartnerCodeModel,
+    ) -> bool:
+        if user is None:
+            return False
+        if partner_code.partner_user_id == user.id:
+            return True
+        if partner_code.partner_account_id is None:
+            return False
+        if user.partner_account_id == partner_code.partner_account_id:
+            return True
+        account = await self._session.get(PartnerAccountModel, partner_code.partner_account_id)
+        return account is not None and account.legacy_owner_user_id == user.id
+
     async def _resolve_plan(self, plan_id: UUID, *, sale_channel: str) -> SubscriptionPlanModel:
         plan = await self._plan_repo.get_by_id(plan_id)
         if plan is None:
@@ -454,6 +476,8 @@ def _quote_resolution_error_message(resolution) -> str:
     if resolution.reject_reason == GrowthCodeRejectReason.CODE_BLOCKED_BY_RISK:
         if resolution.code_type == GrowthCodeType.REFERRAL:
             return "Referral code is blocked by risk policy"
+        if resolution.code_type == GrowthCodeType.PARTNER:
+            return "Partner code self-referral is blocked"
     return "Growth code is not valid"
 
 

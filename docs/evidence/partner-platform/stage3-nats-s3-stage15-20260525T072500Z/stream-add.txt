@@ -1,0 +1,38 @@
+Stream PARTNER_EVENTS was created
+
+Information for Stream PARTNER_EVENTS created 2026-05-25 07:23:24
+
+                Subjects: partner.>
+                Replicas: 1
+                 Storage: File
+
+Options:
+
+               Retention: Limits
+         Acknowledgments: true
+          Discard Policy: Old
+        Duplicate Window: 2m0s
+              Direct Get: true
+       Allows Msg Delete: true
+            Allows Purge: true
+  Allows Per-Message TTL: false
+          Allows Rollups: false
+
+Limits:
+
+        Maximum Messages: 10,000
+     Maximum Per Subject: unlimited
+           Maximum Bytes: unlimited
+             Maximum Age: 7d0h0m0s
+    Maximum Message Size: unlimited
+       Maximum Consumers: unlimited
+
+State:
+
+            Host Version: 2.12.7
+      Required API Level: 0 hosted at level 3
+                Messages: 0
+                   Bytes: 0 B
+          First Sequence: 0
+           Last Sequence: 0
+        Active Consumers: 0

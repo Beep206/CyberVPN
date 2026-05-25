@@ -26,6 +26,12 @@ from tests.helpers.realm_auth import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _enable_partner_runtime_surfaces(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
+    monkeypatch.setattr(settings, "partner_applications_enabled", True)
+
+
 def _metric_value(name: str, labels: dict[str, str]) -> float:
     return REGISTRY.get_sample_value(name, labels) or 0.0
 
