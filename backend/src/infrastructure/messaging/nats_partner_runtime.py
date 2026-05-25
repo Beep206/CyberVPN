@@ -94,7 +94,10 @@ class NatsPartnerRuntime:
                 for consumer_key in SUPPORTED_CONSUMERS
             ],
         ]
-        logger.info("Partner event backbone runtime started", consumers=list(SUPPORTED_CONSUMERS))
+        logger.info(
+            "Partner event backbone runtime started",
+            extra={"consumers": list(SUPPORTED_CONSUMERS)},
+        )
 
     async def stop(self) -> None:
         self._stop_event.set()
