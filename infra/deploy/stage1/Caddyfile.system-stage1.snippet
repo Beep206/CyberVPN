@@ -45,6 +45,9 @@ cyber-vpn.net {
 	import stage1_backend_routes
 	import stage1_telegram_webhook_routes
 
+	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|monitoring|partner|payment-history|referral|servers|settings|subscriptions|users|wallet)(?:/.*)?$
+	redir @cabinet_routes https://my.cyber-vpn.net{uri} temporary
+
 	reverse_proxy http://127.0.0.1:13000 {
 		header_up Host {host}
 		header_up X-Forwarded-Host {host}
@@ -59,6 +62,9 @@ my.cyber-vpn.net {
 	import stage1_app_security_headers
 	import stage1_backend_routes
 	import stage1_telegram_webhook_routes
+
+	@public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|api|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
+	redir @public_routes https://cyber-vpn.net{uri} temporary
 
 	reverse_proxy http://127.0.0.1:13000 {
 		header_up Host {host}

@@ -43,6 +43,9 @@ cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
 
+	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|monitoring|partner|payment-history|referral|servers|settings|subscriptions|users|wallet)(?:/.*)?$
+	redir @cabinet_routes https://my.cyber-vpn.net{uri} temporary
+
 	encode zstd gzip
 	reverse_proxy cybervpn-frontend:3000 {
 		header_up Host {host}
@@ -55,6 +58,9 @@ cyber-vpn.net {
 my.cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
+
+	@public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|api|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
+	redir @public_routes https://cyber-vpn.net{uri} temporary
 
 	encode zstd gzip
 	reverse_proxy cybervpn-frontend:3000 {
