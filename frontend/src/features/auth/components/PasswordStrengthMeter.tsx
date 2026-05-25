@@ -1,6 +1,8 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
+import { getPasswordRequirements, validatePasswordInput } from '@/features/auth/lib/validation';
 import { cn } from '@/lib/utils';
 
 interface PasswordStrengthMeterProps {
@@ -10,23 +12,12 @@ interface PasswordStrengthMeterProps {
 
 // Password strength calculation
 function calculateStrength(password: string): { score: number; label: string; color: string } {
-    let score = 0;
-
     if (!password) return { score: 0, label: 'empty', color: 'bg-grid-line/30' };
 
-    // Length checks
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
-
-    // Character variety
-    if (/[a-z]/.test(password)) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-
-    // Normalize to 0-4 scale
-    const normalizedScore = Math.min(4, Math.floor(score / 1.5));
-
+    const requirements = getPasswordRequirements(password);
+    const metCount = requirements.filter((requirement) => requirement.met).length;
+    const isValid = validatePasswordInput(password).isValid;
+    const normalizedScore = isValid ? 4 : Math.min(3, Math.floor((metCount / requirements.length) * 4));
     const levels = [
         { score: 0, label: 'weak', color: 'bg-red-500' },
         { score: 1, label: 'fair', color: 'bg-orange-500' },
@@ -39,8 +30,9 @@ function calculateStrength(password: string): { score: number; label: string; co
 }
 
 export function PasswordStrengthMeter({ password, className }: PasswordStrengthMeterProps) {
-    // React Compiler handles memoization automatically - no need for useMemo
+    const t = useTranslations('Auth.passwordStrength');
     const strength = calculateStrength(password);
+    const requirements = getPasswordRequirements(password);
 
     if (!password) return null;
 
@@ -71,7 +63,7 @@ export function PasswordStrengthMeter({ password, className }: PasswordStrengthM
             {/* Label */}
             <div className="flex items-center justify-between text-xs font-mono">
                 <span className="text-muted-foreground">
-                    password_strength:
+                    {t.has('label') ? t('label') : 'password_strength:'}
                 </span>
                 <motion.span
                     key={strength.label}
@@ -84,16 +76,23 @@ export function PasswordStrengthMeter({ password, className }: PasswordStrengthM
                         strength.score >= 3 && "text-matrix-green"
                     )}
                 >
-                    [{strength.label}]
+                    [{t.has(strength.label) ? t(strength.label) : strength.label}]
                 </motion.span>
             </div>
 
             {/* Requirements hints */}
-            <div className="grid grid-cols-2 gap-1 text-[10px] font-mono text-muted-foreground-low">
-                <RequirementItem met={password.length >= 8} text="8+ chars" />
-                <RequirementItem met={/[A-Z]/.test(password)} text="uppercase" />
-                <RequirementItem met={/[0-9]/.test(password)} text="number" />
-                <RequirementItem met={/[^a-zA-Z0-9]/.test(password)} text="symbol" />
+            <div className="grid grid-cols-1 gap-1 text-[10px] font-mono text-muted-foreground-low sm:grid-cols-2">
+                {requirements.map((requirement) => (
+                    <RequirementItem
+                        key={requirement.code}
+                        met={requirement.met}
+                        text={
+                            t.has(`requirements.${requirement.code}`)
+                                ? t(`requirements.${requirement.code}`)
+                                : requirement.code
+                        }
+                    />
+                ))}
             </div>
         </motion.div>
     );

@@ -6,12 +6,23 @@ import pytest
 
 from src.metrics import EMAIL_SEND_CONTEXT_TOTAL, EMAIL_SEND_ERRORS, EMAIL_SEND_TOTAL, OTP_EMAILS_SENT
 from src.tasks.email.send_magic_link import send_magic_link_email
-from src.tasks.email.send_otp import send_otp_email
+from src.tasks.email.send_otp import _build_activation_url, send_otp_email
 from src.tasks.email.send_password_reset import send_password_reset_email
 
 
 def _counter_value(counter, **labels) -> float:
     return counter.labels(**labels)._value.get()
+
+
+def test_build_activation_url_targets_locale_verify_page():
+    url = _build_activation_url(
+        base_url="https://cyber-vpn.net/",
+        email="new.user@example.com",
+        otp_code="123456",
+        locale="ru-RU",
+    )
+
+    assert url == "https://cyber-vpn.net/ru-RU/verify?email=new.user%40example.com&code=123456"
 
 
 class _SuccessfulSmtpClient:

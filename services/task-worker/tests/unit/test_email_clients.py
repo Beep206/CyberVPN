@@ -188,6 +188,20 @@ class TestEmailTemplates:
         assert "CyberVPN" in html
         assert "verification" in html.lower() or "code" in html.lower()
 
+    def test_resend_template_contains_activation_link_when_provided(self):
+        """Registration OTP emails should support one-click account verification links."""
+        with patch("src.services.email.resend_client.get_settings", return_value=_settings()):
+            client = ResendClient()
+        html = client._render_otp_template(
+            "123456",
+            "3 hours",
+            "en-EN",
+            activation_url="https://cyber-vpn.net/en-EN/verify?email=test%40example.com&code=123456",
+        )
+
+        assert "VERIFY ACCOUNT" in html
+        assert "https://cyber-vpn.net/en-EN/verify?email=test%40example.com&amp;code=123456" in html
+
     def test_brevo_template_contains_code(self):
         """Test that Brevo template includes OTP code."""
         client = BrevoClient()

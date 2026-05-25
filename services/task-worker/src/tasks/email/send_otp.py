@@ -1,6 +1,7 @@
 """Send OTP verification email via Resend, Brevo, or SMTP (dev mode)."""
 
 from time import perf_counter
+from urllib.parse import urlencode
 
 import structlog
 
@@ -55,6 +56,13 @@ def _select_api_provider(*, is_resend: bool, settings: object) -> str:
     return "resend"
 
 
+def _build_activation_url(*, base_url: str, email: str, otp_code: str, locale: str) -> str:
+    normalized_base = (base_url or "http://localhost:9001").rstrip("/")
+    normalized_locale = (locale or "en-EN").strip() or "en-EN"
+    query = urlencode({"email": email, "code": otp_code})
+    return f"{normalized_base}/{normalized_locale}/verify?{query}"
+
+
 @broker.task(
     task_name="send_otp_email",
     queue="email",
@@ -87,6 +95,12 @@ async def send_otp_email(
     settings = get_settings()
     action = "resend" if is_resend else "initial"
     started_at = perf_counter()
+    activation_url = _build_activation_url(
+        base_url=getattr(settings, "magic_link_base_url", ""),
+        email=email,
+        otp_code=otp_code,
+        locale=locale,
+    )
 
     # Dev mode: Use SMTP (Mailpit) with round-robin
     if settings.email_dev_mode:
@@ -102,7 +116,12 @@ async def send_otp_email(
 
         try:
             async with SmtpClient() as client:
-                result = await client.send_otp(email=email, code=otp_code, locale=locale)
+                result = await client.send_otp(
+                    email=email,
+                    code=otp_code,
+                    locale=locale,
+                    activation_url=activation_url,
+                )
 
             logger.info(
                 "otp_email_sent",
@@ -177,10 +196,20 @@ async def send_otp_email(
     try:
         if provider == "brevo":
             async with BrevoClient() as client:
-                result = await client.send_otp(email=email, code=otp_code, locale=locale)
+                result = await client.send_otp(
+                    email=email,
+                    code=otp_code,
+                    locale=locale,
+                    activation_url=activation_url,
+                )
         else:
             async with ResendClient() as client:
-                result = await client.send_otp(email=email, code=otp_code, locale=locale)
+                result = await client.send_otp(
+                    email=email,
+                    code=otp_code,
+                    locale=locale,
+                    activation_url=activation_url,
+                )
 
         logger.info(
             "otp_email_sent",

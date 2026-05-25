@@ -13,7 +13,7 @@ interface CyberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
-    ({ label, error, success, prefix = 'input', type = 'text', className, id: propId, ...props }, ref) => {
+    ({ label, error, success, prefix = 'input', type = 'text', className, id: propId, onFocus, onBlur, ...props }, ref) => {
         const generatedId = useId();
         const id = propId ?? generatedId;
         const errorId = `${id}-error`;
@@ -44,7 +44,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                     {/* Glow border effect */}
                     <div
                         className={cn(
-                            "absolute -inset-0.5 rounded-lg opacity-0 transition-opacity duration-300 blur-sm",
+                            "absolute -inset-0.5 rounded-lg opacity-0 transition-opacity duration-200 blur-[2px]",
                             isFocused && !error && "opacity-100",
                             error ? "bg-red-500/50 opacity-100" : "bg-neon-cyan/50",
                             success && "bg-matrix-green/50 opacity-100"
@@ -87,8 +87,14 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                                 "autofill:bg-transparent",
                                 className
                             )}
-                            onFocus={() => setIsFocused(true)}
-                            onBlur={() => setIsFocused(false)}
+                            onFocus={(event) => {
+                                setIsFocused(true);
+                                onFocus?.(event);
+                            }}
+                            onBlur={(event) => {
+                                setIsFocused(false);
+                                onBlur?.(event);
+                            }}
                             {...props}
                         />
 

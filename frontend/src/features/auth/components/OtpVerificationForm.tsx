@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, ArrowRight, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
 import { AxiosError } from 'axios';
@@ -16,12 +17,15 @@ import { useAuthStore } from '@/stores/auth-store';
 export function OtpVerificationForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const locale = useLocale();
+    const autoVerifyStartedRef = useRef(false);
 
     // Get auth store for OTP verification and login
     const { verifyOtpAndLogin, isAuthenticated } = useAuthStore();
 
     // Get email from query params (passed from registration)
     const email = searchParams.get('email') || '';
+    const urlCode = (searchParams.get('code') || '').replace(/\D/gu, '').slice(0, 6);
 
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -50,8 +54,9 @@ export function OtpVerificationForm() {
         }
     }, [isAuthenticated, success, router]);
 
-    const handleVerify = async () => {
-        if (otp.length !== 6 || !email) return;
+    const handleVerify = useCallback(async (codeToVerify?: string) => {
+        const normalizedCode = (codeToVerify ?? otp).replace(/\D/gu, '').slice(0, 6);
+        if (normalizedCode.length !== 6 || !email) return;
 
         setIsLoading(true);
         setError(null);
@@ -59,7 +64,7 @@ export function OtpVerificationForm() {
 
         try {
             // Use auth store to verify OTP and auto-login (stores tokens + sets isAuthenticated)
-            await verifyOtpAndLogin(email, otp);
+            await verifyOtpAndLogin(email, normalizedCode);
 
             // Success - auth store now has user and isAuthenticated=true
             setSuccess(true);
@@ -84,7 +89,17 @@ export function OtpVerificationForm() {
             setIsLoading(false);
             setOtp(''); // Clear OTP on error
         }
-    };
+    }, [email, otp, verifyOtpAndLogin]);
+
+    useEffect(() => {
+        if (!email || urlCode.length !== 6 || autoVerifyStartedRef.current) {
+            return;
+        }
+
+        autoVerifyStartedRef.current = true;
+        setOtp(urlCode);
+        void handleVerify(urlCode);
+    }, [email, handleVerify, urlCode]);
 
     const handleResend = async () => {
         if (!canResend || !email) return;
@@ -94,7 +109,7 @@ export function OtpVerificationForm() {
         setErrorCode(null);
 
         try {
-            const response = await authApi.resendOtp({ email });
+            const response = await authApi.resendOtp({ email, locale });
 
             // Success
             setResendsRemaining(response.data.resends_remaining);
@@ -183,8 +198,9 @@ export function OtpVerificationForm() {
                                 setErrorCode(null);
                             }
                         }}
-                        onComplete={handleVerify}
+                        onComplete={(value) => void handleVerify(value)}
                         error={!!error}
+                        autoFocus
                     />
 
                     <AnimatePresence>
@@ -217,7 +233,7 @@ export function OtpVerificationForm() {
                 <div className="space-y-4">
                     <div className="flex justify-center">
                         <Button
-                            onClick={handleVerify}
+                            onClick={() => void handleVerify()}
                             disabled={otp.length !== 6 || isLoading || success}
                             className={cn(
                                 "min-w-[200px] h-12 font-mono font-bold tracking-wider text-lg transition-all",

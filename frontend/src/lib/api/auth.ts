@@ -13,6 +13,7 @@ export interface RegisterRequest {
   login: string;
   email?: string;
   password: string;
+  locale?: string;
   tos_accepted: boolean;
   marketing_consent?: boolean;
 }
@@ -34,6 +35,7 @@ export interface VerifyOtpRequest {
 
 export interface ResendOtpRequest {
   email: string;
+  locale?: string;
 }
 
 // Response interfaces

@@ -14,6 +14,11 @@ const TELEGRAM_ICON = (
 
 // Social provider icons (inline SVGs for best performance)
 const PROVIDERS = {
+    telegram: {
+        name: 'Telegram',
+        icon: TELEGRAM_ICON,
+        colors: 'hover:bg-[#0088CC]/25 hover:border-[#0088CC]/60',
+    },
     google: {
         name: 'Google',
         icon: (
@@ -83,7 +88,7 @@ const PROVIDERS = {
 };
 
 // S2 public auth surface: Telegram plus Google/GitHub only.
-const COMPACT_PROVIDERS: Array<keyof typeof PROVIDERS> = ['google', 'github'];
+const COMPACT_PROVIDERS: Array<keyof typeof PROVIDERS> = ['google', 'github', 'telegram'];
 
 interface SocialAuthButtonsProps {
     onProviderClick?: (provider: OAuthProvider) => void;
@@ -98,50 +103,7 @@ export function SocialAuthButtons({
 }: SocialAuthButtonsProps) {
     return (
         <div className={cn("flex flex-col gap-3", className)}>
-            {/* Telegram — primary position, full-width */}
-            <MagneticButton className="w-full">
-                <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    type="button"
-                    data-provider="telegram"
-                    onClick={() => onProviderClick?.('telegram')}
-                    disabled={disabled}
-                    className={cn(
-                        "w-full flex items-center justify-center gap-2",
-                        "py-3.5 px-4 rounded-lg",
-                        "bg-[#0088CC]/15",
-                        "border border-[#0088CC]/40",
-                        "text-[#0088CC]",
-                        "font-mono text-sm font-semibold",
-                        "transition-all duration-200",
-                        "cursor-pointer",
-                        "hover:bg-[#0088CC]/25 hover:border-[#0088CC]/60",
-                        disabled && "opacity-50 cursor-not-allowed",
-                        "focus:outline-none focus:ring-2 focus:ring-[#0088CC]/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
-                    )}
-                    aria-label="Sign in with Telegram"
-                >
-                    {TELEGRAM_ICON}
-                    <span>Telegram</span>
-                </motion.button>
-            </MagneticButton>
-
-            {/* Separator between Telegram and other providers */}
-            <div className="relative my-1">
-                <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-grid-line/20" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-terminal-surface dark:bg-transparent text-muted-foreground-low font-mono uppercase tracking-wider text-[10px]">
-                        or
-                    </span>
-                </div>
-            </div>
-
-            {/* Google and GitHub */}
-            <div className="flex gap-3">
+            <div className="grid grid-cols-3 gap-3">
                 {COMPACT_PROVIDERS.map((provider, index) => {
                     const { name, icon, colors } = PROVIDERS[provider];
                     return (
@@ -157,20 +119,23 @@ export function SocialAuthButtons({
                                 className={cn(
                                     "w-full flex items-center justify-center gap-2",
                                     "py-3 px-4 rounded-lg",
-                                    "bg-terminal-bg/50 dark:bg-black/40",
+                                    provider === 'telegram' ? "bg-[#0088CC]/15" : "bg-terminal-bg/50 dark:bg-black/40",
                                     "border border-grid-line/30",
-                                    "text-muted-foreground",
-                                    "font-mono text-sm",
+                                    provider === 'telegram' ? "text-[#0088CC]" : "text-muted-foreground",
+                                    "font-mono text-sm font-semibold",
                                     "transition-all duration-200",
                                     "cursor-pointer",
-                                    colors,
+                                    provider === 'telegram'
+                                        ? "hover:bg-[#0088CC]/25 hover:border-[#0088CC]/60"
+                                        : colors,
                                     disabled && "opacity-50 cursor-not-allowed",
-                                    "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg"
+                                    "focus:outline-none focus:ring-2 focus:ring-neon-cyan/50 focus:ring-offset-2 focus:ring-offset-terminal-bg",
+                                    provider === 'telegram' && "focus:ring-[#0088CC]/50"
                                 )}
                                 aria-label={`Sign in with ${name}`}
                             >
                                 {icon}
-                                <span className="hidden sm:inline">{name}</span>
+                                <span className="hidden min-[420px]:inline">{name}</span>
                             </motion.button>
                         </MagneticButton>
                     );

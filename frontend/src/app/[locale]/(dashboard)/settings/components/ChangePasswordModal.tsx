@@ -3,6 +3,11 @@
 import { useState } from 'react';
 import { Modal } from '@/shared/ui/modal';
 import { CyberInput } from '@/features/auth/components/CyberInput';
+import { PasswordStrengthMeter } from '@/features/auth/components/PasswordStrengthMeter';
+import {
+  validatePasswordInput,
+  type PasswordValidationCode,
+} from '@/features/auth/lib/validation';
 import { securityApi } from '@/lib/api/security';
 import { motion } from 'motion/react';
 import { Key, CheckCircle, AlertCircle } from 'lucide-react';
@@ -16,11 +21,22 @@ interface ChangePasswordModalProps {
   onSuccess: () => void;
 }
 
-type PasswordStrength = 'weak' | 'fair' | 'good' | 'strong';
+const FALLBACK_PASSWORD_MESSAGES: Record<PasswordValidationCode | 'passwordMismatch', string> = {
+  passwordRequired: 'Password is required',
+  passwordMinLength: 'Password must be at least 12 characters',
+  passwordUppercase: 'Password must contain one uppercase letter',
+  passwordLowercase: 'Password must contain one lowercase letter',
+  passwordNumber: 'Password must contain one number',
+  passwordSpecial: 'Password must contain one special character',
+  passwordLatinLayout: 'Use Latin letters, digits and supported symbols only',
+  passwordCommon: 'Choose a less common password',
+  passwordRepeated: 'Password cannot be one repeated character',
+  passwordNumericSequence: 'Password cannot be a simple numeric sequence',
+  passwordMismatch: 'Passwords do not match',
+};
 
 export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswordModalProps) {
   const t = useTranslations('Auth.passwordStrength');
-  const tErrors = useTranslations('Auth.errors');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -30,32 +46,12 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [rateLimitSeconds, setRateLimitSeconds] = useState<number | null>(null);
+  const newPasswordValidation = validatePasswordInput(newPassword);
+  const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
 
-  // Password strength calculation
-  const calculateStrength = (password: string): PasswordStrength => {
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-
-    if (score <= 2) return 'weak';
-    if (score <= 4) return 'fair';
-    if (score <= 5) return 'good';
-    return 'strong';
-  };
-
-  const strength = newPassword ? calculateStrength(newPassword) : null;
-
-  // Password requirements
-  const requirements = {
-    length: newPassword.length >= 8,
-    uppercase: /[A-Z]/.test(newPassword),
-    lowercase: /[a-z]/.test(newPassword),
-    number: /[0-9]/.test(newPassword),
-    special: /[^a-zA-Z0-9]/.test(newPassword),
+  const getPasswordMessage = (code: PasswordValidationCode | 'passwordMismatch') => {
+    const key = `validation.${code}`;
+    return t.has(key) ? t(key) : FALLBACK_PASSWORD_MESSAGES[code];
   };
 
   // Start rate limit countdown
@@ -95,12 +91,12 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
       setError('New password is required');
       return;
     }
-    if (newPassword.length < 8) {
-      setError(tErrors('passwordTooShort'));
+    if (!newPasswordValidation.isValid) {
+      setError(getPasswordMessage(newPasswordValidation.codes[0]));
       return;
     }
-    if (newPassword !== confirmPassword) {
-      setError(tErrors('passwordMismatch'));
+    if (!passwordsMatch) {
+      setError(getPasswordMessage('passwordMismatch'));
       return;
     }
     if (currentPassword === newPassword) {
@@ -144,28 +140,6 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
     } finally {
       setLoading(false);
     }
-  };
-
-  // Strength meter color
-  const strengthColors = {
-    weak: 'bg-red-500',
-    fair: 'bg-yellow-500',
-    good: 'bg-blue-500',
-    strong: 'bg-matrix-green',
-  };
-
-  const strengthTextColors = {
-    weak: 'text-red-500',
-    fair: 'text-yellow-500',
-    good: 'text-blue-500',
-    strong: 'text-matrix-green',
-  };
-
-  const strengthWidth = {
-    weak: 'w-1/4',
-    fair: 'w-1/2',
-    good: 'w-3/4',
-    strong: 'w-full',
   };
 
   return (
@@ -221,45 +195,7 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
               disabled={loading || rateLimitSeconds !== null}
             />
 
-            {/* Strength Meter */}
-            {newPassword && strength && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-2"
-              >
-                {/* Bar */}
-                <div className="h-2 bg-terminal-bg border border-grid-line/30 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    className={`h-full ${strengthColors[strength]} ${strengthWidth[strength]} transition-all duration-300`}
-                  />
-                </div>
-
-                {/* Label */}
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs font-mono ${strengthTextColors[strength]}`}>
-                    {t(strength)}
-                  </span>
-                </div>
-
-                {/* Requirements Checklist */}
-                <div className="grid grid-cols-2 gap-2 mt-3 p-3 bg-terminal-bg border border-grid-line/30 rounded">
-                  {Object.entries(requirements).map(([key, met]) => (
-                    <div
-                      key={key}
-                      className={`flex items-center gap-2 text-xs font-mono transition-colors ${
-                        met ? 'text-matrix-green' : 'text-muted-foreground/50'
-                      }`}
-                    >
-                      <span className="text-[10px]">{met ? '✓' : '○'}</span>
-                      <span>{t(`requirements.${key}`)}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+            <PasswordStrengthMeter password={newPassword} />
           </div>
 
           {/* Confirm Password */}
@@ -270,7 +206,8 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm new password"
             prefix="auth"
-            error={error}
+            error={confirmPassword && !passwordsMatch ? getPasswordMessage('passwordMismatch') : error}
+            success={passwordsMatch}
             disabled={loading || rateLimitSeconds !== null}
             onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
           />
@@ -296,9 +233,9 @@ export function ChangePasswordModal({ isOpen, onClose, onSuccess }: ChangePasswo
             disabled={
               loading ||
               !currentPassword ||
-              !newPassword ||
+              !newPasswordValidation.isValid ||
               !confirmPassword ||
-              newPassword !== confirmPassword ||
+              !passwordsMatch ||
               rateLimitSeconds !== null
             }
             className="w-full px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

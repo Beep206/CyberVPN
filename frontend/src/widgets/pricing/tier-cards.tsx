@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Check, Crown, Orbit, ShieldCheck, Sparkles } from 'lucide-react';
 import { useCurrencyPreference } from '@/features/currency-selector';
 import { Link } from '@/i18n/navigation';
-import { TierLevel } from './pricing-dashboard';
+import type { TierLevel } from './pricing-dashboard';
 import { cn } from '@/lib/utils';
 import type { PricingPlanFamily, PricingTierCode } from './types';
 import { formatMoney, getPlanPeriod, getPricePresentation } from './utils';

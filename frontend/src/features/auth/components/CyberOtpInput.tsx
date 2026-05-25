@@ -11,6 +11,7 @@ interface CyberOtpInputProps {
     onComplete?: (value: string) => void;
     maxLength?: number;
     error?: boolean;
+    autoFocus?: boolean;
 }
 
 export function CyberOtpInput({
@@ -19,6 +20,7 @@ export function CyberOtpInput({
     onComplete,
     maxLength = 6,
     error,
+    autoFocus = false,
 }: CyberOtpInputProps) {
     const [isFocused, setIsFocused] = useState(false);
 
@@ -31,7 +33,7 @@ export function CyberOtpInput({
             {/* Ambient Glow Container */}
             <div
                 className={cn(
-                    "absolute -inset-4 rounded-xl opacity-0 transition-opacity duration-500 blur-xl",
+                    "absolute -inset-2 rounded-xl opacity-0 transition-opacity duration-200 blur-md",
                     isFocused ? "bg-neon-cyan/20 opacity-100" : "bg-transparent",
                     error && "bg-red-500/20 opacity-100"
                 )}
@@ -42,6 +44,10 @@ export function CyberOtpInput({
                 value={value}
                 onChange={onChange}
                 onComplete={onComplete}
+                autoFocus={autoFocus}
+                inputMode="numeric"
+                pattern="^\\d+$"
+                autoComplete="one-time-code"
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 containerClassName="group flex items-center gap-3 has-[:disabled]:opacity-30"

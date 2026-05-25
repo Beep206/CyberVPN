@@ -20,7 +20,7 @@ vi.mock('@/lib/utils', () => ({
       .trim(),
 }));
 
-const EXPECTED_PROVIDERS = ['telegram', 'google', 'github'] as const;
+const EXPECTED_PROVIDERS = ['google', 'github', 'telegram'] as const;
 
 const EXPECTED_ARIA_LABELS: Record<string, string> = {
   telegram: 'Sign in with Telegram',
@@ -40,11 +40,15 @@ describe('SocialAuthButtons', () => {
     expect(buttons).toHaveLength(EXPECTED_PROVIDERS.length);
   });
 
-  it('renders Telegram as the first button', () => {
+  it('renders public S2 provider buttons in the approved order', () => {
     render(<SocialAuthButtons />);
 
     const buttons = screen.getAllByRole('button');
-    expect(buttons[0]).toHaveAttribute('aria-label', 'Sign in with Telegram');
+    expect(buttons.map((button) => button.getAttribute('data-provider'))).toEqual([
+      'google',
+      'github',
+      'telegram',
+    ]);
   });
 
   it('renders correct aria-label for each provider button', () => {

@@ -176,7 +176,7 @@
       "networkError": "Network error. Please check your connection",
       "passwordMismatch": "Passwords do not match",
       "passwordRequired": "Password is required",
-      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordTooShort": "Password must be at least 12 characters",
       "rateLimited": "Too many attempts. Please try again in {seconds} seconds",
       "rateLimitedMinutes": "Too many attempts. Please try again in {minutes} minutes",
       "serverError": "Server error. Please try again later",
@@ -302,12 +302,22 @@
     "passwordStrength": {
       "fair": "Fair",
       "good": "Good",
+      "label": "password_strength:",
       "requirements": {
-        "length": "At least 8 characters",
-        "lowercase": "One lowercase letter",
+        "length": "At least 12 characters",
+        "lowercase": "One lowercase Latin letter",
         "number": "One number",
-        "special": "One special character",
-        "uppercase": "One uppercase letter"
+        "passwordCommon": "Not a common password",
+        "passwordLatinLayout": "Latin keyboard layout only",
+        "passwordLowercase": "One lowercase Latin letter",
+        "passwordMinLength": "At least 12 characters",
+        "passwordNumber": "One number",
+        "passwordNumericSequence": "Not a simple numeric sequence",
+        "passwordRepeated": "Not one repeated character",
+        "passwordSpecial": "One supported symbol",
+        "passwordUppercase": "One uppercase Latin letter",
+        "special": "One supported symbol",
+        "uppercase": "One uppercase Latin letter"
       },
       "strong": "Strong",
       "weak": "Weak"
@@ -347,7 +357,24 @@
       "termsLink": "Terms",
       "title": "Create Account",
       "usernameLabel": "Username",
-      "usernamePlaceholder": "cyberpunk_hacker"
+      "usernamePlaceholder": "cyberpunk_hacker",
+      "validation": {
+        "emailInvalid": "Enter a valid email address",
+        "emailNoSpaces": "Email must not contain spaces",
+        "emailRequired": "Email is required",
+        "emailTooLong": "Email is too long",
+        "passwordCommon": "Choose a less common password",
+        "passwordLatinLayout": "Use Latin letters, digits and supported symbols only",
+        "passwordLowercase": "Add one lowercase Latin letter",
+        "passwordMinLength": "Use at least 12 characters",
+        "passwordMismatch": "Passwords do not match",
+        "passwordNumber": "Add one number",
+        "passwordNumericSequence": "Password cannot be a simple numeric sequence",
+        "passwordRepeated": "Password cannot be one repeated character",
+        "passwordRequired": "Password is required",
+        "passwordSpecial": "Add one supported symbol",
+        "passwordUppercase": "Add one uppercase Latin letter"
+      }
     },
     "resetPassword": {
       "backToForgot": "Request new code",

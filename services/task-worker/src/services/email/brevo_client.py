@@ -72,6 +72,7 @@ class BrevoClient:
         code: str,
         locale: str = "en-EN",
         expires_in: str = "3 hours",
+        activation_url: str = "",
     ) -> dict[str, Any]:
         """
         Send OTP verification email via Brevo.
@@ -95,8 +96,9 @@ class BrevoClient:
             logger.warning("brevo_skipped_no_api_key", email=email)
             return {"messageId": "mock_no_key", "status": "skipped"}
 
-        html_content = self._render_otp_template(code, expires_in, locale)
+        html_content = self._render_otp_template(code, expires_in, locale, activation_url=activation_url)
         subject = self._get_subject(locale)
+        activation_text = f"\n\nVerify account: {activation_url}" if activation_url else ""
 
         # Parse sender name and email
         sender_name, sender_email = self._parse_from_email(self._from_email)
@@ -109,7 +111,10 @@ class BrevoClient:
             "to": [{"email": email}],
             "subject": subject,
             "htmlContent": html_content,
-            "textContent": f"Your CyberVPN verification code is: {code}\n\nThis code expires in {expires_in}.",
+            "textContent": (
+                f"Your CyberVPN verification code is: {code}{activation_text}\n\n"
+                f"This code expires in {expires_in}."
+            ),
         }
 
         try:
@@ -340,9 +345,9 @@ class BrevoClient:
         }
         return subjects.get(locale, subjects["en-EN"])
 
-    def _render_otp_template(self, code: str, expires_in: str, locale: str) -> str:
+    def _render_otp_template(self, code: str, expires_in: str, locale: str, *, activation_url: str = "") -> str:
         """Render email-compatible OTP template."""
-        return render_otp_template(code, expires_in, locale)
+        return render_otp_template(code, expires_in, locale, activation_url=activation_url)
 
     def _get_password_reset_subject(self, locale: str) -> str:
         """Get localized password reset subject."""

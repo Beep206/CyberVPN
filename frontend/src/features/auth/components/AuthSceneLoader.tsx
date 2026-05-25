@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { memo } from 'react';
 
 // Dynamic import with SSR disabled to prevent WebGL context issues
 const AuthScene3DWrapper = dynamic(
@@ -11,6 +12,6 @@ const AuthScene3DWrapper = dynamic(
     }
 );
 
-export function AuthSceneLoader() {
+export const AuthSceneLoader = memo(function AuthSceneLoader() {
     return <AuthScene3DWrapper />;
-}
+});

@@ -1,7 +1,14 @@
 import { Wifi } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { PublicTerminalMobileMenu } from '@/widgets/public-terminal-mobile-menu';
 import { PublicTerminalHeaderControls } from '@/widgets/public-terminal-header-controls';
 import { TerminalHeaderPerformance } from '@/widgets/terminal-header-performance';
+
+export interface PublicHeaderNavLink {
+  href: '/' | '/features' | '/pricing' | '/network' | '/download' | '/help' | '/dashboard';
+  icon: 'dashboard' | 'download' | 'features' | 'help' | 'home' | 'network' | 'pricing';
+  label: string;
+}
 
 interface PublicTerminalHeaderProps {
   locale?: string;
@@ -17,11 +24,21 @@ export async function PublicTerminalHeader({
   const loginT = await getTranslations({ locale: resolvedLocale, namespace: 'Auth.login' });
   const registerT = await getTranslations({ locale: resolvedLocale, namespace: 'Auth.register' });
   const footerT = await getTranslations({ locale: resolvedLocale, namespace: 'Footer' });
+  const navLinks: PublicHeaderNavLink[] = [
+    { href: '/', icon: 'home', label: 'CyberVPN' },
+    { href: '/pricing', icon: 'pricing', label: footerT('links.pricing') },
+    { href: '/network', icon: 'network', label: footerT('links.servers') },
+    { href: '/download', icon: 'download', label: footerT('links.download') },
+    { href: '/features', icon: 'features', label: footerT('links.features') },
+    { href: '/help', icon: 'help', label: footerT('links.helpCenter') },
+  ];
 
   return (
     <header className="sticky top-0 z-30 border-b border-grid-line/50 bg-terminal-surface/95 backdrop-blur-xl shadow-sm transition-all dark:shadow-none">
       <div className="flex h-16 w-full items-center gap-3 px-4 sm:px-5 md:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
+          <PublicTerminalMobileMenu locale={resolvedLocale} links={navLinks} />
+
           <TerminalHeaderPerformance
             mode={performanceMode}
             fpsLabel={headerT('fps')}
@@ -38,6 +55,7 @@ export async function PublicTerminalHeader({
           downloadLabel={footerT('links.download')}
           loginLabel={loginT('submitButton')}
           locale={resolvedLocale}
+          navLinks={navLinks}
           registerLabel={registerT('submitButton')}
         />
       </div>

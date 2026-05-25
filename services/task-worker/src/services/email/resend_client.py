@@ -68,6 +68,7 @@ class ResendClient:
         code: str,
         locale: str = "en-EN",
         expires_in: str = "3 hours",
+        activation_url: str = "",
     ) -> dict[str, Any]:
         """
         Send OTP verification email.
@@ -90,15 +91,19 @@ class ResendClient:
         if not self._api_key:
             return self._handle_missing_api_key(email)
 
-        html_content = self._render_otp_template(code, expires_in, locale)
+        html_content = self._render_otp_template(code, expires_in, locale, activation_url=activation_url)
         subject = self._get_subject(locale)
+        activation_text = f"\n\nVerify account: {activation_url}" if activation_url else ""
 
         payload = {
             "from": self._from_email,
             "to": [email],
             "subject": subject,
             "html": html_content,
-            "text": f"Your CyberVPN verification code is: {code}\n\nThis code expires in {expires_in}.",
+            "text": (
+                f"Your CyberVPN verification code is: {code}{activation_text}\n\n"
+                f"This code expires in {expires_in}."
+            ),
         }
 
         try:
@@ -316,9 +321,9 @@ class ResendClient:
         }
         return subjects.get(locale, subjects["en-EN"])
 
-    def _render_otp_template(self, code: str, expires_in: str, locale: str) -> str:
+    def _render_otp_template(self, code: str, expires_in: str, locale: str, *, activation_url: str = "") -> str:
         """Render email-compatible OTP template."""
-        return render_otp_template(code, expires_in, locale)
+        return render_otp_template(code, expires_in, locale, activation_url=activation_url)
 
     def _get_password_reset_subject(self, locale: str) -> str:
         """Get localized password reset email subject."""

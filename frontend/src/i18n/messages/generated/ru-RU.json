@@ -173,7 +173,7 @@
       "networkError": "Ошибка сети. Проверьте подключение",
       "passwordMismatch": "Пароли не совпадают",
       "passwordRequired": "Пароль обязателен",
-      "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+      "passwordTooShort": "Пароль должен содержать минимум 12 символов",
       "rateLimited": "Слишком много попыток. Повторите через {seconds} сек.",
       "rateLimitedMinutes": "Слишком много попыток. Повторите через {minutes} мин.",
       "serverError": "Ошибка сервера. Попробуйте позже",
@@ -281,12 +281,22 @@
     "passwordStrength": {
       "fair": "Средний",
       "good": "Хороший",
+      "label": "надёжность_пароля:",
       "requirements": {
-        "length": "Минимум 8 символов",
-        "lowercase": "Одна строчная буква",
+        "length": "Минимум 12 символов",
+        "lowercase": "Одна строчная латинская буква",
         "number": "Одна цифра",
-        "special": "Один спецсимвол",
-        "uppercase": "Одна заглавная буква"
+        "passwordCommon": "Не распространённый пароль",
+        "passwordLatinLayout": "Только латинская раскладка",
+        "passwordLowercase": "Одна строчная латинская буква",
+        "passwordMinLength": "Минимум 12 символов",
+        "passwordNumber": "Одна цифра",
+        "passwordNumericSequence": "Не простая числовая последовательность",
+        "passwordRepeated": "Не один повторяющийся символ",
+        "passwordSpecial": "Один поддерживаемый символ",
+        "passwordUppercase": "Одна заглавная латинская буква",
+        "special": "Один поддерживаемый символ",
+        "uppercase": "Одна заглавная латинская буква"
       },
       "strong": "Сильный",
       "weak": "Слабый"
@@ -326,7 +336,24 @@
       "termsLink": "Условия",
       "title": "Создать аккаунт",
       "usernameLabel": "Имя пользователя",
-      "usernamePlaceholder": "cyberpunk_hacker"
+      "usernamePlaceholder": "cyberpunk_hacker",
+      "validation": {
+        "emailInvalid": "Введите корректный email адрес",
+        "emailNoSpaces": "Email не должен содержать пробелы",
+        "emailRequired": "Email обязателен",
+        "emailTooLong": "Email слишком длинный",
+        "passwordCommon": "Выберите менее распространённый пароль",
+        "passwordLatinLayout": "Используйте только латиницу, цифры и поддерживаемые символы",
+        "passwordLowercase": "Добавьте одну строчную латинскую букву",
+        "passwordMinLength": "Минимум 12 символов",
+        "passwordMismatch": "Пароли не совпадают",
+        "passwordNumber": "Добавьте одну цифру",
+        "passwordNumericSequence": "Пароль не может быть простой числовой последовательностью",
+        "passwordRepeated": "Пароль не может состоять из одного повторяющегося символа",
+        "passwordRequired": "Пароль обязателен",
+        "passwordSpecial": "Добавьте один поддерживаемый символ",
+        "passwordUppercase": "Добавьте одну заглавную латинскую букву"
+      }
     },
     "telegram": {
       "botLinkAuth": "Ожидаем подтверждение входа в Telegram...",

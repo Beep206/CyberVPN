@@ -17,7 +17,32 @@ import {
     RateLimitCountdown,
     useIsRateLimited,
 } from '@/features/auth/components';
+import {
+    normalizeEmailInput,
+    validateEmailInput,
+    validatePasswordInput,
+    type EmailValidationCode,
+    type PasswordValidationCode,
+} from '@/features/auth/lib/validation';
 import { useAuthStore } from '@/stores/auth-store';
+
+const FALLBACK_VALIDATION_MESSAGES: Record<EmailValidationCode | PasswordValidationCode | 'passwordMismatch', string> = {
+    emailRequired: 'Email is required',
+    emailInvalid: 'Enter a valid email address',
+    emailNoSpaces: 'Email must not contain spaces',
+    emailTooLong: 'Email is too long',
+    passwordRequired: 'Password is required',
+    passwordMinLength: 'Password must be at least 12 characters',
+    passwordUppercase: 'Password must contain one uppercase letter',
+    passwordLowercase: 'Password must contain one lowercase letter',
+    passwordNumber: 'Password must contain one number',
+    passwordSpecial: 'Password must contain one special character',
+    passwordLatinLayout: 'Use Latin letters, digits and supported symbols only',
+    passwordCommon: 'Choose a less common password',
+    passwordRepeated: 'Password cannot be one repeated character',
+    passwordNumericSequence: 'Password cannot be a simple numeric sequence',
+    passwordMismatch: 'Passwords do not match',
+};
 
 export default function RegisterPage() {
     const t = useTranslations('Auth.register');
@@ -34,6 +59,9 @@ export default function RegisterPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [acceptTerms, setAcceptTerms] = useState(false);
     const [marketingConsent, setMarketingConsent] = useState(false);
+    const [emailTouched, setEmailTouched] = useState(false);
+    const [passwordTouched, setPasswordTouched] = useState(false);
+    const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
     const isEmailMode = !usernameOnly;
     const identifierValue = isEmailMode ? email : username;
     const identifierLabel = isEmailMode ? t('emailLabel') : t('usernameLabel');
@@ -42,11 +70,22 @@ export default function RegisterPage() {
     const identifierType = isEmailMode ? 'email' : 'text';
     const identifierAutocomplete = isEmailMode ? 'email' : 'username';
 
+    const emailValidation = validateEmailInput(email, isEmailMode);
+    const passwordValidation = validatePasswordInput(password);
     const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+    const passwordHasLayoutWarning = passwordValidation.codes.includes('passwordLatinLayout');
+    const showEmailError = isEmailMode && emailTouched && !emailValidation.isValid;
+    const showPasswordError = password.length > 0 && (!passwordValidation.isValid && (passwordTouched || passwordHasLayoutWarning));
+    const showConfirmError = confirmPassword.length > 0 && (confirmPasswordTouched || password.length > 0) && !passwordsMatch;
     const canSubmit = usernameOnly
-        ? username && password && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited
-        : email && password && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
+        ? username && passwordValidation.isValid && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited
+        : emailValidation.isValid && passwordValidation.isValid && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
     const errorRef = useRef<HTMLDivElement>(null);
+
+    const getValidationMessage = (code: EmailValidationCode | PasswordValidationCode | 'passwordMismatch') => {
+        const key = `validation.${code}`;
+        return t.has(key) ? t(key) : FALLBACK_VALIDATION_MESSAGES[code];
+    };
 
     // Redirect if already authenticated (auto-login after registration)
     useEffect(() => {
@@ -75,15 +114,19 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setEmailTouched(true);
+        setPasswordTouched(true);
+        setConfirmPasswordTouched(true);
         if (!canSubmit) return;
 
         try {
             if (usernameOnly) {
-                await register(username, password, { mode: 'username', tos_accepted: acceptTerms, marketing_consent: marketingConsent });
+                await register(username, password, { mode: 'username', tos_accepted: acceptTerms, marketing_consent: marketingConsent, locale });
                 router.push(`/${locale}/login?registered=true`);
             } else {
-                await register(email, password, { mode: 'email', tos_accepted: acceptTerms, marketing_consent: marketingConsent });
-                router.push(`/${locale}/verify?email=${encodeURIComponent(email)}`);
+                const normalizedEmail = normalizeEmailInput(email);
+                await register(normalizedEmail, password, { mode: 'email', tos_accepted: acceptTerms, marketing_consent: marketingConsent, locale });
+                router.push(`/${locale}/verify?email=${encodeURIComponent(normalizedEmail)}`);
             }
         } catch {
             // Error is already set in the store
@@ -157,26 +200,37 @@ export default function RegisterPage() {
             </div>
 
             {/* Register form */}
-            <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={isLoading}>
-                <CyberInput
-                    label={identifierLabel}
-                    type={identifierType}
-                    prefix={identifierPrefix}
-                    placeholder={identifierPlaceholder}
-                    value={identifierValue}
-                    onChange={(e) => {
-                        if (isEmailMode) {
-                            setEmail(e.target.value);
-                            return;
-                        }
+            <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-4" aria-busy={isLoading} noValidate>
+                <div className="pt-1">
+                    <CyberInput
+                        label={identifierLabel}
+                        type={identifierType}
+                        prefix={identifierPrefix}
+                        placeholder={identifierPlaceholder}
+                        value={identifierValue}
+                        onChange={(e) => {
+                            if (isEmailMode) {
+                                setEmail(e.target.value);
+                                return;
+                            }
 
-                        setUsername(e.target.value);
-                    }}
-                    required
-                    autoComplete={identifierAutocomplete}
-                    disabled={isLoading || isRateLimited}
-                    className="mobile-form-input"
-                />
+                            setUsername(e.target.value);
+                        }}
+                        onBlur={() => {
+                            if (isEmailMode) {
+                                setEmailTouched(true);
+                                setEmail((current) => normalizeEmailInput(current));
+                            }
+                        }}
+                        required
+                        inputMode={isEmailMode ? 'email' : 'text'}
+                        autoComplete={identifierAutocomplete}
+                        disabled={isLoading || isRateLimited}
+                        error={showEmailError ? getValidationMessage(emailValidation.codes[0]) : undefined}
+                        success={isEmailMode && emailTouched && emailValidation.isValid}
+                        className="mobile-form-input"
+                    />
+                </div>
 
                 <div className="space-y-2">
                     <CyberInput
@@ -186,9 +240,12 @@ export default function RegisterPage() {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        onBlur={() => setPasswordTouched(true)}
                         required
                         autoComplete="new-password"
                         disabled={isLoading || isRateLimited}
+                        error={showPasswordError ? getValidationMessage(passwordValidation.codes[0]) : undefined}
+                        success={password.length > 0 && passwordValidation.isValid}
                         className="mobile-form-input"
                     />
                     <PasswordStrengthMeter password={password} />
@@ -201,59 +258,62 @@ export default function RegisterPage() {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    onBlur={() => setConfirmPasswordTouched(true)}
                     required
                     autoComplete="new-password"
                     disabled={isLoading || isRateLimited}
-                    error={confirmPassword && !passwordsMatch ? t('passwordMismatch') : undefined}
+                    error={showConfirmError ? getValidationMessage('passwordMismatch') : undefined}
                     success={passwordsMatch}
                     className="mobile-form-input"
                 />
 
-                {/* Terms checkbox */}
-                <label className="touch-target flex items-start gap-3 cursor-pointer group">
-                    <div className="relative mt-0.5">
-                        <input
-                            type="checkbox"
-                            checked={acceptTerms}
-                            onChange={(e) => setAcceptTerms(e.target.checked)}
-                            className="peer sr-only"
-                            required
-                            aria-label={t('acceptTerms')}
-                        />
-                        <div className="w-5 h-5 rounded border border-grid-line bg-terminal-bg peer-checked:bg-neon-cyan peer-checked:border-neon-cyan peer-focus:ring-2 peer-focus:ring-neon-cyan/50 transition-all flex items-center justify-center">
-                            {acceptTerms && <Check className="h-3 w-3 text-black" />}
+                <div className="space-y-2">
+                    {/* Terms checkbox */}
+                    <label className="flex cursor-pointer items-start gap-2 rounded-md py-1 group">
+                        <div className="relative mt-0.5 shrink-0">
+                            <input
+                                type="checkbox"
+                                checked={acceptTerms}
+                                onChange={(e) => setAcceptTerms(e.target.checked)}
+                                className="peer sr-only"
+                                required
+                                aria-label={t('acceptTerms')}
+                            />
+                            <div className="flex h-4 w-4 items-center justify-center rounded border border-grid-line bg-terminal-bg transition-all peer-checked:border-neon-cyan peer-checked:bg-neon-cyan peer-focus:ring-2 peer-focus:ring-neon-cyan/50">
+                                {acceptTerms && <Check className="h-3 w-3 text-black" />}
+                            </div>
                         </div>
-                    </div>
-                    <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
-                        {t('acceptTerms')}{' '}
-                        <Link href="/terms" className="touch-target inline-flex items-center text-neon-cyan hover:underline">
-                            {t('termsLink')}
-                        </Link>{' '}
-                        {t('and')}{' '}
-                        <Link href="/privacy-policy" className="touch-target inline-flex items-center text-neon-cyan hover:underline">
-                            {t('privacyLink')}
-                        </Link>
-                    </span>
-                </label>
+                        <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
+                            {t('acceptTerms')}{' '}
+                            <Link href="/terms" className="inline-flex items-center text-neon-cyan hover:underline">
+                                {t('termsLink')}
+                            </Link>{' '}
+                            {t('and')}{' '}
+                            <Link href="/privacy-policy" className="inline-flex items-center text-neon-cyan hover:underline">
+                                {t('privacyLink')}
+                            </Link>
+                        </span>
+                    </label>
 
-                {/* Marketing consent checkbox */}
-                <label className="touch-target flex items-start gap-3 cursor-pointer group mt-4">
-                    <div className="relative mt-0.5">
-                        <input
-                            type="checkbox"
-                            checked={marketingConsent}
-                            onChange={(e) => setMarketingConsent(e.target.checked)}
-                            className="peer sr-only"
-                            aria-label={t.has('marketingConsentLabel') ? t('marketingConsentLabel') : 'I want to receive marketing emails'}
-                        />
-                        <div className="w-5 h-5 rounded border border-grid-line bg-terminal-bg peer-checked:bg-neon-cyan peer-checked:border-neon-cyan peer-focus:ring-2 peer-focus:ring-neon-cyan/50 transition-all flex items-center justify-center">
-                            {marketingConsent && <Check className="h-3 w-3 text-black" />}
+                    {/* Marketing consent checkbox */}
+                    <label className="flex cursor-pointer items-start gap-2 rounded-md py-1 group">
+                        <div className="relative mt-0.5 shrink-0">
+                            <input
+                                type="checkbox"
+                                checked={marketingConsent}
+                                onChange={(e) => setMarketingConsent(e.target.checked)}
+                                className="peer sr-only"
+                                aria-label={t.has('marketingConsentLabel') ? t('marketingConsentLabel') : 'I want to receive marketing emails'}
+                            />
+                            <div className="flex h-4 w-4 items-center justify-center rounded border border-grid-line bg-terminal-bg transition-all peer-checked:border-neon-cyan peer-checked:bg-neon-cyan peer-focus:ring-2 peer-focus:ring-neon-cyan/50">
+                                {marketingConsent && <Check className="h-3 w-3 text-black" />}
+                            </div>
                         </div>
-                    </div>
-                    <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
-                        {t.has('marketingConsentLabel') ? t('marketingConsentLabel') : 'I want to receive news, special offers, and other updates'}
-                    </span>
-                </label>
+                        <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
+                            {t.has('marketingConsentLabel') ? t('marketingConsentLabel') : 'I want to receive news, special offers, and other updates'}
+                        </span>
+                    </label>
+                </div>
 
                 {/* Submit button */}
                 <motion.div
@@ -284,7 +344,7 @@ export default function RegisterPage() {
             </form>
 
             {/* Login link */}
-            <p className="mt-6 text-center text-sm text-muted-foreground font-mono">
+            <p className="mt-4 text-center text-sm text-muted-foreground font-mono">
                 {t('hasAccount')}{' '}
                 <Link
                     href="/login"

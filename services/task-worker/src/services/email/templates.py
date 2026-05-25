@@ -42,6 +42,7 @@ def render_otp_template(
     expires_in: str,
     locale: str,
     *,
+    activation_url: str = "",
     dev_banner: bool = False,
     html_title: str = "Verify Your CyberVPN Account",
     title: str = "Verify Your Email Address",
@@ -50,6 +51,7 @@ def render_otp_template(
 ) -> str:
     """Render email-compatible OTP verification email."""
     banner = _dev_banner_html() if dev_banner else ""
+    activation_section = _activation_section_html(activation_url) if activation_url else ""
     return f"""\
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -120,6 +122,7 @@ def render_otp_template(
                             This code expires in <span style="color: {_RED};">{expires_in}</span>
                         </td>
                     </tr>
+{activation_section}\
 
                     <!-- Disclaimer -->
                     <tr>
@@ -144,6 +147,48 @@ def render_otp_template(
     </table>
 </body>
 </html>"""
+
+
+def _activation_section_html(activation_url: str) -> str:
+    escaped_url = escape(activation_url, quote=True)
+
+    return f"""\
+
+                    <!-- Activation link button -->
+                    <tr>
+                        <td align="center" style="padding-top: 18px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 14px; mso-line-height-rule: exactly; line-height: 20px; color: {_TEXT};">
+                            Or open this secure verification link:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 12px; padding-right: 40px; padding-bottom: 0; padding-left: 40px;">
+                            <table role="presentation" align="center" cellspacing="0" cellpadding="0" border="0" style="{_TABLE_RESET}">
+                                <tr>
+                                    <!--[if mso]>
+                                    <td align="center" bgcolor="{_GREEN}" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;">
+                                        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{escaped_url}" style="height:48px;v-text-anchor:middle;width:240px;" fillcolor="{_GREEN}" stroke="f">
+                                        <w:anchorlock/>
+                                        <center style="color:{_BG_BODY};font-family:{_FONT};font-size:16px;font-weight:bold;line-height:16px;">VERIFY ACCOUNT</center>
+                                        </v:roundrect>
+                                    </td>
+                                    <![endif]-->
+                                    <!--[if !mso]><!-->
+                                    <td align="center" bgcolor="{_GREEN}" style="background-color: {_GREEN}; padding-top: 14px; padding-right: 36px; padding-bottom: 14px; padding-left: 36px;">
+                                        <a href="{escaped_url}" style="color: {_BG_BODY}; font-size: 16px; font-weight: bold; mso-line-height-rule: exactly; line-height: 16px; text-decoration: none; font-family: {_FONT};">
+                                            VERIFY ACCOUNT
+                                        </a>
+                                    </td>
+                                    <!--<![endif]-->
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding-top: 10px; padding-right: 40px; padding-bottom: 0; padding-left: 40px; font-family: {_FONT}; font-size: 12px; mso-line-height-rule: exactly; line-height: 18px; color: {_DIM};">
+                            {escaped_url}
+                        </td>
+                    </tr>
+"""
 
 
 def render_magic_link_template(

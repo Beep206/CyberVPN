@@ -9,6 +9,8 @@ import { SpeedTunnel } from '@/widgets/speed-tunnel';
 import { QuickStart } from '@/widgets/quick-start';
 import { Footer } from '@/widgets/footer';
 import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
+import { HomePricingPreview } from '@/widgets/pricing/home-pricing-preview';
+import { getPublicPricingCatalog } from '@/widgets/pricing/catalog';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
 export async function generateMetadata({
@@ -31,9 +33,10 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
-    const [heroT, featuresT] = await Promise.all([
+    const [heroT, featuresT, catalog] = await Promise.all([
         getTranslations({ locale, namespace: 'Landing.hero' }),
         getTranslations({ locale, namespace: 'Landing.features' }),
+        getPublicPricingCatalog(),
     ]);
     const softwareStructuredData = buildSoftwareApplicationStructuredData({
         locale,
@@ -58,6 +61,7 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
             <main className="min-h-screen bg-terminal-bg selection:bg-neon-pink selection:text-black">
                 <PublicTerminalHeader locale={locale} />
                 <LandingHero locale={locale} />
+                <HomePricingPreview catalog={catalog} />
                 <LandingFeatures />
                 <LandingTechnical />
                 <SpeedTunnel />

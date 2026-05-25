@@ -101,6 +101,7 @@ class SmtpClient:
         code: str,
         locale: str = "en-EN",
         expires_in: str = "3 hours",
+        activation_url: str = "",
     ) -> dict[str, Any]:
         """
         Send OTP verification email via SMTP.
@@ -128,8 +129,9 @@ class SmtpClient:
             server_index=index,
         )
 
-        html_content = self._render_otp_template(code, expires_in, locale)
+        html_content = self._render_otp_template(code, expires_in, locale, activation_url=activation_url)
         subject = self._get_subject(locale)
+        activation_text = f"\n\nVerify account: {activation_url}" if activation_url else ""
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -140,7 +142,7 @@ class SmtpClient:
 
         # Plain text version
         text_part = MIMEText(
-            f"Your CyberVPN verification code is: {code}\n\nThis code expires in {expires_in}.",
+            f"Your CyberVPN verification code is: {code}{activation_text}\n\nThis code expires in {expires_in}.",
             "plain",
         )
         msg.attach(text_part)
@@ -426,9 +428,9 @@ class SmtpClient:
         }
         return subjects.get(locale, subjects["en-EN"])
 
-    def _render_otp_template(self, code: str, expires_in: str, locale: str) -> str:
+    def _render_otp_template(self, code: str, expires_in: str, locale: str, *, activation_url: str = "") -> str:
         """Render email-compatible OTP template with DEV banner."""
-        return render_otp_template(code, expires_in, locale, dev_banner=True)
+        return render_otp_template(code, expires_in, locale, activation_url=activation_url, dev_banner=True)
 
     def _get_password_reset_subject(self, locale: str) -> str:
         """Get localized password reset subject."""
