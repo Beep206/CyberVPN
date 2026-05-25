@@ -677,7 +677,7 @@ APPROVE_OPTION_A
 - S2 B2C flow unaffected;
 - no unauthorized partner surface is public.
 
-**Status:** Runtime deploy passed; GitLab CI runner evidence pending.
+**Status:** Runtime deploy passed; GitLab CI runner/tag pipeline closure passed in `S3-STAGE-16A`.
 
 **Документ:** `docs/cybervpn_stage3_launch_docs/16_STAGE3_PRODUCTION_DISABLED_STATE_DEPLOY.md`
 
@@ -687,7 +687,11 @@ APPROVE_OPTION_A
 
 **Runtime decision:** `S3-STAGE-16_RUNTIME_DEPLOY_PASSED`
 
-**Residual blocker before S3-STAGE-17:** GitLab pipeline for `s3-stage16-disabled-state.3` remains pending because jobs have no runner assigned.
+**CI closure:** protected equivalent tag `s3-stage16-disabled-state.6`, GitLab pipeline `93`, status `success`.
+
+**CI closure decision:** `S3-STAGE-16A_GITLAB_RUNNER_PROTECTED_TAG_CLOSED`
+
+**Residual note before S3-STAGE-17:** production runtime remains on `s3-stage16-disabled-state.3`; CI closure passed on `s3-stage16-disabled-state.6`, which contains only CI/test/evidence hardening after the deployed runtime tag.
 
 ---
 

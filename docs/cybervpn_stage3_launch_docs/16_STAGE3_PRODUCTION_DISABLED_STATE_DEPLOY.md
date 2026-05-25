@@ -1,7 +1,7 @@
 # Stage 3 Production Disabled-State Deploy
 
 **Stage:** `S3-STAGE-16`
-**Status:** Runtime deploy passed; GitLab CI runner evidence pending
+**Status:** Runtime deploy passed; GitLab CI runner/tag pipeline closure passed in `S3-STAGE-16A`
 **Date:** 2026-05-25
 **Product stage:** CyberVPN Partner / Reseller Platform
 **Prior gate:** `S3-STAGE-15: Full Partner Staging Rehearsal`
@@ -182,9 +182,53 @@ Status: pending
 Reason: jobs remain pending/created with no runner assigned
 ```
 
-This means the runtime deploy is complete, but the formal `GitLab CI pass` requirement is not closed yet.
+Root cause:
 
-Before S3-STAGE-17, the GitLab runner queue must be restored and the S3 tag pipeline or an equivalent owner-approved CI pipeline must pass.
+```text
+GitLab protected runners were healthy, but the S3 release tag pattern was not protected.
+Protected runners therefore refused the unprotected `s3-stage16-disabled-state.*` refs.
+```
+
+Closure was completed in follow-up stage:
+
+```text
+S3-STAGE-16A: GitLab CI Runner And Tag Pipeline Closure
+```
+
+CI closure tag:
+
+```text
+s3-stage16-disabled-state.6
+```
+
+CI closure tag target:
+
+```text
+7ccb8bd5
+```
+
+GitLab pipeline:
+
+```text
+Pipeline: https://gitlab.h.cyber-vpn.net/root/CyberVPN/-/pipelines/93
+Status: success
+Ref: s3-stage16-disabled-state.6
+Duration: 923s
+```
+
+The CI closure tag contains only CI/test/evidence hardening after the deployed runtime tag:
+
+1. frontend test fixture dates were moved away from an already-expired 2026-05-24 date;
+2. the S1 route-boundary smoke test now classifies `/api/v1/storefronts` as a public disabled-boundary prefix;
+3. `.gitleaks.toml` narrowly allowlists synthetic test/evidence identifiers that are not credentials.
+
+No production runtime feature was enabled by `S3-STAGE-16A`.
+
+Evidence:
+
+```text
+docs/evidence/releases/s3-stage-16a-gitlab-ci-runner-tag-pipeline-closure-20260525.md
+```
 
 ---
 
@@ -202,7 +246,7 @@ Before S3-STAGE-17, the GitLab runner queue must be restored and the S3 tag pipe
 | Production remains stable | Passed for smoke endpoints and container health. |
 | S2 B2C flow unaffected | Passed for public health, Mini App, admin login, pricing and status probes. |
 | No unauthorized partner surface public | Passed for sampled public partner API routes. |
-| GitLab CI pass | Pending: runner not assigned. |
+| GitLab CI pass | Passed through protected equivalent tag `s3-stage16-disabled-state.6`, pipeline `93`. |
 
 ---
 
@@ -210,14 +254,14 @@ Before S3-STAGE-17, the GitLab runner queue must be restored and the S3 tag pipe
 
 ```text
 S3-STAGE-16_RUNTIME_DEPLOY_PASSED
-S3-STAGE-16_CI_EVIDENCE_PENDING
+S3-STAGE-16A_GITLAB_RUNNER_PROTECTED_TAG_CLOSED
+S3-STAGE-16A_TAG_PIPELINE_PASSED_WITH_ALLOWED_FAILURE_WARNINGS
 ```
 
-Do not start `S3-STAGE-17: Controlled Partner Pilot` until CI runner/pass evidence is closed or owner explicitly accepts that residual risk.
+`S3-STAGE-17: Controlled Partner Pilot` may proceed after owner accepts that the production disabled-state runtime tag is `s3-stage16-disabled-state.3` and the formal CI closure tag is `s3-stage16-disabled-state.6`.
 
 Recommended next working step:
 
 ```text
-S3-STAGE-16A: GitLab CI Runner And Tag Pipeline Closure
+S3-STAGE-17: Controlled Partner Pilot
 ```
-

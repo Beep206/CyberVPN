@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-25
 **Stage:** `S3-STAGE-16`
-**Status:** Runtime deploy passed; GitLab CI runner evidence pending
+**Status:** Runtime deploy passed; GitLab CI runner/tag pipeline closure passed in `S3-STAGE-16A`
 **Stage document:** `docs/cybervpn_stage3_launch_docs/16_STAGE3_PRODUCTION_DISABLED_STATE_DEPLOY.md`
 
 ---
@@ -226,7 +226,7 @@ X-CyberVPN-Partner-Boundary: partner_attribution_disabled
 
 ## 8. CI Status
 
-GitLab tag pipeline:
+Original GitLab tag pipeline:
 
 ```text
 Pipeline: https://gitlab.h.cyber-vpn.net/root/CyberVPN/-/pipelines/87
@@ -235,20 +235,63 @@ Status: pending
 Reason: jobs remain pending/created with no runner assigned
 ```
 
-Representative jobs:
+Root cause:
 
 ```text
-gitlab:ci-contract pending no-runner
-backend:lint created no-runner
-backend:test:smoke created no-runner
-frontend:lint created no-runner
-frontend:test created no-runner
-frontend:build created no-runner
-secret-pattern-scan created no-runner
-security:gitleaks created no-runner
-npm-audit:high created no-runner
-pip-audit:python-locks created no-runner
+The GitLab runner was protected, but the S3 release tag pattern was not protected.
+Protected runners do not accept unprotected refs.
 ```
+
+Closure evidence:
+
+```text
+docs/evidence/releases/s3-stage-16a-gitlab-ci-runner-tag-pipeline-closure-20260525.md
+```
+
+Passing closure tag pipeline:
+
+```text
+Pipeline: https://gitlab.h.cyber-vpn.net/root/CyberVPN/-/pipelines/93
+Ref: s3-stage16-disabled-state.6
+SHA: 7ccb8bd51cb2191450858c2b0224eb442c9484f4
+Status: success
+Duration: 923s
+```
+
+Hard CI result:
+
+```text
+gitlab:ci-contract success
+backend:lint success
+backend:test:smoke success
+frontend:lint success
+frontend:test success
+frontend:build success
+admin:lint success
+admin:test success
+admin:build success
+telegram-bot:lint success
+telegram-bot:test:smoke success
+partner:stage3-artifacts success
+partner:stage3-sandbox-pack success
+secret-pattern-scan success
+security:gitleaks success
+npm-audit:high success
+pip-audit:python-locks success
+container-scan:trivy-grype success
+sbom:release-candidate success
+quality:release-comparison-report success
+```
+
+Allowed-failure warnings:
+
+```text
+partner:test failed allow_failure=true
+task-worker:lint failed allow_failure=true
+task-worker:test:smoke failed allow_failure=true
+```
+
+Production runtime remains on `s3-stage16-disabled-state.3`. CI closure passed on `s3-stage16-disabled-state.6`, which contains only CI/test/evidence hardening after the deployed runtime tag.
 
 Local gates already passed before production deploy:
 
@@ -285,8 +328,8 @@ e63418b4 fix: exclude next scratch builds from deploy sync
 
 ```text
 S3-STAGE-16_RUNTIME_DEPLOY_PASSED
-S3-STAGE-16_CI_EVIDENCE_PENDING
+S3-STAGE-16A_GITLAB_RUNNER_PROTECTED_TAG_CLOSED
+S3-STAGE-16A_TAG_PIPELINE_PASSED_WITH_ALLOWED_FAILURE_WARNINGS
 ```
 
-Production is stable on the disabled-state runtime, but S3-STAGE-17 must not start until the GitLab CI runner/pass gap is closed or explicitly accepted by owner.
-
+Production is stable on the disabled-state runtime, and the CI runner/pass gap is closed through `S3-STAGE-16A`.
