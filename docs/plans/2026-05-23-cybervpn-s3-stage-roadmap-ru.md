@@ -811,6 +811,24 @@ S3-STAGE-18_NO_ROLLBACK_REQUIRED
 
 **Next work inside S3-STAGE-18:** `S3-STAGE-18A: External Pilot List Intake And Finance/Postback Classification`
 
+**18A документ:** `docs/cybervpn_stage3_launch_docs/18A_STAGE3_EXTERNAL_PILOT_LIST_INTAKE_FINANCE_POSTBACK_CLASSIFICATION.md`
+
+**18A evidence:** `docs/evidence/releases/s3-stage-18a-external-pilot-intake-finance-postback-classification-20260525.md`
+
+**18A decision:**
+
+```text
+S3-STAGE-18A_INTAKE_CONTRACT_READY
+S3-STAGE-18A_FINANCE_CLASSIFICATION_READY
+S3-STAGE-18A_POSTBACK_CLASSIFICATION_READY
+S3-STAGE-18A_EXTERNAL_LIST_NOT_YET_PROVIDED
+S3-STAGE-18A_KEEP_LIVE_PAYOUTS_BLOCKED
+S3-STAGE-18A_KEEP_LIVE_POSTBACKS_BLOCKED
+S3-STAGE-18A_NO_NEW_TOP_LEVEL_STAGE_CREATED
+```
+
+**Next work still inside S3-STAGE-18:** daily stabilization snapshot or owner-provided `EXT-PILOT-001` list classification.
+
 ---
 
 ## 23. Recommended Execution Order

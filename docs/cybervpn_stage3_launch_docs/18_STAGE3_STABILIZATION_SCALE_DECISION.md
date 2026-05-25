@@ -34,6 +34,7 @@ docs/evidence/releases/s3-stage-17b-first-partner-code-redemption-attribution-re
 docs/evidence/releases/s3-stage-17b-paid-conversion-earning-fixture-20260525.md
 docs/evidence/releases/s3-stage-17c-controlled-external-pilot-daily-watch-20260525.md
 docs/evidence/releases/s3-stage-18-stabilization-scale-decision-20260525.md
+docs/evidence/releases/s3-stage-18a-external-pilot-intake-finance-postback-classification-20260525.md
 ```
 
 ---
@@ -267,11 +268,30 @@ Do not use it for real payout. Remove it only with evidence-id-scoped cleanup wh
 
 Do not create `S3-STAGE-19`.
 
-Next work remains inside `S3-STAGE-18`:
+`S3-STAGE-18A` has been added and completed as work inside `S3-STAGE-18`:
 
 ```text
 S3-STAGE-18A: External Pilot List Intake And Finance/Postback Classification
 ```
 
-If the owner decides not to expand external partners now, continue daily `S3-STAGE-18` stabilization snapshots.
+Stage 18A result:
 
+```text
+S3-STAGE-18A_INTAKE_CONTRACT_READY
+S3-STAGE-18A_FINANCE_CLASSIFICATION_READY
+S3-STAGE-18A_POSTBACK_CLASSIFICATION_READY
+S3-STAGE-18A_EXTERNAL_LIST_NOT_YET_PROVIDED
+S3-STAGE-18A_KEEP_LIVE_PAYOUTS_BLOCKED
+S3-STAGE-18A_KEEP_LIVE_POSTBACKS_BLOCKED
+S3-STAGE-18A_NO_NEW_TOP_LEVEL_STAGE_CREATED
+```
+
+Next work still remains inside `S3-STAGE-18`:
+
+```text
+daily S3-STAGE-18 stabilization snapshot
+or
+owner-provided EXT-PILOT-001 list classification using S3-STAGE-18A
+```
+
+If the owner decides not to expand external partners now, continue daily `S3-STAGE-18` stabilization snapshots.
