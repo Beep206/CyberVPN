@@ -677,6 +677,18 @@ APPROVE_OPTION_A
 - S2 B2C flow unaffected;
 - no unauthorized partner surface is public.
 
+**Status:** Runtime deploy passed; GitLab CI runner evidence pending.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/16_STAGE3_PRODUCTION_DISABLED_STATE_DEPLOY.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-16-production-disabled-state-deploy-20260525.md`
+
+**Production tag:** `s3-stage16-disabled-state.3`
+
+**Runtime decision:** `S3-STAGE-16_RUNTIME_DEPLOY_PASSED`
+
+**Residual blocker before S3-STAGE-17:** GitLab pipeline for `s3-stage16-disabled-state.3` remains pending because jobs have no runner assigned.
+
 ---
 
 ## 21. S3-STAGE-17: Controlled Partner Pilot
