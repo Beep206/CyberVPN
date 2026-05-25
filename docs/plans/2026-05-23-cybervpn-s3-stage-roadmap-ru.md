@@ -724,7 +724,7 @@ APPROVE_OPTION_A
 - no money-impacting inconsistency;
 - owner decides expand/pause/fix.
 
-**Status:** Runtime enablement passed; first internal pilot workspace/code proof passed; conversion proof still pending.
+**Status:** Runtime enablement passed; first internal pilot workspace/code proof passed; controlled partner code redemption/reporting/settlement proof passed.
 
 **Документ:** `docs/cybervpn_stage3_launch_docs/17_STAGE3_CONTROLLED_PARTNER_PILOT.md`
 
@@ -734,13 +734,19 @@ APPROVE_OPTION_A
 
 **17A evidence:** `docs/evidence/releases/s3-stage-17a-first-pilot-partner-workspace-code-proof-20260525.md`
 
+**17B документ:** `docs/cybervpn_stage3_launch_docs/17B_STAGE3_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF.md`
+
+**17B evidence:** `docs/evidence/releases/s3-stage-17b-first-partner-code-redemption-attribution-reporting-settlement-20260525.md`
+
 **Production tag:** `s3-stage17-controlled-partner-pilot.3`
 
 **Runtime decision:** `S3-STAGE-17_RUNTIME_ENABLEMENT_PASSED`
 
 **17A decision:** `S3-STAGE-17A_FIRST_PILOT_WORKSPACE_CODE_PROOF_PASSED`
 
-**Residual before S3-STAGE-17 exit:** prove the first controlled partner code redemption/binding, attribution, reporting and settlement sandbox path end-to-end.
+**17B decision:** `S3-STAGE-17B_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF_PASSED`
+
+**Residual before expansion:** real paid partner conversion/earning evidence is optional and should be explicit. Do not create synthetic finance rows in production without owner approval.
 
 ---
 

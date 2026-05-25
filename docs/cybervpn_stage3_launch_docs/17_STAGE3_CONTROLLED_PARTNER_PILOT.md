@@ -1,7 +1,7 @@
 # Stage 3 Controlled Partner Pilot
 
 **Stage:** `S3-STAGE-17`
-**Status:** Runtime enabled; first pilot workspace/code proof passed; conversion proof pending
+**Status:** Runtime enabled; first pilot workspace/code proof passed; controlled redemption/reporting/settlement proof passed
 **Date:** 2026-05-25
 **Product stage:** CyberVPN Partner / Reseller Platform
 **Prior gate:** `S3-STAGE-16A: GitLab CI Runner And Tag Pipeline Closure`
@@ -154,6 +154,28 @@ docs/cybervpn_stage3_launch_docs/17A_STAGE3_FIRST_PILOT_PARTNER_WORKSPACE_CODE_P
 docs/evidence/releases/s3-stage-17a-first-pilot-partner-workspace-code-proof-20260525.md
 ```
 
+`S3-STAGE-17B` then proved the first controlled partner code redemption/binding path with a synthetic customer:
+
+```text
+synthetic_customer=stage3-partner-redemption-20260525@cyber-vpn.net
+code=S3PILOT1
+bind_status=bound
+customer_commercial_binding=reseller_binding:active
+reporting_reconciliation=green
+settlement_mode=sandbox_only
+live_payout_allowed=false
+outbox_pending_or_failed=0
+```
+
+Evidence:
+
+```text
+docs/cybervpn_stage3_launch_docs/17B_STAGE3_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF.md
+docs/evidence/releases/s3-stage-17b-first-partner-code-redemption-attribution-reporting-settlement-20260525.md
+```
+
+This proof did not create a paid checkout, partner earning, partner statement or payout instruction. Paid conversion evidence remains a separate owner decision if required before broader partner expansion.
+
 ---
 
 ## 7. Exit Criteria
@@ -200,11 +222,12 @@ Prior disabled-state tag: s3-stage16-disabled-state.3
 ```text
 S3-STAGE-17_RUNTIME_ENABLEMENT_PASSED
 S3-STAGE-17A_FIRST_PILOT_WORKSPACE_CODE_PROOF_PASSED
-S3-STAGE-17_CONVERSION_ATTRIBUTION_REPORTING_PROOF_PENDING
+S3-STAGE-17B_FIRST_PARTNER_CODE_REDEMPTION_ATTRIBUTION_REPORTING_SETTLEMENT_PROOF_PASSED
+S3-STAGE-17_PAID_PARTNER_CONVERSION_EVIDENCE_OPTIONAL_BEFORE_EXPANSION
 ```
 
 Recommended next working step:
 
 ```text
-S3-STAGE-17B: First Partner Code Redemption, Attribution, Reporting, And Settlement Sandbox Proof
+S3-STAGE-17C: Controlled External Pilot Partner/User Confirmation And Daily Watch
 ```
