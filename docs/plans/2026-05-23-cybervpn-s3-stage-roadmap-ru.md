@@ -793,6 +793,24 @@ APPROVE_OPTION_A
 | `PREPARE_S4` | S3 достаточно стабилен, можно готовить mobile stage |
 | `PREPARE_S7` | Нужна platform scale/enterprise hardening |
 
+**Status:** Passed with continue-pilot decision.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/18_STAGE3_STABILIZATION_SCALE_DECISION.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-18-stabilization-scale-decision-20260525.md`
+
+**Decision:**
+
+```text
+S3-STAGE-18_CONTINUE_INTERNAL_PARTNER_PILOT
+S3-STAGE-18_PAUSE_EXTERNAL_PARTNER_EXPANSION_UNTIL_OWNER_LIST
+S3-STAGE-18_KEEP_LIVE_PAYOUTS_BLOCKED
+S3-STAGE-18_KEEP_POSTBACK_DELIVERY_PAUSED
+S3-STAGE-18_NO_ROLLBACK_REQUIRED
+```
+
+**Next work inside S3-STAGE-18:** `S3-STAGE-18A: External Pilot List Intake And Finance/Postback Classification`
+
 ---
 
 ## 23. Recommended Execution Order
