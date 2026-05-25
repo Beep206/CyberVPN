@@ -1,0 +1,17 @@
+title = "CyberVPN Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic test/evidence identifiers that are not credentials"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = [
+  '''backend/tests/e2e/test_phase4_(finance|settlement)_foundations\.py''',
+  '''docs/evidence/partner-platform/stage3-outbox.*''',
+]
+regexes = [
+  '''(?i)(idempotency[-_ -]?key|period_key|event_key|dead_letter_event_key|backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}''',
+]
