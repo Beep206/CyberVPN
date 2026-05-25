@@ -1,7 +1,7 @@
 # Stage 3 Controlled Partner Pilot
 
 **Stage:** `S3-STAGE-17`
-**Status:** Runtime enabled; first pilot partner/workspace/code still pending
+**Status:** Runtime enabled; first pilot workspace/code proof passed; conversion proof pending
 **Date:** 2026-05-25
 **Product stage:** CyberVPN Partner / Reseller Platform
 **Prior gate:** `S3-STAGE-16A: GitLab CI Runner And Tag Pipeline Closure`
@@ -121,7 +121,7 @@ also ensures `PARTNER_EXPORTS_ENABLED=true` is visible inside the backend contai
 
 ## 6. Current Pilot Data State
 
-Production runtime is enabled, but no real pilot partner has been created yet:
+Production runtime was enabled first with no pilot partner data:
 
 ```text
 partner_accounts=0
@@ -133,6 +133,26 @@ outbox_events_pending=0
 ```
 
 This means `S3-STAGE-17` runtime enablement is complete, but the stage exit criterion is not complete until at least one approved pilot partner/workspace/code is created and tested end-to-end.
+
+`S3-STAGE-17A` then created the first internal controlled pilot workspace/code:
+
+```text
+account_key=cybervpn-internal-pilot
+operator_login=s2_admin_ops
+operator_role=owner
+operator_2fa=true
+mobile_owner=Sasha_Beep
+code=S3PILOT1
+markup_pct=0
+is_active=true
+```
+
+Evidence:
+
+```text
+docs/cybervpn_stage3_launch_docs/17A_STAGE3_FIRST_PILOT_PARTNER_WORKSPACE_CODE_PROOF.md
+docs/evidence/releases/s3-stage-17a-first-pilot-partner-workspace-code-proof-20260525.md
+```
 
 ---
 
@@ -179,11 +199,12 @@ Prior disabled-state tag: s3-stage16-disabled-state.3
 
 ```text
 S3-STAGE-17_RUNTIME_ENABLEMENT_PASSED
-S3-STAGE-17_PILOT_PARTNER_ONBOARDING_PENDING
+S3-STAGE-17A_FIRST_PILOT_WORKSPACE_CODE_PROOF_PASSED
+S3-STAGE-17_CONVERSION_ATTRIBUTION_REPORTING_PROOF_PENDING
 ```
 
 Recommended next working step:
 
 ```text
-S3-STAGE-17A: First Pilot Partner Workspace And Code Proof
+S3-STAGE-17B: First Partner Code Redemption, Attribution, Reporting, And Settlement Sandbox Proof
 ```

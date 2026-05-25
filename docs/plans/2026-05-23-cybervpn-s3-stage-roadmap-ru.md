@@ -724,17 +724,23 @@ APPROVE_OPTION_A
 - no money-impacting inconsistency;
 - owner decides expand/pause/fix.
 
-**Status:** Runtime enablement passed; first pilot partner/workspace/code still pending.
+**Status:** Runtime enablement passed; first internal pilot workspace/code proof passed; conversion proof still pending.
 
 **Документ:** `docs/cybervpn_stage3_launch_docs/17_STAGE3_CONTROLLED_PARTNER_PILOT.md`
 
+**17A документ:** `docs/cybervpn_stage3_launch_docs/17A_STAGE3_FIRST_PILOT_PARTNER_WORKSPACE_CODE_PROOF.md`
+
 **Evidence:** `docs/evidence/releases/s3-stage-17-controlled-partner-pilot-runtime-enable-20260525.md`
+
+**17A evidence:** `docs/evidence/releases/s3-stage-17a-first-pilot-partner-workspace-code-proof-20260525.md`
 
 **Production tag:** `s3-stage17-controlled-partner-pilot.3`
 
 **Runtime decision:** `S3-STAGE-17_RUNTIME_ENABLEMENT_PASSED`
 
-**Residual before S3-STAGE-17 exit:** create the first controlled pilot partner workspace/operator/code and prove attribution/reporting/settlement sandbox end-to-end.
+**17A decision:** `S3-STAGE-17A_FIRST_PILOT_WORKSPACE_CODE_PROOF_PASSED`
+
+**Residual before S3-STAGE-17 exit:** prove the first controlled partner code redemption/binding, attribution, reporting and settlement sandbox path end-to-end.
 
 ---
 
