@@ -724,6 +724,18 @@ APPROVE_OPTION_A
 - no money-impacting inconsistency;
 - owner decides expand/pause/fix.
 
+**Status:** Runtime enablement passed; first pilot partner/workspace/code still pending.
+
+**Документ:** `docs/cybervpn_stage3_launch_docs/17_STAGE3_CONTROLLED_PARTNER_PILOT.md`
+
+**Evidence:** `docs/evidence/releases/s3-stage-17-controlled-partner-pilot-runtime-enable-20260525.md`
+
+**Production tag:** `s3-stage17-controlled-partner-pilot.3`
+
+**Runtime decision:** `S3-STAGE-17_RUNTIME_ENABLEMENT_PASSED`
+
+**Residual before S3-STAGE-17 exit:** create the first controlled pilot partner workspace/operator/code and prove attribution/reporting/settlement sandbox end-to-end.
+
 ---
 
 ## 22. S3-STAGE-18: S3 Stabilization And Scale Decision
