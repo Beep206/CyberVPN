@@ -6,7 +6,15 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = dirname(CONFIG_DIR);
-const PARTNER_PUBLIC_ORIGIN = "partner.ozoxy.ru";
+const PARTNER_PUBLIC_ORIGIN = process.env.NEXT_PUBLIC_PARTNER_PORTAL_HOST?.trim() || "partner.cyber-vpn.net";
+const PARTNER_ALLOWED_PUBLIC_ORIGINS = [
+  PARTNER_PUBLIC_ORIGIN,
+  "partner.cyber-vpn.net",
+  ...((process.env.NEXT_PUBLIC_PARTNER_PORTAL_HOSTS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)),
+];
 const PARTNER_LOCAL_ORIGINS = [
   "localhost:3002",
   "127.0.0.1:3002",
@@ -40,10 +48,10 @@ const config: NextConfigWithCompiler = {
   experimental: {
     globalNotFound: true,
     serverActions: {
-      allowedOrigins: [PARTNER_PUBLIC_ORIGIN],
+      allowedOrigins: PARTNER_ALLOWED_PUBLIC_ORIGINS,
     },
   },
-  allowedDevOrigins: [PARTNER_PUBLIC_ORIGIN, ...PARTNER_LOCAL_ORIGINS],
+  allowedDevOrigins: [...PARTNER_ALLOWED_PUBLIC_ORIGINS, ...PARTNER_LOCAL_ORIGINS],
   cacheComponents: true,
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   reactCompiler: true,

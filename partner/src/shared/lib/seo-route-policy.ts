@@ -5,7 +5,7 @@ import {
 } from '@/shared/lib/locale-rollout-policy';
 
 const DEFAULT_DEV_SITE_URL = 'http://localhost:3002';
-const DEFAULT_PROD_SITE_URL = 'https://partner.ozoxy.ru';
+const DEFAULT_PROD_SITE_URL = 'https://partner.cyber-vpn.net';
 
 function normalizeSiteUrl(value: string): string {
   return value.replace(/\/+$/, '');

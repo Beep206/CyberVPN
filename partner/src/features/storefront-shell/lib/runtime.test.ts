@@ -8,7 +8,7 @@ import {
 
 describe('storefront runtime resolution', () => {
   it('resolves portal hosts to the portal surface family', () => {
-    const context = resolvePartnerSurfaceContext('partner.ozoxy.ru');
+    const context = resolvePartnerSurfaceContext('partner.cyber-vpn.net');
 
     expect(context.family).toBe('portal');
     expect(context.authRealmKey).toBe('partner');
@@ -19,7 +19,7 @@ describe('storefront runtime resolution', () => {
 
     expect(context.family).toBe('storefront');
     if (context.family === 'storefront') {
-      expect(context.storefrontKey).toBe('ozoxy-storefront');
+      expect(context.storefrontKey).toBe('cybervpn-storefront');
       expect(context.routes.checkout).toBe('/checkout');
     }
   });

@@ -16,7 +16,7 @@ Usage:
   scripts/deploy/stage1-gitlab-deploy.sh <services>
 
 Services:
-  all, frontend, admin, backend, telegram-bot, task-worker
+  all, frontend, admin, partner, backend, telegram-bot, task-worker
 
 Required CI variables:
   STAGE1_PROD_HOST
@@ -56,7 +56,7 @@ image_registry="${STAGE1_IMAGE_REGISTRY:-cybervpn}"
 remote_sudo="${STAGE1_REMOTE_SUDO:-sudo}"
 release_tag="${STAGE1_RELEASE_TAG:-stage1-ci-${CI_PIPELINE_IID:-0}-${CI_COMMIT_SHORT_SHA:-local}}"
 evidence_dir="${STAGE1_DEPLOY_EVIDENCE_DIR:-docs/evidence/releases/ci-stage1}"
-public_smoke_urls="${STAGE1_PUBLIC_SMOKE_URLS:-https://cyber-vpn.net/ru-RU/miniapp/home https://admin.cyber-vpn.net/ru-RU/login https://api.cyber-vpn.net/healthz}"
+public_smoke_urls="${STAGE1_PUBLIC_SMOKE_URLS:-https://cyber-vpn.net/ru-RU/miniapp/home https://admin.cyber-vpn.net/ru-RU/login https://partner.cyber-vpn.net/ru-RU/login https://api.cyber-vpn.net/healthz}"
 
 case "$release_tag" in
   *[!A-Za-z0-9_.-]*)
@@ -71,7 +71,7 @@ for raw_service in "${requested_services[@]}"; do
   service="$(printf '%s' "$raw_service" | xargs)"
   [[ -n "$service" ]] || continue
   case "$service" in
-    all|frontend|admin|backend|telegram-bot|task-worker)
+    all|frontend|admin|partner|backend|telegram-bot|task-worker)
       requested["$service"]=1
       ;;
     *)
@@ -86,6 +86,7 @@ if [[ -n "${requested[all]:-}" ]]; then
   requested=(
     [frontend]=1
     [admin]=1
+    [partner]=1
     [backend]=1
     [telegram-bot]=1
     [task-worker]=1
@@ -199,7 +200,6 @@ rsync -az --delete \
   --exclude='docs/' \
   --exclude='apps/' \
   --exclude='packages/' \
-  --exclude='partner/' \
   --exclude='cybervpn_mobile/' \
   --exclude='SDK/' \
   --exclude='services/helix-adapter/' \
@@ -264,6 +264,7 @@ image_for() {
     backend) echo "${IMAGE_REGISTRY}/cybervpn-backend" ;;
     frontend) echo "${IMAGE_REGISTRY}/cybervpn-frontend" ;;
     admin) echo "${IMAGE_REGISTRY}/cybervpn-admin" ;;
+    partner) echo "${IMAGE_REGISTRY}/cybervpn-partner" ;;
     telegram-bot) echo "${IMAGE_REGISTRY}/cybervpn-telegram-bot" ;;
     task-worker) echo "${IMAGE_REGISTRY}/cybervpn-task-worker" ;;
     *) return 1 ;;
@@ -309,6 +310,23 @@ build_service() {
         --build-arg API_INTERNAL_ORIGIN="${STAGE1_API_INTERNAL_ORIGIN:-http://cybervpn-backend:8000}" \
         -t "${repo}:${RELEASE_TAG}" .
       ;;
+    partner)
+      log "building partner image"
+      $REMOTE_SUDO docker build -f infra/deploy/stage1/Dockerfile.next-workspace \
+        --build-arg NEXT_WORKSPACE=partner \
+        --build-arg NEXT_PUBLIC_SITE_URL="${STAGE1_PARTNER_PUBLIC_URL:-https://partner.cyber-vpn.net}" \
+        --build-arg NEXT_PUBLIC_API_URL="${STAGE1_FRONTEND_API_URL:-https://api.cyber-vpn.net}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PORTAL_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_PORTAL_ENABLED:-${NEXT_PUBLIC_PARTNER_PORTAL_ENABLED:-true}}" \
+        --build-arg NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED:-${NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED:-true}}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PILOT_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-${NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-true}}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PORTAL_HOST="${STAGE1_PARTNER_PORTAL_HOST:-partner.cyber-vpn.net}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PORTAL_HOSTS="${STAGE1_PARTNER_PORTAL_HOSTS:-partner.cyber-vpn.net}" \
+        --build-arg NEXT_PUBLIC_PARTNER_STOREFRONT_HOSTS="${STAGE1_PARTNER_STOREFRONT_HOSTS:-storefront.cyber-vpn.net}" \
+        --build-arg NEXT_PUBLIC_PARTNER_API_AUTH_REALM="${STAGE1_PARTNER_API_AUTH_REALM:-partner}" \
+        --build-arg NEXT_PUBLIC_PARTNER_PORTAL_SIMULATION_ENABLED="${STAGE1_NEXT_PUBLIC_PARTNER_PORTAL_SIMULATION_ENABLED:-${NEXT_PUBLIC_PARTNER_PORTAL_SIMULATION_ENABLED:-false}}" \
+        --build-arg API_INTERNAL_ORIGIN="${STAGE1_API_INTERNAL_ORIGIN:-http://cybervpn-backend:8000}" \
+        -t "${repo}:${RELEASE_TAG}" .
+      ;;
     telegram-bot)
       log "building telegram-bot image"
       $REMOTE_SUDO docker build --pull -t "${repo}:${RELEASE_TAG}" services/telegram-bot
@@ -320,7 +338,7 @@ build_service() {
   esac
 }
 
-for service in backend frontend admin telegram-bot task-worker; do
+for service in backend frontend admin partner telegram-bot task-worker; do
   repo="$(image_for "$service")"
   if is_requested "$service"; then
     build_service "$service"
@@ -352,6 +370,7 @@ compose_services=()
 is_requested backend && compose_services+=(cybervpn-backend)
 is_requested frontend && compose_services+=(cybervpn-frontend)
 is_requested admin && compose_services+=(cybervpn-admin)
+is_requested partner && compose_services+=(cybervpn-partner)
 is_requested telegram-bot && compose_services+=(cybervpn-telegram-bot)
 if is_requested task-worker; then
   compose_services+=(cybervpn-worker cybervpn-scheduler)
@@ -372,6 +391,9 @@ if is_requested frontend; then
 fi
 if is_requested admin; then
   retry_curl admin-login curl -fsSI http://127.0.0.1:13001/ru-RU/login | sed -n '1,8p'
+fi
+if is_requested partner; then
+  retry_curl partner-login curl -fsSI http://127.0.0.1:13002/ru-RU/login | sed -n '1,8p'
 fi
 if is_requested telegram-bot; then
   retry_curl telegram-bot-health curl -fsS http://127.0.0.1:18088/health || true

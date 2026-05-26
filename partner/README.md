@@ -23,7 +23,7 @@ Set `NEXT_PUBLIC_SITE_URL` to match the active origin:
 NEXT_PUBLIC_SITE_URL=http://localhost:3002
 
 # production
-NEXT_PUBLIC_SITE_URL=https://partner.ozoxy.ru
+NEXT_PUBLIC_SITE_URL=https://partner.cyber-vpn.net
 ```
 
 ## Product Intelligence Environment

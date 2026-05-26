@@ -43,7 +43,10 @@ cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
 
-	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|monitoring|partner|payment-history|referral|servers|settings|subscriptions|users|wallet)(?:/.*)?$
+	@partner_routes path_regexp partner_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?partner(?:/.*)?$
+	redir @partner_routes https://partner.cyber-vpn.net{uri} temporary
+
+	@cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|monitoring|payment-history|referral|servers|settings|subscriptions|users|wallet)(?:/.*)?$
 	redir @cabinet_routes https://my.cyber-vpn.net{uri} temporary
 
 	encode zstd gzip
@@ -58,6 +61,9 @@ cyber-vpn.net {
 my.cyber-vpn.net {
 	import stage1_security_headers
 	import stage1_api_routes
+
+	@partner_routes path_regexp partner_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?partner(?:/.*)?$
+	redir @partner_routes https://partner.cyber-vpn.net{uri} temporary
 
 	@public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|api|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
 	redir @public_routes https://cyber-vpn.net{uri} temporary
@@ -105,6 +111,20 @@ admin.cyber-vpn.net {
 
 	encode zstd gzip
 	reverse_proxy cybervpn-admin:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Port 443
+		header_down -Link
+	}
+}
+
+partner.cyber-vpn.net {
+	import stage1_security_headers
+	import stage1_api_routes
+
+	encode zstd gzip
+	reverse_proxy cybervpn-partner:3000 {
 		header_up Host {host}
 		header_up X-Forwarded-Host {host}
 		header_up X-Forwarded-Proto https

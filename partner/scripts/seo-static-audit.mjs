@@ -13,7 +13,7 @@ const FRONTEND_ROOT = resolve(SCRIPT_DIR, '..');
 const require = createRequire(import.meta.url);
 const NEXT_CLI_PATH = require.resolve('next/dist/bin/next');
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://partner.ozoxy.ru').replace(/\/+$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://partner.cyber-vpn.net').replace(/\/+$/, '');
 const DEFAULT_LOCALE = 'ru-RU';
 const RTL_LOCALE = 'ar-SA';
 const PRIORITY_LOCALE = 'ru-RU';

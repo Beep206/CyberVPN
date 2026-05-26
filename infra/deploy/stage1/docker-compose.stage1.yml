@@ -41,6 +41,13 @@ x-admin-env: &admin-env
     - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
       required: false
 
+x-partner-env: &partner-env
+  env_file:
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/partner.env
+      required: false
+    - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+      required: false
+
 x-bot-env: &bot-env
   env_file:
     - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/telegram-bot.env
@@ -523,6 +530,54 @@ services:
       <<: *stage-labels
       cybervpn.service: cybervpn-admin
       cybervpn.metrics.target: admin_runtime_events_via_backend
+
+  cybervpn-partner:
+    <<: *runtime-defaults
+    image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-partner:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/partner.env
+        required: false
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/sentry-runtime.env
+        required: false
+    expose:
+      - "3000"
+    ports:
+      - "127.0.0.1:13002:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_SITE_URL: https://partner.cyber-vpn.net
+      NEXT_PUBLIC_API_URL: https://api.cyber-vpn.net
+      NEXT_PUBLIC_PARTNER_API_AUTH_REALM: ${NEXT_PUBLIC_PARTNER_API_AUTH_REALM:-partner}
+      NEXT_PUBLIC_PARTNER_PORTAL_HOST: ${NEXT_PUBLIC_PARTNER_PORTAL_HOST:-partner.cyber-vpn.net}
+      NEXT_PUBLIC_PARTNER_PORTAL_HOSTS: ${NEXT_PUBLIC_PARTNER_PORTAL_HOSTS:-partner.cyber-vpn.net}
+      NEXT_PUBLIC_PARTNER_STOREFRONT_HOSTS: ${NEXT_PUBLIC_PARTNER_STOREFRONT_HOSTS:-storefront.cyber-vpn.net}
+      NEXT_PUBLIC_PARTNER_PORTAL_ENABLED: ${NEXT_PUBLIC_PARTNER_PORTAL_ENABLED:-false}
+      NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED: ${NEXT_PUBLIC_PARTNER_STOREFRONTS_ENABLED:-false}
+      NEXT_PUBLIC_PARTNER_PILOT_ENABLED: ${NEXT_PUBLIC_PARTNER_PILOT_ENABLED:-false}
+      NEXT_PUBLIC_PARTNER_PORTAL_SIMULATION_ENABLED: ${NEXT_PUBLIC_PARTNER_PORTAL_SIMULATION_ENABLED:-false}
+      API_URL: http://cybervpn-backend:8000
+      API_INTERNAL_ORIGIN: http://cybervpn-backend:8000
+    networks:
+      cybervpn-backend: {}
+      cybervpn-egress: {}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/ru-RU/login').then(r=>process.exit(r.status < 500 ? 0 : 1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    mem_limit: 512m
+    cpus: "1.00"
+    pids_limit: 192
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-partner
+      cybervpn.metrics.target: partner_runtime_events_via_backend
 
   cybervpn-postgres:
     <<: *runtime-defaults

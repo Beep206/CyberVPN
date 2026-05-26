@@ -58,18 +58,20 @@ export type StorefrontSurfaceContext = {
 
 export type PartnerSurfaceContext = PortalSurfaceContext | StorefrontSurfaceContext;
 
-const PARTNER_PORTAL_PUBLIC_HOST = 'partner.ozoxy.ru';
+const PARTNER_PORTAL_PUBLIC_HOST =
+  process.env.NEXT_PUBLIC_PARTNER_PORTAL_HOST?.trim() || 'partner.cyber-vpn.net';
 const PARTNER_PORTAL_LOCAL_HOSTS = [
   'localhost:3002',
   '127.0.0.1:3002',
   'portal.localhost:3002',
 ] as const;
 const DEFAULT_STOREFRONT_HOST = 'storefront.localhost:3002';
-const DEFAULT_STOREFRONT_PUBLIC_HOST = 'storefront.ozoxy.ru';
+const DEFAULT_STOREFRONT_PUBLIC_HOST =
+  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_HOST?.trim() || 'storefront.cyber-vpn.net';
 const DEFAULT_STOREFRONT_KEY =
-  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_KEY?.trim() || 'ozoxy-storefront';
+  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_KEY?.trim() || 'cybervpn-storefront';
 const DEFAULT_STOREFRONT_REALM_KEY =
-  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_REALM_KEY?.trim() || 'ozoxy-storefront';
+  process.env.NEXT_PUBLIC_PARTNER_DEFAULT_STOREFRONT_REALM_KEY?.trim() || 'cybervpn-storefront';
 const DEFAULT_STOREFRONT_PARTNER_CODE =
   process.env.NEXT_PUBLIC_PARTNER_DEFAULT_PARTNER_CODE?.trim() || null;
 
@@ -134,7 +136,7 @@ function deriveBrandKey(host: string): string {
   const hostname = stripPort(host);
   const [subdomain] = hostname.split('.');
   if (!subdomain || subdomain === 'storefront' || subdomain === 'www') {
-    return 'ozoxy';
+    return 'cybervpn';
   }
 
   return subdomain;
@@ -170,7 +172,7 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
 
 function buildStorefrontContext(host: string, canonicalHost: string): StorefrontSurfaceContext {
   const brandKey = deriveBrandKey(host);
-  const brandName = brandKey === 'ozoxy' ? 'Ozoxy Secure Access' : `${toTitleCase(brandKey)} Secure Access`;
+  const brandName = brandKey === 'cybervpn' ? 'CyberVPN Partner Access' : `${toTitleCase(brandKey)} Secure Access`;
 
   return {
     family: 'storefront',
@@ -187,18 +189,18 @@ function buildStorefrontContext(host: string, canonicalHost: string): Storefront
     defaultPartnerCode: DEFAULT_STOREFRONT_PARTNER_CODE,
     supportProfile: {
       label: `${brandName} Support`,
-      email: 'support@ozoxy.ru',
+      email: 'support@cyber-vpn.net',
       responseWindow: '24h',
-      helpCenterUrl: 'https://ozoxy.ru/help',
+      helpCenterUrl: 'https://cyber-vpn.net/ru-RU/help',
     },
     communicationProfile: {
       senderName: brandName,
-      senderEmail: 'support@ozoxy.ru',
+      senderEmail: 'support@cyber-vpn.net',
     },
     merchantProfile: {
-      profileKey: 'ozoxy-merchant',
-      legalEntityName: 'Ozoxy Commerce Ltd.',
-      billingDescriptor: 'OZOXY*VPN',
+      profileKey: 'cybervpn-merchant',
+      legalEntityName: 'CyberVPN',
+      billingDescriptor: 'CYBERVPN',
       refundResponsibilityModel: 'merchant_of_record',
       chargebackLiabilityModel: 'merchant_of_record',
     },
@@ -219,7 +221,7 @@ export function resolvePartnerSurfaceContext(rawHost: string | null | undefined)
       family: 'portal',
       host,
       brandName: 'CyberVPN Partner Portal',
-      brandLabel: 'Ozoxy Partner',
+      brandLabel: 'CyberVPN Partner',
       authRealmKey: 'partner',
       routes: {
         login: '/login',
