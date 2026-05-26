@@ -116,12 +116,67 @@ describe('AuthGuard', () => {
     );
   });
 
-  it('logs out and redirects to access denied when role is not admin', async () => {
+  it('renders children when owner/super_admin session check succeeds', async () => {
+    mockMe.mockResolvedValueOnce({
+      data: {
+        id: 'user-1',
+        email: 'owner@example.com',
+        role: 'owner/super_admin',
+        is_active: true,
+        is_email_verified: true,
+        created_at: new Date().toISOString(),
+      },
+    });
+
+    render(
+      <AuthGuard>
+        <div>Dashboard</div>
+      </AuthGuard>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    });
+
+    expect(mockLogout).not.toHaveBeenCalled();
+    expect(mockSetState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isAuthenticated: true,
+      }),
+    );
+  });
+
+  it('allows read-only admin viewer sessions into the console shell', async () => {
+    mockMe.mockResolvedValueOnce({
+      data: {
+        id: 'user-1',
+        email: 'viewer@example.com',
+        role: 'viewer',
+        is_active: true,
+        is_email_verified: true,
+        created_at: new Date().toISOString(),
+      },
+    });
+
+    render(
+      <AuthGuard>
+        <div>Dashboard</div>
+      </AuthGuard>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    });
+
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it('logs out and redirects to access denied when role is not an admin realm role', async () => {
     mockMe.mockResolvedValueOnce({
       data: {
         id: 'user-1',
         email: 'user@example.com',
-        role: 'viewer',
+        role: 'user',
         is_active: true,
         is_email_verified: true,
         created_at: new Date().toISOString(),

@@ -12,6 +12,7 @@ import {
   type CreateGovernanceActionRequest,
   type ResolveRiskReviewRequest,
 } from '@/lib/api/security';
+import { hasAdminPermission } from '@/shared/lib/admin-rbac';
 import { SecurityEmptyState } from '@/features/security/components/security-empty-state';
 import { SecurityPageShell } from '@/features/security/components/security-page-shell';
 import { SecurityStatusChip } from '@/features/security/components/security-status-chip';
@@ -222,7 +223,7 @@ export function SecurityReviewQueueConsole() {
     staleTime: 15_000,
   });
 
-  const canMutate = ['admin', 'super_admin'].includes(sessionQuery.data?.role ?? '');
+  const canMutate = hasAdminPermission(sessionQuery.data?.role, 'user_delete');
 
   async function refreshReviewData() {
     await queryClient.invalidateQueries({ queryKey: ['security', 'review-queue'] });

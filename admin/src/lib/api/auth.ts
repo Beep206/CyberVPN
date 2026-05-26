@@ -1,6 +1,9 @@
 import { apiClient } from './client';
 import type { AxiosResponse } from 'axios';
-import type { operations } from './generated/types';
+import type { components, operations } from './generated/types';
+
+export type AdminSessionRole = components['schemas']['AdminRole'];
+export type AuthUserRole = AdminSessionRole | 'user';
 
 // Request interfaces
 export interface LoginRequest {
@@ -52,7 +55,7 @@ export interface User {
   email: string | null;
   login?: string;
   telegram_id?: number;
-  role: 'viewer' | 'support' | 'operator' | 'user' | 'admin' | 'super_admin';
+  role: AuthUserRole;
   is_active: boolean;
   is_email_verified: boolean;
   created_at: string;

@@ -156,6 +156,17 @@ describe('3D performance baseline', () => {
     expect(source).not.toContain("import { Canvas } from '@react-three/fiber'");
   });
 
+  it('auth scene stays stable while login fields receive focus', async () => {
+    const sceneLoader = await readSource('features/auth/components/AuthSceneLoader.tsx');
+    const cyberInput = await readSource('features/auth/components/CyberInput.tsx');
+
+    expect(sceneLoader).toContain("import { memo } from 'react'");
+    expect(sceneLoader).toContain('export const AuthSceneLoader = memo');
+    expect(cyberInput).toContain('duration-200 blur-[2px]');
+    expect(cyberInput).toContain('onFocus?.(event)');
+    expect(cyberInput).toContain('onBlur?.(event)');
+  });
+
   it('heavy routes gate premium visuals behind shared visual tiers', async () => {
     const globe = await readSource('app/[locale]/(dashboard)/dashboard/components/DashboardGlobe.tsx');
     const contact = await readSource('widgets/contact-form.tsx');

@@ -21,6 +21,8 @@
 | Batch B: `FIX-006` - `FIX-018` | Completed | `docs/evidence/releases/fix-batch-b-20260525T185152Z.md` |
 | Batch C: `FIX-019` - `FIX-032` | Completed | `docs/evidence/releases/fix-batch-c-20260525T204632Z.md` |
 | Batch D: `FIX-033` - `FIX-040` | Completed | `docs/evidence/releases/fix-batch-d-20260526T040827Z.md` |
+| Batch E: `FIX-041` - `FIX-042` | Completed | `docs/evidence/releases/fix-batch-e-20260526T043937Z.md` |
+| Batch F: `FIX-043` - `FIX-045` | Pending | Final tests/build/push/deploy/smoke |
 
 ## Порядок выполнения
 

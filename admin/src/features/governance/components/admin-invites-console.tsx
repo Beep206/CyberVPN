@@ -32,6 +32,7 @@ const ROLE_OPTIONS = [
   'viewer',
   'support',
   'operator',
+  'finance',
   'admin',
   'super_admin',
 ] as const;

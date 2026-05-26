@@ -6,9 +6,11 @@ import {
 } from '@/shared/lib/admin-rbac';
 
 const GOVERNANCE_ROLE_ORDER: readonly AdminRole[] = [
+  'owner/super_admin',
   'super_admin',
   'admin',
   'operator',
+  'finance',
   'support',
   'viewer',
 ];
@@ -128,6 +130,7 @@ export function toneForWebhookState(entry: {
 }
 
 export function toneForInviteRole(role: string) {
+  if (role === 'owner/super_admin') return 'danger' as const;
   if (role === 'super_admin') return 'danger' as const;
   if (role === 'admin') return 'warning' as const;
   if (role === 'operator' || role === 'support') return 'info' as const;

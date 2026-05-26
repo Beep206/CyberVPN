@@ -4,8 +4,10 @@ export const ADMIN_ROLES = [
   'viewer',
   'support',
   'operator',
+  'finance',
   'admin',
   'super_admin',
+  'owner/super_admin',
 ] as const;
 
 export type AdminRole = (typeof ADMIN_ROLES)[number];
@@ -28,6 +30,7 @@ export const ADMIN_PERMISSIONS = [
   'manage_plans',
   'manage_invites',
   'subscription_create',
+  'vpn_credential_regenerate',
   'view_analytics',
 ] as const;
 
@@ -37,6 +40,7 @@ export const ADMIN_PERMISSION_MATRIX: Record<
   AdminRole,
   readonly AdminPermission[]
 > = {
+  'owner/super_admin': [...ADMIN_PERMISSIONS],
   super_admin: [...ADMIN_PERMISSIONS],
   admin: [
     'user_read',
@@ -55,26 +59,30 @@ export const ADMIN_PERMISSION_MATRIX: Record<
     'manage_plans',
     'manage_invites',
     'subscription_create',
+    'vpn_credential_regenerate',
     'view_analytics',
   ],
   operator: [
     'user_read',
-    'user_create',
-    'user_update',
     'server_read',
     'server_create',
     'server_update',
-    'payment_read',
-    'payment_create',
     'monitoring_read',
     'subscription_create',
     'view_analytics',
+  ],
+  finance: [
+    'user_read',
+    'payment_read',
+    'audit_read',
+    'webhook_read',
   ],
   support: [
     'user_read',
     'user_update',
     'server_read',
     'monitoring_read',
+    'vpn_credential_regenerate',
   ],
   viewer: [
     'user_read',
@@ -83,8 +91,6 @@ export const ADMIN_PERMISSION_MATRIX: Record<
     'view_analytics',
   ],
 } as const;
-
-const ADMIN_CONSOLE_ROLES = new Set<AdminRole>(['admin', 'super_admin']);
 
 export function isAdminRole(
   role: User['role'] | string | null | undefined,
@@ -95,7 +101,7 @@ export function isAdminRole(
 export function hasAdminAccess(
   role: User['role'] | string | null | undefined,
 ): boolean {
-  return isAdminRole(role) && ADMIN_CONSOLE_ROLES.has(role);
+  return isAdminRole(role);
 }
 
 export function getAdminRolePermissions(
@@ -114,4 +120,3 @@ export function hasAdminPermission(
 ): boolean {
   return getAdminRolePermissions(role).includes(permission);
 }
-

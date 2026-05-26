@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
-import { authApi } from '@/lib/api/auth';
+import { authApi, type AuthUserRole } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import { buildInternalLoginHref } from '@/features/auth/lib/session';
 import { ACCESS_DENIED_ERROR_CODE, hasAdminAccess, isAdminUser } from '@/features/auth/lib/admin-access';
@@ -54,7 +54,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
                             id: 'dev-bypass-id',
                             email: 'dev@cybervpn.local',
                             login: 'DevUser',
-                            role: mockRole as 'viewer' | 'user' | 'admin' | 'super_admin',
+                            role: mockRole as AuthUserRole,
                             is_active: true,
                             is_email_verified: true,
                             created_at: new Date().toISOString()
