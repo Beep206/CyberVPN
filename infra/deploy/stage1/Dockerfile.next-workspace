@@ -43,6 +43,7 @@ RUN npm ci --include=dev --no-fund --no-audit
 COPY ${NEXT_WORKSPACE}/ ./
 RUN npm run build
 RUN npm prune --omit=dev --no-fund --no-audit
+RUN chown -R node:node /app/.next
 
 USER node
 
