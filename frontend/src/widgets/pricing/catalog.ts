@@ -294,7 +294,7 @@ export async function getPublicPricingCatalog(): Promise<PricingCatalogData> {
   }
 
   try {
-    const plans = await fetchJson<PlanRecord[]>(`${baseUrl}/api/v1/plans?channel=web`);
+    const plans = await fetchJson<PlanRecord[]>(`${baseUrl}/api/v1/plans/?channel=web`);
     const addons = STAGE1_ADDONS_DISPLAY_ENABLED
       ? await fetchJson<AddonRecord[]>(`${baseUrl}/api/v1/addons/catalog?channel=web`)
       : [];

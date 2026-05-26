@@ -27,7 +27,7 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.roles import require_role
 
@@ -90,7 +90,7 @@ def _build_risk_review_detail_response(detail) -> RiskReviewDetailResponse:
 )
 async def set_antiphishing_code(
     request: SetAntiPhishingCodeRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> AntiPhishingCodeResponse:
@@ -151,7 +151,7 @@ async def set_antiphishing_code(
     },
 )
 async def get_antiphishing_code(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> AntiPhishingCodeResponse:
     """Get the user's current anti-phishing code.
@@ -184,7 +184,7 @@ async def get_antiphishing_code(
     },
 )
 async def delete_antiphishing_code(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> DeleteAntiPhishingCodeResponse:

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_profile_update
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.database import get_db
 
 from .schemas import ProfileResponse, ProfileUpdateRequest
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/users/me", tags=["profile"])
     description="Returns the profile of the currently authenticated user.",
 )
 async def get_profile(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
 ) -> ProfileResponse:
     """Return the profile for the authenticated user."""
     logger.info(
@@ -59,7 +59,7 @@ async def get_profile(
 )
 async def update_profile(
     request: ProfileUpdateRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProfileResponse:
     """Apply a partial update to the authenticated user's profile.

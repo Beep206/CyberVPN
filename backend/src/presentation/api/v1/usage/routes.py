@@ -8,16 +8,20 @@ Fetches real data from Remnawave VPN backend.
 
 import logging
 from datetime import UTC, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.usage.get_user_usage import GetUserUsageUseCase
 from src.infrastructure.cache.response_cache import response_cache
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_web_user
+from src.presentation.dependencies.database import get_db
 
 from .schemas import UsageResponse, UsageUnavailableReason
 
@@ -38,7 +42,8 @@ router = APIRouter(prefix="/users/me", tags=["usage"])
     ),
 )
 async def get_usage(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> UsageResponse:
     """Return usage statistics for the authenticated user from Remnawave.
@@ -57,7 +62,12 @@ async def get_usage(
         use_case = GetUserUsageUseCase(user_gateway)
 
         try:
-            usage_data = await use_case.execute(current_user.id)
+            mobile_user = await MobileUserRepository(db).get_by_id(current_user.id)
+            remnawave_user_id = current_user.id
+            if mobile_user is not None and mobile_user.remnawave_uuid:
+                remnawave_user_id = UUID(mobile_user.remnawave_uuid)
+
+            usage_data = await use_case.execute(remnawave_user_id)
             now = datetime.now(UTC)
 
             route_operations_total.labels(route="usage", action="get_usage", status="success").inc()

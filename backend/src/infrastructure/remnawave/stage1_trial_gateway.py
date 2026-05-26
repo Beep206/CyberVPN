@@ -40,11 +40,21 @@ class RemnawaveStage1TrialProvisioningGateway:
                 raise Stage1TrialProvisioningError("Existing Remnawave UUID is invalid") from exc
             created = False
         else:
-            user = await self._user_gateway.create(
-                username=request.remnawave_username,
-                **payload,
-            )
-            created = True
+            user = None
+            if request.telegram_id is not None:
+                user = await self._user_gateway.get_by_telegram_id(request.telegram_id)
+            if user is None:
+                user = await self._user_gateway.get_by_username(request.remnawave_username)
+
+            if user is not None:
+                user = await self._user_gateway.update(user.uuid, **payload)
+                created = False
+            else:
+                user = await self._user_gateway.create(
+                    username=request.remnawave_username,
+                    **payload,
+                )
+                created = True
 
         return Stage1TrialProvisioningResult(
             customer_account_id=request.customer_account_id,

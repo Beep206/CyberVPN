@@ -94,6 +94,10 @@ class RemnawaveUserGateway:
             raw = await self._client.get(f"/api/users/by-telegram-id/{telegram_id}")
             if raw == []:
                 return None
+            if isinstance(raw, list):
+                raw = raw[0] if raw else None
+                if raw is None:
+                    return None
             data = response_validator.validate_single(
                 raw,
                 RemnawaveUserResponse,

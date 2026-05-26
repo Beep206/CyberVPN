@@ -164,6 +164,7 @@ export function SettingsCabinetDashboard() {
   const [banner, setBanner] = useState<{ tone: StatusTone; text: string } | null>(null);
   const [copyState, setCopyState] = useState<'account' | 'idle'>('idle');
   const [isStartingTelegramLink, setIsStartingTelegramLink] = useState(false);
+  const publicSiteBaseUrl = 'https://cyber-vpn.net';
 
   const profileQuery = useQuery({
     queryKey: ['settings', 'profile'],
@@ -496,12 +497,12 @@ export function SettingsCabinetDashboard() {
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
                 {t('actions.refresh')}
               </button>
-              <Link
-                href="/delete-account"
+              <a
+                href={`${publicSiteBaseUrl}/${locale}/delete-account`}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-pink transition hover:bg-neon-pink/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
               >
                 {t('actions.privacy')}
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -770,12 +771,12 @@ export function SettingsCabinetDashboard() {
                 <p className="mt-1 font-mono text-xs leading-6 text-muted-foreground">
                   {t('security.recovery.description')}
                 </p>
-                <Link
-                  href="/help"
+                <a
+                  href={`${publicSiteBaseUrl}/${locale}/help`}
                   className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/15"
                 >
                   {t('security.recovery.cta')}
-                </Link>
+                </a>
               </div>
             </div>
           </div>

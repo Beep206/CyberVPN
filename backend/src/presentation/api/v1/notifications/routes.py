@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
 from src.infrastructure.monitoring.metrics import notification_operations_total
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.database import get_db
 
 from .schemas import NotificationPreferencesResponse, NotificationPreferencesUpdateRequest
@@ -34,7 +34,7 @@ DEFAULT_PREFS = {
     description="Returns the current user's notification preferences.",
 )
 async def get_notification_preferences(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
 ) -> NotificationPreferencesResponse:
     """Return the notification preferences for the authenticated user."""
     logger.info(
@@ -66,7 +66,7 @@ async def get_notification_preferences(
 )
 async def update_notification_preferences(
     request: NotificationPreferencesUpdateRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> NotificationPreferencesResponse:
     """Apply a partial update to the authenticated user's notification preferences."""

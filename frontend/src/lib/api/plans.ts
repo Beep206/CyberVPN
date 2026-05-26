@@ -20,5 +20,5 @@ export const plansApi = {
    * Plans are displayed to users for purchase selection.
    */
   list: (params?: ListPlansParams) =>
-    apiClient.get<PlansResponse>('/plans', { params }),
+    apiClient.get<PlansResponse>('/plans/', { params }),
 };

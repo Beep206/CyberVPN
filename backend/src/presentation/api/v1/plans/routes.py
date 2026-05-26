@@ -43,6 +43,7 @@ def _serialize_plan(plan: SubscriptionPlanModel) -> PlanResponse:
     )
 
 
+@router.get("", response_model=list[PlanResponse], include_in_schema=False)
 @router.get("/", response_model=list[PlanResponse])
 async def list_plans(
     channel: str = Query("web", description="Public sale channel filter"),
