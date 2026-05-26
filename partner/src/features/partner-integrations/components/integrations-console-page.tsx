@@ -66,6 +66,10 @@ function resolveCybervpnPublicSiteUrl(): string {
   return 'https://vpn.ozoxy.ru';
 }
 
+function shouldRenderLiveWidgetPreview(): boolean {
+  return process.env.NODE_ENV !== 'test';
+}
+
 type CreateBotDraft = {
   bot_key: string;
   display_name: string;
@@ -963,13 +967,24 @@ export function IntegrationsConsolePage() {
                         </a>
                       </div>
                       <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-grid-line/20 bg-black">
-                        <iframe
-                          title={t('widgets.previewTitle')}
-                          src={widgetPreviewUrl.toString()}
-                          loading="lazy"
-                          className="w-full border-0"
-                          style={{ height: `${widgetPreviewQuery.data.recommendedHeight}px` }}
-                        />
+                        {shouldRenderLiveWidgetPreview() ? (
+                          <iframe
+                            title={t('widgets.previewTitle')}
+                            src={widgetPreviewUrl.toString()}
+                            loading="lazy"
+                            className="w-full border-0"
+                            style={{ height: `${widgetPreviewQuery.data.recommendedHeight}px` }}
+                          />
+                        ) : (
+                          <div
+                            aria-label={t('widgets.previewTitle')}
+                            data-testid="partner-widget-preview-placeholder"
+                            className="flex w-full items-center justify-center text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground"
+                            style={{ height: `${widgetPreviewQuery.data.recommendedHeight}px` }}
+                          >
+                            {t('widgets.previewTitle')}
+                          </div>
+                        )}
                       </div>
                     </div>
 
