@@ -2,7 +2,9 @@
 
 Timestamp: `2026-05-26T18:15Z`
 
-Runtime tag: `main-a1610ea2-cabinet-api-20260526T180345Z`
+Initial runtime tag: `main-a1610ea2-cabinet-api-20260526T180345Z`
+
+Commit-aligned runtime tag after image retag without rebuild: `main-c2207460-cabinet-api-20260526T182000Z`
 
 ## Scope
 
@@ -50,3 +52,13 @@ traffic_limit_bytes=2147483648
 subscription_url_set=True
 ```
 
+## Runtime Tag Alignment
+
+The first deploy was intentionally started before the git commit to reduce beta downtime. After commit `c2207460` was created and pushed, the already-built images were retagged without rebuild so production points at a commit-aligned immutable tag.
+
+```text
+CYBERVPN_IMAGE_TAG=main-c2207460-cabinet-api-20260526T182000Z
+backend_health={"status":"ok"}
+dashboard=200
+plans=200
+```
