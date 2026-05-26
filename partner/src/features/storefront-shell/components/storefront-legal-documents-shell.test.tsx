@@ -8,7 +8,7 @@ import type { StorefrontSurfaceContext } from '@/features/storefront-shell/lib/r
 import { server } from '@/test/mocks/server';
 import { StorefrontLegalDocumentsShell } from './storefront-legal-documents-shell';
 
-const API_BASE = 'http://storefront.localhost:3002/api/v1';
+const API_BASE = '*/api/v1';
 
 const surfaceContext: StorefrontSurfaceContext = {
   family: 'storefront',

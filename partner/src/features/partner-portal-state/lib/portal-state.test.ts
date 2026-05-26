@@ -23,7 +23,10 @@ describe('partner portal state storage', () => {
 
     savePartnerPortalState(state);
 
-    expect(loadPartnerPortalState()).toEqual(state);
+    const loadedState = loadPartnerPortalState();
+    expect(loadedState).toMatchObject(state);
+    expect(loadedState?.notifications.every((item) => item.actionRequired === false)).toBe(true);
+    expect(loadedState?.campaignAssets.every((item) => Array.isArray(item.allowedClaims))).toBe(true);
   });
 
   it('builds workspace, commercial, reporting, finance, and PP6 operational state', () => {

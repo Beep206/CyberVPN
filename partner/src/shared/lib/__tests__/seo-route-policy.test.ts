@@ -40,31 +40,25 @@ describe('seo-route-policy', () => {
       '/guides/how-to-bypass-dpi-with-vless-reality',
     );
 
-    expect(alternates['en-EN']).toBe('https://vpn.ozoxy.ru/en-EN/pricing');
-    expect(alternates['ru-RU']).toBe('https://vpn.ozoxy.ru/ru-RU/pricing');
-    expect(alternates['x-default']).toBe('https://vpn.ozoxy.ru/en-EN/pricing');
-    expect(guidesAlternates['en-EN']).toBe('https://vpn.ozoxy.ru/en-EN/guides');
-    expect(guidesAlternates['ru-RU']).toBe('https://vpn.ozoxy.ru/ru-RU/guides');
-    expect(guidesAlternates['zh-CN']).toBe('https://vpn.ozoxy.ru/zh-CN/guides');
-    expect(guidesAlternates['x-default']).toBe('https://vpn.ozoxy.ru/en-EN/guides');
+    expect(alternates['en-EN']).toBe('https://partner.cyber-vpn.net/en-EN/pricing');
+    expect(alternates['ru-RU']).toBe('https://partner.cyber-vpn.net/ru-RU/pricing');
+    expect(alternates['x-default']).toBe('https://partner.cyber-vpn.net/ru-RU/pricing');
+    expect(guidesAlternates['en-EN']).toBe('https://partner.cyber-vpn.net/en-EN/guides');
+    expect(guidesAlternates['ru-RU']).toBe('https://partner.cyber-vpn.net/ru-RU/guides');
+    expect(guidesAlternates['zh-CN']).toBeUndefined();
+    expect(guidesAlternates['x-default']).toBe('https://partner.cyber-vpn.net/ru-RU/guides');
     expect(guideDetailAlternates['en-EN']).toBe(
-      'https://vpn.ozoxy.ru/en-EN/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://partner.cyber-vpn.net/en-EN/guides/how-to-bypass-dpi-with-vless-reality',
     );
     expect(guideDetailAlternates['ru-RU']).toBe(
-      'https://vpn.ozoxy.ru/ru-RU/guides/how-to-bypass-dpi-with-vless-reality',
+      'https://partner.cyber-vpn.net/ru-RU/guides/how-to-bypass-dpi-with-vless-reality',
     );
-    expect(guideDetailAlternates['zh-CN']).toBe(
-      'https://vpn.ozoxy.ru/zh-CN/guides/how-to-bypass-dpi-with-vless-reality',
-    );
-    expect(guideDetailAlternates['hi-IN']).toBe(
-      'https://vpn.ozoxy.ru/hi-IN/guides/how-to-bypass-dpi-with-vless-reality',
-    );
-    expect(guideDetailAlternates['ja-JP']).toBe(
-      'https://vpn.ozoxy.ru/ja-JP/guides/how-to-bypass-dpi-with-vless-reality',
-    );
+    expect(guideDetailAlternates['zh-CN']).toBeUndefined();
+    expect(guideDetailAlternates['hi-IN']).toBeUndefined();
+    expect(guideDetailAlternates['ja-JP']).toBeUndefined();
     expect(guideDetailAlternates['fa-IR']).toBeUndefined();
     expect(toAbsoluteLocalizedUrl('hi-IN', '/pricing')).toBe(
-      'https://vpn.ozoxy.ru/hi-IN/pricing',
+      'https://partner.cyber-vpn.net/hi-IN/pricing',
     );
   });
 
@@ -73,11 +67,11 @@ describe('seo-route-policy', () => {
     expect(isRolloutIndexableLocalizedPath('/ru-RU/analytics')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/wallet')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides')).toBe(true);
-    expect(isRolloutIndexableLocalizedPath('/ja-JP/guides')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/ja-JP/guides')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/ru-RU/guides/how-to-bypass-dpi-with-vless-reality')).toBe(true);
-    expect(isRolloutIndexableLocalizedPath('/zh-CN/compare/vless-reality-vs-wireguard')).toBe(true);
-    expect(isRolloutIndexableLocalizedPath('/hi-IN/guides/how-to-bypass-dpi-with-vless-reality')).toBe(true);
-    expect(isRolloutIndexableLocalizedPath('/ja-JP/devices/android-vpn-setup')).toBe(true);
+    expect(isRolloutIndexableLocalizedPath('/zh-CN/compare/vless-reality-vs-wireguard')).toBe(false);
+    expect(isRolloutIndexableLocalizedPath('/hi-IN/guides/how-to-bypass-dpi-with-vless-reality')).toBe(false);
+    expect(isRolloutIndexableLocalizedPath('/ja-JP/devices/android-vpn-setup')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/fa-IR/guides/how-to-bypass-dpi-with-vless-reality')).toBe(false);
     expect(isRolloutIndexableLocalizedPath('/en-EN/guides')).toBe(true);
   });

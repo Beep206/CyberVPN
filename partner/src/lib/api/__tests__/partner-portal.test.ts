@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { partnerPortalApi } from '../partner-portal';
 
-const API_BASE = 'http://portal.localhost:3002/api/v1';
+const API_BASE = '*/api/v1';
 const ORIGINAL_SEND_BEACON = navigator.sendBeacon;
 const sendBeacon = vi.fn();
 

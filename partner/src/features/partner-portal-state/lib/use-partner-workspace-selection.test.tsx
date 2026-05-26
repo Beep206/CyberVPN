@@ -81,6 +81,7 @@ function createWrapper() {
 
 describe('usePartnerWorkspaceSelection', () => {
   beforeEach(() => {
+    window.location.search = '';
     window.localStorage.clear();
     listMyWorkspaces.mockReset();
     mockReplace.mockReset();
@@ -124,7 +125,7 @@ describe('usePartnerWorkspaceSelection', () => {
   });
 
   it('lets the explicit switcher update storage and route state without dropping the current route context', async () => {
-    mockSearchParams.mockReturnValue(new URLSearchParams('tab=finance'));
+    window.location.search = '?tab=finance';
 
     const { result } = renderHook(
       () => usePartnerWorkspaceSelection(),
@@ -168,6 +169,7 @@ describe('usePartnerWorkspaceSelection', () => {
     mockSearchParams.mockReturnValue(
       new URLSearchParams('workspace=workspace_001'),
     );
+    window.location.search = '?workspace=workspace_001';
 
     const { result } = renderHook(
       () => usePartnerWorkspaceSelection(),

@@ -6,6 +6,7 @@ import {
   buildSoftwareApplicationStructuredData,
   buildTechArticleStructuredData,
 } from '@/shared/lib/structured-data';
+import { SITE_URL } from '@/shared/lib/site-metadata';
 
 describe('structured-data helpers', () => {
   it('builds localized FAQPage structured data from server FAQ content', () => {
@@ -27,7 +28,7 @@ describe('structured-data helpers', () => {
     });
 
     expect(data['@type']).toBe('FAQPage');
-    expect(data.url).toBe('https://vpn.ozoxy.ru/ru-RU/help');
+    expect(data.url).toBe(`${SITE_URL}/ru-RU/help`);
     expect(data.inLanguage).toBe('ru-RU');
     expect(data.mainEntity).toHaveLength(2);
     expect(data.mainEntity?.[0]).toMatchObject({
@@ -51,13 +52,13 @@ describe('structured-data helpers', () => {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://vpn.ozoxy.ru/en-EN',
+        item: `${SITE_URL}/en-EN`,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Docs',
-        item: 'https://vpn.ozoxy.ru/en-EN/docs',
+        item: `${SITE_URL}/en-EN/docs`,
       },
     ]);
   });
@@ -72,7 +73,7 @@ describe('structured-data helpers', () => {
     });
 
     expect(data['@type']).toBe('TechArticle');
-    expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/docs');
+    expect(data.url).toBe(`${SITE_URL}/en-EN/docs`);
     expect(data.articleSection).toEqual([
       'INITIALIZATION',
       'SIGNAL ROUTING',
@@ -99,7 +100,7 @@ describe('structured-data helpers', () => {
       name: 'CYBER_PRO',
       price: '8.99',
       priceCurrency: 'USD',
-      url: 'https://vpn.ozoxy.ru/en-EN/pricing',
+      url: `${SITE_URL}/en-EN/pricing`,
     });
   });
 
@@ -124,8 +125,8 @@ describe('structured-data helpers', () => {
     });
 
     expect(data['@type']).toBe('SoftwareApplication');
-    expect(data.url).toBe('https://vpn.ozoxy.ru/en-EN/download');
-    expect(data.downloadUrl).toBe('https://vpn.ozoxy.ru/en-EN/download');
+    expect(data.url).toBe(`${SITE_URL}/en-EN/download`);
+    expect(data.downloadUrl).toBe(`${SITE_URL}/en-EN/download`);
     expect(data.featureList).toEqual([
       'Reality masking',
       '10 Gbps backbone',
@@ -135,7 +136,7 @@ describe('structured-data helpers', () => {
       {
         '@type': 'Offer',
         price: '0',
-        url: 'https://vpn.ozoxy.ru/en-EN/pricing',
+        url: `${SITE_URL}/en-EN/pricing`,
       },
     ]);
   });

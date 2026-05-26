@@ -761,10 +761,49 @@ export const userManagementHandlers = [
 ];
 
 // ---------------------------------------------------------------------------
+// Frontend Observability Handlers
+// ---------------------------------------------------------------------------
+
+export const frontendObservabilityHandlers = [
+  /**
+   * POST /api/analytics/frontend-runtime
+   * Accepts client-side runtime telemetry emitted by route/API reporters.
+   */
+  http.post('*/api/analytics/frontend-runtime', () => {
+    return HttpResponse.json({ accepted: true });
+  }),
+
+  /**
+   * POST /api/analytics/web-vitals
+   * Accepts client-side Web Vitals telemetry during component tests.
+   */
+  http.post('*/api/analytics/web-vitals', () => {
+    return HttpResponse.json({ accepted: true });
+  }),
+
+  /**
+   * POST /api/analytics/product-events
+   * Accepts product analytics events during UI tests.
+   */
+  http.post('*/api/analytics/product-events', () => {
+    return HttpResponse.json({ accepted: true });
+  }),
+
+  /**
+   * POST /api/analytics/traffic
+   * Accepts traffic analytics events during route/layout tests.
+   */
+  http.post('*/api/analytics/traffic', () => {
+    return HttpResponse.json({ accepted: true });
+  }),
+];
+
+// ---------------------------------------------------------------------------
 // Combined Handlers (default export for MSW server setup)
 // ---------------------------------------------------------------------------
 
 export const handlers = [
+  ...frontendObservabilityHandlers,
   ...authHandlers,
   ...serverHandlers,
   ...userManagementHandlers,

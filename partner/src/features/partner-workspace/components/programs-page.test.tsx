@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -166,13 +167,30 @@ vi.mock('@/features/partner-portal-state/lib/use-partner-portal-runtime-state', 
 
 import { ProgramsPage } from './programs-page';
 
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    );
+  };
+}
+
 describe('ProgramsPage', () => {
   beforeEach(() => {
     mockRuntimeState.mockClear();
   });
 
   it('renders canonical programs posture instead of falling back to local lane state', () => {
-    render(<ProgramsPage />);
+    render(<ProgramsPage />, { wrapper: createWrapper() });
 
     expect(screen.getByText('summary.currentLane')).toBeInTheDocument();
     expect(screen.getAllByText('laneLabels.creator_affiliate').length).toBeGreaterThan(0);

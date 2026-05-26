@@ -107,6 +107,11 @@ vi.mock('motion/react', () => ({
     }
   ),
   AnimatePresence: ({ children }: { children: unknown }) => children,
+  useMotionValue: (initialValue: unknown) => ({
+    get: vi.fn(() => initialValue),
+    set: vi.fn(),
+  }),
+  useSpring: (value: unknown) => value,
   useReducedMotion: () => false,
   useInView: () => true,
 }));
@@ -181,5 +186,10 @@ if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'location', {
     value: locationMock,
     writable: true,
+  });
+
+  Object.defineProperty(window.navigator, 'sendBeacon', {
+    configurable: true,
+    value: vi.fn(() => true),
   });
 }

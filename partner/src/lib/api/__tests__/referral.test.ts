@@ -14,7 +14,7 @@ import { AxiosError } from 'axios';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = '*/api/v1';
 
 /** Type guard for AxiosError */
 function isAxiosError(error: unknown): error is AxiosError<{ detail: string }> {
@@ -130,7 +130,7 @@ describe('referralApi.getStatus', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getStatus()).rejects.toThrow('No refresh token');
+    await expect(referralApi.getStatus()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_referral_status_server_error_500_rejects', async () => {
@@ -213,7 +213,7 @@ describe('referralApi.getCode', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getCode()).rejects.toThrow('No refresh token');
+    await expect(referralApi.getCode()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_referral_code_rate_limited_rejects_with_rate_limit_error', async () => {
@@ -294,7 +294,7 @@ describe('referralApi.getStats', () => {
     );
 
     // Act & Assert
-    await expect(referralApi.getStats()).rejects.toThrow('No refresh token');
+    await expect(referralApi.getStats()).rejects.toThrow('Request failed with status code 401');
   });
 
   it('test_get_referral_stats_server_error_500_rejects', async () => {
@@ -389,7 +389,7 @@ describe('referralApi.getRecentCommissions', () => {
 
     // Act & Assert
     await expect(referralApi.getRecentCommissions()).rejects.toThrow(
-      'No refresh token',
+      'Request failed with status code 401',
     );
   });
 

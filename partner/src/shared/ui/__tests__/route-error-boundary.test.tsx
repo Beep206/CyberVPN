@@ -13,8 +13,12 @@ import userEvent from '@testing-library/user-event';
 import { RouteErrorBoundary } from '../route-error-boundary';
 
 // Mock @sentry/nextjs
-const mockCaptureException = vi.fn();
+const { mockAddBreadcrumb, mockCaptureException } = vi.hoisted(() => ({
+  mockAddBreadcrumb: vi.fn(),
+  mockCaptureException: vi.fn(),
+}));
 vi.mock('@sentry/nextjs', () => ({
+  addBreadcrumb: mockAddBreadcrumb,
   captureException: mockCaptureException,
 }));
 
@@ -39,8 +43,8 @@ describe('RouteErrorBoundary', () => {
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    // Should display the error message
-    expect(screen.getByText(/Test error message/i)).toBeInTheDocument();
+    // Should display the error message in the compact log and stack trace.
+    expect(screen.getAllByText(/Test error message/i).length).toBeGreaterThan(0);
   });
 
   it('renders error digest when provided', () => {
@@ -70,7 +74,7 @@ describe('RouteErrorBoundary', () => {
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    const tryAgainButton = screen.getByText(/Try Again/i);
+    const tryAgainButton = screen.getByRole('button', { name: /Reboot System/i });
     await user.click(tryAgainButton);
 
     expect(mockReset).toHaveBeenCalledTimes(1);
@@ -110,7 +114,7 @@ describe('RouteErrorBoundary', () => {
 
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
-    const goHomeLink = screen.getByText(/Go Home/i);
+    const goHomeLink = screen.getByRole('link', { name: /Return to Base/i });
     expect(goHomeLink).toBeInTheDocument();
     expect(goHomeLink).toHaveAttribute('href', '/dashboard');
   });
@@ -122,10 +126,8 @@ describe('RouteErrorBoundary', () => {
     render(<RouteErrorBoundary error={testError} reset={mockReset} />);
 
     // Check for error header
-    expect(screen.getByText(/ERROR/i)).toBeInTheDocument();
-    expect(screen.getByText(/SYSTEM MALFUNCTION DETECTED/i)).toBeInTheDocument();
-
-    // Check for monitoring message
-    expect(screen.getByText(/REPORT LOGGED TO MONITORING SYSTEM/i)).toBeInTheDocument();
+    expect(screen.getByText(/SYSTEM FAILURE/i)).toBeInTheDocument();
+    expect(screen.getByText(/Critical Error Detected/i)).toBeInTheDocument();
+    expect(screen.getByText(/ERROR_LOG/i)).toBeInTheDocument();
   });
 });

@@ -477,8 +477,7 @@ describe('authApi.refresh', () => {
       }),
     );
 
-    // Act & Assert -- the 401 interceptor will try to refresh using this
-    // same endpoint which also 401s, leading to 'No refresh token' error
+    // Act & Assert -- refresh endpoint 401s pass through without a retry loop.
     await expect(authApi.refresh()).rejects.toBeDefined();
   });
 });

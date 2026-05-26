@@ -32,23 +32,23 @@ describe('POST /api/auth/2fa/complete', () => {
   });
 
   it('completes pending 2FA, forwards backend cookies, and returns redirect target', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        getSetCookie: () => ['access_token=abc; Path=/; HttpOnly'],
+        get: (name: string) =>
+          name.toLowerCase() === 'set-cookie'
+            ? 'access_token=abc; Path=/; HttpOnly'
+            : null,
+      },
+      json: async () => ({
           access_token: 'access_token_value',
           refresh_token: 'refresh_token_value',
           token_type: 'bearer',
           expires_in: 3600,
         }),
-        {
-          status: 200,
-          headers: {
-            'content-type': 'application/json',
-            'set-cookie': 'access_token=abc; Path=/; HttpOnly',
-          },
-        },
-      ),
-    ) as typeof fetch;
+    } as unknown as Response) as typeof fetch;
 
     const pending = createPendingTwoFactorCookieValue(
       'pending_2fa_token',

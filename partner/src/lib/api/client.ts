@@ -1,4 +1,8 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  type CreateAxiosDefaults,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import {
   buildLocalizedLoginRedirect,
   isPublicAuthRoute,
@@ -17,6 +21,19 @@ export const CANONICAL_REQUEST_ID_HEADER = 'X-Request-ID';
 export const CANONICAL_IDEMPOTENCY_HEADER = 'Idempotency-Key';
 export const CANONICAL_AUTH_REALM_HEADER = 'X-Auth-Realm';
 
+function isVitestRuntime(): boolean {
+  return typeof process !== 'undefined' && process.env.VITEST === 'true';
+}
+
+function resolveConfiguredApiBaseUrl(): string {
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!configuredBaseUrl) {
+    return CANONICAL_API_BASE_PATH;
+  }
+
+  return `${configuredBaseUrl.replace(/\/$/, '')}${CANONICAL_API_BASE_PATH}`;
+}
+
 /**
  * Web auth relies on same-origin httpOnly cookies and Next.js rewrites.
  *
@@ -32,12 +49,7 @@ export function resolveApiBaseUrl(): string {
     return CANONICAL_API_BASE_PATH;
   }
 
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (!configuredBaseUrl) {
-    return CANONICAL_API_BASE_PATH;
-  }
-
-  return `${configuredBaseUrl.replace(/\/$/, '')}${CANONICAL_API_BASE_PATH}`;
+  return resolveConfiguredApiBaseUrl();
 }
 
 /**
@@ -126,14 +138,21 @@ function parseRetryAfter(header: string | null): number {
   return 60; // Fallback
 }
 
-export const apiClient = axios.create({
+const apiClientConfig: CreateAxiosDefaults = {
   baseURL: resolveApiBaseUrl(),
   timeout: 10000,
   withCredentials: true, // Required for httpOnly cookies
   headers: {
     'Content-Type': 'application/json',
   },
-});
+};
+
+if (isVitestRuntime()) {
+  apiClientConfig.baseURL = resolveConfiguredApiBaseUrl();
+  apiClientConfig.adapter = axios.getAdapter('http');
+}
+
+export const apiClient = axios.create(apiClientConfig);
 
 let requestSequence = 0;
 

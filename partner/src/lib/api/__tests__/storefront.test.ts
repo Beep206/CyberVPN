@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { storefrontApi } from '../storefront';
 
-const API_BASE = 'http://storefront.localhost:3002/api/v1';
+const API_BASE = '*/api/v1';
 
 beforeEach(() => {
   window.location.href = 'http://storefront.localhost:3002/en-EN';

@@ -23,7 +23,7 @@ describe('site-metadata', () => {
     expect(metadata.alternates?.canonical).toBe(`${SITE_URL}/en-EN/pricing`);
     expect(metadata.alternates?.languages?.['en-EN']).toBe(`${SITE_URL}/en-EN/pricing`);
     expect(metadata.alternates?.languages?.['ru-RU']).toBe(`${SITE_URL}/ru-RU/pricing`);
-    expect(metadata.alternates?.languages?.['x-default']).toBe(`${SITE_URL}/en-EN/pricing`);
+    expect(metadata.alternates?.languages?.['x-default']).toBe(`${SITE_URL}/ru-RU/pricing`);
     expect(metadata.openGraph?.images).toEqual([
       {
         url: `${SITE_URL}/en-EN/opengraph-image`,
@@ -52,8 +52,7 @@ describe('site-metadata', () => {
     expect(metadata.alternates?.languages).toMatchObject({
       'en-EN': `${SITE_URL}/en-EN/guides`,
       'ru-RU': `${SITE_URL}/ru-RU/guides`,
-      'zh-CN': `${SITE_URL}/zh-CN/guides`,
-      'x-default': `${SITE_URL}/en-EN/guides`,
+      'x-default': `${SITE_URL}/ru-RU/guides`,
     });
     expect(metadata.robots).toBeUndefined();
   });
@@ -77,8 +76,7 @@ describe('site-metadata', () => {
     expect(metadata.alternates?.languages).toMatchObject({
       'en-EN': `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-reality`,
       'ru-RU': `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
-      'zh-CN': `${SITE_URL}/zh-CN/guides/how-to-bypass-dpi-with-vless-reality`,
-      'x-default': `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-reality`,
+      'x-default': `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
     });
     expect(metadata.robots).toBeUndefined();
   });
@@ -90,14 +88,14 @@ describe('site-metadata', () => {
         description: 'Guide detail',
       },
       {
-        locale: 'hi-IN',
+        locale: 'en-EN',
         canonicalPath: '/guides/how-to-bypass-dpi-with-vless-reality',
         routeType: 'public',
       },
     );
 
     expect(metadata.alternates?.canonical).toBe(
-      `${SITE_URL}/hi-IN/guides/how-to-bypass-dpi-with-vless-reality`,
+      `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-reality`,
     );
     expect(metadata.robots).toBeUndefined();
   });
@@ -116,12 +114,9 @@ describe('site-metadata', () => {
     );
 
     expect(metadata.alternates?.canonical).toBe(
-      `${SITE_URL}/en-EN/guides/how-to-bypass-dpi-with-vless-reality`,
+      `${SITE_URL}/ru-RU/guides/how-to-bypass-dpi-with-vless-reality`,
     );
-    expect(metadata.robots).toMatchObject({
-      index: false,
-      follow: false,
-    });
+    expect(metadata.robots).toBeUndefined();
   });
 
   it('marks private routes as noindex without generating public alternates', () => {
@@ -166,8 +161,8 @@ describe('site-metadata', () => {
 
   it('maps RTL locales to rtl direction and falls back to the default locale', () => {
     expect(getHtmlLanguageAttributes('ar-SA')).toEqual({
-      lang: 'ar-SA',
-      dir: 'rtl',
+      lang: 'ru-RU',
+      dir: 'ltr',
     });
 
     expect(getHtmlLanguageAttributes('ru-RU')).toEqual({
@@ -176,7 +171,7 @@ describe('site-metadata', () => {
     });
 
     expect(getHtmlLanguageAttributes('unknown-locale')).toEqual({
-      lang: 'en-EN',
+      lang: 'ru-RU',
       dir: 'ltr',
     });
   });

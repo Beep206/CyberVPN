@@ -277,7 +277,7 @@ describe('subscriptionsApi admin operations', () => {
 });
 
 describe('adminWalletApi operations', () => {
-  it('loads wallet state for a specific user UUID', async () => {
+  it('blocks wallet reads from the partner portal surface', async () => {
     server.use(
       http.get(MATCH_ANY_API_ORIGIN.walletByUser, ({ request }) =>
         HttpResponse.json({
@@ -289,16 +289,12 @@ describe('adminWalletApi operations', () => {
       ),
     );
 
-    const response = await adminWalletApi.getWallet(
-      '550e8400-e29b-41d4-a716-446655440000',
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.data.balance).toBe(125.5);
-    expect(response.data.currency).toBe('USD');
+    expect(() =>
+      adminWalletApi.getWallet('550e8400-e29b-41d4-a716-446655440000'),
+    ).toThrow('internal_admin_routes is not allowed on portal surface');
   });
 
-  it('tops up a wallet with amount and description', async () => {
+  it('blocks wallet topups from the partner portal surface', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
@@ -317,19 +313,13 @@ describe('adminWalletApi operations', () => {
       }),
     );
 
-    const response = await adminWalletApi.topupWallet(
-      '550e8400-e29b-41d4-a716-446655440000',
-      {
+    expect(() =>
+      adminWalletApi.topupWallet('550e8400-e29b-41d4-a716-446655440000', {
         amount: 50,
         description: 'Manual correction',
-      },
-    );
+      }),
+    ).toThrow('internal_admin_routes is not allowed on portal surface');
 
-    expect(response.status).toBe(200);
-    expect(response.data.amount).toBe(50);
-    expect(capturedBody).toMatchObject({
-      amount: 50,
-      description: 'Manual correction',
-    });
+    expect(capturedBody).toBeNull();
   });
 });
