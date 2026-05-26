@@ -287,25 +287,25 @@ export function LoginClient() {
         </form>
       )}
       {!isTwoFactorFlow && (
-        <>
-          <p className="mt-4 text-center text-sm text-muted-foreground font-mono">
+        <div className="mt-3 space-y-2 text-center text-sm text-muted-foreground font-mono">
+          <p>
             <Link
               href="/magic-link"
-              className="touch-target inline-flex items-center text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-4"
+              className="inline-flex items-center text-neon-cyan hover:text-neon-cyan/80 transition-colors underline underline-offset-4"
             >
               {t('magicLinkAlt') ?? 'Sign in with magic link'}
             </Link>
           </p>
-          <p className="mt-4 text-center text-sm text-muted-foreground font-mono">
+          <p>
             {t('noAccount')}{' '}
             <Link
               href="/register"
-              className="touch-target inline-flex items-center text-neon-purple hover:text-neon-purple/80 transition-colors underline underline-offset-4"
+              className="inline-flex items-center text-neon-purple hover:text-neon-purple/80 transition-colors underline underline-offset-4"
             >
               {t('signUpLink')}
             </Link>
           </p>
-        </>
+        </div>
       )}
     </AuthFormCard>
   );

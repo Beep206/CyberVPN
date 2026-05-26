@@ -1,8 +1,7 @@
 'use client';
 
-import { OTPInput } from 'input-otp';
 import { motion } from 'motion/react';
-import { Fragment, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type ClipboardEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CyberOtpInputProps {
@@ -23,6 +22,55 @@ export function CyberOtpInput({
     autoFocus = false,
 }: CyberOtpInputProps) {
     const [isFocused, setIsFocused] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const lastCompletedValueRef = useRef<string | null>(null);
+    const normalizedValue = value.replace(/\D/gu, '').slice(0, maxLength);
+
+    useEffect(() => {
+        if (autoFocus) {
+            inputRef.current?.focus();
+        }
+    }, [autoFocus]);
+
+    useEffect(() => {
+        if (normalizedValue.length < maxLength) {
+            lastCompletedValueRef.current = null;
+        }
+    }, [maxLength, normalizedValue]);
+
+    const commitValue = useCallback(
+        (nextValue: string) => {
+            const cleanValue = nextValue.replace(/\D/gu, '').slice(0, maxLength);
+
+            onChange(cleanValue);
+
+            if (cleanValue.length === maxLength && cleanValue !== lastCompletedValueRef.current) {
+                lastCompletedValueRef.current = cleanValue;
+                onComplete?.(cleanValue);
+            }
+        },
+        [maxLength, onChange, onComplete]
+    );
+
+    const handlePaste = useCallback(
+        (event: ClipboardEvent<HTMLInputElement>) => {
+            const pastedValue = event.clipboardData.getData('text');
+            if (!pastedValue) {
+                return;
+            }
+
+            event.preventDefault();
+            commitValue(pastedValue);
+        },
+        [commitValue]
+    );
+
+    const activeIndex = Math.min(normalizedValue.length, maxLength - 1);
+    const slots = Array.from({ length: maxLength }, (_, index) => ({
+        char: normalizedValue[index] ?? null,
+        isActive: isFocused && index === activeIndex,
+        hasFakeCaret: isFocused && index === activeIndex,
+    }));
 
     return (
         <motion.div
@@ -39,46 +87,49 @@ export function CyberOtpInput({
                 )}
             />
 
-            <OTPInput
-                maxLength={maxLength}
-                value={value}
-                onChange={onChange}
-                onComplete={onComplete}
-                autoFocus={autoFocus}
-                inputMode="numeric"
-                pattern="^\\d+$"
-                autoComplete="one-time-code"
+            <input
+                ref={inputRef}
+                value={normalizedValue}
+                onChange={(event) => commitValue(event.target.value)}
+                onPaste={handlePaste}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                containerClassName="group flex items-center gap-3 has-[:disabled]:opacity-30"
-                render={({ slots }) => (
-                    <Fragment>
-                        <div className="flex gap-3">
-                            {slots.slice(0, 3).map((slot, idx) => (
-                                <Slot key={idx} {...slot} error={error} />
-                            ))}
-                        </div>
-
-                        {/* Cyberpunk Separator */}
-                        <div className="flex items-center justify-center">
-                            <motion.div
-                                animate={{ opacity: [0.5, 1, 0.5] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                                className={cn(
-                                    "w-3 h-1 rounded-full",
-                                    error ? "bg-red-500" : "bg-neon-cyan"
-                                )}
-                            />
-                        </div>
-
-                        <div className="flex gap-3">
-                            {slots.slice(3).map((slot, idx) => (
-                                <Slot key={idx + 3} {...slot} error={error} />
-                            ))}
-                        </div>
-                    </Fragment>
-                )}
+                maxLength={maxLength}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="one-time-code"
+                aria-label="One-time verification code"
+                className="absolute inset-0 z-20 h-full w-full cursor-text opacity-0"
             />
+
+            <div className="relative z-10 flex items-center gap-3 pointer-events-none">
+                <Fragment>
+                    <div className="flex gap-3">
+                        {slots.slice(0, 3).map((slot, idx) => (
+                            <Slot key={idx} {...slot} error={error} />
+                        ))}
+                    </div>
+
+                    {/* Cyberpunk Separator */}
+                    <div className="flex items-center justify-center">
+                        <motion.div
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className={cn(
+                                "w-3 h-1 rounded-full",
+                                error ? "bg-red-500" : "bg-neon-cyan"
+                            )}
+                        />
+                    </div>
+
+                    <div className="flex gap-3">
+                        {slots.slice(3).map((slot, idx) => (
+                            <Slot key={idx + 3} {...slot} error={error} />
+                        ))}
+                    </div>
+                </Fragment>
+            </div>
         </motion.div>
     );
 }
