@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PublicTerminalHeader } from '../public-terminal-header';
 import { PublicTerminalHeaderControls } from '../public-terminal-header-controls';
+import type { PublicHeaderNavLink } from '../public-terminal-header';
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
@@ -24,6 +25,15 @@ vi.mock('@/features/header/user-menu', () => ({
 }));
 
 let isAuthenticated = false;
+
+const navLinks: PublicHeaderNavLink[] = [
+  { href: '/', icon: 'home', label: 'CyberVPN' },
+  { href: '/pricing', icon: 'pricing', label: 'Pricing' },
+  { href: '/network', icon: 'network', label: 'Network' },
+  { href: '/download', icon: 'download', label: 'Download' },
+  { href: '/features', icon: 'features', label: 'Features' },
+  { href: '/help', icon: 'help', label: 'Help' },
+];
 
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: (selector: (state: { isAuthenticated: boolean }) => unknown) =>
@@ -54,6 +64,7 @@ describe('PublicTerminalHeaderControls', () => {
       <PublicTerminalHeaderControls
         downloadLabel="Download"
         loginLabel="Sign In"
+        navLinks={navLinks}
         registerLabel="Create Account"
       />,
     );
@@ -61,14 +72,13 @@ describe('PublicTerminalHeaderControls', () => {
     expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
     expect(screen.getByTestId('language-selector')).toBeInTheDocument();
     expect(screen.getByTestId('currency-selector')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
-      'href',
-      '/download',
+    const downloadLinks = screen.getAllByRole('link', { name: 'Download' });
+    expect(downloadLinks.some((link) => link.getAttribute('href') === '/download')).toBe(
+      true,
     );
-    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
-      'data-seo-zone',
-      'public_header',
-    );
+    expect(
+      downloadLinks.some((link) => link.getAttribute('data-seo-zone') === 'public_header'),
+    ).toBe(true);
     expect(screen.getByRole('link', { name: 'Sign In' })).toHaveAttribute(
       'href',
       '/login',
@@ -94,6 +104,7 @@ describe('PublicTerminalHeaderControls', () => {
       <PublicTerminalHeaderControls
         downloadLabel="Download"
         loginLabel="Sign In"
+        navLinks={navLinks}
         registerLabel="Create Account"
       />,
     );
@@ -125,10 +136,11 @@ describe('PublicTerminalHeader', () => {
       'fps:ping',
     );
     expect(screen.getByText('netUplink')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'links.download' })).toHaveAttribute(
-      'href',
-      '/download',
-    );
+    expect(
+      screen
+        .getAllByRole('link', { name: 'links.download' })
+        .some((link) => link.getAttribute('href') === '/download'),
+    ).toBe(true);
     expect(screen.getAllByRole('link', { name: 'submitButton' })).toHaveLength(2);
     expect(
       screen

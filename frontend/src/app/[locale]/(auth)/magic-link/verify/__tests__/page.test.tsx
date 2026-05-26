@@ -21,6 +21,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
   useTranslations: () => {
     const t = (key: string) => key;
     return t;
@@ -29,6 +30,21 @@ vi.mock('next-intl', () => ({
 
 const mockVerifyMagicLink = vi.fn();
 let mockIsAuthenticated = false;
+const successfulMagicLinkResponse = {
+  access_token: 'access_token',
+  refresh_token: 'refresh_token',
+  token_type: 'bearer',
+  expires_in: 900,
+  user: {
+    id: 'user-1',
+    email: 'user@example.com',
+    login: 'user',
+    role: 'user',
+    is_active: true,
+    is_email_verified: true,
+    created_at: '2026-05-26T00:00:00Z',
+  },
+};
 
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: Object.assign(
@@ -95,7 +111,7 @@ describe('MagicLinkVerifyPage', () => {
 
   it('calls verifyMagicLink with token from URL', async () => {
     mockSearchParams = new URLSearchParams('token=magic_abc_123');
-    mockVerifyMagicLink.mockResolvedValue(undefined);
+    mockVerifyMagicLink.mockResolvedValue(successfulMagicLinkResponse);
 
     render(<MagicLinkVerifyPage />);
 
@@ -146,7 +162,7 @@ describe('MagicLinkVerifyPage', () => {
   it('redirects to dashboard on successful verification when authenticated', async () => {
     mockSearchParams = new URLSearchParams('token=good_token');
     mockIsAuthenticated = true;
-    mockVerifyMagicLink.mockResolvedValue(undefined);
+    mockVerifyMagicLink.mockResolvedValue(successfulMagicLinkResponse);
 
     render(<MagicLinkVerifyPage />);
 
@@ -157,7 +173,7 @@ describe('MagicLinkVerifyPage', () => {
 
   it('shows success state after verification completes', async () => {
     mockSearchParams = new URLSearchParams('token=success_token');
-    mockVerifyMagicLink.mockResolvedValue(undefined);
+    mockVerifyMagicLink.mockResolvedValue(successfulMagicLinkResponse);
 
     render(<MagicLinkVerifyPage />);
 

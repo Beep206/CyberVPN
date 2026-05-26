@@ -100,6 +100,7 @@ vi.mock('@/components/ui/button', async () => {
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
+  useLocale: () => 'ru-RU',
   useTranslations: () => {
     const t = (key: string) => key;
     return t;
