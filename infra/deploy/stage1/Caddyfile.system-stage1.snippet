@@ -69,7 +69,7 @@ my.cyber-vpn.net {
 	@partner_routes path_regexp partner_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?partner(?:/.*)?$
 	redir @partner_routes https://partner.cyber-vpn.net{uri} temporary
 
-	@public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|api|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
+	@public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
 	redir @public_routes https://cyber-vpn.net{uri} temporary
 
 	reverse_proxy http://127.0.0.1:13000 {
