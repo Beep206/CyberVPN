@@ -29,7 +29,13 @@ class UpgradeSubscriptionUseCase:
     ) -> CheckoutResult:
         active_payment = await self._payments.get_latest_active_plan_payment(user_id)
         if active_payment is None or active_payment.plan_id is None:
-            raise ValueError("No active subscription to upgrade")
+            return await self._checkout.execute(
+                user_id=user_id,
+                plan_id=target_plan_id,
+                promo_code=promo_code,
+                use_wallet=use_wallet,
+                sale_channel=sale_channel,
+            )
         if active_payment.plan_id == target_plan_id:
             raise ValueError("Target plan matches the current subscription")
 

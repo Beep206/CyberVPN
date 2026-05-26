@@ -229,6 +229,16 @@ export function getConfigAvailability({
     return 'missing_profile';
   }
 
+  if (config?.isFound === false) {
+    return 'not_found';
+  }
+
+  const links = extractConfigLinks(config, serviceState);
+  const rawConfigReady = Boolean(config?.config.trim());
+  if (rawConfigReady || links.length > 0) {
+    return 'ready';
+  }
+
   if (
     !serviceState?.service_identity ||
     !serviceState.provisioning_profile ||
@@ -238,13 +248,7 @@ export function getConfigAvailability({
     return 'missing_service';
   }
 
-  if (config?.isFound === false) {
-    return 'not_found';
-  }
-
-  const links = extractConfigLinks(config, serviceState);
-  const rawConfigReady = Boolean(config?.config.trim());
-  return rawConfigReady || links.length > 0 ? 'ready' : 'missing_config';
+  return 'missing_config';
 }
 
 export function extractConfigLinks(

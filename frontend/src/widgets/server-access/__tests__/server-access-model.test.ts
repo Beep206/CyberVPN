@@ -194,6 +194,13 @@ describe('server access model', () => {
         serviceState,
       }),
     ).toBe('ready');
+    expect(
+      getConfigAvailability({
+        config: { config: '', isFound: true, subscriptionUrl: 'https://vpn.example/sub' },
+        profile,
+        serviceState: null,
+      }),
+    ).toBe('ready');
   });
 
   it('formats public values without leaking full config secrets', () => {

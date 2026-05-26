@@ -228,6 +228,13 @@ describe('subscription cabinet model', () => {
         targetPlan: downgrade,
       }),
     ).toBe('purchase');
+    expect(
+      getPlanAction({
+        currentPlan: null,
+        entitlement: { ...entitlement, is_trial: true, plan_code: 'trial', plan_uuid: null },
+        targetPlan: downgrade,
+      }),
+    ).toBe('purchase');
   });
 
   it('filters add-ons by web channel and plan quantity caps', () => {

@@ -23,6 +23,7 @@ const INACTIVE_ENTITLEMENT_STATUSES = new Set([
 ]);
 const PAID_ORDER_STATUSES = new Set(['paid', 'settled', 'completed']);
 const PENDING_ORDER_STATUSES = new Set(['pending', 'pending_payment', 'awaiting_payment']);
+const NON_UPGRADABLE_PLAN_CODES = new Set(['invite', 'invite_access', 'trial']);
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -241,7 +242,12 @@ export function getPlanAction({
     return 'current';
   }
 
-  if (isInactiveEntitlement(entitlement)) {
+  if (
+    isInactiveEntitlement(entitlement) ||
+    entitlement?.is_trial ||
+    !currentPlan ||
+    NON_UPGRADABLE_PLAN_CODES.has(entitlement?.plan_code?.toLowerCase() ?? '')
+  ) {
     return 'purchase';
   }
 
