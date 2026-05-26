@@ -77,6 +77,7 @@ export default function RegisterPage() {
     const showEmailError = isEmailMode && emailTouched && !emailValidation.isValid;
     const showPasswordError = password.length > 0 && (!passwordValidation.isValid && (passwordTouched || passwordHasLayoutWarning));
     const showConfirmError = confirmPassword.length > 0 && (confirmPasswordTouched || password.length > 0) && !passwordsMatch;
+    const hasRegistrationDraft = Boolean(username || email || password || confirmPassword);
     const canSubmit = usernameOnly
         ? username && passwordValidation.isValid && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited
         : emailValidation.isValid && passwordValidation.isValid && confirmPassword && acceptTerms && passwordsMatch && !isRateLimited;
@@ -87,12 +88,12 @@ export default function RegisterPage() {
         return t.has(key) ? t(key) : FALLBACK_VALIDATION_MESSAGES[code];
     };
 
-    // Redirect if already authenticated (auto-login after registration)
+    // Redirect existing authenticated users only before they start a new registration flow.
     useEffect(() => {
-        if (isAuthenticated) {
+        if (isAuthenticated && !isLoading && !hasRegistrationDraft) {
             router.push(`/${locale}/dashboard`);
         }
-    }, [isAuthenticated, router, locale]);
+    }, [hasRegistrationDraft, isAuthenticated, isLoading, router, locale]);
 
     // Clear error on mount
     useEffect(() => {
