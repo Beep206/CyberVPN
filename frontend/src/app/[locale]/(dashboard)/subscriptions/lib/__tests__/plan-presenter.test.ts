@@ -36,13 +36,13 @@ const plan: SubscriptionPlan = {
   sort_order: 10,
 };
 
-describe('subscription plan-presenter S1 currency rule', () => {
-  it('returns USD as formatted billing price and RUB only as display estimate', () => {
+describe('subscription plan-presenter S2 currency rule', () => {
+  it('returns the locale display currency as the formatted billing price', () => {
     const price = getPlanPrice(plan, 'ru-RU');
 
-    expect(price.currency).toBe('USD');
-    expect(price.amount).toBe(79);
-    expect(price.formatted).toContain('$');
+    expect(price.currency).toBe('RUB');
+    expect(price.amount).toBe(7910);
+    expect(price.formatted).toContain('7 910');
     expect(price.localEstimate).toMatchObject({
       amount: 7910,
       currency: 'RUB',
