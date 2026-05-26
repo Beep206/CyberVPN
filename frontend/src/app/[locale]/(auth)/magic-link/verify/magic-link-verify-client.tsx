@@ -2,11 +2,12 @@
 
 import { useEffect, useState, startTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { motion } from 'motion/react';
 import { Loader2, AlertCircle, RotateCcw, Shield, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 // Module-level guard: survives React Strict Mode unmount/remount cycles
@@ -15,6 +16,7 @@ const PROCESSED_TOKENS = new Set<string>();
 
 export function MagicLinkVerifyClient() {
   const t = useTranslations('Auth.magicLink.verify');
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { verifyMagicLink, isAuthenticated } = useAuthStore();
@@ -38,7 +40,16 @@ export function MagicLinkVerifyClient() {
 
     const verify = async () => {
       try {
-        await verifyMagicLink(token);
+        const result = await verifyMagicLink(token);
+        if (result.requires_2fa && result.tfa_token) {
+          await stagePendingTwoFactorSession({
+            token: result.tfa_token,
+            locale,
+            returnTo: `/${locale}/dashboard`,
+          });
+          router.push('/login?2fa=true');
+          return;
+        }
         setVerifying(false);
         setVerified(true);
       } catch (err: unknown) {
@@ -55,7 +66,7 @@ export function MagicLinkVerifyClient() {
     };
 
     verify();
-  }, [searchParams, verifyMagicLink, t]);
+  }, [locale, router, searchParams, verifyMagicLink, t]);
 
   useEffect(() => {
     if (verified && isAuthenticated) {

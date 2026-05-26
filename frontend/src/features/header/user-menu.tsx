@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     LayoutDashboard,
     Settings,
@@ -21,6 +22,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 export function UserMenu() {
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { user, logout } = useAuthStore();
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -37,10 +39,12 @@ export function UserMenu() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleLogout = async () => {
-        await logout();
+    const handleLogout = () => {
         setIsOpen(false);
-        router.push('/');
+        queryClient.clear();
+        void logout().catch(() => {});
+        router.replace('/');
+        router.refresh();
     };
 
     // User initials for avatar fallback

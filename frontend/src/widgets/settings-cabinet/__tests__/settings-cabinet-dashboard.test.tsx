@@ -302,8 +302,8 @@ describe('SettingsCabinetDashboard', () => {
 
     const displayNameInput = await screen.findByDisplayValue('Cipher Ops');
     await user.clear(displayNameInput);
-    await user.clear(screen.getByDisplayValue('en-EN'));
-    await user.clear(screen.getByDisplayValue('UTC'));
+    await user.selectOptions(screen.getByDisplayValue('en-EN'), '');
+    await user.selectOptions(screen.getByDisplayValue('UTC'), '');
     await user.click(screen.getByRole('button', { name: 'actions.saveProfile' }));
 
     await waitFor(() => {

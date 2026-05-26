@@ -54,9 +54,41 @@
       "clean": "All cabinet resources are responding.",
       "loading": "{count} cabinet resources are still loading.",
       "issues": "{count} cabinet resources need retry.",
+      "resources": {
+        "profile": "Profile",
+        "entitlement": "Subscription entitlements",
+        "usage": "VPN usage",
+        "wallet": "Wallet balance",
+        "referral": "Referral rewards",
+        "notificationCounters": "Notification counters",
+        "notificationList": "Notification feed",
+        "serviceState": "VPN delivery state",
+        "trial": "Trial eligibility"
+      },
       "lastSynced": "Last synced: {value}",
       "neverSynced": "No backend snapshot has been loaded yet.",
       "retryAll": "Retry all"
+    },
+    "s2Actions": {
+      "eyebrow": "S2 COMMERCE",
+      "title": "Plan, payment, and growth actions",
+      "description": "Public-release actions stay in one place: trial, renewal, payment history, and growth codes appear here only when the backend/runtime flags allow them.",
+      "trialPlans": {
+        "label": "Trial and plans",
+        "description": "Start trial, choose a plan, or renew access."
+      },
+      "paymentHistory": {
+        "label": "Payments",
+        "description": "Review invoices, attempts, and wallet history."
+      },
+      "growthHub": {
+        "label": "Referrals",
+        "description": "Copy referral links and review invite rewards."
+      },
+      "codes": {
+        "label": "Promo and gifts",
+        "description": "Redeem promo, checkout, invite, and gift codes."
+      }
     },
     "health": {
       "healthy": {

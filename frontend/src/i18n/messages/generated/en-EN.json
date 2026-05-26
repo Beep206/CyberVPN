@@ -230,6 +230,7 @@
       "twoFactorCodeLabel": "Authenticator code",
       "twoFactorCodePlaceholder": "000000",
       "twoFactorInfo": "Enter the 6-digit code from your authenticator app to complete sign-in.",
+      "twoFactorStartFailed": "Two-factor verification could not start. Try signing in again.",
       "twoFactorSubmitButton": "Verify code",
       "twoFactorSubmitting": "Verifying code..."
     },
@@ -417,7 +418,8 @@
       },
       "loginButton": "Open Telegram",
       "manualFallback": "If Telegram opens as a regular chat, send this command manually:",
-      "miniAppAutoAuth": "Signing you in via Telegram..."
+      "miniAppAutoAuth": "Signing you in via Telegram...",
+      "startingNewLink": "Starting Telegram..."
     }
   },
   "Contact": {
@@ -625,6 +627,27 @@
         "title": "Referral earnings",
         "totalReferrals": "Total invited customers"
       },
+      "s2Actions": {
+        "codes": {
+          "description": "Redeem promo, checkout, invite, and gift codes.",
+          "label": "Promo and gifts"
+        },
+        "description": "Public-release actions stay in one place: trial, renewal, payment history, and growth codes appear here only when the backend/runtime flags allow them.",
+        "eyebrow": "S2 COMMERCE",
+        "growthHub": {
+          "description": "Copy referral links and review invite rewards.",
+          "label": "Referrals"
+        },
+        "paymentHistory": {
+          "description": "Review invoices, attempts, and wallet history.",
+          "label": "Payments"
+        },
+        "title": "Plan, payment, and growth actions",
+        "trialPlans": {
+          "description": "Start trial, choose a plan, or renew access.",
+          "label": "Trial and plans"
+        }
+      },
       "security": {
         "cta": "Open security settings",
         "eyebrow": "Privacy and security",
@@ -757,6 +780,17 @@
         "lastSynced": "Last synced: {value}",
         "loading": "{count} cabinet resources are still loading.",
         "neverSynced": "No backend snapshot has been loaded yet.",
+        "resources": {
+          "entitlement": "Subscription entitlements",
+          "notificationCounters": "Notification counters",
+          "notificationList": "Notification feed",
+          "profile": "Profile",
+          "referral": "Referral rewards",
+          "serviceState": "VPN delivery state",
+          "trial": "Trial eligibility",
+          "usage": "VPN usage",
+          "wallet": "Wallet balance"
+        },
         "retryAll": "Retry all",
         "status": {
           "degraded": "PARTIAL DATA",
@@ -2856,7 +2890,8 @@
         "refresh": "Refresh",
         "revoking": "Revoking...",
         "saveProfile": "Save profile",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "starting": "Starting..."
       },
       "devices": {
         "activeCount": "Active",
@@ -2904,7 +2939,8 @@
         "notificationsFailed": "Notification preferences failed to update.",
         "profileFailed": "Profile update failed.",
         "profileSaved": "Profile saved.",
-        "securityUpdated": "Security settings updated."
+        "securityUpdated": "Security settings updated.",
+        "telegramLinkFailed": "Could not start Telegram linking. Try again from this browser session."
       },
       "hero": {
         "eyebrow": "Identity / Security / Notifications",
@@ -3027,6 +3063,11 @@
         "password": {
           "description": "Change the password with current-password verification.",
           "title": "Password"
+        },
+        "recovery": {
+          "cta": "Open support",
+          "description": "If you lose the authenticator app, use support-assisted recovery. Support must verify identity and leave an audit trail before any 2FA reset.",
+          "title": "Lost authenticator recovery"
         },
         "title": "Security console",
         "twoFactor": {

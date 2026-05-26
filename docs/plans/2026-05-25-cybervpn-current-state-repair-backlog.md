@@ -20,6 +20,7 @@
 | Batch A: `FIX-001` - `FIX-005` | Completed | `docs/evidence/releases/current-state-fix-batch-a-20260525.md` |
 | Batch B: `FIX-006` - `FIX-018` | Completed | `docs/evidence/releases/fix-batch-b-20260525T185152Z.md` |
 | Batch C: `FIX-019` - `FIX-032` | Completed | `docs/evidence/releases/fix-batch-c-20260525T204632Z.md` |
+| Batch D: `FIX-033` - `FIX-040` | Completed | `docs/evidence/releases/fix-batch-d-20260526T040827Z.md` |
 
 ## Порядок выполнения
 

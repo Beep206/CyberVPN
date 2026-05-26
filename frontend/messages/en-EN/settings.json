@@ -44,6 +44,11 @@
         "enabled": "TOTP is active for this account.",
         "disabled": "Enable TOTP before increasing payment or device trust."
       },
+      "recovery": {
+        "title": "Lost authenticator recovery",
+        "description": "If you lose the authenticator app, use support-assisted recovery. Support must verify identity and leave an audit trail before any 2FA reset.",
+        "cta": "Open support"
+      },
       "password": {
         "title": "Password",
         "description": "Change the password with current-password verification."
@@ -176,7 +181,8 @@
       "refresh": "Refresh",
       "revoking": "Revoking...",
       "saveProfile": "Save profile",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "starting": "Starting..."
     },
     "feedback": {
       "copyFailed": "Clipboard is unavailable.",
@@ -186,7 +192,8 @@
       "notificationsFailed": "Notification preferences failed to update.",
       "profileFailed": "Profile update failed.",
       "profileSaved": "Profile saved.",
-      "securityUpdated": "Security settings updated."
+      "securityUpdated": "Security settings updated.",
+      "telegramLinkFailed": "Could not start Telegram linking. Try again from this browser session."
     },
     "labels": {
       "disabled": "Disabled",

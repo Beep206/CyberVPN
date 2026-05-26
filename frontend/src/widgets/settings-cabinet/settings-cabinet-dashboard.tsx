@@ -21,6 +21,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
+import { useAuthStore } from '@/stores/auth-store';
 import {
   authApi,
   entitlementsApi,
@@ -44,8 +45,10 @@ import {
   getEnabledCount,
   getSecurityPosture,
   GROWTH_NOTIFICATION_PREFERENCES,
+  getProfileTimezoneOptions,
   maskAntiphishingCode,
   parseDeviceLabel,
+  PROFILE_LANGUAGE_OPTIONS,
   readDeviceLimit,
   type CoreNotificationPreferenceKey,
   type DeviceLimitState,
@@ -155,9 +158,12 @@ export function SettingsCabinetDashboard() {
   const t = useTranslations('Settings.cabinet');
   const locale = useLocale();
   const queryClient = useQueryClient();
+  const telegramMagicLinkAuth = useAuthStore((state) => state.telegramMagicLinkAuth);
+  const authLoading = useAuthStore((state) => state.isLoading);
   const [activeModal, setActiveModal] = useState<SensitiveModal>(null);
   const [banner, setBanner] = useState<{ tone: StatusTone; text: string } | null>(null);
   const [copyState, setCopyState] = useState<'account' | 'idle'>('idle');
+  const [isStartingTelegramLink, setIsStartingTelegramLink] = useState(false);
 
   const profileQuery = useQuery({
     queryKey: ['settings', 'profile'],
@@ -247,6 +253,17 @@ export function SettingsCabinetDashboard() {
   const growthNotifications = growthNotificationsQuery.data ?? null;
   const devices = devicesQuery.data?.devices ?? [];
   const entitlement = entitlementQuery.data ?? null;
+  const timezoneOptions = getProfileTimezoneOptions();
+  const selectedLanguage = PROFILE_LANGUAGE_OPTIONS.some(
+    (option) => option.value === profile?.language,
+  )
+    ? profile?.language ?? ''
+    : '';
+  const selectedTimezone = timezoneOptions.some(
+    (option) => option.value === profile?.timezone,
+  )
+    ? profile?.timezone ?? ''
+    : '';
   const currentDevice = devices.find((device) => device.is_current) ?? null;
   const otherDevices = devices.filter((device) => !device.is_current && device.device_id);
   const deviceLimitSummary = getDeviceLimitSummary({
@@ -445,6 +462,16 @@ export function SettingsCabinetDashboard() {
     }
   };
 
+  const startTelegramLink = async () => {
+    setIsStartingTelegramLink(true);
+    try {
+      await telegramMagicLinkAuth();
+    } catch {
+      setBanner({ tone: 'pink', text: t('feedback.telegramLinkFailed') });
+      setIsStartingTelegramLink(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 shadow-[0_0_70px_rgba(0,255,255,0.08)] backdrop-blur md:p-8">
@@ -607,25 +634,35 @@ export function SettingsCabinetDashboard() {
                   <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     {t('profile.language')}
                   </span>
-                  <input
-                    defaultValue={profile?.language ?? ''}
-                    maxLength={16}
+                  <select
+                    defaultValue={selectedLanguage}
                     name="language"
                     className="h-12 w-full rounded-xl border border-neon-purple/30 bg-terminal-bg/70 px-4 font-mono text-sm text-white outline-hidden transition focus:border-neon-purple focus:ring-2 focus:ring-neon-purple/30"
-                    placeholder="en-EN"
-                  />
+                  >
+                    <option value="">{t('labels.notSet')}</option>
+                    {PROFILE_LANGUAGE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="space-y-2">
                   <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     {t('profile.timezone')}
                   </span>
-                  <input
-                    defaultValue={profile?.timezone ?? ''}
-                    maxLength={64}
+                  <select
+                    defaultValue={selectedTimezone}
                     name="timezone"
                     className="h-12 w-full rounded-xl border border-matrix-green/30 bg-terminal-bg/70 px-4 font-mono text-sm text-white outline-hidden transition focus:border-matrix-green focus:ring-2 focus:ring-matrix-green/30"
-                    placeholder="UTC"
-                  />
+                  >
+                    <option value="">{t('labels.notSet')}</option>
+                    {timezoneOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
@@ -723,6 +760,24 @@ export function SettingsCabinetDashboard() {
                 </div>
               </button>
             ))}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
+              <div>
+                <p className="font-mono text-sm text-white">{t('security.recovery.title')}</p>
+                <p className="mt-1 font-mono text-xs leading-6 text-muted-foreground">
+                  {t('security.recovery.description')}
+                </p>
+                <Link
+                  href="/help"
+                  className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/15"
+                >
+                  {t('security.recovery.cta')}
+                </Link>
+              </div>
+            </div>
           </div>
         </article>
       </section>
@@ -977,12 +1032,14 @@ export function SettingsCabinetDashboard() {
                   </p>
                 </div>
               </div>
-              <Link
-                href="/telegram-link"
-                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-cyan transition hover:bg-neon-cyan/15"
+              <button
+                type="button"
+                onClick={() => void startTelegramLink()}
+                disabled={isStartingTelegramLink || authLoading}
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-cyan transition hover:bg-neon-cyan/15 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t('actions.manage')}
-              </Link>
+                {isStartingTelegramLink || authLoading ? t('actions.starting') : t('actions.manage')}
+              </button>
             </div>
           </div>
         </article>

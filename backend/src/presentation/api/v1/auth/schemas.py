@@ -180,6 +180,8 @@ class MagicLinkVerifyResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = 0
     user: AdminUserResponse
+    requires_2fa: bool = False
+    tfa_token: str | None = None
 
 
 class MagicLinkResponse(BaseModel):

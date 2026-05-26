@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
 import { Mail, Loader2, CheckCircle, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -13,6 +13,7 @@ import {
     RateLimitCountdown,
     useIsRateLimited,
 } from '@/features/auth/components';
+import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRouter } from '@/i18n/navigation';
 
@@ -21,6 +22,7 @@ const OTP_LENGTH = 6;
 
 export default function MagicLinkPage() {
     const t = useTranslations('Auth.magicLink');
+    const locale = useLocale();
     const router = useRouter();
     const { requestMagicLink, verifyMagicLinkOtp, isLoading, error, clearError, isAuthenticated } = useAuthStore();
     const isRateLimited = useIsRateLimited();
@@ -104,7 +106,15 @@ export default function MagicLinkPage() {
         setIsVerifyingCode(true);
         setOtpError(null);
         try {
-            await verifyMagicLinkOtp(email, codeToVerify);
+            const result = await verifyMagicLinkOtp(email, codeToVerify);
+            if (result.requires_2fa && result.tfa_token) {
+                await stagePendingTwoFactorSession({
+                    token: result.tfa_token,
+                    locale,
+                    returnTo: `/${locale}/dashboard`,
+                });
+                router.push('/login?2fa=true');
+            }
             // Redirect handled by useEffect on isAuthenticated change
         } catch (err: unknown) {
             const axiosError = err as { response?: { data?: { detail?: string } } };

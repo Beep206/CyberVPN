@@ -213,6 +213,7 @@
       "twoFactorCodeLabel": "Код аутентификатора",
       "twoFactorCodePlaceholder": "000000",
       "twoFactorInfo": "Введите 6-значный код из приложения-аутентификатора, чтобы завершить вход.",
+      "twoFactorStartFailed": "Не удалось начать проверку 2FA. Попробуйте войти заново.",
       "twoFactorSubmitButton": "Подтвердить код",
       "twoFactorSubmitting": "Проверка кода..."
     },
@@ -374,7 +375,8 @@
       },
       "loginButton": "Открыть Telegram",
       "manualFallback": "Если Telegram открылся как обычный чат, отправьте эту команду вручную:",
-      "miniAppAutoAuth": "Вход через Telegram..."
+      "miniAppAutoAuth": "Вход через Telegram...",
+      "startingNewLink": "Запускаем Telegram..."
     }
   },
   "Contact": {
@@ -581,6 +583,27 @@
         "title": "Реферальный доход",
         "totalReferrals": "Всего приглашённых клиентов"
       },
+      "s2Actions": {
+        "codes": {
+          "description": "Активировать promo, checkout, invite и gift codes.",
+          "label": "Промо и подарки"
+        },
+        "description": "Действия публичного релиза собраны в одном месте: trial, продление, история оплат и growth-коды появляются здесь только когда это разрешено backend/runtime flags.",
+        "eyebrow": "S2 COMMERCE",
+        "growthHub": {
+          "description": "Скопировать реферальные ссылки и проверить invite rewards.",
+          "label": "Рефералы"
+        },
+        "paymentHistory": {
+          "description": "Проверить invoices, attempts и историю кошелька.",
+          "label": "Оплаты"
+        },
+        "title": "Тариф, оплата и growth-действия",
+        "trialPlans": {
+          "description": "Запустить trial, выбрать тариф или продлить доступ.",
+          "label": "Trial и тарифы"
+        }
+      },
       "security": {
         "cta": "Открыть настройки безопасности",
         "eyebrow": "Приватность и безопасность",
@@ -713,6 +736,17 @@
         "lastSynced": "Последняя синхронизация: {value}",
         "loading": "{count} ресурсов кабинета ещё загружаются.",
         "neverSynced": "Снимок backend ещё не загружен.",
+        "resources": {
+          "entitlement": "Права подписки",
+          "notificationCounters": "Счётчики уведомлений",
+          "notificationList": "Лента уведомлений",
+          "profile": "Профиль",
+          "referral": "Реферальные награды",
+          "serviceState": "Состояние выдачи VPN",
+          "trial": "Доступность trial",
+          "usage": "Использование VPN",
+          "wallet": "Баланс кошелька"
+        },
         "retryAll": "Повторить всё",
         "status": {
           "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ",
@@ -2647,7 +2681,8 @@
         "refresh": "Обновить",
         "revoking": "Отзываю...",
         "saveProfile": "Сохранить профиль",
-        "saving": "Сохраняю..."
+        "saving": "Сохраняю...",
+        "starting": "Запускаю..."
       },
       "devices": {
         "activeCount": "Активно",
@@ -2695,7 +2730,8 @@
         "notificationsFailed": "Не удалось обновить уведомления.",
         "profileFailed": "Не удалось обновить профиль.",
         "profileSaved": "Профиль сохранён.",
-        "securityUpdated": "Настройки безопасности обновлены."
+        "securityUpdated": "Настройки безопасности обновлены.",
+        "telegramLinkFailed": "Не удалось начать привязку Telegram. Попробуйте ещё раз из этой browser session."
       },
       "hero": {
         "eyebrow": "Identity / Security / Notifications",
@@ -2818,6 +2854,11 @@
         "password": {
           "description": "Смена пароля требует текущий пароль.",
           "title": "Пароль"
+        },
+        "recovery": {
+          "cta": "Открыть поддержку",
+          "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Support обязан проверить личность и оставить audit trail до любого сброса 2FA.",
+          "title": "Восстановление при потере 2FA"
         },
         "title": "Security console",
         "twoFactor": {

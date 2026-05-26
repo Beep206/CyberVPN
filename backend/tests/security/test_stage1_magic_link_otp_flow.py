@@ -256,6 +256,62 @@ async def test_stage1_magic_link_otp_login_consumes_code_and_blocks_replay(
 
 
 @pytest.mark.integration
+async def test_stage1_magic_link_existing_totp_user_requires_2fa_without_session_cookie(
+    async_client: AsyncClient,
+    db: AsyncSession,
+) -> None:
+    email = f"s1-magic-2fa-{secrets.token_hex(4)}@example.com"
+    await _clear_auth_rate_limit_state()
+    await _clear_magic_link_state(email)
+    user = await _create_verified_user(db, email=email)
+    user.totp_enabled = True
+    user.totp_secret = "JBSWY3DPEHPK3PXP"
+    await db.commit()
+    dispatcher = _RecordingEmailDispatcher()
+    app.dependency_overrides[get_email_dispatcher] = lambda: dispatcher
+
+    try:
+        request_response = await async_client.post(
+            "/api/v1/auth/magic-link",
+            json={"email": email, "locale": "en-EN"},
+        )
+        assert request_response.status_code == 200
+
+        verify_response = await async_client.post(
+            "/api/v1/auth/magic-link/verify",
+            json={"token": dispatcher.magic_link_emails[0]["token"]},
+        )
+        assert verify_response.status_code == 200
+        verify_body = verify_response.json()
+        assert verify_body["requires_2fa"] is True
+        assert verify_body["tfa_token"]
+        assert verify_body["access_token"] == ""
+        assert verify_body["refresh_token"] == ""
+        assert "set-cookie" not in verify_response.headers
+
+        request_otp_response = await async_client.post(
+            "/api/v1/auth/magic-link",
+            json={"email": email, "locale": "en-EN"},
+        )
+        assert request_otp_response.status_code == 200
+        otp_code = dispatcher.magic_link_emails[-1]["otp_code"]
+        otp_response = await async_client.post(
+            "/api/v1/auth/magic-link/verify-otp",
+            json={"email": email, "code": otp_code},
+        )
+        assert otp_response.status_code == 200
+        otp_body = otp_response.json()
+        assert otp_body["requires_2fa"] is True
+        assert otp_body["tfa_token"]
+        assert otp_body["access_token"] == ""
+        assert otp_body["refresh_token"] == ""
+        assert "set-cookie" not in otp_response.headers
+    finally:
+        app.dependency_overrides.pop(get_email_dispatcher, None)
+        await _clear_magic_link_state(email)
+
+
+@pytest.mark.integration
 async def test_stage1_magic_link_request_rate_limit_is_enforced_without_extra_dispatch(
     async_client: AsyncClient,
 ) -> None:

@@ -1,4 +1,5 @@
 import type { components } from '@/lib/api/generated/types';
+import { locales } from '@/i18n/config';
 import type {
   GrowthNotificationPreferences,
   UpdateGrowthNotificationPreferencesRequest,
@@ -34,6 +35,47 @@ export type PreferenceDescriptor<T extends string> = {
   titleKey: string;
   descriptionKey: string;
 };
+
+export type ProfileSelectOption = {
+  label: string;
+  value: string;
+};
+
+const FALLBACK_TIMEZONES = [
+  'UTC',
+  'Europe/Berlin',
+  'Europe/London',
+  'Europe/Moscow',
+  'Asia/Yekaterinburg',
+  'Asia/Almaty',
+  'Asia/Dubai',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'America/New_York',
+  'America/Los_Angeles',
+] as const;
+
+export const PROFILE_LANGUAGE_OPTIONS: ProfileSelectOption[] = locales.map((locale) => ({
+  label: locale,
+  value: locale,
+}));
+
+export function getProfileTimezoneOptions(): ProfileSelectOption[] {
+  const supportedValuesOf = (
+    Intl as typeof Intl & {
+      supportedValuesOf?: (key: 'timeZone') => string[];
+    }
+  ).supportedValuesOf;
+  const supportedTimezones =
+    typeof supportedValuesOf === 'function'
+      ? supportedValuesOf('timeZone')
+      : [...FALLBACK_TIMEZONES];
+
+  return Array.from(new Set(['UTC', ...supportedTimezones])).map((timezone) => ({
+    label: timezone,
+    value: timezone,
+  }));
+}
 
 export const CORE_NOTIFICATION_PREFERENCES: Array<
   PreferenceDescriptor<CoreNotificationPreferenceKey>

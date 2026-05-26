@@ -46,9 +46,41 @@
       "clean": "Все ресурсы кабинета отвечают.",
       "loading": "{count} ресурсов кабинета ещё загружаются.",
       "issues": "{count} ресурсов кабинета требуют повтора.",
+      "resources": {
+        "profile": "Профиль",
+        "entitlement": "Права подписки",
+        "usage": "Использование VPN",
+        "wallet": "Баланс кошелька",
+        "referral": "Реферальные награды",
+        "notificationCounters": "Счётчики уведомлений",
+        "notificationList": "Лента уведомлений",
+        "serviceState": "Состояние выдачи VPN",
+        "trial": "Доступность trial"
+      },
       "lastSynced": "Последняя синхронизация: {value}",
       "neverSynced": "Снимок backend ещё не загружен.",
       "retryAll": "Повторить всё"
+    },
+    "s2Actions": {
+      "eyebrow": "S2 COMMERCE",
+      "title": "Тариф, оплата и growth-действия",
+      "description": "Действия публичного релиза собраны в одном месте: trial, продление, история оплат и growth-коды появляются здесь только когда это разрешено backend/runtime flags.",
+      "trialPlans": {
+        "label": "Trial и тарифы",
+        "description": "Запустить trial, выбрать тариф или продлить доступ."
+      },
+      "paymentHistory": {
+        "label": "Оплаты",
+        "description": "Проверить invoices, attempts и историю кошелька."
+      },
+      "growthHub": {
+        "label": "Рефералы",
+        "description": "Скопировать реферальные ссылки и проверить invite rewards."
+      },
+      "codes": {
+        "label": "Промо и подарки",
+        "description": "Активировать promo, checkout, invite и gift codes."
+      }
     },
     "health": {
       "healthy": {

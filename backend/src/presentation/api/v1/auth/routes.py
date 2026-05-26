@@ -219,6 +219,28 @@ def _build_admin_user_response(
     )
 
 
+def _build_pending_2fa_magic_link_response(
+    *,
+    auth_service: AuthService,
+    user: AdminUserModel,
+) -> MagicLinkVerifyResponse:
+    tfa_token, _, _ = auth_service.create_access_token(
+        subject=str(user.id),
+        role="2fa_pending",
+        extra={"type": "2fa_pending"},
+    )
+
+    return MagicLinkVerifyResponse(
+        access_token="",
+        refresh_token="",
+        token_type="bearer",
+        expires_in=0,
+        user=AdminUserResponse.model_validate(user),
+        requires_2fa=True,
+        tfa_token=tfa_token,
+    )
+
+
 def _build_miniapp_mobile_login(*, login: str | None, telegram_id: int) -> str:
     base = (login or "").strip().lstrip("@") or f"tg{telegram_id}"
     return base[:50]
@@ -1579,6 +1601,25 @@ async def verify_magic_link(
 
     locale = _resolve_locale(user=user, fallback=payload_locale)
 
+    if user.totp_enabled:
+        track_auth_attempt(method="magic_link", success=True)
+        track_auth_flow_event(
+            channel="web",
+            method="magic_link",
+            provider="email",
+            locale=locale,
+            client_context=client_context,
+            step="2fa_required",
+            status="success",
+        )
+        observe_partner_mfa_challenge(result="required", reason="magic_link_requires_2fa")
+        await sync_auth_security_posture(db, redis_client)
+        observe_auth_request_duration("magic_link", started_at)
+        return _build_pending_2fa_magic_link_response(
+            auth_service=auth_service,
+            user=user,
+        )
+
     # Issue JWT tokens
     access_token, _, access_exp = auth_service.create_access_token(
         subject=str(user.id),
@@ -1775,6 +1816,25 @@ async def verify_magic_link_otp(
         track_first_login_after_activation("magic_link")
 
     locale = _resolve_locale(user=user, fallback=payload_locale)
+
+    if user.totp_enabled:
+        track_auth_attempt(method="magic_link_otp", success=True)
+        track_auth_flow_event(
+            channel="web",
+            method="magic_link_otp",
+            provider="email",
+            locale=locale,
+            client_context=client_context,
+            step="2fa_required",
+            status="success",
+        )
+        observe_partner_mfa_challenge(result="required", reason="magic_link_otp_requires_2fa")
+        await sync_auth_security_posture(db, redis_client)
+        observe_auth_request_duration("magic_link_otp", started_at)
+        return _build_pending_2fa_magic_link_response(
+            auth_service=auth_service,
+            user=user,
+        )
 
     # Issue JWT tokens
     access_token, _, access_exp = auth_service.create_access_token(

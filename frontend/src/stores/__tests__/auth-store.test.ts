@@ -321,6 +321,27 @@ describe('Auth Store', () => {
       expect(mockLoginSuccess).toHaveBeenCalledWith('user_analytics_test', 'email');
     });
 
+    it('test_login_requires_2fa_returns_pending_token_without_session_restore', async () => {
+      mockLogin.mockResolvedValue({
+        data: createMockTokenResponse({
+          access_token: '',
+          refresh_token: '',
+          expires_in: 0,
+          requires_2fa: true,
+          tfa_token: 'pending_2fa_token',
+        }),
+      });
+
+      const result = await useAuthStore.getState().login('mfa@test.com', 'pw');
+
+      expect(result.requires_2fa).toBe(true);
+      expect(result.tfa_token).toBe('pending_2fa_token');
+      expect(mockMe).not.toHaveBeenCalled();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(useAuthStore.getState().user).toBe(null);
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    });
+
     it('test_login_sets_loading_during_request', async () => {
       // Arrange
       let resolveLogin: (v: unknown) => void;
@@ -1438,6 +1459,30 @@ describe('Auth Store', () => {
       await useAuthStore.getState().verifyMagicLink('tok');
 
       expect(mockLoginSuccess).toHaveBeenCalledWith('ml_analytics_user', 'magic_link');
+    });
+
+    it('test_verifyMagicLink_requires_2fa_returns_pending_token_without_authenticating', async () => {
+      const mockUser = createMockUser({ id: 'ml_2fa_user' });
+      mockVerifyMagicLink.mockResolvedValue({
+        data: {
+          ...createMockTokenResponse({
+            access_token: '',
+            refresh_token: '',
+            expires_in: 0,
+          }),
+          user: mockUser,
+          requires_2fa: true,
+          tfa_token: 'magic_pending_2fa',
+        },
+      });
+
+      const result = await useAuthStore.getState().verifyMagicLink('tok');
+
+      expect(result.requires_2fa).toBe(true);
+      expect(result.tfa_token).toBe('magic_pending_2fa');
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(useAuthStore.getState().user).toBe(null);
+      expect(mockLoginSuccess).not.toHaveBeenCalled();
     });
 
     it('test_verifyMagicLink_sets_error_on_failure', async () => {

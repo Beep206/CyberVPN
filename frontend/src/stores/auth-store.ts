@@ -3,6 +3,8 @@ import {
   authApi,
   type AuthResponse,
   type BotLinkResponse,
+  type LoginResponse,
+  type MagicLinkVerifyResponse,
   type OAuthProvider,
   type TelegramMiniAppResponse,
   type TelegramWidgetData,
@@ -36,7 +38,7 @@ interface AuthState {
   rateLimitUntil: number | null; // Timestamp when rate limit expires
 
   // Actions
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginResponse>;
   register: (
     identifier: string,
     password: string,
@@ -56,8 +58,8 @@ interface AuthState {
   loginWithBotLink: (token: string) => Promise<BotLinkResponse>;
   oauthLogin: (provider: OAuthProvider) => Promise<void>;
   requestMagicLink: (email: string) => Promise<void>;
-  verifyMagicLink: (token: string) => Promise<void>;
-  verifyMagicLinkOtp: (email: string, code: string) => Promise<void>;
+  verifyMagicLink: (token: string) => Promise<MagicLinkVerifyResponse>;
+  verifyMagicLinkOtp: (email: string, code: string) => Promise<MagicLinkVerifyResponse>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
   clearRateLimit: () => void;
@@ -78,12 +80,18 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null, rateLimitUntil: null });
         try {
           // SEC-01: backend sets httpOnly cookies automatically
-          await authApi.login({ email, password, remember_me: rememberMe });
+          const { data } = await authApi.login({ email, password, remember_me: rememberMe });
+
+          if (data.requires_2fa) {
+            set({ isAuthenticated: false, isLoading: false, user: null });
+            return data;
+          }
 
           // Fetch user info (auth via httpOnly cookie)
           const { data: user } = await authApi.session();
           set({ user, isAuthenticated: true, isLoading: false });
           authAnalytics.loginSuccess(user.id, 'email');
+          return data;
         } catch (error: unknown) {
           if (error instanceof RateLimitError) {
             authAnalytics.rateLimited(error.retryAfter);
@@ -227,14 +235,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        set({ isLoading: true });
+        fetchUserInFlight = null;
+        const logoutRequest = authApi.logout();
+        // Clear browser-visible state immediately; the server-side cookie
+        // revocation may finish later or fail transiently.
+        tokenStorage.clearTokens();
+        set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
+        authAnalytics.logout();
         try {
-          await authApi.logout();
-        } finally {
-          // SEC-01: backend clears cookies; clean up any legacy localStorage
-          tokenStorage.clearTokens();
-          set({ user: null, isAuthenticated: false, isLoading: false, error: null, isNewTelegramUser: false });
-          authAnalytics.logout();
+          await logoutRequest;
+        } catch (error) {
+          throw error;
         }
       },
 
@@ -449,6 +460,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           // Backend returns user data directly — no separate /auth/me call needed
           const { data } = await authApi.verifyMagicLink({ token });
+          if (data.requires_2fa) {
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return data;
+          }
+
           set({
             user: {
               id: data.user.id,
@@ -464,6 +480,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           authAnalytics.loginSuccess(data.user.id, 'magic_link');
+          return data;
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Magic link verification failed';
@@ -477,6 +494,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           // Backend returns user data directly — no separate /auth/me call needed
           const { data } = await authApi.verifyMagicLinkOtp({ email, code });
+          if (data.requires_2fa) {
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return data;
+          }
+
           set({
             user: {
               id: data.user.id,
@@ -492,6 +514,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           authAnalytics.loginSuccess(data.user.id, 'magic_link_otp');
+          return data;
         } catch (error: unknown) {
           const axiosError = error as { response?: { data?: { detail?: string } } };
           const message = axiosError.response?.data?.detail || 'Code verification failed';

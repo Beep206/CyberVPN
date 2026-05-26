@@ -343,6 +343,9 @@ describe('CustomerCabinetDashboard', () => {
 
     expect(await screen.findByText('sync.status.degraded')).toBeInTheDocument();
     expect(screen.getByText('sync.issues 3')).toBeInTheDocument();
+    expect(screen.getByText('sync.resources.usage')).toBeInTheDocument();
+    expect(screen.getByText('sync.resources.serviceState')).toBeInTheDocument();
+    expect(screen.getByText('sync.resources.notificationList')).toBeInTheDocument();
     expect(screen.getByText('readiness.degraded')).toBeInTheDocument();
     expect(screen.getByText('notifications.errorTitle')).toBeInTheDocument();
     expect(screen.getByText('notifications.errorDescription')).toBeInTheDocument();

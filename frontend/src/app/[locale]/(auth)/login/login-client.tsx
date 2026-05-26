@@ -22,7 +22,10 @@ import {
   isOAuthProvider,
   OAUTH_PROVIDER_QUERY_PARAM,
 } from '@/features/auth/lib/oauth-error-codes';
-import { completePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
+import {
+  completePendingTwoFactorSession,
+  stagePendingTwoFactorSession,
+} from '@/features/auth/lib/pending-twofa-client';
 import { getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -105,8 +108,20 @@ export function LoginClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTwoFactorError(null);
     try {
-      await login(email, password, rememberMe);
+      const result = await login(email, password, rememberMe);
+      if (result.requires_2fa && result.tfa_token) {
+        await stagePendingTwoFactorSession({
+          token: result.tfa_token,
+          locale,
+          returnTo: redirectPath,
+        });
+        router.push(`/${locale}/login?2fa=true`);
+      }
+      if (result.requires_2fa && !result.tfa_token) {
+        setTwoFactorError(t('twoFactorStartFailed'));
+      }
     } catch {}
   };
 

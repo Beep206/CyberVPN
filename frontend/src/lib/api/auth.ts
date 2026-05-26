@@ -67,6 +67,11 @@ export interface TokenResponse {
   expires_in: number;
 }
 
+export interface LoginResponse extends TokenResponse {
+  requires_2fa: boolean;
+  tfa_token: string | null;
+}
+
 export interface VerifyOtpResponse extends TokenResponse {
   user: User;
 }
@@ -234,6 +239,8 @@ export interface MagicLinkVerifyRequest {
 
 export interface MagicLinkVerifyResponse extends TokenResponse {
   user: User;
+  requires_2fa?: boolean;
+  tfa_token?: string | null;
 }
 
 export interface MagicLinkVerifyOtpRequest {
@@ -260,7 +267,7 @@ export const authApi = {
    * POST /api/v1/auth/login
    */
   login: (data: LoginRequest) =>
-    apiClient.post<TokenResponse>('/auth/login', {
+    apiClient.post<LoginResponse>('/auth/login', {
       login_or_email: data.login_or_email ?? data.email ?? '',
       password: data.password,
       remember_me: data.remember_me,

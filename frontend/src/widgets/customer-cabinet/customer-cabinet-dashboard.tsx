@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
   ArrowRight,
+  BadgePercent,
   Bell,
   CheckCircle2,
   Clock,
@@ -22,7 +23,13 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
+import {
+  STAGE1_CHECKOUT_CODES_UI_ENABLED,
+  STAGE1_GIFT_CODES_UI_ENABLED,
+  STAGE1_GROWTH_HUB_UI_ENABLED,
+  STAGE1_PROMO_CODES_UI_ENABLED,
+  STAGE1_REFERRAL_UI_ENABLED,
+} from '@/shared/lib/stage1-growth-flags';
 import {
   entitlementsApi,
   growthNotificationsApi,
@@ -105,6 +112,16 @@ const stage1StateIcons: Record<Stage1DashboardStateCard['id'], LucideIcon> = {
   access: ShieldCheck,
   payment: CreditCard,
   provisioning: Server,
+};
+
+type CabinetResourceSnapshot = {
+  dataUpdatedAt: number;
+  id: string;
+  isError: boolean;
+  isFetching: boolean;
+  isPending: boolean;
+  label: string;
+  retry: () => void;
 };
 
 function visiblePolling(intervalMs: number) {
@@ -307,7 +324,55 @@ function ActionLink({
   );
 }
 
+function S2ActionPanel({
+  actions,
+  eyebrow,
+  title,
+  description,
+}: {
+  actions: Array<{
+    description: string;
+    href: string;
+    icon: LucideIcon;
+    id: string;
+    label: string;
+    tone: Tone;
+  }>;
+  description: string;
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <section className="rounded-[1.5rem] border border-grid-line/30 bg-terminal-surface/55 p-5 backdrop-blur md:p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[0.32em] text-neon-cyan">
+            {eyebrow}
+          </p>
+          <h3 className="mt-2 text-2xl font-display text-white">{title}</h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {actions.map((action) => (
+          <ActionLink
+            key={action.id}
+            href={action.href}
+            icon={action.icon}
+            label={action.label}
+            description={action.description}
+            tone={action.tone}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SyncStatusPanel({
+  failedResources,
   issueCount,
   isSyncing,
   lastSyncedLabel,
@@ -318,6 +383,7 @@ function SyncStatusPanel({
   subtitle,
   title,
 }: {
+  failedResources: CabinetResourceSnapshot[];
   issueCount: number;
   isSyncing: boolean;
   lastSyncedLabel: string;
@@ -356,6 +422,43 @@ function SyncStatusPanel({
             <p className="mt-2 font-mono text-xs text-muted-foreground">
               {lastSyncedLabel}
             </p>
+            {failedResources.length > 0 && (
+              <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-amber-200">
+                  {failedResources.length === 1
+                    ? failedResources[0]?.label
+                    : failedResources
+                        .map((resource) => resource.label)
+                        .join(', ')}
+                </p>
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {failedResources.map((resource) => (
+                    <li
+                      key={resource.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-grid-line/30 bg-black/20 px-3 py-2"
+                    >
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {resource.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={resource.retry}
+                        className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-amber-400/30 px-3 py-1 font-mono text-[11px] text-amber-200 transition hover:bg-amber-400/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+                        aria-label={`${retryLabel}: ${resource.label}`}
+                      >
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 ${
+                            resource.isFetching ? 'animate-spin' : ''
+                          }`}
+                          aria-hidden="true"
+                        />
+                        {retryLabel}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
         <button
@@ -598,23 +701,157 @@ export function CustomerCabinetDashboard() {
       tone: 'amber',
     },
   };
-  const querySnapshots = [
-    profileQuery,
-    entitlementQuery,
-    usageQuery,
-    walletQuery,
-    ...(STAGE1_REFERRAL_UI_ENABLED ? [referralQuery] : []),
-    notificationQuery,
-    notificationListQuery,
-    serviceStateQuery,
-    trialQuery,
-  ].map((query) => ({
-    dataUpdatedAt: query.dataUpdatedAt,
-    isError: query.isError,
-    isFetching: query.isFetching,
-    isPending: query.isPending,
-  }));
+  const s2CommerceActions = [
+    {
+      description: t('s2Actions.trialPlans.description'),
+      href: '/subscriptions',
+      icon: Zap,
+      id: 'trialPlans',
+      label: t('s2Actions.trialPlans.label'),
+      tone: 'green' as Tone,
+    },
+    {
+      description: t('s2Actions.paymentHistory.description'),
+      href: '/payment-history',
+      icon: CreditCard,
+      id: 'paymentHistory',
+      label: t('s2Actions.paymentHistory.label'),
+      tone: 'cyan' as Tone,
+    },
+    ...(STAGE1_GROWTH_HUB_UI_ENABLED
+      ? [
+          {
+            description: t('s2Actions.growthHub.description'),
+            href: '/referral',
+            icon: Gift,
+            id: 'growthHub',
+            label: t('s2Actions.growthHub.label'),
+            tone: 'purple' as Tone,
+          },
+        ]
+      : []),
+    ...(STAGE1_PROMO_CODES_UI_ENABLED ||
+    STAGE1_CHECKOUT_CODES_UI_ENABLED ||
+    STAGE1_GIFT_CODES_UI_ENABLED
+      ? [
+          {
+            description: t('s2Actions.codes.description'),
+            href: '/referral',
+            icon: BadgePercent,
+            id: 'codes',
+            label: t('s2Actions.codes.label'),
+            tone: 'amber' as Tone,
+          },
+        ]
+      : []),
+  ];
+  const querySnapshots: CabinetResourceSnapshot[] = [
+    {
+      dataUpdatedAt: profileQuery.dataUpdatedAt,
+      id: 'profile',
+      isError: profileQuery.isError,
+      isFetching: profileQuery.isFetching,
+      isPending: profileQuery.isPending,
+      label: t('sync.resources.profile'),
+      retry: () => {
+        void profileQuery.refetch();
+      },
+    },
+    {
+      dataUpdatedAt: entitlementQuery.dataUpdatedAt,
+      id: 'entitlement',
+      isError: entitlementQuery.isError,
+      isFetching: entitlementQuery.isFetching,
+      isPending: entitlementQuery.isPending,
+      label: t('sync.resources.entitlement'),
+      retry: () => {
+        void entitlementQuery.refetch();
+      },
+    },
+    {
+      dataUpdatedAt: usageQuery.dataUpdatedAt,
+      id: 'usage',
+      isError: usageQuery.isError,
+      isFetching: usageQuery.isFetching,
+      isPending: usageQuery.isPending,
+      label: t('sync.resources.usage'),
+      retry: () => {
+        void usageQuery.refetch();
+      },
+    },
+    {
+      dataUpdatedAt: walletQuery.dataUpdatedAt,
+      id: 'wallet',
+      isError: walletQuery.isError,
+      isFetching: walletQuery.isFetching,
+      isPending: walletQuery.isPending,
+      label: t('sync.resources.wallet'),
+      retry: () => {
+        void walletQuery.refetch();
+      },
+    },
+    ...(STAGE1_REFERRAL_UI_ENABLED
+      ? [
+          {
+            dataUpdatedAt: referralQuery.dataUpdatedAt,
+            id: 'referral',
+            isError: referralQuery.isError,
+            isFetching: referralQuery.isFetching,
+            isPending: referralQuery.isPending,
+            label: t('sync.resources.referral'),
+            retry: () => {
+              void referralQuery.refetch();
+            },
+          },
+        ]
+      : []),
+    {
+      dataUpdatedAt: notificationQuery.dataUpdatedAt,
+      id: 'notificationCounters',
+      isError: notificationQuery.isError,
+      isFetching: notificationQuery.isFetching,
+      isPending: notificationQuery.isPending,
+      label: t('sync.resources.notificationCounters'),
+      retry: () => {
+        void notificationQuery.refetch();
+      },
+    },
+    {
+      dataUpdatedAt: notificationListQuery.dataUpdatedAt,
+      id: 'notificationList',
+      isError: notificationListQuery.isError,
+      isFetching: notificationListQuery.isFetching,
+      isPending: notificationListQuery.isPending,
+      label: t('sync.resources.notificationList'),
+      retry: () => {
+        void notificationListQuery.refetch();
+      },
+    },
+    {
+      dataUpdatedAt: serviceStateQuery.dataUpdatedAt,
+      id: 'serviceState',
+      isError: serviceStateQuery.isError,
+      isFetching: serviceStateQuery.isFetching,
+      isPending: serviceStateQuery.isPending,
+      label: t('sync.resources.serviceState'),
+      retry: () => {
+        void serviceStateQuery.refetch();
+      },
+    },
+    {
+      dataUpdatedAt: trialQuery.dataUpdatedAt,
+      id: 'trial',
+      isError: trialQuery.isError,
+      isFetching: trialQuery.isFetching,
+      isPending: trialQuery.isPending,
+      label: t('sync.resources.trial'),
+      retry: () => {
+        void trialQuery.refetch();
+      },
+    },
+  ];
   const issueCount = querySnapshots.filter((query) => query.isError).length;
+  const failedResources = querySnapshots.filter((query) => query.isError);
   const loadingCount = querySnapshots.filter((query) => query.isPending).length;
   const isSyncing = querySnapshots.some((query) => query.isFetching);
   const latestDataUpdatedAt = querySnapshots
@@ -659,6 +896,7 @@ export function CustomerCabinetDashboard() {
   return (
     <div className="space-y-6 md:space-y-8">
       <SyncStatusPanel
+        failedResources={failedResources}
         issueCount={issueCount}
         isSyncing={isSyncing}
         lastSyncedLabel={lastSyncedLabel}
@@ -732,6 +970,13 @@ export function CustomerCabinetDashboard() {
           })}
         </div>
       </section>
+
+      <S2ActionPanel
+        actions={s2CommerceActions}
+        eyebrow={t('s2Actions.eyebrow')}
+        title={t('s2Actions.title')}
+        description={t('s2Actions.description')}
+      />
 
       <section
         aria-label={t('stage1States.ariaLabel')}

@@ -65,10 +65,12 @@ export function TelegramLinkClient() {
   const t = useTranslations('Auth.telegram');
   const retryT = useTranslations('Auth.oauthCallback');
   const loginWithBotLink = useAuthStore((state) => state.loginWithBotLink);
+  const telegramMagicLinkAuth = useAuthStore((state) => state.telegramMagicLinkAuth);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [magicLinkSession, setMagicLinkSession] = useState<TelegramMagicLinkSession | null>(null);
+  const [isStartingNewLink, setIsStartingNewLink] = useState(false);
   const processedRouteTokenRef = useRef<string | null>(null);
   const activePollingTokenRef = useRef<string | null>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -277,13 +279,24 @@ export function TelegramLinkClient() {
     };
   }, [legacyBotToken, locale, magicLinkSession, magicToken, router, t]);
 
-  const handleRetry = () => {
+  const startNewTelegramLink = async () => {
     clearTelegramMagicLinkSession();
     activePollingTokenRef.current = null;
     processedRouteTokenRef.current = null;
     setMagicLinkSession(null);
     setError(null);
-    router.push('/login');
+    setIsStartingNewLink(true);
+    try {
+      await telegramMagicLinkAuth();
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } } };
+      setError(axiosError.response?.data?.detail || t('errors.authFailed'));
+      setIsStartingNewLink(false);
+    }
+  };
+
+  const handleRetry = () => {
+    void startNewTelegramLink();
   };
 
   const handleOpenTelegram = () => {
@@ -292,7 +305,12 @@ export function TelegramLinkClient() {
   };
 
   const handleCheckNow = () => {
-    setMagicLinkSession(readTelegramMagicLinkSession());
+    const storedSession = readTelegramMagicLinkSession();
+    setMagicLinkSession(storedSession);
+    if (!storedSession && !magicToken && !activePollingTokenRef.current) {
+      void startNewTelegramLink();
+      return;
+    }
     resumePollingRef.current?.();
   };
 
@@ -366,19 +384,29 @@ export function TelegramLinkClient() {
               type="button"
               onClick={handleCheckNow}
               variant="outline"
+              disabled={isStartingNewLink}
               className="border-grid-line/40 font-bold font-mono"
               aria-label={t('checkStatusButton')}
             >
-              <Shield className="mr-2 h-4 w-4" aria-hidden="true" />
-              {t('checkStatusButton')}
+              {isStartingNewLink ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Shield className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              {isStartingNewLink ? t('startingNewLink') : t('checkStatusButton')}
             </Button>
             <Button
               onClick={handleRetry}
+              disabled={isStartingNewLink}
               className="bg-neon-cyan font-bold font-mono text-black hover:bg-neon-cyan/90"
               aria-label={retryT('tryAgain')}
             >
-              <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
-              {retryT('tryAgain')}
+              {isStartingNewLink ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              {isStartingNewLink ? t('startingNewLink') : retryT('tryAgain')}
             </Button>
           </div>
           {renderStartCommandFallback()}
