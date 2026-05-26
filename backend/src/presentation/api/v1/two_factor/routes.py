@@ -39,8 +39,8 @@ from src.presentation.api.v1.auth.realm_context import (
 )
 from src.presentation.api.v1.auth.schemas import TokenResponse
 from src.presentation.api.v1.auth.session_tokens import store_refresh_token
-from src.presentation.dependencies.auth import get_current_active_user, get_current_pending_2fa_user
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth import get_current_active_web_user, get_current_pending_2fa_user
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.shared.security.fingerprint import generate_client_fingerprint
@@ -98,7 +98,7 @@ async def _reset_verify_rate_limit(user_id: str, redis_client: redis.Redis) -> N
 )
 async def reauthenticate(
     body: ReauthRequest,
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> ReauthResponse:
@@ -139,7 +139,7 @@ async def reauthenticate(
     },
 )
 async def setup_2fa(
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TwoFactorSetupResponse:
@@ -196,7 +196,7 @@ async def setup_2fa(
 )
 async def verify_2fa(
     body: TwoFactorVerifyRequest,
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> TwoFactorStatusResponse:
@@ -246,7 +246,7 @@ async def verify_2fa(
 )
 async def validate_2fa(
     body: VerifyCodeRequest,
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> TwoFactorValidateResponse:
@@ -284,7 +284,7 @@ async def complete_2fa_login(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> TokenResponse:
     """Finish a login that is paused behind a pending 2FA token."""
     bind_partner_context_from_realm(
@@ -397,7 +397,7 @@ async def complete_2fa_login(
 )
 async def disable_2fa(
     body: TwoFactorDisableRequest,
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
@@ -460,7 +460,7 @@ async def disable_2fa(
     response_model=TwoFactorStatusResponse,
 )
 async def get_2fa_status(
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
 ) -> TwoFactorStatusResponse:
     """Get current 2FA status for the user."""
     return TwoFactorStatusResponse(status="enabled" if user.totp_enabled else "disabled")
@@ -480,7 +480,7 @@ async def get_2fa_status(
 )
 async def disable_2fa_post_alias(
     body: TwoFactorDisableRequest,
-    user: AdminUserModel = Depends(get_current_active_user),
+    user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),

@@ -31,7 +31,7 @@ from src.infrastructure.tasks.email_task_dispatcher import (
     get_email_dispatcher,
 )
 from src.presentation.api.v1.auth.schemas import RegisterRequest, RegisterResponse
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.shared.logging.sanitization import sanitize_email, sanitize_username
 
@@ -79,7 +79,7 @@ async def register(
         description="Invite token required for registration when invite-only mode is enabled",
     ),
     db: AsyncSession = Depends(get_db),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> RegisterResponse:

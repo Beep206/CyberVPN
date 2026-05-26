@@ -142,8 +142,8 @@ from src.presentation.api.v1.auth.schemas import (
     VerifyOtpResponse,
 )
 from src.presentation.api.v1.auth.session_tokens import store_refresh_token
-from src.presentation.dependencies.auth import get_current_active_user
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth import get_current_active_user, get_current_active_web_user
+from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
 from src.presentation.dependencies.telegram_rate_limit import (
@@ -331,6 +331,136 @@ def _build_miniapp_mobile_user_response(mobile_user: MobileUserModel) -> AdminUs
     )
 
 
+async def _ensure_customer_web_mobile_shadow(
+    *,
+    db: AsyncSession,
+    user: AdminUserModel,
+    current_realm: RealmResolution,
+) -> None:
+    """Mirror customer web accounts into mobile_users for B2C resource APIs."""
+
+    if current_realm.realm_type != "customer" or not user.email or not user.password_hash:
+        return
+
+    repo = MobileUserRepository(db)
+    existing = await repo.get_by_id(user.id)
+    if existing is not None:
+        changed = False
+        if existing.auth_realm_id != current_realm.auth_realm.id:
+            existing.auth_realm_id = current_realm.auth_realm.id
+            changed = True
+        if existing.email != user.email:
+            existing.email = user.email
+            changed = True
+        if existing.username is None:
+            existing.username = user.login[:50]
+            changed = True
+        if existing.password_hash != (user.password_hash or existing.password_hash):
+            existing.password_hash = user.password_hash or existing.password_hash
+            changed = True
+        if existing.is_active != user.is_active:
+            existing.is_active = user.is_active
+            changed = True
+        if changed:
+            await repo.update(existing)
+        return
+
+    email_owner = await repo.get_by_email(user.email)
+    if email_owner is not None and email_owner.id != user.id:
+        logger.warning(
+            "Cannot create customer mobile shadow because email is already bound",
+            extra={"admin_user_id": str(user.id), "mobile_user_id": str(email_owner.id)},
+        )
+        return
+
+    username = user.login[:50]
+    username_owner = await repo.get_by_username(username)
+    if username_owner is not None and username_owner.id != user.id:
+        username = f"web_{str(user.id).replace('-', '')[:12]}"
+
+    mobile_user = MobileUserModel(
+        id=user.id,
+        auth_realm_id=current_realm.auth_realm.id,
+        email=user.email,
+        password_hash=user.password_hash,
+        username=username,
+        is_active=user.is_active,
+        status=user.status or ("active" if user.is_active else "pending"),
+    )
+    await repo.create(mobile_user)
+
+
+async def _repair_customer_web_user_realm_after_password_match(
+    *,
+    db: AsyncSession,
+    user_repo: AdminUserRepository,
+    auth_service: AuthService,
+    login_or_email: str,
+    password: str,
+    current_realm: RealmResolution,
+) -> None:
+    """Move only legacy non-internal viewer accounts created by the old web realm bug."""
+
+    if current_realm.realm_type != "customer":
+        return
+    existing = await user_repo.get_by_login_or_email(
+        login_or_email,
+        realm_id=current_realm.auth_realm.id,
+    )
+    if existing is not None:
+        return
+
+    admin_realm_id = stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["admin"]["realm_key"]))
+    legacy = await user_repo.get_by_login_or_email(
+        login_or_email,
+        realm_id=admin_realm_id,
+        include_legacy_default=True,
+    )
+    if legacy is None or legacy.role != "viewer" or not legacy.email:
+        return
+    if legacy.email.lower().endswith("@cyber-vpn.net"):
+        return
+    if not legacy.password_hash or not auth_service.verify_password(password, legacy.password_hash):
+        return
+
+    legacy.auth_realm_id = current_realm.auth_realm.id
+    await db.flush()
+    logger.warning(
+        "Repaired legacy customer web account realm after password verification",
+        extra={"user_id": str(legacy.id), "target_realm": current_realm.realm_key},
+    )
+
+
+async def _repair_unverified_customer_web_user_realm(
+    *,
+    db: AsyncSession,
+    user_repo: AdminUserRepository,
+    email: str,
+    current_realm: RealmResolution,
+) -> None:
+    if current_realm.realm_type != "customer" or email.lower().endswith("@cyber-vpn.net"):
+        return
+    existing = await user_repo.get_by_email(email, realm_id=current_realm.auth_realm.id)
+    if existing is not None:
+        return
+
+    admin_realm_id = stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["admin"]["realm_key"]))
+    legacy = await user_repo.get_by_email(
+        email,
+        realm_id=admin_realm_id,
+        include_legacy_default=True,
+    )
+    if legacy is None or legacy.role != "viewer" or legacy.is_active or legacy.is_email_verified:
+        return
+
+    legacy.auth_realm_id = current_realm.auth_realm.id
+    await db.flush()
+    logger.warning(
+        "Repaired legacy unverified customer web account realm",
+        extra={"user_id": str(legacy.id), "target_realm": current_realm.realm_key},
+    )
+
+
 @router.post(
     "/login",
     response_model=LoginResponse,
@@ -347,7 +477,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> LoginResponse:
     """Authenticate user and return access and refresh tokens.
 
@@ -445,6 +575,14 @@ async def login(
     fingerprint = generate_client_fingerprint(http_request)
 
     try:
+        await _repair_customer_web_user_realm_after_password_match(
+            db=db,
+            user_repo=user_repo,
+            auth_service=auth_service,
+            login_or_email=request.login_or_email,
+            password=request.password,
+            current_realm=current_realm,
+        )
         result = await use_case.execute(
             login_or_email=request.login_or_email,
             password=request.password,
@@ -547,6 +685,12 @@ async def login(
         realm_id=current_realm.auth_realm.id,
         include_legacy_default=current_realm.realm_key == "admin",
     )
+    if user:
+        await _ensure_customer_web_mobile_shadow(
+            db=db,
+            user=user,
+            current_realm=current_realm,
+        )
     locale = _resolve_locale(user=user)
     track_auth_password_identifier_event(
         channel="web",
@@ -667,7 +811,7 @@ async def refresh_token(
     response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> TokenResponse:
     """Refresh access token using refresh token.
 
@@ -826,7 +970,7 @@ async def logout(
     http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ):
     """Logout user by invalidating refresh token and clearing auth cookies.
 
@@ -896,10 +1040,10 @@ async def logout(
 )
 async def logout_all_devices(
     response: Response,
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(get_current_active_web_user),
     redis_client: redis.Redis = Depends(get_redis),
     db: AsyncSession = Depends(get_db),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> LogoutAllResponse:
     """Logout from all devices by revoking all user tokens (HIGH-6).
 
@@ -994,8 +1138,8 @@ async def logout_all_devices(
     include_in_schema=False,
 )
 async def get_me(
-    current_user=Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user=Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> AdminUserResponse:
     """Get current authenticated user information."""
     return _build_admin_user_response(current_user, current_realm)
@@ -1018,7 +1162,7 @@ async def get_me(
 )
 async def create_privacy_request(
     request: PrivacyRequestCreate,
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(get_current_active_web_user),
 ) -> PrivacyRequestResponse:
     """Open a manual S1 privacy request for account deletion or data export.
 
@@ -1063,7 +1207,7 @@ async def create_privacy_request(
     include_in_schema=False,
 )
 async def delete_account(
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> DeleteAccountResponse:
@@ -1113,7 +1257,7 @@ async def verify_otp(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> VerifyOtpResponse:
     """
     Verify OTP code for email verification.
@@ -1149,6 +1293,12 @@ async def verify_otp(
         remnawave_gateway=remnawave_adapter,
     )
 
+    await _repair_unverified_customer_web_user_realm(
+        db=db,
+        user_repo=user_repo,
+        email=request.email,
+        current_realm=current_realm,
+    )
     result = await use_case.execute(
         email=request.email,
         code=request.code,
@@ -1239,6 +1389,11 @@ async def verify_otp(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User not found after verification"
         )
+    await _ensure_customer_web_mobile_shadow(
+        db=db,
+        user=user,
+        current_realm=current_realm,
+    )
 
     locale = _resolve_locale(user=user)
     track_auth_flow_event(
@@ -1343,6 +1498,7 @@ async def resend_otp(
     request: ResendOtpRequest,
     db: AsyncSession = Depends(get_db),
     email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> ResendOtpResponse:
     """
     Resend OTP verification code.
@@ -1364,7 +1520,18 @@ async def resend_otp(
         email_dispatcher=email_dispatcher,
     )
 
-    result = await use_case.execute(email=request.email, locale=request.locale)
+    await _repair_unverified_customer_web_user_realm(
+        db=db,
+        user_repo=user_repo,
+        email=request.email,
+        current_realm=current_realm,
+    )
+    result = await use_case.execute(
+        email=request.email,
+        locale=request.locale,
+        auth_realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
+    )
 
     if not result.success and result.error_code == "RATE_LIMITED":
         track_auth_security_event(
@@ -1515,6 +1682,7 @@ async def verify_magic_link(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> MagicLinkVerifyResponse:
     """Verify magic link token and return JWT tokens with user data.
 
@@ -1555,7 +1723,11 @@ async def verify_magic_link(
 
     email = payload["email"]
     user_repo = AdminUserRepository(db)
-    user = await user_repo.get_by_email(email)
+    user = await user_repo.get_by_email(
+        email,
+        realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
+    )
     payload_locale = payload.get("locale") if isinstance(payload, dict) else None
     is_new_user = user is None
 
@@ -1587,6 +1759,7 @@ async def verify_magic_link(
         user = AdminUserModel(
             login=email.split("@")[0],
             email=email,
+            auth_realm_id=current_realm.auth_realm.id,
             password_hash=password_hash,
             role="viewer",
             language=payload_locale or "en-EN",
@@ -1624,10 +1797,28 @@ async def verify_magic_link(
     access_token, _, access_exp = auth_service.create_access_token(
         subject=str(user.id),
         role=user.role if isinstance(user.role, str) else user.role.value,
+        audience=current_realm.audience,
+        principal_type=get_principal_type_for_realm(current_realm),
+        realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        scope_family=get_scope_family_for_realm(current_realm),
     )
     fingerprint = generate_client_fingerprint(http_request)
-    refresh_token, _, refresh_exp = auth_service.create_refresh_token(subject=str(user.id), fingerprint=fingerprint)
+    refresh_token, _, refresh_exp = auth_service.create_refresh_token(
+        subject=str(user.id),
+        fingerprint=fingerprint,
+        audience=current_realm.audience,
+        principal_type=get_principal_type_for_realm(current_realm),
+        realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        scope_family=get_scope_family_for_realm(current_realm),
+    )
     expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+    await _ensure_customer_web_mobile_shadow(
+        db=db,
+        user=user,
+        current_realm=current_realm,
+    )
     await store_refresh_token(
         db,
         user_id=user.id,
@@ -1636,6 +1827,11 @@ async def verify_magic_link(
         device_id=fingerprint,
         ip_address=_get_client_ip(http_request),
         user_agent=http_request.headers.get("User-Agent"),
+        auth_realm_id=current_realm.auth_realm.id,
+        principal_class=get_principal_type_for_realm(current_realm),
+        principal_subject=str(user.id),
+        audience=current_realm.audience,
+        scope_family=get_scope_family_for_realm(current_realm),
     )
 
     # Track successful magic link auth
@@ -1700,7 +1896,7 @@ async def verify_magic_link(
             started_at=created_at,
         )
 
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token, cookie_namespace=current_realm.cookie_namespace)
     await sync_active_sessions(db)
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("magic_link", started_at)
@@ -1710,7 +1906,7 @@ async def verify_magic_link(
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=expires_in,
-        user=AdminUserResponse.model_validate(user),
+        user=_build_admin_user_response(user, current_realm),
     )
 
 
@@ -1726,6 +1922,7 @@ async def verify_magic_link_otp(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> MagicLinkVerifyResponse:
     """Verify magic link via 6-digit OTP code and return JWT tokens with user data.
 
@@ -1770,7 +1967,11 @@ async def verify_magic_link_otp(
 
     payload_email = payload["email"]
     user_repo = AdminUserRepository(db)
-    user = await user_repo.get_by_email(payload_email)
+    user = await user_repo.get_by_email(
+        payload_email,
+        realm_id=current_realm.auth_realm.id,
+        include_legacy_default=current_realm.realm_key == "admin",
+    )
     payload_locale = payload.get("locale") if isinstance(payload, dict) else None
     is_new_user = user is None
 
@@ -1802,6 +2003,7 @@ async def verify_magic_link_otp(
         user = AdminUserModel(
             login=payload_email.split("@")[0],
             email=payload_email,
+            auth_realm_id=current_realm.auth_realm.id,
             password_hash=password_hash,
             role="viewer",
             language=payload_locale or "en-EN",
@@ -1840,10 +2042,28 @@ async def verify_magic_link_otp(
     access_token, _, access_exp = auth_service.create_access_token(
         subject=str(user.id),
         role=user.role if isinstance(user.role, str) else user.role.value,
+        audience=current_realm.audience,
+        principal_type=get_principal_type_for_realm(current_realm),
+        realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        scope_family=get_scope_family_for_realm(current_realm),
     )
     fingerprint = generate_client_fingerprint(http_request)
-    refresh_token, _, refresh_exp = auth_service.create_refresh_token(subject=str(user.id), fingerprint=fingerprint)
+    refresh_token, _, refresh_exp = auth_service.create_refresh_token(
+        subject=str(user.id),
+        fingerprint=fingerprint,
+        audience=current_realm.audience,
+        principal_type=get_principal_type_for_realm(current_realm),
+        realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        scope_family=get_scope_family_for_realm(current_realm),
+    )
     expires_in = int((access_exp - datetime.now(UTC)).total_seconds())
+    await _ensure_customer_web_mobile_shadow(
+        db=db,
+        user=user,
+        current_realm=current_realm,
+    )
 
     await store_refresh_token(
         db,
@@ -1853,6 +2073,11 @@ async def verify_magic_link_otp(
         device_id=fingerprint,
         ip_address=_get_client_ip(http_request),
         user_agent=http_request.headers.get("User-Agent"),
+        auth_realm_id=current_realm.auth_realm.id,
+        principal_class=get_principal_type_for_realm(current_realm),
+        principal_subject=str(user.id),
+        audience=current_realm.audience,
+        scope_family=get_scope_family_for_realm(current_realm),
     )
 
     # Track successful magic link OTP auth
@@ -1917,7 +2142,7 @@ async def verify_magic_link_otp(
             started_at=created_at,
         )
 
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token, cookie_namespace=current_realm.cookie_namespace)
     await sync_active_sessions(db)
     await sync_auth_security_posture(db, redis_client)
     observe_auth_request_duration("magic_link_otp", started_at)
@@ -1927,7 +2152,7 @@ async def verify_magic_link_otp(
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=expires_in,
-        user=AdminUserResponse.model_validate(user),
+        user=_build_admin_user_response(user, current_realm),
     )
 
 
@@ -2466,7 +2691,7 @@ async def forgot_password(
     request: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
     email_dispatcher: EmailTaskDispatcher = Depends(get_email_dispatcher),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> ForgotPasswordResponse:
     """Request password reset OTP code.
 
@@ -2519,7 +2744,7 @@ async def reset_password(
     request: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> ResetPasswordResponse:
     """Reset password using OTP code from forgot-password email."""
     started_at = perf_counter()
@@ -2616,7 +2841,7 @@ async def reset_password(
 )
 async def change_password(
     request: ChangePasswordRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
@@ -2681,7 +2906,7 @@ async def change_password(
 )
 async def list_devices(
     http_request: Request,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
 ) -> DeviceSessionListResponse:
     """List all active sessions/devices for the current user (BF2-4).
@@ -2745,7 +2970,7 @@ async def list_devices(
 )
 async def revoke_device(
     device_id: str,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> RevokeDeviceResponse:

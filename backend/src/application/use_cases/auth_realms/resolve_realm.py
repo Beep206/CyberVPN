@@ -44,12 +44,19 @@ class ResolveRealmContextUseCase:
     def __init__(self, repo: AuthRealmRepository) -> None:
         self._repo = repo
 
-    async def execute(self, request: Request, *, realm_type_hint: str | None = None) -> RealmResolution:
-        header_key = request.headers.get(AUTH_REALM_HEADER)
-        if header_key:
-            realm = await self._repo.get_realm_by_key(header_key)
-            if realm:
-                return RealmResolution(auth_realm=realm, source="header")
+    async def execute(
+        self,
+        request: Request,
+        *,
+        realm_type_hint: str | None = None,
+        allow_header: bool = True,
+    ) -> RealmResolution:
+        if allow_header:
+            header_key = request.headers.get(AUTH_REALM_HEADER)
+            if header_key:
+                realm = await self._repo.get_realm_by_key(header_key)
+                if realm:
+                    return RealmResolution(auth_realm=realm, source="header")
 
         host_header = request.headers.get("X-Forwarded-Host") or request.headers.get("Host")
         if host_header:

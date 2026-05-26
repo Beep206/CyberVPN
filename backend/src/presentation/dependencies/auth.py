@@ -39,6 +39,7 @@ from src.presentation.dependencies.auth_realms import (
     get_request_admin_realm,
     get_request_auth_realm,
     get_request_customer_realm,
+    get_request_web_auth_realm,
 )
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_auth_service
@@ -195,15 +196,15 @@ async def _validate_token(
     )
 
 
-async def get_current_user(
+async def _resolve_current_admin_user_for_realm(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    db: AsyncSession = Depends(get_db),
-    auth_service: AuthService = Depends(get_auth_service),
-    redis_client: redis.Redis = Depends(get_redis),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    credentials: HTTPAuthorizationCredentials | None,
+    db: AsyncSession,
+    auth_service: AuthService,
+    redis_client: redis.Redis,
+    current_realm: RealmResolution,
 ) -> AdminUserModel:
-    """Get current authenticated user from JWT token.
+    """Get current authenticated AdminUserModel-scoped web user for a realm.
 
     SEC-01: Accepts token from Authorization Bearer header (mobile/API) OR
     from the httpOnly ``access_token`` cookie (web frontend).
@@ -257,13 +258,53 @@ async def get_current_user(
     return user
 
 
-async def get_current_pending_2fa_user(
+async def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     redis_client: redis.Redis = Depends(get_redis),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
+) -> AdminUserModel:
+    """Get current authenticated admin/default user from JWT token."""
+
+    return await _resolve_current_admin_user_for_realm(
+        request=request,
+        credentials=credentials,
+        db=db,
+        auth_service=auth_service,
+        redis_client=redis_client,
+        current_realm=current_realm,
+    )
+
+
+async def get_current_web_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
+) -> AdminUserModel:
+    """Get current authenticated web user for the host-resolved auth realm."""
+
+    return await _resolve_current_admin_user_for_realm(
+        request=request,
+        credentials=credentials,
+        db=db,
+        auth_service=auth_service,
+        redis_client=redis_client,
+        current_realm=current_realm,
+    )
+
+
+async def get_current_pending_2fa_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    redis_client: redis.Redis = Depends(get_redis),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> AdminUserModel:
     """Resolve a user from a short-lived pending-2FA token."""
     token = credentials.credentials if credentials else get_access_token_cookie(
@@ -310,6 +351,14 @@ async def get_current_pending_2fa_user(
 
 async def get_current_active_user(
     user: AdminUserModel = Depends(get_current_user),
+) -> AdminUserModel:
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    return user
+
+
+async def get_current_active_web_user(
+    user: AdminUserModel = Depends(get_current_web_user),
 ) -> AdminUserModel:
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")

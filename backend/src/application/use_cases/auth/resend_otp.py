@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from typing import Protocol
+from uuid import UUID
 
 from src.application.services.otp_service import OtpRateLimitError, OtpService
 from src.infrastructure.database.repositories.admin_user_repo import AdminUserRepository
@@ -63,7 +64,13 @@ class ResendOtpUseCase:
         self._otp_service = otp_service
         self._email_dispatcher = email_dispatcher
 
-    async def execute(self, email: str, locale: str = "en-EN") -> ResendOtpResult:
+    async def execute(
+        self,
+        email: str,
+        locale: str = "en-EN",
+        auth_realm_id: UUID | None = None,
+        include_legacy_default: bool = False,
+    ) -> ResendOtpResult:
         """
         Resend OTP verification code.
 
@@ -75,7 +82,11 @@ class ResendOtpUseCase:
             ResendOtpResult with status and remaining resends
         """
         # Find user by email
-        user = await self._user_repo.get_by_email(email)
+        user = await self._user_repo.get_by_email(
+            email,
+            realm_id=auth_realm_id,
+            include_legacy_default=include_legacy_default,
+        )
         if not user:
             # Don't reveal if email exists - return generic success
             return ResendOtpResult(
