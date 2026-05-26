@@ -829,6 +829,8 @@ S3-STAGE-18A_NO_NEW_TOP_LEVEL_STAGE_CREATED
 
 **Next work still inside S3-STAGE-18:** daily stabilization snapshot or owner-provided `EXT-PILOT-001` list classification.
 
+**Live surface check 2026-05-26:** partner runtime was republished as a live S3 surface on `main-9b907151`; public partner routes, Cloudflare HTTP/3 advertisement, container health and GitLab pipeline gates passed. Live payouts and live postbacks remain blocked. Evidence: `docs/evidence/releases/s3-stage-18-live-partner-surface-check-20260526.md`.
+
 ---
 
 ## 23. Recommended Execution Order
