@@ -22,6 +22,7 @@ from src.domain.enums import AdminRole
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_subscription_activation
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient
@@ -40,8 +41,8 @@ from src.presentation.api.v1.payments.schemas import (
     InvoiceResponse,
 )
 from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
-from src.presentation.dependencies.auth import get_current_mobile_user_id
-from src.presentation.dependencies.auth_realms import get_request_customer_realm
+from src.presentation.dependencies.auth import get_current_active_web_user, get_current_mobile_user_id
+from src.presentation.dependencies.auth_realms import get_request_customer_realm, get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_crypto_client
 
@@ -296,12 +297,26 @@ async def create_subscription_template(
 @router.get("/config/{user_uuid}", response_model=RemnawaveSubscriptionConfigResponse)
 async def generate_config(
     user_uuid: str,
-    current_user=Depends(get_current_active_user),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm=Depends(get_request_web_auth_realm),
+    db: AsyncSession = Depends(get_db),
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
-    """Generate VPN configuration for a user"""
+    """Generate VPN configuration for the authenticated customer or an admin-selected user."""
+    if current_realm.realm_type != "admin" and user_uuid != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access another user's VPN configuration",
+        )
+
+    resolved_user_uuid = user_uuid
+    if current_realm.realm_type == "customer":
+        mobile_user = await MobileUserRepository(db).get_by_id(current_user.id)
+        if mobile_user is not None and mobile_user.remnawave_uuid:
+            resolved_user_uuid = mobile_user.remnawave_uuid
+
     use_case = GenerateConfigUseCase(client)
-    return await use_case.execute(user_uuid)
+    return await use_case.execute(resolved_user_uuid)
 
 
 @router.get(

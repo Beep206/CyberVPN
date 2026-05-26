@@ -10,6 +10,7 @@ from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.servers.manage_servers import ManageServersUseCase
 from src.application.use_cases.servers.server_stats import ServerStatsUseCase
 from src.infrastructure.cache.response_cache import response_cache
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.monitoring.instrumentation.routes import track_server_query
 from src.infrastructure.remnawave.server_gateway import RemnawaveServerGateway
 from src.presentation.api.v1.servers.schemas import (
@@ -18,6 +19,7 @@ from src.presentation.api.v1.servers.schemas import (
     ServerStatsResponse,
     UpdateServerRequest,
 )
+from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
@@ -54,9 +56,9 @@ def _serialize_server_response(server) -> ServerResponse:
 async def list_servers(
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
-    _: None = Depends(require_permission(Permission.SERVER_READ)),
+    _current_user: AdminUserModel = Depends(get_current_active_web_user),
 ) -> list[ServerResponse]:
-    """List all Remnawave VPN servers."""
+    """List customer-visible Remnawave VPN servers."""
 
     async def _fetch() -> list[dict]:
         gateway = RemnawaveServerGateway(client=client)
@@ -102,9 +104,9 @@ async def create_server(
 async def get_server_stats(
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
-    _: None = Depends(require_permission(Permission.SERVER_READ)),
+    _current_user: AdminUserModel = Depends(get_current_active_web_user),
 ) -> ServerStatsResponse:
-    """Get Remnawave server statistics by status."""
+    """Get customer-visible Remnawave server statistics by status."""
 
     async def _fetch() -> dict:
         gateway = RemnawaveServerGateway(client=client)
