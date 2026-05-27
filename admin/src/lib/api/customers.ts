@@ -63,6 +63,38 @@ export interface AdminApiDownloadResult {
   filename: string;
 }
 
+export interface AdminCustomerSubscriptionSummary {
+  subscription_key: string;
+  kind: 'entitlement_grant' | 'trial' | 'legacy_payment';
+  status: string;
+  display_name?: string | null;
+  plan_uuid?: string | null;
+  plan_code?: string | null;
+  source_type?: string | null;
+  source_order_id?: string | null;
+  entitlement_grant_id?: string | null;
+  service_identity_id?: string | null;
+  provider_name?: string | null;
+  expires_at?: string | null;
+  created_at?: string | null;
+  effective_entitlements: Record<string, unknown>;
+  invite_bundle: Record<string, number>;
+  is_trial: boolean;
+  addons: Array<Record<string, unknown>>;
+  can_manage: boolean;
+  can_deliver_config: boolean;
+  management_scope: 'subscription_entitlement' | 'account_vpn_identity' | 'subscription_vpn_identity';
+}
+
+export interface AdminCustomerSubscriptionsResponse {
+  customer_account_id: string;
+  auth_realm_id: string;
+  selected_subscription_key?: string | null;
+  default_subscription_key?: string | null;
+  items: AdminCustomerSubscriptionSummary[];
+  limitations: string[];
+}
+
 function resolveDownloadFilename(
   contentDisposition: string | undefined,
   fallback: string,
@@ -110,6 +142,11 @@ export const customersApi = {
 
   getSubscriptionSnapshot: (userId: string) =>
     apiClient.get<AdminMobileUserSubscriptionSnapshotResponse>(`/admin/mobile-users/${userId}/subscription`),
+
+  listCustomerSubscriptions: (userId: string, selectedSubscriptionKey?: string | null) =>
+    apiClient.get<AdminCustomerSubscriptionsResponse>(`/admin/mobile-users/${userId}/customer-subscriptions`, {
+      params: selectedSubscriptionKey ? { selected_subscription_key: selectedSubscriptionKey } : undefined,
+    }),
 
   listSupportNotes: (userId: string, params?: AdminCustomerStaffNotesParams) =>
     apiClient.get<AdminCustomerStaffNotesResponse>(`/admin/mobile-users/${userId}/notes`, { params }),

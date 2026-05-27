@@ -29,6 +29,7 @@ import {
   type AdminCustomerCredentialRegenerationRequest,
   type AdminCustomerCredentialRegenerationResponse,
   type AdminCustomerPasswordResetRequest,
+  type AdminCustomerSubscriptionSummary,
   type AdminUpdateMobileUserRequest,
 } from '@/lib/api/customers';
 import { growthApi } from '@/lib/api/growth';
@@ -143,6 +144,39 @@ function summarizeTimelineMetadata(metadata: Record<string, unknown> | null | un
   return summary || null;
 }
 
+function getSelectedSubscriptionEntitlement(
+  subscription: AdminCustomerSubscriptionSummary | null | undefined,
+  key: string,
+) {
+  return subscription?.effective_entitlements?.[key] ?? null;
+}
+
+function formatSubscriptionEntitlementValue(value: unknown, key: string, locale: string) {
+  if (value === null || value === undefined || value === '') {
+    return '--';
+  }
+  if (key.includes('traffic') && typeof value === 'number') {
+    return formatBytes(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'yes' : 'no';
+  }
+  if (typeof value === 'number') {
+    return new Intl.NumberFormat(locale).format(value);
+  }
+  return String(value);
+}
+
+function describeSubscriptionScope(scope: AdminCustomerSubscriptionSummary['management_scope']) {
+  if (scope === 'subscription_vpn_identity') {
+    return 'Subscription-scoped VPN identity';
+  }
+  if (scope === 'account_vpn_identity') {
+    return 'Account-scoped VPN identity';
+  }
+  return 'Entitlement only';
+}
+
 export function CustomerDetail({ userId }: CustomerDetailProps) {
   const t = useTranslations('Customers');
   const locale = useLocale();
@@ -173,6 +207,7 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
   const [deviceToRevoke, setDeviceToRevoke] = useState<DeviceRevokeCandidate | null>(null);
   const [revokeAllDevicesDialogOpen, setRevokeAllDevicesDialogOpen] = useState(false);
   const [subscriptionResyncDialogOpen, setSubscriptionResyncDialogOpen] = useState(false);
+  const [selectedSubscriptionKey, setSelectedSubscriptionKey] = useState<string | null>(null);
   const [credentialRegenerationDialogOpen, setCredentialRegenerationDialogOpen] = useState(false);
   const [revokeOnlyVpnPasswords, setRevokeOnlyVpnPasswords] = useState(false);
   const [credentialRegenerationResult, setCredentialRegenerationResult] =
@@ -260,6 +295,15 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
     queryKey: ['customers', 'detail', userId, 'subscription'],
     queryFn: async () => {
       const response = await customersApi.getSubscriptionSnapshot(userId);
+      return response.data;
+    },
+    staleTime: 15_000,
+  });
+
+  const customerSubscriptionsQuery = useQuery({
+    queryKey: ['customers', 'detail', userId, 'customer-subscriptions', selectedSubscriptionKey],
+    queryFn: async () => {
+      const response = await customersApi.listCustomerSubscriptions(userId, selectedSubscriptionKey);
       return response.data;
     },
     staleTime: 15_000,
@@ -466,6 +510,14 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
   const vpnUser = vpnUserQuery.data;
   const subscriptionSnapshot = subscriptionQuery.data;
   const subscriptionLinks = subscriptionSnapshot?.links ?? [];
+  const customerSubscriptions = customerSubscriptionsQuery.data;
+  const effectiveSelectedSubscriptionKey = selectedSubscriptionKey
+    ?? customerSubscriptions?.selected_subscription_key
+    ?? customerSubscriptions?.default_subscription_key
+    ?? null;
+  const selectedSubscription = customerSubscriptions?.items.find(
+    (item) => item.subscription_key === effectiveSelectedSubscriptionKey,
+  ) ?? customerSubscriptions?.items[0] ?? null;
   const currentStatus = statusDraft ?? customer?.status ?? 'active';
   const currentActive = isActiveDraft ?? customer?.is_active ?? false;
   const hasStateChanges = Boolean(
@@ -1057,6 +1109,109 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
                   <Cable className="h-4 w-4" />
                 </div>
               </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                    {t('detail.customerSubscriptionsTitle')}
+                  </p>
+                  <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+                    {t('detail.customerSubscriptionsDescription')}
+                  </p>
+                </div>
+                <select
+                  value={selectedSubscription?.subscription_key ?? ''}
+                  disabled={customerSubscriptionsQuery.isLoading || !customerSubscriptions?.items.length}
+                  onChange={(event) => setSelectedSubscriptionKey(event.target.value || null)}
+                  className="h-10 min-w-64 rounded-md border border-input bg-terminal-bg px-3 py-2 text-sm font-mono text-foreground"
+                >
+                  {customerSubscriptions?.items.length ? customerSubscriptions.items.map((item) => (
+                    <option key={item.subscription_key} value={item.subscription_key}>
+                      {item.display_name || item.plan_code || humanizeToken(item.kind)}
+                      {' · '}
+                      {humanizeToken(item.status)}
+                    </option>
+                  )) : (
+                    <option value="">
+                      {customerSubscriptionsQuery.isLoading
+                        ? t('common.loading')
+                        : t('detail.customerSubscriptionsEmpty')}
+                    </option>
+                  )}
+                </select>
+              </div>
+
+              {customerSubscriptionsQuery.isError ? (
+                <p className="mt-4 rounded-xl border border-neon-pink/25 bg-neon-pink/10 px-4 py-3 text-sm font-mono text-neon-pink">
+                  {getErrorMessage(customerSubscriptionsQuery.error, t('detail.customerSubscriptionsLoadError'))}
+                </p>
+              ) : selectedSubscription ? (
+                <div className="mt-4 space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <CustomerStatusChip
+                      label={humanizeToken(selectedSubscription.status)}
+                      tone={getVpnStatusTone(selectedSubscription.status)}
+                    />
+                    <CustomerStatusChip
+                      label={humanizeToken(selectedSubscription.kind)}
+                      tone="info"
+                    />
+                    <CustomerStatusChip
+                      label={describeSubscriptionScope(selectedSubscription.management_scope)}
+                      tone={selectedSubscription.management_scope === 'subscription_vpn_identity' ? 'success' : 'warning'}
+                    />
+                    {selectedSubscription.can_manage ? (
+                      <CustomerStatusChip label={t('detail.subscriptionManageable')} tone="success" />
+                    ) : null}
+                    {selectedSubscription.can_deliver_config ? (
+                      <CustomerStatusChip label={t('detail.subscriptionConfigReady')} tone="success" />
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      [t('detail.labels.planCode'), selectedSubscription.plan_code ?? selectedSubscription.plan_uuid ?? '--'],
+                      [t('common.expiresAt'), formatDateTime(selectedSubscription.expires_at, locale)],
+                      [
+                        t('detail.labels.deviceLimit'),
+                        formatSubscriptionEntitlementValue(
+                          getSelectedSubscriptionEntitlement(selectedSubscription, 'device_limit'),
+                          'device_limit',
+                          locale,
+                        ),
+                      ],
+                      [
+                        t('common.limit'),
+                        formatSubscriptionEntitlementValue(
+                          getSelectedSubscriptionEntitlement(selectedSubscription, 'traffic_limit_bytes'),
+                          'traffic_limit_bytes',
+                          locale,
+                        ),
+                      ],
+                    ].map(([label, value]) => (
+                      <div
+                        key={String(label)}
+                        className="rounded-2xl border border-grid-line/20 bg-terminal-bg/60 p-4"
+                      >
+                        <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                          {label}
+                        </p>
+                        <p className="mt-2 break-all text-sm font-display tracking-[0.12em] text-white">
+                          {value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {customerSubscriptions?.limitations.length ? (
+                    <div className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-mono text-amber-100">
+                      {customerSubscriptions.limitations.join(' ')}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {subscriptionQuery.isLoading ? (

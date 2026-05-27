@@ -418,7 +418,7 @@ services:
       PROMETHEUS_PROTECT: "false"
       PROMETHEUS_PORT: "8080"
       PROMETHEUS_PATH: /metrics
-      REFERRAL_ENABLED: "false"
+      REFERRAL_ENABLED: ${REFERRAL_ENABLED:-false}
       TELEGRAM_STARS_ENABLED: ${TELEGRAM_STARS_ENABLED:-false}
       LOG_JSON_FORMAT: "true"
     networks:

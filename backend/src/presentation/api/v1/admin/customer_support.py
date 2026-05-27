@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.auth.permissions import Permission
+from src.application.use_cases.customer_subscriptions import ListCustomerSubscriptionsUseCase
 from src.application.use_cases.subscriptions.stage1_credential_regeneration import (
     STAGE1_CREDENTIAL_REGENERATION_ACTION,
     Stage1CredentialRegenerationService,
@@ -22,6 +23,7 @@ from src.application.use_cases.subscriptions.stage1_manual_subscription import (
     Stage1ManualSubscriptionService,
     build_stage1_manual_subscription_request,
 )
+from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import UserStatus
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
@@ -41,6 +43,10 @@ from src.infrastructure.remnawave.stage1_manual_subscription_gateway import (
     RemnawaveStage1ManualSubscriptionGateway,
 )
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.api.v1.customer_subscriptions.schemas import (
+    CustomerSubscriptionListResponse,
+    CustomerSubscriptionSummaryResponse,
+)
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
@@ -211,6 +217,35 @@ def _serialize_vpn_user(remnawave_uuid: str | None, vpn_user) -> AdminCustomerVp
     )
 
 
+def _resolve_customer_auth_realm_id(user: MobileUserModel) -> UUID:
+    return user.auth_realm_id or stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"]))
+
+
+def _serialize_customer_subscription_summary(item) -> CustomerSubscriptionSummaryResponse:
+    return CustomerSubscriptionSummaryResponse(
+        subscription_key=item.subscription_key,
+        kind=item.kind,
+        status=item.status,
+        display_name=item.display_name,
+        plan_uuid=item.plan_uuid,
+        plan_code=item.plan_code,
+        source_type=item.source_type,
+        source_order_id=item.source_order_id,
+        entitlement_grant_id=item.entitlement_grant_id,
+        service_identity_id=item.service_identity_id,
+        provider_name=item.provider_name,
+        expires_at=item.expires_at,
+        created_at=item.created_at,
+        effective_entitlements=item.effective_entitlements,
+        invite_bundle=item.invite_bundle,
+        is_trial=item.is_trial,
+        addons=item.addons,
+        can_manage=item.can_manage,
+        can_deliver_config=item.can_deliver_config,
+        management_scope=item.management_scope,
+    )
+
+
 @router.get("/{user_id}/notes", response_model=list[AdminCustomerStaffNoteResponse])
 async def list_customer_staff_notes(
     user_id: UUID,
@@ -275,6 +310,37 @@ async def create_customer_staff_note(
 
     route_operations_total.labels(route="admin_customer_support", action="notes_create", status="success").inc()
     return _serialize_note(note, {current_user.id: current_user})
+
+
+@router.get("/{user_id}/customer-subscriptions", response_model=CustomerSubscriptionListResponse)
+async def list_admin_customer_subscriptions(
+    user_id: UUID,
+    selected_subscription_key: str | None = Query(None, min_length=1, max_length=220),
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_permission(Permission.USER_READ)),
+) -> CustomerSubscriptionListResponse:
+    """Return all customer subscriptions for support-side selected-subscription inspection."""
+    user = await _require_mobile_user(user_id, db)
+    auth_realm_id = _resolve_customer_auth_realm_id(user)
+    result = await ListCustomerSubscriptionsUseCase(db).execute(
+        customer_account_id=user.id,
+        auth_realm_id=auth_realm_id,
+        selected_subscription_key=selected_subscription_key,
+    )
+
+    route_operations_total.labels(
+        route="admin_customer_support",
+        action="customer_subscriptions_list",
+        status="success",
+    ).inc()
+    return CustomerSubscriptionListResponse(
+        customer_account_id=result.customer_account_id,
+        auth_realm_id=result.auth_realm_id,
+        selected_subscription_key=result.selected_subscription_key,
+        default_subscription_key=result.default_subscription_key,
+        items=[_serialize_customer_subscription_summary(item) for item in result.items],
+        limitations=result.limitations,
+    )
 
 
 @router.get("/{user_id}/vpn-user", response_model=AdminCustomerVpnUserResponse)
