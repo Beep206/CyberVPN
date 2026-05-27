@@ -151,7 +151,7 @@ class EntitlementsService:
             )
         return addon_lines
 
-    def _normalize_grant_snapshot(self, *, grant_snapshot: dict, expires_at: datetime | None) -> dict:
+    def normalize_grant_snapshot(self, *, grant_snapshot: dict, expires_at: datetime | None) -> dict:
         snapshot = self.build_empty_snapshot()
         provided = dict(grant_snapshot or {})
         effective_entitlements = dict(snapshot["effective_entitlements"])
@@ -189,7 +189,7 @@ class EntitlementsService:
                     now=now,
                 )
                 if current_grant is not None:
-                    return self._normalize_grant_snapshot(
+                    return self.normalize_grant_snapshot(
                         grant_snapshot=dict(current_grant.grant_snapshot or {}),
                         expires_at=current_grant.expires_at,
                     )

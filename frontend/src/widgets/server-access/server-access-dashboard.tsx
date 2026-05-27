@@ -25,6 +25,7 @@ import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
   profileApi,
   publicNetworkApi,
@@ -236,6 +237,7 @@ export function ServerAccessDashboard() {
   const t = useTranslations('Servers');
   const locale = useLocale();
   const [copyState, setCopyState] = useState<CopyState>(null);
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
 
   const profileQuery = useQuery({
     queryKey: ['server-access', 'profile'],
@@ -260,7 +262,7 @@ export function ServerAccessDashboard() {
   });
 
   const serviceStateQuery = useQuery({
-    queryKey: ['server-access', 'service-state'],
+    queryKey: ['server-access', 'service-state', selectedSubscriptionKey],
     queryFn: async () => {
       const response = await serviceAccessApi.getCurrentServiceState();
       return response.data;
@@ -273,7 +275,7 @@ export function ServerAccessDashboard() {
 
   const userId = profileQuery.data?.id;
   const configQuery = useQuery({
-    queryKey: ['server-access', 'config', userId],
+    queryKey: ['server-access', 'config', userId, selectedSubscriptionKey],
     enabled: Boolean(userId),
     queryFn: async () => {
       if (!userId) {

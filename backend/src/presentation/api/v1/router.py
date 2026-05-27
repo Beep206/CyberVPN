@@ -20,6 +20,7 @@ from src.presentation.api.v1.codes.routes import router as codes_router
 from src.presentation.api.v1.commercial_bindings.routes import router as commercial_bindings_router
 from src.presentation.api.v1.config_profiles.routes import router as config_profiles_router
 from src.presentation.api.v1.creative_approvals.routes import router as creative_approvals_router
+from src.presentation.api.v1.customer_subscriptions.routes import router as customer_subscriptions_router
 from src.presentation.api.v1.device_credentials.routes import router as device_credentials_router
 from src.presentation.api.v1.dispute_cases.routes import router as dispute_cases_router
 from src.presentation.api.v1.earning_events.routes import router as earning_events_router
@@ -176,6 +177,7 @@ api_router.include_router(policy_acceptance_router)
 
 # Core resources
 api_router.include_router(users_router)
+api_router.include_router(customer_subscriptions_router)
 api_router.include_router(profile_router)
 api_router.include_router(notifications_router)
 api_router.include_router(servers_router)

@@ -21,9 +21,11 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@/i18n/navigation';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   authApi,
+  customerSubscriptionsApi,
   entitlementsApi,
   growthNotificationsApi,
   profileApi,
@@ -158,6 +160,7 @@ export function SettingsCabinetDashboard() {
   const t = useTranslations('Settings.cabinet');
   const locale = useLocale();
   const queryClient = useQueryClient();
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const telegramMagicLinkAuth = useAuthStore((state) => state.telegramMagicLinkAuth);
   const authLoading = useAuthStore((state) => state.isLoading);
   const [activeModal, setActiveModal] = useState<SensitiveModal>(null);
@@ -237,8 +240,13 @@ export function SettingsCabinetDashboard() {
   });
 
   const entitlementQuery = useQuery({
-    queryKey: ['settings', 'entitlement'],
+    queryKey: ['settings', 'entitlement', selectedSubscriptionKey],
     queryFn: async () => {
+      if (selectedSubscriptionKey) {
+        const response = await customerSubscriptionsApi.getEntitlements(selectedSubscriptionKey);
+        return response.data;
+      }
+
       const response = await entitlementsApi.getCurrent();
       return response.data;
     },

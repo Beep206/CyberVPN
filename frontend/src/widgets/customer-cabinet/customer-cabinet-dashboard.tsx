@@ -30,7 +30,9 @@ import {
   STAGE1_PROMO_CODES_UI_ENABLED,
   STAGE1_REFERRAL_UI_ENABLED,
 } from '@/shared/lib/stage1-growth-flags';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
+  customerSubscriptionsApi,
   entitlementsApi,
   growthNotificationsApi,
   profileApi,
@@ -480,6 +482,7 @@ function SyncStatusPanel({
 export function CustomerCabinetDashboard() {
   const locale = useLocale();
   const t = useTranslations('Dashboard.cabinet');
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
 
   const profileQuery = useQuery({
     queryFn: async () => (await profileApi.getProfile()).data,
@@ -488,8 +491,14 @@ export function CustomerCabinetDashboard() {
   });
 
   const entitlementQuery = useQuery({
-    queryFn: async () => (await entitlementsApi.getCurrent()).data,
-    queryKey: ['customer-cabinet', 'entitlement'],
+    queryFn: async () => {
+      if (selectedSubscriptionKey) {
+        return (await customerSubscriptionsApi.getEntitlements(selectedSubscriptionKey)).data;
+      }
+
+      return (await entitlementsApi.getCurrent()).data;
+    },
+    queryKey: ['customer-cabinet', 'entitlement', selectedSubscriptionKey],
     refetchInterval: visiblePolling(LIVE_REFETCH_MS),
     staleTime: STATIC_STALE_MS,
   });
@@ -531,7 +540,7 @@ export function CustomerCabinetDashboard() {
 
   const serviceStateQuery = useQuery({
     queryFn: async () => (await serviceAccessApi.getCurrentServiceState()).data,
-    queryKey: ['customer-cabinet', 'service-state'],
+    queryKey: ['customer-cabinet', 'service-state', selectedSubscriptionKey],
     refetchInterval: visiblePolling(LIVE_REFETCH_MS),
     staleTime: LIVE_REFETCH_MS,
   });

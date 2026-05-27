@@ -17,6 +17,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import { paymentsApi, walletApi } from '@/lib/api';
 import { isStage1WalletWithdrawalUiEnabled } from '@/shared/lib/stage1-growth-flags';
 import { markPerformance, measurePerformance, PerformanceMarks } from '@/shared/lib/web-vitals';
@@ -166,6 +167,7 @@ export function WalletCabinetDashboard() {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('cryptobot');
   const [formError, setFormError] = useState('');
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const walletWithdrawalsEnabled = isStage1WalletWithdrawalUiEnabled();
 
   const walletQuery = useQuery({
@@ -196,7 +198,7 @@ export function WalletCabinetDashboard() {
   });
 
   const recentPaymentsQuery = useQuery({
-    queryKey: ['wallet', 'recent-payments'],
+    queryKey: ['wallet', 'recent-payments', selectedSubscriptionKey],
     queryFn: async () => {
       const response = await paymentsApi.getHistory({
         limit: RECENT_PAYMENTS_LIMIT,

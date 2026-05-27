@@ -33,6 +33,7 @@ export { addonsApi } from './addons';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';
+export { customerSubscriptionsApi } from './customer-subscriptions';
 export { entitlementsApi, serviceAccessApi } from './service-access';
 export { plansApi } from './plans';
 

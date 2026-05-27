@@ -21,9 +21,11 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
   addonsApi,
   commerceApi,
+  customerSubscriptionsApi,
   entitlementsApi,
   plansApi,
   serviceAccessApi,
@@ -208,9 +210,18 @@ function buildAddonRequest(addon: AddonRecord, currency: string) {
   };
 }
 
+function getWriteContractGuardMessage(locale: string): string {
+  if (locale.startsWith('ru')) {
+    return 'Изменение плана и add-ons пока доступно только для backend current подписки. Выберите current/default подписку или дождитесь MSUB-08.';
+  }
+
+  return 'Plan changes and add-ons are available only for the backend current subscription until MSUB-08 is complete.';
+}
+
 export function SubscriptionCabinetDashboard() {
   const t = useTranslations('Subscriptions');
   const locale = useLocale();
+  const { defaultSubscriptionKey, selectedSubscriptionKey } = useCustomerSubscriptions();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [purchasePlan, setPurchasePlan] = useState<PlanRecord | null>(null);
   const [upgradeState, setUpgradeState] = useState<AsyncActionState>({
@@ -226,8 +237,13 @@ export function SubscriptionCabinetDashboard() {
   const [trialState, setTrialState] = useState<'error' | 'idle' | 'loading' | 'success'>('idle');
 
   const entitlementQuery = useQuery({
-    queryKey: ['current-entitlements'],
+    queryKey: ['current-entitlements', selectedSubscriptionKey],
     queryFn: async () => {
+      if (selectedSubscriptionKey) {
+        const response = await customerSubscriptionsApi.getEntitlements(selectedSubscriptionKey);
+        return response.data;
+      }
+
       const response = await entitlementsApi.getCurrent();
       return response.data;
     },
@@ -238,7 +254,7 @@ export function SubscriptionCabinetDashboard() {
   });
 
   const serviceStateQuery = useQuery({
-    queryKey: ['subscription-cabinet', 'service-state'],
+    queryKey: ['subscription-cabinet', 'service-state', selectedSubscriptionKey],
     queryFn: async () => {
       const response = await serviceAccessApi.getCurrentServiceState();
       return response.data;
@@ -316,6 +332,8 @@ export function SubscriptionCabinetDashboard() {
     : currentPlan?.connection_modes.map((mode) => formatLabel(mode, mode)).join(' + ') ??
       t('labels.notAvailable');
   const activeSubscription = !isInactiveEntitlement(entitlement);
+  const canUseCurrentWriteContract =
+    !selectedSubscriptionKey || selectedSubscriptionKey === defaultSubscriptionKey;
   const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, locale) : null;
   const hasAnyError =
     entitlementQuery.isError ||
@@ -346,6 +364,15 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleQuoteUpgrade = async (plan: PlanRecord) => {
+    if (!canUseCurrentWriteContract) {
+      setUpgradeState({
+        id: plan.uuid,
+        message: getWriteContractGuardMessage(locale),
+        status: 'error',
+      });
+      return;
+    }
+
     const price = getPlanPrice(plan, locale);
     setUpgradeState({ id: plan.uuid, message: '', status: 'loading' });
 
@@ -371,6 +398,15 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleCommitUpgrade = async (plan: PlanRecord) => {
+    if (!canUseCurrentWriteContract) {
+      setUpgradeState({
+        id: plan.uuid,
+        message: getWriteContractGuardMessage(locale),
+        status: 'error',
+      });
+      return;
+    }
+
     const price = getPlanPrice(plan, locale);
     setUpgradeState((current) => ({
       ...current,
@@ -399,6 +435,15 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleQuoteAddon = async (addon: AddonRecord) => {
+    if (!canUseCurrentWriteContract) {
+      setAddonState({
+        id: addon.uuid,
+        message: getWriteContractGuardMessage(locale),
+        status: 'error',
+      });
+      return;
+    }
+
     const currency = locale.startsWith('ru') && addon.price_rub ? 'RUB' : 'USD';
     setAddonState({ id: addon.uuid, message: '', status: 'loading' });
 
@@ -422,6 +467,15 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handlePurchaseAddon = async (addon: AddonRecord) => {
+    if (!canUseCurrentWriteContract) {
+      setAddonState({
+        id: addon.uuid,
+        message: getWriteContractGuardMessage(locale),
+        status: 'error',
+      });
+      return;
+    }
+
     const currency = locale.startsWith('ru') && addon.price_rub ? 'RUB' : 'USD';
     setAddonState((current) => ({
       ...current,
@@ -787,6 +841,7 @@ export function SubscriptionCabinetDashboard() {
 
                   <PlanActionButton
                     action={action}
+                    disabled={!canUseCurrentWriteContract}
                     loading={stateForPlan?.status === 'loading'}
                     quoteReady={stateForPlan?.status === 'quoted'}
                     onCommit={() => handleCommitUpgrade(plan)}
@@ -855,7 +910,11 @@ export function SubscriptionCabinetDashboard() {
                       <button
                         type="button"
                         onClick={() => handleQuoteAddon(addon)}
-                        disabled={!activeSubscription || stateForAddon?.status === 'loading'}
+                        disabled={
+                          !activeSubscription ||
+                          !canUseCurrentWriteContract ||
+                          stateForAddon?.status === 'loading'
+                        }
                         className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-neon-purple/40 bg-neon-purple/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-purple transition hover:bg-neon-purple/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <TicketPercent className="h-4 w-4" aria-hidden="true" />
@@ -866,6 +925,7 @@ export function SubscriptionCabinetDashboard() {
                         onClick={() => handlePurchaseAddon(addon)}
                         disabled={
                           !activeSubscription ||
+                          !canUseCurrentWriteContract ||
                           stateForAddon?.status === 'loading' ||
                           stateForAddon?.status !== 'quoted'
                         }
@@ -1036,6 +1096,7 @@ function LinkButton({
 
 function PlanActionButton({
   action,
+  disabled = false,
   loading,
   onCommit,
   onPurchase,
@@ -1044,6 +1105,7 @@ function PlanActionButton({
   t,
 }: {
   action: PlanAction;
+  disabled?: boolean;
   loading: boolean;
   onCommit: () => void;
   onPurchase: () => void;
@@ -1068,7 +1130,8 @@ function PlanActionButton({
       <button
         type="button"
         onClick={onPurchase}
-        className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-neon-purple/40 bg-neon-purple/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-purple transition hover:bg-neon-purple/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
+        disabled={disabled}
+        className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-neon-purple/40 bg-neon-purple/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-purple transition hover:bg-neon-purple/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
       >
         <CreditCard className="h-4 w-4" aria-hidden="true" />
         {t('planActions.purchase')}
@@ -1081,7 +1144,7 @@ function PlanActionButton({
       <button
         type="button"
         onClick={onQuote}
-        disabled={loading}
+        disabled={disabled || loading}
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-neon-cyan transition hover:bg-neon-cyan/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
       >
         <TicketPercent className="h-4 w-4" aria-hidden="true" />
@@ -1090,7 +1153,7 @@ function PlanActionButton({
       <button
         type="button"
         onClick={onCommit}
-        disabled={loading || !quoteReady}
+        disabled={disabled || loading || !quoteReady}
         className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-matrix-green/40 bg-matrix-green/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-matrix-green transition hover:bg-matrix-green/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
