@@ -23,11 +23,19 @@ function buildForwardHeaders(request: NextRequest, token: string): Headers {
   });
 
   const forwardedFor = request.headers.get('x-forwarded-for');
+  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host;
+  const forwardedProto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(/:$/, '');
   const userAgent = request.headers.get('user-agent');
   const acceptLanguage = request.headers.get('accept-language');
 
   if (forwardedFor) {
     headers.set('x-forwarded-for', forwardedFor);
+  }
+  if (forwardedHost) {
+    headers.set('x-forwarded-host', forwardedHost);
+  }
+  if (forwardedProto) {
+    headers.set('x-forwarded-proto', forwardedProto);
   }
   if (userAgent) {
     headers.set('user-agent', userAgent);

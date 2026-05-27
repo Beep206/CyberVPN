@@ -56,11 +56,13 @@ describe('POST /api/auth/2fa/complete', () => {
       '/ru-RU/dashboard',
       true,
     );
-    const request = new NextRequest('http://localhost:3000/api/auth/2fa/complete', {
+    const request = new NextRequest('https://admin.cyber-vpn.net/api/auth/2fa/complete', {
       method: 'POST',
       body: JSON.stringify({ code: '123456' }),
       headers: {
         'content-type': 'application/json',
+        'x-forwarded-for': '203.0.113.10',
+        'x-forwarded-proto': 'https',
       },
     });
     request.cookies.set(PENDING_2FA_COOKIE, pending.cookieValue);
@@ -76,6 +78,10 @@ describe('POST /api/auth/2fa/complete', () => {
         headers: expect.any(Headers),
       }),
     );
+    const forwardedHeaders = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1]?.headers as Headers;
+    expect(forwardedHeaders.get('x-forwarded-host')).toBe('admin.cyber-vpn.net');
+    expect(forwardedHeaders.get('x-forwarded-proto')).toBe('https');
+    expect(forwardedHeaders.get('x-forwarded-for')).toBe('203.0.113.10');
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       redirect_to: '/ru-RU/dashboard?welcome=true',
