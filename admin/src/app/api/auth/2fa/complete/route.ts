@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import {
   parsePendingTwoFactorCookieValue,
+  pendingTwoFactorCookieOptions,
   PENDING_2FA_COOKIE,
 } from '@/features/auth/lib/pending-twofa';
 import { getDefaultPostLoginPath } from '@/features/auth/lib/redirect-path';
@@ -123,10 +124,10 @@ function mirrorBackendCookieForNextResponse(headerValue: string, target: NextRes
 }
 
 function deletePendingTwoFactorCookie(response: NextResponse): void {
-  response.headers.append(
-    'Set-Cookie',
-    `${PENDING_2FA_COOKIE}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-  );
+  response.cookies.set(PENDING_2FA_COOKIE, '', {
+    ...pendingTwoFactorCookieOptions,
+    maxAge: 0,
+  });
 }
 
 async function readErrorPayload(response: Response): Promise<{ detail: string }> {

@@ -178,6 +178,27 @@ function reportApiResponseTelemetry(
   });
 }
 
+async function hasActiveCookieSession(): Promise<boolean> {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${CANONICAL_API_BASE_PATH}/auth/session`, {
+      cache: 'no-store',
+      credentials: 'include',
+      headers: {
+        accept: 'application/json',
+      },
+      method: 'GET',
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Request interceptor - X-Request-ID + queue during refresh
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
@@ -323,6 +344,17 @@ apiClient.interceptors.response.use(
           requestUrl.includes('/auth/session') ||
           requestUrl.includes('/auth/magic-link/verify') ||
           requestUrl.includes('/auth/magic-link/verify-otp');
+
+        const sessionStillActive = await hasActiveCookieSession();
+        if (sessionStillActive) {
+          reportApiResponseTelemetry(originalRequest, {
+            errorCode: sanitizeFrontendObservabilityToken(
+              String(error.response?.status ?? error.code ?? 'request_failed'),
+            ),
+            result: 'failure',
+          });
+          return Promise.reject(error);
+        }
 
         // Session probe and magic-link verification can run on public pages;
         // don't force redirect here or we can interrupt in-flight login flows.
