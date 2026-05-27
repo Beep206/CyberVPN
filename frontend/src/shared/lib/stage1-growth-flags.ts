@@ -16,7 +16,7 @@ export type Stage1GrowthUiState = {
 };
 
 function isPublicFlagEnabled(value: string | undefined): boolean {
-  return value === 'true';
+  return value !== 'false';
 }
 
 export function getStage1GrowthUiState(

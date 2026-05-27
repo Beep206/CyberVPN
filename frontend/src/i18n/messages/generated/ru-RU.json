@@ -1338,6 +1338,7 @@
       "home": "Главная",
       "plans": "Тарифы",
       "profile": "Профиль",
+      "referral": "Награды",
       "wallet": "Кошелёк"
     },
     "payments": {
@@ -2241,6 +2242,10 @@
     "title": "Privacy Policy"
   },
   "Referral": {
+    "activityBase": "На основе {amount} при ставке {rate}%",
+    "activityReward": "Начисление {amount}",
+    "activitySubtitle": "Текущий backend-контракт возвращает реферальную активность как записи наград, привязанные к аккаунту.",
+    "activityTitle": "Последняя реферальная активность",
     "cabinet": {
       "actions": {
         "refresh": "Обновить"
@@ -2348,7 +2353,87 @@
         "referrals": "Рефералы"
       },
       "title": "РЕФЕРАЛЬНЫЕ НАГРАДЫ"
-    }
+    },
+    "copied": "Скопировано",
+    "copyCode": "Копировать код",
+    "giftCreated": "Создан {date}",
+    "giftPlan": "{plan} · {days} дней",
+    "giftPurchase": {
+      "action": "Создать подарочную оплату",
+      "errors": {
+        "default": "Не удалось создать подарочную оплату.",
+        "planRequired": "Выберите тариф перед созданием подарочной оплаты."
+      },
+      "messageLabel": "Сообщение к подарку",
+      "messagePlaceholder": "Необязательное сообщение для получателя",
+      "planLabel": "Подарочный тариф",
+      "planPlaceholder": "Выберите тариф",
+      "processing": "Подготовка подарочной оплаты...",
+      "recipientHintLabel": "Подсказка получателя",
+      "recipientHintPlaceholder": "friend@example.com или заметка",
+      "subtitle": "Создайте подарочную оплату, не смешивая её с реферальными или промо-скидками.",
+      "successIssued": "Подарок успешно выпущен. Передайте этот код: {code}",
+      "successPaymentPending": "Подарочная оплата создана. Завершите оплату в открывшемся окне.",
+      "successQueued": "Подарочная оплата успешно создана.",
+      "title": "Купить VPN в подарок"
+    },
+    "giftRecipient": "Получатель: {recipient}",
+    "giftRecipientFallback": "не указан",
+    "giftRedeemed": "Активирован {date}",
+    "giftsSubtitle": "Купленные или выданные подарочные коды, которыми можно поделиться.",
+    "giftStatus": {
+      "active": "Активен",
+      "expired": "Истёк",
+      "redeemed": "Активирован",
+      "revoked": "Отозван"
+    },
+    "giftsTitle": "Мои подарки",
+    "hubEyebrow": "ПОДЕЛИТЬСЯ И ОТСЛЕЖИВАТЬ",
+    "inviteCreated": "Выдан {date}",
+    "inviteDays": "{days} бесплатных дней",
+    "inviteExpires": "Истекает {date}",
+    "invitesSubtitle": "Инвайт-коды, уже выданные вашему аккаунту.",
+    "inviteStatus": {
+      "active": "Активен",
+      "expired": "Истёк",
+      "used": "Использован"
+    },
+    "invitesTitle": "Мои инвайты",
+    "noActivity": "Реферальной активности пока нет.",
+    "noGifts": "Подарочных кодов пока нет.",
+    "noInvites": "Инвайт-кодов пока нет.",
+    "overview": {
+      "activeInvites": "Активные инвайты",
+      "activeInvitesHint": "Неиспользованные инвайт-коды, готовые к отправке.",
+      "currentRate": "Текущая ставка",
+      "currentRateHint": "Ставка программы, возвращённая текущим реферальным контрактом.",
+      "totalReferrals": "Всего рефералов",
+      "totalReferralsHint": "Аккаунты, привязанные к текущей реферальной программе.",
+      "totalRewards": "Получено наград",
+      "totalRewardsHint": "Текущая сумма наград по backend-контракту."
+    },
+    "pageEyebrow": "CUSTOMER GROWTH",
+    "programUnavailable": "Реферальная программа временно недоступна. Существующие инвайты остаются видимыми, но новые действия могут быть приостановлены.",
+    "promoNoteBody": "Промо- и реферальные скидки применяются при оплате. Этот раздел отвечает за инвайты, подарки и отслеживание кодов.",
+    "promoNoteTitle": "Правила оплаты",
+    "redeemButton": "Активировать код",
+    "redeemErrors": {
+      "empty": "Сначала введите код."
+    },
+    "redeeming": "Активация...",
+    "redeemInputLabel": "Инвайт или подарочный код",
+    "redeemPlaceholder": "ВВЕДИТЕ-КОД",
+    "redeemSubtitle": "Инвайт-коды и подарочные коды активируются здесь. Промо- и реферальные скидки применяются при оформлении оплаты.",
+    "redeemSuccessGift": "Подарок активирован. Добавлен тариф {plan} на {days} дней.",
+    "redeemSuccessInvite": "Инвайт активирован. Добавлено {days} бесплатных дней.",
+    "redeemTitle": "Активировать код",
+    "shareCode": "Поделиться кодом",
+    "shareDescription": "Реферальные ссылки, инвайты, подарочные коды и отслеживание выданных кодов собраны в одном месте. Промоскидки остаются в оформлении оплаты.",
+    "shareMessage": "Подключайся к CyberVPN с моим реферальным кодом: {code}",
+    "shareTitle": "Поделитесь реферальным кодом",
+    "subtitle": "Управляйте инвайтами, подарочными кодами, реферальным шарингом и активностью наград в одном месте.",
+    "title": "ЦЕНТР НАГРАД",
+    "yourCode": "Ваш код"
   },
   "RefundPolicy": {
     "intro": "Эта Refund Policy объясняет, как обрабатываются refund requests для CyberVPN accounts, trial-to-paid flows, Telegram Bot, Telegram Mini App, web checkout и VPN access, выданного через CyberVPN.",
@@ -2926,6 +3011,15 @@
     "autoRenew": "Автопродление",
     "availablePlans": "Доступные планы",
     "cancelSubscription": "Отменить подписку",
+    "checkoutCodes": {
+      "active": "Код {code} будет применён при следующем расчёте.",
+      "description": "Введите код один раз перед расчётом. Он будет передан в backend quote для смены тарифа или покупки add-on.",
+      "empty": "Оставьте поле пустым, если скидка или checkout code не нужны.",
+      "eyebrow": "Код для оплаты",
+      "label": "Код",
+      "placeholder": "PROMO2026",
+      "title": "Промо, реферальный или checkout-код"
+    },
     "checkoutCodesDescription": "Promo-коды применяются в checkout. Invite redemption остаётся в центре наград, чтобы цены и доступ не расходились между поверхностями.",
     "checkoutCodesTitle": "Checkout-коды",
     "choosePlanBelow": "Выберите план ниже, чтобы начать",

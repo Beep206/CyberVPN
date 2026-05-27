@@ -21,6 +21,15 @@
   "rewardsHubCta": "Open rewards hub",
   "checkoutCodesTitle": "Checkout codes",
   "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
+  "checkoutCodes": {
+    "eyebrow": "Checkout code",
+    "title": "Promo, referral, or checkout code",
+    "description": "Enter the code once before quoting. It will be sent to the backend quote for plan changes or add-on purchase.",
+    "label": "Code",
+    "placeholder": "SAVE20",
+    "active": "Code {code} will be applied to the next quote.",
+    "empty": "Leave this empty when no discount or checkout code should be used."
+  },
   "subscriptionHistory": "Subscription History",
   "actions": {
     "cancel": "Cancel renewal",

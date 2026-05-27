@@ -1397,6 +1397,7 @@
       "home": "Home",
       "plans": "Plans",
       "profile": "Profile",
+      "referral": "Rewards",
       "wallet": "Wallet"
     },
     "payments": {
@@ -3157,6 +3158,15 @@
     "autoRenew": "Auto-Renew",
     "availablePlans": "Available Plans",
     "cancelSubscription": "Cancel Subscription",
+    "checkoutCodes": {
+      "active": "Code {code} will be applied to the next quote.",
+      "description": "Enter the code once before quoting. It will be sent to the backend quote for plan changes or add-on purchase.",
+      "empty": "Leave this empty when no discount or checkout code should be used.",
+      "eyebrow": "Checkout code",
+      "label": "Code",
+      "placeholder": "SAVE20",
+      "title": "Promo, referral, or checkout code"
+    },
     "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
     "checkoutCodesTitle": "Checkout codes",
     "choosePlanBelow": "Choose a plan below to get started",

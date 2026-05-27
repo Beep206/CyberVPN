@@ -34,6 +34,7 @@ import {
 } from '@/lib/api';
 import type { CurrentEntitlementStateResponse } from '@/lib/api/service-access';
 import { CancelSubscriptionModal } from '@/app/[locale]/(dashboard)/subscriptions/components/CancelSubscriptionModal';
+import { CodesSection } from '@/app/[locale]/(dashboard)/subscriptions/components/CodesSection';
 import { PurchaseConfirmModal } from '@/app/[locale]/(dashboard)/subscriptions/components/PurchaseConfirmModal';
 import {
   formatDate,
@@ -188,17 +189,17 @@ function getSafeErrorMessage(fallback: string): string {
   return fallback;
 }
 
-function buildUpgradeRequest(plan: PlanRecord, currency: string) {
+function buildUpgradeRequest(plan: PlanRecord, currency: string, promoCode: string | null) {
   return {
     channel: 'web',
     currency,
-    promo_code: null,
+    promo_code: promoCode,
     target_plan_id: plan.uuid,
     use_wallet: 0,
   };
 }
 
-function buildAddonRequest(addon: AddonRecord, currency: string) {
+function buildAddonRequest(addon: AddonRecord, currency: string, promoCode: string | null) {
   return {
     addons: [
       {
@@ -208,7 +209,7 @@ function buildAddonRequest(addon: AddonRecord, currency: string) {
     ],
     channel: 'web',
     currency,
-    promo_code: null,
+    promo_code: promoCode,
     use_wallet: 0,
   };
 }
@@ -262,6 +263,7 @@ export function SubscriptionCabinetDashboard() {
     message: '',
     status: 'idle',
   });
+  const [checkoutCode, setCheckoutCode] = useState('');
   const [trialState, setTrialState] = useState<'error' | 'idle' | 'loading' | 'success'>('idle');
 
   const entitlementQuery = useQuery({
@@ -389,6 +391,7 @@ export function SubscriptionCabinetDashboard() {
       t('labels.notAvailable');
   const activeSubscription = !isInactiveEntitlement(entitlement);
   const canUseSelectedWriteContract = Boolean(selectedSubscriptionKey?.startsWith('grant:'));
+  const checkoutCodeForRequest = checkoutCode.trim().toUpperCase() || null;
   const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, locale) : null;
   const hasAnyError =
     entitlementQuery.isError ||
@@ -436,7 +439,7 @@ export function SubscriptionCabinetDashboard() {
     try {
       const response = await customerSubscriptionsApi.quoteUpgrade(
         selectedSubscriptionKey,
-        buildUpgradeRequest(plan, price.currency),
+        buildUpgradeRequest(plan, price.currency, checkoutCodeForRequest),
       );
       setUpgradeState({
         id: plan.uuid,
@@ -475,7 +478,7 @@ export function SubscriptionCabinetDashboard() {
     try {
       const response = await customerSubscriptionsApi.commitUpgrade(
         selectedSubscriptionKey,
-        buildUpgradeRequest(plan, price.currency),
+        buildUpgradeRequest(plan, price.currency, checkoutCodeForRequest),
       );
       openInvoiceIfPresent(response.data);
       await refetchCore();
@@ -509,7 +512,7 @@ export function SubscriptionCabinetDashboard() {
     try {
       const response = await customerSubscriptionsApi.quoteAddons(
         selectedSubscriptionKey,
-        buildAddonRequest(addon, currency),
+        buildAddonRequest(addon, currency, checkoutCodeForRequest),
       );
       setAddonState({
         id: addon.uuid,
@@ -548,7 +551,7 @@ export function SubscriptionCabinetDashboard() {
     try {
       const response = await customerSubscriptionsApi.purchaseAddons(
         selectedSubscriptionKey,
-        buildAddonRequest(addon, currency),
+        buildAddonRequest(addon, currency, checkoutCodeForRequest),
       );
       openInvoiceIfPresent(response.data);
       await refetchCore();
@@ -837,6 +840,45 @@ export function SubscriptionCabinetDashboard() {
             />
           </div>
         </article>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl border border-neon-purple/30 bg-neon-purple/10 p-3">
+              <TicketPercent className="h-6 w-6 text-neon-purple" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
+                {t('checkoutCodes.eyebrow')}
+              </p>
+              <h2 className="mt-2 text-2xl font-display text-white">{t('checkoutCodes.title')}</h2>
+              <p className="mt-3 max-w-2xl font-mono text-sm leading-7 text-muted-foreground">
+                {t('checkoutCodes.description')}
+              </p>
+            </div>
+          </div>
+
+          <label className="mt-6 block">
+            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {t('checkoutCodes.label')}
+            </span>
+            <input
+              value={checkoutCode}
+              onChange={(event) => setCheckoutCode(event.target.value.toUpperCase())}
+              placeholder={t('checkoutCodes.placeholder')}
+              className="mt-2 w-full rounded-2xl border border-grid-line/30 bg-black/20 px-4 py-3 font-mono text-sm uppercase tracking-[0.12em] text-white outline-none transition focus:border-neon-cyan/50 focus:ring-2 focus:ring-neon-cyan/20"
+            />
+          </label>
+
+          <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
+            {checkoutCodeForRequest
+              ? t('checkoutCodes.active', { code: checkoutCodeForRequest })
+              : t('checkoutCodes.empty')}
+          </p>
+        </article>
+
+        <CodesSection />
       </section>
 
       <section className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">

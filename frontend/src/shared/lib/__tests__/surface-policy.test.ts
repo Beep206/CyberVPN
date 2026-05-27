@@ -14,20 +14,17 @@ describe('official web surface policy', () => {
     vi.unstubAllEnvs();
   });
 
-  it('keeps S1 public growth code entry disabled while allowing invite redemption', () => {
+  it('enables S2 public growth surfaces by default while keeping partner modules closed', () => {
     expect(canOfficialWebSurfaceAccess('invite_codes')).toBe(true);
-    expect(canOfficialWebSurfaceAccess('promo_codes')).toBe(false);
+    expect(canOfficialWebSurfaceAccess('promo_codes')).toBe(true);
     expect(canOfficialWebSurfaceAccess('partner_markup_visibility')).toBe(false);
     expect(canOfficialWebSurfaceAccess('workspace_operator_modules')).toBe(false);
   });
 
-  it('requires the later evidence approval gate before any public growth UI is exposed', () => {
+  it('allows runtime env flags to explicitly disable public growth UI', () => {
     expect(
       getStage1GrowthUiState({
-        NEXT_PUBLIC_STAGE1_CHECKOUT_CODES_ENABLED: 'true',
-        NEXT_PUBLIC_STAGE1_GIFT_CODES_ENABLED: 'true',
-        NEXT_PUBLIC_STAGE1_PROMO_CODES_ENABLED: 'true',
-        NEXT_PUBLIC_STAGE1_REFERRAL_ENABLED: 'true',
+        NEXT_PUBLIC_STAGE1_GROWTH_EVIDENCE_APPROVED: 'false',
       }),
     ).toMatchObject({
       checkoutCodesUiEnabled: false,
@@ -41,20 +38,24 @@ describe('official web surface policy', () => {
     expect(
       getStage1GrowthUiState({
         NEXT_PUBLIC_STAGE1_GROWTH_EVIDENCE_APPROVED: 'true',
-        NEXT_PUBLIC_STAGE1_REFERRAL_ENABLED: 'true',
       }),
     ).toMatchObject({
       evidenceApproved: true,
+      checkoutCodesUiEnabled: true,
+      giftCodesUiEnabled: true,
       growthHubUiEnabled: true,
+      promoCodesUiEnabled: true,
       referralUiEnabled: true,
     });
   });
 
-  it('keeps referral and gift hub surfaces closed when only checkout codes are approved', () => {
+  it('keeps referral and gift hub surfaces closed when explicitly disabled', () => {
     expect(
       getStage1GrowthUiState({
-        NEXT_PUBLIC_STAGE1_CHECKOUT_CODES_ENABLED: 'true',
         NEXT_PUBLIC_STAGE1_GROWTH_EVIDENCE_APPROVED: 'true',
+        NEXT_PUBLIC_STAGE1_GIFT_CODES_ENABLED: 'false',
+        NEXT_PUBLIC_STAGE1_PROMO_CODES_ENABLED: 'false',
+        NEXT_PUBLIC_STAGE1_REFERRAL_ENABLED: 'false',
       }),
     ).toMatchObject({
       checkoutCodesUiEnabled: true,
@@ -63,11 +64,11 @@ describe('official web surface policy', () => {
     });
   });
 
-  it('requires both checkout-code and promo evidence before official promo entry is exposed', () => {
+  it('requires checkout-code and promo capabilities to stay enabled before official promo entry is exposed', () => {
     expect(
       getOfficialWebSurfacePolicy({
-        NEXT_PUBLIC_STAGE1_CHECKOUT_CODES_ENABLED: 'true',
         NEXT_PUBLIC_STAGE1_GROWTH_EVIDENCE_APPROVED: 'true',
+        NEXT_PUBLIC_STAGE1_CHECKOUT_CODES_ENABLED: 'false',
       }).promo_codes,
     ).toBe(false);
 
@@ -75,7 +76,6 @@ describe('official web surface policy', () => {
       getOfficialWebSurfacePolicy({
         NEXT_PUBLIC_STAGE1_CHECKOUT_CODES_ENABLED: 'true',
         NEXT_PUBLIC_STAGE1_GROWTH_EVIDENCE_APPROVED: 'true',
-        NEXT_PUBLIC_STAGE1_PROMO_CODES_ENABLED: 'true',
       }).promo_codes,
     ).toBe(true);
   });

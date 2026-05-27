@@ -2,14 +2,14 @@
 
 import { usePathname } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
-import { Home, CreditCard, Wallet, User } from 'lucide-react';
+import { Gift, Home, CreditCard, Wallet, User, type LucideIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { useTranslations } from 'next-intl';
 
 interface NavItem {
   href: string;
-  icon: typeof Home;
+  icon: LucideIcon;
   label: string;
   match: (path: string) => boolean;
 }
@@ -37,6 +37,12 @@ export function MiniAppBottomNav() {
       icon: Wallet,
       label: t('wallet'),
       match: (path) => path.startsWith('/miniapp/wallet'),
+    },
+    {
+      href: '/miniapp/referral',
+      icon: Gift,
+      label: t('referral'),
+      match: (path) => path.startsWith('/miniapp/referral'),
     },
     {
       href: '/miniapp/profile',
