@@ -299,6 +299,40 @@ export function getAddonPrice(addon: AddonRecord, locale: string) {
   return formatMoney(locale, addon.price_usd, 'USD');
 }
 
+export function getAddonEntitlementLabel(addon: AddonRecord, locale = 'en-EN'): string | null {
+  const deviceDelta = readNumericDelta(addon.delta_entitlements.device_limit);
+  if (deviceDelta > 0) {
+    return locale.startsWith('ru') ? `+${deviceDelta} устройств` : `+${deviceDelta} devices`;
+  }
+
+  const trafficDelta = readNumericDelta(addon.delta_entitlements.traffic_limit_bytes);
+  if (trafficDelta > 0) {
+    return locale.startsWith('ru')
+      ? `+${formatBytes(trafficDelta, locale)} трафика`
+      : `+${formatBytes(trafficDelta, locale)} traffic`;
+  }
+
+  const dedicatedIpDelta = readNumericDelta(addon.delta_entitlements.dedicated_ip_count);
+  if (dedicatedIpDelta > 0) {
+    return locale.startsWith('ru') ? `+${dedicatedIpDelta} dedicated IP` : `+${dedicatedIpDelta} dedicated IP`;
+  }
+
+  return null;
+}
+
+function readNumericDelta(value: unknown): number {
+  if (isFiniteNumber(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
 export function formatDuration(days: number): string {
   if (days === 1) {
     return '1 day';

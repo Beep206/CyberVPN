@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 router = Router(name="subscription")
+RU_TRAFFIC_ADDON_CODES = {"ru_traffic_30gb", "ru_traffic_50gb", "ru_traffic_100gb"}
 
 
 def _format_price(price_rub: Any = None, price_usd: Any = None) -> str:
@@ -129,7 +130,7 @@ def _resolve_supported_addons(addons_catalog: list[dict[str, Any]], plan_code: s
     supported: dict[str, Any] = {}
     for addon in addons_catalog:
         code = str(addon.get("code") or "")
-        if code != "extra_device":
+        if code != "extra_device" and code not in RU_TRAFFIC_ADDON_CODES:
             continue
         if addon.get("requires_location"):
             continue
@@ -140,7 +141,30 @@ def _resolve_supported_addons(addons_catalog: list[dict[str, Any]], plan_code: s
     return supported
 
 
-def _build_checkout_payload(plan_id: str, addon_qty: int) -> dict[str, Any]:
+def _traffic_addon_label(addon: dict[str, Any] | None) -> str:
+    if not addon:
+        return "none"
+    delta = addon.get("delta_entitlements") or {}
+    traffic_bytes = int(delta.get("traffic_limit_bytes") or 0)
+    if traffic_bytes > 0:
+        traffic_gb = round(traffic_bytes / 1024**3)
+        return f"+{traffic_gb} GB traffic"
+    return str(addon.get("display_name") or addon.get("code") or "Traffic package")
+
+
+def _traffic_addon_options(supported_addons: dict[str, Any]) -> list[dict[str, Any]]:
+    options: list[dict[str, Any]] = []
+    for code in sorted(RU_TRAFFIC_ADDON_CODES):
+        supported = supported_addons.get(code)
+        if not supported:
+            continue
+        definition = dict(supported.get("definition") or {})
+        definition["label"] = _traffic_addon_label(definition)
+        options.append(definition)
+    return options
+
+
+def _build_checkout_payload(plan_id: str, addon_qty: int, traffic_addon_code: str | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "plan_id": plan_id,
         "addons": [],
@@ -148,18 +172,37 @@ def _build_checkout_payload(plan_id: str, addon_qty: int) -> dict[str, Any]:
         "payment_method": "cryptobot",
     }
     if addon_qty > 0:
-        payload["addons"] = [{"code": "extra_device", "qty": addon_qty}]
+        payload["addons"].append({"code": "extra_device", "qty": addon_qty})
+    if traffic_addon_code:
+        payload["addons"].append({"code": traffic_addon_code, "qty": 1})
     return payload
 
 
-def _addons_summary_text(*, plan_name: str, duration_days: int, extra_device_qty: int, extra_device_limit: int) -> str:
+def _addons_summary_text(
+    *,
+    plan_name: str,
+    duration_days: int,
+    extra_device_qty: int,
+    extra_device_limit: int,
+    selected_traffic_addon_code: str | None = None,
+    traffic_addons: list[dict[str, Any]] | None = None,
+) -> str:
+    selected_traffic_addon = next(
+        (
+            addon
+            for addon in traffic_addons or []
+            if str(addon.get("code") or "") == str(selected_traffic_addon_code or "")
+        ),
+        None,
+    )
     summary = (
         "🧩 Add-ons\n\n"
         f"Plan: {plan_name}\n"
         f"Period: {duration_days} days\n"
         f"Extra device: {extra_device_qty}/{extra_device_limit}\n"
+        f"Traffic package: {_traffic_addon_label(selected_traffic_addon) if selected_traffic_addon else 'none'}\n"
     )
-    if extra_device_limit <= 0:
+    if extra_device_limit <= 0 and not traffic_addons:
         summary += "\nNo bot-supported add-ons are available for this plan."
     return summary
 
@@ -177,12 +220,13 @@ async def _render_payment_step(
     duration_days = int(data.get("duration_days") or 0)
     plan_name = str(data.get("plan_name") or "Plan")
     extra_device_qty = int(data.get("extra_device_qty") or 0)
+    selected_traffic_addon_code = data.get("selected_traffic_addon_code")
     user_id = callback.from_user.id
 
     if not plan_id or duration_days <= 0:
         raise ValueError("Missing checkout context")
 
-    payload = _build_checkout_payload(plan_id, extra_device_qty)
+    payload = _build_checkout_payload(plan_id, extra_device_qty, str(selected_traffic_addon_code or "") or None)
     telegram_stars_amount = int(data.get("telegram_stars_amount") or 0)
     if telegram_stars_amount > 0:
         payload["telegram_stars_amount"] = telegram_stars_amount
@@ -197,6 +241,8 @@ async def _render_payment_step(
     )
     if extra_device_qty > 0:
         text += f"\n\nAdd-ons:\n+1 device x {extra_device_qty}"
+    if selected_traffic_addon_code:
+        text += f"\nTraffic package: {selected_traffic_addon_code}"
 
     await state.update_data(checkout_payload=payload, checkout_quote=quote)
     await callback.message.edit_text(
@@ -403,6 +449,7 @@ async def duration_selected_handler(
     addons_catalog = await api_client.get_addons_catalog()
     supported_addons = _resolve_supported_addons(addons_catalog, plan_code)
     extra_device_limit = int((supported_addons.get("extra_device") or {}).get("max_quantity", 0))
+    traffic_addons = _traffic_addon_options(supported_addons)
 
     await state.update_data(
         plan_id=duration.get("plan_id"),
@@ -411,20 +458,26 @@ async def duration_selected_handler(
         telegram_stars_amount=int(duration.get("telegram_stars_amount") or 0),
         supported_addons=supported_addons,
         extra_device_qty=0,
+        selected_traffic_addon_code=None,
+        traffic_addons=traffic_addons,
     )
 
-    if extra_device_limit > 0:
+    if extra_device_limit > 0 or traffic_addons:
         await callback.message.edit_text(
             text=_addons_summary_text(
                 plan_name=str(plan_group.get("display_name") or "Plan"),
                 duration_days=duration_days,
                 extra_device_qty=0,
                 extra_device_limit=extra_device_limit,
+                selected_traffic_addon_code=None,
+                traffic_addons=traffic_addons,
             ),
             reply_markup=addons_keyboard(
                 i18n,
                 extra_device_qty=0,
                 extra_device_limit=extra_device_limit,
+                traffic_addons=traffic_addons,
+                selected_traffic_addon_code=None,
             ),
         )
         await state.set_state(SubscriptionState.selecting_addons)
@@ -443,6 +496,7 @@ async def duration_selected_handler(
         plan_code=plan_code,
         duration_days=duration_days,
         extra_device_limit=extra_device_limit,
+        traffic_addons=[addon.get("code") for addon in traffic_addons],
     )
     await callback.answer()
 
@@ -463,6 +517,8 @@ async def addon_selection_handler(
     supported_addons = data.get("supported_addons") or {}
     extra_device_limit = int((supported_addons.get("extra_device") or {}).get("max_quantity", 0))
     extra_device_qty = int(data.get("extra_device_qty") or 0)
+    traffic_addons = data.get("traffic_addons") or []
+    selected_traffic_addon_code = str(data.get("selected_traffic_addon_code") or "") or None
     plan_name = str(data.get("plan_name") or "Plan")
     duration_days = int(data.get("duration_days") or 0)
 
@@ -481,19 +537,33 @@ async def addon_selection_handler(
         extra_device_qty += 1
     if callback.data == "addon:dec:extra_device" and extra_device_qty > 0:
         extra_device_qty -= 1
+    if callback.data == "addon:traffic:none":
+        selected_traffic_addon_code = None
+    if callback.data.startswith("addon:traffic:") and callback.data != "addon:traffic:none":
+        candidate_code = callback.data.rsplit(":", 1)[-1]
+        allowed_codes = {str(addon.get("code") or "") for addon in traffic_addons}
+        if candidate_code in allowed_codes:
+            selected_traffic_addon_code = None if selected_traffic_addon_code == candidate_code else candidate_code
 
-    await state.update_data(extra_device_qty=extra_device_qty)
+    await state.update_data(
+        extra_device_qty=extra_device_qty,
+        selected_traffic_addon_code=selected_traffic_addon_code,
+    )
     await callback.message.edit_text(
         text=_addons_summary_text(
             plan_name=plan_name,
             duration_days=duration_days,
             extra_device_qty=extra_device_qty,
             extra_device_limit=extra_device_limit,
+            selected_traffic_addon_code=selected_traffic_addon_code,
+            traffic_addons=traffic_addons,
         ),
         reply_markup=addons_keyboard(
             i18n,
             extra_device_qty=extra_device_qty,
             extra_device_limit=extra_device_limit,
+            traffic_addons=traffic_addons,
+            selected_traffic_addon_code=selected_traffic_addon_code,
         ),
     )
     await callback.answer()
@@ -513,18 +583,24 @@ async def subscription_back_handler(
             data = await state.get_data()
             supported_addons = data.get("supported_addons") or {}
             extra_device_limit = int((supported_addons.get("extra_device") or {}).get("max_quantity", 0))
-            if extra_device_limit > 0:
+            traffic_addons = data.get("traffic_addons") or []
+            selected_traffic_addon_code = str(data.get("selected_traffic_addon_code") or "") or None
+            if extra_device_limit > 0 or traffic_addons:
                 await callback.message.edit_text(
                     text=_addons_summary_text(
                         plan_name=str(data.get("plan_name") or "Plan"),
                         duration_days=int(data.get("duration_days") or 0),
                         extra_device_qty=int(data.get("extra_device_qty") or 0),
                         extra_device_limit=extra_device_limit,
+                        selected_traffic_addon_code=selected_traffic_addon_code,
+                        traffic_addons=traffic_addons,
                     ),
                     reply_markup=addons_keyboard(
                         i18n,
                         extra_device_qty=int(data.get("extra_device_qty") or 0),
                         extra_device_limit=extra_device_limit,
+                        traffic_addons=traffic_addons,
+                        selected_traffic_addon_code=selected_traffic_addon_code,
                     ),
                 )
                 await state.set_state(SubscriptionState.selecting_addons)

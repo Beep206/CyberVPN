@@ -340,13 +340,14 @@ class CheckoutUseCase:
     ) -> bool:
         if user is None:
             return False
-        if partner_code.partner_user_id == user.id:
+        if getattr(partner_code, "partner_user_id", None) == user.id:
             return True
-        if partner_code.partner_account_id is None:
+        partner_account_id = getattr(partner_code, "partner_account_id", None)
+        if partner_account_id is None:
             return False
-        if user.partner_account_id == partner_code.partner_account_id:
+        if getattr(user, "partner_account_id", None) == partner_account_id:
             return True
-        account = await self._session.get(PartnerAccountModel, partner_code.partner_account_id)
+        account = await self._session.get(PartnerAccountModel, partner_account_id)
         return account is not None and account.legacy_owner_user_id == user.id
 
     async def _resolve_plan(self, plan_id: UUID, *, sale_channel: str) -> SubscriptionPlanModel:
@@ -406,9 +407,16 @@ class CheckoutUseCase:
             )
 
         plan_code = str(plan.plan_code or "")
-        for code, total_qty in totals_by_code.items():
+        for code in {line.code for line in lines}:
+            total_qty = totals_by_code[code]
             addon = catalog[code]
-            max_qty = int((addon.max_quantity_by_plan or {}).get(plan_code, 0) or 0)
+            plan_limits = addon.max_quantity_by_plan or {}
+            if plan_limits:
+                max_qty = int(plan_limits.get(plan_code, 0) or 0)
+                if max_qty <= 0:
+                    raise ValueError(f"Addon {code} is not available for plan {plan_code}")
+            else:
+                max_qty = 0
             if max_qty > 0 and total_qty > max_qty:
                 raise ValueError(f"Addon {code} exceeds limit for plan {plan_code}")
 

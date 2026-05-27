@@ -88,7 +88,13 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
 def test_addon_seed_matches_phase1_catalog() -> None:
     addons = {spec.code: spec for spec in build_addon_seed_specs()}
 
-    assert set(addons) == {"extra_device", "dedicated_ip"}
+    assert set(addons) == {
+        "extra_device",
+        "dedicated_ip",
+        "ru_traffic_30gb",
+        "ru_traffic_50gb",
+        "ru_traffic_100gb",
+    }
     assert addons["extra_device"].price_usd == Decimal("6.00")
     assert addons["extra_device"].max_quantity_by_plan["plus"] == 3
     assert addons["extra_device"].max_quantity_by_plan["development"] == 0
@@ -97,3 +103,13 @@ def test_addon_seed_matches_phase1_catalog() -> None:
     assert addons["dedicated_ip"].price_usd == Decimal("24.00")
     assert addons["dedicated_ip"].requires_location is True
     assert addons["dedicated_ip"].delta_entitlements == {"dedicated_ip_count": 1}
+
+    assert addons["ru_traffic_30gb"].price_usd == Decimal("2.00")
+    assert addons["ru_traffic_30gb"].price_rub == Decimal("199.00")
+    assert addons["ru_traffic_30gb"].max_quantity_by_plan["ru_start"] == 10
+    assert addons["ru_traffic_30gb"].max_quantity_by_plan["ru_basic"] == 10
+    assert addons["ru_traffic_30gb"].max_quantity_by_plan["plus"] == 0
+    assert addons["ru_traffic_30gb"].delta_entitlements == {"traffic_limit_bytes": 30 * 1024**3}
+
+    assert addons["ru_traffic_50gb"].delta_entitlements == {"traffic_limit_bytes": 50 * 1024**3}
+    assert addons["ru_traffic_100gb"].delta_entitlements == {"traffic_limit_bytes": 100 * 1024**3}

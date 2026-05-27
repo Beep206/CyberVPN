@@ -48,14 +48,23 @@ class EntitlementsService:
         addon_lines = addon_lines or []
         device_limit = int(plan.device_limit)
         dedicated_ip_count = int((plan.dedicated_ip or {}).get("included", 0))
+        traffic_limit_bytes = getattr(plan, "traffic_limit_bytes", None)
 
         for line in addon_lines:
             qty = int(line.get("qty", 1))
             delta = line.get("delta_entitlements") or {}
             device_limit += int(delta.get("device_limit", 0)) * qty
             dedicated_ip_count += int(delta.get("dedicated_ip_count", 0)) * qty
+            traffic_delta = int(delta.get("traffic_limit_bytes", 0) or 0) * qty
+            if traffic_delta > 0:
+                traffic_limit_bytes = int(traffic_limit_bytes or 0) + traffic_delta
 
-        traffic_policy = plan.traffic_policy or {"mode": "fair_use", "display_label": "Unlimited"}
+        traffic_policy = dict(plan.traffic_policy or {"mode": "fair_use", "display_label": "Unlimited"})
+        if traffic_limit_bytes is not None and traffic_limit_bytes > 0:
+            traffic_gib = traffic_limit_bytes / (1024**3)
+            traffic_policy["display_label"] = (
+                f"{int(traffic_gib)} GB" if traffic_gib.is_integer() else f"{traffic_gib:.1f} GB"
+            )
         return {
             "status": status or ("trial" if is_trial else "active"),
             "plan_uuid": str(plan.id),
@@ -65,7 +74,7 @@ class EntitlementsService:
             "expires_at": expires_at.isoformat() if expires_at else None,
             "effective_entitlements": {
                 "device_limit": device_limit,
-                "traffic_limit_bytes": getattr(plan, "traffic_limit_bytes", None),
+                "traffic_limit_bytes": traffic_limit_bytes,
                 "traffic_policy": traffic_policy.get("mode", "fair_use"),
                 "display_traffic_label": traffic_policy.get("display_label", "Unlimited"),
                 "connection_modes": plan.connection_modes or [],

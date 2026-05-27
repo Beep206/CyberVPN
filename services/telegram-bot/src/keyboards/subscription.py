@@ -99,6 +99,8 @@ def addons_keyboard(
     *,
     extra_device_qty: int = 0,
     extra_device_limit: int = 0,
+    traffic_addons: list[dict[str, Any]] | None = None,
+    selected_traffic_addon_code: str | None = None,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -108,9 +110,18 @@ def addons_keyboard(
         if extra_device_qty < extra_device_limit:
             builder.button(text="+ 1 device", callback_data="addon:inc:extra_device")
 
+    for addon in traffic_addons or []:
+        code = str(addon.get("code") or "")
+        label = str(addon.get("label") or addon.get("display_name") or code)
+        selected_prefix = "✅ " if selected_traffic_addon_code == code else ""
+        builder.button(text=f"{selected_prefix}{label}", callback_data=f"addon:traffic:{code}")
+
+    if selected_traffic_addon_code:
+        builder.button(text="Clear traffic package", callback_data="addon:traffic:none")
+
     builder.button(text=i18n("btn-next"), callback_data="addon:continue")
     builder.button(text=i18n("btn-back"), callback_data="subscription:back")
-    builder.adjust(2, 1, 1)
+    builder.adjust(2, 1, 1, 1)
     return builder.as_markup()
 
 

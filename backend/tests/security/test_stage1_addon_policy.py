@@ -48,16 +48,17 @@ def test_stage1_public_addon_filter_returns_empty_when_disabled() -> None:
 def test_stage1_public_addon_filter_allows_only_approved_enabled_public_addons() -> None:
     valid = _addon(code="extra_device")
     dedicated_ip = _addon(code="dedicated_ip")
+    ru_traffic = _addon(code="ru_traffic_30gb")
     inactive = _addon(code="extra_device", is_active=False)
     unknown = _addon(code="priority_support")
     wrong_channel = _addon(code="extra_device", sale_channels=["telegram_bot"])
     free = _addon(code="extra_device", price_usd=Decimal("0.00"))
 
     assert filter_stage1_public_addons(
-        [inactive, unknown, wrong_channel, free, valid, dedicated_ip],
+        [inactive, unknown, wrong_channel, free, valid, dedicated_ip, ru_traffic],
         sale_channel="web",
         enabled=True,
-    ) == [valid, dedicated_ip]
+    ) == [valid, dedicated_ip, ru_traffic]
 
 
 def test_stage1_addon_checkout_assertion_blocks_disabled_addons() -> None:

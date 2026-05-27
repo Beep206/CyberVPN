@@ -42,6 +42,7 @@ import {
   formatDuration,
   formatLabel,
   formatMoney,
+  getAddonEntitlementLabel,
   getAddonPrice,
   getCurrentPlan,
   getDaysUntilExpiry,
@@ -992,6 +993,7 @@ export function SubscriptionCabinetDashboard() {
             <div className="mt-6 space-y-4">
               {visibleAddons.map((addon) => {
                 const stateForAddon = addonState.id === addon.uuid ? addonState : null;
+                const entitlementLabel = getAddonEntitlementLabel(addon, locale);
                 return (
                   <div key={addon.uuid} className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1000,6 +1002,11 @@ export function SubscriptionCabinetDashboard() {
                         <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                           {addon.code} / {formatLabel(addon.duration_mode, addon.duration_mode)}
                         </p>
+                        {entitlementLabel ? (
+                          <p className="mt-2 font-mono text-xs text-neon-cyan">
+                            {entitlementLabel}
+                          </p>
+                        ) : null}
                       </div>
                       <p className="font-display text-xl text-neon-purple">
                         {getAddonPrice(addon, locale)}

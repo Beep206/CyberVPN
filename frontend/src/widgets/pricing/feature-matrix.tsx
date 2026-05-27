@@ -94,6 +94,7 @@ export function FeatureMatrix({
   const { currency } = useCurrencyPreference(locale);
   const extraDeviceAddon = addons.find((addon) => addon.code === 'extra_device');
   const dedicatedIpAddon = addons.find((addon) => addon.code === 'dedicated_ip');
+  const trafficAddons = addons.filter((addon) => addon.code.startsWith('ru_traffic_'));
   const dedicatedIpAddonAvailable = Boolean(dedicatedIpAddon);
 
   const rows = [
@@ -134,7 +135,7 @@ export function FeatureMatrix({
     },
   ];
 
-  const addonCards = [extraDeviceAddon, dedicatedIpAddon].filter(
+  const addonCards = [extraDeviceAddon, ...trafficAddons, dedicatedIpAddon].filter(
     (addon): addon is PricingAddon => Boolean(addon),
   );
 
@@ -228,11 +229,22 @@ export function FeatureMatrix({
           <div className="grid gap-4 md:grid-cols-2">
             {addonCards.map((addon) => {
               const pricePresentation = getPricePresentation(locale, addon, currency);
+              const fallbackTitle = addon.display_name;
+              const fallbackDescription = addon.code.startsWith('ru_traffic_')
+                ? 'Traffic package for Russia Start and Russia Basic.'
+                : addon.display_name;
+              const fallbackAvailability = addon.code.startsWith('ru_traffic_')
+                ? 'Only for Russia Start and Russia Basic.'
+                : addon.display_name;
               const availability = addon.code === 'extra_device'
                 ? t('addons.extra_device.availability', {
                     limits: formatPlanLimitSummary(extraDeviceAddon, PLAN_ORDER),
                   })
-                : t('addons.dedicated_ip.availability');
+                : addon.code === 'dedicated_ip'
+                  ? t('addons.dedicated_ip.availability')
+                  : t.has(`addons.${addon.code}.availability`)
+                    ? t(`addons.${addon.code}.availability`)
+                    : fallbackAvailability;
 
               return (
                 <div
@@ -242,10 +254,14 @@ export function FeatureMatrix({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-display text-lg uppercase tracking-[0.14em] text-foreground dark:text-white">
-                        {t(`addons.${addon.code}.title`)}
+                        {t.has(`addons.${addon.code}.title`)
+                          ? t(`addons.${addon.code}.title`)
+                          : fallbackTitle}
                       </p>
                       <p className="mt-3 text-sm font-mono leading-relaxed text-muted-foreground dark:text-white/66">
-                        {t(`addons.${addon.code}.description`)}
+                        {t.has(`addons.${addon.code}.description`)
+                          ? t(`addons.${addon.code}.description`)
+                          : fallbackDescription}
                       </p>
                     </div>
                     <div className="rounded-full border border-border/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground dark:border-white/10 dark:text-white/55">

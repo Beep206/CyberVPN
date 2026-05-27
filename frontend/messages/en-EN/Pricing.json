@@ -111,6 +111,21 @@
       "title": "Dedicated IP",
       "description": "One IP, one location, one predictable routing identity for services that dislike shared pools.",
       "availability": "Available on every paid plan. Max includes 1 by default."
+    },
+    "ru_traffic_30gb": {
+      "title": "+30 GB Russia traffic",
+      "description": "Small traffic extension for Russia Start and Russia Basic when the base cap is not enough.",
+      "availability": "Only for Russia Start and Russia Basic."
+    },
+    "ru_traffic_50gb": {
+      "title": "+50 GB Russia traffic",
+      "description": "Balanced traffic extension for Russia Start and Russia Basic.",
+      "availability": "Only for Russia Start and Russia Basic."
+    },
+    "ru_traffic_100gb": {
+      "title": "+100 GB Russia traffic",
+      "description": "Large traffic extension for heavy Russia-bundle usage.",
+      "availability": "Only for Russia Start and Russia Basic."
     }
   },
   "faq": {

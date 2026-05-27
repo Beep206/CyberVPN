@@ -179,3 +179,74 @@ async def test_stage1_checkout_allows_addon_lines_only_when_flag_enabled(
 
     assert lines[0].code == "extra_device"
     assert lines[0].total_price == Decimal("6.00")
+
+
+@pytest.mark.asyncio
+async def test_stage1_checkout_rejects_plan_specific_addon_when_plan_is_not_eligible(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(checkout_module.settings, "stage1_addons_enabled", True)
+    session = SimpleNamespace(get=AsyncMock(return_value=None))
+    use_case = CheckoutUseCase(session)
+    plan = _build_plan(plan_code="plus")
+    addon = _build_addon(
+        code="ru_traffic_30gb",
+        display_name="+30 GB Russia traffic",
+        price_usd=Decimal("2.00"),
+        max_quantity_by_plan={"ru_start": 10, "ru_basic": 10, "plus": 0},
+        delta_entitlements={"traffic_limit_bytes": 30 * 1024**3},
+    )
+
+    use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[addon]))
+
+    with pytest.raises(ValueError, match="not available for plan plus"):
+        await use_case._resolve_addons(
+            plan=plan,
+            addon_inputs=[CheckoutAddonInput(code="ru_traffic_30gb", qty=1)],
+            sale_channel="web",
+        )
+
+
+@pytest.mark.asyncio
+async def test_stage1_checkout_adds_ru_traffic_addon_to_ru_plan_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(checkout_module.settings, "stage1_addons_enabled", True)
+    session = SimpleNamespace(get=AsyncMock(return_value=None))
+    use_case = CheckoutUseCase(session)
+    plan = _build_plan(
+        plan_code="ru_start",
+        catalog_visibility="hidden",
+        sale_channels=["admin"],
+        traffic_limit_bytes=30 * 1024**3,
+        traffic_policy={"mode": "hard_cap", "display_label": "30 GB"},
+    )
+    addon = _build_addon(
+        code="ru_traffic_30gb",
+        display_name="+30 GB Russia traffic",
+        price_usd=Decimal("2.00"),
+        max_quantity_by_plan={"ru_start": 10, "ru_basic": 10, "plus": 0},
+        delta_entitlements={"traffic_limit_bytes": 30 * 1024**3},
+    )
+
+    use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[addon]))
+
+    lines = await use_case._resolve_addons(
+        plan=plan,
+        addon_inputs=[CheckoutAddonInput(code="ru_traffic_30gb", qty=1)],
+        sale_channel="admin",
+    )
+    snapshot = checkout_module.EntitlementsService.build_snapshot(
+        plan=plan,
+        addon_lines=[
+            {
+                "code": lines[0].code,
+                "qty": lines[0].qty,
+                "delta_entitlements": lines[0].delta_entitlements,
+            }
+        ],
+    )
+
+    assert lines[0].total_price == Decimal("2.00")
+    assert snapshot["effective_entitlements"]["traffic_limit_bytes"] == 60 * 1024**3
+    assert snapshot["effective_entitlements"]["display_traffic_label"] == "60 GB"

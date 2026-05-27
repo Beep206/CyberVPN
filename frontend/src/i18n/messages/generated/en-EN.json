@@ -1524,6 +1524,11 @@
         "sharedPlus": "shared+ pool"
       },
       "serviceMaintenanceTitle": "Service Notice",
+      "trafficAddonClear": "Clear",
+      "trafficAddonDescription": "Add traffic to Russia Start or Russia Basic without changing the subscription.",
+      "trafficAddonLimit": "You can stack up to {count} traffic packages on this tariff.",
+      "trafficAddonPackage": "+{gb} GB",
+      "trafficAddonTitle": "Russia traffic packages",
       "trafficUnlimited": "Unlimited",
       "trialActivated": "Trial activated. You now have 3 days of entry access.",
       "trialError": "Failed to activate trial. Please try again.",
@@ -2051,6 +2056,21 @@
         "title": "+1 Device"
       },
       "priceLabel": "from {price}",
+      "ru_traffic_100gb": {
+        "availability": "Only for Russia Start and Russia Basic.",
+        "description": "Large traffic extension for heavy Russia-bundle usage.",
+        "title": "+100 GB Russia traffic"
+      },
+      "ru_traffic_30gb": {
+        "availability": "Only for Russia Start and Russia Basic.",
+        "description": "Small traffic extension for Russia Start and Russia Basic when the base cap is not enough.",
+        "title": "+30 GB Russia traffic"
+      },
+      "ru_traffic_50gb": {
+        "availability": "Only for Russia Start and Russia Basic.",
+        "description": "Balanced traffic extension for Russia Start and Russia Basic.",
+        "title": "+50 GB Russia traffic"
+      },
       "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
       "title": "Add-ons, Not Tariff Sprawl"
     },

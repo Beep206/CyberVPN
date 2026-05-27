@@ -55,7 +55,8 @@ type CheckoutAddonLine = {
 };
 type CommitCheckoutPayload = {
   flow: MiniAppCheckoutFlow;
-  selectedSku: PlanRecord;
+  selectedPlanId: string;
+  selectedSku: PlanRecord | null;
   addonLines: CheckoutAddonLine[];
   effectivePromoCode: string | null;
   effectiveCheckoutCodeInput: string | null;
@@ -64,6 +65,8 @@ type CommitCheckoutPayload = {
 };
 
 const PUBLIC_PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
+const RU_TRAFFIC_ADDON_CODES = ['ru_traffic_30gb', 'ru_traffic_50gb', 'ru_traffic_100gb'] as const;
+type RuTrafficAddonCode = (typeof RU_TRAFFIC_ADDON_CODES)[number];
 const PLAN_ICON_MAP = {
   basic: Orbit,
   plus: Sparkles,
@@ -168,6 +171,10 @@ function formatPeriodLabel(t: ReturnType<typeof useTranslations>, durationDays: 
 }
 
 function translateOrFallback(t: ReturnType<typeof useTranslations>, key: string, fallback: string) {
+  if (!t.has(key)) {
+    return fallback;
+  }
+
   const translated = t(key);
   return translated === key ? fallback : translated;
 }
@@ -226,6 +233,27 @@ function extractTelegramStarsAmount(features: Record<string, unknown> | undefine
   }
 
   return 0;
+}
+
+function isRuTrafficAddonCode(code: string): code is RuTrafficAddonCode {
+  return RU_TRAFFIC_ADDON_CODES.includes(code as RuTrafficAddonCode);
+}
+
+function getAddonPlanLimit(addon: { max_quantity_by_plan: Record<string, number> }, planCode: string | null) {
+  if (!planCode) {
+    return 0;
+  }
+
+  return Number(addon.max_quantity_by_plan?.[planCode] ?? 0) || 0;
+}
+
+function getTrafficAddonGib(addon: { delta_entitlements: Record<string, unknown> }) {
+  const bytes = Number(addon.delta_entitlements?.traffic_limit_bytes ?? 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return null;
+  }
+
+  return Math.round(bytes / 1024 ** 3);
 }
 
 async function waitForPaymentCompletion(paymentId: string) {
@@ -377,6 +405,7 @@ export default function MiniAppPlansPage() {
   const [selectedPlanCodeOverride, setSelectedPlanCodeOverride] = useState<PricingTierCode | null>(null);
   const [selectedPeriodOverride, setSelectedPeriodOverride] = useState<number | null>(null);
   const [extraDeviceQty, setExtraDeviceQty] = useState(0);
+  const [selectedTrafficAddonCode, setSelectedTrafficAddonCode] = useState<RuTrafficAddonCode | null>(null);
   const [wantsDedicatedIp, setWantsDedicatedIp] = useState(false);
   const [dedicatedIpLocation, setDedicatedIpLocation] = useState('');
   const [codeInput, setCodeInput] = useState('');
@@ -444,8 +473,12 @@ export default function MiniAppPlansPage() {
   })();
 
   const groupedPlans = groupPlanFamilies(plansData ?? []);
+  const hasCurrentSubscription = currentEntitlements?.status === 'active';
   const currentMatch = findPlanByUuid(groupedPlans, currentEntitlements?.plan_uuid);
-  const defaultFamily = currentMatch?.family ?? groupedPlans.find((plan) => plan.code === 'plus') ?? groupedPlans[0] ?? null;
+  const hasHiddenCurrentPlan = Boolean(hasCurrentSubscription && currentEntitlements?.plan_uuid && !currentMatch);
+  const defaultFamily = hasHiddenCurrentPlan
+    ? null
+    : currentMatch?.family ?? groupedPlans.find((plan) => plan.code === 'plus') ?? groupedPlans[0] ?? null;
   const selectedPlanCode = selectedPlanCodeOverride ?? defaultFamily?.code ?? null;
   const selectedFamily = groupedPlans.find((plan) => plan.code === selectedPlanCode) ?? null;
   const selectedPeriod =
@@ -455,20 +488,28 @@ export default function MiniAppPlansPage() {
     ?? selectedFamily?.periods[0]?.duration_days
     ?? null;
   const selectedSku = selectedFamily?.periods.find((plan) => plan.duration_days === selectedPeriod) ?? null;
+  const selectedPlanId = selectedSku?.uuid ?? (hasCurrentSubscription ? currentEntitlements?.plan_uuid : null) ?? null;
+  const addonPlanCode = hasCurrentSubscription && !selectedSku
+    ? currentEntitlements?.plan_code ?? null
+    : selectedFamily?.code ?? currentEntitlements?.plan_code ?? null;
   const extraDeviceAddon = addonsData?.find((addon) => addon.code === 'extra_device');
   const dedicatedIpAddon = addonsData?.find((addon) => addon.code === 'dedicated_ip');
-  const addonsEnabled = Boolean(extraDeviceAddon || dedicatedIpAddon);
+  const trafficAddons = (addonsData ?? [])
+    .filter((addon) => isRuTrafficAddonCode(addon.code))
+    .filter((addon) => getAddonPlanLimit(addon, addonPlanCode) > 0)
+    .sort((left, right) => (getTrafficAddonGib(left) ?? 0) - (getTrafficAddonGib(right) ?? 0));
+  const selectedTrafficAddon = trafficAddons.find((addon) => addon.code === selectedTrafficAddonCode) ?? null;
+  const addonsEnabled = Boolean(extraDeviceAddon || dedicatedIpAddon || trafficAddons.length > 0);
 
-  const isCurrentPlan = Boolean(selectedSku && currentEntitlements?.plan_uuid === selectedSku.uuid);
-  const hasCurrentSubscription = currentEntitlements?.status === 'active';
+  const isCurrentPlan = Boolean(
+    (selectedSku && currentEntitlements?.plan_uuid === selectedSku.uuid)
+      || (hasCurrentSubscription && !selectedSku && currentEntitlements?.plan_uuid),
+  );
   const isUpgradeFlow = Boolean(hasCurrentSubscription && selectedSku && !isCurrentPlan);
   const canAddExtraDevice = Boolean(
-    selectedFamily
-    && extraDeviceAddon
-    && typeof extraDeviceAddon.max_quantity_by_plan[selectedFamily.code] === 'number',
+    extraDeviceAddon && getAddonPlanLimit(extraDeviceAddon, addonPlanCode) > 0,
   );
-  const maxExtraDevices =
-    (selectedFamily && extraDeviceAddon?.max_quantity_by_plan[selectedFamily.code]) || 0;
+  const maxExtraDevices = extraDeviceAddon ? getAddonPlanLimit(extraDeviceAddon, addonPlanCode) : 0;
 
   const addonLines =
     addonsEnabled && !isUpgradeFlow
@@ -483,10 +524,16 @@ export default function MiniAppPlansPage() {
                 location_code: dedicatedIpLocation.trim() || undefined,
               }]
             : []),
+          ...(selectedTrafficAddon
+            ? [{
+                code: selectedTrafficAddon.code,
+                qty: 1,
+              }]
+            : []),
         ]
       : [];
 
-  const flow: QuoteFlow = !selectedSku
+  const flow: QuoteFlow = !selectedPlanId
     ? 'none'
     : isCurrentPlan
       ? addonLines.length > 0
@@ -524,17 +571,18 @@ export default function MiniAppPlansPage() {
     queryKey: [
       'miniapp-pricing-quote',
       flow,
-      selectedSku?.uuid,
+      selectedPlanId,
       extraDeviceQty,
+      selectedTrafficAddonCode,
       wantsDedicatedIp,
       dedicatedIpLocation,
       effectivePromoCode,
       effectiveCheckoutCodeInput,
       selectedSubscriptionKey,
     ],
-    enabled: Boolean(selectedSku) && flow !== 'none' && flow !== 'current' && dedicatedIpReady && checkoutEnabled,
+    enabled: Boolean(selectedPlanId) && flow !== 'none' && flow !== 'current' && dedicatedIpReady && checkoutEnabled,
     queryFn: async () => {
-      if (!selectedSku) {
+      if (!selectedPlanId) {
         throw new Error('Missing selected plan');
       }
       if (flow === 'none' || flow === 'current') {
@@ -542,7 +590,7 @@ export default function MiniAppPlansPage() {
       }
       const { data } = await miniappApi.quoteCheckout({
         flow,
-        plan_id: selectedSku.uuid,
+        plan_id: selectedPlanId,
         addons: addonLines,
         code_input: effectiveCheckoutCodeInput ?? undefined,
         promo_code: effectivePromoCode ?? undefined,
@@ -579,7 +627,7 @@ export default function MiniAppPlansPage() {
       return;
     }
 
-    if (!selectedSku) {
+    if (!selectedPlanId) {
       setCodeFeedback({
         tone: 'error',
         message: t('selectPlanToQuote'),
@@ -592,8 +640,8 @@ export default function MiniAppPlansPage() {
       const resolutionResponse = await codesApi.resolve({
         code: normalizedCode,
         action_context: 'checkout',
-        plan_id: selectedSku.uuid,
-        amount: quoteQuery.data?.displayed_price ?? selectedSku.price_usd,
+        plan_id: selectedPlanId,
+        amount: quoteQuery.data?.displayed_price ?? selectedSku?.price_usd ?? 0,
         channel: 'miniapp',
       });
       const resolution = resolutionResponse.data;
@@ -683,7 +731,7 @@ export default function MiniAppPlansPage() {
 
       const { data } = await miniappApi.commitCheckout({
         flow: payload.flow,
-        plan_id: payload.selectedSku.uuid,
+        plan_id: payload.selectedPlanId,
         addons: payload.addonLines,
         code_input: payload.effectiveCheckoutCodeInput ?? undefined,
         promo_code: payload.effectivePromoCode ?? undefined,
@@ -1022,6 +1070,7 @@ export default function MiniAppPlansPage() {
                           ?? null,
                       );
                       setExtraDeviceQty(0);
+                      setSelectedTrafficAddonCode(null);
                       setWantsDedicatedIp(false);
                       setDedicatedIpLocation('');
                     }}
@@ -1178,6 +1227,65 @@ export default function MiniAppPlansPage() {
                 </div>
               ) : null}
 
+              {trafficAddons.length > 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-display text-base uppercase tracking-[0.14em] text-white">
+                        {t('trafficAddonTitle')}
+                      </p>
+                      <p className="mt-2 text-sm font-mono text-white/60">
+                        {t('trafficAddonDescription')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTrafficAddonCode(null)}
+                      disabled={!selectedTrafficAddonCode}
+                      className="rounded-lg border border-white/10 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white/70 disabled:opacity-40"
+                    >
+                      {t('trafficAddonClear')}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {trafficAddons.map((addon) => {
+                      const gib = getTrafficAddonGib(addon);
+                      const price = getPricePresentation(locale, addon);
+                      const isSelected = selectedTrafficAddonCode === addon.code;
+
+                      return (
+                        <button
+                          key={addon.code}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTrafficAddonCode(
+                              isSelected ? null : addon.code as RuTrafficAddonCode,
+                            );
+                            haptic('light');
+                          }}
+                          className={`rounded-xl border px-3 py-3 text-left transition ${
+                            isSelected
+                              ? 'border-neon-cyan bg-neon-cyan/10 text-white'
+                              : 'border-white/10 bg-white/[0.03] text-white/70'
+                          }`}
+                        >
+                          <span className="block font-display text-sm uppercase tracking-[0.12em]">
+                            {gib ? t('trafficAddonPackage', { gb: gib }) : addon.display_name}
+                          </span>
+                          <span className="mt-1 block font-mono text-[11px] text-white/55">
+                            {formatMoney(locale, price.billing.amount, price.billing.currency)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-xs font-mono text-white/45">
+                    {t('trafficAddonLimit', { count: getAddonPlanLimit(trafficAddons[0], addonPlanCode) })}
+                  </p>
+                </div>
+              ) : null}
+
               {dedicatedIpAddon ? (
                 <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
                   <label className="flex items-start gap-3">
@@ -1304,18 +1412,20 @@ export default function MiniAppPlansPage() {
         <button
           type="button"
           onClick={() => {
-            if (!selectedSku || flow === 'none' || flow === 'current' || !checkoutEnabled) {
+            if (!selectedPlanId || flow === 'none' || flow === 'current' || !checkoutEnabled) {
               return;
             }
+
+            const telegramStarsAmount = selectedSku
+              ? extractTelegramStarsAmount(selectedSku.features as Record<string, unknown> | undefined)
+              : 0;
 
             void emitMiniAppRuntimeEvent({
               event: 'miniapp_checkout_started',
               page: 'plans',
               locale,
               path: `/${locale}/miniapp/plans`,
-              paymentRail: extractTelegramStarsAmount(
-                selectedSku.features as Record<string, unknown> | undefined,
-              )
+              paymentRail: telegramStarsAmount
                 ? 'telegram_stars_xtr'
                 : 'generic_checkout',
               subscriptionStatus: currentEntitlements?.status ?? 'none',
@@ -1323,13 +1433,12 @@ export default function MiniAppPlansPage() {
 
             commitMutation.mutate({
               flow,
+              selectedPlanId,
               selectedSku,
               addonLines,
               effectivePromoCode,
               effectiveCheckoutCodeInput,
-              telegramStarsAmount: extractTelegramStarsAmount(
-                selectedSku.features as Record<string, unknown> | undefined,
-              ),
+              telegramStarsAmount,
               invoiceSupported: Boolean(webApp?.openInvoice),
             });
           }}
@@ -1337,7 +1446,7 @@ export default function MiniAppPlansPage() {
             commitMutation.isPending
             || flow === 'none'
             || flow === 'current'
-            || !selectedSku
+            || !selectedPlanId
             || !dedicatedIpReady
             || quoteQuery.isError
             || !checkoutEnabled

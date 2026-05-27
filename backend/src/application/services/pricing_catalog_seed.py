@@ -407,6 +407,18 @@ def build_plan_seed_specs() -> list[PlanSeedSpec]:
 
 def build_addon_seed_specs() -> list[AddonSeedSpec]:
     """Return the canonical add-on seed matrix."""
+    ru_traffic_plan_limits = {
+        PlanCode.START.value: 0,
+        PlanCode.RU_START.value: 10,
+        PlanCode.RU_BASIC.value: 10,
+        PlanCode.BASIC.value: 0,
+        PlanCode.PLUS.value: 0,
+        PlanCode.PRO.value: 0,
+        PlanCode.MAX.value: 0,
+        PlanCode.TEST.value: 0,
+        PlanCode.DEVELOPMENT.value: 0,
+    }
+
     return [
         AddonSeedSpec(
             code="extra_device",
@@ -428,6 +440,48 @@ def build_addon_seed_specs() -> list[AddonSeedSpec]:
                 PlanCode.DEVELOPMENT.value: 0,
             },
             delta_entitlements={"device_limit": 1},
+            requires_location=False,
+            sale_channels=PUBLIC_CHANNELS,
+            is_active=True,
+        ),
+        AddonSeedSpec(
+            code="ru_traffic_30gb",
+            display_name="+30 GB Russia traffic",
+            duration_mode="inherits_subscription",
+            is_stackable=True,
+            quantity_step=1,
+            price_usd=Decimal("2.00"),
+            price_rub=Decimal("199.00"),
+            max_quantity_by_plan=dict(ru_traffic_plan_limits),
+            delta_entitlements={"traffic_limit_bytes": 30 * GIB},
+            requires_location=False,
+            sale_channels=PUBLIC_CHANNELS,
+            is_active=True,
+        ),
+        AddonSeedSpec(
+            code="ru_traffic_50gb",
+            display_name="+50 GB Russia traffic",
+            duration_mode="inherits_subscription",
+            is_stackable=True,
+            quantity_step=1,
+            price_usd=Decimal("3.00"),
+            price_rub=Decimal("299.00"),
+            max_quantity_by_plan=dict(ru_traffic_plan_limits),
+            delta_entitlements={"traffic_limit_bytes": 50 * GIB},
+            requires_location=False,
+            sale_channels=PUBLIC_CHANNELS,
+            is_active=True,
+        ),
+        AddonSeedSpec(
+            code="ru_traffic_100gb",
+            display_name="+100 GB Russia traffic",
+            duration_mode="inherits_subscription",
+            is_stackable=True,
+            quantity_step=1,
+            price_usd=Decimal("5.00"),
+            price_rub=Decimal("499.00"),
+            max_quantity_by_plan=dict(ru_traffic_plan_limits),
+            delta_entitlements={"traffic_limit_bytes": 100 * GIB},
             requires_location=False,
             sale_channels=PUBLIC_CHANNELS,
             is_active=True,
