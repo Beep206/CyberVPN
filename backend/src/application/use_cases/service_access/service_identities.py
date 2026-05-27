@@ -34,6 +34,8 @@ class CreateServiceIdentityUseCase:
         source_order_id: UUID | None = None,
         origin_storefront_id: UUID | None = None,
         provider_subject_ref: str | None = None,
+        identity_scope: str = "account",
+        subscription_key: str | None = None,
         service_context: dict[str, Any] | None = None,
     ) -> CreateServiceIdentityResult:
         customer = await self._session.get(MobileUserModel, customer_account_id)
@@ -47,11 +49,24 @@ class CreateServiceIdentityUseCase:
         if customer.auth_realm_id and customer.auth_realm_id != auth_realm_id:
             raise ValueError("Customer account does not belong to auth realm")
 
-        existing = await self._repo.get_service_identity_by_customer_realm_provider(
-            customer_account_id=customer_account_id,
-            auth_realm_id=auth_realm_id,
-            provider_name=provider_name,
-        )
+        if identity_scope not in {"account", "subscription"}:
+            raise ValueError("Unsupported service identity scope")
+        if identity_scope == "subscription" and not subscription_key:
+            raise ValueError("Subscription-scoped service identity requires subscription_key")
+
+        if identity_scope == "subscription":
+            existing = await self._repo.get_service_identity_by_subscription_key(
+                customer_account_id=customer_account_id,
+                auth_realm_id=auth_realm_id,
+                provider_name=provider_name,
+                subscription_key=subscription_key or "",
+            )
+        else:
+            existing = await self._repo.get_service_identity_by_customer_realm_provider(
+                customer_account_id=customer_account_id,
+                auth_realm_id=auth_realm_id,
+                provider_name=provider_name,
+            )
         if existing is not None:
             return CreateServiceIdentityResult(created=False, service_identity=existing)
 
@@ -80,6 +95,8 @@ class CreateServiceIdentityUseCase:
             source_order_id=source_order_id,
             origin_storefront_id=resolved_origin_storefront_id,
             provider_name=provider_name,
+            identity_scope=identity_scope,
+            subscription_key=subscription_key,
             provider_subject_ref=provider_subject_ref or customer.remnawave_uuid,
             identity_status="active",
             service_context=merged_context,
@@ -107,6 +124,8 @@ class ListServiceIdentitiesUseCase:
         auth_realm_id: UUID | None = None,
         source_order_id: UUID | None = None,
         provider_name: str | None = None,
+        identity_scope: str | None = None,
+        subscription_key: str | None = None,
         identity_status: str | None = None,
         limit: int = 100,
         offset: int = 0,
@@ -116,6 +135,8 @@ class ListServiceIdentitiesUseCase:
             auth_realm_id=auth_realm_id,
             source_order_id=source_order_id,
             provider_name=provider_name,
+            identity_scope=identity_scope,
+            subscription_key=subscription_key,
             identity_status=identity_status,
             limit=limit,
             offset=offset,

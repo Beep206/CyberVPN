@@ -26,10 +26,10 @@ import {
   addonsApi,
   commerceApi,
   customerSubscriptionsApi,
+  DEFAULT_SERVICE_STATE_REQUEST,
   entitlementsApi,
   plansApi,
   serviceAccessApi,
-  subscriptionsApi,
   trialApi,
 } from '@/lib/api';
 import { CancelSubscriptionModal } from '@/app/[locale]/(dashboard)/subscriptions/components/CancelSubscriptionModal';
@@ -221,7 +221,7 @@ function getWriteContractGuardMessage(locale: string): string {
 export function SubscriptionCabinetDashboard() {
   const t = useTranslations('Subscriptions');
   const locale = useLocale();
-  const { defaultSubscriptionKey, selectedSubscriptionKey } = useCustomerSubscriptions();
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [purchasePlan, setPurchasePlan] = useState<PlanRecord | null>(null);
   const [upgradeState, setUpgradeState] = useState<AsyncActionState>({
@@ -256,7 +256,9 @@ export function SubscriptionCabinetDashboard() {
   const serviceStateQuery = useQuery({
     queryKey: ['subscription-cabinet', 'service-state', selectedSubscriptionKey],
     queryFn: async () => {
-      const response = await serviceAccessApi.getCurrentServiceState();
+      const response = selectedSubscriptionKey
+        ? await customerSubscriptionsApi.getServiceState(selectedSubscriptionKey, DEFAULT_SERVICE_STATE_REQUEST)
+        : await serviceAccessApi.getCurrentServiceState();
       return response.data;
     },
     staleTime: LIVE_STALE_MS,
@@ -332,8 +334,7 @@ export function SubscriptionCabinetDashboard() {
     : currentPlan?.connection_modes.map((mode) => formatLabel(mode, mode)).join(' + ') ??
       t('labels.notAvailable');
   const activeSubscription = !isInactiveEntitlement(entitlement);
-  const canUseCurrentWriteContract =
-    !selectedSubscriptionKey || selectedSubscriptionKey === defaultSubscriptionKey;
+  const canUseSelectedWriteContract = Boolean(selectedSubscriptionKey?.startsWith('grant:'));
   const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, locale) : null;
   const hasAnyError =
     entitlementQuery.isError ||
@@ -364,7 +365,7 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleQuoteUpgrade = async (plan: PlanRecord) => {
-    if (!canUseCurrentWriteContract) {
+    if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setUpgradeState({
         id: plan.uuid,
         message: getWriteContractGuardMessage(locale),
@@ -377,7 +378,8 @@ export function SubscriptionCabinetDashboard() {
     setUpgradeState({ id: plan.uuid, message: '', status: 'loading' });
 
     try {
-      const response = await subscriptionsApi.quoteUpgrade(
+      const response = await customerSubscriptionsApi.quoteUpgrade(
+        selectedSubscriptionKey,
         buildUpgradeRequest(plan, price.currency),
       );
       setUpgradeState({
@@ -398,7 +400,7 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleCommitUpgrade = async (plan: PlanRecord) => {
-    if (!canUseCurrentWriteContract) {
+    if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setUpgradeState({
         id: plan.uuid,
         message: getWriteContractGuardMessage(locale),
@@ -415,7 +417,8 @@ export function SubscriptionCabinetDashboard() {
     }));
 
     try {
-      const response = await subscriptionsApi.commitUpgrade(
+      const response = await customerSubscriptionsApi.commitUpgrade(
+        selectedSubscriptionKey,
         buildUpgradeRequest(plan, price.currency),
       );
       openInvoiceIfPresent(response.data);
@@ -435,7 +438,7 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleQuoteAddon = async (addon: AddonRecord) => {
-    if (!canUseCurrentWriteContract) {
+    if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setAddonState({
         id: addon.uuid,
         message: getWriteContractGuardMessage(locale),
@@ -448,7 +451,10 @@ export function SubscriptionCabinetDashboard() {
     setAddonState({ id: addon.uuid, message: '', status: 'loading' });
 
     try {
-      const response = await subscriptionsApi.quoteAddons(buildAddonRequest(addon, currency));
+      const response = await customerSubscriptionsApi.quoteAddons(
+        selectedSubscriptionKey,
+        buildAddonRequest(addon, currency),
+      );
       setAddonState({
         id: addon.uuid,
         message: t('addons.quoteReady', {
@@ -467,7 +473,7 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handlePurchaseAddon = async (addon: AddonRecord) => {
-    if (!canUseCurrentWriteContract) {
+    if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setAddonState({
         id: addon.uuid,
         message: getWriteContractGuardMessage(locale),
@@ -484,7 +490,10 @@ export function SubscriptionCabinetDashboard() {
     }));
 
     try {
-      const response = await subscriptionsApi.purchaseAddons(buildAddonRequest(addon, currency));
+      const response = await customerSubscriptionsApi.purchaseAddons(
+        selectedSubscriptionKey,
+        buildAddonRequest(addon, currency),
+      );
       openInvoiceIfPresent(response.data);
       await refetchCore();
       setAddonState({
@@ -841,7 +850,7 @@ export function SubscriptionCabinetDashboard() {
 
                   <PlanActionButton
                     action={action}
-                    disabled={!canUseCurrentWriteContract}
+                    disabled={!canUseSelectedWriteContract}
                     loading={stateForPlan?.status === 'loading'}
                     quoteReady={stateForPlan?.status === 'quoted'}
                     onCommit={() => handleCommitUpgrade(plan)}
@@ -912,7 +921,7 @@ export function SubscriptionCabinetDashboard() {
                         onClick={() => handleQuoteAddon(addon)}
                         disabled={
                           !activeSubscription ||
-                          !canUseCurrentWriteContract ||
+                          !canUseSelectedWriteContract ||
                           stateForAddon?.status === 'loading'
                         }
                         className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-neon-purple/40 bg-neon-purple/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-purple transition hover:bg-neon-purple/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
@@ -925,7 +934,7 @@ export function SubscriptionCabinetDashboard() {
                         onClick={() => handlePurchaseAddon(addon)}
                         disabled={
                           !activeSubscription ||
-                          !canUseCurrentWriteContract ||
+                          !canUseSelectedWriteContract ||
                           stateForAddon?.status === 'loading' ||
                           stateForAddon?.status !== 'quoted'
                         }

@@ -15,7 +15,11 @@ from src.infrastructure.database.repositories.service_access_repo import Service
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 
 CustomerSubscriptionKind = Literal["entitlement_grant", "trial", "legacy_payment"]
-CustomerSubscriptionManagementScope = Literal["subscription_entitlement", "account_vpn_identity"]
+CustomerSubscriptionManagementScope = Literal[
+    "subscription_entitlement",
+    "account_vpn_identity",
+    "subscription_vpn_identity",
+]
 
 
 @dataclass(frozen=True)
@@ -99,7 +103,7 @@ class ListCustomerSubscriptionsUseCase:
 
         if any(item.management_scope == "account_vpn_identity" for item in items):
             limitations.append(
-                "VPN service identity is currently account-scoped. Per-subscription VPN identities require MSUB-08."
+                "Some subscriptions still use legacy account-scoped VPN identity until first selected provisioning."
             )
 
         default_key = self._default_subscription_key(items)
@@ -149,10 +153,16 @@ class ListCustomerSubscriptionsUseCase:
             if expires_at is not None and expires_at <= now:
                 status = "expired"
 
+        subscription_scoped_identity = (
+            service_identity is not None
+            and getattr(service_identity, "identity_scope", "account") == "subscription"
+            and service_identity.subscription_key == f"grant:{grant.id}"
+        )
         can_deliver = (
             status == "active"
             and service_identity is not None
             and service_identity.identity_status == "active"
+            and bool(service_identity.provider_subject_ref)
         )
         return CustomerSubscriptionSummary(
             subscription_key=f"grant:{grant.id}",
@@ -174,7 +184,7 @@ class ListCustomerSubscriptionsUseCase:
             addons=list(snapshot.get("addons") or []),
             can_manage=status not in {"revoked"},
             can_deliver_config=can_deliver,
-            management_scope="account_vpn_identity",
+            management_scope="subscription_vpn_identity" if subscription_scoped_identity else "account_vpn_identity",
         )
 
     async def _summary_from_legacy_payment(

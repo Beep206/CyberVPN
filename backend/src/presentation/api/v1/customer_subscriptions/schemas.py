@@ -27,7 +27,7 @@ class CustomerSubscriptionSummaryResponse(BaseModel):
     addons: list[dict[str, Any]] = Field(default_factory=list)
     can_manage: bool
     can_deliver_config: bool
-    management_scope: Literal["subscription_entitlement", "account_vpn_identity"]
+    management_scope: Literal["subscription_entitlement", "account_vpn_identity", "subscription_vpn_identity"]
 
 
 class CustomerSubscriptionListResponse(BaseModel):

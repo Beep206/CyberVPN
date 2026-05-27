@@ -65,6 +65,7 @@ class EntitlementsService:
             "expires_at": expires_at.isoformat() if expires_at else None,
             "effective_entitlements": {
                 "device_limit": device_limit,
+                "traffic_limit_bytes": getattr(plan, "traffic_limit_bytes", None),
                 "traffic_policy": traffic_policy.get("mode", "fair_use"),
                 "display_traffic_label": traffic_policy.get("display_label", "Unlimited"),
                 "connection_modes": plan.connection_modes or [],
@@ -94,6 +95,7 @@ class EntitlementsService:
             "expires_at": expires_at.isoformat() if expires_at else None,
             "effective_entitlements": {
                 "device_limit": STAGE1_TRIAL_DEVICE_LIMIT,
+                "traffic_limit_bytes": None,
                 "traffic_policy": "fair_use",
                 "display_traffic_label": "Unlimited",
                 "connection_modes": ["standard"],
@@ -117,6 +119,7 @@ class EntitlementsService:
             "expires_at": None,
             "effective_entitlements": {
                 "device_limit": 0,
+                "traffic_limit_bytes": None,
                 "traffic_policy": "none",
                 "display_traffic_label": "None",
                 "connection_modes": [],

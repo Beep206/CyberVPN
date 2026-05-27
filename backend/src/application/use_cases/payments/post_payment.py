@@ -1,7 +1,7 @@
 """Post-payment processing: invites, commissions, wallet debit, promo tracking."""
 
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.events import EventOutboxService
 from src.application.services.config_service import ConfigService
+from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.attribution.qualifying_events import EvaluateOrderPolicyUseCase
 from src.application.use_cases.gifts.service import IssueGiftCodeUseCase
@@ -42,6 +43,7 @@ from src.infrastructure.database.repositories.promo_code_repo import (
     PromoCodeRepository,
 )
 from src.infrastructure.database.repositories.renewal_order_repo import RenewalOrderRepository
+from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import (
     SubscriptionPlanRepository,
 )
@@ -118,8 +120,14 @@ class PostPaymentProcessingUseCase:
             return {"error": "payment_not_found"}
 
         results: dict = {"payment_id": str(payment_id)}
-        commission_base_amount = Decimal(str((payment.metadata_ or {}).get("commission_base_amount", payment.amount)))
-        checkout_mode = str((payment.metadata_ or {}).get("checkout_mode", "new_purchase"))
+        payment_metadata = dict(payment.metadata_ or {})
+        commission_base_amount = Decimal(str(payment_metadata.get("commission_base_amount", payment.amount)))
+        checkout_mode = str(payment_metadata.get("checkout_mode", "new_purchase"))
+        target_subscription_key = str(payment_metadata.get("target_subscription_key") or "")
+        selected_subscription_write = (
+            checkout_mode in {"selected_subscription_upgrade", "selected_subscription_addons"}
+            and bool(target_subscription_key)
+        )
         gift_flow = checkout_mode == "gift_purchase"
         payment_attempt = await self._payment_attempt_repo.get_by_payment_id(payment.id)
         policy_evaluation = None
@@ -167,7 +175,17 @@ class PostPaymentProcessingUseCase:
         # 1. Activate purchased add-ons
         # ------------------------------------------------------------------
         addon_lines = payment.addons_snapshot or []
-        if addon_lines:
+        if selected_subscription_write:
+            results["addons_activated"] = 0
+            results["selected_subscription_global_addons_skipped"] = True
+            results.update(
+                await self._apply_selected_subscription_write(
+                    payment=payment,
+                    checkout_mode=checkout_mode,
+                    target_subscription_key=target_subscription_key,
+                )
+            )
+        elif addon_lines:
             try:
                 expires_at = (
                     payment.created_at + timedelta(days=payment.subscription_days)
@@ -207,7 +225,9 @@ class PostPaymentProcessingUseCase:
         # ------------------------------------------------------------------
         # 1b. Extend existing add-ons for subscription upgrades
         # ------------------------------------------------------------------
-        if checkout_mode == "upgrade" and payment.subscription_days > 0:
+        if selected_subscription_write:
+            results["addons_extended"] = 0
+        elif checkout_mode == "upgrade" and payment.subscription_days > 0:
             try:
                 upgrade_expires_at = payment.created_at + timedelta(days=payment.subscription_days)
                 active_addons = await self._subscription_addons.list_active_for_user(
@@ -460,6 +480,53 @@ class PostPaymentProcessingUseCase:
         logger.info("post_payment_processing_completed", extra=results)
         return results
 
+    async def _apply_selected_subscription_write(
+        self,
+        *,
+        payment,
+        checkout_mode: str,
+        target_subscription_key: str,
+    ) -> dict:
+        prefix, _, raw_grant_id = target_subscription_key.partition(":")
+        if prefix != "grant" or not raw_grant_id:
+            return {"selected_subscription_updated": False, "selected_subscription_update_error": "unsupported_key"}
+
+        try:
+            grant_id = UUID(raw_grant_id)
+        except (TypeError, ValueError):
+            return {"selected_subscription_updated": False, "selected_subscription_update_error": "invalid_key"}
+
+        repo = ServiceAccessRepository(self._session)
+        grant = await repo.get_entitlement_grant_by_id(grant_id)
+        if grant is None or grant.customer_account_id != payment.user_uuid:
+            return {"selected_subscription_updated": False, "selected_subscription_update_error": "grant_not_found"}
+        if payment.entitlements_snapshot is None:
+            return {"selected_subscription_updated": False, "selected_subscription_update_error": "missing_snapshot"}
+
+        grant.grant_snapshot = dict(payment.entitlements_snapshot or {})
+        if payment.subscription_days > 0:
+            grant.expires_at = payment.created_at + timedelta(days=payment.subscription_days)
+        elif grant.expires_at is None:
+            grant.expires_at = EntitlementsService._to_utc_datetime(
+                _parse_datetime_from_snapshot(grant.grant_snapshot.get("expires_at"))
+            )
+        grant.grant_status = "active"
+
+        source_snapshot = dict(grant.source_snapshot or {})
+        events = list(source_snapshot.get("selected_subscription_events") or [])
+        events.append(
+            {
+                "payment_id": str(payment.id),
+                "checkout_mode": checkout_mode,
+                "target_subscription_key": target_subscription_key,
+                "applied_at": datetime.now(UTC).isoformat(),
+            }
+        )
+        source_snapshot["selected_subscription_events"] = events[-20:]
+        grant.source_snapshot = source_snapshot
+        await self._session.flush()
+        return {"selected_subscription_updated": True}
+
 
 def _parse_optional_uuid(value: str | UUID | None) -> UUID | None:
     if value is None:
@@ -469,4 +536,16 @@ def _parse_optional_uuid(value: str | UUID | None) -> UUID | None:
     try:
         return UUID(str(value))
     except (TypeError, ValueError):
+        return None
+
+
+def _parse_datetime_from_snapshot(value) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        normalized = str(value).replace("Z", "+00:00") if str(value).endswith("Z") else str(value)
+        return datetime.fromisoformat(normalized)
+    except ValueError:
         return None

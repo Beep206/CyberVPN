@@ -12,7 +12,9 @@ from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse, RemnawaveUserResponse
 from src.main import app
+from src.presentation.dependencies.remnawave import get_remnawave_client
 from tests.helpers.realm_auth import (
     FakeRedis,
     cleanup_sqlite_file,
@@ -23,6 +25,40 @@ from tests.helpers.realm_auth import (
 from tests.integration.test_quote_checkout_sessions import _make_customer_access_token
 
 pytestmark = [pytest.mark.integration]
+
+
+class _FakeRemnawaveClient:
+    def __init__(self) -> None:
+        self.created_uuid = uuid.uuid4()
+
+    async def post_validated(self, path, schema, *, json=None):
+        assert path == "/api/users"
+        now = datetime.now(UTC)
+        return RemnawaveUserResponse(
+            uuid=str(self.created_uuid),
+            username=(json or {}).get("username", "cvpn_s_test"),
+            status="ACTIVE",
+            short_uuid=str(self.created_uuid)[:8],
+            created_at=now,
+            updated_at=now,
+            expire_at=(json or {}).get("expireAt"),
+            subscription_url=f"https://cyber-vpn.org/api/sub/{self.created_uuid.hex[:16]}",
+            traffic_limit_bytes=(json or {}).get("trafficLimitBytes"),
+            hwid_device_limit=(json or {}).get("hwidDeviceLimit"),
+        )
+
+    async def get_validated(self, path, schema):
+        assert path == f"/subscriptions/by-uuid/{self.created_uuid}"
+        return RemnawaveSubscriptionDetailsResponse(
+            is_found=True,
+            user={
+                "shortUuid": str(self.created_uuid)[:8],
+                "username": "cvpn_s_test",
+                "userStatus": "ACTIVE",
+            },
+            links=["vless://selected-subscription"],
+            subscription_url=f"https://cyber-vpn.org/api/sub/{self.created_uuid.hex[:16]}",
+        )
 
 
 async def _seed_customer_with_grants(sessionmaker, auth_service: AuthService) -> dict[str, str]:
@@ -232,5 +268,75 @@ async def test_customer_can_list_and_select_own_subscriptions(async_client: Asyn
             assert foreign_response.status_code == 404
     finally:
         app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_selected_subscription_config_creates_subscription_scoped_identity(
+    async_client: AsyncClient,
+) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    fake_remnawave = _FakeRemnawaveClient()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    async def _override_remnawave():
+        return fake_remnawave
+
+    app.dependency_overrides[get_redis] = _override_redis
+    app.dependency_overrides[get_remnawave_client] = _override_remnawave
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_customer_with_grants(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {"Authorization": f"Bearer {token}", "X-Auth-Realm": "customer"}
+            selected_key = f"grant:{seeded['basic_grant_id']}"
+
+            config_response = await async_client.get(
+                f"/api/v1/customer-subscriptions/{selected_key}/config",
+                headers=headers,
+            )
+            assert config_response.status_code == 200
+            payload = config_response.json()
+            assert payload["subscriptionUrl"].startswith("https://cyber-vpn.org/api/sub/")
+            assert payload["config"].startswith("https://cyber-vpn.org/api/sub/")
+
+            with sessionmaker() as db:
+                grant = db.get(EntitlementGrantModel, uuid.UUID(seeded["basic_grant_id"]))
+                service_identity = db.get(ServiceIdentityModel, grant.service_identity_id)
+                assert service_identity.identity_scope == "subscription"
+                assert service_identity.subscription_key == selected_key
+                assert service_identity.provider_subject_ref == str(fake_remnawave.created_uuid)
+
+            list_response = await async_client.get("/api/v1/customer-subscriptions/", headers=headers)
+            assert list_response.status_code == 200
+            selected_item = next(
+                item for item in list_response.json()["items"] if item["subscription_key"] == selected_key
+            )
+            assert selected_item["management_scope"] == "subscription_vpn_identity"
+            assert selected_item["can_deliver_config"] is True
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        app.dependency_overrides.pop(get_remnawave_client, None)
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)

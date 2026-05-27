@@ -57,6 +57,16 @@ vi.mock('@/i18n/navigation', () => ({
 }));
 
 vi.mock('@/lib/api', () => ({
+  DEFAULT_SERVICE_STATE_REQUEST: {
+    channel_type: 'shared_client',
+    credential_subject_key: 'official-web-dashboard',
+    credential_type: 'desktop_client',
+    provider_name: 'remnawave',
+  },
+  customerSubscriptionsApi: {
+    getConfig: getConfigMock,
+    getServiceState: getServiceStateMock,
+  },
   profileApi: {
     getProfile: getProfileMock,
   },
@@ -70,9 +80,25 @@ vi.mock('@/lib/api', () => ({
   serviceAccessApi: {
     getCurrentServiceState: getServiceStateMock,
   },
-  subscriptionsApi: {
-    getConfig: getConfigMock,
-  },
+}));
+
+vi.mock('@/features/customer-subscriptions/customer-subscription-context', () => ({
+  useCustomerSubscriptions: () => ({
+    defaultSubscriptionKey: 'grant:test-grant',
+    isError: false,
+    isLoading: false,
+    limitations: [],
+    refetch: vi.fn(),
+    selectedSubscription: {
+      can_deliver_config: true,
+      can_manage: true,
+      display_name: 'Pro Plan',
+      subscription_key: 'grant:test-grant',
+    },
+    selectedSubscriptionKey: 'grant:test-grant',
+    setSelectedSubscriptionKey: vi.fn(),
+    subscriptions: [],
+  }),
 }));
 
 vi.mock('next/dynamic', () => ({
@@ -257,7 +283,13 @@ describe('ServerAccessDashboard', () => {
     expect(getServerStatsMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(getConfigMock).toHaveBeenCalledWith('user-1');
+      expect(getConfigMock).toHaveBeenCalledWith('grant:test-grant');
+      expect(getServiceStateMock).toHaveBeenCalledWith('grant:test-grant', {
+        channel_type: 'shared_client',
+        credential_subject_key: 'official-web-dashboard',
+        credential_type: 'desktop_client',
+        provider_name: 'remnawave',
+      });
     });
   });
 
@@ -304,6 +336,15 @@ describe('ServerAccessDashboard', () => {
         device_credential: null,
         provisioning_profile: null,
         service_identity: null,
+      },
+    });
+    getConfigMock.mockResolvedValueOnce({
+      data: {
+        config: '',
+        isFound: true,
+        links: [],
+        ssConfLinks: {},
+        subscriptionUrl: null,
       },
     });
 

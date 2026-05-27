@@ -42,6 +42,26 @@ class ServiceAccessRepository:
                 ServiceIdentityModel.customer_account_id == customer_account_id,
                 ServiceIdentityModel.auth_realm_id == auth_realm_id,
                 ServiceIdentityModel.provider_name == provider_name,
+                ServiceIdentityModel.identity_scope == "account",
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_service_identity_by_subscription_key(
+        self,
+        *,
+        customer_account_id: UUID,
+        auth_realm_id: UUID,
+        provider_name: str,
+        subscription_key: str,
+    ) -> ServiceIdentityModel | None:
+        result = await self._session.execute(
+            select(ServiceIdentityModel).where(
+                ServiceIdentityModel.customer_account_id == customer_account_id,
+                ServiceIdentityModel.auth_realm_id == auth_realm_id,
+                ServiceIdentityModel.provider_name == provider_name,
+                ServiceIdentityModel.identity_scope == "subscription",
+                ServiceIdentityModel.subscription_key == subscription_key,
             )
         )
         return result.scalar_one_or_none()
@@ -53,6 +73,8 @@ class ServiceAccessRepository:
         auth_realm_id: UUID | None = None,
         source_order_id: UUID | None = None,
         provider_name: str | None = None,
+        identity_scope: str | None = None,
+        subscription_key: str | None = None,
         identity_status: str | None = None,
         limit: int = 100,
         offset: int = 0,
@@ -66,6 +88,10 @@ class ServiceAccessRepository:
             query = query.where(ServiceIdentityModel.source_order_id == source_order_id)
         if provider_name is not None:
             query = query.where(ServiceIdentityModel.provider_name == provider_name)
+        if identity_scope is not None:
+            query = query.where(ServiceIdentityModel.identity_scope == identity_scope)
+        if subscription_key is not None:
+            query = query.where(ServiceIdentityModel.subscription_key == subscription_key)
         if identity_status is not None:
             query = query.where(ServiceIdentityModel.identity_status == identity_status)
         query = query.order_by(ServiceIdentityModel.created_at.desc()).offset(offset).limit(limit)

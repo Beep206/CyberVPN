@@ -35,6 +35,8 @@ class ServiceIdentityResponse(BaseModel):
     source_order_id: UUID | None = None
     origin_storefront_id: UUID | None = None
     provider_name: str
+    identity_scope: str = "account"
+    subscription_key: str | None = None
     provider_subject_ref: str | None = None
     identity_status: ServiceIdentityStatus
     service_context: dict[str, Any] = Field(default_factory=dict)

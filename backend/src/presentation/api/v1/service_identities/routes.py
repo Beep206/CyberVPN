@@ -46,6 +46,8 @@ def _serialize_service_identity(model) -> ServiceIdentityResponse:
         source_order_id=model.source_order_id,
         origin_storefront_id=model.origin_storefront_id,
         provider_name=model.provider_name,
+        identity_scope=getattr(model, "identity_scope", "account"),
+        subscription_key=getattr(model, "subscription_key", None),
         provider_subject_ref=model.provider_subject_ref,
         identity_status=model.identity_status,
         service_context=dict(model.service_context or {}),

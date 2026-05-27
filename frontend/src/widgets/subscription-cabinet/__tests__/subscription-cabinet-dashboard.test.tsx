@@ -70,11 +70,25 @@ vi.mock('@/app/[locale]/(dashboard)/subscriptions/components/PurchaseConfirmModa
 }));
 
 vi.mock('@/lib/api', () => ({
+  DEFAULT_SERVICE_STATE_REQUEST: {
+    channel_type: 'shared_client',
+    credential_subject_key: 'official-web-dashboard',
+    credential_type: 'desktop_client',
+    provider_name: 'remnawave',
+  },
   addonsApi: {
     listCatalog: getAddonsMock,
   },
   commerceApi: {
     listOrders: getOrdersMock,
+  },
+  customerSubscriptionsApi: {
+    commitUpgrade: commitUpgradeMock,
+    getEntitlements: getEntitlementMock,
+    getServiceState: getServiceStateMock,
+    purchaseAddons: purchaseAddonsMock,
+    quoteAddons: quoteAddonsMock,
+    quoteUpgrade: quoteUpgradeMock,
   },
   entitlementsApi: {
     getCurrent: getEntitlementMock,
@@ -85,16 +99,30 @@ vi.mock('@/lib/api', () => ({
   serviceAccessApi: {
     getCurrentServiceState: getServiceStateMock,
   },
-  subscriptionsApi: {
-    commitUpgrade: commitUpgradeMock,
-    purchaseAddons: purchaseAddonsMock,
-    quoteAddons: quoteAddonsMock,
-    quoteUpgrade: quoteUpgradeMock,
-  },
   trialApi: {
     activate: activateTrialMock,
     getStatus: getTrialMock,
   },
+}));
+
+vi.mock('@/features/customer-subscriptions/customer-subscription-context', () => ({
+  useCustomerSubscriptions: () => ({
+    defaultSubscriptionKey: 'grant:test-grant',
+    isError: false,
+    isLoading: false,
+    limitations: [],
+    refetch: vi.fn(),
+    selectedSubscription: {
+      can_deliver_config: true,
+      can_manage: true,
+      display_name: 'Pro Plan',
+      management_scope: 'subscription_vpn_identity',
+      subscription_key: 'grant:test-grant',
+    },
+    selectedSubscriptionKey: 'grant:test-grant',
+    setSelectedSubscriptionKey: vi.fn(),
+    subscriptions: [],
+  }),
 }));
 
 import { SubscriptionCabinetDashboard } from '../subscription-cabinet-dashboard';
@@ -363,7 +391,7 @@ describe('SubscriptionCabinetDashboard', () => {
     fireEvent.click(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.quote/i }));
 
     await waitFor(() => {
-      expect(quoteUpgradeMock).toHaveBeenCalledWith({
+      expect(quoteUpgradeMock).toHaveBeenCalledWith('grant:test-grant', {
         channel: 'web',
         currency: 'USD',
         promo_code: null,
@@ -376,6 +404,13 @@ describe('SubscriptionCabinetDashboard', () => {
 
     await waitFor(() => {
       expect(commitUpgradeMock).toHaveBeenCalled();
+      expect(commitUpgradeMock).toHaveBeenCalledWith('grant:test-grant', {
+        channel: 'web',
+        currency: 'USD',
+        promo_code: null,
+        target_plan_id: 'plan-max',
+        use_wallet: 0,
+      });
       expect(openMock).toHaveBeenCalledWith(
         'https://pay.example/invoice-1',
         '_blank',
@@ -430,7 +465,7 @@ describe('SubscriptionCabinetDashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: /addons\.quote/i }));
 
     await waitFor(() => {
-      expect(quoteAddonsMock).toHaveBeenCalledWith({
+      expect(quoteAddonsMock).toHaveBeenCalledWith('grant:test-grant', {
         addons: [
           {
             code: 'extra-device',
@@ -448,7 +483,7 @@ describe('SubscriptionCabinetDashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: /addons\.purchaseCta/i }));
 
     await waitFor(() => {
-      expect(purchaseAddonsMock).toHaveBeenCalledWith({
+      expect(purchaseAddonsMock).toHaveBeenCalledWith('grant:test-grant', {
         addons: [
           {
             code: 'extra-device',

@@ -19,7 +19,9 @@ class ServiceIdentityModel(Base):
             "customer_account_id",
             "auth_realm_id",
             "provider_name",
-            name="uq_service_identities_customer_realm_provider",
+            "identity_scope",
+            "subscription_key",
+            name="uq_service_identities_scope_subscription",
         ),
     )
 
@@ -46,6 +48,14 @@ class ServiceIdentityModel(Base):
         index=True,
     )
     provider_name: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    identity_scope: Mapped[str] = mapped_column(
+        String(40),
+        nullable=False,
+        default="account",
+        server_default="account",
+        index=True,
+    )
+    subscription_key: Mapped[str | None] = mapped_column(String(220), nullable=True, index=True)
     provider_subject_ref: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
     identity_status: Mapped[str] = mapped_column(
         String(20),

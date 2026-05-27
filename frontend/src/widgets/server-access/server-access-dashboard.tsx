@@ -30,8 +30,9 @@ import {
   profileApi,
   publicNetworkApi,
   serversApi,
+  customerSubscriptionsApi,
+  DEFAULT_SERVICE_STATE_REQUEST,
   serviceAccessApi,
-  subscriptionsApi,
 } from '@/lib/api';
 import {
   extractConfigLinks,
@@ -264,7 +265,12 @@ export function ServerAccessDashboard() {
   const serviceStateQuery = useQuery({
     queryKey: ['server-access', 'service-state', selectedSubscriptionKey],
     queryFn: async () => {
-      const response = await serviceAccessApi.getCurrentServiceState();
+      const response = selectedSubscriptionKey
+        ? await customerSubscriptionsApi.getServiceState(
+            selectedSubscriptionKey,
+            DEFAULT_SERVICE_STATE_REQUEST,
+          )
+        : await serviceAccessApi.getCurrentServiceState();
       return response.data;
     },
     staleTime: LIVE_STALE_MS,
@@ -273,16 +279,15 @@ export function ServerAccessDashboard() {
     refetchOnWindowFocus: false,
   });
 
-  const userId = profileQuery.data?.id;
   const configQuery = useQuery({
-    queryKey: ['server-access', 'config', userId, selectedSubscriptionKey],
-    enabled: Boolean(userId),
+    queryKey: ['server-access', 'config', selectedSubscriptionKey],
+    enabled: Boolean(selectedSubscriptionKey),
     queryFn: async () => {
-      if (!userId) {
-        throw new Error('Profile id is required to load VPN config');
+      if (!selectedSubscriptionKey) {
+        throw new Error('Selected subscription key is required to load VPN config');
       }
 
-      const response = await subscriptionsApi.getConfig(userId);
+      const response = await customerSubscriptionsApi.getConfig(selectedSubscriptionKey);
       return response.data;
     },
     staleTime: LIVE_STALE_MS,

@@ -1,7 +1,20 @@
 import { apiClient } from './client';
+import type {
+  PurchaseSubscriptionAddonsRequest,
+  PurchaseSubscriptionAddonsResponse,
+  QuoteSubscriptionAddonsResponse,
+  QuoteUpgradeResponse,
+  CommitUpgradeResponse,
+  UpgradeSubscriptionRequest,
+  UserConfigResponse,
+} from './subscriptions';
+import type { CurrentServiceStateResponse, GetCurrentServiceStateRequest } from './service-access';
 
 export type CustomerSubscriptionKind = 'entitlement_grant' | 'legacy_payment' | 'trial';
-export type CustomerSubscriptionManagementScope = 'account_vpn_identity' | 'subscription_entitlement';
+export type CustomerSubscriptionManagementScope =
+  | 'account_vpn_identity'
+  | 'subscription_entitlement'
+  | 'subscription_vpn_identity';
 
 export type CustomerSubscriptionSummary = {
   subscription_key: string;
@@ -65,5 +78,40 @@ export const customerSubscriptionsApi = {
   getEntitlements: (subscriptionKey: string) =>
     apiClient.get<CustomerSubscriptionEntitlementsResponse>(
       `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/entitlements`,
+    ),
+
+  getServiceState: (subscriptionKey: string, data: GetCurrentServiceStateRequest) =>
+    apiClient.post<CurrentServiceStateResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/service-state`,
+      data,
+    ),
+
+  getConfig: (subscriptionKey: string) =>
+    apiClient.get<UserConfigResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/config`,
+    ),
+
+  quoteUpgrade: (subscriptionKey: string, data: UpgradeSubscriptionRequest) =>
+    apiClient.post<QuoteUpgradeResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/upgrade/quote`,
+      data,
+    ),
+
+  commitUpgrade: (subscriptionKey: string, data: UpgradeSubscriptionRequest) =>
+    apiClient.post<CommitUpgradeResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/upgrade`,
+      data,
+    ),
+
+  quoteAddons: (subscriptionKey: string, data: PurchaseSubscriptionAddonsRequest) =>
+    apiClient.post<QuoteSubscriptionAddonsResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/addons/quote`,
+      data,
+    ),
+
+  purchaseAddons: (subscriptionKey: string, data: PurchaseSubscriptionAddonsRequest) =>
+    apiClient.post<PurchaseSubscriptionAddonsResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/addons`,
+      data,
     ),
 };

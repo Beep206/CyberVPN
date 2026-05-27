@@ -3800,6 +3800,8 @@ async def initialize_realm_test_database(engine) -> None:
                 source_order_id TEXT,
                 origin_storefront_id TEXT,
                 provider_name TEXT NOT NULL,
+                identity_scope TEXT NOT NULL DEFAULT 'account',
+                subscription_key TEXT,
                 provider_subject_ref TEXT,
                 identity_status TEXT NOT NULL DEFAULT 'active',
                 service_context TEXT NOT NULL DEFAULT '{}',
@@ -3809,7 +3811,7 @@ async def initialize_realm_test_database(engine) -> None:
                 FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id),
                 FOREIGN KEY (source_order_id) REFERENCES orders(id),
                 FOREIGN KEY (origin_storefront_id) REFERENCES storefronts(id),
-                UNIQUE (customer_account_id, auth_realm_id, provider_name)
+                UNIQUE (customer_account_id, auth_realm_id, provider_name, identity_scope, subscription_key)
             )
             """
         )
@@ -3820,6 +3822,8 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_service_identities_source_order_id ON service_identities(source_order_id)",
             "CREATE INDEX ix_service_identities_origin_storefront_id ON service_identities(origin_storefront_id)",
             "CREATE INDEX ix_service_identities_provider_name ON service_identities(provider_name)",
+            "CREATE INDEX ix_service_identities_identity_scope ON service_identities(identity_scope)",
+            "CREATE INDEX ix_service_identities_subscription_key ON service_identities(subscription_key)",
             "CREATE INDEX ix_service_identities_provider_subject_ref ON service_identities(provider_subject_ref)",
             "CREATE INDEX ix_service_identities_identity_status ON service_identities(identity_status)",
         ):
