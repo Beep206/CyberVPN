@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -15,10 +16,14 @@ from src.application.use_cases.customer_subscriptions import (
 )
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.usage.get_user_usage import GetUserUsageUseCase
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
+from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionConfigResponse
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.access_delivery_channels.routes import (
     _serialize_access_delivery_channel,
     _serialize_purchase_context,
@@ -38,6 +43,7 @@ from src.presentation.api.v1.subscriptions.schemas import (
     PurchaseSubscriptionAddonsRequest,
     UpgradeSubscriptionRequest,
 )
+from src.presentation.api.v1.usage.schemas import UsageResponse, UsageUnavailableReason
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import RealmResolution, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
@@ -197,6 +203,76 @@ async def get_customer_subscription_config(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+
+@router.get("/{subscription_key}/usage", response_model=UsageResponse)
+async def get_customer_subscription_usage(
+    subscription_key: str,
+    db: AsyncSession = Depends(get_db),
+    customer_account_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+) -> UsageResponse:
+    item = await ListCustomerSubscriptionsUseCase(db).get_by_key(
+        customer_account_id=customer_account_id,
+        auth_realm_id=current_realm.auth_realm.id,
+        subscription_key=subscription_key,
+    )
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+
+    provider_subject_ref: str | None = None
+    if item.kind == "trial":
+        mobile_user = await MobileUserRepository(db).get_by_id(customer_account_id)
+        provider_subject_ref = mobile_user.remnawave_uuid if mobile_user is not None else None
+    elif item.service_identity_id is not None:
+        service_identity = await ServiceAccessRepository(db).get_service_identity_by_id(item.service_identity_id)
+        if service_identity is not None and service_identity.identity_status == "active":
+            provider_subject_ref = service_identity.provider_subject_ref
+
+    if not provider_subject_ref:
+        return _unavailable_usage("upstream_user_not_found")
+
+    try:
+        usage_data = await GetUserUsageUseCase(RemnawaveUserGateway(remnawave_client)).execute(
+            UUID(provider_subject_ref),
+        )
+    except Exception as exc:
+        unavailable_reason: UsageUnavailableReason = (
+            "upstream_user_not_found" if isinstance(exc, ValueError) else "upstream_unavailable"
+        )
+        return _unavailable_usage(unavailable_reason)
+
+    return UsageResponse(
+        usage_available=True,
+        usage_source="remnawave",
+        usage_unavailable_reason=None,
+        bandwidth_used_bytes=usage_data.bandwidth_used_bytes,
+        bandwidth_limit_bytes=usage_data.bandwidth_limit_bytes,
+        connections_active=usage_data.connections_active,
+        connections_limit=usage_data.connections_limit,
+        period_start=usage_data.period_start,
+        period_end=usage_data.period_end,
+        last_connection_at=usage_data.last_connection_at,
+        generated_at=datetime.now(UTC),
+    )
+
+
+def _unavailable_usage(reason: UsageUnavailableReason) -> UsageResponse:
+    now = datetime.now(UTC)
+    return UsageResponse(
+        usage_available=False,
+        usage_source="unavailable",
+        usage_unavailable_reason=reason,
+        bandwidth_used_bytes=0,
+        bandwidth_limit_bytes=0,
+        connections_active=0,
+        connections_limit=0,
+        period_start=now,
+        period_end=now,
+        last_connection_at=None,
+        generated_at=now,
+    )
 
 
 @router.post("/{subscription_key}/upgrade/quote", response_model=CheckoutQuoteResponse)

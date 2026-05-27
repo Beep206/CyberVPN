@@ -32,10 +32,12 @@ import {
   serviceAccessApi,
   trialApi,
 } from '@/lib/api';
+import type { CurrentEntitlementStateResponse } from '@/lib/api/service-access';
 import { CancelSubscriptionModal } from '@/app/[locale]/(dashboard)/subscriptions/components/CancelSubscriptionModal';
 import { PurchaseConfirmModal } from '@/app/[locale]/(dashboard)/subscriptions/components/PurchaseConfirmModal';
 import {
   formatDate,
+  formatBytes,
   formatDuration,
   formatLabel,
   formatMoney,
@@ -64,6 +66,7 @@ import {
   type SubscriptionHealth,
 } from './subscription-cabinet-model';
 import type { components } from '@/lib/api/generated/types';
+import type { CustomerSubscriptionUsageResponse } from '@/lib/api/customer-subscriptions';
 
 type CheckoutQuote = components['schemas']['CheckoutQuoteResponse'];
 type CheckoutCommit = components['schemas']['CheckoutCommitResponse'];
@@ -218,6 +221,31 @@ function getWriteContractGuardMessage(locale: string): string {
   return 'Plan changes and add-ons are available only for the backend current subscription until MSUB-08 is complete.';
 }
 
+function getUsageMetricLabel(
+  usage: CustomerSubscriptionUsageResponse | null,
+  entitlement: CurrentEntitlementStateResponse | null,
+  locale: string,
+): string {
+  const unavailable = locale.startsWith('ru') ? 'Ожидается синхронизация' : 'Sync pending';
+  if (!usage?.usage_available) {
+    return unavailable;
+  }
+
+  const entitlementLimit = readEntitlementNumber(entitlement, 'traffic_limit_bytes');
+  const limit = usage.bandwidth_limit_bytes > 0 ? usage.bandwidth_limit_bytes : entitlementLimit;
+  const used = formatBytes(usage.bandwidth_used_bytes, locale);
+
+  if (limit && limit > 0) {
+    const limitLabel = formatBytes(limit, locale);
+    const remainingLabel = formatBytes(Math.max(0, limit - usage.bandwidth_used_bytes), locale);
+    return locale.startsWith('ru')
+      ? `${used} / ${limitLabel}, осталось ${remainingLabel}`
+      : `${used} / ${limitLabel}, ${remainingLabel} left`;
+  }
+
+  return locale.startsWith('ru') ? `Использовано ${used}` : `${used} used`;
+}
+
 export function SubscriptionCabinetDashboard() {
   const t = useTranslations('Subscriptions');
   const locale = useLocale();
@@ -261,6 +289,31 @@ export function SubscriptionCabinetDashboard() {
         : await serviceAccessApi.getCurrentServiceState();
       return response.data;
     },
+    staleTime: LIVE_STALE_MS,
+    refetchInterval: visiblePolling(LIVE_REFETCH_MS),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const usageQueryEnabled = Boolean(
+    selectedSubscriptionKey && serviceStateQuery.data?.service_identity?.provider_subject_ref,
+  );
+  const usageQuery = useQuery({
+    queryKey: [
+      'subscription-cabinet',
+      'selected-usage',
+      selectedSubscriptionKey,
+      serviceStateQuery.data?.service_identity?.provider_subject_ref,
+    ],
+    queryFn: async () => {
+      if (!selectedSubscriptionKey) {
+        throw new Error('Subscription key is required');
+      }
+
+      const response = await customerSubscriptionsApi.getUsage(selectedSubscriptionKey);
+      return response.data;
+    },
+    enabled: usageQueryEnabled,
     staleTime: LIVE_STALE_MS,
     refetchInterval: visiblePolling(LIVE_REFETCH_MS),
     refetchIntervalInBackground: false,
@@ -324,6 +377,7 @@ export function SubscriptionCabinetDashboard() {
   const trafficLabel =
     readEntitlementString(entitlement, 'display_traffic_label') ??
     (currentPlan ? getTrafficLabel(currentPlan, locale) : t('labels.notAvailable'));
+  const usageMetricLabel = getUsageMetricLabel(usageQuery.data ?? null, entitlement, locale);
   const supportLabel = formatLabel(
     readEntitlementString(entitlement, 'support_sla') ?? currentPlan?.support_sla,
     t('labels.notAvailable'),
@@ -339,6 +393,7 @@ export function SubscriptionCabinetDashboard() {
   const hasAnyError =
     entitlementQuery.isError ||
     serviceStateQuery.isError ||
+    usageQuery.isError ||
     trialQuery.isError ||
     plansQuery.isError ||
     addonsQuery.isError ||
@@ -348,6 +403,7 @@ export function SubscriptionCabinetDashboard() {
     Promise.all([
       entitlementQuery.refetch(),
       serviceStateQuery.refetch(),
+      usageQuery.refetch(),
       trialQuery.refetch(),
       ordersQuery.refetch(),
     ]);
@@ -681,9 +737,13 @@ export function SubscriptionCabinetDashboard() {
             <LoadingBlock className="mt-6 min-h-56" />
           ) : (
             <div className="mt-6 space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <Metric label={t('current.devices')} value={deviceLimit ?? t('labels.notAvailable')} />
                 <Metric label={t('current.traffic')} value={trafficLabel} />
+                <Metric
+                  label={locale.startsWith('ru') ? 'Использование' : 'Usage'}
+                  value={usageQuery.isPending && usageQueryEnabled ? t('labels.notAvailable') : usageMetricLabel}
+                />
                 <Metric label={t('current.support')} value={supportLabel} />
                 <Metric
                   label={t('current.expiresAt')}
@@ -1013,6 +1073,7 @@ export function SubscriptionCabinetDashboard() {
             void Promise.all([
               entitlementQuery.refetch(),
               serviceStateQuery.refetch(),
+              usageQuery.refetch(),
               trialQuery.refetch(),
               plansQuery.refetch(),
               addonsQuery.refetch(),
@@ -1025,6 +1086,7 @@ export function SubscriptionCabinetDashboard() {
             className={`h-4 w-4 ${
               entitlementQuery.isFetching ||
               serviceStateQuery.isFetching ||
+              usageQuery.isFetching ||
               trialQuery.isFetching ||
               plansQuery.isFetching ||
               addonsQuery.isFetching ||

@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { operations } from './generated/types';
 import type {
   PurchaseSubscriptionAddonsRequest,
   PurchaseSubscriptionAddonsResponse,
@@ -9,6 +10,9 @@ import type {
   UserConfigResponse,
 } from './subscriptions';
 import type { CurrentServiceStateResponse, GetCurrentServiceStateRequest } from './service-access';
+
+export type CustomerSubscriptionUsageResponse =
+  operations['get_usage_api_v1_users_me_usage_get']['responses'][200]['content']['application/json'];
 
 export type CustomerSubscriptionKind = 'entitlement_grant' | 'legacy_payment' | 'trial';
 export type CustomerSubscriptionManagementScope =
@@ -89,6 +93,11 @@ export const customerSubscriptionsApi = {
   getConfig: (subscriptionKey: string) =>
     apiClient.get<UserConfigResponse>(
       `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/config`,
+    ),
+
+  getUsage: (subscriptionKey: string) =>
+    apiClient.get<CustomerSubscriptionUsageResponse>(
+      `/customer-subscriptions/${encodeURIComponent(subscriptionKey)}/usage`,
     ),
 
   quoteUpgrade: (subscriptionKey: string, data: UpgradeSubscriptionRequest) =>

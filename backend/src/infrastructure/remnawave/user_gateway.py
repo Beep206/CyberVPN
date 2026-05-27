@@ -145,6 +145,11 @@ class RemnawaveUserGateway:
                 fallback_source=str(payload.get("username") or payload.get("uuid") or "user"),
             )
 
+        # Remnawave treats a missing trafficLimitBytes as unlimited, but rejects
+        # an explicit JSON null for this field.
+        if payload.get("trafficLimitBytes") is None:
+            payload.pop("trafficLimitBytes", None)
+
         # Remnawave generates protocol secrets itself; our local password field is not part
         # of the upstream contract.
         payload.pop("password", None)

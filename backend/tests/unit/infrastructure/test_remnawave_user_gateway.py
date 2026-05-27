@@ -125,6 +125,27 @@ async def test_create_normalizes_payload_and_sets_default_expire_at(monkeypatch)
 
 
 @pytest.mark.unit
+async def test_create_omits_null_traffic_limit_for_unlimited_users(monkeypatch):
+    client = AsyncMock()
+    client.get_collection_validated.return_value = [SimpleNamespace(uuid=str(uuid4()), name="Default-Squad")]
+    client.post_validated.return_value = _ValidatedModel({"uuid": str(uuid4()), "username": "demo-user"})
+
+    monkeypatch.setattr(
+        "src.infrastructure.remnawave.user_gateway.map_remnawave_user",
+        lambda data: SimpleNamespace(uuid=data["uuid"], username=data["username"]),
+    )
+    monkeypatch.setattr(settings, "remnawave_default_internal_squad_uuid", "")
+    monkeypatch.setattr(settings, "remnawave_default_internal_squad_name", "Default-Squad")
+
+    gateway = RemnawaveUserGateway(client)
+
+    await gateway.create(username="demo-user", email="demo@example.com", traffic_limit_bytes=None)
+
+    _, kwargs = client.post_validated.await_args
+    assert "trafficLimitBytes" not in kwargs["json"]
+
+
+@pytest.mark.unit
 async def test_create_replaces_telegram_placeholder_email_for_remnawave(monkeypatch):
     client = AsyncMock()
     client.get_collection_validated.return_value = [SimpleNamespace(uuid=str(uuid4()), name="Default-Squad")]

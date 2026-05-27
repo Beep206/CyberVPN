@@ -40,8 +40,14 @@ function getCopy(locale: string): SwitcherCopy {
 }
 
 function formatSubscriptionLabel(subscription: CustomerSubscriptionSummary): string {
+  const trafficLabel =
+    typeof subscription.effective_entitlements.display_traffic_label === 'string'
+      ? subscription.effective_entitlements.display_traffic_label
+      : null;
+
   return [
     subscription.display_name ?? subscription.plan_code ?? subscription.kind,
+    trafficLabel,
     subscription.expires_at ? subscription.expires_at.slice(0, 10) : null,
   ]
     .filter(Boolean)
