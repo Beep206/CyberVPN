@@ -261,7 +261,7 @@ class SubscriptionService:
         await self._cache.invalidate_user(telegram_id)
         return trial
 
-    async def get_user_config(self, telegram_id: int) -> dict[str, Any]:
+    async def get_user_config(self, telegram_id: int, subscription_key: str | None = None) -> dict[str, Any]:
         """Get user's VPN connection configuration.
 
         Args:
@@ -274,7 +274,7 @@ class SubscriptionService:
             APIError: On backend errors (e.g., no active subscription).
         """
         try:
-            config = await self._api.get_user_config(telegram_id)
+            config = await self._api.get_user_config(telegram_id, subscription_key=subscription_key)
             logger.info("user_config_fetched", telegram_id=telegram_id)
             return config
 

@@ -3,9 +3,11 @@ import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { MINI_APP_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import { getCachedTranslations } from '@/i18n/server';
 import { TelegramMiniAppAuthProvider } from '@/features/auth/components/TelegramMiniAppAuthProvider';
+import { CustomerSubscriptionProvider } from '@/features/customer-subscriptions/customer-subscription-context';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 import { MiniAppBottomNav } from './components/MiniAppBottomNav';
+import { MiniAppSubscriptionSwitcher } from './components/MiniAppSubscriptionSwitcher';
 
 export async function generateMetadata({
   params,
@@ -37,29 +39,32 @@ export default async function MiniAppLayout({
     <ScopedIntlProvider locale={locale} namespaces={MINI_APP_CLIENT_NAMESPACES}>
       <QueryProvider>
         <TelegramMiniAppAuthProvider>
-          <div className="miniapp-shell flex min-h-screen w-full flex-col">
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
-            >
-              Skip to main content
-            </a>
-
-            <ErrorBoundary label="Mini App Content">
-              <main
-                id="main-content"
-                tabIndex={-1}
-                className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-[calc(5rem+var(--safe-area-bottom))]"
-                aria-live="polite"
+          <CustomerSubscriptionProvider>
+            <div className="miniapp-shell flex min-h-screen w-full flex-col">
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
               >
-                {children}
-              </main>
-            </ErrorBoundary>
+                Skip to main content
+              </a>
 
-            <ErrorBoundary label="Bottom Navigation">
-              <MiniAppBottomNav />
-            </ErrorBoundary>
-          </div>
+              <ErrorBoundary label="Mini App Content">
+                <main
+                  id="main-content"
+                  tabIndex={-1}
+                  className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-[calc(5rem+var(--safe-area-bottom))]"
+                  aria-live="polite"
+                >
+                  <MiniAppSubscriptionSwitcher />
+                  {children}
+                </main>
+              </ErrorBoundary>
+
+              <ErrorBoundary label="Bottom Navigation">
+                <MiniAppBottomNav />
+              </ErrorBoundary>
+            </div>
+          </CustomerSubscriptionProvider>
         </TelegramMiniAppAuthProvider>
       </QueryProvider>
     </ScopedIntlProvider>

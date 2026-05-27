@@ -32,6 +32,7 @@ import { STAGE1_CHECKOUT_CODES_UI_ENABLED } from '@/shared/lib/stage1-growth-fla
 import type { PricingTierCode } from '@/widgets/pricing/types';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 
 type PlanFamily = {
   code: PricingTierCode;
@@ -368,6 +369,7 @@ export default function MiniAppPlansPage() {
   const t = useTranslations('MiniApp.plans');
   const locale = useLocale();
   const { haptic, hapticNotification, webApp } = useTelegramWebApp();
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const queryClient = useQueryClient();
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
   const checkoutCodesEnabled = STAGE1_CHECKOUT_CODES_UI_ENABLED;
@@ -387,18 +389,19 @@ export default function MiniAppPlansPage() {
   const [inviteCode, setInviteCode] = useState('');
 
   const offersQuery = useQuery({
-    queryKey: ['miniapp-offers'],
+    queryKey: ['miniapp-offers', selectedSubscriptionKey],
     queryFn: async () => {
-      const { data } = await miniappApi.getOffers();
+      const { data } = await miniappApi.getOffers({ selectedSubscriptionKey });
       return data;
     },
   });
   const bootstrapQuery = useQuery({
-    queryKey: ['miniapp-bootstrap', locale, startParam],
+    queryKey: ['miniapp-bootstrap', locale, startParam, selectedSubscriptionKey],
     queryFn: async () => {
       const { data } = await miniappApi.getBootstrap({
         locale,
         startParam,
+        selectedSubscriptionKey,
       });
       return data;
     },
@@ -527,6 +530,7 @@ export default function MiniAppPlansPage() {
       dedicatedIpLocation,
       effectivePromoCode,
       effectiveCheckoutCodeInput,
+      selectedSubscriptionKey,
     ],
     enabled: Boolean(selectedSku) && flow !== 'none' && flow !== 'current' && dedicatedIpReady && checkoutEnabled,
     queryFn: async () => {
@@ -542,6 +546,7 @@ export default function MiniAppPlansPage() {
         addons: addonLines,
         code_input: effectiveCheckoutCodeInput ?? undefined,
         promo_code: effectivePromoCode ?? undefined,
+        ...(selectedSubscriptionKey ? { subscription_key: selectedSubscriptionKey } : {}),
         use_wallet: 0,
         currency: 'USD',
       });
@@ -682,6 +687,7 @@ export default function MiniAppPlansPage() {
         addons: payload.addonLines,
         code_input: payload.effectiveCheckoutCodeInput ?? undefined,
         promo_code: payload.effectivePromoCode ?? undefined,
+        ...(selectedSubscriptionKey ? { subscription_key: selectedSubscriptionKey } : {}),
         use_wallet: 0,
         currency: canUseTelegramStarsCheckout ? 'XTR' : 'USD',
       });

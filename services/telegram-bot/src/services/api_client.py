@@ -515,16 +515,22 @@ class CyberVPNAPIClient:
 
     # ── Subscriptions ────────────────────────────────────────────────
 
-    async def get_user_config(self, telegram_id: int) -> dict[str, Any]:
+    async def get_user_config(self, telegram_id: int, subscription_key: str | None = None) -> dict[str, Any]:
         """Get user's subscription configuration (connection link).
 
         Args:
             telegram_id: User's Telegram ID.
+            subscription_key: Optional selected subscription key.
 
         Returns:
             Subscription config with connection link.
         """
-        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/config")
+        params = {"subscription_key": subscription_key} if subscription_key else None
+        return await self._request_auth_backend_dict(
+            "GET",
+            f"/telegram/bot/user/{telegram_id}/config",
+            params=params,
+        )
 
     async def get_available_plans(
         self,
@@ -631,8 +637,13 @@ class CyberVPNAPIClient:
             params={"limit": limit, "offset": offset},
         )
 
-    async def get_current_service_state(self, telegram_id: int) -> dict[str, Any]:
-        return await self._request_auth_backend_dict("GET", f"/telegram/bot/user/{telegram_id}/service-state")
+    async def get_current_service_state(self, telegram_id: int, subscription_key: str | None = None) -> dict[str, Any]:
+        params = {"subscription_key": subscription_key} if subscription_key else None
+        return await self._request_auth_backend_dict(
+            "GET",
+            f"/telegram/bot/user/{telegram_id}/service-state",
+            params=params,
+        )
 
     async def create_support_escalation(
         self,

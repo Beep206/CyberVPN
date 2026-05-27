@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
+
+    from aiogram.types import InlineKeyboardMarkup
 
 
 def config_format_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
@@ -60,3 +61,50 @@ def config_format_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
 
 def config_delivery_keyboard(i18n: Callable[[str], str]) -> InlineKeyboardMarkup:
     return config_format_keyboard(i18n)
+
+
+def _subscription_label(subscription: dict[str, object], index: int) -> str:
+    name = (
+        subscription.get("display_name")
+        or subscription.get("plan_name")
+        or subscription.get("planName")
+        or subscription.get("kind")
+        or "VPN"
+    )
+    status = subscription.get("status") or "active"
+    expires_at = subscription.get("expires_at") or subscription.get("expiresAt")
+    parts = [f"{index + 1}. {name}", str(status)]
+    if isinstance(expires_at, str) and expires_at:
+        parts.append(expires_at[:10])
+    return " · ".join(parts)
+
+
+def subscription_select_keyboard(
+    subscriptions: Iterable[dict[str, object]],
+    *,
+    action: str,
+    i18n: Callable[[str], str],
+) -> InlineKeyboardMarkup:
+    """Build selected-subscription keyboard with compact callback payloads.
+
+    Telegram callback data is limited, so the callback stores only the list index.
+    The handler fetches the list again and resolves the actual subscription key.
+    """
+    builder = InlineKeyboardBuilder()
+
+    for index, subscription in enumerate(subscriptions):
+        if not subscription.get("subscription_key"):
+            continue
+        builder.button(
+            text=_subscription_label(subscription, index),
+            callback_data=f"config:pick:{action}:{index}",
+            style="primary",
+        )
+
+    builder.button(
+        text=i18n("btn-back"),
+        callback_data="config:menu",
+        style="primary",
+    )
+    builder.adjust(1)
+    return builder.as_markup()

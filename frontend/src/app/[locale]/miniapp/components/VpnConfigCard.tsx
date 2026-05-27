@@ -18,6 +18,7 @@ import { MiniAppBottomSheet } from './MiniAppBottomSheet';
 import dynamic from 'next/dynamic';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
 import { getApiErrorMessage } from '@/lib/api/error-message';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 
 const QRCodeComponent = dynamic(() => import('react-qr-code'), { ssr: false });
 
@@ -34,14 +35,15 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
   const t = useTranslations('MiniApp.home');
   const locale = useLocale();
   const { haptic, webApp } = useTelegramWebApp();
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const [qrSheetOpen, setQrSheetOpen] = useState(false);
   const loadedTracked = useRef(false);
   const failedTracked = useRef(false);
 
   const { data: configData, error, isLoading, isError } = useQuery({
-    queryKey: ['miniapp-config'],
+    queryKey: ['miniapp-config', selectedSubscriptionKey],
     queryFn: async () => {
-      const { data } = await miniappApi.getConfig();
+      const { data } = await miniappApi.getConfig({ selectedSubscriptionKey });
       return data;
     },
   });

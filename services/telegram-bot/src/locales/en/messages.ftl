@@ -394,6 +394,9 @@ language-changed = ✅ Language changed to { $language ->
 # ── Subscription History ─────────────────────────────────────────────────
 subscriptions-title = 📦 <b>Your subscriptions</b>
 subscriptions-none = 📭 No subscriptions yet.
+config-select-subscription = 📦 <b>Choose subscription</b>
+
+    You have multiple active subscriptions. Choose which VPN config to send.
 status = Status
 expires = Expires
 currency = USD

@@ -96,6 +96,7 @@ class ConfigResponse(BaseModel):
         max_length=5000,
         description="Canonical subscription URL when available",
     )
+    subscription_key: str | None = Field(None, max_length=220, description="Selected customer subscription key")
 
 
 class NotifyRequest(BaseModel):
@@ -169,11 +170,15 @@ class TelegramBotAccessSettingsResponse(BaseModel):
 class TelegramBotSubscriptionResponse(BaseModel):
     """Bot-facing subscription summary."""
 
+    subscription_key: str | None = None
+    kind: str | None = None
     status: str
+    display_name: str | None = None
     plan_name: str | None = None
     expires_at: datetime | None = None
     traffic_limit_bytes: int | None = None
     used_traffic_bytes: int | None = None
+    can_deliver_config: bool = False
     auto_renew: bool = False
 
 

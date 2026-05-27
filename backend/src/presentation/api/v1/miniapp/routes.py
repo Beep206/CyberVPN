@@ -19,6 +19,12 @@ from src.application.services.stage1_plan_policy import (
 )
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.customer_subscriptions import (
+    CustomerSubscriptionServiceAccessUseCase,
+    GetCustomerSubscriptionEntitlementsUseCase,
+    ListCustomerSubscriptionsUseCase,
+    SelectedSubscriptionCheckoutUseCase,
+)
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
 from src.application.use_cases.referrals.get_referral_code import GetReferralCodeUseCase
@@ -368,6 +374,40 @@ async def _get_remnawave_user_for_mobile_user(
     return await gateway.get_by_telegram_id(int(telegram_id))
 
 
+async def _get_remnawave_user_for_provider_subject(
+    *,
+    client: RemnawaveClient,
+    provider_subject_ref: str | None,
+) -> User | None:
+    if not provider_subject_ref:
+        return None
+    return await RemnawaveUserGateway(client).get_by_uuid(UUID(str(provider_subject_ref)))
+
+
+def _build_config_response_from_remnawave_result(
+    result: dict,
+    *,
+    subscription_url_fallback: str | None = None,
+) -> MiniAppConfigResponse:
+    subscription_url = normalize_public_subscription_url(result.get("subscription_url")) or (
+        normalize_public_subscription_url(subscription_url_fallback)
+        if subscription_url_fallback
+        else None
+    )
+    config_string = subscription_url or result.get("config_string", "")
+    return MiniAppConfigResponse(
+        config=str(config_string),
+        configString=str(config_string),
+        clientType="subscription" if subscription_url else str(result.get("client_type", "subscription")),
+        isFound=bool(result.get("is_found", True)),
+        links=list(result.get("links", [])),
+        ssConfLinks=dict(result.get("ss_conf_links", {})),
+        source="remnawave_generated",
+        subscriptionUrl=str(subscription_url) if subscription_url else None,
+        generatedAt=datetime.now(UTC),
+    )
+
+
 async def _get_stage1_trial_provisioning_gateway(
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> Stage1TrialProvisioningGateway | None:
@@ -457,8 +497,42 @@ async def _build_miniapp_quote(
     body: MiniAppCheckoutRequest,
     db: AsyncSession,
     user_id: UUID,
+    auth_realm_id: UUID,
 ) -> MiniAppCheckoutQuoteResponse:
     try:
+        if body.flow == "addons" and body.subscription_key:
+            result = await SelectedSubscriptionCheckoutUseCase(db).quote_addons(
+                customer_account_id=user_id,
+                auth_realm_id=auth_realm_id,
+                subscription_key=body.subscription_key,
+                addons=[
+                    CheckoutAddonInput(
+                        code=addon.code,
+                        qty=addon.qty,
+                        location_code=addon.location_code,
+                    )
+                    for addon in body.addons
+                ],
+                promo_code=body.promo_code,
+                use_wallet=Decimal(str(body.use_wallet)),
+                sale_channel="miniapp",
+            )
+            return _serialize_subscription_quote(result)
+
+        if body.flow == "upgrade" and body.subscription_key:
+            if body.plan_id is None:
+                raise HTTPException(status_code=400, detail="planId is required for upgrade flow")
+            result = await SelectedSubscriptionCheckoutUseCase(db).quote_upgrade(
+                customer_account_id=user_id,
+                auth_realm_id=auth_realm_id,
+                subscription_key=body.subscription_key,
+                target_plan_id=body.plan_id,
+                promo_code=body.promo_code,
+                use_wallet=Decimal(str(body.use_wallet)),
+                sale_channel="miniapp",
+            )
+            return _serialize_subscription_quote(result)
+
         if body.flow == "addons":
             result = await PurchaseAddonsUseCase(db).execute(
                 user_id=user_id,
@@ -515,6 +589,7 @@ async def _build_miniapp_quote(
 async def get_miniapp_bootstrap(
     locale: str = Query("en-EN", min_length=2, max_length=16),
     start_param: str | None = Query(None, alias="startParam", max_length=256),
+    selected_subscription_key: str | None = Query(None, alias="selectedSubscriptionKey", min_length=1, max_length=220),
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
@@ -532,7 +607,22 @@ async def get_miniapp_bootstrap(
         if mobile_user is None:
             raise HTTPException(status_code=404, detail="Mobile user not found")
 
-        entitlement_snapshot = await GetCurrentEntitlementStateUseCase(db).execute(
+        subscription_list = await ListCustomerSubscriptionsUseCase(db).execute(
+            customer_account_id=user_id,
+            auth_realm_id=current_realm.auth_realm.id,
+            selected_subscription_key=selected_subscription_key,
+        )
+        effective_selected_subscription_key = subscription_list.selected_subscription_key
+
+        selected_entitlement_snapshot = None
+        if effective_selected_subscription_key:
+            selected_entitlement_snapshot = await GetCustomerSubscriptionEntitlementsUseCase(db).execute(
+                customer_account_id=user_id,
+                auth_realm_id=current_realm.auth_realm.id,
+                subscription_key=effective_selected_subscription_key,
+            )
+
+        entitlement_snapshot = selected_entitlement_snapshot or await GetCurrentEntitlementStateUseCase(db).execute(
             customer_account_id=user_id,
             auth_realm_id=current_realm.auth_realm.id,
         )
@@ -553,17 +643,39 @@ async def get_miniapp_bootstrap(
         mobile_devices = await device_repo.get_user_devices(user_id)
 
         current_service_state = None
+        selected_service_state = None
         if mobile_user.telegram_id is not None:
-            current_service_state = await GetCurrentServiceStateUseCase(db).execute(
-                customer_account_id=user_id,
-                current_realm=current_realm,
-                provider_name="remnawave",
-                channel_type="telegram_bot",
-                channel_subject_ref=None,
-                provisioning_profile_key=None,
-                credential_type="telegram_bot",
-                credential_subject_key=f"telegram-miniapp:{mobile_user.telegram_id}",
-            )
+            if effective_selected_subscription_key:
+                try:
+                    selected_service_state = await CustomerSubscriptionServiceAccessUseCase(db).get_service_state(
+                        customer_account_id=user_id,
+                        auth_realm_id=current_realm.auth_realm.id,
+                        subscription_key=effective_selected_subscription_key,
+                        provider_name="remnawave",
+                        channel_type="telegram_bot",
+                        channel_subject_ref=f"telegram-miniapp:{mobile_user.telegram_id}",
+                        remnawave_client=remnawave_client,
+                    )
+                except (LookupError, PermissionError, ValueError) as exc:
+                    logger.warning(
+                        "Could not resolve selected Mini App service state",
+                        extra={
+                            "telegram_id": str(mobile_user.telegram_id),
+                            "subscription_key": effective_selected_subscription_key,
+                            "error": str(exc),
+                        },
+                    )
+            if selected_service_state is None:
+                current_service_state = await GetCurrentServiceStateUseCase(db).execute(
+                    customer_account_id=user_id,
+                    current_realm=current_realm,
+                    provider_name="remnawave",
+                    channel_type="telegram_bot",
+                    channel_subject_ref=None,
+                    provisioning_profile_key=None,
+                    credential_type="telegram_bot",
+                    credential_subject_key=f"telegram-miniapp:{mobile_user.telegram_id}",
+                )
 
         remnawave_user = None
         usage_unavailable_reason: Literal[
@@ -571,9 +683,21 @@ async def get_miniapp_bootstrap(
             "upstream_unavailable",
         ] = "upstream_user_not_found"
         try:
-            remnawave_user = await _get_remnawave_user_for_mobile_user(
-                client=remnawave_client,
-                mobile_user=mobile_user,
+            selected_provider_subject_ref = (
+                selected_service_state.service_identity.provider_subject_ref
+                if selected_service_state and selected_service_state.service_identity is not None
+                else None
+            )
+            remnawave_user = (
+                await _get_remnawave_user_for_provider_subject(
+                    client=remnawave_client,
+                    provider_subject_ref=selected_provider_subject_ref,
+                )
+                if selected_provider_subject_ref
+                else await _get_remnawave_user_for_mobile_user(
+                    client=remnawave_client,
+                    mobile_user=mobile_user,
+                )
             )
         except Exception as exc:
             usage_unavailable_reason = "upstream_unavailable"
@@ -596,6 +720,8 @@ async def get_miniapp_bootstrap(
         device_limit = int(effective_entitlements.get("device_limit") or 0)
         has_config = bool(
             mobile_user.subscription_url
+            or (selected_service_state and selected_service_state.service_identity is not None)
+            or (selected_service_state and selected_service_state.access_delivery_channel is not None)
             or (current_service_state and current_service_state.service_identity is not None)
             or (current_service_state and current_service_state.access_delivery_channel is not None)
         )
@@ -662,8 +788,15 @@ async def get_miniapp_bootstrap(
                 unavailable_reason=usage_unavailable_reason,
             ),
             serviceState=MiniAppBootstrapServiceStateResponse(
-                providerName="remnawave" if current_service_state is not None else None,
+                providerName=(
+                    "remnawave"
+                    if (selected_service_state is not None or current_service_state is not None)
+                    else None
+                ),
                 channelType=(
+                    selected_service_state.access_delivery_channel.channel_type
+                    if selected_service_state and selected_service_state.access_delivery_channel is not None
+                    else
                     current_service_state.access_delivery_channel.channel_type
                     if current_service_state and current_service_state.access_delivery_channel is not None
                     else "telegram_bot"
@@ -723,6 +856,7 @@ async def get_miniapp_bootstrap(
 
 @router.get("/offers", response_model=MiniAppOffersResponse)
 async def get_miniapp_offers(
+    selected_subscription_key: str | None = Query(None, alias="selectedSubscriptionKey", min_length=1, max_length=220),
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
@@ -740,10 +874,18 @@ async def get_miniapp_offers(
         )
         addons = await addon_repo.list_catalog(active_only=True, sale_channel="miniapp")
         trial_status = await GetTrialStatusUseCase(db).execute(user_id)
-        current_entitlements = await GetCurrentEntitlementsUseCase(db).execute(
-            user_id,
-            auth_realm_id=current_realm.auth_realm.id,
-        )
+        current_entitlements = None
+        if selected_subscription_key:
+            current_entitlements = await GetCustomerSubscriptionEntitlementsUseCase(db).execute(
+                customer_account_id=user_id,
+                auth_realm_id=current_realm.auth_realm.id,
+                subscription_key=selected_subscription_key,
+            )
+        if current_entitlements is None:
+            current_entitlements = await GetCurrentEntitlementsUseCase(db).execute(
+                user_id,
+                auth_realm_id=current_realm.auth_realm.id,
+            )
 
         return MiniAppOffersResponse(
             plans=[_serialize_plan(plan) for plan in filter_stage1_public_paid_plans(plans, sale_channel="miniapp")],
@@ -832,6 +974,7 @@ async def quote_miniapp_checkout(
     body: MiniAppCheckoutRequest,
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
 ) -> MiniAppCheckoutQuoteResponse:
     started = perf_counter()
     error: Exception | None = None
@@ -847,7 +990,12 @@ async def quote_miniapp_checkout(
             feature="checkout",
             telegram_user_id=telegram_user_id,
         )
-        return await _build_miniapp_quote(body=body, db=db, user_id=user_id)
+        return await _build_miniapp_quote(
+            body=body,
+            db=db,
+            user_id=user_id,
+            auth_realm_id=current_realm.auth_realm.id,
+        )
     except Exception as exc:
         error = exc
         raise
@@ -861,6 +1009,7 @@ async def commit_miniapp_checkout(
     body: MiniAppCheckoutRequest,
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
     crypto_client: CryptoBotClient = Depends(get_crypto_client),
 ) -> MiniAppCheckoutCommitResponse:
     started = perf_counter()
@@ -887,20 +1036,38 @@ async def commit_miniapp_checkout(
         )
 
         if body.flow == "addons":
-            result = await PurchaseAddonsUseCase(db).execute(
-                user_id=user_id,
-                addons=[
-                    CheckoutAddonInput(
-                        code=addon.code,
-                        qty=addon.qty,
-                        location_code=addon.location_code,
-                    )
-                    for addon in body.addons
-                ],
-                promo_code=body.promo_code,
-                use_wallet=Decimal(str(body.use_wallet)),
-                sale_channel="miniapp",
-            )
+            if body.subscription_key:
+                result = await SelectedSubscriptionCheckoutUseCase(db).quote_addons(
+                    customer_account_id=user_id,
+                    auth_realm_id=current_realm.auth_realm.id,
+                    subscription_key=body.subscription_key,
+                    addons=[
+                        CheckoutAddonInput(
+                            code=addon.code,
+                            qty=addon.qty,
+                            location_code=addon.location_code,
+                        )
+                        for addon in body.addons
+                    ],
+                    promo_code=body.promo_code,
+                    use_wallet=Decimal(str(body.use_wallet)),
+                    sale_channel="miniapp",
+                )
+            else:
+                result = await PurchaseAddonsUseCase(db).execute(
+                    user_id=user_id,
+                    addons=[
+                        CheckoutAddonInput(
+                            code=addon.code,
+                            qty=addon.qty,
+                            location_code=addon.location_code,
+                        )
+                        for addon in body.addons
+                    ],
+                    promo_code=body.promo_code,
+                    use_wallet=Decimal(str(body.use_wallet)),
+                    sale_channel="miniapp",
+                )
             quote = _serialize_subscription_quote(result)
             commit_result = await CommitCheckoutUseCase(db, crypto_client).execute(
                 user_id=user_id,
@@ -913,18 +1080,32 @@ async def commit_miniapp_checkout(
                 payment_plan_id=None,
                 use_quote_plan_id_for_payment=False,
                 subscription_days_override=result.duration_days,
-                metadata_extra={"base_plan_id": str(result.plan_id) if result.plan_id else None},
+                metadata_extra={
+                    "base_plan_id": str(result.plan_id) if result.plan_id else None,
+                    "target_subscription_key": body.subscription_key,
+                },
             )
         elif body.flow == "upgrade":
             if body.plan_id is None:
                 raise HTTPException(status_code=400, detail="planId is required for upgrade flow")
-            result = await UpgradeSubscriptionUseCase(db).execute(
-                user_id=user_id,
-                target_plan_id=body.plan_id,
-                promo_code=body.promo_code,
-                use_wallet=Decimal(str(body.use_wallet)),
-                sale_channel="miniapp",
-            )
+            if body.subscription_key:
+                result = await SelectedSubscriptionCheckoutUseCase(db).quote_upgrade(
+                    customer_account_id=user_id,
+                    auth_realm_id=current_realm.auth_realm.id,
+                    subscription_key=body.subscription_key,
+                    target_plan_id=body.plan_id,
+                    promo_code=body.promo_code,
+                    use_wallet=Decimal(str(body.use_wallet)),
+                    sale_channel="miniapp",
+                )
+            else:
+                result = await UpgradeSubscriptionUseCase(db).execute(
+                    user_id=user_id,
+                    target_plan_id=body.plan_id,
+                    promo_code=body.promo_code,
+                    use_wallet=Decimal(str(body.use_wallet)),
+                    sale_channel="miniapp",
+                )
             quote = _serialize_subscription_quote(result)
             commit_result = await CommitCheckoutUseCase(db, crypto_client).execute(
                 user_id=user_id,
@@ -933,8 +1114,9 @@ async def commit_miniapp_checkout(
                 channel="miniapp",
                 description=f"CyberVPN upgrade to {result.plan_name or 'plan'}",
                 payload=f"{user_id}:{body.plan_id}:upgrade",
-                checkout_mode="upgrade",
+                checkout_mode="selected_subscription_upgrade" if body.subscription_key else "upgrade",
                 payment_plan_id=result.plan_id,
+                metadata_extra={"target_subscription_key": body.subscription_key},
             )
         else:
             if body.plan_id is None:
@@ -1077,8 +1259,10 @@ async def get_miniapp_payment_status(
 
 @router.get("/config", response_model=MiniAppConfigResponse)
 async def get_miniapp_config(
+    selected_subscription_key: str | None = Query(None, alias="selectedSubscriptionKey", min_length=1, max_length=220),
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
+    current_realm: RealmResolution = Depends(get_request_customer_realm),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> MiniAppConfigResponse:
     started = perf_counter()
@@ -1101,6 +1285,25 @@ async def get_miniapp_config(
         if mobile_user is None:
             raise HTTPException(status_code=404, detail="Mobile user not found")
 
+        if selected_subscription_key:
+            try:
+                result = await CustomerSubscriptionServiceAccessUseCase(db).get_config(
+                    customer_account_id=user_id,
+                    auth_realm_id=current_realm.auth_realm.id,
+                    subscription_key=selected_subscription_key,
+                    remnawave_client=remnawave_client,
+                )
+            except LookupError as exc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+            except PermissionError as exc:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+            config_source = "remnawave_generated"
+            track_miniapp_config_delivery(source=config_source, status="success")
+            return _build_config_response_from_remnawave_result(
+                result,
+            )
+
         if mobile_user.remnawave_uuid:
             try:
                 result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
@@ -1108,24 +1311,11 @@ async def get_miniapp_config(
                 if exc.status_code != status.HTTP_404_NOT_FOUND:
                     raise
             else:
-                subscription_url = result.get("subscription_url") or (
-                    normalize_public_subscription_url(mobile_user.subscription_url)
-                    if mobile_user.subscription_url
-                    else None
-                )
-                config_string = subscription_url or result.get("config_string", "")
                 config_source = "remnawave_generated"
                 track_miniapp_config_delivery(source=config_source, status="success")
-                return MiniAppConfigResponse(
-                    config=str(config_string),
-                    configString=str(config_string),
-                    clientType="subscription" if subscription_url else str(result.get("client_type", "subscription")),
-                    isFound=bool(result.get("is_found", True)),
-                    links=list(result.get("links", [])),
-                    ssConfLinks=dict(result.get("ss_conf_links", {})),
-                    source="remnawave_generated",
-                    subscriptionUrl=subscription_url,
-                    generatedAt=datetime.now(UTC),
+                return _build_config_response_from_remnawave_result(
+                    result,
+                    subscription_url_fallback=mobile_user.subscription_url,
                 )
 
         remnawave_user = await _get_remnawave_user(
@@ -1134,24 +1324,11 @@ async def get_miniapp_config(
         )
         if remnawave_user is not None:
             result = await GenerateConfigUseCase(remnawave_client).execute(remnawave_user.uuid)
-            subscription_url = result.get("subscription_url") or (
-                normalize_public_subscription_url(mobile_user.subscription_url)
-                if mobile_user.subscription_url
-                else None
-            )
-            config_string = subscription_url or result.get("config_string", "")
             config_source = "remnawave_generated"
             track_miniapp_config_delivery(source=config_source, status="success")
-            return MiniAppConfigResponse(
-                config=str(config_string),
-                configString=str(config_string),
-                clientType="subscription" if subscription_url else str(result.get("client_type", "subscription")),
-                isFound=bool(result.get("is_found", True)),
-                links=list(result.get("links", [])),
-                ssConfLinks=dict(result.get("ss_conf_links", {})),
-                source="remnawave_generated",
-                subscriptionUrl=subscription_url,
-                generatedAt=datetime.now(UTC),
+            return _build_config_response_from_remnawave_result(
+                result,
+                subscription_url_fallback=mobile_user.subscription_url,
             )
 
         if mobile_user.subscription_url:

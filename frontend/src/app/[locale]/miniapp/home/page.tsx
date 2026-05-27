@@ -24,6 +24,7 @@ import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { Link } from '@/i18n/navigation';
 import { VpnConfigCard } from '../components/VpnConfigCard';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
+import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 
 function formatBytes(bytes?: number | null) {
   if (!bytes) return '0 GB';
@@ -46,6 +47,7 @@ export default function MiniAppHomePage() {
   const tPlans = useTranslations('MiniApp.plans');
   const queryClient = useQueryClient();
   const { haptic, hapticNotification, colorScheme, webApp } = useTelegramWebApp();
+  const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const [inviteCode, setInviteCode] = useState('');
   const [inviteFeedback, setInviteFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const openedTracked = useRef(false);
@@ -54,11 +56,12 @@ export default function MiniAppHomePage() {
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
 
   const bootstrapQuery = useQuery({
-    queryKey: ['miniapp-bootstrap', locale, startParam],
+    queryKey: ['miniapp-bootstrap', locale, startParam, selectedSubscriptionKey],
     queryFn: async () => {
       const { data } = await miniappApi.getBootstrap({
         locale,
         startParam,
+        selectedSubscriptionKey,
       });
       return data;
     },

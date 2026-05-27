@@ -213,6 +213,7 @@ class MiniAppCheckoutRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     flow: Literal["checkout", "upgrade", "addons"] = "checkout"
+    subscription_key: str | None = Field(None, alias="subscriptionKey", min_length=1, max_length=220)
     plan_id: UUID | None = Field(None, alias="planId")
     addons: list[CheckoutAddonRequest] = Field(default_factory=list)
     code_input: str | None = Field(None, alias="codeInput", max_length=64)

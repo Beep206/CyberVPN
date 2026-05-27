@@ -23,6 +23,11 @@ from src.application.services.stage1_plan_policy import (
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.customer_subscriptions import (
+    CustomerSubscriptionServiceAccessUseCase,
+    CustomerSubscriptionSummary,
+    ListCustomerSubscriptionsUseCase,
+)
 from src.application.use_cases.orders import ListOrdersUseCase
 from src.application.use_cases.payments.checkout import CheckoutAddonInput, CheckoutUseCase
 from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
@@ -513,6 +518,29 @@ def _build_bot_subscription_from_entitlements(
     )
 
 
+def _build_bot_subscription_from_summary(
+    item: CustomerSubscriptionSummary,
+) -> TelegramBotSubscriptionResponse:
+    effective = dict(item.effective_entitlements or {})
+    expires_at = (
+        datetime.fromisoformat(str(item.expires_at).replace("Z", "+00:00"))
+        if item.expires_at
+        else None
+    )
+    return TelegramBotSubscriptionResponse(
+        subscription_key=item.subscription_key,
+        kind=item.kind,
+        status=item.status,
+        display_name=item.display_name,
+        plan_name=str(item.display_name or item.plan_code or item.kind),
+        expires_at=expires_at,
+        traffic_limit_bytes=effective.get("traffic_limit_bytes"),
+        used_traffic_bytes=effective.get("used_traffic_bytes"),
+        can_deliver_config=item.can_deliver_config,
+        auto_renew=False,
+    )
+
+
 def _build_bot_user_response(
     user: AdminUserModel,
     *,
@@ -990,15 +1018,18 @@ async def get_bot_user_subscriptions(
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
 ) -> list[TelegramBotSubscriptionResponse]:
-    """Return Telegram bot-facing subscriptions list from the canonical entitlement snapshot."""
+    """Return Telegram bot-facing subscriptions list from the selected-subscription read model."""
     _require_telegram_bot_secret(telegram_bot_secret)
 
     mobile_user = await _get_mobile_user_or_404(db, telegram_id)
-    entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
-    subscription = _build_bot_subscription_from_entitlements(entitlements_snapshot)
+    current_realm = await _resolve_bot_customer_realm(db, mobile_user)
+    result = await ListCustomerSubscriptionsUseCase(db).execute(
+        customer_account_id=mobile_user.id,
+        auth_realm_id=current_realm.auth_realm.id,
+    )
 
     route_operations_total.labels(route="telegram_bot", action="list_subscriptions", status="success").inc()
-    return [subscription] if subscription is not None else []
+    return [_build_bot_subscription_from_summary(item) for item in result.items]
 
 
 @router.get("/bot/user/{telegram_id}/entitlements", response_model=TelegramBotEntitlementsResponse)
@@ -1034,23 +1065,41 @@ async def get_bot_user_orders(
 @router.get("/bot/user/{telegram_id}/service-state", response_model=TelegramBotCurrentServiceStateResponse)
 async def get_bot_user_service_state(
     telegram_id: int,
+    subscription_key: str | None = Query(None, min_length=1, max_length=220),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> TelegramBotCurrentServiceStateResponse:
     """Return the canonical current service-state snapshot for Telegram delivery semantics."""
     _require_telegram_bot_secret(telegram_bot_secret)
     mobile_user = await _get_mobile_user_or_404(db, telegram_id)
     current_realm = await _resolve_bot_customer_realm(db, mobile_user)
-    result = await GetCurrentServiceStateUseCase(db).execute(
-        customer_account_id=mobile_user.id,
-        current_realm=current_realm,
-        provider_name="remnawave",
-        channel_type=AccessDeliveryChannelType.TELEGRAM_BOT.value,
-        channel_subject_ref=None,
-        provisioning_profile_key=None,
-        credential_type=DeviceCredentialType.TELEGRAM_BOT.value,
-        credential_subject_key=f"telegram-bot:{telegram_id}",
-    )
+    if subscription_key:
+        try:
+            result = await CustomerSubscriptionServiceAccessUseCase(db).get_service_state(
+                customer_account_id=mobile_user.id,
+                auth_realm_id=current_realm.auth_realm.id,
+                subscription_key=subscription_key,
+                provider_name="remnawave",
+                channel_type=AccessDeliveryChannelType.TELEGRAM_BOT.value,
+                channel_subject_ref=f"telegram-bot:{telegram_id}",
+                remnawave_client=remnawave_client,
+            )
+        except LookupError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    else:
+        result = await GetCurrentServiceStateUseCase(db).execute(
+            customer_account_id=mobile_user.id,
+            current_realm=current_realm,
+            provider_name="remnawave",
+            channel_type=AccessDeliveryChannelType.TELEGRAM_BOT.value,
+            channel_subject_ref=None,
+            provisioning_profile_key=None,
+            credential_type=DeviceCredentialType.TELEGRAM_BOT.value,
+            credential_subject_key=f"telegram-bot:{telegram_id}",
+        )
     route_operations_total.labels(route="telegram_bot", action="service_state", status="success").inc()
     return TelegramBotCurrentServiceStateResponse(
         customer_account_id=mobile_user.id,
@@ -1066,7 +1115,9 @@ async def get_bot_user_service_state(
             else None
         ),
         device_credential=(
-            _serialize_device_credential(result.device_credential) if result.device_credential is not None else None
+            _serialize_device_credential(result.device_credential)
+            if getattr(result, "device_credential", None) is not None
+            else None
         ),
         access_delivery_channel=(
             _serialize_access_delivery_channel(result.access_delivery_channel)
@@ -1558,6 +1609,7 @@ async def get_bot_user_invite_codes(
 @router.get("/bot/user/{telegram_id}/config", response_model=ConfigResponse)
 async def get_bot_user_config(
     telegram_id: int,
+    subscription_key: str | None = Query(None, min_length=1, max_length=220),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
@@ -1566,6 +1618,30 @@ async def get_bot_user_config(
     _require_telegram_bot_secret(telegram_bot_secret)
 
     mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
+    if mobile_user and subscription_key:
+        current_realm = await _resolve_bot_customer_realm(db, mobile_user)
+        try:
+            result = await CustomerSubscriptionServiceAccessUseCase(db).get_config(
+                customer_account_id=mobile_user.id,
+                auth_realm_id=current_realm.auth_realm.id,
+                subscription_key=subscription_key,
+                remnawave_client=remnawave_client,
+            )
+        except LookupError as exc:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        except PermissionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+        subscription_url = normalize_public_subscription_url(result.get("subscription_url"))
+        config_string = subscription_url or result.get("config_string", "")
+        route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
+        return ConfigResponse(
+            config_string=str(config_string),
+            client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
+            subscription_url=str(subscription_url) if subscription_url else None,
+            subscription_key=subscription_key,
+        )
+
     if mobile_user and mobile_user.remnawave_uuid:
         try:
             result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)

@@ -186,13 +186,14 @@ export type MiniAppCheckoutFlow = 'checkout' | 'upgrade' | 'addons';
 
 export type MiniAppCheckoutRequest = Omit<CheckoutQuoteRequest, 'channel'> & {
   flow: MiniAppCheckoutFlow;
+  subscription_key?: string;
 };
 
 export const miniappApi = {
-  getBootstrap: (params?: { locale?: string; startParam?: string | null }) =>
+  getBootstrap: (params?: { locale?: string; startParam?: string | null; selectedSubscriptionKey?: string | null }) =>
     apiClient.get<MiniAppBootstrap>('/miniapp/bootstrap', { params }),
-  getOffers: () =>
-    apiClient.get<MiniAppOffers>('/miniapp/offers'),
+  getOffers: (params?: { selectedSubscriptionKey?: string | null }) =>
+    apiClient.get<MiniAppOffers>('/miniapp/offers', { params }),
   activateTrial: () =>
     apiClient.post<MiniAppTrialActivateResponse>('/miniapp/trial/activate', {}),
   quoteCheckout: (data: MiniAppCheckoutRequest) =>
@@ -201,6 +202,6 @@ export const miniappApi = {
     apiClient.post<CheckoutCommitResponse>('/miniapp/checkout/commit', data),
   getPayment: (paymentId: string) =>
     apiClient.get<PaymentStatusResponse>(`/miniapp/payments/${paymentId}`),
-  getConfig: () =>
-    apiClient.get<MiniAppConfig>('/miniapp/config'),
+  getConfig: (params?: { selectedSubscriptionKey?: string | null }) =>
+    apiClient.get<MiniAppConfig>('/miniapp/config', { params }),
 };
