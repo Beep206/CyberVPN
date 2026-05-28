@@ -53,15 +53,26 @@ Production probe до фикса показал:
 
 ## Post-Deploy Smoke
 
-Заполнить после production deploy:
+Deploy tag: `cflow-009-e9ac3365-20260529T0039Z`  
+Deploy evidence: `docs/evidence/releases/cflow-009/stage1-gitlab-deploy-cflow-009-e9ac3365-20260529T0039Z.md`
 
-- `https://cyber-vpn.net/ru-RU`: no visible anonymous `401 /auth/session` + `401 /auth/refresh`.
-- `https://cyber-vpn.net/ru-RU/pricing`: no visible anonymous auth refresh noise.
-- `https://cyber-vpn.net/ru-RU/features`: no `500 /scanlines.svg`.
-- `https://my.cyber-vpn.net/ru-RU/login`: no `403 /api/analytics/*`.
-- `https://my.cyber-vpn.net/ru-RU/register`: no `403 /api/analytics/*`.
-- `https://my.cyber-vpn.net/ru-RU/miniapp/home`: no analytics `403`; Mini App viewport remains usable.
-- Auth first focus: no obvious user-visible WebGL hitch on first email/password/OTP focus.
+Deploy script public smoke:
+
+- `200 https://cyber-vpn.net/ru-RU`
+- `200 https://cyber-vpn.net/ru-RU/features`
+- `200 https://my.cyber-vpn.net/ru-RU/login`
+- `200 https://my.cyber-vpn.net/ru-RU/register`
+- `200 https://my.cyber-vpn.net/ru-RU/miniapp/home`
+
+Production browser probe after deploy:
+
+- `https://cyber-vpn.net/ru-RU`: no bad responses, no request failures, no console errors/warnings.
+- `https://cyber-vpn.net/ru-RU/pricing`: no bad responses, no request failures, no console errors/warnings.
+- `https://cyber-vpn.net/ru-RU/features`: no bad responses, no request failures, no console errors/warnings.
+- `https://my.cyber-vpn.net/ru-RU/login`: no analytics `403`; first input focus selector found; max RAF gap observed `100ms` in headless browser.
+- `https://my.cyber-vpn.net/ru-RU/register`: no analytics `403`; first input focus selector found; max RAF gap observed `116.7ms` desktop and `33.4ms` mobile in headless browser.
+- `https://my.cyber-vpn.net/ru-RU/miniapp/home`: no analytics `403`; no request failures, no console errors/warnings.
+- `https://my.cyber-vpn.net/ru-RU/miniapp/plans`: no analytics `403`; no request failures, no console errors/warnings.
 
 ## Residual Risk
 
