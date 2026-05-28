@@ -18,7 +18,8 @@ const messages = vi.hoisted(
       copyCode: 'Copy code',
       shareCode: 'Share link',
       qrCodeTitle: 'Telegram QR',
-      qrCodeHint: 'Scan to open CyberVPN in Telegram with your referral code prefilled.',
+      qrCodeHint:
+        'Scan to open CyberVPN in Telegram with your referral code prefilled.',
       copied: 'Copied',
       copyFailed: 'Failed to copy code.',
       shareText: 'Join CyberVPN with my referral code: {code}',
@@ -31,13 +32,16 @@ const messages = vi.hoisted(
       redeemPlaceholder: 'ENTER-CODE',
       redeemButton: 'Redeem code',
       redeeming: 'Redeeming...',
-      redeemSuccessInvite: 'Invite redeemed. Added {days} free days to your account.',
-      redeemSuccessGift: 'Gift redeemed. Added {plan} for {days} days to your account.',
+      redeemSuccessInvite:
+        'Invite redeemed. Added {days} free days to your account.',
+      redeemSuccessGift:
+        'Gift redeemed. Added {plan} for {days} days to your account.',
       promoNoteTitle: 'Checkout policy',
       promoNoteBody:
         'Promo and referral discounts stay in checkout, not in this screen. This hub only handles sharing, tracking, and invite or gift redemption.',
       giftsTitle: 'My gifts',
-      giftsSubtitle: 'Purchased or issued gift codes you can share from Telegram.',
+      giftsSubtitle:
+        'Purchased or issued gift codes you can share from Telegram.',
       noGifts: 'No gift codes available yet.',
       'giftStatus.active': 'Active',
       'giftStatus.redeemed': 'Redeemed',
@@ -59,10 +63,13 @@ const messages = vi.hoisted(
       'giftPurchase.messagePlaceholder': 'Optional note for the recipient',
       'giftPurchase.action': 'Create gift checkout',
       'giftPurchase.processing': 'Preparing gift checkout...',
-      'giftPurchase.successPaymentPending': 'Gift checkout created. Complete payment in Telegram.',
-      'giftPurchase.successIssued': 'Gift issued successfully. Share this code: {code}',
+      'giftPurchase.successPaymentPending':
+        'Gift checkout created. Complete payment in Telegram.',
+      'giftPurchase.successIssued':
+        'Gift issued successfully. Share this code: {code}',
       'giftPurchase.successQueued': 'Gift checkout created successfully.',
-      'giftPurchase.errors.planRequired': 'Choose a plan before creating a gift checkout.',
+      'giftPurchase.errors.planRequired':
+        'Choose a plan before creating a gift checkout.',
       'giftPurchase.errors.default': 'Failed to create gift checkout.',
       invitesTitle: 'My invites',
       invitesSubtitle: 'Invite codes already issued to your account.',
@@ -77,19 +84,23 @@ const messages = vi.hoisted(
       'inviteStatus.active': 'Active',
       'inviteStatus.used': 'Used',
       'inviteStatus.expired': 'Expired',
-      'inviteDays': '{days} free days',
-      'inviteExpires': 'Expires {date}',
-      'inviteCreated': 'Issued {date}',
+      inviteDays: '{days} free days',
+      inviteExpires: 'Expires {date}',
+      inviteCreated: 'Issued {date}',
       'overview.activeInvites': 'Active invites',
       'overview.activeInvitesHint': 'Unused invite codes ready to share.',
       'overview.totalReferrals': 'Total referrals',
-      'overview.totalReferralsHint': 'Accounts attributed to your current referral program.',
+      'overview.totalReferralsHint':
+        'Accounts attributed to your current referral program.',
       'overview.totalRewards': 'Rewards earned',
-      'overview.totalRewardsHint': 'Current backend reward total for this account.',
+      'overview.totalRewardsHint':
+        'Current backend reward total for this account.',
       'overview.currentRate': 'Current rate',
-      'overview.currentRateHint': 'Program rate returned by the current referral contract.',
+      'overview.currentRateHint':
+        'Program rate returned by the current referral contract.',
       'notifications.title': 'Growth notifications',
-      'notifications.subtitle': 'Durable updates for invites, referral rewards, and gift codes.',
+      'notifications.subtitle':
+        'Durable updates for invites, referral rewards, and gift codes.',
       'notifications.loading': 'Loading growth notifications...',
       'notifications.empty': 'No growth notifications are visible right now.',
       'notifications.unread': 'Unread',
@@ -102,7 +113,8 @@ const messages = vi.hoisted(
       'notifications.detailsButton': 'Details',
       'notifications.detailsTitle': 'Delivery details',
       'notifications.detailsLoading': 'Loading delivery details...',
-      'notifications.detailsEmpty': 'Select a notification to inspect delivery details.',
+      'notifications.detailsEmpty':
+        'Select a notification to inspect delivery details.',
       'notifications.supportTitle': 'Support handoff',
       'notifications.supportActionHint':
         'If the automated recovery path is blocked, use the guided repair or support flow below.',
@@ -116,7 +128,8 @@ const messages = vi.hoisted(
       'notifications.openHelpCenter': 'Open help center',
       'notifications.openingSupport': 'Opening support...',
       'notifications.deliveryHistoryTitle': 'Delivery history',
-      'notifications.noDeliveryHistory': 'No delivery history is attached to this notification.',
+      'notifications.noDeliveryHistory':
+        'No delivery history is attached to this notification.',
       'notifications.requestRetry': 'Request another send',
       'notifications.retrying': 'Requesting...',
       'notifications.deliveryPlannedAt': 'Planned {date}',
@@ -125,7 +138,8 @@ const messages = vi.hoisted(
       'notifications.counters.unread': 'Unread {count}',
       'notifications.counters.actionRequired': 'Action {count}',
       'preferences.title': 'Delivery preferences',
-      'preferences.subtitle': 'Choose which growth events stay in-app, email, or Telegram.',
+      'preferences.subtitle':
+        'Choose which growth events stay in-app, email, or Telegram.',
       'preferences.saving': 'Saving...',
       'preferences.note':
         'In-app preferences control this rewards inbox. Email and Telegram plan external delivery without creating a second source of truth.',
@@ -139,6 +153,19 @@ const messages = vi.hoisted(
 );
 
 const clipboardWriteTextMock = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+
+const capabilitiesMock = vi.hoisted(() => ({
+  data: {
+    growth: {
+      checkout_code_discounts: false,
+      gift_codes: false,
+      growth_hub: false,
+      invites: false,
+      promo_codes: false,
+      referral: false,
+    },
+  },
+}));
 
 const growthHooks = vi.hoisted(() => ({
   useReferralCode: vi.fn(),
@@ -165,7 +192,9 @@ const growthHooks = vi.hoisted(() => ({
   getGrowthNotificationSupportEscalationErrorMessage: vi.fn(
     () => 'Failed to open guided support escalation.',
   ),
-  getGrowthRedeemErrorMessage: vi.fn(() => 'Code not found or no longer available.'),
+  getGrowthRedeemErrorMessage: vi.fn(
+    () => 'Code not found or no longer available.',
+  ),
 }));
 
 vi.mock('next-intl', () => ({
@@ -184,11 +213,33 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('next/dynamic', () => ({
-  default: () =>
-    ({ value }: { value: string }) => <div data-testid="qr-code" data-value={value}>qr</div>,
+  default:
+    () =>
+    ({ value }: { value: string }) => (
+      <div data-testid="qr-code" data-value={value}>
+        qr
+      </div>
+    ),
 }));
 
-vi.mock('@/features/customer-growth/hooks/useCustomerGrowth', () => growthHooks);
+vi.mock(
+  '@/features/customer-growth/hooks/useCustomerGrowth',
+  () => growthHooks,
+);
+
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+    return {
+      ...actual,
+      useClientCapabilities: () => capabilitiesMock,
+    };
+  },
+);
 
 describe('MiniAppReferralPage', () => {
   const redeemMutateAsync = vi.fn();
@@ -203,6 +254,12 @@ describe('MiniAppReferralPage', () => {
     setupTelegramWebAppMock();
     vi.clearAllMocks();
     clipboardWriteTextMock.mockClear();
+    capabilitiesMock.data.growth.checkout_code_discounts = false;
+    capabilitiesMock.data.growth.gift_codes = false;
+    capabilitiesMock.data.growth.growth_hub = false;
+    capabilitiesMock.data.growth.invites = false;
+    capabilitiesMock.data.growth.promo_codes = false;
+    capabilitiesMock.data.growth.referral = false;
 
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -309,53 +366,59 @@ describe('MiniAppReferralPage', () => {
       },
       isLoading: false,
     });
-    growthHooks.useGrowthNotificationDetail.mockImplementation((notificationId: string | null) => ({
-      data: notificationId
-        ? {
-            notification: {
-              id: notificationId,
-              kind: 'gift_available',
-              tone: 'warning',
-              route_slug: '/referral',
-              title: 'Gift code available',
-              message: 'A max gift for 365 days was issued to your account.',
-              notes: ['Recipient: friend@example.com.'],
-              action_required: true,
-              unread: true,
-              created_at: '2026-04-21T09:00:00Z',
-              archived_at: null,
-            },
-            deliveries: [
-              {
-                delivery_id: 'delivery-telegram-1',
-                delivery_channel: 'telegram',
-                delivery_status: 'paused',
-                troubleshooting_state: 'paused_admin',
-                customer_message_key: 'growth_notifications.delivery.support_review',
-                customer_summary: 'Telegram delivery is paused and needs support review.',
-                recovery_allowed: false,
-                support_required: true,
-                planned_at: '2026-04-21T09:00:00Z',
-                delivered_at: null,
-                repair_target: {
-                  kind: 'support_contact',
-                  summary: 'Support review is required before Telegram delivery can resume.',
-                },
-                events: [],
+    growthHooks.useGrowthNotificationDetail.mockImplementation(
+      (notificationId: string | null) => ({
+        data: notificationId
+          ? {
+              notification: {
+                id: notificationId,
+                kind: 'gift_available',
+                tone: 'warning',
+                route_slug: '/referral',
+                title: 'Gift code available',
+                message: 'A max gift for 365 days was issued to your account.',
+                notes: ['Recipient: friend@example.com.'],
+                action_required: true,
+                unread: true,
+                created_at: '2026-04-21T09:00:00Z',
+                archived_at: null,
               },
-            ],
-            support_handoff: {
-              reference_code: 'GROWTH::gift-issued:gift-1',
-              troubleshooting_summary: 'Telegram delivery paused by support.',
-              copy_text: 'Reference: GROWTH::gift-issued:gift-1',
-              suggested_escalation_channel: 'telegram_support',
-              contact_subject: '[GROWTH::gift-issued:gift-1] Growth delivery issue',
-              contact_body: 'Reference: GROWTH::gift-issued:gift-1',
-            },
-          }
-        : null,
-      isLoading: false,
-    }));
+              deliveries: [
+                {
+                  delivery_id: 'delivery-telegram-1',
+                  delivery_channel: 'telegram',
+                  delivery_status: 'paused',
+                  troubleshooting_state: 'paused_admin',
+                  customer_message_key:
+                    'growth_notifications.delivery.support_review',
+                  customer_summary:
+                    'Telegram delivery is paused and needs support review.',
+                  recovery_allowed: false,
+                  support_required: true,
+                  planned_at: '2026-04-21T09:00:00Z',
+                  delivered_at: null,
+                  repair_target: {
+                    kind: 'support_contact',
+                    summary:
+                      'Support review is required before Telegram delivery can resume.',
+                  },
+                  events: [],
+                },
+              ],
+              support_handoff: {
+                reference_code: 'GROWTH::gift-issued:gift-1',
+                troubleshooting_summary: 'Telegram delivery paused by support.',
+                copy_text: 'Reference: GROWTH::gift-issued:gift-1',
+                suggested_escalation_channel: 'telegram_support',
+                contact_subject:
+                  '[GROWTH::gift-issued:gift-1] Growth delivery issue',
+                contact_body: 'Reference: GROWTH::gift-issued:gift-1',
+              },
+            }
+          : null,
+        isLoading: false,
+      }),
+    );
     growthHooks.useGrowthNotificationPreferences.mockReturnValue({
       data: {
         growth_in_app_invites: true,
@@ -423,11 +486,29 @@ describe('MiniAppReferralPage', () => {
     cleanupTelegramWebAppMock();
   });
 
-  it('renders the S1 paused state without calling growth hooks', () => {
+  it('renders the runtime paused state when every growth surface is disabled', () => {
     render(<MiniAppReferralPage />);
 
     expect(screen.getByText('Rewards hub is paused')).toBeInTheDocument();
-    expect(growthHooks.useReferralCode).not.toHaveBeenCalled();
-    expect(growthHooks.useGiftPurchase).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText('Share your referral code'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows referral, gift, promo, and invite surfaces from runtime capabilities', () => {
+    capabilitiesMock.data.growth.checkout_code_discounts = true;
+    capabilitiesMock.data.growth.gift_codes = true;
+    capabilitiesMock.data.growth.growth_hub = true;
+    capabilitiesMock.data.growth.invites = true;
+    capabilitiesMock.data.growth.promo_codes = true;
+    capabilitiesMock.data.growth.referral = true;
+
+    render(<MiniAppReferralPage />);
+
+    expect(screen.getByText('Share your referral code')).toBeInTheDocument();
+    expect(screen.getByText('Checkout policy')).toBeInTheDocument();
+    expect(screen.getByText('Buy Gift VPN')).toBeInTheDocument();
+    expect(screen.getByText('My invites')).toBeInTheDocument();
+    expect(screen.getByText('My gifts')).toBeInTheDocument();
   });
 });

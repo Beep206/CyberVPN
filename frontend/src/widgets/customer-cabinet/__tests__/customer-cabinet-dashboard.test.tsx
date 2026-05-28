@@ -1,9 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
+  clientCapabilitiesMock,
   getBalanceMock,
   getCountersMock,
   getCurrentEntitlementMock,
@@ -14,6 +21,50 @@ const {
   getUsageMock,
   listNotificationsMock,
 } = vi.hoisted(() => ({
+  clientCapabilitiesMock: {
+    data: {
+      auth: {
+        email_password: true,
+        magic_link: true,
+        telegram: true,
+      },
+      growth: {
+        checkout_code_discounts: false,
+        gift_codes: false,
+        growth_hub: false,
+        invites: true,
+        promo_codes: false,
+        referral: false,
+      },
+      partner: {
+        applications: false,
+        attribution: false,
+        codes: false,
+        event_backbone: false,
+        payouts: false,
+        portal: false,
+        reporting: false,
+        settlement_sandbox: false,
+        storefronts: false,
+        webhooks: false,
+      },
+      payments: {
+        autorenewal: false,
+        cryptobot: true,
+        manual_invoice: false,
+        telegram_stars: true,
+        web_checkout: true,
+      },
+      subscriptions: {
+        addons: true,
+        multi_subscription: true,
+        paid_provisioning: true,
+        selected_subscription_required: true,
+        trial: true,
+        upgrade: true,
+      },
+    },
+  },
   getBalanceMock: vi.fn(),
   getCountersMock: vi.fn(),
   getCurrentEntitlementMock: vi.fn(),
@@ -28,8 +79,7 @@ const {
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-US',
   useTranslations:
-    () =>
-    (key: string, values?: Record<string, string | number>) => {
+    () => (key: string, values?: Record<string, string | number>) => {
       if (!values) {
         return key;
       }
@@ -81,6 +131,20 @@ vi.mock('@/lib/api', () => ({
     getBalance: getBalanceMock,
   },
 }));
+
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+    return {
+      ...actual,
+      useClientCapabilities: () => clientCapabilitiesMock,
+    };
+  },
+);
 
 import { CustomerCabinetDashboard } from '../customer-cabinet-dashboard';
 
@@ -162,6 +226,12 @@ const rewardNotification = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
+  clientCapabilitiesMock.data.growth.gift_codes = false;
+  clientCapabilitiesMock.data.growth.growth_hub = false;
+  clientCapabilitiesMock.data.growth.invites = true;
+  clientCapabilitiesMock.data.growth.promo_codes = false;
+  clientCapabilitiesMock.data.growth.referral = false;
 
   getCurrentEntitlementMock.mockResolvedValue({ data: activeEntitlement });
   getCountersMock.mockResolvedValue({
@@ -256,7 +326,9 @@ describe('CustomerCabinetDashboard', () => {
     expect(
       screen.getByRole('link', { name: /actions\.secureAccount/i }),
     ).toHaveAttribute('href', '/settings');
-    expect(screen.queryByRole('link', { name: /actions\.invite/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /actions\.invite/i }),
+    ).not.toBeInTheDocument();
     expect(getReferralStatsMock).not.toHaveBeenCalled();
     expect(listNotificationsMock).toHaveBeenCalledWith(false);
   });
@@ -277,7 +349,9 @@ describe('CustomerCabinetDashboard', () => {
 
     renderWithQueryClient(<CustomerCabinetDashboard />);
 
-    expect(await screen.findByText('health.attention.title')).toBeInTheDocument();
+    expect(
+      await screen.findByText('health.attention.title'),
+    ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('stage1-state-access')).getByText(
         'stage1States.access.grace.title',
@@ -310,7 +384,9 @@ describe('CustomerCabinetDashboard', () => {
 
     renderWithQueryClient(<CustomerCabinetDashboard />);
 
-    expect(await screen.findByText('health.critical.title')).toBeInTheDocument();
+    expect(
+      await screen.findByText('health.critical.title'),
+    ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('stage1-state-access')).getByText(
         'stage1States.access.expired.title',
@@ -345,14 +421,22 @@ describe('CustomerCabinetDashboard', () => {
     expect(screen.getByText('sync.issues 3')).toBeInTheDocument();
     expect(screen.getByText('sync.resources.usage')).toBeInTheDocument();
     expect(screen.getByText('sync.resources.serviceState')).toBeInTheDocument();
-    expect(screen.getByText('sync.resources.notificationList')).toBeInTheDocument();
+    expect(
+      screen.getByText('sync.resources.notificationList'),
+    ).toBeInTheDocument();
     expect(screen.getByText('readiness.degraded')).toBeInTheDocument();
     expect(screen.getByText('notifications.errorTitle')).toBeInTheDocument();
-    expect(screen.getByText('notifications.errorDescription')).toBeInTheDocument();
+    expect(
+      screen.getByText('notifications.errorDescription'),
+    ).toBeInTheDocument();
 
-    const trafficCard = screen.getByText('metrics.traffic.title').closest('article');
+    const trafficCard = screen
+      .getByText('metrics.traffic.title')
+      .closest('article');
     expect(trafficCard).not.toBeNull();
-    fireEvent.click(within(trafficCard!).getByRole('button', { name: 'retry' }));
+    fireEvent.click(
+      within(trafficCard!).getByRole('button', { name: 'retry' }),
+    );
 
     await waitFor(() => {
       expect(getUsageMock).toHaveBeenCalledTimes(2);
@@ -418,7 +502,9 @@ describe('CustomerCabinetDashboard', () => {
 
     renderWithQueryClient(<CustomerCabinetDashboard />);
 
-    expect(await screen.findByText('health.critical.title')).toBeInTheDocument();
+    expect(
+      await screen.findByText('health.critical.title'),
+    ).toBeInTheDocument();
     expect(screen.getByText('health.critical.description')).toBeInTheDocument();
     expect(screen.getByText('noActivePlan')).toBeInTheDocument();
     expect(screen.getByText('readiness.noConnectionYet')).toBeInTheDocument();
@@ -437,7 +523,10 @@ describe('CustomerCabinetDashboard', () => {
     expect(
       screen.getByRole('link', { name: /actions\.reviewNotifications/i }),
     ).toHaveAttribute('href', '#cabinet-notifications');
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '98');
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuenow',
+      '98',
+    );
   });
 
   it('uses safe fallbacks for anonymous profile, unmetered usage and missing service data', async () => {
@@ -556,15 +645,21 @@ describe('CustomerCabinetDashboard', () => {
 
     expect(await screen.findByText('sync.status.degraded')).toBeInTheDocument();
 
-    const trafficCard = screen.getByText('metrics.traffic.title').closest('article');
+    const trafficCard = screen
+      .getByText('metrics.traffic.title')
+      .closest('article');
     expect(trafficCard).not.toBeNull();
-    fireEvent.click(within(trafficCard!).getByRole('button', { name: 'retry' }));
+    fireEvent.click(
+      within(trafficCard!).getByRole('button', { name: 'retry' }),
+    );
 
     await waitFor(() => {
       expect(getUsageMock).toHaveBeenCalledTimes(2);
     });
 
-    const deviceCard = screen.getByText('metrics.devices.title').closest('article');
+    const deviceCard = screen
+      .getByText('metrics.devices.title')
+      .closest('article');
     expect(deviceCard).not.toBeNull();
     fireEvent.click(within(deviceCard!).getByRole('button', { name: 'retry' }));
 
@@ -572,19 +667,27 @@ describe('CustomerCabinetDashboard', () => {
       expect(getUsageMock).toHaveBeenCalledTimes(3);
     });
 
-    const walletCard = screen.getByText('metrics.wallet.title').closest('article');
+    const walletCard = screen
+      .getByText('metrics.wallet.title')
+      .closest('article');
     expect(walletCard).not.toBeNull();
     fireEvent.click(within(walletCard!).getByRole('button', { name: 'retry' }));
 
-    const inboxCard = screen.getByText('metrics.notifications.title').closest('article');
+    const inboxCard = screen
+      .getByText('metrics.notifications.title')
+      .closest('article');
     expect(inboxCard).not.toBeNull();
     fireEvent.click(within(inboxCard!).getByRole('button', { name: 'retry' }));
 
     expect(screen.queryByText('rewards.referrals')).not.toBeInTheDocument();
 
-    const readinessPanel = screen.getByText('readiness.title').closest('article');
+    const readinessPanel = screen
+      .getByText('readiness.title')
+      .closest('article');
     expect(readinessPanel).not.toBeNull();
-    fireEvent.click(within(readinessPanel!).getByRole('button', { name: 'retry' }));
+    fireEvent.click(
+      within(readinessPanel!).getByRole('button', { name: 'retry' }),
+    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'notifications.refresh' }),
@@ -597,7 +700,9 @@ describe('CustomerCabinetDashboard', () => {
       expect(getReferralStatsMock).not.toHaveBeenCalled();
       expect(listNotificationsMock).toHaveBeenCalledTimes(2);
     });
-    expect(screen.getByText('notifications.actionRequired')).toBeInTheDocument();
+    expect(
+      screen.getByText('notifications.actionRequired'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Payment review needed')).toBeInTheDocument();
   });
 });

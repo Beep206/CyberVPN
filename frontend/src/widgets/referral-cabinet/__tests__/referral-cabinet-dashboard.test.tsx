@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
+  clientCapabilitiesMock,
   copyMock,
   getCodeMock,
   getCommissionsMock,
@@ -14,6 +15,18 @@ const {
   getStatusMock,
   markPerformanceMock,
 } = vi.hoisted(() => ({
+  clientCapabilitiesMock: {
+    data: {
+      growth: {
+        checkout_code_discounts: false,
+        gift_codes: false,
+        growth_hub: true,
+        invites: false,
+        promo_codes: false,
+        referral: true,
+      },
+    },
+  },
   copyMock: vi.fn(),
   getCodeMock: vi.fn(),
   getCommissionsMock: vi.fn(),
@@ -28,8 +41,7 @@ const {
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-EN',
   useTranslations:
-    () =>
-    (key: string, values?: Record<string, string | number>) => {
+    () => (key: string, values?: Record<string, string | number>) => {
       if (!values) {
         return key;
       }
@@ -72,6 +84,20 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+    return {
+      ...actual,
+      useClientCapabilities: () => clientCapabilitiesMock,
+    };
+  },
+);
+
 import { ReferralCabinetDashboard } from '../referral-cabinet-dashboard';
 
 function renderWithQueryClient(ui: ReactElement) {
@@ -90,6 +116,12 @@ function renderWithQueryClient(ui: ReactElement) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
+  clientCapabilitiesMock.data.growth.gift_codes = false;
+  clientCapabilitiesMock.data.growth.growth_hub = true;
+  clientCapabilitiesMock.data.growth.invites = false;
+  clientCapabilitiesMock.data.growth.promo_codes = false;
+  clientCapabilitiesMock.data.growth.referral = true;
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     value: {

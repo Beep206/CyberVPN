@@ -13,8 +13,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MiniAppBottomNav } from '../MiniAppBottomNav';
-import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
+import {
+  setupTelegramWebAppMock,
+  cleanupTelegramWebAppMock,
+} from '@/test/mocks/telegram-webapp';
 import { usePathname } from '@/i18n/navigation';
+
+const { capabilitiesMock } = vi.hoisted(() => ({
+  capabilitiesMock: {
+    data: {
+      growth: {
+        checkout_code_discounts: false,
+        gift_codes: false,
+        growth_hub: false,
+        invites: false,
+        promo_codes: false,
+        referral: false,
+      },
+    },
+  },
+}));
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -24,7 +42,21 @@ vi.mock('next-intl', () => ({
 // Mock next/navigation
 vi.mock('@/i18n/navigation', () => ({
   usePathname: vi.fn(() => '/miniapp/home'),
-  Link: ({ href, onClick, children, className, 'aria-label': ariaLabel, 'aria-current': ariaCurrent }: { href: string; onClick?: React.MouseEventHandler<HTMLAnchorElement>; children: React.ReactNode; className?: string; 'aria-label'?: string; 'aria-current'?: 'page' | 'step' | 'location' | 'date' | 'time' | boolean }) => (
+  Link: ({
+    href,
+    onClick,
+    children,
+    className,
+    'aria-label': ariaLabel,
+    'aria-current': ariaCurrent,
+  }: {
+    href: string;
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+    children: React.ReactNode;
+    className?: string;
+    'aria-label'?: string;
+    'aria-current'?: 'page' | 'step' | 'location' | 'date' | 'time' | boolean;
+  }) => (
     <a
       href={href}
       onClick={onClick}
@@ -37,10 +69,31 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+
+    return {
+      ...actual,
+      useClientCapabilities: () => capabilitiesMock,
+    };
+  },
+);
+
 describe('MiniAppBottomNav', () => {
   let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
 
   beforeEach(() => {
+    capabilitiesMock.data.growth.checkout_code_discounts = false;
+    capabilitiesMock.data.growth.gift_codes = false;
+    capabilitiesMock.data.growth.growth_hub = false;
+    capabilitiesMock.data.growth.invites = false;
+    capabilitiesMock.data.growth.promo_codes = false;
+    capabilitiesMock.data.growth.referral = false;
     telegramMock = setupTelegramWebAppMock();
   });
 
@@ -57,6 +110,15 @@ describe('MiniAppBottomNav', () => {
       expect(screen.getByLabelText('plans')).toBeInTheDocument();
       expect(screen.getByLabelText('wallet')).toBeInTheDocument();
       expect(screen.getByLabelText('profile')).toBeInTheDocument();
+      expect(screen.queryByLabelText('referral')).not.toBeInTheDocument();
+    });
+
+    it('test_renders_referral_navigation_when_growth_surface_is_enabled', () => {
+      capabilitiesMock.data.growth.referral = true;
+
+      render(<MiniAppBottomNav />);
+
+      expect(screen.getByLabelText('referral')).toBeInTheDocument();
     });
 
     it('test_renders_navigation_role', () => {
@@ -182,12 +244,16 @@ describe('MiniAppBottomNav', () => {
       const plansLink = screen.getByLabelText('plans');
       await user.click(plansLink);
 
-      expect(telegramMock.HapticFeedback.selectionChanged).toHaveBeenCalledTimes(1);
+      expect(
+        telegramMock.HapticFeedback.selectionChanged,
+      ).toHaveBeenCalledTimes(1);
 
       const walletLink = screen.getByLabelText('wallet');
       await user.click(walletLink);
 
-      expect(telegramMock.HapticFeedback.selectionChanged).toHaveBeenCalledTimes(2);
+      expect(
+        telegramMock.HapticFeedback.selectionChanged,
+      ).toHaveBeenCalledTimes(2);
     });
   });
 

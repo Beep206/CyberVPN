@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
+import type { ClientCapabilitiesResponse } from '@/lib/api/client-capabilities';
 import type { AddonRecord } from '@/lib/api/addons';
 import type { PlanRecord } from '@/lib/api/plans';
 import type {
@@ -15,7 +16,7 @@ import type {
 
 const PUBLIC_PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
 const DEFAULT_PERIODS = [30, 90, 180, 365];
-const STAGE1_ADDONS_DISPLAY_ENABLED =
+const FALLBACK_ADDONS_DISPLAY_ENABLED =
   process.env.NEXT_PUBLIC_STAGE1_ADDONS_ENABLED === 'true';
 
 type FallbackPlanSeed = {
@@ -28,7 +29,10 @@ type FallbackPlanSeed = {
   dedicated_ip: PricingDedicatedIp;
   features: Record<string, unknown>;
   sort_order: number;
-  periods: Record<number, { price_usd: number; invite_bundle: PricingInviteBundle }>;
+  periods: Record<
+    number,
+    { price_usd: number; invite_bundle: PricingInviteBundle }
+  >;
 };
 
 const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
@@ -47,10 +51,22 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     features: { marketing_badge: 'Starter', audience: 'single_user' },
     sort_order: 20,
     periods: {
-      30: { price_usd: 5.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      90: { price_usd: 14.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      180: { price_usd: 27.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      365: { price_usd: 49.99, invite_bundle: { count: 1, friend_days: 7, expiry_days: 30 } },
+      30: {
+        price_usd: 5.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      90: {
+        price_usd: 14.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      180: {
+        price_usd: 27.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      365: {
+        price_usd: 49.99,
+        invite_bundle: { count: 1, friend_days: 7, expiry_days: 30 },
+      },
     },
   },
   plus: {
@@ -68,10 +84,22 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     features: { marketing_badge: 'Most Popular', audience: 'mass_market' },
     sort_order: 30,
     periods: {
-      30: { price_usd: 8.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      90: { price_usd: 22.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      180: { price_usd: 39.99, invite_bundle: { count: 1, friend_days: 7, expiry_days: 30 } },
-      365: { price_usd: 79.0, invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 } },
+      30: {
+        price_usd: 8.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      90: {
+        price_usd: 22.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      180: {
+        price_usd: 39.99,
+        invite_bundle: { count: 1, friend_days: 7, expiry_days: 30 },
+      },
+      365: {
+        price_usd: 79.0,
+        invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
+      },
     },
   },
   pro: {
@@ -89,10 +117,22 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     features: { marketing_badge: 'Best Balance', audience: 'power_user' },
     sort_order: 40,
     periods: {
-      30: { price_usd: 11.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      90: { price_usd: 29.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      180: { price_usd: 49.99, invite_bundle: { count: 1, friend_days: 14, expiry_days: 60 } },
-      365: { price_usd: 89.0, invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 } },
+      30: {
+        price_usd: 11.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      90: {
+        price_usd: 29.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      180: {
+        price_usd: 49.99,
+        invite_bundle: { count: 1, friend_days: 14, expiry_days: 60 },
+      },
+      365: {
+        price_usd: 89.0,
+        invite_bundle: { count: 2, friend_days: 14, expiry_days: 60 },
+      },
     },
   },
   max: {
@@ -110,10 +150,22 @@ const FALLBACK_PLAN_SEEDS: Record<PricingTierCode, FallbackPlanSeed> = {
     features: { marketing_badge: 'Most Complete', audience: 'family_premium' },
     sort_order: 50,
     periods: {
-      30: { price_usd: 14.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      90: { price_usd: 36.99, invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 } },
-      180: { price_usd: 59.99, invite_bundle: { count: 1, friend_days: 14, expiry_days: 60 } },
-      365: { price_usd: 99.0, invite_bundle: { count: 3, friend_days: 14, expiry_days: 60 } },
+      30: {
+        price_usd: 14.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      90: {
+        price_usd: 36.99,
+        invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
+      },
+      180: {
+        price_usd: 59.99,
+        invite_bundle: { count: 1, friend_days: 14, expiry_days: 60 },
+      },
+      365: {
+        price_usd: 99.0,
+        invite_bundle: { count: 3, friend_days: 14, expiry_days: 60 },
+      },
     },
   },
 };
@@ -202,7 +254,8 @@ const FALLBACK_ADDONS: PricingAddon[] = [
 ];
 
 function getApiBaseUrl(): string | null {
-  const baseUrl = process.env.API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim();
+  const baseUrl =
+    process.env.API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
     return null;
   }
@@ -269,12 +322,13 @@ function normalizePlanFamilies(records: PlanRecord[]): PricingPlanFamily[] {
     existing.sort_order = Math.min(existing.sort_order, record.sort_order);
   }
 
-  return PUBLIC_PLAN_ORDER
-    .map((code) => buckets.get(code))
+  return PUBLIC_PLAN_ORDER.map((code) => buckets.get(code))
     .filter((plan): plan is PricingPlanFamily => Boolean(plan))
     .map((plan) => ({
       ...plan,
-      periods: [...plan.periods].sort((left, right) => left.duration_days - right.duration_days),
+      periods: [...plan.periods].sort(
+        (left, right) => left.duration_days - right.duration_days,
+      ),
     }));
 }
 
@@ -308,10 +362,20 @@ function buildFallbackCatalog(): PricingCatalogData {
 
   return {
     plans,
-    addons: STAGE1_ADDONS_DISPLAY_ENABLED ? FALLBACK_ADDONS : [],
+    addons: FALLBACK_ADDONS_DISPLAY_ENABLED ? FALLBACK_ADDONS : [],
     periods: DEFAULT_PERIODS,
     source: 'fallback',
   };
+}
+
+function arePublicAddonsEnabled(
+  capabilities: ClientCapabilitiesResponse | null,
+): boolean {
+  if (capabilities) {
+    return capabilities.subscriptions.addons === true;
+  }
+
+  return FALLBACK_ADDONS_DISPLAY_ENABLED;
 }
 
 async function fetchJson<T>(input: string): Promise<T> {
@@ -339,9 +403,17 @@ export async function getPublicPricingCatalog(): Promise<PricingCatalogData> {
   }
 
   try {
-    const plans = await fetchJson<PlanRecord[]>(`${baseUrl}/api/v1/plans/?channel=web`);
-    const addons = STAGE1_ADDONS_DISPLAY_ENABLED
-      ? await fetchJson<AddonRecord[]>(`${baseUrl}/api/v1/addons/catalog?channel=web`)
+    const [plans, capabilities] = await Promise.all([
+      fetchJson<PlanRecord[]>(`${baseUrl}/api/v1/plans/?channel=web`),
+      fetchJson<ClientCapabilitiesResponse>(
+        `${baseUrl}/api/v1/client/capabilities`,
+      ).catch(() => null),
+    ]);
+    const addonsEnabled = arePublicAddonsEnabled(capabilities);
+    const addons = addonsEnabled
+      ? await fetchJson<AddonRecord[]>(
+          `${baseUrl}/api/v1/addons/catalog?channel=web`,
+        )
       : [];
     const normalizedPlans = normalizePlanFamilies(plans);
 
@@ -350,14 +422,16 @@ export async function getPublicPricingCatalog(): Promise<PricingCatalogData> {
     }
 
     const periods = Array.from(
-      new Set(normalizedPlans.flatMap((plan) => plan.periods.map((period) => period.duration_days))),
+      new Set(
+        normalizedPlans.flatMap((plan) =>
+          plan.periods.map((period) => period.duration_days),
+        ),
+      ),
     ).sort((left, right) => left - right);
 
     return {
       plans: normalizedPlans,
-      addons: STAGE1_ADDONS_DISPLAY_ENABLED
-        ? addons.filter((addon) => addon.is_active)
-        : [],
+      addons: addonsEnabled ? addons.filter((addon) => addon.is_active) : [],
       periods: periods.length > 0 ? periods : DEFAULT_PERIODS,
       source: 'api',
     };

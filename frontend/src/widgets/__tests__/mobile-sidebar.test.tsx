@@ -7,6 +7,18 @@ import { resetScrollLockForTests } from '@/shared/lib/scroll-lock';
 import { DASHBOARD_NAV_ITEMS } from '@/widgets/dashboard-navigation';
 
 const mockUsePathname = vi.fn(() => '/dashboard');
+const clientCapabilitiesMock = vi.hoisted(() => ({
+  data: {
+    growth: {
+      checkout_code_discounts: false,
+      gift_codes: false,
+      growth_hub: false,
+      invites: false,
+      promo_codes: false,
+      referral: false,
+    },
+  },
+}));
 
 vi.mock('@/shared/ui/atoms/cypher-text', () => ({
   CypherText: ({ text, className }: { text: string; className?: string }) => (
@@ -46,6 +58,20 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+    return {
+      ...actual,
+      useClientCapabilities: () => clientCapabilitiesMock,
+    };
+  },
+);
+
 vi.mock('@/components/ui/button', () => ({
   Button: forwardRef<
     HTMLButtonElement,
@@ -54,10 +80,7 @@ vi.mock('@/components/ui/button', () => ({
       size?: string;
       variant?: string;
     }
-  >(function MockButton(
-    { children, magnetic, size, variant, ...props },
-    ref,
-  ) {
+  >(function MockButton({ children, magnetic, size, variant, ...props }, ref) {
     void magnetic;
     void size;
     void variant;

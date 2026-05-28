@@ -224,6 +224,51 @@ function createQuoteResponse() {
   };
 }
 
+function createClientCapabilities() {
+  return {
+    auth: {
+      email_password: true,
+      magic_link: true,
+      telegram: true,
+    },
+    payments: {
+      web_checkout: false,
+      telegram_stars: true,
+      cryptobot: true,
+      manual_invoice: false,
+      autorenewal: false,
+    },
+    growth: {
+      invites: true,
+      referral: true,
+      promo_codes: true,
+      gift_codes: true,
+      checkout_code_discounts: false,
+      growth_hub: true,
+    },
+    subscriptions: {
+      multi_subscription: true,
+      selected_subscription_required: true,
+      addons: true,
+      upgrade: true,
+      trial: true,
+      paid_provisioning: true,
+    },
+    partner: {
+      portal: false,
+      applications: false,
+      codes: false,
+      attribution: false,
+      storefronts: false,
+      reporting: false,
+      settlement_sandbox: false,
+      webhooks: false,
+      payouts: false,
+      event_backbone: false,
+    },
+  };
+}
+
 describe('MiniAppPlansPage', () => {
   let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
   const requests: Array<{ url: string; body: unknown }> = [];
@@ -234,6 +279,7 @@ describe('MiniAppPlansPage', () => {
     vi.clearAllMocks();
 
     server.use(
+      http.get(`${API_BASE}/client/capabilities`, () => HttpResponse.json(createClientCapabilities())),
       http.get(`${API_BASE}/miniapp/offers`, () => HttpResponse.json(createOffers())),
       http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(createBootstrap())),
       http.post(`${API_BASE}/miniapp/trial/activate`, () =>

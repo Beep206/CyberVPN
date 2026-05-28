@@ -2,10 +2,21 @@
 
 import { usePathname } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
-import { Gift, Home, CreditCard, Wallet, User, type LucideIcon } from 'lucide-react';
+import {
+  Gift,
+  Home,
+  CreditCard,
+  Wallet,
+  User,
+  type LucideIcon,
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { useTranslations } from 'next-intl';
+import {
+  isAnyGrowthSurfaceEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
 
 interface NavItem {
   href: string;
@@ -18,13 +29,16 @@ export function MiniAppBottomNav() {
   const pathname = usePathname();
   const t = useTranslations('MiniApp.nav');
   const { hapticSelection } = useTelegramWebApp();
+  const { data: capabilities } = useClientCapabilities();
+  const growthVisible = isAnyGrowthSurfaceEnabled(capabilities);
 
   const navItems: NavItem[] = [
     {
       href: '/miniapp/home',
       icon: Home,
       label: t('home'),
-      match: (path) => path === '/miniapp/home' || path === '/miniapp' || path === '/miniapp/',
+      match: (path) =>
+        path === '/miniapp/home' || path === '/miniapp' || path === '/miniapp/',
     },
     {
       href: '/miniapp/plans',
@@ -38,12 +52,16 @@ export function MiniAppBottomNav() {
       label: t('wallet'),
       match: (path) => path.startsWith('/miniapp/wallet'),
     },
-    {
-      href: '/miniapp/referral',
-      icon: Gift,
-      label: t('referral'),
-      match: (path) => path.startsWith('/miniapp/referral'),
-    },
+    ...(growthVisible
+      ? [
+          {
+            href: '/miniapp/referral',
+            icon: Gift,
+            label: t('referral'),
+            match: (path: string) => path.startsWith('/miniapp/referral'),
+          },
+        ]
+      : []),
     {
       href: '/miniapp/profile',
       icon: User,

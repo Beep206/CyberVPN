@@ -10,18 +10,53 @@ import {
 import { canStage1CustomerDashboardSurfaceAccess } from '@/shared/lib/stage1-customer-surface-policy';
 
 const DASHBOARD_NAV_ITEM_CANDIDATES = [
-  { icon: Activity, labelKey: 'dashboard', href: '/dashboard', surface: 'dashboard' },
+  {
+    icon: Activity,
+    labelKey: 'dashboard',
+    href: '/dashboard',
+    surface: 'dashboard',
+  },
   { icon: Server, labelKey: 'servers', href: '/servers', surface: 'servers' },
-  { icon: CreditCard, labelKey: 'billing', href: '/subscriptions', surface: 'subscriptions' },
+  {
+    icon: CreditCard,
+    labelKey: 'billing',
+    href: '/subscriptions',
+    surface: 'subscriptions',
+  },
   { icon: Wallet, labelKey: 'wallet', href: '/wallet', surface: 'wallet' },
-  { icon: Receipt, labelKey: 'paymentHistory', href: '/payment-history', surface: 'paymentHistory' },
-  { icon: UserPlus, labelKey: 'referral', href: '/referral', surface: 'referral' },
-  { icon: Settings, labelKey: 'settings', href: '/settings', surface: 'settings' },
+  {
+    icon: Receipt,
+    labelKey: 'paymentHistory',
+    href: '/payment-history',
+    surface: 'paymentHistory',
+  },
+  {
+    icon: UserPlus,
+    labelKey: 'referral',
+    href: '/referral',
+    surface: 'referral',
+  },
+  {
+    icon: Settings,
+    labelKey: 'settings',
+    href: '/settings',
+    surface: 'settings',
+  },
 ] as const;
 
-export const DASHBOARD_NAV_ITEMS = DASHBOARD_NAV_ITEM_CANDIDATES.filter(
-  (item) => canStage1CustomerDashboardSurfaceAccess(item.surface),
-);
+export function getDashboardNavItems({ growthVisible = false } = {}) {
+  return DASHBOARD_NAV_ITEM_CANDIDATES.filter((item) => {
+    if (item.surface === 'referral') {
+      return growthVisible;
+    }
+
+    return canStage1CustomerDashboardSurfaceAccess(item.surface);
+  });
+}
+
+export const DASHBOARD_NAV_ITEMS = getDashboardNavItems({
+  growthVisible: false,
+});
 
 export const dashboardNavigationItems = DASHBOARD_NAV_ITEMS;
 

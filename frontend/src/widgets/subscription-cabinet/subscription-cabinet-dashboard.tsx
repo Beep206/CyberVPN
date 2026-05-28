@@ -21,6 +21,14 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
+import {
+  areCheckoutCodeDiscountsEnabled,
+  areSubscriptionAddonsEnabled,
+  areSubscriptionUpgradesEnabled,
+  hasManualInvoiceFallback,
+  isWebCheckoutRailEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
   addonsApi,
@@ -248,10 +256,31 @@ function getUsageMetricLabel(
   return locale.startsWith('ru') ? `Использовано ${used}` : `${used} used`;
 }
 
+function getPaymentRailGuardMessage(locale: string, manualInvoiceEnabled: boolean): string {
+  if (locale.startsWith('ru')) {
+    return manualInvoiceEnabled
+      ? 'Онлайн-оплата на сайте сейчас недоступна. Запросите ручной invoice через поддержку.'
+      : 'Онлайн-оплата на сайте сейчас недоступна. Попробуйте позже или обратитесь в поддержку.';
+  }
+
+  return manualInvoiceEnabled
+    ? 'Web checkout is currently unavailable. Request a manual invoice through support.'
+    : 'Web checkout is currently unavailable. Try again later or contact support.';
+}
+
+function getAddonCapabilityGuardMessage(locale: string): string {
+  if (locale.startsWith('ru')) {
+    return 'Add-ons сейчас выключены для этого runtime. Покупка дополнительного трафика или устройств временно недоступна.';
+  }
+
+  return 'Add-ons are disabled for the current runtime. Extra traffic or device purchases are temporarily unavailable.';
+}
+
 export function SubscriptionCabinetDashboard() {
   const t = useTranslations('Subscriptions');
   const locale = useLocale();
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
+  const capabilitiesQuery = useClientCapabilities();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [purchasePlan, setPurchasePlan] = useState<PlanRecord | null>(null);
   const [upgradeState, setUpgradeState] = useState<AsyncActionState>({
@@ -349,6 +378,7 @@ export function SubscriptionCabinetDashboard() {
       const response = await addonsApi.listCatalog({ channel: 'web' });
       return response.data;
     },
+    enabled: areSubscriptionAddonsEnabled(capabilitiesQuery.data),
     staleTime: CATALOG_STALE_MS,
     refetchOnWindowFocus: false,
   });
@@ -368,9 +398,17 @@ export function SubscriptionCabinetDashboard() {
   const entitlement = entitlementQuery.data ?? null;
   const serviceState = serviceStateQuery.data ?? null;
   const trial = trialQuery.data ?? null;
+  const capabilities = capabilitiesQuery.data;
+  const webCheckoutEnabled = isWebCheckoutRailEnabled(capabilities);
+  const manualInvoiceEnabled = hasManualInvoiceFallback(capabilities);
+  const subscriptionAddonsEnabled = areSubscriptionAddonsEnabled(capabilities);
+  const subscriptionUpgradesEnabled = areSubscriptionUpgradesEnabled(capabilities);
+  const checkoutCodeDiscountsEnabled = areCheckoutCodeDiscountsEnabled(capabilities);
   const publicPlans = getPublicPlans(plansQuery.data ?? []);
   const currentPlan = getCurrentPlan(entitlement, publicPlans);
-  const visibleAddons = getVisibleAddons(addonsQuery.data ?? [], entitlement?.plan_code).slice(0, 6);
+  const visibleAddons = subscriptionAddonsEnabled
+    ? getVisibleAddons(addonsQuery.data ?? [], entitlement?.plan_code).slice(0, 6)
+    : [];
   const sortedOrders = getSortedOrders(ordersQuery.data ?? []).slice(0, 5);
   const health = getSubscriptionHealth({ entitlement, serviceState, trial });
   const healthTone = getHealthTone(health);
@@ -392,15 +430,21 @@ export function SubscriptionCabinetDashboard() {
       t('labels.notAvailable');
   const activeSubscription = !isInactiveEntitlement(entitlement);
   const canUseSelectedWriteContract = Boolean(selectedSubscriptionKey?.startsWith('grant:'));
-  const checkoutCodeForRequest = checkoutCode.trim().toUpperCase() || null;
+  const canUsePlanWriteContract =
+    canUseSelectedWriteContract && webCheckoutEnabled && subscriptionUpgradesEnabled;
+  const canUseAddonWriteContract =
+    canUseSelectedWriteContract && webCheckoutEnabled && subscriptionAddonsEnabled;
+  const checkoutCodeForRequest =
+    checkoutCodeDiscountsEnabled ? checkoutCode.trim().toUpperCase() || null : null;
   const currentPlanPrice = currentPlan ? getPlanPrice(currentPlan, locale) : null;
   const hasAnyError =
+    capabilitiesQuery.isError ||
     entitlementQuery.isError ||
     serviceStateQuery.isError ||
     usageQuery.isError ||
     trialQuery.isError ||
     plansQuery.isError ||
-    addonsQuery.isError ||
+    (subscriptionAddonsEnabled && addonsQuery.isError) ||
     ordersQuery.isError;
 
   const refetchCore = () =>
@@ -425,6 +469,15 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleQuoteUpgrade = async (plan: PlanRecord) => {
+    if (!webCheckoutEnabled || !subscriptionUpgradesEnabled) {
+      setUpgradeState({
+        id: plan.uuid,
+        message: getPaymentRailGuardMessage(locale, manualInvoiceEnabled),
+        status: 'error',
+      });
+      return;
+    }
+
     if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setUpgradeState({
         id: plan.uuid,
@@ -460,6 +513,15 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleCommitUpgrade = async (plan: PlanRecord) => {
+    if (!webCheckoutEnabled || !subscriptionUpgradesEnabled) {
+      setUpgradeState({
+        id: plan.uuid,
+        message: getPaymentRailGuardMessage(locale, manualInvoiceEnabled),
+        status: 'error',
+      });
+      return;
+    }
+
     if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setUpgradeState({
         id: plan.uuid,
@@ -498,6 +560,24 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handleQuoteAddon = async (addon: AddonRecord) => {
+    if (!subscriptionAddonsEnabled) {
+      setAddonState({
+        id: addon.uuid,
+        message: getAddonCapabilityGuardMessage(locale),
+        status: 'error',
+      });
+      return;
+    }
+
+    if (!webCheckoutEnabled) {
+      setAddonState({
+        id: addon.uuid,
+        message: getPaymentRailGuardMessage(locale, manualInvoiceEnabled),
+        status: 'error',
+      });
+      return;
+    }
+
     if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setAddonState({
         id: addon.uuid,
@@ -533,6 +613,24 @@ export function SubscriptionCabinetDashboard() {
   };
 
   const handlePurchaseAddon = async (addon: AddonRecord) => {
+    if (!subscriptionAddonsEnabled) {
+      setAddonState({
+        id: addon.uuid,
+        message: getAddonCapabilityGuardMessage(locale),
+        status: 'error',
+      });
+      return;
+    }
+
+    if (!webCheckoutEnabled) {
+      setAddonState({
+        id: addon.uuid,
+        message: getPaymentRailGuardMessage(locale, manualInvoiceEnabled),
+        status: 'error',
+      });
+      return;
+    }
+
     if (!canUseSelectedWriteContract || !selectedSubscriptionKey) {
       setAddonState({
         id: addon.uuid,
@@ -836,48 +934,54 @@ export function SubscriptionCabinetDashboard() {
               label={t('nextActions.paymentSignal')}
             />
             <ActionRow
-              done={visibleAddons.length > 0}
-              label={visibleAddons.length > 0 ? t('nextActions.addonsAvailable') : t('nextActions.noAddons')}
+              done={!subscriptionAddonsEnabled || visibleAddons.length > 0}
+              label={
+                subscriptionAddonsEnabled && visibleAddons.length > 0
+                  ? t('nextActions.addonsAvailable')
+                  : t('nextActions.noAddons')
+              }
             />
           </div>
         </article>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl border border-neon-purple/30 bg-neon-purple/10 p-3">
-              <TicketPercent className="h-6 w-6 text-neon-purple" aria-hidden="true" />
+        {checkoutCodeDiscountsEnabled ? (
+          <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl border border-neon-purple/30 bg-neon-purple/10 p-3">
+                <TicketPercent className="h-6 w-6 text-neon-purple" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
+                  {t('checkoutCodes.eyebrow')}
+                </p>
+                <h2 className="mt-2 text-2xl font-display text-white">{t('checkoutCodes.title')}</h2>
+                <p className="mt-3 max-w-2xl font-mono text-sm leading-7 text-muted-foreground">
+                  {t('checkoutCodes.description')}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
-                {t('checkoutCodes.eyebrow')}
-              </p>
-              <h2 className="mt-2 text-2xl font-display text-white">{t('checkoutCodes.title')}</h2>
-              <p className="mt-3 max-w-2xl font-mono text-sm leading-7 text-muted-foreground">
-                {t('checkoutCodes.description')}
-              </p>
-            </div>
-          </div>
 
-          <label className="mt-6 block">
-            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {t('checkoutCodes.label')}
-            </span>
-            <input
-              value={checkoutCode}
-              onChange={(event) => setCheckoutCode(event.target.value.toUpperCase())}
-              placeholder={t('checkoutCodes.placeholder')}
-              className="mt-2 w-full rounded-2xl border border-grid-line/30 bg-black/20 px-4 py-3 font-mono text-sm uppercase tracking-[0.12em] text-white outline-none transition focus:border-neon-cyan/50 focus:ring-2 focus:ring-neon-cyan/20"
-            />
-          </label>
+            <label className="mt-6 block">
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                {t('checkoutCodes.label')}
+              </span>
+              <input
+                value={checkoutCode}
+                onChange={(event) => setCheckoutCode(event.target.value.toUpperCase())}
+                placeholder={t('checkoutCodes.placeholder')}
+                className="mt-2 w-full rounded-2xl border border-grid-line/30 bg-black/20 px-4 py-3 font-mono text-sm uppercase tracking-[0.12em] text-white outline-none transition focus:border-neon-cyan/50 focus:ring-2 focus:ring-neon-cyan/20"
+              />
+            </label>
 
-          <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
-            {checkoutCodeForRequest
-              ? t('checkoutCodes.active', { code: checkoutCodeForRequest })
-              : t('checkoutCodes.empty')}
-          </p>
-        </article>
+            <p className="mt-3 font-mono text-xs leading-6 text-muted-foreground">
+              {checkoutCodeForRequest
+                ? t('checkoutCodes.active', { code: checkoutCodeForRequest })
+                : t('checkoutCodes.empty')}
+            </p>
+          </article>
+        ) : null}
 
         <CodesSection />
       </section>
@@ -953,7 +1057,7 @@ export function SubscriptionCabinetDashboard() {
 
                   <PlanActionButton
                     action={action}
-                    disabled={!canUseSelectedWriteContract}
+                    disabled={!canUsePlanWriteContract}
                     loading={stateForPlan?.status === 'loading'}
                     quoteReady={stateForPlan?.status === 'quoted'}
                     onCommit={() => handleCommitUpgrade(plan)}
@@ -972,8 +1076,13 @@ export function SubscriptionCabinetDashboard() {
         )}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
+      <section
+        className={`grid gap-6 ${
+          subscriptionAddonsEnabled ? 'xl:grid-cols-[0.95fr_1.05fr]' : ''
+        }`}
+      >
+        {subscriptionAddonsEnabled ? (
+          <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
@@ -1030,7 +1139,7 @@ export function SubscriptionCabinetDashboard() {
                         onClick={() => handleQuoteAddon(addon)}
                         disabled={
                           !activeSubscription ||
-                          !canUseSelectedWriteContract ||
+                          !canUseAddonWriteContract ||
                           stateForAddon?.status === 'loading'
                         }
                         className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-neon-purple/40 bg-neon-purple/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-purple transition hover:bg-neon-purple/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg disabled:cursor-not-allowed disabled:opacity-50"
@@ -1043,7 +1152,7 @@ export function SubscriptionCabinetDashboard() {
                         onClick={() => handlePurchaseAddon(addon)}
                         disabled={
                           !activeSubscription ||
-                          !canUseSelectedWriteContract ||
+                          !canUseAddonWriteContract ||
                           stateForAddon?.status === 'loading' ||
                           stateForAddon?.status !== 'quoted'
                         }
@@ -1062,7 +1171,8 @@ export function SubscriptionCabinetDashboard() {
               {t('addons.empty')}
             </p>
           )}
-        </article>
+          </article>
+        ) : null}
 
         <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
@@ -1125,7 +1235,7 @@ export function SubscriptionCabinetDashboard() {
               usageQuery.refetch(),
               trialQuery.refetch(),
               plansQuery.refetch(),
-              addonsQuery.refetch(),
+              ...(subscriptionAddonsEnabled ? [addonsQuery.refetch()] : []),
               ordersQuery.refetch(),
             ]);
           }}

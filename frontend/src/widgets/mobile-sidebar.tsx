@@ -10,197 +10,220 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { lockDocumentScroll } from '@/shared/lib/scroll-lock';
 import {
-    DASHBOARD_NAV_ITEMS,
-    DASHBOARD_NAV_LABEL_FALLBACKS,
+  isAnyGrowthSurfaceEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
+import {
+  DASHBOARD_NAV_LABEL_FALLBACKS,
+  getDashboardNavItems,
 } from '@/widgets/dashboard-navigation';
 
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function MobileSidebar() {
-    const [isOpen, setIsOpen] = useState(false);
-    const pathname = usePathname();
-    const t = useTranslations('Navigation');
-    const sidebarRef = useRef<HTMLDivElement>(null);
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
-        try {
-            return t(key);
-        } catch {
-            return DASHBOARD_NAV_LABEL_FALLBACKS[key];
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const t = useTranslations('Navigation');
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { data: capabilities } = useClientCapabilities();
+  const navItems = getDashboardNavItems({
+    growthVisible: isAnyGrowthSurfaceEnabled(capabilities),
+  });
+  const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
+    try {
+      return t(key);
+    } catch {
+      return DASHBOARD_NAV_LABEL_FALLBACKS[key];
+    }
+  };
+
+  // Focus trap and keyboard handling for mobile sidebar
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Focus the close button when sidebar opens
+    const panel = sidebarRef.current;
+    if (panel) {
+      const closeBtn = panel.querySelector<HTMLElement>('[data-close-btn]');
+      closeBtn?.focus();
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        return;
+      }
+
+      if (e.key === 'Tab' && panel) {
+        const focusable =
+          panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
         }
+      }
     };
 
-    // Focus trap and keyboard handling for mobile sidebar
-    useEffect(() => {
-        if (!isOpen) return;
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
-        // Focus the close button when sidebar opens
-        const panel = sidebarRef.current;
-        if (panel) {
-            const closeBtn = panel.querySelector<HTMLElement>('[data-close-btn]');
-            closeBtn?.focus();
-        }
+  // Return focus to trigger button when sidebar closes
+  useEffect(() => {
+    if (!isOpen) {
+      triggerRef.current?.focus();
+    }
+  }, [isOpen]);
 
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                setIsOpen(false);
-                return;
-            }
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
 
-            if (e.key === 'Tab' && panel) {
-                const focusable = panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-                if (focusable.length === 0) return;
+    return lockDocumentScroll();
+  }, [isOpen]);
 
-                const first = focusable[0];
-                const last = focusable[focusable.length - 1];
+  return (
+    <div className="md:hidden">
+      <Button
+        ref={triggerRef}
+        variant="ghost"
+        size="icon"
+        magnetic={false}
+        onClick={() => setIsOpen(true)}
+        aria-label={labelFor('openMenu')}
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
+        aria-controls="mobile-sidebar-panel"
+        className="h-10 w-10 rounded-xl border border-grid-line/30 bg-terminal-surface/60 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
 
-                if (e.shiftKey && document.activeElement === first) {
-                    e.preventDefault();
-                    last.focus();
-                } else if (!e.shiftKey && document.activeElement === last) {
-                    e.preventDefault();
-                    first.focus();
-                }
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen]);
-
-    // Return focus to trigger button when sidebar closes
-    useEffect(() => {
-        if (!isOpen) {
-            triggerRef.current?.focus();
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
-        return lockDocumentScroll();
-    }, [isOpen]);
-
-    return (
-        <div className="md:hidden">
-            <Button
-                ref={triggerRef}
-                variant="ghost"
-                size="icon"
-                magnetic={false}
-                onClick={() => setIsOpen(true)}
-                aria-label={labelFor('openMenu')}
-                aria-expanded={isOpen}
-                aria-haspopup="dialog"
-                aria-controls="mobile-sidebar-panel"
-                className="h-10 w-10 rounded-xl border border-grid-line/30 bg-terminal-surface/60 text-neon-cyan hover:bg-neon-cyan/10 hover:text-neon-cyan focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              aria-hidden="true"
+            />
+            <motion.aside
+              ref={sidebarRef}
+              id="mobile-sidebar-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label={labelFor('sidebar')}
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
             >
-                <Menu className="h-5 w-5" />
-            </Button>
+              <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
+                <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
+                  <Shield className="h-6 w-6" />
+                  <span>NEXUS</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  magnetic={false}
+                  data-close-btn
+                  onClick={() => setIsOpen(false)}
+                  aria-label={labelFor('closeMenu')}
+                  className="text-muted-foreground hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
 
-            <AnimatePresence>
-                {isOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsOpen(false)}
-                            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-                            aria-hidden="true"
-                        />
-                        <motion.aside
-                            ref={sidebarRef}
-                            id="mobile-sidebar-panel"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label={labelFor('sidebar')}
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                            className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
+              <div className="flex-1 overflow-y-auto py-6 px-4">
+                <nav
+                  aria-label={labelFor('mainNavigation')}
+                  className="grid gap-2"
+                >
+                  {navItems.map((item) => {
+                    const isActive = pathname?.includes(item.href);
+                    const Icon = item.icon;
+                    const label = labelFor(item.labelKey);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        aria-label={label}
+                        aria-current={isActive ? 'page' : undefined}
+                        className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+                      >
+                        {isActive && (
+                          <div className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan" />
+                        )}
+
+                        <div
+                          className={cn(
+                            'relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300',
+                            isActive
+                              ? 'text-neon-cyan translate-x-1'
+                              : 'text-muted-foreground group-hover:text-foreground group-hover:translate-x-1',
+                          )}
                         >
-                            <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
-                                <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
-                                    <Shield className="h-6 w-6" />
-                                    <span>NEXUS</span>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    magnetic={false}
-                                    data-close-btn
-                                    onClick={() => setIsOpen(false)}
-                                    aria-label={labelFor('closeMenu')}
-                                    className="text-muted-foreground hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
-                                >
-                                    <X className="h-5 w-5" />
-                                </Button>
-                            </div>
+                          <Icon
+                            className={cn(
+                              'h-4 w-4 transition-transform duration-300',
+                              isActive
+                                ? 'drop-shadow-[0_0_8px_cyan]'
+                                : 'group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]',
+                            )}
+                          />
 
-                            <div className="flex-1 overflow-y-auto py-6 px-4">
-                                <nav aria-label={labelFor('mainNavigation')} className="grid gap-2">
-                                    {DASHBOARD_NAV_ITEMS.map((item) => {
-                                        const isActive = pathname?.includes(item.href);
-                                        const Icon = item.icon;
-                                        const label = labelFor(item.labelKey);
+                          <span className="relative tracking-wide">
+                            <CypherText
+                              text={label}
+                              className="group-hover:text-neon-cyan transition-colors duration-300"
+                              speed={30}
+                            />
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
 
-                                        return (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                onClick={() => setIsOpen(false)}
-                                                aria-label={label}
-                                                aria-current={isActive ? 'page' : undefined}
-                                                className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
-                                            >
-                                                {isActive && (
-                                                    <div className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan" />
-                                                )}
-
-                                                <div className={cn(
-                                                    "relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300",
-                                                    isActive ? "text-neon-cyan translate-x-1" : "text-muted-foreground group-hover:text-foreground group-hover:translate-x-1"
-                                                )}>
-                                                    <Icon className={cn(
-                                                        "h-4 w-4 transition-transform duration-300",
-                                                        isActive ? "drop-shadow-[0_0_8px_cyan]" : "group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]"
-                                                    )} />
-
-                                                    <span className="relative tracking-wide">
-                                                        <CypherText
-                                                            text={label}
-                                                            className="group-hover:text-neon-cyan transition-colors duration-300"
-                                                            speed={30}
-                                                        />
-                                                    </span>
-                                                </div>
-                                            </Link>
-                                        );
-                                    })}
-                                </nav>
-                            </div>
-
-                            <div className="border-t border-grid-line/30 p-4">
-                                <div className="rounded-lg bg-sidebar-accent/50 p-3 border border-grid-line/20">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded bg-neon-cyan/20 flex items-center justify-center text-neon-cyan border border-neon-cyan/50">
-                                            CV
-                                        </div>
-                                        <div className="text-xs font-mono">
-                                            <div className="text-foreground">USER NODE</div>
-                                            <div className="text-muted-foreground">PRIVATE ACCESS</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.aside>
-                    </>
-                )}
-            </AnimatePresence>
-        </div>
-    );
+              <div className="border-t border-grid-line/30 p-4">
+                <div className="rounded-lg bg-sidebar-accent/50 p-3 border border-grid-line/20">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded bg-neon-cyan/20 flex items-center justify-center text-neon-cyan border border-neon-cyan/50">
+                      CV
+                    </div>
+                    <div className="text-xs font-mono">
+                      <div className="text-foreground">USER NODE</div>
+                      <div className="text-muted-foreground">
+                        PRIVATE ACCESS
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

@@ -21,6 +21,18 @@ vi.mock('@/lib/utils', () => ({
 }));
 
 const mockUsePathname = vi.fn(() => '/');
+const clientCapabilitiesMock = vi.hoisted(() => ({
+  data: {
+    growth: {
+      checkout_code_discounts: false,
+      gift_codes: false,
+      growth_hub: false,
+      invites: false,
+      promo_codes: false,
+      referral: false,
+    },
+  },
+}));
 
 vi.mock('@/i18n/navigation', () => ({
   useRouter: () => ({
@@ -44,6 +56,20 @@ vi.mock('@/i18n/navigation', () => ({
     </a>
   ),
 }));
+
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+    return {
+      ...actual,
+      useClientCapabilities: () => clientCapabilitiesMock,
+    };
+  },
+);
 
 import { CyberSidebar } from '../cyber-sidebar';
 

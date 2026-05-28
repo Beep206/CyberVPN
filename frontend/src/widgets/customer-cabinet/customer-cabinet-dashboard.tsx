@@ -24,12 +24,13 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
-  STAGE1_CHECKOUT_CODES_UI_ENABLED,
-  STAGE1_GIFT_CODES_UI_ENABLED,
-  STAGE1_GROWTH_HUB_UI_ENABLED,
-  STAGE1_PROMO_CODES_UI_ENABLED,
-  STAGE1_REFERRAL_UI_ENABLED,
-} from '@/shared/lib/stage1-growth-flags';
+  areCheckoutCodeDiscountsEnabled,
+  areGiftCodesEnabled,
+  arePromoCodesEnabled,
+  isAnyGrowthSurfaceEnabled,
+  isReferralProgramEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
   customerSubscriptionsApi,
@@ -128,7 +129,10 @@ type CabinetResourceSnapshot = {
 
 function visiblePolling(intervalMs: number) {
   return () => {
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'hidden'
+    ) {
       return false;
     }
 
@@ -140,7 +144,10 @@ function visiblePolling(intervalMs: number) {
   };
 }
 
-function formatStatus(value: string | null | undefined, fallback: string): string {
+function formatStatus(
+  value: string | null | undefined,
+  fallback: string,
+): string {
   if (!value || value.trim().length === 0) {
     return fallback;
   }
@@ -317,10 +324,7 @@ function ActionLink({
   }
 
   return (
-    <Link
-      href={href}
-      className={className}
-    >
+    <Link href={href} className={className}>
       {content}
     </Link>
   );
@@ -416,7 +420,9 @@ function SyncStatusPanel({
             />
           </div>
           <div>
-            <p className={`font-mono text-xs uppercase tracking-[0.28em] ${classes.text}`}>
+            <p
+              className={`font-mono text-xs uppercase tracking-[0.28em] ${classes.text}`}
+            >
               {statusLabel}
             </p>
             <h2 className="mt-1 font-display text-xl text-white">{title}</h2>
@@ -483,6 +489,13 @@ export function CustomerCabinetDashboard() {
   const locale = useLocale();
   const t = useTranslations('Dashboard.cabinet');
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
+  const { data: capabilities } = useClientCapabilities();
+  const referralUiEnabled = isReferralProgramEnabled(capabilities);
+  const growthHubUiEnabled = isAnyGrowthSurfaceEnabled(capabilities);
+  const growthCodesUiEnabled =
+    arePromoCodesEnabled(capabilities) ||
+    areCheckoutCodeDiscountsEnabled(capabilities) ||
+    areGiftCodesEnabled(capabilities);
 
   const profileQuery = useQuery({
     queryFn: async () => (await profileApi.getProfile()).data,
@@ -493,7 +506,11 @@ export function CustomerCabinetDashboard() {
   const entitlementQuery = useQuery({
     queryFn: async () => {
       if (selectedSubscriptionKey) {
-        return (await customerSubscriptionsApi.getEntitlements(selectedSubscriptionKey)).data;
+        return (
+          await customerSubscriptionsApi.getEntitlements(
+            selectedSubscriptionKey,
+          )
+        ).data;
       }
 
       return (await entitlementsApi.getCurrent()).data;
@@ -520,7 +537,7 @@ export function CustomerCabinetDashboard() {
   const referralQuery = useQuery({
     queryFn: async () => (await referralApi.getStats()).data,
     queryKey: ['customer-cabinet', 'referral-stats'],
-    enabled: STAGE1_REFERRAL_UI_ENABLED,
+    enabled: referralUiEnabled,
     staleTime: STATIC_STALE_MS,
   });
 
@@ -564,14 +581,14 @@ export function CustomerCabinetDashboard() {
 
   const knownEntitlement =
     entitlementQuery.isFetched || entitlementQuery.isError
-      ? entitlement ?? null
+      ? (entitlement ?? null)
       : undefined;
   const knownServiceState =
     serviceStateQuery.isFetched || serviceStateQuery.isError
-      ? serviceState ?? null
+      ? (serviceState ?? null)
       : undefined;
   const knownTrial =
-    trialQuery.isFetched || trialQuery.isError ? trial ?? null : undefined;
+    trialQuery.isFetched || trialQuery.isError ? (trial ?? null) : undefined;
   const usagePercentage = getUsagePercentage(usage);
   const health = getCabinetHealth({
     entitlement: knownEntitlement,
@@ -641,7 +658,7 @@ export function CustomerCabinetDashboard() {
     usage,
   });
   const visiblePriorityActions = priorityActions.filter(
-    (actionId) => actionId !== 'inviteFriends' || STAGE1_REFERRAL_UI_ENABLED,
+    (actionId) => actionId !== 'inviteFriends' || referralUiEnabled,
   );
   const actionMeta: Record<
     CabinetActionId,
@@ -727,7 +744,7 @@ export function CustomerCabinetDashboard() {
       label: t('s2Actions.paymentHistory.label'),
       tone: 'cyan' as Tone,
     },
-    ...(STAGE1_GROWTH_HUB_UI_ENABLED
+    ...(growthHubUiEnabled
       ? [
           {
             description: t('s2Actions.growthHub.description'),
@@ -739,9 +756,7 @@ export function CustomerCabinetDashboard() {
           },
         ]
       : []),
-    ...(STAGE1_PROMO_CODES_UI_ENABLED ||
-    STAGE1_CHECKOUT_CODES_UI_ENABLED ||
-    STAGE1_GIFT_CODES_UI_ENABLED
+    ...(growthCodesUiEnabled
       ? [
           {
             description: t('s2Actions.codes.description'),
@@ -799,7 +814,7 @@ export function CustomerCabinetDashboard() {
         void walletQuery.refetch();
       },
     },
-    ...(STAGE1_REFERRAL_UI_ENABLED
+    ...(referralUiEnabled
       ? [
           {
             dataUpdatedAt: referralQuery.dataUpdatedAt,
@@ -893,7 +908,7 @@ export function CustomerCabinetDashboard() {
     void entitlementQuery.refetch();
     void usageQuery.refetch();
     void walletQuery.refetch();
-    if (STAGE1_REFERRAL_UI_ENABLED) {
+    if (referralUiEnabled) {
       void referralQuery.refetch();
     }
     void notificationQuery.refetch();
@@ -1019,7 +1034,9 @@ export function CustomerCabinetDashboard() {
                   <p className="font-mono text-xs uppercase tracking-[0.26em] text-muted-foreground">
                     {t(`stage1States.${state.id}.eyebrow`)}
                   </p>
-                  <h3 className={`mt-2 break-words font-display text-xl ${classes.text}`}>
+                  <h3
+                    className={`mt-2 break-words font-display text-xl ${classes.text}`}
+                  >
                     {t(`stage1States.${state.id}.${state.state}.title`)}
                   </h3>
                 </div>
@@ -1130,8 +1147,7 @@ export function CustomerCabinetDashboard() {
           meta={
             notifications
               ? t('metrics.notifications.meta', {
-                  actionRequired:
-                    notifications.action_required_notifications,
+                  actionRequired: notifications.action_required_notifications,
                   total: notifications.total_notifications,
                 })
               : t('metrics.notifications.empty')
@@ -1227,10 +1243,10 @@ export function CustomerCabinetDashboard() {
                 !usageIsAvailable
                   ? metricErrorLabel
                   : usagePercentage === null
-                  ? t('metrics.traffic.unmetered')
-                  : t('metrics.traffic.percentage', {
-                      percentage: usagePercentage,
-                    })
+                    ? t('metrics.traffic.unmetered')
+                    : t('metrics.traffic.percentage', {
+                        percentage: usagePercentage,
+                      })
               }
               percentage={usagePercentage}
               fallbackLabel={
@@ -1398,67 +1414,75 @@ export function CustomerCabinetDashboard() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        {STAGE1_REFERRAL_UI_ENABLED ? (
-        <article className="rounded-[1.5rem] border border-matrix-green/25 bg-terminal-surface/55 p-5 backdrop-blur md:p-6">
-          <p className="font-mono text-xs uppercase tracking-[0.32em] text-matrix-green">
-            {t('rewards.eyebrow')}
-          </p>
-          <h3 className="mt-2 text-2xl font-display text-white">
-            {t('rewards.title')}
-          </h3>
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <MetricCard
-              icon={Gift}
-              loading={referralQuery.isPending}
-              title={t('rewards.referrals')}
-              value={referral ? String(referral.total_referrals) : t('unavailable')}
-              meta={t('rewards.totalReferrals')}
-              errorLabel={referralQuery.isError ? metricErrorLabel : undefined}
-              onRetry={() => {
-                void referralQuery.refetch();
-              }}
-              retryLabel={t('retry')}
-              retrying={referralQuery.isFetching}
-              tone="green"
-            />
-            <MetricCard
-              icon={Wallet}
-              loading={referralQuery.isPending}
-              title={t('rewards.available')}
-              value={
-                referral
-                  ? formatMoney(referral.available_rewards_usd, 'USD', locale)
-                  : t('unavailable')
-              }
-              meta={t('rewards.availableMeta')}
-              errorLabel={referralQuery.isError ? metricErrorLabel : undefined}
-              onRetry={() => {
-                void referralQuery.refetch();
-              }}
-              retryLabel={t('retry')}
-              retrying={referralQuery.isFetching}
-              tone="cyan"
-            />
-            <MetricCard
-              icon={Clock}
-              loading={referralQuery.isPending}
-              title={t('rewards.pending')}
-              value={
-                referral
-                  ? formatMoney(referral.pending_rewards_usd, 'USD', locale)
-                  : t('unavailable')
-              }
-              meta={t('rewards.pendingMeta')}
-              errorLabel={referralQuery.isError ? metricErrorLabel : undefined}
-              onRetry={() => {
-                void referralQuery.refetch();
-              }}
-              retryLabel={t('retry')}
-              retrying={referralQuery.isFetching}
-              tone="amber"
-            />
-          </div>
-        </article>
+        {referralUiEnabled ? (
+          <article className="rounded-[1.5rem] border border-matrix-green/25 bg-terminal-surface/55 p-5 backdrop-blur md:p-6">
+            <p className="font-mono text-xs uppercase tracking-[0.32em] text-matrix-green">
+              {t('rewards.eyebrow')}
+            </p>
+            <h3 className="mt-2 text-2xl font-display text-white">
+              {t('rewards.title')}
+            </h3>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <MetricCard
+                icon={Gift}
+                loading={referralQuery.isPending}
+                title={t('rewards.referrals')}
+                value={
+                  referral ? String(referral.total_referrals) : t('unavailable')
+                }
+                meta={t('rewards.totalReferrals')}
+                errorLabel={
+                  referralQuery.isError ? metricErrorLabel : undefined
+                }
+                onRetry={() => {
+                  void referralQuery.refetch();
+                }}
+                retryLabel={t('retry')}
+                retrying={referralQuery.isFetching}
+                tone="green"
+              />
+              <MetricCard
+                icon={Wallet}
+                loading={referralQuery.isPending}
+                title={t('rewards.available')}
+                value={
+                  referral
+                    ? formatMoney(referral.available_rewards_usd, 'USD', locale)
+                    : t('unavailable')
+                }
+                meta={t('rewards.availableMeta')}
+                errorLabel={
+                  referralQuery.isError ? metricErrorLabel : undefined
+                }
+                onRetry={() => {
+                  void referralQuery.refetch();
+                }}
+                retryLabel={t('retry')}
+                retrying={referralQuery.isFetching}
+                tone="cyan"
+              />
+              <MetricCard
+                icon={Clock}
+                loading={referralQuery.isPending}
+                title={t('rewards.pending')}
+                value={
+                  referral
+                    ? formatMoney(referral.pending_rewards_usd, 'USD', locale)
+                    : t('unavailable')
+                }
+                meta={t('rewards.pendingMeta')}
+                errorLabel={
+                  referralQuery.isError ? metricErrorLabel : undefined
+                }
+                onRetry={() => {
+                  void referralQuery.refetch();
+                }}
+                retryLabel={t('retry')}
+                retrying={referralQuery.isFetching}
+                tone="amber"
+              />
+            </div>
+          </article>
         ) : null}
 
         <article className="rounded-[1.5rem] border border-neon-pink/25 bg-terminal-surface/55 p-5 backdrop-blur md:p-6">

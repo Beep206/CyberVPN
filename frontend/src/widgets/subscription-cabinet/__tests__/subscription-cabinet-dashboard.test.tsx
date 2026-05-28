@@ -16,8 +16,54 @@ const {
   purchaseAddonsMock,
   quoteAddonsMock,
   quoteUpgradeMock,
+  clientCapabilitiesMock,
 } = vi.hoisted(() => ({
   activateTrialMock: vi.fn(),
+  clientCapabilitiesMock: {
+    data: {
+      auth: {
+        email_password: true,
+        magic_link: true,
+        telegram: true,
+      },
+      payments: {
+        web_checkout: true,
+        telegram_stars: true,
+        cryptobot: true,
+        manual_invoice: false,
+        autorenewal: false,
+      },
+      growth: {
+        invites: true,
+        referral: true,
+        promo_codes: true,
+        gift_codes: true,
+        checkout_code_discounts: true,
+        growth_hub: true,
+      },
+      subscriptions: {
+        multi_subscription: true,
+        selected_subscription_required: true,
+        addons: true,
+        upgrade: true,
+        trial: true,
+        paid_provisioning: true,
+      },
+      partner: {
+        portal: false,
+        applications: false,
+        codes: false,
+        attribution: false,
+        storefronts: false,
+        reporting: false,
+        settlement_sandbox: false,
+        webhooks: false,
+        payouts: false,
+        event_backbone: false,
+      },
+    },
+    isError: false,
+  },
   commitUpgradeMock: vi.fn(),
   getAddonsMock: vi.fn(),
   getEntitlementMock: vi.fn(),
@@ -29,6 +75,30 @@ const {
   purchaseAddonsMock: vi.fn(),
   quoteAddonsMock: vi.fn(),
   quoteUpgradeMock: vi.fn(),
+}));
+
+vi.mock('@/features/client-capabilities/useClientCapabilities', () => ({
+  areCheckoutCodeDiscountsEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.checkout_code_discounts === true,
+  areGiftCodesEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.gift_codes === true,
+  areInviteCodesEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.invites !== false,
+  arePromoCodesEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.promo_codes === true,
+  areSubscriptionAddonsEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.subscriptions.addons === true,
+  areSubscriptionUpgradesEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.subscriptions.upgrade !== false,
+  hasManualInvoiceFallback: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.manual_invoice === true,
+  isGrowthHubEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.growth_hub === true,
+  isReferralProgramEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.referral === true,
+  isWebCheckoutRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.web_checkout === true,
+  useClientCapabilities: () => clientCapabilitiesMock,
 }));
 
 vi.mock('next-intl', () => ({
@@ -358,6 +428,13 @@ function mockSuccessfulResponses() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clientCapabilitiesMock.isError = false;
+  clientCapabilitiesMock.data.payments.web_checkout = true;
+  clientCapabilitiesMock.data.payments.cryptobot = true;
+  clientCapabilitiesMock.data.payments.manual_invoice = false;
+  clientCapabilitiesMock.data.growth.checkout_code_discounts = true;
+  clientCapabilitiesMock.data.subscriptions.addons = true;
+  clientCapabilitiesMock.data.subscriptions.upgrade = true;
   vi.stubGlobal('open', openMock);
   mockSuccessfulResponses();
 });
@@ -556,6 +633,23 @@ describe('SubscriptionCabinetDashboard', () => {
     expect(await screen.findByTestId('purchase-modal')).toHaveTextContent('Max Plan');
     expect(screen.getByRole('button', { name: /addons\.quote/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /addons\.purchaseCta/i })).toBeDisabled();
+  });
+
+  it('hides add-ons and disables web purchase actions when runtime capabilities deny them', async () => {
+    clientCapabilitiesMock.data.payments.web_checkout = false;
+    clientCapabilitiesMock.data.payments.cryptobot = false;
+    clientCapabilitiesMock.data.payments.manual_invoice = true;
+    clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
+    clientCapabilitiesMock.data.subscriptions.addons = false;
+
+    renderWithQueryClient(<SubscriptionCabinetDashboard />);
+
+    const maxPlanCard = (await screen.findByText('Max Plan')).closest('article');
+    expect(maxPlanCard).not.toBeNull();
+    expect(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.quote/i })).toBeDisabled();
+    expect(screen.queryByText('Extra device')).not.toBeInTheDocument();
+    expect(screen.queryByText('checkoutCodes.title')).not.toBeInTheDocument();
+    expect(getAddonsMock).not.toHaveBeenCalled();
   });
 
   it('shows trial activation failure feedback without marking trial as successful', async () => {

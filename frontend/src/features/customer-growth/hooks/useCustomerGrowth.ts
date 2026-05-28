@@ -22,9 +22,18 @@ import type {
   GrowthNotificationPreferences,
 } from '@/lib/api/growth-notifications';
 import { getGrowthCodeResolutionMessage } from '@/features/customer-growth/lib/checkout-code-resolution';
+import {
+  areGiftCodesEnabled,
+  areInviteCodesEnabled,
+  isReferralProgramEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
 
 function pollingInterval(intervalMs: number) {
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+  if (
+    typeof document !== 'undefined' &&
+    document.visibilityState === 'hidden'
+  ) {
     return false;
   }
 
@@ -36,8 +45,11 @@ function pollingInterval(intervalMs: number) {
 }
 
 export function useReferralStatus() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'referral', 'status'],
+    enabled: isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getStatus();
       return response.data;
@@ -47,8 +59,11 @@ export function useReferralStatus() {
 }
 
 export function useReferralCode() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'referral', 'code'],
+    enabled: isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getCode();
       return response.data;
@@ -58,8 +73,11 @@ export function useReferralCode() {
 }
 
 export function useReferralStats() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'referral', 'stats'],
+    enabled: isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getStats();
       return response.data;
@@ -71,8 +89,11 @@ export function useReferralStats() {
 }
 
 export function useRecentReferralActivity() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'referral', 'activity'],
+    enabled: isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getRecentCommissions();
       return response.data;
@@ -84,8 +105,11 @@ export function useRecentReferralActivity() {
 export const useRecentCommissions = useRecentReferralActivity;
 
 export function useInviteCodes() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'invites'],
+    enabled: areInviteCodesEnabled(capabilities),
     queryFn: async () => {
       const response = await invitesApi.getMyInvites();
       return response.data;
@@ -95,8 +119,11 @@ export function useInviteCodes() {
 }
 
 export function useGiftCodes() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'gifts'],
+    enabled: areGiftCodesEnabled(capabilities),
     queryFn: async () => {
       const response = await giftsApi.listMyGifts();
       return response.data;
@@ -106,8 +133,11 @@ export function useGiftCodes() {
 }
 
 export function useGiftCatalogPlans() {
+  const { data: capabilities } = useClientCapabilities();
+
   return useQuery({
     queryKey: ['growth', 'gift-plans'],
+    enabled: areGiftCodesEnabled(capabilities),
     queryFn: async () => {
       const response = await plansApi.list();
       return response.data.filter((plan) => plan.is_active);
@@ -118,7 +148,11 @@ export function useGiftCatalogPlans() {
 
 export function useGrowthNotifications(includeArchived = false) {
   return useQuery({
-    queryKey: ['growth', 'notifications', includeArchived ? 'archived' : 'active'],
+    queryKey: [
+      'growth',
+      'notifications',
+      includeArchived ? 'archived' : 'active',
+    ],
     queryFn: async () => {
       const response = await growthNotificationsApi.list(includeArchived);
       return response.data;
@@ -179,8 +213,12 @@ export function useMarkGrowthNotificationRead() {
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
       ]);
     },
   });
@@ -197,8 +235,12 @@ export function useArchiveGrowthNotification() {
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
       ]);
     },
   });
@@ -215,9 +257,15 @@ export function useUpdateGrowthNotificationPreferences() {
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'preferences'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'preferences'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
       ]);
     },
   });
@@ -235,17 +283,29 @@ export function useRequestGrowthNotificationRecovery() {
       notificationId: string;
       deliveryChannel: string;
     }) => {
-      const response = await growthNotificationsApi.requestRecovery(notificationId, {
-        delivery_channel: deliveryChannel,
-      });
+      const response = await growthNotificationsApi.requestRecovery(
+        notificationId,
+        {
+          delivery_channel: deliveryChannel,
+        },
+      );
       return response.data;
     },
     onSuccess: async (_data, variables) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
         queryClient.invalidateQueries({
-          queryKey: ['growth', 'notifications', 'detail', variables.notificationId],
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            'growth',
+            'notifications',
+            'detail',
+            variables.notificationId,
+          ],
         }),
       ]);
     },
@@ -266,18 +326,30 @@ export function useRequestGrowthNotificationSupportEscalation() {
       deliveryChannel?: string | null;
       escalationChannel: string;
     }) => {
-      const response = await growthNotificationsApi.requestSupportEscalation(notificationId, {
-        delivery_channel: deliveryChannel ?? null,
-        escalation_channel: escalationChannel,
-      });
+      const response = await growthNotificationsApi.requestSupportEscalation(
+        notificationId,
+        {
+          delivery_channel: deliveryChannel ?? null,
+          escalation_channel: escalationChannel,
+        },
+      );
       return response.data;
     },
     onSuccess: async (_data, variables) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
         queryClient.invalidateQueries({
-          queryKey: ['growth', 'notifications', 'detail', variables.notificationId],
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            'growth',
+            'notifications',
+            'detail',
+            variables.notificationId,
+          ],
         }),
       ]);
     },
@@ -294,7 +366,9 @@ class GrowthRedeemResolutionError extends Error {
   }
 }
 
-function isGrowthRedeemResolutionError(error: unknown): error is GrowthRedeemResolutionError {
+function isGrowthRedeemResolutionError(
+  error: unknown,
+): error is GrowthRedeemResolutionError {
   return error instanceof GrowthRedeemResolutionError;
 }
 
@@ -304,7 +378,9 @@ export function getInviteRedeemErrorMessage(error: unknown): string {
   }
 
   const detail =
-    typeof error.response?.data?.detail === 'string' ? error.response.data.detail : null;
+    typeof error.response?.data?.detail === 'string'
+      ? error.response.data.detail
+      : null;
 
   switch (error.response?.status) {
     case 404:
@@ -326,7 +402,9 @@ export function getGiftRedeemErrorMessage(error: unknown): string {
   }
 
   const detail =
-    typeof error.response?.data?.detail === 'string' ? error.response.data.detail : null;
+    typeof error.response?.data?.detail === 'string'
+      ? error.response.data.detail
+      : null;
 
   switch (error.response?.status) {
     case 404:
@@ -349,7 +427,9 @@ export function getGrowthRedeemErrorMessage(error: unknown): string {
 
   if (error instanceof AxiosError) {
     const detail =
-      typeof error.response?.data?.detail === 'string' ? error.response.data.detail : null;
+      typeof error.response?.data?.detail === 'string'
+        ? error.response.data.detail
+        : null;
 
     if (detail?.toLowerCase().includes('gift')) {
       return getGiftRedeemErrorMessage(error);
@@ -365,24 +445,32 @@ export function getGrowthRedeemErrorMessage(error: unknown): string {
   return 'Failed to redeem code.';
 }
 
-export function getGrowthNotificationRecoveryErrorMessage(error: unknown): string {
+export function getGrowthNotificationRecoveryErrorMessage(
+  error: unknown,
+): string {
   if (!(error instanceof AxiosError)) {
     return 'Failed to request another delivery attempt.';
   }
 
   const detail =
-    typeof error.response?.data?.detail === 'string' ? error.response.data.detail : null;
+    typeof error.response?.data?.detail === 'string'
+      ? error.response.data.detail
+      : null;
 
   return detail || 'Failed to request another delivery attempt.';
 }
 
-export function getGrowthNotificationSupportEscalationErrorMessage(error: unknown): string {
+export function getGrowthNotificationSupportEscalationErrorMessage(
+  error: unknown,
+): string {
   if (!(error instanceof AxiosError)) {
     return 'Failed to open guided support escalation.';
   }
 
   const detail =
-    typeof error.response?.data?.detail === 'string' ? error.response.data.detail : null;
+    typeof error.response?.data?.detail === 'string'
+      ? error.response.data.detail
+      : null;
 
   return detail || 'Failed to open guided support escalation.';
 }
@@ -399,7 +487,9 @@ export function useRedeemInviteCode() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['growth', 'invites'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'referral', 'stats'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'referral', 'stats'],
+        }),
       ]);
     },
   });
@@ -415,10 +505,13 @@ export interface GrowthRedeemGiftResult {
   giftRedemption: GiftRedeemResponse;
 }
 
-export type GrowthRedeemResult = GrowthRedeemInviteResult | GrowthRedeemGiftResult;
+export type GrowthRedeemResult =
+  | GrowthRedeemInviteResult
+  | GrowthRedeemGiftResult;
 
 export function useRedeemGrowthCode() {
   const queryClient = useQueryClient();
+  const { data: capabilities } = useClientCapabilities();
 
   return useMutation({
     mutationKey: ['growth', 'redeem'],
@@ -436,6 +529,10 @@ export function useRedeemGrowthCode() {
       }
 
       if (resolution.code_type === 'invite') {
+        if (!areInviteCodesEnabled(capabilities)) {
+          throw new Error('Invite code flows are not currently available.');
+        }
+
         const response = await invitesApi.redeem({ code: normalizedCode });
         return {
           codeType: 'invite',
@@ -444,6 +541,10 @@ export function useRedeemGrowthCode() {
       }
 
       if (resolution.code_type === 'gift') {
+        if (!areGiftCodesEnabled(capabilities)) {
+          throw new Error('Gift code flows are not currently available.');
+        }
+
         const response = await giftsApi.redeem({ code: normalizedCode });
         return {
           codeType: 'gift',
@@ -458,9 +559,11 @@ export function useRedeemGrowthCode() {
               accepted: false,
               result: 'rejected',
               reject_reason: 'code_wrong_context',
-              wrong_context_target: resolution.code_type === 'promo' || resolution.code_type === 'referral'
-                ? 'checkout'
-                : 'redeem',
+              wrong_context_target:
+                resolution.code_type === 'promo' ||
+                resolution.code_type === 'referral'
+                  ? 'checkout'
+                  : 'redeem',
             }
           : resolution,
       );
@@ -469,14 +572,24 @@ export function useRedeemGrowthCode() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['growth', 'invites'] }),
         queryClient.invalidateQueries({ queryKey: ['growth', 'gifts'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'referral', 'stats'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'referral', 'stats'],
+        }),
         queryClient.invalidateQueries({ queryKey: ['current-entitlements'] }),
         queryClient.invalidateQueries({ queryKey: ['current-service-state'] }),
         queryClient.invalidateQueries({ queryKey: ['subscriptions'] }),
-        queryClient.invalidateQueries({ queryKey: ['miniapp-current-entitlements'] }),
-        queryClient.invalidateQueries({ queryKey: ['miniapp-current-service-state'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['miniapp-current-entitlements'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['miniapp-current-service-state'],
+        }),
       ]);
     },
   });
@@ -484,18 +597,27 @@ export function useRedeemGrowthCode() {
 
 export function useGiftPurchase() {
   const queryClient = useQueryClient();
+  const { data: capabilities } = useClientCapabilities();
 
   return useMutation({
     mutationKey: ['growth', 'gifts', 'purchase'],
     mutationFn: async (payload: GiftPurchaseRequest) => {
+      if (!areGiftCodesEnabled(capabilities)) {
+        throw new Error('Gift purchases are not currently available.');
+      }
+
       const response = await giftsApi.commitPurchase(payload);
       return response.data;
     },
     onSuccess: async (result: GiftPurchaseCommitResponse) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['growth', 'gifts'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications'] }),
-        queryClient.invalidateQueries({ queryKey: ['growth', 'notifications', 'counters'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['growth', 'notifications', 'counters'],
+        }),
         queryClient.invalidateQueries({ queryKey: ['payments', 'history'] }),
       ]);
 
@@ -507,4 +629,8 @@ export function useGiftPurchase() {
 }
 
 export type { GiftCodeRecord };
-export type { GrowthNotificationCounters, GrowthNotificationDetail, GrowthNotificationItem };
+export type {
+  GrowthNotificationCounters,
+  GrowthNotificationDetail,
+  GrowthNotificationItem,
+};

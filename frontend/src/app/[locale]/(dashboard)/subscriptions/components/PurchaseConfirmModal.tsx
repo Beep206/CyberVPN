@@ -12,14 +12,31 @@ import {
 import { codesApi } from '@/lib/api/codes';
 import { motion } from 'motion/react';
 import { useLocale } from 'next-intl';
-import { AlertTriangle, CheckCircle, CreditCard, Percent, ShieldCheck, Tag, Zap } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  CreditCard,
+  Percent,
+  ShieldCheck,
+  Tag,
+  Zap,
+} from 'lucide-react';
 import { AxiosError } from 'axios';
 import { CyberInput } from '@/features/auth/components/CyberInput';
 import {
   getGrowthCodeResolutionMessage,
   getUnsupportedCheckoutCodeMessage,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
-import { markPerformance, measurePerformance, PerformanceMarks } from '@/shared/lib/web-vitals';
+import {
+  areCheckoutCodeDiscountsEnabled,
+  arePromoCodesEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
+import {
+  markPerformance,
+  measurePerformance,
+  PerformanceMarks,
+} from '@/shared/lib/web-vitals';
 import {
   canOfficialWebSurfaceAccess,
   shouldRenderOfficialQuoteAdjustmentBanner,
@@ -62,6 +79,7 @@ export function PurchaseConfirmModal({
 }: PurchaseConfirmModalProps) {
   const locale = useLocale();
   const queryClient = useQueryClient();
+  const { data: capabilities } = useClientCapabilities();
   const [step, setStep] = useState<ModalStep>('confirm');
   const [error, setError] = useState('');
   const [codeInput, setCodeInput] = useState('');
@@ -116,7 +134,9 @@ export function PurchaseConfirmModal({
       setAppliedCodeInput(null);
 
       try {
-        const response = await commerceApi.createQuoteSession(buildQuoteRequest(initialPlan));
+        const response = await commerceApi.createQuoteSession(
+          buildQuoteRequest(initialPlan),
+        );
         if (!isCancelled) {
           setQuote(response.data.quote);
         }
@@ -169,7 +189,9 @@ export function PurchaseConfirmModal({
         setAppliedCodeInput(null);
         setCodeError(getGrowthCodeResolutionMessage(resolution));
 
-        const fallbackQuote = await commerceApi.createQuoteSession(buildQuoteRequest(activePlan));
+        const fallbackQuote = await commerceApi.createQuoteSession(
+          buildQuoteRequest(activePlan),
+        );
         setQuote(fallbackQuote.data.quote);
         return;
       }
@@ -177,18 +199,23 @@ export function PurchaseConfirmModal({
       const unsupportedMessage = getUnsupportedCheckoutCodeMessage({
         codeType: resolution.code_type,
         flow: 'checkout',
-        partnerCodeEntryAllowed: canOfficialWebSurfaceAccess('partner_code_entry'),
+        partnerCodeEntryAllowed:
+          canOfficialWebSurfaceAccess('partner_code_entry'),
       });
       if (unsupportedMessage) {
         setAppliedCodeInput(null);
         setCodeError(unsupportedMessage);
 
-        const fallbackQuote = await commerceApi.createQuoteSession(buildQuoteRequest(activePlan));
+        const fallbackQuote = await commerceApi.createQuoteSession(
+          buildQuoteRequest(activePlan),
+        );
         setQuote(fallbackQuote.data.quote);
         return;
       }
 
-      const response = await commerceApi.createQuoteSession(buildQuoteRequest(activePlan, normalizedCode));
+      const response = await commerceApi.createQuoteSession(
+        buildQuoteRequest(activePlan, normalizedCode),
+      );
       setQuote(response.data.quote);
       setAppliedCodeInput(normalizedCode);
       setCodeInput(normalizedCode);
@@ -203,7 +230,9 @@ export function PurchaseConfirmModal({
       setCodeError(handleQuoteError(err, 'Checkout code not valid'));
 
       try {
-        const fallbackQuote = await commerceApi.createQuoteSession(buildQuoteRequest(activePlan));
+        const fallbackQuote = await commerceApi.createQuoteSession(
+          buildQuoteRequest(activePlan),
+        );
         setQuote(fallbackQuote.data.quote);
       } catch {
         setQuote(null);
@@ -228,18 +257,18 @@ export function PurchaseConfirmModal({
 
     try {
       const quoteResponse = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined)
+        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined),
       );
       const checkoutSessionResponse = await commerceApi.createCheckoutSession(
         { quote_session_id: quoteResponse.data.id },
-        createClientIdempotencyKey('checkout-session')
+        createClientIdempotencyKey('checkout-session'),
       );
       const orderResponse = await commerceApi.commitOrder({
         checkout_session_id: checkoutSessionResponse.data.id,
       });
       const paymentAttemptResponse = await commerceApi.createPaymentAttempt(
         { order_id: orderResponse.data.id },
-        createClientIdempotencyKey('payment-attempt')
+        createClientIdempotencyKey('payment-attempt'),
       );
 
       await Promise.all([
@@ -251,7 +280,11 @@ export function PurchaseConfirmModal({
       ]);
 
       if (paymentAttemptResponse.data.invoice?.payment_url) {
-        window.open(paymentAttemptResponse.data.invoice.payment_url, '_blank', 'noopener,noreferrer');
+        window.open(
+          paymentAttemptResponse.data.invoice.payment_url,
+          '_blank',
+          'noopener,noreferrer',
+        );
         setSuccessMessage('Payment page opened');
       } else {
         setSuccessMessage('Subscription activated');
@@ -265,7 +298,7 @@ export function PurchaseConfirmModal({
       measurePerformance(
         'purchase-flow-duration',
         PerformanceMarks.PURCHASE_FLOW_START,
-        PerformanceMarks.PURCHASE_FLOW_COMPLETE
+        PerformanceMarks.PURCHASE_FLOW_COMPLETE,
       );
 
       setTimeout(() => {
@@ -288,13 +321,16 @@ export function PurchaseConfirmModal({
   const quotedBase = quote?.base_price ?? plan.price_usd;
   const hasDiscount = (quote?.discount_amount ?? 0) > 0;
   const quotedGateway = quote?.gateway_amount ?? plan.price_usd;
-  const showPromoControls = canOfficialWebSurfaceAccess('promo_codes');
-  const showQuoteAdjustmentBanner = appliedCodeInput && quote
-    ? shouldRenderOfficialQuoteAdjustmentBanner({
-        discountAmount: quote.discount_amount,
-        partnerMarkup: quote.partner_markup,
-      })
-    : false;
+  const showPromoControls =
+    arePromoCodesEnabled(capabilities) &&
+    areCheckoutCodeDiscountsEnabled(capabilities);
+  const showQuoteAdjustmentBanner =
+    appliedCodeInput && quote
+      ? shouldRenderOfficialQuoteAdjustmentBanner({
+          discountAmount: quote.discount_amount,
+          partnerMarkup: quote.partner_markup,
+        })
+      : false;
 
   if (step === 'confirm') {
     return (
@@ -310,7 +346,8 @@ export function PurchaseConfirmModal({
                   {plan.display_name}
                 </h3>
                 <p className="text-sm text-muted-foreground font-mono">
-                  {formatDurationLabel(plan.duration_days)} • {formatTrafficLabel(plan)}
+                  {formatDurationLabel(plan.duration_days)} •{' '}
+                  {formatTrafficLabel(plan)}
                 </p>
               </div>
             </div>
@@ -329,7 +366,9 @@ export function PurchaseConfirmModal({
                   Support
                 </p>
                 <p className="mt-2 text-sm font-mono text-white/75">
-                  {formatSupportLabel(quoteSnapshot?.support_sla ?? plan.support_sla)}
+                  {formatSupportLabel(
+                    quoteSnapshot?.support_sla ?? plan.support_sla,
+                  )}
                 </p>
               </div>
             </div>
@@ -338,13 +377,16 @@ export function PurchaseConfirmModal({
               <div className="flex items-start justify-between gap-4">
                 <span>Connection modes</span>
                 <span className="max-w-[16rem] text-right font-mono text-white/75">
-                  {formatConnectionModes(quoteSnapshot?.connection_modes ?? plan.connection_modes)}
+                  {formatConnectionModes(
+                    quoteSnapshot?.connection_modes ?? plan.connection_modes,
+                  )}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
                 <span>Traffic policy</span>
                 <span className="font-mono text-white/75">
-                  {quoteSnapshot?.display_traffic_label ?? formatTrafficLabel(plan)}
+                  {quoteSnapshot?.display_traffic_label ??
+                    formatTrafficLabel(plan)}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
@@ -374,63 +416,63 @@ export function PurchaseConfirmModal({
 
           {showPromoControls ? (
             <div className="cyber-card p-4 bg-terminal-bg">
-            <div className="flex items-center gap-3 mb-3">
-              <Tag className="h-5 w-5 text-neon-purple" />
-              <h4 className="text-sm font-display text-neon-purple">
-                Have a Checkout Code?
-              </h4>
-            </div>
+              <div className="flex items-center gap-3 mb-3">
+                <Tag className="h-5 w-5 text-neon-purple" />
+                <h4 className="text-sm font-display text-neon-purple">
+                  Have a Checkout Code?
+                </h4>
+              </div>
 
-            <div className="space-y-3">
-              <CyberInput
-                label="Checkout Code"
-                type="text"
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                placeholder="SAVE20"
-                prefix="code"
-                error={codeError}
-                disabled={quoteLoading}
-                onKeyDown={(e) => e.key === 'Enter' && handleApplyCode()}
-              />
+              <div className="space-y-3">
+                <CyberInput
+                  label="Checkout Code"
+                  type="text"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                  placeholder="SAVE20"
+                  prefix="code"
+                  error={codeError}
+                  disabled={quoteLoading}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyCode()}
+                />
 
-              {showQuoteAdjustmentBanner ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-start gap-2 p-3 bg-matrix-green/10 border border-matrix-green/30 rounded"
-                >
-                  <Percent className="h-4 w-4 text-matrix-green flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ShieldCheck className="h-3 w-3 text-matrix-green" />
-                      <span className="text-xs font-semibold text-matrix-green uppercase tracking-[0.18em]">
-                        Quote Updated
-                      </span>
+                {showQuoteAdjustmentBanner ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-start gap-2 p-3 bg-matrix-green/10 border border-matrix-green/30 rounded"
+                  >
+                    <Percent className="h-4 w-4 text-matrix-green flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ShieldCheck className="h-3 w-3 text-matrix-green" />
+                        <span className="text-xs font-semibold text-matrix-green uppercase tracking-[0.18em]">
+                          Quote Updated
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {(quote?.discount_amount ?? 0) > 0
+                          ? `${appliedCodeInput} applied: ${formatMoney(locale, quote?.discount_amount ?? 0, 'USD')} off`
+                          : `${appliedCodeInput} applied`}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {(quote?.discount_amount ?? 0) > 0
-                        ? `${appliedCodeInput} applied: ${formatMoney(locale, quote?.discount_amount ?? 0, 'USD')} off`
-                        : `${appliedCodeInput} applied`}
-                    </p>
+                  </motion.div>
+                ) : null}
+
+                {codeFeedback ? (
+                  <div className="rounded border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-2 text-xs text-neon-cyan">
+                    {codeFeedback}
                   </div>
-                </motion.div>
-              ) : null}
+                ) : null}
 
-              {codeFeedback ? (
-                <div className="rounded border border-neon-cyan/30 bg-neon-cyan/10 px-3 py-2 text-xs text-neon-cyan">
-                  {codeFeedback}
-                </div>
-              ) : null}
-
-              <button
-                onClick={handleApplyCode}
-                disabled={quoteLoading || !codeInput.trim()}
-                className="w-full px-3 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {quoteLoading ? 'Updating quote...' : 'Apply Code'}
-              </button>
-            </div>
+                <button
+                  onClick={handleApplyCode}
+                  disabled={quoteLoading || !codeInput.trim()}
+                  className="w-full px-3 py-2 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-mono text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {quoteLoading ? 'Updating quote...' : 'Apply Code'}
+                </button>
+              </div>
             </div>
           ) : null}
 
@@ -442,11 +484,12 @@ export function PurchaseConfirmModal({
                   Secure checkout
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  The dashboard now resolves checkout codes before payment and carries accepted pricing directly into checkout.
+                  The dashboard now resolves checkout codes before payment and
+                  carries accepted pricing directly into checkout.
                 </p>
                 <p className="text-xs font-mono text-white/55">
-                  Gateway amount: {formatMoney(locale, quotedGateway, 'USD')}
-                  . Charged in USD.
+                  Gateway amount: {formatMoney(locale, quotedGateway, 'USD')}.
+                  Charged in USD.
                 </p>
               </div>
             </div>

@@ -14,13 +14,28 @@ import ProfilePage from '../page';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { setupTelegramWebAppMock, cleanupTelegramWebAppMock } from '@/test/mocks/telegram-webapp';
+import {
+  setupTelegramWebAppMock,
+  cleanupTelegramWebAppMock,
+} from '@/test/mocks/telegram-webapp';
 
 const mocks = vi.hoisted(() => ({
   routerPush: vi.fn(),
   routerReplace: vi.fn(),
   mockLogout: vi.fn(),
   mockDeleteAccount: vi.fn(),
+  capabilities: {
+    data: {
+      growth: {
+        checkout_code_discounts: false,
+        gift_codes: false,
+        growth_hub: false,
+        invites: true,
+        promo_codes: false,
+        referral: false,
+      },
+    },
+  },
 }));
 
 vi.mock('next-intl', () => ({
@@ -52,6 +67,20 @@ vi.mock('@/stores/auth-store', () => ({
   },
 }));
 
+vi.mock(
+  '@/features/client-capabilities/useClientCapabilities',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/client-capabilities/useClientCapabilities')
+      >();
+    return {
+      ...actual,
+      useClientCapabilities: () => mocks.capabilities,
+    };
+  },
+);
+
 const API_BASE = '*/api/v1';
 
 const createWrapper = () => {
@@ -59,7 +88,9 @@ const createWrapper = () => {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
   };
 };
 
@@ -69,6 +100,12 @@ describe('MiniAppProfilePage', () => {
     vi.clearAllMocks();
     mocks.mockLogout.mockResolvedValue(undefined);
     mocks.mockDeleteAccount.mockResolvedValue(undefined);
+    mocks.capabilities.data.growth.checkout_code_discounts = false;
+    mocks.capabilities.data.growth.gift_codes = false;
+    mocks.capabilities.data.growth.growth_hub = false;
+    mocks.capabilities.data.growth.invites = true;
+    mocks.capabilities.data.growth.promo_codes = false;
+    mocks.capabilities.data.growth.referral = false;
 
     server.use(
       http.get(`${API_BASE}/referral/code`, () => {
@@ -100,7 +137,7 @@ describe('MiniAppProfilePage', () => {
       }),
       http.get(`${API_BASE}/partner/dashboard`, () => {
         return HttpResponse.json({ is_partner: false, codes: [] });
-      })
+      }),
     );
   });
 
@@ -121,7 +158,9 @@ describe('MiniAppProfilePage', () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /referral/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /referral/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -130,14 +169,18 @@ describe('MiniAppProfilePage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('testuser')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /partner/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /partner/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
   it('test_expands_and_collapses_sections', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
-    const securitySection = await screen.findByRole('button', { name: /security/i });
+    const securitySection = await screen.findByRole('button', {
+      name: /security/i,
+    });
     fireEvent.click(securitySection);
 
     await waitFor(() => {
@@ -149,7 +192,9 @@ describe('MiniAppProfilePage', () => {
   it('test_shows_my_invites_section_with_issued_codes', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
-    const invitesSection = await screen.findByRole('button', { name: /myInvites/i });
+    const invitesSection = await screen.findByRole('button', {
+      name: /myInvites/i,
+    });
     fireEvent.click(invitesSection);
 
     await waitFor(() => {
@@ -177,17 +222,24 @@ describe('MiniAppProfilePage', () => {
 
   it('test_delete_account_uses_telegram_confirm_callback_and_clears_miniapp_session', async () => {
     const telegramWebApp = setupTelegramWebAppMock({
-      showConfirm: vi.fn((_message: string, callback?: (confirmed: boolean) => void) => {
-        callback?.(true);
-      }),
+      showConfirm: vi.fn(
+        (_message: string, callback?: (confirmed: boolean) => void) => {
+          callback?.(true);
+        },
+      ),
     });
 
     render(<ProfilePage />, { wrapper: createWrapper() });
 
-    fireEvent.click(await screen.findByRole('button', { name: /deleteAccount/i }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: /deleteAccount/i }),
+    );
 
     await waitFor(() => {
-      expect(telegramWebApp.showConfirm).toHaveBeenCalledWith('deleteAccountConfirm', expect.any(Function));
+      expect(telegramWebApp.showConfirm).toHaveBeenCalledWith(
+        'deleteAccountConfirm',
+        expect.any(Function),
+      );
       expect(mocks.mockDeleteAccount).toHaveBeenCalledTimes(1);
       expect(telegramWebApp.showAlert).toHaveBeenCalledWith('accountDeleted');
       expect(mocks.routerReplace).toHaveBeenCalledWith('/miniapp/home');

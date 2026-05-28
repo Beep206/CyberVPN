@@ -30,6 +30,7 @@ export { invitesApi } from './invites';
 export { giftsApi } from './gifts';
 export { growthNotificationsApi } from './growth-notifications';
 export { addonsApi } from './addons';
+export { clientCapabilitiesApi } from './client-capabilities';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';

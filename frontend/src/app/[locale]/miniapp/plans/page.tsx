@@ -27,8 +27,15 @@ import {
   getGrowthCodeResolutionMessage,
   getUnsupportedCheckoutCodeMessage,
 } from '@/features/customer-growth/lib/checkout-code-resolution';
+import {
+  areCheckoutCodeDiscountsEnabled,
+  areSubscriptionAddonsEnabled,
+  isGenericCheckoutRailEnabled,
+  isMiniAppCheckoutRailEnabled,
+  isTelegramStarsRailEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
 import { formatMoney, getPricePresentation } from '@/widgets/pricing/utils';
-import { STAGE1_CHECKOUT_CODES_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
 import type { PricingTierCode } from '@/widgets/pricing/types';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
@@ -171,7 +178,8 @@ function formatPeriodLabel(t: ReturnType<typeof useTranslations>, durationDays: 
 }
 
 function translateOrFallback(t: ReturnType<typeof useTranslations>, key: string, fallback: string) {
-  if (!t.has(key)) {
+  const hasTranslation = (t as unknown as { has?: (candidate: string) => boolean }).has;
+  if (typeof hasTranslation === 'function' && !hasTranslation(key)) {
     return fallback;
   }
 
@@ -400,7 +408,13 @@ export default function MiniAppPlansPage() {
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const queryClient = useQueryClient();
   const startParam = webApp?.initDataUnsafe?.start_param ?? null;
-  const checkoutCodesEnabled = STAGE1_CHECKOUT_CODES_UI_ENABLED;
+  const capabilitiesQuery = useClientCapabilities();
+  const clientCapabilities = capabilitiesQuery.data;
+  const checkoutCodesEnabled = areCheckoutCodeDiscountsEnabled(clientCapabilities);
+  const subscriptionAddonsEnabled = areSubscriptionAddonsEnabled(clientCapabilities);
+  const genericCheckoutRailEnabled = isGenericCheckoutRailEnabled(clientCapabilities);
+  const miniAppCheckoutRailEnabled = isMiniAppCheckoutRailEnabled(clientCapabilities);
+  const telegramStarsRailEnabled = isTelegramStarsRailEnabled(clientCapabilities);
 
   const [selectedPlanCodeOverride, setSelectedPlanCodeOverride] = useState<PricingTierCode | null>(null);
   const [selectedPeriodOverride, setSelectedPeriodOverride] = useState<number | null>(null);
@@ -437,7 +451,7 @@ export default function MiniAppPlansPage() {
   });
 
   const plansData = offersQuery.data?.plans;
-  const addonsData = offersQuery.data?.addons;
+  const addonsData = subscriptionAddonsEnabled ? offersQuery.data?.addons : [];
   const trialData = offersQuery.data?.trial;
   const currentEntitlements = offersQuery.data?.currentEntitlements;
   const plansLoading = offersQuery.isLoading;
@@ -448,29 +462,9 @@ export default function MiniAppPlansPage() {
   const trialEnabled = runtimeEnabled
     && rollout?.trialEnabled !== false
     && rollout?.mode !== 'rollback';
-  const checkoutEnabled = runtimeEnabled
+  const runtimeCheckoutAllowed = runtimeEnabled
     && rollout?.checkoutEnabled !== false
     && rollout?.mode !== 'rollback';
-  const rolloutMessage = (() => {
-    if (!rollout) return null;
-    if (rollout.maintenanceMessage) return rollout.maintenanceMessage;
-    if (rollout.mode === 'canary' && rollout.accessGranted === false) {
-      return t('limitedRolloutDescription');
-    }
-    if (rollout.mode === 'rollback') {
-      return t('rollbackDescription');
-    }
-    if (!runtimeEnabled) {
-      return t('runtimeTemporarilyUnavailable');
-    }
-    if (!checkoutEnabled) {
-      return t('checkoutTemporarilyUnavailable');
-    }
-    if (!trialEnabled) {
-      return t('trialTemporarilyUnavailable');
-    }
-    return null;
-  })();
 
   const groupedPlans = groupPlanFamilies(plansData ?? []);
   const hasCurrentSubscription = currentEntitlements?.status === 'active';
@@ -499,7 +493,9 @@ export default function MiniAppPlansPage() {
     .filter((addon) => getAddonPlanLimit(addon, addonPlanCode) > 0)
     .sort((left, right) => (getTrafficAddonGib(left) ?? 0) - (getTrafficAddonGib(right) ?? 0));
   const selectedTrafficAddon = trafficAddons.find((addon) => addon.code === selectedTrafficAddonCode) ?? null;
-  const addonsEnabled = Boolean(extraDeviceAddon || dedicatedIpAddon || trafficAddons.length > 0);
+  const addonsEnabled = subscriptionAddonsEnabled && Boolean(
+    extraDeviceAddon || dedicatedIpAddon || trafficAddons.length > 0,
+  );
 
   const isCurrentPlan = Boolean(
     (selectedSku && currentEntitlements?.plan_uuid === selectedSku.uuid)
@@ -544,6 +540,40 @@ export default function MiniAppPlansPage() {
         : 'checkout';
 
   const dedicatedIpReady = !addonsEnabled || !wantsDedicatedIp || dedicatedIpLocation.trim().length >= 2;
+  const selectedTelegramStarsAmount =
+    telegramStarsRailEnabled && selectedSku
+      ? extractTelegramStarsAmount(selectedSku.features as Record<string, unknown> | undefined)
+      : 0;
+  const selectedUsesTelegramStars =
+    flow === 'checkout'
+    && addonLines.length === 0
+    && selectedTelegramStarsAmount > 0
+    && Boolean(webApp?.openInvoice);
+  const selectedFlowHasPaymentRail =
+    flow === 'none' || flow === 'current'
+      ? miniAppCheckoutRailEnabled
+      : selectedUsesTelegramStars || genericCheckoutRailEnabled;
+  const checkoutEnabled = runtimeCheckoutAllowed && selectedFlowHasPaymentRail;
+  const rolloutMessage = (() => {
+    if (!rollout) return null;
+    if (rollout.maintenanceMessage) return rollout.maintenanceMessage;
+    if (rollout.mode === 'canary' && rollout.accessGranted === false) {
+      return t('limitedRolloutDescription');
+    }
+    if (rollout.mode === 'rollback') {
+      return t('rollbackDescription');
+    }
+    if (!runtimeEnabled) {
+      return t('runtimeTemporarilyUnavailable');
+    }
+    if (!runtimeCheckoutAllowed || !selectedFlowHasPaymentRail || capabilitiesQuery.isError) {
+      return t('checkoutTemporarilyUnavailable');
+    }
+    if (!trialEnabled) {
+      return t('trialTemporarilyUnavailable');
+    }
+    return null;
+  })();
   const effectivePromoCode =
     checkoutCodesEnabled && flow !== 'checkout' && appliedCodeType === 'promo'
       ? appliedCodeInput
@@ -724,7 +754,8 @@ export default function MiniAppPlansPage() {
   const commitMutation = useMutation({
     mutationFn: async (payload: CommitCheckoutPayload): Promise<CheckoutCommitResponse> => {
       const canUseTelegramStarsCheckout =
-        payload.flow === 'checkout'
+        telegramStarsRailEnabled
+        && payload.flow === 'checkout'
         && payload.addonLines.length === 0
         && payload.telegramStarsAmount > 0
         && payload.invoiceSupported;
@@ -756,7 +787,11 @@ export default function MiniAppPlansPage() {
         path: `/${locale}/miniapp/plans`,
         checkoutFlow: payload.flow,
         paymentRail:
-          payload.flow === 'checkout' && payload.addonLines.length === 0 && payload.telegramStarsAmount > 0 && payload.invoiceSupported
+          telegramStarsRailEnabled
+          && payload.flow === 'checkout'
+          && payload.addonLines.length === 0
+          && payload.telegramStarsAmount > 0
+          && payload.invoiceSupported
             ? 'telegram_stars_xtr'
             : 'generic_checkout',
         paymentStatus: data.status,
@@ -864,7 +899,11 @@ export default function MiniAppPlansPage() {
         path: `/${locale}/miniapp/plans`,
         checkoutFlow: payload.flow,
         paymentRail:
-          payload.flow === 'checkout' && payload.addonLines.length === 0 && payload.telegramStarsAmount > 0 && payload.invoiceSupported
+          telegramStarsRailEnabled
+          && payload.flow === 'checkout'
+          && payload.addonLines.length === 0
+          && payload.telegramStarsAmount > 0
+          && payload.invoiceSupported
             ? 'telegram_stars_xtr'
             : 'generic_checkout',
         errorCode: axiosError.response?.data?.detail ?? 'checkout_commit_failed',
@@ -1416,16 +1455,12 @@ export default function MiniAppPlansPage() {
               return;
             }
 
-            const telegramStarsAmount = selectedSku
-              ? extractTelegramStarsAmount(selectedSku.features as Record<string, unknown> | undefined)
-              : 0;
-
             void emitMiniAppRuntimeEvent({
               event: 'miniapp_checkout_started',
               page: 'plans',
               locale,
               path: `/${locale}/miniapp/plans`,
-              paymentRail: telegramStarsAmount
+              paymentRail: selectedUsesTelegramStars
                 ? 'telegram_stars_xtr'
                 : 'generic_checkout',
               subscriptionStatus: currentEntitlements?.status ?? 'none',
@@ -1438,7 +1473,7 @@ export default function MiniAppPlansPage() {
               addonLines,
               effectivePromoCode,
               effectiveCheckoutCodeInput,
-              telegramStarsAmount,
+              telegramStarsAmount: selectedTelegramStarsAmount,
               invoiceSupported: Boolean(webApp?.openInvoice),
             });
           }}

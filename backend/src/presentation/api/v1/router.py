@@ -16,6 +16,7 @@ from src.presentation.api.v1.auth.routes import router as auth_router
 from src.presentation.api.v1.billing.routes import router as billing_router
 from src.presentation.api.v1.billing_descriptors.routes import router as billing_descriptors_router
 from src.presentation.api.v1.checkout_sessions.routes import router as checkout_sessions_router
+from src.presentation.api.v1.client_capabilities.routes import router as client_capabilities_router
 from src.presentation.api.v1.codes.routes import router as codes_router
 from src.presentation.api.v1.commercial_bindings.routes import router as commercial_bindings_router
 from src.presentation.api.v1.config_profiles.routes import router as config_profiles_router
@@ -174,6 +175,7 @@ api_router.include_router(realms_router)
 api_router.include_router(policies_router)
 api_router.include_router(legal_documents_router)
 api_router.include_router(policy_acceptance_router)
+api_router.include_router(client_capabilities_router)
 
 # Core resources
 api_router.include_router(users_router)

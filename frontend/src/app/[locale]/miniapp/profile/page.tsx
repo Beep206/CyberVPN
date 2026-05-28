@@ -4,7 +4,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
-import { commerceApi, invitesApi, partnerApi, referralApi, securityApi, twofaApi } from '@/lib/api';
+import {
+  commerceApi,
+  invitesApi,
+  partnerApi,
+  referralApi,
+  securityApi,
+  twofaApi,
+} from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { motion } from 'motion/react';
 import {
@@ -26,12 +33,16 @@ import {
   AlertTriangle,
   Loader2,
   Smartphone,
-  Ticket
+  Ticket,
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from '../components/MiniAppBottomSheet';
 import { VpnConfigCard } from '../components/VpnConfigCard';
-import { STAGE1_REFERRAL_UI_ENABLED } from '@/shared/lib/stage1-growth-flags';
+import {
+  areInviteCodesEnabled,
+  isReferralProgramEnabled,
+  useClientCapabilities,
+} from '@/features/client-capabilities/useClientCapabilities';
 import { STAGE3_PARTNER_PORTAL_UI_ENABLED } from '@/shared/lib/stage3-partner-flags';
 
 const TECHNICAL_TELEGRAM_EMAIL_SUFFIX = '@telegram.local';
@@ -75,7 +86,10 @@ function requestTelegramConfirm(
       const result = showConfirm(message, settle);
       if (typeof result === 'boolean') {
         settle(result);
-      } else if (result && typeof (result as Promise<boolean>).then === 'function') {
+      } else if (
+        result &&
+        typeof (result as Promise<boolean>).then === 'function'
+      ) {
         (result as Promise<boolean>).then(settle).catch(() => settle(false));
       }
     } catch {
@@ -121,8 +135,13 @@ export default function MiniAppProfilePage() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
+  const { data: capabilities } = useClientCapabilities();
+  const invitesEnabled = areInviteCodesEnabled(capabilities);
+  const referralEnabled = isReferralProgramEnabled(capabilities);
 
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({});
   const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
   const [antiphishingSheetOpen, setAntiphishingSheetOpen] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -147,7 +166,7 @@ export default function MiniAppProfilePage() {
       const { data } = await referralApi.getCode();
       return data;
     },
-    enabled: STAGE1_REFERRAL_UI_ENABLED,
+    enabled: referralEnabled,
   });
 
   const { data: referralStats } = useQuery({
@@ -156,7 +175,7 @@ export default function MiniAppProfilePage() {
       const { data } = await referralApi.getStats();
       return data;
     },
-    enabled: STAGE1_REFERRAL_UI_ENABLED,
+    enabled: referralEnabled,
   });
 
   // Fetch 2FA status
@@ -186,6 +205,7 @@ export default function MiniAppProfilePage() {
       const { data } = await invitesApi.getMyInvites();
       return data as InviteCode[];
     },
+    enabled: invitesEnabled,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -203,14 +223,26 @@ export default function MiniAppProfilePage() {
     queryKey: ['partner-dashboard'],
     queryFn: async () => {
       const { data } = await partnerApi.getDashboard();
-      return data as typeof data & { is_partner?: boolean; tier?: string; codes: { partner_code?: string; markup_pct?: number; created_at?: string }[] };
+      return data as typeof data & {
+        is_partner?: boolean;
+        tier?: string;
+        codes: {
+          partner_code?: string;
+          markup_pct?: number;
+          created_at?: string;
+        }[];
+      };
     },
     enabled: STAGE3_PARTNER_PORTAL_UI_ENABLED,
   });
 
   // Password change mutation
   const changePasswordMutation = useMutation({
-    mutationFn: async (data: { current_password: string; new_password: string; new_password_confirm: string }) => {
+    mutationFn: async (data: {
+      current_password: string;
+      new_password: string;
+      new_password_confirm: string;
+    }) => {
       const { data: response } = await securityApi.changePassword(data);
       return response;
     },
@@ -218,12 +250,18 @@ export default function MiniAppProfilePage() {
       haptic('heavy');
       webApp?.showAlert(t('passwordChange.success'));
       setPasswordSheetOpen(false);
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
     },
     onError: (error: unknown) => {
       haptic('heavy');
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('passwordChange.error'));
+      webApp?.showAlert(
+        axiosError.response?.data?.detail || t('passwordChange.error'),
+      );
     },
   });
 
@@ -243,7 +281,9 @@ export default function MiniAppProfilePage() {
     onError: (error: unknown) => {
       haptic('heavy');
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('antiphishing.error'));
+      webApp?.showAlert(
+        axiosError.response?.data?.detail || t('antiphishing.error'),
+      );
     },
   });
 
@@ -262,7 +302,9 @@ export default function MiniAppProfilePage() {
     onError: (error: unknown) => {
       haptic('heavy');
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('antiphishing.deleteError'));
+      webApp?.showAlert(
+        axiosError.response?.data?.detail || t('antiphishing.deleteError'),
+      );
     },
   });
 
@@ -284,7 +326,10 @@ export default function MiniAppProfilePage() {
   const handleDeleteAccount = async () => {
     if (isDeletingAccount) return;
     haptic('heavy');
-    const confirmed = await requestTelegramConfirm(webApp, t('deleteAccountConfirm'));
+    const confirmed = await requestTelegramConfirm(
+      webApp,
+      t('deleteAccountConfirm'),
+    );
     if (!confirmed) return;
 
     setIsDeletingAccount(true);
@@ -295,7 +340,9 @@ export default function MiniAppProfilePage() {
       router.replace('/miniapp/home');
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('deleteAccountError'));
+      webApp?.showAlert(
+        axiosError.response?.data?.detail || t('deleteAccountError'),
+      );
     } finally {
       setIsDeletingAccount(false);
     }
@@ -314,8 +361,12 @@ export default function MiniAppProfilePage() {
   const shareReferralCode = () => {
     haptic('medium');
     if (referralCode?.referral_code) {
-      const shareText = t('referralShareText', { code: referralCode.referral_code });
-      webApp?.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareText)}`);
+      const shareText = t('referralShareText', {
+        code: referralCode.referral_code,
+      });
+      webApp?.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(shareText)}`,
+      );
     }
   };
 
@@ -374,7 +425,10 @@ export default function MiniAppProfilePage() {
 
   const handleAntiphishingDelete = async () => {
     haptic('heavy');
-    const confirmed = await requestTelegramConfirm(webApp, t('antiphishing.deleteConfirm'));
+    const confirmed = await requestTelegramConfirm(
+      webApp,
+      t('antiphishing.deleteConfirm'),
+    );
     if (confirmed) {
       deleteAntiphishingMutation.mutate();
     }
@@ -395,7 +449,9 @@ export default function MiniAppProfilePage() {
     onError: (error: unknown) => {
       haptic('heavy');
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      webApp?.showAlert(axiosError.response?.data?.detail || t('partnerDashboard.bindError'));
+      webApp?.showAlert(
+        axiosError.response?.data?.detail || t('partnerDashboard.bindError'),
+      );
     },
   });
 
@@ -426,8 +482,12 @@ export default function MiniAppProfilePage() {
             <User className="h-8 w-8 text-neon-cyan" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-display">{user?.login || t('guest')}</h2>
-            <p className="text-sm text-muted-foreground font-mono">{displayEmail || t('noEmail')}</p>
+            <h2 className="text-xl font-display">
+              {user?.login || t('guest')}
+            </h2>
+            <p className="text-sm text-muted-foreground font-mono">
+              {displayEmail || t('noEmail')}
+            </p>
           </div>
         </div>
       </motion.div>
@@ -435,78 +495,99 @@ export default function MiniAppProfilePage() {
       {/* VPN Config Card */}
       <VpnConfigCard colorScheme={colorScheme} page="profile" />
 
-      <CollapsibleSection
-        title={t('myInvites')}
-        icon={Ticket}
-        isExpanded={expandedSections['invites']}
-        onToggle={() => toggleSection('invites')}
-      >
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground font-mono">
-            {t('myInvitesSubtitle')}
-          </p>
-
-          {invitesLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-neon-cyan" />
-            </div>
-          ) : invitesError ? (
-            <p className="text-sm text-amber-300 font-mono text-center py-4">
-              {t('myInvitesError')}
+      {invitesEnabled ? (
+        <CollapsibleSection
+          title={t('myInvites')}
+          icon={Ticket}
+          isExpanded={expandedSections['invites']}
+          onToggle={() => toggleSection('invites')}
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground font-mono">
+              {t('myInvitesSubtitle')}
             </p>
-          ) : !inviteCodes || inviteCodes.length === 0 ? (
-            <p className="text-sm text-muted-foreground font-mono text-center py-4">
-              {t('noInvites')}
-            </p>
-          ) : (
-            inviteCodes.map((invite) => {
-              const expired = isInviteExpired(invite.expires_at);
-              const status = invite.is_used ? 'used' : expired ? 'expired' : 'active';
 
-              return (
-                <div key={invite.id} className="rounded-lg border border-border/60 bg-muted/40 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <code className="break-all font-mono text-sm text-neon-cyan">
-                          {invite.code}
-                        </code>
-                        <span
-                          className={`rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] ${
-                            status === 'active'
-                              ? 'bg-matrix-green/15 text-matrix-green'
-                              : status === 'used'
-                                ? 'bg-neon-purple/15 text-neon-purple'
-                                : 'bg-amber-400/15 text-amber-300'
-                          }`}
-                        >
-                          {t(`inviteStatus.${status}`)}
-                        </span>
+            {invitesLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-neon-cyan" />
+              </div>
+            ) : invitesError ? (
+              <p className="text-sm text-amber-300 font-mono text-center py-4">
+                {t('myInvitesError')}
+              </p>
+            ) : !inviteCodes || inviteCodes.length === 0 ? (
+              <p className="text-sm text-muted-foreground font-mono text-center py-4">
+                {t('noInvites')}
+              </p>
+            ) : (
+              inviteCodes.map((invite) => {
+                const expired = isInviteExpired(invite.expires_at);
+                const status = invite.is_used
+                  ? 'used'
+                  : expired
+                    ? 'expired'
+                    : 'active';
+
+                return (
+                  <div
+                    key={invite.id}
+                    className="rounded-lg border border-border/60 bg-muted/40 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <code className="break-all font-mono text-sm text-neon-cyan">
+                            {invite.code}
+                          </code>
+                          <span
+                            className={`rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] ${
+                              status === 'active'
+                                ? 'bg-matrix-green/15 text-matrix-green'
+                                : status === 'used'
+                                  ? 'bg-neon-purple/15 text-neon-purple'
+                                  : 'bg-amber-400/15 text-amber-300'
+                            }`}
+                          >
+                            {t(`inviteStatus.${status}`)}
+                          </span>
+                        </div>
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground font-mono">
+                          <div>
+                            {t('inviteDays', { days: invite.free_days })}
+                          </div>
+                          <div>
+                            {t('inviteExpires', {
+                              date: formatInviteDate(locale, invite.expires_at),
+                            })}
+                          </div>
+                          <div>
+                            {t('inviteCreated', {
+                              date: formatInviteDate(locale, invite.created_at),
+                            })}
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-2 space-y-1 text-xs text-muted-foreground font-mono">
-                        <div>{t('inviteDays', { days: invite.free_days })}</div>
-                        <div>{t('inviteExpires', { date: formatInviteDate(locale, invite.expires_at) })}</div>
-                        <div>{t('inviteCreated', { date: formatInviteDate(locale, invite.created_at) })}</div>
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          copyToClipboard(invite.code, t('inviteCopied'))
+                        }
+                        className="shrink-0 rounded-lg bg-neon-cyan/10 p-2 text-neon-cyan transition-colors hover:bg-neon-cyan/20 touch-manipulation"
+                        aria-label={t('copyInvite')}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(invite.code, t('inviteCopied'))}
-                      className="shrink-0 rounded-lg bg-neon-cyan/10 p-2 text-neon-cyan transition-colors hover:bg-neon-cyan/20 touch-manipulation"
-                      aria-label={t('copyInvite')}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </button>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </CollapsibleSection>
+                );
+              })
+            )}
+          </div>
+        </CollapsibleSection>
+      ) : null}
 
-      {STAGE1_REFERRAL_UI_ENABLED ? (
+      {referralEnabled ? (
         <CollapsibleSection
           title={t('referral')}
           icon={Gift}
@@ -524,7 +605,12 @@ export default function MiniAppProfilePage() {
                     {referralCode.referral_code}
                   </div>
                   <button
-                    onClick={() => copyToClipboard(referralCode.referral_code, t('codeCopied'))}
+                    onClick={() =>
+                      copyToClipboard(
+                        referralCode.referral_code,
+                        t('codeCopied'),
+                      )
+                    }
                     className="p-2 bg-neon-cyan text-black rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation"
                     aria-label={t('copy')}
                   >
@@ -544,14 +630,20 @@ export default function MiniAppProfilePage() {
             {referralStats && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-2xl font-display text-neon-cyan">{referralStats.total_referrals || 0}</div>
-                  <div className="text-xs text-muted-foreground font-mono">{t('totalReferrals')}</div>
+                  <div className="text-2xl font-display text-neon-cyan">
+                    {referralStats.total_referrals || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {t('totalReferrals')}
+                  </div>
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <div className="text-2xl font-display text-neon-cyan">
                     ${(referralStats.total_earned || 0).toFixed(2)}
                   </div>
-                  <div className="text-xs text-muted-foreground font-mono">{t('totalEarnings')}</div>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {t('totalEarnings')}
+                  </div>
                 </div>
               </div>
             )}
@@ -573,7 +665,9 @@ export default function MiniAppProfilePage() {
               <Lock className="h-4 w-4 text-muted-foreground" />
               <span className="font-mono text-sm">{t('twoFactorAuth')}</span>
             </div>
-            <div className={`flex items-center gap-1 text-xs font-mono ${twofaStatus?.status === 'enabled' ? 'text-neon-cyan' : 'text-muted-foreground'}`}>
+            <div
+              className={`flex items-center gap-1 text-xs font-mono ${twofaStatus?.status === 'enabled' ? 'text-neon-cyan' : 'text-muted-foreground'}`}
+            >
               {twofaStatus?.status === 'enabled' ? (
                 <>
                   <Check className="h-3 w-3" />
@@ -612,7 +706,9 @@ export default function MiniAppProfilePage() {
               <span className="font-mono text-sm">{t('antiphishingCode')}</span>
             </div>
             {antiphishingData?.code && (
-              <span className="text-xs text-muted-foreground font-mono">{antiphishingData.code}</span>
+              <span className="text-xs text-muted-foreground font-mono">
+                {antiphishingData.code}
+              </span>
             )}
           </button>
 
@@ -646,34 +742,49 @@ export default function MiniAppProfilePage() {
         <div className="space-y-2">
           {orderHistoryPreview && orderHistoryPreview.length > 0 ? (
             <>
-              {orderHistoryPreview.slice(0, 3).map((order: {
-                id?: string;
-                displayed_price?: number;
-                currency_code?: string;
-                settlement_status?: string;
-                order_status?: string;
-                created_at?: string;
-                items?: Array<{ display_name?: string | null }>;
-              }, index: number) => (
-                <div key={order.id || index} className="p-3 bg-muted rounded-lg">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-sm font-mono">
-                      {(order.items?.[0]?.display_name || order.id || t('orderFallback')).toString()}
-                    </span>
-                    <span className={`text-xs font-mono ${(order.settlement_status || order.order_status) === 'paid' ? 'text-neon-cyan' : 'text-yellow-400'}`}>
-                      {order.settlement_status || order.order_status}
-                    </span>
-                  </div>
-                  <div className="text-sm font-mono mb-1">
-                    ${(order.displayed_price || 0).toFixed(2)} {order.currency_code || 'USD'}
-                  </div>
-                  {order.created_at && (
-                    <div className="text-xs text-muted-foreground font-mono">
-                      {new Date(order.created_at).toLocaleDateString()}
+              {orderHistoryPreview.slice(0, 3).map(
+                (
+                  order: {
+                    id?: string;
+                    displayed_price?: number;
+                    currency_code?: string;
+                    settlement_status?: string;
+                    order_status?: string;
+                    created_at?: string;
+                    items?: Array<{ display_name?: string | null }>;
+                  },
+                  index: number,
+                ) => (
+                  <div
+                    key={order.id || index}
+                    className="p-3 bg-muted rounded-lg"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-sm font-mono">
+                        {(
+                          order.items?.[0]?.display_name ||
+                          order.id ||
+                          t('orderFallback')
+                        ).toString()}
+                      </span>
+                      <span
+                        className={`text-xs font-mono ${(order.settlement_status || order.order_status) === 'paid' ? 'text-neon-cyan' : 'text-yellow-400'}`}
+                      >
+                        {order.settlement_status || order.order_status}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="text-sm font-mono mb-1">
+                      ${(order.displayed_price || 0).toFixed(2)}{' '}
+                      {order.currency_code || 'USD'}
+                    </div>
+                    {order.created_at && (
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                ),
+              )}
               <button
                 onClick={() => {
                   haptic('medium');
@@ -702,11 +813,15 @@ export default function MiniAppProfilePage() {
         <div className="space-y-3">
           <div className="p-3 bg-muted rounded-lg">
             <div className="text-sm font-mono mb-1">{t('language')}</div>
-            <div className="text-xs text-muted-foreground font-mono">{t('languageNote')}</div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {t('languageNote')}
+            </div>
           </div>
           <div className="p-3 bg-muted rounded-lg">
             <div className="text-sm font-mono mb-1">{t('notifications')}</div>
-            <div className="text-xs text-muted-foreground font-mono">{t('notificationsNote')}</div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {t('notificationsNote')}
+            </div>
           </div>
         </div>
       </CollapsibleSection>
@@ -720,109 +835,118 @@ export default function MiniAppProfilePage() {
           onToggle={() => toggleSection('partner')}
         >
           {partnerData?.is_partner ? (
-          /* Partner Dashboard */
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-neon-cyan mb-3">
-              <Check className="h-4 w-4" />
-              <span className="text-sm font-mono">{t('partnerDashboard.isPartner')}</span>
-            </div>
-
-            {/* Stats Grid */}
-            {partnerData.tier && (
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-xs text-muted-foreground font-mono mb-1">
-                    {t('partnerDashboard.tier')}
-                  </div>
-                  <div className="text-lg font-display text-neon-cyan">
-                    {partnerData.tier}
-                  </div>
-                </div>
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-xs text-muted-foreground font-mono mb-1">
-                    {t('partnerDashboard.totalClients')}
-                  </div>
-                  <div className="text-lg font-display text-neon-cyan">
-                    {partnerData.total_clients || 0}
-                  </div>
-                </div>
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-xs text-muted-foreground font-mono mb-1">
-                    {t('partnerDashboard.totalEarned')}
-                  </div>
-                  <div className="text-lg font-display text-neon-cyan">
-                    ${(partnerData.total_earned || 0).toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Partner Codes */}
-            <div>
-              <h4 className="text-xs text-muted-foreground font-mono mb-2">
-                {t('partnerDashboard.partnerCodes')}
-              </h4>
-              {partnerData.codes && partnerData.codes.length > 0 ? (
-                <div className="space-y-2">
-                  {partnerData.codes.map((code, index) => (
-                    <div key={String(code.partner_code ?? index)} className="p-3 bg-muted rounded-lg">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-sm font-mono text-neon-cyan">{String(code.partner_code ?? '')}</span>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {t('partnerDashboard.markup')}: {String(code.markup_pct ?? 0)}%
-                        </span>
-                      </div>
-                      {typeof code.created_at === 'string' && (
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {t('partnerDashboard.createdAt')}: {new Date(code.created_at).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground font-mono text-center py-4">
-                  {t('partnerDashboard.noCodes')}
-                </p>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Bind Partner Code Form */
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground font-mono">
-              {t('partnerDashboard.bindCodeDescription')}
-            </p>
-
-            <div>
-              <label className="text-xs text-muted-foreground font-mono block mb-2">
-                {t('partnerDashboard.bindCode')}
-              </label>
-              <input
-                type="text"
-                value={partnerCode}
-                onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
-                placeholder={t('partnerDashboard.codePlaceholder')}
-                className="w-full px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan uppercase"
-                disabled={bindPartnerMutation.isPending}
-              />
-            </div>
-
-            <button
-              onClick={handlePartnerBind}
-              disabled={bindPartnerMutation.isPending}
-              className="w-full py-3 px-4 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors disabled:opacity-50 touch-manipulation"
-            >
-              {bindPartnerMutation.isPending ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {t('partnerDashboard.submitting')}
+            /* Partner Dashboard */
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-neon-cyan mb-3">
+                <Check className="h-4 w-4" />
+                <span className="text-sm font-mono">
+                  {t('partnerDashboard.isPartner')}
                 </span>
-              ) : (
-                t('partnerDashboard.submit')
+              </div>
+
+              {/* Stats Grid */}
+              {partnerData.tier && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="text-xs text-muted-foreground font-mono mb-1">
+                      {t('partnerDashboard.tier')}
+                    </div>
+                    <div className="text-lg font-display text-neon-cyan">
+                      {partnerData.tier}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="text-xs text-muted-foreground font-mono mb-1">
+                      {t('partnerDashboard.totalClients')}
+                    </div>
+                    <div className="text-lg font-display text-neon-cyan">
+                      {partnerData.total_clients || 0}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="text-xs text-muted-foreground font-mono mb-1">
+                      {t('partnerDashboard.totalEarned')}
+                    </div>
+                    <div className="text-lg font-display text-neon-cyan">
+                      ${(partnerData.total_earned || 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
               )}
-            </button>
-          </div>
+
+              {/* Partner Codes */}
+              <div>
+                <h4 className="text-xs text-muted-foreground font-mono mb-2">
+                  {t('partnerDashboard.partnerCodes')}
+                </h4>
+                {partnerData.codes && partnerData.codes.length > 0 ? (
+                  <div className="space-y-2">
+                    {partnerData.codes.map((code, index) => (
+                      <div
+                        key={String(code.partner_code ?? index)}
+                        className="p-3 bg-muted rounded-lg"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-sm font-mono text-neon-cyan">
+                            {String(code.partner_code ?? '')}
+                          </span>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {t('partnerDashboard.markup')}:{' '}
+                            {String(code.markup_pct ?? 0)}%
+                          </span>
+                        </div>
+                        {typeof code.created_at === 'string' && (
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {t('partnerDashboard.createdAt')}:{' '}
+                            {new Date(code.created_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground font-mono text-center py-4">
+                    {t('partnerDashboard.noCodes')}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Bind Partner Code Form */
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground font-mono">
+                {t('partnerDashboard.bindCodeDescription')}
+              </p>
+
+              <div>
+                <label className="text-xs text-muted-foreground font-mono block mb-2">
+                  {t('partnerDashboard.bindCode')}
+                </label>
+                <input
+                  type="text"
+                  value={partnerCode}
+                  onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
+                  placeholder={t('partnerDashboard.codePlaceholder')}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan uppercase"
+                  disabled={bindPartnerMutation.isPending}
+                />
+              </div>
+
+              <button
+                onClick={handlePartnerBind}
+                disabled={bindPartnerMutation.isPending}
+                className="w-full py-3 px-4 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors disabled:opacity-50 touch-manipulation"
+              >
+                {bindPartnerMutation.isPending ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('partnerDashboard.submitting')}
+                  </span>
+                ) : (
+                  t('partnerDashboard.submit')
+                )}
+              </button>
+            </div>
           )}
         </CollapsibleSection>
       )}
@@ -860,7 +984,11 @@ export default function MiniAppProfilePage() {
         isOpen={passwordSheetOpen}
         onClose={() => {
           setPasswordSheetOpen(false);
-          setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+          setPasswordForm({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          });
         }}
         title={t('passwordChange.title')}
         colorScheme={colorScheme}
@@ -873,7 +1001,12 @@ export default function MiniAppProfilePage() {
             <input
               type="password"
               value={passwordForm.currentPassword}
-              onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  currentPassword: e.target.value,
+                })
+              }
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan"
               disabled={changePasswordMutation.isPending}
             />
@@ -886,7 +1019,12 @@ export default function MiniAppProfilePage() {
             <input
               type="password"
               value={passwordForm.newPassword}
-              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  newPassword: e.target.value,
+                })
+              }
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan"
               disabled={changePasswordMutation.isPending}
             />
@@ -899,7 +1037,12 @@ export default function MiniAppProfilePage() {
             <input
               type="password"
               value={passwordForm.confirmPassword}
-              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+              onChange={(e) =>
+                setPasswordForm({
+                  ...passwordForm,
+                  confirmPassword: e.target.value,
+                })
+              }
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan"
               disabled={changePasswordMutation.isPending}
             />
@@ -950,7 +1093,9 @@ export default function MiniAppProfilePage() {
 
           <div>
             <label className="text-xs text-muted-foreground font-mono block mb-2">
-              {antiphishingData?.code ? t('antiphishing.newCode') : t('antiphishing.newCode')}
+              {antiphishingData?.code
+                ? t('antiphishing.newCode')
+                : t('antiphishing.newCode')}
             </label>
             <input
               type="text"
@@ -959,14 +1104,20 @@ export default function MiniAppProfilePage() {
               placeholder={t('antiphishing.codePlaceholder')}
               maxLength={32}
               className="w-full px-3 py-2 bg-muted border border-border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-neon-cyan"
-              disabled={setAntiphishingMutation.isPending || deleteAntiphishingMutation.isPending}
+              disabled={
+                setAntiphishingMutation.isPending ||
+                deleteAntiphishingMutation.isPending
+              }
             />
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={handleAntiphishingSubmit}
-              disabled={setAntiphishingMutation.isPending || deleteAntiphishingMutation.isPending}
+              disabled={
+                setAntiphishingMutation.isPending ||
+                deleteAntiphishingMutation.isPending
+              }
               className="flex-1 py-3 px-4 bg-neon-cyan text-black font-mono rounded-lg hover:bg-neon-cyan/90 transition-colors disabled:opacity-50 touch-manipulation"
             >
               {setAntiphishingMutation.isPending ? (
@@ -974,15 +1125,20 @@ export default function MiniAppProfilePage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {t('antiphishing.submitting')}
                 </span>
+              ) : antiphishingData?.code ? (
+                t('antiphishing.updateCode')
               ) : (
-                antiphishingData?.code ? t('antiphishing.updateCode') : t('antiphishing.setCode')
+                t('antiphishing.setCode')
               )}
             </button>
 
             {antiphishingData?.code && (
               <button
                 onClick={handleAntiphishingDelete}
-                disabled={setAntiphishingMutation.isPending || deleteAntiphishingMutation.isPending}
+                disabled={
+                  setAntiphishingMutation.isPending ||
+                  deleteAntiphishingMutation.isPending
+                }
                 className="py-3 px-4 bg-destructive/10 border border-destructive/30 text-destructive font-mono rounded-lg hover:bg-destructive/20 transition-colors disabled:opacity-50 touch-manipulation"
               >
                 {deleteAntiphishingMutation.isPending ? (

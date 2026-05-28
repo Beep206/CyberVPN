@@ -30,9 +30,71 @@ const runtimeAnalyticsMocks = vi.hoisted(() => ({
   emitMiniAppRuntimeEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+const clientCapabilitiesMock = vi.hoisted(() => ({
+  data: {
+    auth: {
+      email_password: true,
+      magic_link: true,
+      telegram: true,
+    },
+    payments: {
+      web_checkout: false,
+      telegram_stars: true,
+      cryptobot: true,
+      manual_invoice: false,
+      autorenewal: false,
+    },
+    growth: {
+      invites: true,
+      referral: true,
+      promo_codes: true,
+      gift_codes: true,
+      checkout_code_discounts: false,
+      growth_hub: true,
+    },
+    subscriptions: {
+      multi_subscription: true,
+      selected_subscription_required: true,
+      addons: true,
+      upgrade: true,
+      trial: true,
+      paid_provisioning: true,
+    },
+    partner: {
+      portal: false,
+      applications: false,
+      codes: false,
+      attribution: false,
+      storefronts: false,
+      reporting: false,
+      settlement_sandbox: false,
+      webhooks: false,
+      payouts: false,
+      event_backbone: false,
+    },
+  },
+  isError: false,
+}));
+
 vi.mock('@/lib/api', () => apiMocks);
 
 vi.mock('@/features/miniapp-runtime/lib/runtime-analytics', () => runtimeAnalyticsMocks);
+
+vi.mock('@/features/client-capabilities/useClientCapabilities', () => ({
+  areCheckoutCodeDiscountsEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.checkout_code_discounts === true,
+  areSubscriptionAddonsEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.subscriptions.addons === true,
+  isGenericCheckoutRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.web_checkout === true || capabilities?.payments.cryptobot === true,
+  isMiniAppCheckoutRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.web_checkout === true ||
+    capabilities?.payments.cryptobot === true ||
+    capabilities?.payments.telegram_stars === true,
+  isTelegramStarsRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.telegram_stars === true,
+  useClientCapabilities: () => clientCapabilitiesMock,
+}));
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-EN',
@@ -151,6 +213,26 @@ const basicPlan = {
   invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
 };
 
+const extraDeviceAddon = {
+  uuid: 'addon-extra-device',
+  code: 'extra_device',
+  display_name: 'Extra Device',
+  delta_entitlements: {
+    device_limit: 1,
+  },
+  duration_mode: 'subscription_aligned',
+  is_active: true,
+  is_stackable: true,
+  max_quantity_by_plan: {
+    plus: 2,
+  },
+  price_usd: 5,
+  price_rub: null,
+  quantity_step: 1,
+  requires_location: false,
+  sale_channels: ['miniapp'],
+};
+
 function createQuoteResponse() {
   return {
     base_price: 79,
@@ -241,6 +323,12 @@ describe('MiniApp Plans Page', () => {
 
   beforeEach(() => {
     telegramMock = setupTelegramWebAppMock();
+    clientCapabilitiesMock.isError = false;
+    clientCapabilitiesMock.data.payments.telegram_stars = true;
+    clientCapabilitiesMock.data.payments.cryptobot = true;
+    clientCapabilitiesMock.data.payments.web_checkout = false;
+    clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
+    clientCapabilitiesMock.data.subscriptions.addons = true;
     apiMocks.miniappApi.getOffers.mockResolvedValue({ data: createOffers() });
     apiMocks.miniappApi.getBootstrap.mockResolvedValue({ data: createBootstrap() });
     apiMocks.miniappApi.quoteCheckout.mockResolvedValue({ data: createQuoteResponse() });
@@ -323,6 +411,21 @@ describe('MiniApp Plans Page', () => {
     expect(screen.queryByText('Add-ons description')).not.toBeInTheDocument();
   });
 
+  it('hides_addon_controls_when_runtime_capability_is_disabled', async () => {
+    clientCapabilitiesMock.data.subscriptions.addons = false;
+    apiMocks.miniappApi.getOffers.mockResolvedValue({
+      data: createOffers({
+        addons: [extraDeviceAddon],
+      }),
+    });
+
+    render(<MiniAppPlansPage />, { wrapper: createWrapper() });
+
+    await screen.findByText('Available plans');
+
+    expect(screen.queryByText('Add-ons description')).not.toBeInTheDocument();
+  });
+
   it('test_opens_payment_after_checkout_commit', async () => {
     const user = userEvent.setup();
 
@@ -348,6 +451,49 @@ describe('MiniApp Plans Page', () => {
         'https://t.me/CryptoBot?start=pay_ABC123',
       );
     });
+  });
+
+  it('uses_generic_checkout_when_telegram_stars_runtime_capability_is_disabled', async () => {
+    const user = userEvent.setup();
+    clientCapabilitiesMock.data.payments.telegram_stars = false;
+    apiMocks.miniappApi.getOffers.mockResolvedValue({
+      data: createOffers({
+        plans: [
+          basicPlan,
+          {
+            ...plusPlan,
+            features: {
+              telegram_stars_amount: 1200,
+            },
+          },
+        ],
+      }),
+    });
+
+    render(<MiniAppPlansPage />, { wrapper: createWrapper() });
+
+    const openPaymentButton = await screen.findByRole('button', { name: /Open payment/ });
+    await user.click(openPaymentButton);
+
+    await waitFor(() => {
+      expect(apiMocks.miniappApi.commitCheckout).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currency: 'USD',
+        }),
+      );
+    });
+  });
+
+  it('disables_checkout_when_no_payment_rail_is_enabled', async () => {
+    clientCapabilitiesMock.data.payments.telegram_stars = false;
+    clientCapabilitiesMock.data.payments.cryptobot = false;
+    clientCapabilitiesMock.data.payments.web_checkout = false;
+
+    render(<MiniAppPlansPage />, { wrapper: createWrapper() });
+
+    const openPaymentButton = await screen.findByRole('button', { name: /Open payment/ });
+    expect(openPaymentButton).toBeDisabled();
+    expect(apiMocks.miniappApi.quoteCheckout).not.toHaveBeenCalled();
   });
 
   it('test_activate_trial_button_triggers_mutation', async () => {

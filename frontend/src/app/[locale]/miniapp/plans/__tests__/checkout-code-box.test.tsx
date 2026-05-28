@@ -37,6 +37,52 @@ const runtimeAnalyticsMocks = vi.hoisted(() => ({
   emitMiniAppRuntimeEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+const clientCapabilitiesMock = vi.hoisted(() => ({
+  data: {
+    auth: {
+      email_password: true,
+      magic_link: true,
+      telegram: true,
+    },
+    payments: {
+      web_checkout: false,
+      telegram_stars: true,
+      cryptobot: true,
+      manual_invoice: false,
+      autorenewal: false,
+    },
+    growth: {
+      invites: true,
+      referral: true,
+      promo_codes: true,
+      gift_codes: true,
+      checkout_code_discounts: false,
+      growth_hub: true,
+    },
+    subscriptions: {
+      multi_subscription: true,
+      selected_subscription_required: true,
+      addons: true,
+      upgrade: true,
+      trial: true,
+      paid_provisioning: true,
+    },
+    partner: {
+      portal: false,
+      applications: false,
+      codes: false,
+      attribution: false,
+      storefronts: false,
+      reporting: false,
+      settlement_sandbox: false,
+      webhooks: false,
+      payouts: false,
+      event_backbone: false,
+    },
+  },
+  isError: false,
+}));
+
 vi.mock('@/lib/api', () => apiMocks);
 
 vi.mock('../../hooks/useTelegramWebApp', () => ({
@@ -47,6 +93,22 @@ vi.mock('../../hooks/useTelegramWebApp', () => ({
 }));
 
 vi.mock('@/features/miniapp-runtime/lib/runtime-analytics', () => runtimeAnalyticsMocks);
+
+vi.mock('@/features/client-capabilities/useClientCapabilities', () => ({
+  areCheckoutCodeDiscountsEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.growth.checkout_code_discounts === true,
+  areSubscriptionAddonsEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.subscriptions.addons === true,
+  isGenericCheckoutRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.web_checkout === true || capabilities?.payments.cryptobot === true,
+  isMiniAppCheckoutRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.web_checkout === true ||
+    capabilities?.payments.cryptobot === true ||
+    capabilities?.payments.telegram_stars === true,
+  isTelegramStarsRailEnabled: (capabilities: typeof clientCapabilitiesMock.data | undefined) =>
+    capabilities?.payments.telegram_stars === true,
+  useClientCapabilities: () => clientCapabilitiesMock,
+}));
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-US',
@@ -168,6 +230,12 @@ function createQuoteResponse(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clientCapabilitiesMock.isError = false;
+  clientCapabilitiesMock.data.payments.telegram_stars = true;
+  clientCapabilitiesMock.data.payments.cryptobot = true;
+  clientCapabilitiesMock.data.payments.web_checkout = false;
+  clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
+  clientCapabilitiesMock.data.subscriptions.addons = true;
 
   apiMocks.miniappApi.getOffers.mockResolvedValue({
     data: {
