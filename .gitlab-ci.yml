@@ -768,6 +768,13 @@ docker:task-worker:
   tags:
     - wsl-deploy
   resource_group: stage1-production
+  variables:
+    STAGE1_PROD_HOST: "45.87.41.146"
+    STAGE1_PROD_USER: "deploy"
+    STAGE1_PROD_PORT: "22"
+    STAGE1_PROD_SSH_KEY_FILE: "/home/beep/.ssh/MainKey2_private_fixed.pem"
+    STAGE1_PROD_COMPOSE_DIR: "/srv/cybervpn/compose/app"
+    STAGE1_PROD_RELEASE_ROOT: "/srv/cybervpn/releases"
   # Required protected variable for production deploy jobs:
   # STAGE1_PROD_SSH_PRIVATE_KEY
   # Deploy runs on the WSL shell runner because the home Docker runner can
