@@ -172,6 +172,10 @@
   --color-neon-pink: oklch(0.40 0.18 320);
   --color-neon-purple: oklch(0.38 0.18 300);
   --color-neon-red: #ff004c;
+  --color-server-online: oklch(0.36 0.16 145);
+  --color-server-offline: oklch(0.45 0.18 25);
+  --color-server-warning: oklch(0.42 0.14 85);
+  --color-server-maintenance: oklch(0.38 0.18 300);
 }
 
 .dark {
@@ -249,6 +253,10 @@
   --color-neon-pink: #ff00ff;
   --color-neon-purple: #9d00ff;
   --color-neon-red: #ff004c;
+  --color-server-online: #00ff00;
+  --color-server-offline: #ff0000;
+  --color-server-warning: #ffff00;
+  --color-server-maintenance: #bd00ff;
 }
 
 html,

@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 
 const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
-import { useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Trail, PerformanceMonitor } from '@react-three/drei';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
@@ -349,9 +349,37 @@ export function AuthScene3D() {
     const pathname = usePathname();
     const { host, setHostRef } = useCanvasHost<HTMLDivElement>();
     const [dpr, setDpr] = useState(1);
+    const [isInputFocused, setIsInputFocused] = useState(false);
 
     // Force a fresh WebGL tree for each auth route entry while keeping route-level remounts predictable.
     const sceneKey = `auth-scene:${pathname}`;
+
+    useEffect(() => {
+        const isFormControl = (target: EventTarget | null) =>
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLSelectElement;
+
+        const handleFocusIn = (event: FocusEvent) => {
+            if (isFormControl(event.target)) {
+                setIsInputFocused(true);
+            }
+        };
+
+        const handleFocusOut = () => {
+            window.setTimeout(() => {
+                setIsInputFocused(isFormControl(document.activeElement));
+            }, 0);
+        };
+
+        document.addEventListener('focusin', handleFocusIn);
+        document.addEventListener('focusout', handleFocusOut);
+
+        return () => {
+            document.removeEventListener('focusin', handleFocusIn);
+            document.removeEventListener('focusout', handleFocusOut);
+        };
+    }, []);
 
     return (
         <div key={sceneKey} ref={setHostRef} className="absolute inset-0 z-0 pointer-events-none">
@@ -359,6 +387,7 @@ export function AuthScene3D() {
                 {host ? (
                     <Canvas
                         eventSource={host}
+                        frameloop={isInputFocused ? 'demand' : 'always'}
                         camera={{ position: [0, 0, 5], fov: 50 }}
                         dpr={dpr}
                         gl={{

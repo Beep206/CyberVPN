@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Crown, Orbit, ShieldCheck, Sparkles } from 'lucide-react';
@@ -23,6 +24,7 @@ const tierConfig: Record<
   {
     icon: typeof Orbit;
     color: string;
+    lightColor: string;
     border: string;
     glow: string;
     bgHover: string;
@@ -31,6 +33,7 @@ const tierConfig: Record<
   basic: {
     icon: Orbit,
     color: '#00ffff',
+    lightColor: '#006f78',
     border: 'border-neon-cyan/30',
     glow: 'shadow-[0_24px_80px_-48px_rgba(0,255,255,0.6)]',
     bgHover: 'hover:bg-neon-cyan/5',
@@ -38,6 +41,7 @@ const tierConfig: Record<
   plus: {
     icon: Sparkles,
     color: '#00ff88',
+    lightColor: '#006b3f',
     border: 'border-matrix-green/40',
     glow: 'shadow-[0_24px_80px_-48px_rgba(0,255,136,0.55)]',
     bgHover: 'hover:bg-matrix-green/10',
@@ -45,6 +49,7 @@ const tierConfig: Record<
   pro: {
     icon: ShieldCheck,
     color: '#ff00ff',
+    lightColor: '#9b157f',
     border: 'border-neon-pink/40',
     glow: 'shadow-[0_24px_80px_-48px_rgba(255,0,255,0.5)]',
     bgHover: 'hover:bg-neon-pink/10',
@@ -52,6 +57,7 @@ const tierConfig: Record<
   max: {
     icon: Crown,
     color: '#9d00ff',
+    lightColor: '#6d1bb1',
     border: 'border-neon-purple/40',
     glow: 'shadow-[0_24px_80px_-48px_rgba(157,0,255,0.55)]',
     bgHover: 'hover:bg-neon-purple/10',
@@ -156,11 +162,12 @@ export function TierCards({
                 </div>
                 {badge ? (
                   <span
-                    className="rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em]"
+                    className="rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--tier-badge-color)] dark:text-[color:var(--tier-accent)]"
                     style={{
+                      '--tier-accent': config.color,
+                      '--tier-badge-color': config.lightColor,
                       borderColor: `${config.color}66`,
-                      color: config.color,
-                    }}
+                    } as CSSProperties}
                   >
                     {badge}
                   </span>

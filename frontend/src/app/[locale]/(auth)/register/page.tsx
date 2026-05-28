@@ -69,6 +69,8 @@ export default function RegisterPage() {
     const identifierPlaceholder = isEmailMode ? 'user@cybervpn.io' : t('usernamePlaceholder');
     const identifierType = isEmailMode ? 'email' : 'text';
     const identifierAutocomplete = isEmailMode ? 'email' : 'username';
+    const publicTermsUrl = `https://cyber-vpn.net/${locale}/terms`;
+    const publicPrivacyUrl = `https://cyber-vpn.net/${locale}/privacy-policy`;
 
     const emailValidation = validateEmailInput(email, isEmailMode);
     const passwordValidation = validatePasswordInput(password);
@@ -286,11 +288,19 @@ export default function RegisterPage() {
                         </div>
                         <span className="text-xs text-muted-foreground font-mono leading-relaxed group-hover:text-foreground transition-colors">
                             {t('acceptTerms')}{' '}
-                            <Link href="/terms" className="inline-flex items-center text-neon-cyan hover:underline">
+                            <Link
+                                href={publicTermsUrl}
+                                prefetch={false}
+                                className="inline-flex items-center text-neon-cyan hover:underline"
+                            >
                                 {t('termsLink')}
                             </Link>{' '}
                             {t('and')}{' '}
-                            <Link href="/privacy-policy" className="inline-flex items-center text-neon-cyan hover:underline">
+                            <Link
+                                href={publicPrivacyUrl}
+                                prefetch={false}
+                                className="inline-flex items-center text-neon-cyan hover:underline"
+                            >
                                 {t('privacyLink')}
                             </Link>
                         </span>
