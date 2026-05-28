@@ -24,6 +24,7 @@ const INACTIVE_ENTITLEMENT_STATUSES = new Set([
 const PAID_ORDER_STATUSES = new Set(['paid', 'settled', 'completed']);
 const PENDING_ORDER_STATUSES = new Set(['pending', 'pending_payment', 'awaiting_payment']);
 const NON_UPGRADABLE_PLAN_CODES = new Set(['invite', 'invite_access', 'trial']);
+const RU_PLAN_PREFIX = 'ru_';
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -263,18 +264,24 @@ export function getVisibleAddons(
     return [];
   }
 
+  const normalizedPlanCode = currentPlanCode.toLowerCase();
+
   return [...addons]
     .filter((addon) => {
       if (!addon.is_active || !addon.sale_channels.includes('web')) {
         return false;
       }
 
-      const maxQuantity = addon.max_quantity_by_plan[currentPlanCode];
+      if (normalizedPlanCode.startsWith(RU_PLAN_PREFIX) && addon.requires_location) {
+        return false;
+      }
+
+      const maxQuantity = addon.max_quantity_by_plan[normalizedPlanCode];
       if (Object.keys(addon.max_quantity_by_plan).length > 0) {
         return Number(maxQuantity ?? 0) > 0;
       }
 
-      return true;
+      return !addon.requires_location;
     })
     .sort((first, second) => first.price_usd - second.price_usd);
 }

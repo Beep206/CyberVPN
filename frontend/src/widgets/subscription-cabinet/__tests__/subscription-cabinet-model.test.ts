@@ -291,6 +291,26 @@ describe('subscription cabinet model', () => {
         uuid: 'addon-3',
       },
       {
+        code: 'dedicated_ip',
+        delta_entitlements: {
+          dedicated_ip_count: 1,
+        },
+        display_name: 'Dedicated IP',
+        duration_mode: 'subscription_aligned',
+        is_active: true,
+        is_stackable: true,
+        max_quantity_by_plan: {
+          pro: 1,
+          ru_start: 0,
+        },
+        price_rub: null,
+        price_usd: 24,
+        quantity_step: 1,
+        requires_location: true,
+        sale_channels: ['web'],
+        uuid: 'addon-dedicated-ip',
+      },
+      {
         code: 'blocked',
         delta_entitlements: {},
         display_name: 'Blocked',
@@ -325,6 +345,7 @@ describe('subscription cabinet model', () => {
     expect(getVisibleAddons(addons, 'pro').map((addon) => addon.code)).toEqual([
       'global-addon',
       'extra-device',
+      'dedicated_ip',
     ]);
     expect(getVisibleAddons(addons, 'ru_start').map((addon) => addon.code)).toEqual([
       'ru_traffic_30gb',

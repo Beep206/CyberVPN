@@ -442,8 +442,24 @@ class CheckoutUseCase:
             raise ValueError(f"Addon {addon.code} is not stackable")
         if addon.requires_location and not addon_input.location_code:
             raise ValueError(f"Addon {addon.code} requires location_code")
+        if _addon_grants_dedicated_ip(addon) and not _plan_allows_dedicated_ip(plan):
+            raise ValueError(f"Addon {addon.code} is not available for plan {plan.plan_code}")
         if not plan.is_active:
             raise ValueError("Plan is inactive")
+
+
+def _addon_grants_dedicated_ip(addon: PlanAddonModel) -> bool:
+    delta = addon.delta_entitlements or {}
+    raw_value = delta.get("dedicated_ip_count")
+    try:
+        return int(raw_value or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _plan_allows_dedicated_ip(plan: SubscriptionPlanModel) -> bool:
+    dedicated_ip = plan.dedicated_ip or {}
+    return bool(dedicated_ip.get("eligible"))
 
 
 def _quote_resolution_error_message(resolution) -> str:

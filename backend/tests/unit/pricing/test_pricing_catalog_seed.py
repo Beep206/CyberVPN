@@ -102,6 +102,10 @@ def test_addon_seed_matches_phase1_catalog() -> None:
 
     assert addons["dedicated_ip"].price_usd == Decimal("24.00")
     assert addons["dedicated_ip"].requires_location is True
+    assert addons["dedicated_ip"].max_quantity_by_plan["ru_start"] == 0
+    assert addons["dedicated_ip"].max_quantity_by_plan["ru_basic"] == 0
+    assert addons["dedicated_ip"].max_quantity_by_plan["plus"] == 1
+    assert addons["dedicated_ip"].max_quantity_by_plan["max"] == 3
     assert addons["dedicated_ip"].delta_entitlements == {"dedicated_ip_count": 1}
 
     assert addons["ru_traffic_30gb"].price_usd == Decimal("2.00")

@@ -38,6 +38,7 @@
     "wallet": "Кошелёк"
   },
   "addons": {
+    "billingCurrencyNotice": "Web add-ons списываются в {currency}; локальная цена показана для ориентира.",
     "description": "Add-ons сначала считаются через backend quote текущего entitlement, поэтому цена и изменения доступа остаются авторитетными.",
     "empty": "Для текущего плана нет активных add-ons.",
     "eyebrow": "Каталог add-ons",

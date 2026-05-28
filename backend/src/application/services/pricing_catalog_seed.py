@@ -418,6 +418,17 @@ def build_addon_seed_specs() -> list[AddonSeedSpec]:
         PlanCode.TEST.value: 0,
         PlanCode.DEVELOPMENT.value: 0,
     }
+    dedicated_ip_plan_limits = {
+        PlanCode.START.value: 1,
+        PlanCode.RU_START.value: 0,
+        PlanCode.RU_BASIC.value: 0,
+        PlanCode.BASIC.value: 1,
+        PlanCode.PLUS.value: 1,
+        PlanCode.PRO.value: 2,
+        PlanCode.MAX.value: 3,
+        PlanCode.TEST.value: 3,
+        PlanCode.DEVELOPMENT.value: 0,
+    }
 
     return [
         AddonSeedSpec(
@@ -494,7 +505,7 @@ def build_addon_seed_specs() -> list[AddonSeedSpec]:
             quantity_step=1,
             price_usd=Decimal("24.00"),
             price_rub=None,
-            max_quantity_by_plan={},
+            max_quantity_by_plan=dict(dedicated_ip_plan_limits),
             delta_entitlements={"dedicated_ip_count": 1},
             requires_location=True,
             sale_channels=PUBLIC_CHANNELS,

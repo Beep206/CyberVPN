@@ -38,6 +38,7 @@
     "wallet": "Wallet"
   },
   "addons": {
+    "billingCurrencyNotice": "Web add-ons are billed in {currency}; local prices are informational.",
     "description": "Add-ons are quoted against the current entitlement before purchase, so price and access deltas stay backend-authoritative.",
     "empty": "No active add-ons are available for the current plan.",
     "eyebrow": "Add-on catalog",

@@ -91,6 +91,7 @@ type AsyncActionState = {
 const LIVE_STALE_MS = 30_000;
 const CATALOG_STALE_MS = 5 * 60_000;
 const LIVE_REFETCH_MS = 45_000;
+const WEB_ADDON_BILLING_CURRENCY = 'USD';
 
 const toneClasses: Record<
   StatusTone,
@@ -225,10 +226,10 @@ function buildAddonRequest(addon: AddonRecord, currency: string, promoCode: stri
 
 function getWriteContractGuardMessage(locale: string): string {
   if (locale.startsWith('ru')) {
-    return 'Изменение плана и add-ons пока доступно только для backend current подписки. Выберите current/default подписку или дождитесь MSUB-08.';
+    return 'Изменение плана и add-ons доступно только для управляемой grant-подписки. Выберите активную paid-подписку из переключателя; legacy/trial подписки доступны только для просмотра.';
   }
 
-  return 'Plan changes and add-ons are available only for the backend current subscription until MSUB-08 is complete.';
+  return 'Plan changes and add-ons require a managed grant subscription. Select an active paid subscription from the switcher; legacy/trial subscriptions are read-only.';
 }
 
 function getUsageMetricLabel(
@@ -595,7 +596,7 @@ export function SubscriptionCabinetDashboard() {
       return;
     }
 
-    const currency = locale.startsWith('ru') && addon.price_rub ? 'RUB' : 'USD';
+    const currency = WEB_ADDON_BILLING_CURRENCY;
     setAddonState({ id: addon.uuid, message: '', status: 'loading' });
 
     try {
@@ -648,7 +649,7 @@ export function SubscriptionCabinetDashboard() {
       return;
     }
 
-    const currency = locale.startsWith('ru') && addon.price_rub ? 'RUB' : 'USD';
+    const currency = WEB_ADDON_BILLING_CURRENCY;
     setAddonState((current) => ({
       ...current,
       id: addon.uuid,
@@ -1129,6 +1130,11 @@ export function SubscriptionCabinetDashboard() {
                         {getAddonPrice(addon, locale)}
                       </p>
                     </div>
+                    <p className="mt-3 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+                      {t('addons.billingCurrencyNotice', {
+                        currency: WEB_ADDON_BILLING_CURRENCY,
+                      })}
+                    </p>
 
                     {stateForAddon?.message && (
                       <p
