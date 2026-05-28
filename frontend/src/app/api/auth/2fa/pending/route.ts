@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   createPendingTwoFactorCookieValue,
   pendingTwoFactorCookieOptions,
+  parsePendingTwoFactorCookieValue,
   PENDING_2FA_COOKIE,
 } from '@/features/auth/lib/pending-twofa';
 
@@ -11,6 +12,25 @@ interface PendingTwoFactorBody {
   locale?: string | null;
   return_to?: string | null;
   is_new_user?: boolean;
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const transaction = parsePendingTwoFactorCookieValue(
+    request.cookies.get(PENDING_2FA_COOKIE)?.value,
+  );
+
+  if (!transaction) {
+    const response = NextResponse.json({ pending: false });
+    response.cookies.delete(PENDING_2FA_COOKIE);
+    return response;
+  }
+
+  return NextResponse.json({
+    pending: true,
+    locale: transaction.locale,
+    return_to: transaction.returnTo,
+    is_new_user: transaction.isNewUser,
+  });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

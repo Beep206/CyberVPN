@@ -24,10 +24,25 @@ import {
 } from '@/features/auth/lib/oauth-error-codes';
 import {
   completePendingTwoFactorSession,
+  getPendingTwoFactorSession,
   stagePendingTwoFactorSession,
 } from '@/features/auth/lib/pending-twofa-client';
 import { getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
+import {
+  validateLoginIdentifierInput,
+  type LoginIdentifierValidationCode,
+} from '@/features/auth/lib/validation';
 import { useAuthStore } from '@/stores/auth-store';
+
+const FALLBACK_LOGIN_VALIDATION_MESSAGES: Record<LoginIdentifierValidationCode, string> = {
+  loginIdentifierRequired: 'Email or username is required',
+  emailRequired: 'Email is required',
+  emailInvalid: 'Enter a valid email address',
+  emailNoSpaces: 'Email must not contain spaces',
+  emailTooLong: 'Email is too long',
+};
+
+type TwoFactorSessionState = 'idle' | 'checking' | 'ready' | 'expired';
 
 export function LoginClient() {
   const t = useTranslations('Auth.login');
@@ -52,8 +67,23 @@ export function LoginClient() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
   const [isCompletingTwoFactor, setIsCompletingTwoFactor] = useState(false);
+  const [identifierTouched, setIdentifierTouched] = useState(false);
+  const [twoFactorSessionState, setTwoFactorSessionState] = useState<TwoFactorSessionState>(
+    isTwoFactorFlow ? 'checking' : 'idle',
+  );
   const errorRef = useRef<HTMLDivElement>(null);
+  const twoFactorInputRef = useRef<HTMLInputElement>(null);
   const trackedOAuthEventRef = useRef<string | null>(null);
+  const loginIdentifierValidation = validateLoginIdentifierInput(email);
+
+  const getLoginIdentifierValidationMessage = (code: LoginIdentifierValidationCode): string => {
+    const key = `validation.${code}`;
+    return t.has(key) ? t(key) : FALLBACK_LOGIN_VALIDATION_MESSAGES[code];
+  };
+
+  const loginIdentifierError = identifierTouched && !loginIdentifierValidation.isValid
+    ? getLoginIdentifierValidationMessage(loginIdentifierValidation.codes[0])
+    : undefined;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -64,6 +94,47 @@ export function LoginClient() {
   useEffect(() => {
     clearError();
   }, [clearError]);
+
+  useEffect(() => {
+    if (!isTwoFactorFlow) {
+      return;
+    }
+
+    let cancelled = false;
+
+    getPendingTwoFactorSession()
+      .then((session) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (!session.pending) {
+          setTwoFactorSessionState('expired');
+          setTwoFactorError(t('twoFactorSessionExpired'));
+          return;
+        }
+
+        setTwoFactorSessionState('ready');
+        setTwoFactorError(null);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setTwoFactorSessionState('expired');
+        setTwoFactorError(t('twoFactorSessionCheckFailed'));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isTwoFactorFlow, t]);
+
+  useEffect(() => {
+    if (twoFactorSessionState === 'ready') {
+      twoFactorInputRef.current?.focus();
+    }
+  }, [twoFactorSessionState]);
 
   useEffect(() => {
     const activeError = twoFactorError || oauthErrorMessage || error;
@@ -109,9 +180,17 @@ export function LoginClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTwoFactorError(null);
+    setIdentifierTouched(true);
+
+    const currentIdentifierValidation = validateLoginIdentifierInput(email);
+    if (!currentIdentifierValidation.isValid) {
+      return;
+    }
+
     try {
-      const result = await login(email, password, rememberMe);
+      const result = await login(email.trim(), password, rememberMe);
       if (result.requires_2fa && result.tfa_token) {
+        setTwoFactorSessionState('checking');
         await stagePendingTwoFactorSession({
           token: result.tfa_token,
           locale,
@@ -127,6 +206,11 @@ export function LoginClient() {
 
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (twoFactorSessionState !== 'ready') {
+      setTwoFactorError(t('twoFactorSessionExpired'));
+      return;
+    }
+
     setIsCompletingTwoFactor(true);
     setTwoFactorError(null);
 
@@ -134,7 +218,11 @@ export function LoginClient() {
       const result = await completePendingTwoFactorSession(twoFactorCode);
       window.location.href = result.redirect_to;
     } catch (err) {
-      setTwoFactorError(err instanceof Error ? err.message : 'Two-factor verification failed.');
+      const message = err instanceof Error ? err.message : 'Two-factor verification failed.';
+      setTwoFactorError(message);
+      if (/session expired|start sign-in/i.test(message)) {
+        setTwoFactorSessionState('expired');
+      }
       setIsCompletingTwoFactor(false);
     }
   };
@@ -172,58 +260,82 @@ export function LoginClient() {
       </div>
       {isTwoFactorFlow ? (
         <form onSubmit={handleTwoFactorSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={isCompletingTwoFactor}>
-          <p className="text-center text-sm font-mono text-muted-foreground">
-            {t('twoFactorInfo')}
-          </p>
-          <CyberInput
-            label={t('twoFactorCodeLabel')}
-            type="text"
-            prefix="2fa"
-            placeholder={t('twoFactorCodePlaceholder')}
-            value={twoFactorCode}
-            onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            required
-            autoComplete="one-time-code"
-            disabled={isCompletingTwoFactor}
-            className="mobile-form-input"
-          />
-          <motion.div
-            whileHover={{ scale: isCompletingTwoFactor ? 1 : 1.01 }}
-            whileTap={{ scale: isCompletingTwoFactor ? 1 : 0.99 }}
-            className="flex justify-center"
-          >
-            <Button
-              type="submit"
-              disabled={isCompletingTwoFactor}
-              touchTarget="comfortable"
-              className="min-w-[200px] h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label={isCompletingTwoFactor ? t('twoFactorSubmitting') : t('twoFactorSubmitButton')}
-            >
-              {isCompletingTwoFactor ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('twoFactorSubmitting')}
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  {t('twoFactorSubmitButton')}
-                </>
-              )}
-            </Button>
-          </motion.div>
+          {twoFactorSessionState === 'checking' && (
+            <p role="status" className="text-center text-sm font-mono text-muted-foreground">
+              {t('twoFactorChecking')}
+            </p>
+          )}
+
+          {twoFactorSessionState === 'expired' ? (
+            <div className="flex justify-center">
+              <Link
+                href={`/${locale}/login`}
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-neon-cyan/40 px-4 text-sm font-mono text-neon-cyan transition-colors hover:border-neon-cyan hover:text-neon-cyan/80"
+              >
+                {t('twoFactorStartOver')}
+              </Link>
+            </div>
+          ) : twoFactorSessionState === 'ready' ? (
+            <>
+              <p className="text-center text-sm font-mono text-muted-foreground">
+                {t('twoFactorInfo')}
+              </p>
+              <CyberInput
+                ref={twoFactorInputRef}
+                label={t('twoFactorCodeLabel')}
+                type="text"
+                inputMode="numeric"
+                prefix="2fa"
+                placeholder={t('twoFactorCodePlaceholder')}
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                required
+                autoComplete="one-time-code"
+                disabled={isCompletingTwoFactor}
+                className="mobile-form-input"
+              />
+              <motion.div
+                whileHover={{ scale: isCompletingTwoFactor ? 1 : 1.01 }}
+                whileTap={{ scale: isCompletingTwoFactor ? 1 : 0.99 }}
+                className="flex justify-center"
+              >
+                <Button
+                  type="submit"
+                  disabled={isCompletingTwoFactor || twoFactorCode.length !== 6}
+                  touchTarget="comfortable"
+                  className="min-w-[200px] h-12 bg-neon-cyan hover:bg-neon-cyan/90 text-black font-bold font-mono tracking-wider shadow-lg shadow-neon-cyan/20 hover:shadow-neon-cyan/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={isCompletingTwoFactor ? t('twoFactorSubmitting') : t('twoFactorSubmitButton')}
+                >
+                  {isCompletingTwoFactor ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('twoFactorSubmitting')}
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      {t('twoFactorSubmitButton')}
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </>
+          ) : null}
         </form>
       ) : (
         <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={isLoading}>
           <CyberInput
             label={t('emailLabel')}
-            type="email"
+            type="text"
             prefix="email"
-            placeholder="user@cybervpn.io"
+            placeholder={t('emailPlaceholder')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setIdentifierTouched(true)}
+            error={loginIdentifierError}
+            success={identifierTouched && loginIdentifierValidation.isValid && email.trim().length > 0}
             required
-            autoComplete="email"
+            autoComplete="username"
             disabled={isLoading || isRateLimited}
             className="mobile-form-input"
           />

@@ -4,6 +4,7 @@ import {
   getPasswordRequirements,
   normalizeEmailInput,
   validateEmailInput,
+  validateLoginIdentifierInput,
   validatePasswordInput,
 } from './validation';
 
@@ -25,6 +26,17 @@ describe('auth validation', () => {
 
     expect(result.isValid).toBe(false);
     expect(result.codes).toContain('emailTooLong');
+  });
+
+  it('validates login identifiers without blocking username login', () => {
+    expect(validateLoginIdentifierInput('sasha_beep')).toEqual({ isValid: true, codes: [] });
+    expect(validateLoginIdentifierInput('user@example.com')).toEqual({ isValid: true, codes: [] });
+    expect(validateLoginIdentifierInput('')).toEqual({
+      isValid: false,
+      codes: ['loginIdentifierRequired'],
+    });
+    expect(validateLoginIdentifierInput('broken@example').codes).toContain('emailInvalid');
+    expect(validateLoginIdentifierInput(' user@example.com ').codes).toContain('emailNoSpaces');
   });
 
   it('accepts a strong ASCII password and exposes requirement status for the UI', () => {

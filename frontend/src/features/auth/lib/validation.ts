@@ -68,6 +68,10 @@ export type EmailValidationCode =
   | 'emailNoSpaces'
   | 'emailTooLong';
 
+export type LoginIdentifierValidationCode =
+  | 'loginIdentifierRequired'
+  | EmailValidationCode;
+
 export type PasswordValidationCode =
   | 'passwordRequired'
   | 'passwordMinLength'
@@ -120,6 +124,24 @@ export function validateEmailInput(value: string, required = true): ValidationRe
   }
 
   return { isValid: codes.length === 0, codes };
+}
+
+export function validateLoginIdentifierInput(value: string): ValidationResult<LoginIdentifierValidationCode> {
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return { isValid: false, codes: ['loginIdentifierRequired'] };
+  }
+
+  if (normalized.includes('@') || /\s/u.test(value)) {
+    const emailValidation = validateEmailInput(value, true);
+    return {
+      isValid: emailValidation.isValid,
+      codes: emailValidation.codes,
+    };
+  }
+
+  return { isValid: true, codes: [] };
 }
 
 export function getPasswordRequirements(password: string): PasswordRequirement[] {

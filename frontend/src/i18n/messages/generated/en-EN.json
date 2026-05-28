@@ -227,12 +227,23 @@
       "submitting": "Signing in...",
       "subtitle": "Access your secure connection",
       "title": "Sign In",
+      "twoFactorChecking": "Checking two-factor sign-in session...",
       "twoFactorCodeLabel": "Authenticator code",
       "twoFactorCodePlaceholder": "000000",
       "twoFactorInfo": "Enter the 6-digit code from your authenticator app to complete sign-in.",
+      "twoFactorSessionCheckFailed": "We could not restore this two-factor sign-in session. Start sign-in again.",
+      "twoFactorSessionExpired": "Two-factor login session expired. Start sign-in again.",
       "twoFactorStartFailed": "Two-factor verification could not start. Try signing in again.",
+      "twoFactorStartOver": "Start sign-in again",
       "twoFactorSubmitButton": "Verify code",
-      "twoFactorSubmitting": "Verifying code..."
+      "twoFactorSubmitting": "Verifying code...",
+      "validation": {
+        "emailInvalid": "Enter a valid email address",
+        "emailNoSpaces": "Email must not contain spaces",
+        "emailRequired": "Email is required",
+        "emailTooLong": "Email is too long",
+        "loginIdentifierRequired": "Email or username is required"
+      }
     },
     "logout": {
       "button": "Sign Out",

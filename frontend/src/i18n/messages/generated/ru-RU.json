@@ -210,12 +210,23 @@
       "submitting": "Вход...",
       "subtitle": "Доступ к защищённому соединению",
       "title": "Вход",
+      "twoFactorChecking": "Проверяем сессию входа с 2FA...",
       "twoFactorCodeLabel": "Код аутентификатора",
       "twoFactorCodePlaceholder": "000000",
       "twoFactorInfo": "Введите 6-значный код из приложения-аутентификатора, чтобы завершить вход.",
+      "twoFactorSessionCheckFailed": "Не удалось восстановить сессию входа с 2FA. Начните вход заново.",
+      "twoFactorSessionExpired": "Сессия входа с 2FA истекла. Начните вход заново.",
       "twoFactorStartFailed": "Не удалось начать проверку 2FA. Попробуйте войти заново.",
+      "twoFactorStartOver": "Начать вход заново",
       "twoFactorSubmitButton": "Подтвердить код",
-      "twoFactorSubmitting": "Проверка кода..."
+      "twoFactorSubmitting": "Проверка кода...",
+      "validation": {
+        "emailInvalid": "Введите корректный email адрес",
+        "emailNoSpaces": "Email не должен содержать пробелы",
+        "emailRequired": "Email обязателен",
+        "emailTooLong": "Email слишком длинный",
+        "loginIdentifierRequired": "Укажите email или имя пользователя"
+      }
     },
     "logout": {
       "button": "Выйти",
