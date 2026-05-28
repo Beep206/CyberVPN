@@ -7,7 +7,7 @@ import type { PricingAddon, PricingPlanFamily } from '../types';
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'ru-RU',
-  useTranslations: () => (key: string, values?: Record<string, string | number>) => {
+  useTranslations: () => {
     const labels: Record<string, string> = {
       'addons.dedicated_ip.availability': 'Available on request',
       'addons.dedicated_ip.description': 'Dedicated address',
@@ -47,12 +47,18 @@ vi.mock('next-intl', () => ({
       'tiers.basic.description': 'Basic access',
       'tiers.basic.eyebrow': 'Entry',
     };
-    const template = labels[key] ?? key;
-    if (!values) return template;
-    return Object.entries(values).reduce(
-      (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
-      template,
-    );
+    const t = ((key: string, values?: Record<string, string | number>) => {
+      const template = labels[key] ?? key;
+      if (!values) return template;
+      return Object.entries(values).reduce(
+        (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+        template,
+      );
+    }) as ((key: string, values?: Record<string, string | number>) => string) & {
+      has: (key: string) => boolean;
+    };
+    t.has = (key: string) => Object.prototype.hasOwnProperty.call(labels, key);
+    return t;
   },
 }));
 

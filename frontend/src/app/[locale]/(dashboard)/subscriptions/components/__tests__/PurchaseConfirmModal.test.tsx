@@ -2,12 +2,13 @@ import type { ReactElement, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import type { SubscriptionPlan } from '../../lib/plan-presenter';
 import { PurchaseConfirmModal } from '../PurchaseConfirmModal';
 import { server } from '@/test/mocks/server';
 import { CANONICAL_IDEMPOTENCY_HEADER } from '@/lib/api/client';
+import type { ClientCapabilitiesResponse } from '@/lib/api/client-capabilities';
 
 vi.mock('@/shared/ui/modal', () => ({
   Modal: ({ isOpen, children }: { isOpen: boolean; children: ReactNode }) =>
@@ -15,6 +16,7 @@ vi.mock('@/shared/ui/modal', () => ({
 }));
 
 const MATCH_ANY_API_ORIGIN = {
+  clientCapabilities: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/client\/capabilities$/,
   quoteSessions: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/quotes\/?$/,
   resolveCodes: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/codes\/resolve$/,
   checkoutSessions: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/checkout-sessions\/?$/,
@@ -238,6 +240,58 @@ function createOrder(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function createClientCapabilities(
+  overrides: Partial<ClientCapabilitiesResponse> = {},
+): ClientCapabilitiesResponse {
+  return {
+    auth: {
+      email_password: true,
+      magic_link: true,
+      telegram: true,
+      ...overrides.auth,
+    },
+    payments: {
+      web_checkout: true,
+      telegram_stars: false,
+      cryptobot: true,
+      manual_invoice: true,
+      autorenewal: false,
+      ...overrides.payments,
+    },
+    growth: {
+      invites: true,
+      referral: false,
+      promo_codes: false,
+      gift_codes: false,
+      checkout_code_discounts: false,
+      growth_hub: false,
+      ...overrides.growth,
+    },
+    subscriptions: {
+      multi_subscription: true,
+      selected_subscription_required: true,
+      addons: false,
+      upgrade: true,
+      trial: true,
+      paid_provisioning: false,
+      ...overrides.subscriptions,
+    },
+    partner: {
+      portal: false,
+      applications: false,
+      codes: false,
+      attribution: false,
+      storefronts: false,
+      reporting: false,
+      settlement_sandbox: false,
+      webhooks: false,
+      payouts: false,
+      event_backbone: false,
+      ...overrides.partner,
+    },
+  };
+}
+
 function createPaymentAttempt(overrides: Record<string, unknown> = {}) {
   return {
     id: '88888888-8888-8888-8888-888888888888',
@@ -272,6 +326,13 @@ function createPaymentAttempt(overrides: Record<string, unknown> = {}) {
 }
 
 describe('PurchaseConfirmModal', () => {
+  beforeEach(() => {
+    server.use(
+      http.get(MATCH_ANY_API_ORIGIN.clientCapabilities, () =>
+        HttpResponse.json(createClientCapabilities())),
+    );
+  });
+
   afterEach(() => {
     server.resetHandlers();
   });

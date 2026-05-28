@@ -8,14 +8,14 @@ import {
 } from '../stage1-customer-surface-policy';
 
 describe('stage1 customer surface policy', () => {
-  it('allows only customer cabinet surfaces by default', () => {
+  it('allows customer cabinet and enabled growth surfaces by default', () => {
     expect(getStage1CustomerDashboardSurfacePolicy()).toMatchObject({
       analytics: false,
       dashboard: true,
       monitoring: false,
       partner: false,
       paymentHistory: true,
-      referral: false,
+      referral: true,
       servers: true,
       settings: true,
       subscriptions: true,

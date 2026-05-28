@@ -57,7 +57,7 @@ describe('miniappApi', () => {
 
     const result = await miniappApi.getOffers();
 
-    expect(apiClientMock.get).toHaveBeenCalledWith('/miniapp/offers');
+    expect(apiClientMock.get).toHaveBeenCalledWith('/miniapp/offers', { params: undefined });
     expect(result).toBe(response);
   });
 
@@ -79,7 +79,7 @@ describe('miniappApi', () => {
 
     const result = await miniappApi.getConfig();
 
-    expect(apiClientMock.get).toHaveBeenCalledWith('/miniapp/config');
+    expect(apiClientMock.get).toHaveBeenCalledWith('/miniapp/config', { params: undefined });
     expect(result).toBe(response);
   });
 

@@ -7,12 +7,9 @@ vi.mock('@/widgets/referral-cabinet/referral-cabinet-dashboard', () => ({
 }));
 
 describe('ReferralPage', () => {
-  it('renders the S1 paused state instead of the referral/gift cabinet by default', () => {
+  it('renders the live referral/gift cabinet when growth surfaces are enabled', () => {
     render(<ReferralPage />);
 
-    expect(screen.getByText('Rewards hub is paused')).toBeInTheDocument();
-    expect(screen.getByText(/Public referral, gift, and promo-code flows are disabled/i))
-      .toBeInTheDocument();
-    expect(screen.queryByText('live referral cabinet')).not.toBeInTheDocument();
+    expect(screen.getByText('live referral cabinet')).toBeInTheDocument();
   });
 });
