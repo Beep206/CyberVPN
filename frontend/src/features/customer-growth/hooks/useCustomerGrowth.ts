@@ -25,6 +25,8 @@ import { getGrowthCodeResolutionMessage } from '@/features/customer-growth/lib/c
 import {
   areGiftCodesEnabled,
   areInviteCodesEnabled,
+  isAnyGrowthSurfaceEnabled,
+  isClientCapabilitiesReady,
   isReferralProgramEnabled,
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
@@ -45,11 +47,13 @@ function pollingInterval(intervalMs: number) {
 }
 
 export function useReferralStatus() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'referral', 'status'],
-    enabled: isReferralProgramEnabled(capabilities),
+    enabled: capabilitiesReady && isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getStatus();
       return response.data;
@@ -59,11 +63,13 @@ export function useReferralStatus() {
 }
 
 export function useReferralCode() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'referral', 'code'],
-    enabled: isReferralProgramEnabled(capabilities),
+    enabled: capabilitiesReady && isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getCode();
       return response.data;
@@ -73,11 +79,13 @@ export function useReferralCode() {
 }
 
 export function useReferralStats() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'referral', 'stats'],
-    enabled: isReferralProgramEnabled(capabilities),
+    enabled: capabilitiesReady && isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getStats();
       return response.data;
@@ -89,11 +97,13 @@ export function useReferralStats() {
 }
 
 export function useRecentReferralActivity() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'referral', 'activity'],
-    enabled: isReferralProgramEnabled(capabilities),
+    enabled: capabilitiesReady && isReferralProgramEnabled(capabilities),
     queryFn: async () => {
       const response = await referralApi.getRecentCommissions();
       return response.data;
@@ -105,11 +115,13 @@ export function useRecentReferralActivity() {
 export const useRecentCommissions = useRecentReferralActivity;
 
 export function useInviteCodes() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'invites'],
-    enabled: areInviteCodesEnabled(capabilities),
+    enabled: capabilitiesReady && areInviteCodesEnabled(capabilities),
     queryFn: async () => {
       const response = await invitesApi.getMyInvites();
       return response.data;
@@ -119,11 +131,13 @@ export function useInviteCodes() {
 }
 
 export function useGiftCodes() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'gifts'],
-    enabled: areGiftCodesEnabled(capabilities),
+    enabled: capabilitiesReady && areGiftCodesEnabled(capabilities),
     queryFn: async () => {
       const response = await giftsApi.listMyGifts();
       return response.data;
@@ -133,11 +147,13 @@ export function useGiftCodes() {
 }
 
 export function useGiftCatalogPlans() {
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useQuery({
     queryKey: ['growth', 'gift-plans'],
-    enabled: areGiftCodesEnabled(capabilities),
+    enabled: capabilitiesReady && areGiftCodesEnabled(capabilities),
     queryFn: async () => {
       const response = await plansApi.list();
       return response.data.filter((plan) => plan.is_active);
@@ -147,12 +163,17 @@ export function useGiftCatalogPlans() {
 }
 
 export function useGrowthNotifications(includeArchived = false) {
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
+
   return useQuery({
     queryKey: [
       'growth',
       'notifications',
       includeArchived ? 'archived' : 'active',
     ],
+    enabled: capabilitiesReady && isAnyGrowthSurfaceEnabled(capabilities),
     queryFn: async () => {
       const response = await growthNotificationsApi.list(includeArchived);
       return response.data;
@@ -164,9 +185,16 @@ export function useGrowthNotifications(includeArchived = false) {
 }
 
 export function useGrowthNotificationDetail(notificationId: string | null) {
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
+
   return useQuery({
     queryKey: ['growth', 'notifications', 'detail', notificationId],
-    enabled: Boolean(notificationId),
+    enabled:
+      capabilitiesReady &&
+      isAnyGrowthSurfaceEnabled(capabilities) &&
+      Boolean(notificationId),
     queryFn: async () => {
       if (!notificationId) {
         throw new Error('notification_detail_requires_id');
@@ -179,8 +207,13 @@ export function useGrowthNotificationDetail(notificationId: string | null) {
 }
 
 export function useGrowthNotificationCounters() {
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
+
   return useQuery({
     queryKey: ['growth', 'notifications', 'counters'],
+    enabled: capabilitiesReady && isAnyGrowthSurfaceEnabled(capabilities),
     queryFn: async () => {
       const response = await growthNotificationsApi.getCounters();
       return response.data;
@@ -192,8 +225,13 @@ export function useGrowthNotificationCounters() {
 }
 
 export function useGrowthNotificationPreferences() {
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
+
   return useQuery({
     queryKey: ['growth', 'notifications', 'preferences'],
+    enabled: capabilitiesReady && isAnyGrowthSurfaceEnabled(capabilities),
     queryFn: async () => {
       const response = await growthNotificationsApi.getPreferences();
       return response.data;
@@ -511,11 +549,20 @@ export type GrowthRedeemResult =
 
 export function useRedeemGrowthCode() {
   const queryClient = useQueryClient();
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useMutation({
     mutationKey: ['growth', 'redeem'],
     mutationFn: async (rawCode: string): Promise<GrowthRedeemResult> => {
+      if (
+        !capabilitiesReady ||
+        (!areInviteCodesEnabled(capabilities) && !areGiftCodesEnabled(capabilities))
+      ) {
+        throw new Error('Code redemption is not currently available.');
+      }
+
       const normalizedCode = rawCode.trim().toUpperCase();
       const resolutionResponse = await codesApi.resolve({
         code: normalizedCode,
@@ -597,12 +644,14 @@ export function useRedeemGrowthCode() {
 
 export function useGiftPurchase() {
   const queryClient = useQueryClient();
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilities = capabilitiesQuery.data;
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
 
   return useMutation({
     mutationKey: ['growth', 'gifts', 'purchase'],
     mutationFn: async (payload: GiftPurchaseRequest) => {
-      if (!areGiftCodesEnabled(capabilities)) {
+      if (!capabilitiesReady || !areGiftCodesEnabled(capabilities)) {
         throw new Error('Gift purchases are not currently available.');
       }
 

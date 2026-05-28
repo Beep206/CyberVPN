@@ -27,6 +27,7 @@ import {
   areInviteCodesEnabled,
   arePromoCodesEnabled,
   isAnyGrowthSurfaceEnabled,
+  isClientCapabilitiesReady,
   isReferralProgramEnabled,
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
@@ -145,6 +146,38 @@ function MiniAppReferralPaused() {
   );
 }
 
+function MiniAppReferralLoading() {
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
+
+  return (
+    <main className="min-h-screen px-4 py-6 pb-24">
+      <div className={`${cardBg} ${borderColor} rounded-[1.5rem] border p-5`}>
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 p-3">
+            <Loader2
+              className="h-5 w-5 animate-spin text-neon-cyan"
+              aria-hidden="true"
+            />
+          </div>
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-neon-cyan">
+              Growth controls
+            </p>
+            <h1 className="mt-2 font-display text-lg uppercase tracking-[0.12em]">
+              Checking rewards availability
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground font-mono">
+              Referral, gift, promo, and invite actions will open after the
+              runtime policy is confirmed.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function MiniAppReferralPage() {
   return <MiniAppReferralExperience />;
 }
@@ -171,7 +204,9 @@ function MiniAppReferralExperience() {
   const [notificationRecoveryError, setNotificationRecoveryError] =
     useState('');
   const [notificationSupportError, setNotificationSupportError] = useState('');
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
+  const capabilities = capabilitiesReady ? capabilitiesQuery.data : undefined;
   const invitesEnabled = areInviteCodesEnabled(capabilities);
   const referralEnabled = isReferralProgramEnabled(capabilities);
   const giftsEnabled = areGiftCodesEnabled(capabilities);
@@ -360,6 +395,10 @@ function MiniAppReferralExperience() {
 
   const cardBg = 'miniapp-card';
   const borderColor = 'border';
+
+  if (!capabilitiesReady) {
+    return <MiniAppReferralLoading />;
+  }
 
   if (!growthSurfaceEnabled) {
     return <MiniAppReferralPaused />;

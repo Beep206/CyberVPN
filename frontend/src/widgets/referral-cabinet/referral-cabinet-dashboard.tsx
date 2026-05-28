@@ -30,6 +30,7 @@ import {
   areInviteCodesEnabled,
   arePromoCodesEnabled,
   isAnyGrowthSurfaceEnabled,
+  isClientCapabilitiesReady,
   isReferralProgramEnabled,
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
@@ -191,6 +192,35 @@ function ReferralPausedState() {
   );
 }
 
+function ReferralCapabilitiesLoadingState() {
+  return (
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="cyber-card p-6">
+        <div className="flex items-start gap-4">
+          <div className="rounded-lg border border-neon-cyan/30 bg-neon-cyan/10 p-3">
+            <Loader2
+              className="h-5 w-5 animate-spin text-neon-cyan"
+              aria-hidden="true"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-mono uppercase tracking-[0.2em] text-neon-cyan">
+              Growth controls
+            </p>
+            <h1 className="mt-2 text-xl font-display text-white">
+              Checking rewards availability
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              CyberVPN is loading the current referral, gift, promo, and invite
+              policy before opening growth actions.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getGrowthVisibility(
   capabilities: ClientCapabilitiesResponse | undefined,
 ) {
@@ -298,7 +328,9 @@ export function ReferralCabinetDashboard() {
   const [giftMessage, setGiftMessage] = useState('');
   const [giftPurchaseError, setGiftPurchaseError] = useState('');
   const [giftPurchaseSuccess, setGiftPurchaseSuccess] = useState('');
-  const { data: capabilities } = useClientCapabilities();
+  const capabilitiesQuery = useClientCapabilities();
+  const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
+  const capabilities = capabilitiesReady ? capabilitiesQuery.data : undefined;
   const growthVisibility = getGrowthVisibility(capabilities);
 
   const statusQuery = useQuery({
@@ -437,13 +469,14 @@ export function ReferralCabinetDashboard() {
     commissionsQuery.data?.[0]?.currency ??
     'USD';
   const hasAnyError =
-    statusQuery.isError ||
-    codeQuery.isError ||
-    statsQuery.isError ||
-    rewardsQuery.isError ||
-    commissionsQuery.isError ||
-    notificationsQuery.isError ||
-    notificationCountersQuery.isError;
+    (growthVisibility.referral &&
+      (statusQuery.isError ||
+        codeQuery.isError ||
+        statsQuery.isError ||
+        rewardsQuery.isError ||
+        commissionsQuery.isError)) ||
+    (growthVisibility.surface &&
+      (notificationsQuery.isError || notificationCountersQuery.isError));
 
   const copyValue = async (value: string, kind: 'code' | 'link' | 'share') => {
     if (!value || typeof navigator === 'undefined' || !navigator.clipboard) {
@@ -577,6 +610,10 @@ export function ReferralCabinetDashboard() {
       setGiftPurchaseError(growthT('giftPurchase.errors.default'));
     }
   };
+
+  if (!capabilitiesReady) {
+    return <ReferralCapabilitiesLoadingState />;
+  }
 
   if (!growthVisibility.surface) {
     return <ReferralPausedState />;

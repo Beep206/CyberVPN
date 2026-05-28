@@ -20,7 +20,7 @@ export const DISABLED_CLIENT_CAPABILITIES: ClientCapabilitiesResponse = {
     autorenewal: false,
   },
   growth: {
-    invites: true,
+    invites: false,
     referral: false,
     promo_codes: false,
     gift_codes: false,
@@ -61,6 +61,13 @@ export function useClientCapabilities() {
     retry: 1,
     placeholderData: DISABLED_CLIENT_CAPABILITIES,
   });
+}
+
+export function isClientCapabilitiesReady(query: {
+  isPlaceholderData?: boolean;
+  isSuccess?: boolean;
+}): boolean {
+  return query.isSuccess !== false && query.isPlaceholderData !== true;
 }
 
 export function isWebCheckoutRailEnabled(
