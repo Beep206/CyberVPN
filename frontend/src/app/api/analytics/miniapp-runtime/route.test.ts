@@ -83,6 +83,30 @@ describe('POST /api/analytics/miniapp-runtime', () => {
     );
   });
 
+  it('accepts the customer cabinet origin when the route is served behind another origin', async () => {
+    const response = await POST(
+      createRequest(
+        {
+          event: 'miniapp_opened',
+          page: 'home',
+          locale: 'ru-RU',
+          path: '/ru-RU/miniapp/home',
+          connectionType: '4g',
+          deviceBucket: 'mobile-touch',
+          reducedMotion: 'no-preference',
+          routeGroup: 'miniapp',
+          saveData: 'off',
+          viewportBucket: 'mobile-regular',
+        },
+        'https://my.cyber-vpn.net',
+        'https://cyber-vpn.net',
+      ) as never,
+    );
+
+    expect(response.status).toBe(204);
+    expect(metricsDistribution).toHaveBeenCalled();
+  });
+
   it('rejects foreign origins', async () => {
     const response = await POST(
       createRequest(

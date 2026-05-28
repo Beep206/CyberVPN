@@ -72,6 +72,14 @@ describe('GET /api/analytics/reporting', () => {
     );
   });
 
+  it('accepts the customer cabinet origin when the route is served behind another origin', async () => {
+    const response = await GET(
+      createRequest('https://my.cyber-vpn.net', 'https://cyber-vpn.net') as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
   it('rejects foreign origins', async () => {
     const response = await GET(
       createRequest('https://evil.example', 'https://cyber-vpn.net') as never,

@@ -1,34 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { recordWebVitalEvent, type WebVitalPayload } from '@/shared/lib/analytics-reporting';
-import { SITE_URL } from '@/shared/lib/seo-route-policy';
+import { hasAllowedAnalyticsOrigin } from '../allowed-origin';
 
 const ALLOWED_METRICS = new Set<WebVitalPayload['metric']>(['cls', 'fcp', 'inp', 'lcp', 'ttfb']);
 const ALLOWED_ROUTE_GROUPS = new Set(['auth', 'dashboard', 'marketing', 'miniapp']);
-
-function hasAllowedOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get('origin');
-  const referer = request.headers.get('referer');
-  const allowedOrigins = new Set([
-    SITE_URL,
-    request.nextUrl.origin,
-    'http://127.0.0.1:9001',
-    'http://localhost:3000',
-  ]);
-
-  if (origin && allowedOrigins.has(origin)) {
-    return true;
-  }
-
-  if (!referer) {
-    return false;
-  }
-
-  try {
-    return allowedOrigins.has(new URL(referer).origin);
-  } catch {
-    return false;
-  }
-}
 
 function sanitizeWebVitalPayload(payload: WebVitalPayload): WebVitalPayload {
   return {
@@ -48,7 +23,7 @@ function sanitizeWebVitalPayload(payload: WebVitalPayload): WebVitalPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!hasAllowedOrigin(request)) {
+    if (!hasAllowedAnalyticsOrigin(request)) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 

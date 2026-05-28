@@ -89,6 +89,30 @@ describe('POST /api/analytics/traffic', () => {
     );
   });
 
+  it('accepts the customer cabinet origin when the route is served behind another origin', async () => {
+    const response = await POST(
+      createRequest(
+        {
+          connectionType: '4g',
+          deviceBucket: 'desktop',
+          event: 'page_view',
+          path: '/ru-RU/login',
+          reducedMotion: 'no-preference',
+          routeGroup: 'auth',
+          saveData: 'off',
+          sourceName: 'direct',
+          sourceType: 'direct',
+          viewportBucket: 'desktop',
+        },
+        'https://my.cyber-vpn.net',
+        'https://cyber-vpn.net',
+      ) as never,
+    );
+
+    expect(response.status).toBe(204);
+    expect(metricsDistribution).toHaveBeenCalled();
+  });
+
   it('rejects foreign origins', async () => {
     const response = await POST(
       createRequest(

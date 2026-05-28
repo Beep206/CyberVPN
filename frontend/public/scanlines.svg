@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" role="img" aria-label="scanlines">
+  <rect width="8" height="8" fill="transparent"/>
+  <rect y="0" width="8" height="1" fill="#00ffff" opacity="0.14"/>
+  <rect y="4" width="8" height="1" fill="#00ff88" opacity="0.08"/>
+</svg>

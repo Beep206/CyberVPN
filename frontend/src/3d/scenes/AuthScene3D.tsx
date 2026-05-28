@@ -1,15 +1,16 @@
 'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Float, PerformanceMonitor, Trail } from '@react-three/drei';
+import { Bloom, ChromaticAberration, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
-
-const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
-import { useEffect, useRef, useMemo, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Trail, PerformanceMonitor } from '@react-three/drei';
 import { ErrorBoundary } from '@/shared/ui/error-boundary';
-import { Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
 import { SafeEffectComposer } from '@/3d/components/safe-effect-composer';
 import { useCanvasHost } from '@/shared/hooks/use-canvas-host';
+
+const AUTH_CHROMATIC_OFFSET = new THREE.Vector2(0.001, 0.001);
 
 // Create global static geometries to prevent GC stutters during renders
 const SHIELD_SHAPE = new THREE.Shape();
@@ -338,9 +339,36 @@ function AuthSceneContent() {
 }
 
 // ============================================
-// EXPORTED COMPONENT
+// INPUT-FOCUS WARM-UP
 // ============================================
-import { usePathname } from 'next/navigation';
+function AuthSceneFramePrewarmer({ isInputFocused }: { isInputFocused: boolean }) {
+    const invalidate = useThree((state) => state.invalidate);
+
+    useEffect(() => {
+        if (!isInputFocused) return;
+
+        let secondFrame: number | null = null;
+        const firstFrame = window.requestAnimationFrame(() => {
+            invalidate();
+            secondFrame = window.requestAnimationFrame(() => invalidate());
+        });
+
+        return () => {
+            window.cancelAnimationFrame(firstFrame);
+            if (secondFrame !== null) {
+                window.cancelAnimationFrame(secondFrame);
+            }
+        };
+    }, [invalidate, isInputFocused]);
+
+    return null;
+}
+
+function isFormControl(target: EventTarget | Element | null): boolean {
+    return target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+}
 
 // ============================================
 // EXPORTED COMPONENT
@@ -355,11 +383,6 @@ export function AuthScene3D() {
     const sceneKey = `auth-scene:${pathname}`;
 
     useEffect(() => {
-        const isFormControl = (target: EventTarget | null) =>
-            target instanceof HTMLInputElement ||
-            target instanceof HTMLTextAreaElement ||
-            target instanceof HTMLSelectElement;
-
         const handleFocusIn = (event: FocusEvent) => {
             if (isFormControl(event.target)) {
                 setIsInputFocused(true);
@@ -372,12 +395,31 @@ export function AuthScene3D() {
             }, 0);
         };
 
+        const handlePointerDown = (event: PointerEvent) => {
+            const nextInputFocused = isFormControl(event.target);
+            if (nextInputFocused || !isFormControl(document.activeElement)) {
+                setIsInputFocused(nextInputFocused);
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Tab') return;
+
+            window.requestAnimationFrame(() => {
+                setIsInputFocused(isFormControl(document.activeElement));
+            });
+        };
+
         document.addEventListener('focusin', handleFocusIn);
         document.addEventListener('focusout', handleFocusOut);
+        document.addEventListener('pointerdown', handlePointerDown, true);
+        document.addEventListener('keydown', handleKeyDown, true);
 
         return () => {
             document.removeEventListener('focusin', handleFocusIn);
             document.removeEventListener('focusout', handleFocusOut);
+            document.removeEventListener('pointerdown', handlePointerDown, true);
+            document.removeEventListener('keydown', handleKeyDown, true);
         };
     }, []);
 
@@ -401,6 +443,7 @@ export function AuthScene3D() {
                             onDecline={() => setDpr(0.75)} 
                             onIncline={() => setDpr(1.5)} 
                         />
+                        <AuthSceneFramePrewarmer isInputFocused={isInputFocused} />
                         <AuthSceneContent />
                     </Canvas>
                 ) : null}

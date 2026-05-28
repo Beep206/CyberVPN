@@ -52,6 +52,30 @@ describe('POST /api/analytics/web-vitals', () => {
     );
   });
 
+  it('accepts the customer cabinet origin when the route is served behind another origin', async () => {
+    const response = await POST(
+      createRequest(
+        {
+          connectionType: '4g',
+          deviceBucket: 'desktop',
+          locale: 'ru-RU',
+          metric: 'inp',
+          path: '/ru-RU/login',
+          rating: 'good',
+          reducedMotion: 'no-preference',
+          routeGroup: 'auth',
+          saveData: 'off',
+          value: 120,
+          viewportBucket: 'desktop',
+        },
+        'https://my.cyber-vpn.net',
+        'https://cyber-vpn.net',
+      ) as never,
+    );
+
+    expect(response.status).toBe(204);
+  });
+
   it('rejects foreign origins', async () => {
     const response = await POST(
       createRequest(

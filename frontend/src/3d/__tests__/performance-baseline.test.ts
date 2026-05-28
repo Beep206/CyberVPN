@@ -191,4 +191,14 @@ describe('3D performance baseline', () => {
     expect(header).toContain("performanceMode = 'idle'");
     expect(dashboardLayout).toContain('<TerminalHeader performanceMode="always" showMobileSidebar />');
   });
+
+  it('auth scene pre-warms the first focused input frame while staying demand-driven during input', async () => {
+    const source = await readSource('3d/scenes/AuthScene3D.tsx');
+
+    expect(source).toContain("frameloop={isInputFocused ? 'demand' : 'always'}");
+    expect(source).toContain('function AuthSceneFramePrewarmer');
+    expect(source).toContain('useThree((state) => state.invalidate)');
+    expect(source).toContain("document.addEventListener('pointerdown', handlePointerDown, true)");
+    expect(source).toContain("document.addEventListener('keydown', handleKeyDown, true)");
+  });
 });
