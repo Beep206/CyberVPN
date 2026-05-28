@@ -259,18 +259,22 @@ export function getVisibleAddons(
   addons: AddonRecord[],
   currentPlanCode: string | null | undefined,
 ): AddonRecord[] {
+  if (!currentPlanCode) {
+    return [];
+  }
+
   return [...addons]
     .filter((addon) => {
       if (!addon.is_active || !addon.sale_channels.includes('web')) {
         return false;
       }
 
-      if (!currentPlanCode) {
-        return true;
+      const maxQuantity = addon.max_quantity_by_plan[currentPlanCode];
+      if (Object.keys(addon.max_quantity_by_plan).length > 0) {
+        return Number(maxQuantity ?? 0) > 0;
       }
 
-      const maxQuantity = addon.max_quantity_by_plan[currentPlanCode];
-      return maxQuantity === undefined || maxQuantity > 0;
+      return true;
     })
     .sort((first, second) => first.price_usd - second.price_usd);
 }

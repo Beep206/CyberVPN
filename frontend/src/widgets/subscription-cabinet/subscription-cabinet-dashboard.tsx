@@ -372,13 +372,20 @@ export function SubscriptionCabinetDashboard() {
     refetchOnWindowFocus: false,
   });
 
+  const selectedPlanCodeForAddons = entitlementQuery.data?.plan_code ?? null;
+  const activeSubscriptionForAddons = !isInactiveEntitlement(entitlementQuery.data ?? null);
+  const addonsCatalogEnabled =
+    areSubscriptionAddonsEnabled(capabilitiesQuery.data) &&
+    activeSubscriptionForAddons &&
+    Boolean(selectedPlanCodeForAddons);
+
   const addonsQuery = useQuery({
-    queryKey: ['subscription-addons', 'web'],
+    queryKey: ['subscription-addons', 'web', selectedPlanCodeForAddons],
     queryFn: async () => {
       const response = await addonsApi.listCatalog({ channel: 'web' });
       return response.data;
     },
-    enabled: areSubscriptionAddonsEnabled(capabilitiesQuery.data),
+    enabled: addonsCatalogEnabled,
     staleTime: CATALOG_STALE_MS,
     refetchOnWindowFocus: false,
   });
@@ -406,8 +413,8 @@ export function SubscriptionCabinetDashboard() {
   const checkoutCodeDiscountsEnabled = areCheckoutCodeDiscountsEnabled(capabilities);
   const publicPlans = getPublicPlans(plansQuery.data ?? []);
   const currentPlan = getCurrentPlan(entitlement, publicPlans);
-  const visibleAddons = subscriptionAddonsEnabled
-    ? getVisibleAddons(addonsQuery.data ?? [], entitlement?.plan_code).slice(0, 6)
+  const visibleAddons = addonsCatalogEnabled
+    ? getVisibleAddons(addonsQuery.data ?? [], selectedPlanCodeForAddons).slice(0, 6)
     : [];
   const sortedOrders = getSortedOrders(ordersQuery.data ?? []).slice(0, 5);
   const health = getSubscriptionHealth({ entitlement, serviceState, trial });
@@ -429,6 +436,7 @@ export function SubscriptionCabinetDashboard() {
     : currentPlan?.connection_modes.map((mode) => formatLabel(mode, mode)).join(' + ') ??
       t('labels.notAvailable');
   const activeSubscription = !isInactiveEntitlement(entitlement);
+  const shouldShowAddonsSection = subscriptionAddonsEnabled && activeSubscription && Boolean(entitlement?.plan_code);
   const canUseSelectedWriteContract = Boolean(selectedSubscriptionKey?.startsWith('grant:'));
   const canUsePlanWriteContract =
     canUseSelectedWriteContract && webCheckoutEnabled && subscriptionUpgradesEnabled;
@@ -444,7 +452,7 @@ export function SubscriptionCabinetDashboard() {
     usageQuery.isError ||
     trialQuery.isError ||
     plansQuery.isError ||
-    (subscriptionAddonsEnabled && addonsQuery.isError) ||
+    (addonsCatalogEnabled && addonsQuery.isError) ||
     ordersQuery.isError;
 
   const refetchCore = () =>
@@ -934,9 +942,9 @@ export function SubscriptionCabinetDashboard() {
               label={t('nextActions.paymentSignal')}
             />
             <ActionRow
-              done={!subscriptionAddonsEnabled || visibleAddons.length > 0}
+              done={!shouldShowAddonsSection || visibleAddons.length > 0}
               label={
-                subscriptionAddonsEnabled && visibleAddons.length > 0
+                shouldShowAddonsSection && visibleAddons.length > 0
                   ? t('nextActions.addonsAvailable')
                   : t('nextActions.noAddons')
               }
@@ -1078,10 +1086,10 @@ export function SubscriptionCabinetDashboard() {
 
       <section
         className={`grid gap-6 ${
-          subscriptionAddonsEnabled ? 'xl:grid-cols-[0.95fr_1.05fr]' : ''
+          shouldShowAddonsSection ? 'xl:grid-cols-[0.95fr_1.05fr]' : ''
         }`}
       >
-        {subscriptionAddonsEnabled ? (
+        {shouldShowAddonsSection ? (
           <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -1096,7 +1104,7 @@ export function SubscriptionCabinetDashboard() {
             <Gift className="h-6 w-6 text-neon-purple" aria-hidden="true" />
           </div>
 
-          {addonsQuery.isPending ? (
+          {addonsCatalogEnabled && addonsQuery.isPending ? (
             <LoadingBlock className="mt-6 min-h-56" />
           ) : visibleAddons.length > 0 ? (
             <div className="mt-6 space-y-4">
@@ -1235,7 +1243,7 @@ export function SubscriptionCabinetDashboard() {
               usageQuery.refetch(),
               trialQuery.refetch(),
               plansQuery.refetch(),
-              ...(subscriptionAddonsEnabled ? [addonsQuery.refetch()] : []),
+              ...(addonsCatalogEnabled ? [addonsQuery.refetch()] : []),
               ordersQuery.refetch(),
             ]);
           }}

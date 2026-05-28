@@ -255,6 +255,27 @@ describe('subscription cabinet model', () => {
         uuid: 'addon-1',
       },
       {
+        code: 'ru_traffic_30gb',
+        delta_entitlements: {
+          traffic_limit_bytes: 30 * 1024 ** 3,
+        },
+        display_name: '+30 GB Russia traffic',
+        duration_mode: 'subscription_aligned',
+        is_active: true,
+        is_stackable: true,
+        max_quantity_by_plan: {
+          pro: 0,
+          ru_basic: 10,
+          ru_start: 10,
+        },
+        price_rub: 199,
+        price_usd: 2,
+        quantity_step: 1,
+        requires_location: false,
+        sale_channels: ['web'],
+        uuid: 'addon-ru-traffic-30',
+      },
+      {
         code: 'global-addon',
         delta_entitlements: {},
         display_name: 'Global add-on',
@@ -305,13 +326,21 @@ describe('subscription cabinet model', () => {
       'global-addon',
       'extra-device',
     ]);
-    expect(getVisibleAddons(addons, null).map((addon) => addon.code)).toEqual([
-      'blocked',
+    expect(getVisibleAddons(addons, 'ru_start').map((addon) => addon.code)).toEqual([
+      'ru_traffic_30gb',
       'global-addon',
-      'extra-device',
+    ]);
+    expect(getVisibleAddons(addons, null)).toEqual([]);
+    expect(getVisibleAddons(addons, 'unknown').map((addon) => addon.code)).toEqual([
+      'global-addon',
     ]);
     expect(getAddonPrice(addons[0], 'en-EN')).toBe('$5');
-    expect(getAddonPrice(addons[1], 'ru-RU').replace(/\u00a0/g, ' ')).toBe('200 ₽');
+    expect(
+      getAddonPrice(
+        addons.find((addon) => addon.code === 'global-addon') as AddonRecord,
+        'ru-RU',
+      ).replace(/\u00a0/g, ' '),
+    ).toBe('200 ₽');
   });
 
   it('formats order display and status tone without exposing provider internals', () => {

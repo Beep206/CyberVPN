@@ -445,7 +445,7 @@ describe('SubscriptionCabinetDashboard', () => {
 
     expect((await screen.findAllByText('Pro Plan')).length).toBeGreaterThan(0);
     expect(screen.getByText('Max Plan')).toBeInTheDocument();
-    expect(screen.getByText('Extra device')).toBeInTheDocument();
+    expect(await screen.findByText('Extra device')).toBeInTheDocument();
     expect(screen.getByText('remnawave')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /actions\.getConfig/i })).toHaveAttribute(
       'href',
@@ -531,7 +531,7 @@ describe('SubscriptionCabinetDashboard', () => {
     renderWithQueryClient(<SubscriptionCabinetDashboard />);
 
     expect((await screen.findAllByText('Pro Plan')).length).toBeGreaterThan(0);
-    expect(screen.getByText('Extra device')).toBeInTheDocument();
+    expect(await screen.findByText('Extra device')).toBeInTheDocument();
     expect(await screen.findByText('sync.degraded')).toBeInTheDocument();
   });
 
@@ -631,8 +631,9 @@ describe('SubscriptionCabinetDashboard', () => {
     fireEvent.click(within(maxPlanCard as HTMLElement).getByRole('button', { name: /planActions\.purchase/i }));
 
     expect(await screen.findByTestId('purchase-modal')).toHaveTextContent('Max Plan');
-    expect(screen.getByRole('button', { name: /addons\.quote/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /addons\.purchaseCta/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /addons\.quote/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /addons\.purchaseCta/i })).not.toBeInTheDocument();
+    expect(getAddonsMock).not.toHaveBeenCalled();
   });
 
   it('hides add-ons and disables web purchase actions when runtime capabilities deny them', async () => {
