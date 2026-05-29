@@ -114,9 +114,7 @@ class HelixRolloutState(AdapterModel):
     current_batch: HelixRolloutBatchSummary
     nodes: HelixRolloutNodeSummary
     desktop: HelixRolloutDesktopSummary
-    policy: HelixRolloutPolicySummary = Field(
-        default_factory=HelixRolloutPolicySummary
-    )
+    policy: HelixRolloutPolicySummary = Field(default_factory=HelixRolloutPolicySummary)
 
 
 class HelixRolloutCanaryThresholdSummary(AdapterModel):
@@ -177,16 +175,12 @@ class HelixService:
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         settings = get_settings()
-        self._base_url = (base_url or settings.helix_adapter_url).rstrip(
-            "/"
-        )
-        self._token = (
-            token or settings.helix_adapter_token.get_secret_value()
-        )
+        self._base_url = (base_url or settings.helix_adapter_url).rstrip("/")
+        self._token = token or settings.helix_adapter_token.get_secret_value()
         self._transport = transport
         self._client: httpx.AsyncClient | None = None
 
-    async def __aenter__(self) -> "HelixService":
+    async def __aenter__(self) -> HelixService:
         await self._get_client()
         return self
 
@@ -216,9 +210,7 @@ class HelixService:
                 path=path,
                 error=str(error),
             )
-            raise HelixAdapterError(
-                f"Helix adapter request failed: {error}"
-            ) from error
+            raise HelixAdapterError(f"Helix adapter request failed: {error}") from error
 
     async def list_nodes(self) -> list[HelixNodeRecord]:
         """Fetch node inventory from the adapter admin surface."""
@@ -235,20 +227,14 @@ class HelixService:
         rollout_id: str,
     ) -> HelixRolloutCanaryEvidence:
         """Fetch formal canary evidence snapshot from the adapter internal surface."""
-        data = await self._request(
-            "GET", f"/internal/rollouts/{rollout_id}/canary-evidence"
-        )
+        data = await self._request("GET", f"/internal/rollouts/{rollout_id}/canary-evidence")
         return HelixRolloutCanaryEvidence.model_validate(data)
 
     async def list_active_rollout_states(self) -> list[HelixRolloutState]:
         """Resolve rollout states for every active transport rollout in the node registry."""
         nodes = await self.list_nodes()
         rollout_ids = sorted(
-            {
-                node.active_rollout_id
-                for node in nodes
-                if node.transport_enabled and node.active_rollout_id
-            }
+            {node.active_rollout_id for node in nodes if node.transport_enabled and node.active_rollout_id}
         )
         return [await self.get_rollout_status(rollout_id) for rollout_id in rollout_ids]
 

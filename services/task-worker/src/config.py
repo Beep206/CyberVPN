@@ -11,9 +11,7 @@ from pydantic import SecretStr, field_validator, model_validator
 
 try:
     from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
-except (
-    ImportError
-):  # pragma: no cover - compatibility with older local pydantic-settings builds
+except ImportError:  # pragma: no cover - compatibility with older local pydantic-settings builds
     from pydantic_settings import BaseSettings, SettingsConfigDict
 
     class NoDecode:
@@ -129,9 +127,7 @@ class Settings(BaseSettings):
     brevo_from_email: str = "CyberVPN <noreply@email.cyber-vpn.net>"
 
     # Magic Link
-    magic_link_base_url: str = (
-        "http://localhost:9001"  # Frontend URL for magic link emails
-    )
+    magic_link_base_url: str = "http://localhost:9001"  # Frontend URL for magic link emails
 
     # Dev/Test environment: Use Mailpit cluster for email testing
     # Set EMAIL_DEV_MODE=true to use SMTP instead of API providers
@@ -157,9 +153,7 @@ class Settings(BaseSettings):
         try:
             return [int(id_str.strip()) for id_str in v.split(",") if id_str.strip()]
         except ValueError as e:
-            raise ValueError(
-                f"ADMIN_TELEGRAM_IDS must be comma-separated integers: {e}"
-            ) from e
+            raise ValueError(f"ADMIN_TELEGRAM_IDS must be comma-separated integers: {e}") from e
 
     @field_validator("metrics_allowed_ips", mode="before")
     @classmethod
@@ -183,9 +177,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_metrics_settings(self) -> "Settings":
         has_backend_url = self.backend_api_url is not None and bool(str(self.backend_api_url).strip())
-        has_backend_secret = (
-            self.backend_internal_secret is not None
-            and bool(self.backend_internal_secret.get_secret_value().strip())
+        has_backend_secret = self.backend_internal_secret is not None and bool(
+            self.backend_internal_secret.get_secret_value().strip()
         )
         if self.environment.lower() == "production" and self.cryptobot_network != "mainnet":
             msg = "CRYPTOBOT_NETWORK=testnet is not allowed in production"
@@ -202,23 +195,13 @@ class Settings(BaseSettings):
         if has_backend_url != has_backend_secret:
             msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"
             raise ValueError(msg)
-        if (
-            self.metrics_basic_auth_user is None
-            and self.metrics_basic_auth_password is not None
-        ):
+        if self.metrics_basic_auth_user is None and self.metrics_basic_auth_password is not None:
             msg = "METRICS_BASIC_AUTH_USER is required when password is set"
             raise ValueError(msg)
-        if (
-            self.metrics_basic_auth_user is not None
-            and self.metrics_basic_auth_password is None
-        ):
+        if self.metrics_basic_auth_user is not None and self.metrics_basic_auth_password is None:
             msg = "METRICS_BASIC_AUTH_PASSWORD is required when user is set"
             raise ValueError(msg)
-        if (
-            self.metrics_protect
-            and not self.metrics_allowed_ips
-            and self.metrics_basic_auth_user is None
-        ):
+        if self.metrics_protect and not self.metrics_allowed_ips and self.metrics_basic_auth_user is None:
             msg = "METRICS_ALLOWED_IPS or METRICS_BASIC_AUTH_* required when METRICS_PROTECT=true"
             raise ValueError(msg)
         return self

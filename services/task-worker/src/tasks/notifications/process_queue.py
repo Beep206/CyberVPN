@@ -129,10 +129,7 @@ async def process_notification_queue() -> dict:
                     else:
                         await session.execute(
                             update(CustomerGrowthNotificationDeliveryModel)
-                            .where(
-                                CustomerGrowthNotificationDeliveryModel.notification_queue_id
-                                == notification.id
-                            )
+                            .where(CustomerGrowthNotificationDeliveryModel.notification_queue_id == notification.id)
                             .values(
                                 delivery_status="delivered",
                                 delivered_at=notification.sent_at,
@@ -147,9 +144,7 @@ async def process_notification_queue() -> dict:
                     notification.status = STATUS_FAILED if next_attempts >= max_retries else STATUS_PENDING
                     delivery_status = "failed" if next_attempts >= max_retries else "queued"
                     delivery_reason = (
-                        "telegram_delivery_failed"
-                        if next_attempts >= max_retries
-                        else "telegram_retry_pending"
+                        "telegram_delivery_failed" if next_attempts >= max_retries else "telegram_retry_pending"
                     )
                     if delivery is None:
                         delivery_result = await session.execute(
@@ -168,9 +163,7 @@ async def process_notification_queue() -> dict:
                             notification_queue_id=notification.id,
                             delivery_status=delivery_status,
                             event_type=(
-                                "telegram_failed"
-                                if next_attempts >= max_retries
-                                else "telegram_retry_scheduled"
+                                "telegram_failed" if next_attempts >= max_retries else "telegram_retry_scheduled"
                             ),
                             reason_code=delivery_reason,
                             event_payload={
@@ -182,10 +175,7 @@ async def process_notification_queue() -> dict:
                     else:
                         await session.execute(
                             update(CustomerGrowthNotificationDeliveryModel)
-                            .where(
-                                CustomerGrowthNotificationDeliveryModel.notification_queue_id
-                                == notification.id
-                            )
+                            .where(CustomerGrowthNotificationDeliveryModel.notification_queue_id == notification.id)
                             .values(
                                 delivery_status=delivery_status,
                                 delivered_at=None,

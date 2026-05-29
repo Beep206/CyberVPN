@@ -112,8 +112,7 @@ class BrevoClient:
             "subject": subject,
             "htmlContent": html_content,
             "textContent": (
-                f"Your CyberVPN verification code is: {code}{activation_text}\n\n"
-                f"This code expires in {expires_in}."
+                f"Your CyberVPN verification code is: {code}{activation_text}\n\nThis code expires in {expires_in}."
             ),
         }
 

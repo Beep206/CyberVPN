@@ -65,25 +65,15 @@ def _format_gate_message(
             f"Continuity observations: <b>{rollout.desktop.continuity_observed_events}</b>",
             f"Continuity success: <b>{rollout.desktop.continuity_success_rate:.2%}</b>",
             f"Cross-route recovery: <b>{rollout.desktop.cross_route_recovery_rate:.2%}</b>",
+            (f"Benchmark observations: <b>{rollout.desktop.benchmark_observed_events}</b>"),
+            (f"Throughput evidence observations: <b>{rollout.desktop.throughput_evidence_observed_events}</b>"),
             (
-                "Benchmark observations: "
-                f"<b>{rollout.desktop.benchmark_observed_events}</b>"
-            ),
-            (
-                "Throughput evidence observations: "
-                f"<b>{rollout.desktop.throughput_evidence_observed_events}</b>"
-            ),
-            (
-                "Average benchmark throughput: <b>"
-                f"{rollout.desktop.average_benchmark_throughput_kbps:.2f} kbps"
-                "</b>"
+                f"Average benchmark throughput: <b>{rollout.desktop.average_benchmark_throughput_kbps:.2f} kbps</b>"
                 if rollout.desktop.average_benchmark_throughput_kbps is not None
                 else "Average benchmark throughput: <b>unavailable</b>"
             ),
             (
-                "Relative throughput ratio: <b>"
-                f"{rollout.desktop.average_relative_throughput_ratio:.2f}"
-                "</b>"
+                f"Relative throughput ratio: <b>{rollout.desktop.average_relative_throughput_ratio:.2f}</b>"
                 if rollout.desktop.average_relative_throughput_ratio is not None
                 else "Relative throughput ratio: <b>unavailable</b>"
             ),
@@ -91,8 +81,7 @@ def _format_gate_message(
                 "Relative open->first-byte gap ratio: <b>"
                 f"{rollout.desktop.average_relative_open_to_first_byte_gap_ratio:.2f}"
                 "</b>"
-                if rollout.desktop.average_relative_open_to_first_byte_gap_ratio
-                is not None
+                if rollout.desktop.average_relative_open_to_first_byte_gap_ratio is not None
                 else "Relative open->first-byte gap ratio: <b>unavailable</b>"
             ),
             f"Desired state: <b>{rollout.desired_state}</b>",
@@ -112,19 +101,11 @@ def _format_gate_message(
     if canary_evidence.reasons:
         body.append(f"Reasons: <b>{'; '.join(canary_evidence.reasons)}</b>")
     if canary_evidence.evidence_gaps:
-        body.append(
-            f"Evidence gaps: <b>{'; '.join(canary_evidence.evidence_gaps)}</b>"
-        )
+        body.append(f"Evidence gaps: <b>{'; '.join(canary_evidence.evidence_gaps)}</b>")
     if canary_evidence.recommended_follow_up_action is not None:
-        body.append(
-            "Follow-up action: "
-            f"<b>{canary_evidence.recommended_follow_up_action}</b>"
-        )
+        body.append(f"Follow-up action: <b>{canary_evidence.recommended_follow_up_action}</b>")
     if canary_evidence.recommended_follow_up_tasks:
-        body.append(
-            "Follow-up tasks: "
-            f"<b>{'; '.join(canary_evidence.recommended_follow_up_tasks)}</b>"
-        )
+        body.append(f"Follow-up tasks: <b>{'; '.join(canary_evidence.recommended_follow_up_tasks)}</b>")
 
     body.append(f"Observed at: {now.strftime('%Y-%m-%d %H:%M UTC')}")
     return "\n".join(body)
@@ -158,9 +139,7 @@ async def audit_helix_canary_gates() -> dict:
                     continue
 
                 rollouts_checked += 1
-                canary_evidence = await helix.get_rollout_canary_evidence(
-                    rollout.rollout_id
-                )
+                canary_evidence = await helix.get_rollout_canary_evidence(rollout.rollout_id)
                 decision = canary_evidence.decision
                 reasons = canary_evidence.reasons
                 evidence_gaps = canary_evidence.evidence_gaps
@@ -172,18 +151,14 @@ async def audit_helix_canary_gates() -> dict:
                 else:
                     no_go_rollouts += 1
 
-                state_key = HELIX_CANARY_GATE_KEY.format(
-                    rollout_id=rollout.rollout_id
-                )
+                state_key = HELIX_CANARY_GATE_KEY.format(rollout_id=rollout.rollout_id)
                 previous_state = await cache.get(state_key) or {}
                 previous_decision = previous_state.get("decision")
                 previous_signature = previous_state.get("signature", "")
                 current_signature = "|".join([decision, *reasons, *evidence_gaps])
 
                 should_alert = False
-                if previous_decision != decision:
-                    should_alert = True
-                elif decision != "go" and previous_signature != current_signature:
+                if previous_decision != decision or (decision != "go" and previous_signature != current_signature):
                     should_alert = True
 
                 if should_alert:

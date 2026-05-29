@@ -6,7 +6,7 @@ to Telegram users and administrators via the Telegram Bot API.
 
 import asyncio
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 import structlog
@@ -34,8 +34,8 @@ class TelegramClient:
     """
 
     # Severity emoji mapping for admin alerts
-    SEVERITY_EMOJIS = {
-        "info": "ℹ️",
+    SEVERITY_EMOJIS: ClassVar[dict[str, str]] = {
+        "info": "\u2139\ufe0f",
         "warning": "⚠️",
         "critical": "🚨",
         "resolved": "✅",

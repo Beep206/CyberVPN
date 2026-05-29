@@ -78,11 +78,7 @@ def payment_received(username: str, amount: float, currency: str, plan_name: str
 
 def payment_failed(username: str, amount: float, currency: str, reason: str = "") -> str:
     """Notification for failed payment."""
-    msg = (
-        "❌ <b>Payment Failed</b>\n\n"
-        f"User: <code>{_html(username)}</code>\n"
-        f"Amount: {amount} {_html(currency)}\n"
-    )
+    msg = f"❌ <b>Payment Failed</b>\n\nUser: <code>{_html(username)}</code>\nAmount: {amount} {_html(currency)}\n"
     if reason:
         msg += f"Reason: {_html(reason)}\n"
     msg += "Please try again or contact support."
@@ -136,12 +132,7 @@ def provisioning_failed(username: str, support_reference: str = "", retry_hint: 
 
 def server_down(node_name: str, country: str, downtime_seconds: int = 0) -> str:
     """Alert for VPN node going offline."""
-    msg = (
-        "🚨 <b>SERVER DOWN</b>\n\n"
-        f"Node: <code>{node_name}</code>\n"
-        f"Location: {country}\n"
-        f"Detected at: {_utc_now()}\n"
-    )
+    msg = f"🚨 <b>SERVER DOWN</b>\n\nNode: <code>{node_name}</code>\nLocation: {country}\nDetected at: {_utc_now()}\n"
     if downtime_seconds:
         msg += f"Downtime: {format_duration(downtime_seconds)}\n"
     return msg
@@ -172,11 +163,7 @@ def service_down(service_name: str, consecutive_failures: int) -> str:
 
 def service_recovered(service_name: str) -> str:
     """Alert for external service recovered."""
-    return (
-        "✅ <b>SERVICE RECOVERED</b>\n\n"
-        f"Service: <code>{service_name}</code>\n"
-        f"Recovered at: {_utc_now()}"
-    )
+    return f"✅ <b>SERVICE RECOVERED</b>\n\nService: <code>{service_name}</code>\nRecovered at: {_utc_now()}"
 
 
 # =============================================================================

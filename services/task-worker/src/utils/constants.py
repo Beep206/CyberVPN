@@ -29,30 +29,14 @@ STATS_PAYMENTS_KEY: Final[str] = f"{REDIS_PREFIX}stats:payments:{{date}}"
 SUB_REMINDER_KEY: Final[str] = f"{REDIS_PREFIX}sub_reminder:{{user_uuid}}:{{bracket}}"
 USER_STATS_KEY: Final[str] = f"{REDIS_PREFIX}users:stats:summary"
 NODE_CONFIG_KEY: Final[str] = f"{REDIS_PREFIX}nodes:config:{{node_uuid}}"
-HELIX_ROLLOUT_AUDIT_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:audit"
-)
-HELIX_NODE_HEALTH_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:node:{{node_id}}:health"
-)
-HELIX_ROLLBACK_AUDIT_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:rollback"
-)
-HELIX_POLICY_ADVISORY_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:policy"
-)
-HELIX_ACTUATION_AUDIT_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:actuation"
-)
-HELIX_CANARY_GATE_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-gate"
-)
-HELIX_CANARY_CONTROL_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
-)
-HELIX_CANARY_CONTROL_KEY: Final[str] = (
-    f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
-)
+HELIX_ROLLOUT_AUDIT_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:audit"
+HELIX_NODE_HEALTH_KEY: Final[str] = f"{REDIS_PREFIX}helix:node:{{node_id}}:health"
+HELIX_ROLLBACK_AUDIT_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:rollback"
+HELIX_POLICY_ADVISORY_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:policy"
+HELIX_ACTUATION_AUDIT_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:actuation"
+HELIX_CANARY_GATE_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-gate"
+HELIX_CANARY_CONTROL_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
+HELIX_CANARY_CONTROL_KEY: Final[str] = f"{REDIS_PREFIX}helix:rollout:{{rollout_id}}:canary-control"
 
 # ============================================================================
 # Cron Schedule Expressions
@@ -102,9 +86,7 @@ SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
 SCHEDULE_HELIX_CANARY_CONTROL: Final[str] = "*/6 * * * *"  # Every 6 minutes
 
 # Legacy string aliases kept for compatibility with older tests/tooling.
-SCHEDULE_NOTIFICATION_QUEUE: Final[str] = (
-    f"interval:{INTERVAL_NOTIFICATION_QUEUE_SECONDS}"
-)
+SCHEDULE_NOTIFICATION_QUEUE: Final[str] = f"interval:{INTERVAL_NOTIFICATION_QUEUE_SECONDS}"
 SCHEDULE_REALTIME_METRICS: Final[str] = f"interval:{INTERVAL_REALTIME_METRICS_SECONDS}"
 
 # ============================================================================

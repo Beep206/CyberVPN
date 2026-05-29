@@ -25,7 +25,7 @@ from src.config import get_settings
 
 async def get_db_session(
     context: Annotated[Context, TaskiqDepends()],
-) -> AsyncGenerator[AsyncSession, None]:
+) -> AsyncGenerator[AsyncSession]:
     """Yield an async SQLAlchemy session from the broker's session factory.
 
     The broker stores the session factory during WORKER_STARTUP event in src/broker.py.
@@ -65,7 +65,7 @@ async def get_http_client(context: Annotated[Context, TaskiqDepends()]) -> httpx
 
 async def get_redis_client(
     context: Annotated[Context, TaskiqDepends()],
-) -> AsyncGenerator[redis_async.Redis, None]:
+) -> AsyncGenerator[redis_async.Redis]:
     """Yield a Redis client connection.
 
     Creates a new Redis client connection from settings for each task invocation.

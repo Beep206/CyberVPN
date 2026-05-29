@@ -1,6 +1,6 @@
 """Invalidate stale Redis cache keys using SCAN + UNLINK."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 
@@ -24,7 +24,7 @@ async def cleanup_cache() -> dict:
     Uses SCAN for iteration to avoid blocking Redis, and UNLINK for async deletion.
     """
     redis = get_redis_client()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     total_deleted = 0
 
     try:
@@ -110,7 +110,7 @@ async def _scan_and_delete_by_date(redis, pattern: str, cutoff: datetime, date_f
             try:
                 # Extract date from key (assumes format like "prefix:YYYY-MM-DD")
                 date_part = key_str.split(":")[-1]
-                key_date = datetime.strptime(date_part, date_format).replace(tzinfo=timezone.utc)
+                key_date = datetime.strptime(date_part, date_format).replace(tzinfo=UTC)
                 if key_date < cutoff:
                     deleted += await redis.unlink(key)
             except (ValueError, IndexError):

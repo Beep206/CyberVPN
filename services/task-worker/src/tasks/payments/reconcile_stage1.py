@@ -45,9 +45,7 @@ async def reconcile_stage1_payments() -> dict[str, Any]:
                 logger.info("stage1_payment_reconciliation_skipped", reason="backend_api_disabled")
                 return {"skipped": True, "reason": "backend_api_disabled"}
 
-            report = await backend.run_stage1_payment_reconciliation(
-                {"limit": STAGE1_RECONCILIATION_BATCH_LIMIT}
-            )
+            report = await backend.run_stage1_payment_reconciliation({"limit": STAGE1_RECONCILIATION_BATCH_LIMIT})
     except Exception:
         STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL.labels(result="failure").inc()
         raise
@@ -78,10 +76,6 @@ def _update_stage1_payment_reconciliation_metrics(summary: dict[str, Any]) -> No
         "p0_blocker": int(summary.get("p0_blocker_items") or 0),
     }
     for severity in STAGE1_RECONCILIATION_SEVERITIES:
-        STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT.labels(severity=severity).set(
-            severity_values[severity]
-        )
+        STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT.labels(severity=severity).set(severity_values[severity])
     STAGE1_PAYMENT_RECONCILIATION_MAX_AGE_MINUTES.set(int(summary.get("max_age_minutes") or 0))
-    STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED.set(
-        1 if bool(summary.get("launch_blocked")) else 0
-    )
+    STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED.set(1 if bool(summary.get("launch_blocked")) else 0)

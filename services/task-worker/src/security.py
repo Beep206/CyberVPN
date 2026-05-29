@@ -73,7 +73,7 @@ def validate_secrets() -> list[str]:
     telegram_token = settings.telegram_bot_token.get_secret_value()
     if not telegram_token or telegram_token.strip() == "":
         warnings.append("TELEGRAM_BOT_TOKEN is not set or empty")
-    elif not telegram_token.count(":") == 1:
+    elif telegram_token.count(":") != 1:
         warnings.append("TELEGRAM_BOT_TOKEN format appears invalid (expected format: 'bot_id:token')")
 
     # Check CryptoBot token

@@ -9,11 +9,11 @@ from src.tasks.cleanup.tokens import cleanup_expired_tokens
 from src.tasks.cleanup.webhook_logs import cleanup_webhook_logs
 
 __all__ = [
+    "cleanup_audit_logs",
+    "cleanup_cache",
     "cleanup_expired_tokens",
     "cleanup_export_files",
-    "cleanup_audit_logs",
     "cleanup_notifications",
     "cleanup_old_records",
     "cleanup_webhook_logs",
-    "cleanup_cache",
 ]

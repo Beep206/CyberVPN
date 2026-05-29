@@ -64,20 +64,14 @@ def _format_control_message(
             f"Active profile: <code>{policy.active_transport_profile_id or 'unknown'}</code>",
             f"Recommended profile: <code>{policy.recommended_transport_profile_id or 'none'}</code>",
             f"Channel posture: <b>{policy.channel_posture}</b>",
-            (
-                "Active profile posture: <b>"
-                f"{snapshot.active_profile_new_session_posture or 'unknown'}"
-                "</b>"
-            ),
+            (f"Active profile posture: <b>{snapshot.active_profile_new_session_posture or 'unknown'}</b>"),
             f"Connect success: <b>{snapshot.connect_success_rate:.2%}</b>",
             f"Fallback rate: <b>{snapshot.fallback_rate:.2%}</b>",
             f"Continuity observations: <b>{snapshot.continuity_observed_events}</b>",
             f"Continuity success: <b>{snapshot.continuity_success_rate:.2%}</b>",
             f"Cross-route recovery: <b>{snapshot.cross_route_recovery_rate:.2%}</b>",
             (
-                "Relative throughput ratio: <b>"
-                f"{snapshot.average_relative_throughput_ratio:.2f}"
-                "</b>"
+                f"Relative throughput ratio: <b>{snapshot.average_relative_throughput_ratio:.2f}</b>"
                 if snapshot.average_relative_throughput_ratio is not None
                 else "Relative throughput ratio: <b>unavailable</b>"
             ),
@@ -94,14 +88,10 @@ def _format_control_message(
     if canary_evidence.reasons:
         body.append(f"Reasons: <b>{'; '.join(canary_evidence.reasons)}</b>")
     if canary_evidence.evidence_gaps:
-        body.append(
-            f"Evidence gaps: <b>{'; '.join(canary_evidence.evidence_gaps)}</b>"
-        )
+        body.append(f"Evidence gaps: <b>{'; '.join(canary_evidence.evidence_gaps)}</b>")
 
     follow_up_tasks = canary_evidence.recommended_follow_up_tasks or []
-    formatted_tasks = "\n".join(
-        f"{index}. {task}" for index, task in enumerate(follow_up_tasks, start=1)
-    )
+    formatted_tasks = "\n".join(f"{index}. {task}" for index, task in enumerate(follow_up_tasks, start=1))
     body.extend(
         [
             "Ops follow-up:",
@@ -158,14 +148,10 @@ async def audit_helix_canary_control() -> dict:
                     continue
 
                 rollouts_checked += 1
-                canary_evidence = await helix.get_rollout_canary_evidence(
-                    rollout.rollout_id
-                )
+                canary_evidence = await helix.get_rollout_canary_evidence(rollout.rollout_id)
                 action = canary_evidence.recommended_follow_up_action
                 severity = canary_evidence.recommended_follow_up_severity
-                state_key = HELIX_CANARY_CONTROL_KEY.format(
-                    rollout_id=rollout.rollout_id
-                )
+                state_key = HELIX_CANARY_CONTROL_KEY.format(rollout_id=rollout.rollout_id)
                 previous_state = await cache.get(state_key) or {}
                 previous_active = bool(previous_state.get("active", False))
                 previous_action = previous_state.get("action")
@@ -194,9 +180,7 @@ async def audit_helix_canary_control() -> dict:
                                 severity=severity or "warning",
                                 canary_evidence=canary_evidence,
                                 now=now,
-                                previous_action=(
-                                    previous_action if previous_action != action else None
-                                ),
+                                previous_action=(previous_action if previous_action != action else None),
                             ),
                             severity=severity or "warning",
                         )

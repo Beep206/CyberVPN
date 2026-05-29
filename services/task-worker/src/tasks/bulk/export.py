@@ -2,17 +2,20 @@
 
 import csv
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import structlog
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from src.broker import broker
 from src.database.session import get_session_factory
 from src.services.redis_client import get_redis_client
 
 logger = structlog.get_logger(__name__)
+
+EXPORT_DIR = Path("/tmp/exports")  # noqa: S108 - task exports are intentionally temporary files.
 
 # Export types and their corresponding SQL queries
 EXPORT_QUERIES = {
@@ -23,8 +26,81 @@ EXPORT_QUERIES = {
 }
 
 
+def _to_csv_value(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
+def _to_json_value(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value) if value is not None else None
+
+
+def _write_csv_export(file_path: Path, result: Any) -> int:
+    rows_exported = 0
+
+    with file_path.open("w", newline="", encoding="utf-8") as file:
+        writer = None
+        batch_size = 1000
+
+        while True:
+            rows = result.fetchmany(batch_size)
+            if not rows:
+                break
+
+            if writer is None:
+                writer = csv.DictWriter(file, fieldnames=rows[0]._mapping.keys())
+                writer.writeheader()
+
+            for row in rows:
+                writer.writerow({key: _to_csv_value(value) for key, value in row._mapping.items()})
+                rows_exported += 1
+
+            if len(rows) < batch_size:
+                break
+
+    return rows_exported
+
+
+def _prepare_export_file_path(export_type: str, export_format: str, timestamp: str, job_id: str) -> Path:
+    EXPORT_DIR.mkdir(exist_ok=True)
+    return EXPORT_DIR / f"{export_type}_{timestamp}_{job_id}.{export_format}"
+
+
+def _write_json_export(file_path: Path, result: Any) -> int:
+    rows_exported = 0
+
+    with file_path.open("w", encoding="utf-8") as file:
+        file.write("[\n")
+        batch_size = 1000
+        first_item = True
+
+        while True:
+            rows = result.fetchmany(batch_size)
+            if not rows:
+                break
+
+            for row in rows:
+                row_dict = {key: _to_json_value(value) for key, value in row._mapping.items()}
+
+                if not first_item:
+                    file.write(",\n")
+                json.dump(row_dict, file, ensure_ascii=False, indent=2)
+                first_item = False
+                rows_exported += 1
+
+            if len(rows) < batch_size:
+                break
+
+        file.write("\n]")
+
+    return rows_exported
+
+
 @broker.task(task_name="bulk_export", queue="bulk")
-async def bulk_export(export_type: str, format: str = "csv", job_id: str | None = None) -> dict:
+async def bulk_export(export_type: str, format: str = "csv", job_id: str | None = None) -> dict:  # noqa: A002
     """Generate CSV/JSON data exports.
 
     Queries data from PostgreSQL in batches of 1000, streams to file,
@@ -32,7 +108,7 @@ async def bulk_export(export_type: str, format: str = "csv", job_id: str | None 
 
     Args:
         export_type: Type of data to export (users, payments, servers, audit)
-        format: Export format (csv or json)
+        format: Export format (csv or json). This name is part of the task payload contract.
         job_id: Optional job ID for tracking
 
     Returns:
@@ -51,91 +127,25 @@ async def bulk_export(export_type: str, format: str = "csv", job_id: str | None 
 
     session_factory = get_session_factory()
     redis = get_redis_client()
-    rows_exported = 0
 
     try:
-        # Prepare export file
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        export_dir = Path("/tmp/exports")
-        export_dir.mkdir(exist_ok=True)
-        file_path = export_dir / f"{export_type}_{timestamp}_{job_id}.{format}"
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        file_path = _prepare_export_file_path(export_type, format, timestamp, job_id)
 
         async with session_factory() as session:
-            # Execute query
             query = text(EXPORT_QUERIES[export_type])
             result = await session.execute(query)
+            rows_exported = (
+                _write_csv_export(file_path, result) if format == "csv" else _write_json_export(file_path, result)
+            )
 
-            if format == "csv":
-                # CSV export
-                with open(file_path, "w", newline="", encoding="utf-8") as f:
-                    writer = None
-                    batch_size = 1000
-
-                    # Fetch in batches
-                    while True:
-                        rows = result.fetchmany(batch_size)
-                        if not rows:
-                            break
-
-                        # Initialize CSV writer with column names from first row
-                        if writer is None and rows:
-                            writer = csv.DictWriter(f, fieldnames=rows[0]._mapping.keys())
-                            writer.writeheader()
-
-                        for row in rows:
-                            # Convert row to dict, handling datetime serialization
-                            row_dict = {}
-                            for key, value in row._mapping.items():
-                                if isinstance(value, datetime):
-                                    row_dict[key] = value.isoformat()
-                                else:
-                                    row_dict[key] = value
-                            writer.writerow(row_dict)
-                            rows_exported += 1
-
-                        if len(rows) < batch_size:
-                            break
-
-            else:
-                # JSON export
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write("[\n")
-                    batch_size = 1000
-                    first_item = True
-
-                    while True:
-                        rows = result.fetchmany(batch_size)
-                        if not rows:
-                            break
-
-                        for row in rows:
-                            # Convert row to dict
-                            row_dict = {}
-                            for key, value in row._mapping.items():
-                                if isinstance(value, datetime):
-                                    row_dict[key] = value.isoformat()
-                                else:
-                                    row_dict[key] = str(value) if value is not None else None
-
-                            if not first_item:
-                                f.write(",\n")
-                            json.dump(row_dict, f, ensure_ascii=False, indent=2)
-                            first_item = False
-                            rows_exported += 1
-
-                        if len(rows) < batch_size:
-                            break
-
-                    f.write("\n]")
-
-        # Store file path in Redis for retrieval (24h TTL)
         export_key = f"cybervpn:export:{job_id}"
         export_meta = {
             "file_path": str(file_path),
             "export_type": export_type,
             "format": format,
             "rows": rows_exported,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
         await redis.set(export_key, json.dumps(export_meta), ex=86400)
 

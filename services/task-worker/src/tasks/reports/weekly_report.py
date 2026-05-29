@@ -1,12 +1,11 @@
 """Generate weekly report with trends compared to previous week."""
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 
 from src.broker import broker
-from src.config import get_settings
 from src.services.redis_client import get_redis_client
 from src.services.sse_publisher import publish_event
 from src.services.telegram_client import TelegramClient
@@ -28,11 +27,9 @@ async def generate_weekly_report() -> dict:
         Dictionary with report_sent status
     """
     redis = get_redis_client()
-    settings = get_settings()
-
     try:
         # Calculate date ranges
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         week_end = today - timedelta(days=1)  # Yesterday
         week_start = week_end - timedelta(days=6)  # 7 days ago
 

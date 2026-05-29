@@ -1,7 +1,7 @@
 """Check for anomalies and send alerts."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -54,7 +54,7 @@ async def check_anomalies() -> dict:
                             node_name = health.get("name", "unknown")
                             if offline_since:
                                 try:
-                                    offline_duration = int(datetime.now(timezone.utc).timestamp()) - int(offline_since)
+                                    offline_duration = int(datetime.now(UTC).timestamp()) - int(offline_since)
                                 except (TypeError, ValueError):
                                     offline_duration = 0
                             else:

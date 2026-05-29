@@ -14,7 +14,6 @@ short bursts up to the bucket capacity while maintaining an average rate.
 
 import asyncio
 import time
-from typing import Optional
 
 import structlog
 
@@ -82,7 +81,7 @@ class AsyncTokenBucket:
             rate_per_minute=rate * 60,
         )
 
-    async def acquire(self, tokens: int = 1, timeout: Optional[float] = None) -> bool:
+    async def acquire(self, tokens: int = 1, wait_timeout: float | None = None) -> bool:
         """Acquire tokens from the bucket, waiting if necessary.
 
         Refills tokens based on elapsed time, then consumes the requested number.
@@ -90,7 +89,7 @@ class AsyncTokenBucket:
 
         Args:
             tokens: Number of tokens to acquire (default: 1)
-            timeout: Maximum seconds to wait for tokens (None = wait forever)
+            wait_timeout: Maximum seconds to wait for tokens (None = wait forever)
 
         Returns:
             True if tokens were acquired, False if timeout was reached
@@ -107,8 +106,8 @@ class AsyncTokenBucket:
             >>> await limiter.acquire(tokens=10)
             >>> await batch_api_call(items[:10])
             >>>
-            >>> # Acquire with timeout
-            >>> acquired = await limiter.acquire(tokens=5, timeout=2.0)
+            >>> # Acquire with wait timeout
+            >>> acquired = await limiter.acquire(tokens=5, wait_timeout=2.0)
             >>> if not acquired:
             ...     logger.warning("rate_limiter_timeout")
         """
@@ -144,13 +143,13 @@ class AsyncTokenBucket:
             wait_time = tokens_needed / self.rate
 
             # Check if wait would exceed timeout
-            if timeout is not None and wait_time > timeout:
+            if wait_timeout is not None and wait_time > wait_timeout:
                 logger.warning(
                     "token_acquisition_timeout",
                     tokens_requested=tokens,
                     tokens_available=round(self.tokens, 2),
                     wait_time_needed=round(wait_time, 2),
-                    timeout=timeout,
+                    timeout=wait_timeout,
                 )
                 return False
 

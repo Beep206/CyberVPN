@@ -1,7 +1,7 @@
 """Bulk broadcast via notification_queue table."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -44,7 +44,7 @@ async def bulk_broadcast(
 
     try:
         async with session_factory() as session:
-            scheduled_at = datetime.now(timezone.utc)
+            scheduled_at = datetime.now(UTC)
 
             # Batch insert notifications
             batch_size = 500

@@ -1,6 +1,6 @@
 """External services health check task."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -55,7 +55,7 @@ async def check_external_services() -> dict:
         except Exception:
             results["telegram"] = False
 
-        now_ts = int(datetime.now(timezone.utc).timestamp())
+        now_ts = int(datetime.now(UTC).timestamp())
 
         async with TelegramClient() as tg:
             for svc, is_up in results.items():

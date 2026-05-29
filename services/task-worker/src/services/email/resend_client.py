@@ -101,8 +101,7 @@ class ResendClient:
             "subject": subject,
             "html": html_content,
             "text": (
-                f"Your CyberVPN verification code is: {code}{activation_text}\n\n"
-                f"This code expires in {expires_in}."
+                f"Your CyberVPN verification code is: {code}{activation_text}\n\nThis code expires in {expires_in}."
             ),
         }
 

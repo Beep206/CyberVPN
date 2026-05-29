@@ -11,8 +11,8 @@ from src.config import get_settings
 from src.services.cache_service import CacheService
 from src.services.helix_service import (
     HelixRolloutCanaryEvidence,
-    HelixService,
     HelixRolloutState,
+    HelixService,
 )
 from src.services.redis_client import get_redis_client
 from src.services.telegram_client import TelegramClient
@@ -65,8 +65,7 @@ def _describe_escalation(
         target_profile = policy.applied_transport_profile_id
         if target_profile and policy.active_transport_profile_id != target_profile:
             return (
-                "rotation actuation is still pending because the active profile "
-                "has not converged to the target profile"
+                "rotation actuation is still pending because the active profile has not converged to the target profile"
             )
         if policy.channel_posture in {"blocked", "degraded"}:
             return (
@@ -90,39 +89,22 @@ def _format_applied_message(
         canary_summary = f"Canary decision: <b>{canary_evidence.decision}</b>\n"
         if canary_evidence.snapshot.average_relative_throughput_ratio is not None:
             canary_summary += (
-                "Canary throughput ratio: <b>"
-                f"{canary_evidence.snapshot.average_relative_throughput_ratio:.2f}"
-                "</b>\n"
+                f"Canary throughput ratio: <b>{canary_evidence.snapshot.average_relative_throughput_ratio:.2f}</b>\n"
             )
-        if (
-            canary_evidence.snapshot.average_relative_open_to_first_byte_gap_ratio
-            is not None
-        ):
+        if canary_evidence.snapshot.average_relative_open_to_first_byte_gap_ratio is not None:
             canary_summary += (
                 "Canary gap ratio: <b>"
                 f"{canary_evidence.snapshot.average_relative_open_to_first_byte_gap_ratio:.2f}"
                 "</b>\n"
             )
         if canary_evidence.reasons:
-            canary_summary += (
-                "Canary reasons: "
-                f"{'; '.join(canary_evidence.reasons)}\n"
-            )
+            canary_summary += f"Canary reasons: {'; '.join(canary_evidence.reasons)}\n"
         if canary_evidence.evidence_gaps:
-            canary_summary += (
-                "Canary evidence gaps: "
-                f"{'; '.join(canary_evidence.evidence_gaps)}\n"
-            )
+            canary_summary += f"Canary evidence gaps: {'; '.join(canary_evidence.evidence_gaps)}\n"
         if canary_evidence.recommended_follow_up_action is not None:
-            canary_summary += (
-                "Canary follow-up action: "
-                f"{canary_evidence.recommended_follow_up_action}\n"
-            )
+            canary_summary += f"Canary follow-up action: {canary_evidence.recommended_follow_up_action}\n"
         if canary_evidence.recommended_follow_up_tasks:
-            canary_summary += (
-                "Canary follow-up tasks: "
-                f"{'; '.join(canary_evidence.recommended_follow_up_tasks)}\n"
-            )
+            canary_summary += f"Canary follow-up tasks: {'; '.join(canary_evidence.recommended_follow_up_tasks)}\n"
     return (
         "🚨 <b>Helix Automatic Actuation Applied</b>\n\n"
         f"Rollout: <code>{rollout.rollout_id}</code>\n"
@@ -154,29 +136,18 @@ def _format_escalated_message(
         canary_summary = f"Canary decision: <b>{canary_evidence.decision}</b>\n"
         if canary_evidence.snapshot.average_relative_throughput_ratio is not None:
             canary_summary += (
-                "Canary throughput ratio: <b>"
-                f"{canary_evidence.snapshot.average_relative_throughput_ratio:.2f}"
-                "</b>\n"
+                f"Canary throughput ratio: <b>{canary_evidence.snapshot.average_relative_throughput_ratio:.2f}</b>\n"
             )
-        if (
-            canary_evidence.snapshot.average_relative_open_to_first_byte_gap_ratio
-            is not None
-        ):
+        if canary_evidence.snapshot.average_relative_open_to_first_byte_gap_ratio is not None:
             canary_summary += (
                 "Canary gap ratio: <b>"
                 f"{canary_evidence.snapshot.average_relative_open_to_first_byte_gap_ratio:.2f}"
                 "</b>\n"
             )
         if canary_evidence.recommended_follow_up_action is not None:
-            canary_summary += (
-                "Canary follow-up action: "
-                f"{canary_evidence.recommended_follow_up_action}\n"
-            )
+            canary_summary += f"Canary follow-up action: {canary_evidence.recommended_follow_up_action}\n"
         if canary_evidence.recommended_follow_up_tasks:
-            canary_summary += (
-                "Canary follow-up tasks: "
-                f"{'; '.join(canary_evidence.recommended_follow_up_tasks)}\n"
-            )
+            canary_summary += f"Canary follow-up tasks: {'; '.join(canary_evidence.recommended_follow_up_tasks)}\n"
     return (
         "🚨 <b>Helix Actuation Escalated</b>\n\n"
         f"Rollout: <code>{rollout.rollout_id}</code>\n"
@@ -232,9 +203,7 @@ async def audit_helix_actuations() -> dict:
             rollout_states = await helix.list_active_rollout_states()
 
             for rollout in rollout_states:
-                state_key = HELIX_ACTUATION_AUDIT_KEY.format(
-                    rollout_id=rollout.rollout_id
-                )
+                state_key = HELIX_ACTUATION_AUDIT_KEY.format(rollout_id=rollout.rollout_id)
                 previous_state = await cache.get(state_key) or {}
                 previous_active = bool(previous_state.get("active", False))
                 previous_signature = previous_state.get("signature", "")
@@ -244,26 +213,18 @@ async def audit_helix_actuations() -> dict:
 
                 policy = rollout.policy
                 reaction = policy.applied_automatic_reaction
-                signature = (
-                    f"{reaction}|{policy.applied_transport_profile_id or ''}"
-                    if reaction
-                    else ""
-                )
+                signature = f"{reaction}|{policy.applied_transport_profile_id or ''}" if reaction else ""
                 age_seconds = None
                 if policy.automatic_reaction_updated_at is not None:
                     age_seconds = max(
-                        int(
-                            (now - policy.automatic_reaction_updated_at).total_seconds()
-                        ),
+                        int((now - policy.automatic_reaction_updated_at).total_seconds()),
                         0,
                     )
 
                 escalation_reason = None
                 canary_evidence = None
                 if reaction is not None:
-                    canary_evidence = await helix.get_rollout_canary_evidence(
-                        rollout.rollout_id
-                    )
+                    canary_evidence = await helix.get_rollout_canary_evidence(rollout.rollout_id)
                 if (
                     reaction is not None
                     and age_seconds is not None

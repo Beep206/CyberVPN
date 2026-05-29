@@ -18,9 +18,10 @@ This implementation is async-safe and uses asyncio.Lock for thread safety.
 
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 import structlog
 
@@ -121,17 +122,16 @@ class CircuitBreaker:
                     current_state = CircuitState.HALF_OPEN
                 else:
                     # Circuit is still open, reject the call
+                    retry_in_seconds = self.recovery_timeout - (time.monotonic() - self._last_failure_time)
                     logger.warning(
                         "circuit_breaker_rejected_call",
                         name=self.name,
                         state="open",
-                        time_until_retry=round(
-                            self.recovery_timeout - (time.monotonic() - self._last_failure_time), 2
-                        ),
+                        time_until_retry=round(retry_in_seconds, 2),
                     )
                     raise CircuitBreakerError(
                         self.name,
-                        f"Circuit breaker is open. Retry in {round(self.recovery_timeout - (time.monotonic() - self._last_failure_time), 1)}s",
+                        f"Circuit breaker is open. Retry in {round(retry_in_seconds, 1)}s",
                     )
 
             # Check half-open call limit

@@ -4,15 +4,15 @@ This module provides helper functions for converting between different units,
 formatting data for display, and parsing structured strings.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 __all__ = [
     "bytes_to_gb",
     "bytes_to_mb",
-    "format_duration",
     "format_bytes",
-    "timestamp_to_iso",
+    "format_duration",
     "parse_comma_separated_ids",
+    "timestamp_to_iso",
 ]
 
 
@@ -139,7 +139,7 @@ def timestamp_to_iso(dt: datetime) -> str:
         '2024-01-01T12:00:00+00:00'
     """
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.isoformat()
 
 

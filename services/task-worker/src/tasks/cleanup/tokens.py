@@ -1,6 +1,6 @@
 """Cleanup expired and revoked refresh tokens from database."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import delete, or_, select
@@ -23,7 +23,7 @@ async def cleanup_expired_tokens() -> dict:
     Processes deletions in batches of 1000 to avoid long-running transactions.
     """
     factory = get_session_factory()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     total_deleted = 0
     batch_size = 1000
 

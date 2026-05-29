@@ -1,8 +1,8 @@
 """Cleanup old database records per retention policy."""
 
-import structlog
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
+import structlog
 from sqlalchemy import delete
 
 from src.broker import broker
@@ -19,7 +19,7 @@ async def cleanup_old_records() -> dict:
     """Delete audit logs and webhook logs older than retention period."""
     settings = get_settings()
     factory = get_session_factory()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     audit_cutoff = now - timedelta(days=settings.cleanup_audit_retention_days)
     webhook_cutoff = now - timedelta(days=settings.cleanup_webhook_retention_days)

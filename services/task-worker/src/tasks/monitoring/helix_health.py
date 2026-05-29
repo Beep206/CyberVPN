@@ -43,16 +43,9 @@ async def audit_helix_health() -> dict:
         ):
             nodes = await helix.list_nodes()
             rollout_ids = sorted(
-                {
-                    node.active_rollout_id
-                    for node in nodes
-                    if node.transport_enabled and node.active_rollout_id
-                }
+                {node.active_rollout_id for node in nodes if node.transport_enabled and node.active_rollout_id}
             )
-            rollout_states = {
-                rollout_id: await helix.get_rollout_status(rollout_id)
-                for rollout_id in rollout_ids
-            }
+            rollout_states = {rollout_id: await helix.get_rollout_status(rollout_id) for rollout_id in rollout_ids}
 
             for node in nodes:
                 if not node.transport_enabled or not node.active_rollout_id:
@@ -60,31 +53,27 @@ async def audit_helix_health() -> dict:
 
                 heartbeat_age_seconds = None
                 if node.last_heartbeat_at is not None:
-                    heartbeat_age_seconds = max(
-                        int((now - node.last_heartbeat_at).total_seconds()), 0
-                    )
+                    heartbeat_age_seconds = max(int((now - node.last_heartbeat_at).total_seconds()), 0)
 
                 is_stale = (
                     node.last_heartbeat_at is None
                     or heartbeat_age_seconds is None
-                    or heartbeat_age_seconds
-                    > settings.helix_stale_heartbeat_seconds
+                    or heartbeat_age_seconds > settings.helix_stale_heartbeat_seconds
                 )
-                state_key = HELIX_NODE_HEALTH_KEY.format(
-                    node_id=node.remnawave_node_id
-                )
+                state_key = HELIX_NODE_HEALTH_KEY.format(node_id=node.remnawave_node_id)
                 previous_state = await cache.get(state_key) or {}
                 was_stale = bool(previous_state.get("stale", False))
 
                 if is_stale:
                     stale_nodes += 1
                     if not was_stale:
+                        heartbeat_age_label = heartbeat_age_seconds if heartbeat_age_seconds is not None else "missing"
                         message = (
                             "🚨 <b>Helix Node Heartbeat Stale</b>\n\n"
                             f"Node: <code>{node.node_name}</code>\n"
                             f"Node ID: <code>{node.remnawave_node_id}</code>\n"
                             f"Rollout: <code>{node.active_rollout_id}</code>\n"
-                            f"Heartbeat age: <b>{heartbeat_age_seconds if heartbeat_age_seconds is not None else 'missing'}s</b>\n"
+                            f"Heartbeat age: <b>{heartbeat_age_label}s</b>\n"
                             f"Observed at: {now.strftime('%Y-%m-%d %H:%M UTC')}"
                         )
                         await telegram.send_admin_alert(message, severity="critical")
@@ -111,13 +100,8 @@ async def audit_helix_health() -> dict:
                 )
 
             for rollout_id, rollout in rollout_states.items():
-                has_rollback_issue = (
-                    rollout.nodes.rolled_back
-                    >= settings.helix_rollback_alert_threshold
-                )
-                state_key = HELIX_ROLLBACK_AUDIT_KEY.format(
-                    rollout_id=rollout_id
-                )
+                has_rollback_issue = rollout.nodes.rolled_back >= settings.helix_rollback_alert_threshold
+                state_key = HELIX_ROLLBACK_AUDIT_KEY.format(rollout_id=rollout_id)
                 previous_state = await cache.get(state_key) or {}
                 had_issue = bool(previous_state.get("rollback_issue", False))
 
@@ -154,24 +138,29 @@ async def audit_helix_health() -> dict:
                     ttl=settings.helix_alert_state_ttl_seconds,
                 )
 
-                has_policy_issue = rollout.policy.automatic_reaction in {
-                    "rotate-new-sessions",
-                    "pause-new-sessions",
-                    "rotate-profile-now",
-                    "pause-channel",
-                } or rollout.policy.pause_recommended
-                policy_state_key = HELIX_POLICY_ADVISORY_KEY.format(
-                    rollout_id=rollout_id
+                has_policy_issue = (
+                    rollout.policy.automatic_reaction
+                    in {
+                        "rotate-new-sessions",
+                        "pause-new-sessions",
+                        "rotate-profile-now",
+                        "pause-channel",
+                    }
+                    or rollout.policy.pause_recommended
                 )
+                policy_state_key = HELIX_POLICY_ADVISORY_KEY.format(rollout_id=rollout_id)
                 previous_policy_state = await cache.get(policy_state_key) or {}
-                had_policy_issue = bool(
-                    previous_policy_state.get("policy_issue", False)
-                )
+                had_policy_issue = bool(previous_policy_state.get("policy_issue", False))
 
                 if has_policy_issue:
                     policy_rollouts += 1
                     if not had_policy_issue:
                         policy = rollout.policy.active_profile_policy
+                        applied_target_profile = rollout.policy.applied_transport_profile_id or "none"
+                        suppression_window_active = policy.suppression_window_active if policy else "unknown"
+                        recommended_action = rollout.policy.recommended_action or (
+                            "Pause or rotate the active Helix profile before widening exposure."
+                        )
                         message = (
                             "🚨 <b>Helix Rollout Policy Stop Condition</b>\n\n"
                             f"Rollout: <code>{rollout_id}</code>\n"
@@ -180,16 +169,16 @@ async def audit_helix_health() -> dict:
                             f"Channel posture: <b>{rollout.policy.channel_posture}</b>\n"
                             f"Automatic reaction: <b>{rollout.policy.automatic_reaction}</b>\n"
                             f"Applied reaction: <b>{rollout.policy.applied_automatic_reaction or 'none'}</b>\n"
-                            f"Applied target profile: <code>{rollout.policy.applied_transport_profile_id or 'none'}</code>\n"
+                            f"Applied target profile: <code>{applied_target_profile}</code>\n"
                             f"Suppressed candidates: <b>{rollout.policy.suppressed_candidate_count}</b>\n"
                             f"Active profile suppressed: <b>{rollout.policy.active_profile_suppressed}</b>\n"
                             f"Advisory state: <b>{policy.advisory_state if policy else 'unknown'}</b>\n"
                             f"Policy score: <b>{policy.policy_score if policy else 'n/a'}</b>\n"
                             f"New-session posture: <b>{policy.new_session_posture if policy else 'unknown'}</b>\n"
                             f"New-session issuable: <b>{policy.new_session_issuable if policy else 'unknown'}</b>\n"
-                            f"Suppression window active: <b>{policy.suppression_window_active if policy else 'unknown'}</b>\n"
+                            f"Suppression window active: <b>{suppression_window_active}</b>\n"
                             f"Pause recommended: <b>{rollout.policy.pause_recommended}</b>\n"
-                            f"Action: {rollout.policy.recommended_action or 'Pause or rotate the active Helix profile before widening exposure.'}\n"
+                            f"Action: {recommended_action}\n"
                             f"Observed at: {now.strftime('%Y-%m-%d %H:%M UTC')}"
                         )
                         await telegram.send_admin_alert(message, severity="critical")

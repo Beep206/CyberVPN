@@ -1,7 +1,7 @@
 """Aggregate 5-minute bandwidth snapshots into hourly buckets."""
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from redis.asyncio import Redis
@@ -30,7 +30,7 @@ async def aggregate_hourly_bandwidth() -> dict:
 
     try:
         # Get current hour timestamp (aligned to hour boundary)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         current_hour = now.replace(minute=0, second=0, microsecond=0)
         hour_timestamp = int(current_hour.timestamp())
 
