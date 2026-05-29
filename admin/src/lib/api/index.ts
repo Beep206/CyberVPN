@@ -22,7 +22,7 @@ export { usageApi } from './usage';
 // Financial
 export { walletApi } from './wallet';
 export { adminWalletApi } from './wallet';
-export { paymentsApi } from './payments';
+export { adminPaymentsApi, paymentsApi } from './payments';
 export { codesApi } from './codes';
 export { referralApi } from './referral';
 export { promoApi } from './promo';

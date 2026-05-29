@@ -86,7 +86,54 @@ describe('POST /api/auth/2fa/complete', () => {
     await expect(response.json()).resolves.toEqual({
       redirect_to: '/ru-RU/dashboard?welcome=true',
     });
-    expect(readSetCookieHeaders(response).join('\n')).toContain('access_token=');
+    const setCookieHeaders = readSetCookieHeaders(response).join('\n');
+    expect(setCookieHeaders).toContain('access_token=');
+    expect(setCookieHeaders).toContain('refresh_token=');
+    expect(setCookieHeaders).toContain('Path=/');
+  });
+
+  it('splits collapsed backend auth cookies and mirrors JSON token fallback cookies', async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'json_access_token_value',
+          refresh_token: 'json_refresh_token_value',
+          token_type: 'bearer',
+          expires_in: 3600,
+        }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+            'set-cookie':
+              'access_token=backend_access; Path=/api; HttpOnly; Secure; SameSite=Lax, refresh_token=backend_refresh; Path=/api; HttpOnly; Secure; SameSite=Lax',
+          },
+        },
+      ),
+    ) as typeof fetch;
+
+    const pending = createPendingTwoFactorCookieValue(
+      'pending_2fa_token',
+      'ru-RU',
+      '/ru-RU/dashboard',
+      false,
+    );
+    const request = new NextRequest('https://admin.cyber-vpn.net/api/auth/2fa/complete', {
+      method: 'POST',
+      body: JSON.stringify({ code: '123456' }),
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+    request.cookies.set(PENDING_2FA_COOKIE, pending.cookieValue);
+
+    const response = await POST(request);
+    const setCookieHeaders = readSetCookieHeaders(response).join('\n');
+
+    expect(response.status).toBe(200);
+    expect(setCookieHeaders).toContain('access_token=json_access_token_value');
+    expect(setCookieHeaders).toContain('refresh_token=json_refresh_token_value');
+    expect(setCookieHeaders).toContain('Path=/');
   });
 
   it('rejects requests without a valid pending 2FA cookie', async () => {

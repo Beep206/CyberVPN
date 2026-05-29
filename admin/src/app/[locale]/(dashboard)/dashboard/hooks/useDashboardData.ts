@@ -3,11 +3,14 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   adminWalletApi,
+  adminPaymentsApi,
   governanceApi,
   monitoringApi,
-  paymentsApi,
   serversApi,
 } from '@/lib/api';
+import type { components } from '@/lib/api/generated/types';
+
+type PaymentHistoryItem = components['schemas']['PaymentHistoryItem'];
 
 function pollingInterval(intervalMs: number) {
   return (query: { state: { error: unknown } }) => {
@@ -102,10 +105,17 @@ export function usePendingWithdrawals() {
 
 export function useRecentPayments() {
   return useQuery({
-    queryKey: ['payments', 'history', { limit: 5 }],
+    queryKey: ['admin', 'payment-attempts', { limit: 5 }],
     queryFn: async () => {
-      const response = await paymentsApi.getHistory({ offset: 0, limit: 5 });
-      return response.data.payments;
+      const response = await adminPaymentsApi.getPaymentAttempts({ offset: 0, limit: 5 });
+      return response.data.items.map((attempt): PaymentHistoryItem => ({
+        id: attempt.id,
+        amount: attempt.displayed_amount,
+        currency: attempt.currency_code,
+        status: attempt.status as PaymentHistoryItem['status'],
+        provider: attempt.provider as PaymentHistoryItem['provider'],
+        created_at: attempt.created_at,
+      }));
     },
     staleTime: 30_000,
     refetchInterval: pollingInterval(30_000),

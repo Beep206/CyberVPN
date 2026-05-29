@@ -61,7 +61,43 @@ function getSetCookieHeaders(response: Response): string[] {
   }
 
   const setCookie = response.headers.get('set-cookie');
-  return setCookie ? [setCookie] : [];
+  return setCookie ? splitCombinedSetCookieHeader(setCookie) : [];
+}
+
+function splitCombinedSetCookieHeader(headerValue: string): string[] {
+  const headers: string[] = [];
+  let start = 0;
+  let inExpiresAttribute = false;
+
+  for (let index = 0; index < headerValue.length; index += 1) {
+    const remaining = headerValue.slice(index).toLowerCase();
+    if (remaining.startsWith('expires=')) {
+      inExpiresAttribute = true;
+    }
+
+    const char = headerValue[index];
+    if (char === ';') {
+      inExpiresAttribute = false;
+      continue;
+    }
+
+    if (char !== ',' || inExpiresAttribute) {
+      continue;
+    }
+
+    const nextPart = headerValue.slice(index + 1).trimStart();
+    if (/^[^=;\s]+=/.test(nextPart)) {
+      headers.push(headerValue.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+
+  const tail = headerValue.slice(start).trim();
+  if (tail) {
+    headers.push(tail);
+  }
+
+  return headers;
 }
 
 async function appendBackendAuthCookies(source: Response, target: NextResponse): Promise<void> {
@@ -71,9 +107,11 @@ async function appendBackendAuthCookies(source: Response, target: NextResponse):
       target.headers.append('Set-Cookie', headerValue);
       mirrorBackendCookieForNextResponse(headerValue, target);
     }
-    return;
   }
 
+  // The backend response body is the authority for both tokens. Keep this
+  // fallback even when Set-Cookie exists because some runtimes collapse multiple
+  // backend Set-Cookie headers into one value before we can forward them.
   await appendJsonTokenFallbackCookies(source, target);
 }
 
