@@ -46,6 +46,8 @@ variables:
     - if: '$STAGE1_FULL_CI == "true"'
     - changes:
         - .gitlab-ci.yml
+        - CODEOWNERS
+        - .gitlab/merge_request_templates/**/*
         - docs/gitlab/**/*
         - scripts/validate_gitlab_ci_contract.py
     - when: never
@@ -324,7 +326,6 @@ partner:lint:
   extends:
     - .node_job
     - .rules_partner
-  allow_failure: true
   script:
     - npm run lint -w partner
 
@@ -333,7 +334,6 @@ partner:test:
   extends:
     - .node_job
     - .rules_partner
-  allow_failure: true
   script:
     - npm run test:run -w partner
 
@@ -342,7 +342,6 @@ partner:build:
   extends:
     - .node_job
     - .rules_partner
-  allow_failure: true
   variables:
     APP_ENV: "staging"
     NEXT_PUBLIC_APP_ENV: "staging"
@@ -444,11 +443,11 @@ task-worker:test:smoke:
   extends:
     - .python_job
     - .rules_task_worker
-  allow_failure: true
   variables:
     ENVIRONMENT: "staging"
     SENTRY_DSN: "https://task-worker@example.com/1"
     SENTRY_RELEASE: "task-worker@$CI_COMMIT_SHA"
+    METRICS_PROTECT: "false"
   script:
     - cd services/task-worker
     - pip install -e ".[test]"
