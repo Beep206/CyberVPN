@@ -1,8 +1,8 @@
 """Daily financial statistics aggregation."""
 
-import structlog
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
+import structlog
 from sqlalchemy import func, select
 
 from src.broker import broker
@@ -21,9 +21,9 @@ async def aggregate_financial_stats() -> dict:
     factory = get_session_factory()
     redis = get_redis_client()
     cache = CacheService(redis)
-    today = datetime.now(timezone.utc).date()
-    start = datetime.combine(today - timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
-    end = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
+    today = datetime.now(UTC).date()
+    start = datetime.combine(today - timedelta(days=1), datetime.min.time(), tzinfo=UTC)
+    end = datetime.combine(today, datetime.min.time(), tzinfo=UTC)
 
     try:
         async with factory() as session:

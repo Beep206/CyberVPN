@@ -1,7 +1,6 @@
 """Server geolocation model for VPN node locations."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import CheckConstraint, DateTime, Numeric, String, func
@@ -21,19 +20,13 @@ class ServerGeolocationModel(Base):
 
     __tablename__ = "server_geolocations"
 
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False
-    )
-    node_uuid: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), unique=True, nullable=False, index=True
-    )
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
+    node_uuid: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), unique=True, nullable=False, index=True)
     country_code: Mapped[str] = mapped_column(String(2), nullable=False)
-    city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
     latitude: Mapped[float] = mapped_column(Numeric(10, 7), nullable=False)
     longitude: Mapped[float] = mapped_column(Numeric(10, 7), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -47,4 +40,6 @@ class ServerGeolocationModel(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<ServerGeolocationModel(node_uuid={self.node_uuid}, country='{self.country_code}', city='{self.city}')>"
+        return (
+            f"<ServerGeolocationModel(node_uuid={self.node_uuid}, country='{self.country_code}', city='{self.city}')>"
+        )

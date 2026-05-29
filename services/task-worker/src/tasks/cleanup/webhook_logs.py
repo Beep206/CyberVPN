@@ -1,6 +1,6 @@
 """Delete old webhook logs older than retention period."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from sqlalchemy import delete
@@ -23,7 +23,7 @@ async def cleanup_webhook_logs() -> dict:
     """
     settings = get_settings()
     factory = get_session_factory()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff = now - timedelta(days=settings.cleanup_webhook_retention_days)
     total_deleted = 0
     batch_size = 1000

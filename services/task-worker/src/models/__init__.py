@@ -16,8 +16,8 @@ from src.models.webhook_log import WebhookLogModel
 
 __all__ = [
     "AuditLogModel",
-    "CustomerGrowthNotificationDeliveryModel",
     "CustomerGrowthNotificationDeliveryEventModel",
+    "CustomerGrowthNotificationDeliveryModel",
     "NotificationQueueModel",
     "PaymentModel",
     "RefreshTokenModel",

@@ -1,7 +1,7 @@
 """Broadcast message to multiple Telegram users."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -42,7 +42,7 @@ async def broadcast_message(
 
     try:
         async with session_factory() as session:
-            scheduled_at = datetime.now(timezone.utc)
+            scheduled_at = datetime.now(UTC)
             batch_size = 500
 
             for i in range(0, len(telegram_ids), batch_size):

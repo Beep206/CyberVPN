@@ -28,10 +28,12 @@ async def publish_event(event_type: str, data: dict) -> None:
     """
     redis = get_redis_client()
     try:
-        payload = json.dumps({
-            "type": event_type,
-            "data": data,
-        })
+        payload = json.dumps(
+            {
+                "type": event_type,
+                "data": data,
+            }
+        )
         subscribers = await redis.publish(SSE_CHANNEL, payload)
         logger.debug(
             "sse_event_published",

@@ -4,40 +4,38 @@ This module provides common type aliases used throughout the task worker
 to improve type safety and code readability.
 """
 
-from typing import TypeAlias
-
 # Task result type - represents the return value of task functions
 # Tasks typically return dictionaries with counts, statuses, or other metadata
-TaskResult: TypeAlias = dict[str, int | str | float | bool | list | None]
+type TaskResult = dict[str, int | str | float | bool | list | None]
 
 # Common type aliases for task parameters
-UserId: TypeAlias = int
-NodeId: TypeAlias = int
-PaymentId: TypeAlias = int
-NotificationId: TypeAlias = int
-SubscriptionId: TypeAlias = int
+type UserId = int
+type NodeId = int
+type PaymentId = int
+type NotificationId = int
+type SubscriptionId = int
 
 # Bulk operation types
-BulkOperationType: TypeAlias = str  # e.g., "enable_users", "disable_users", "send_notifications"
-BulkOperationStatus: TypeAlias = str  # e.g., "pending", "processing", "completed", "failed"
+type BulkOperationType = str  # e.g., "enable_users", "disable_users", "send_notifications"
+type BulkOperationStatus = str  # e.g., "pending", "processing", "completed", "failed"
 
 # Date/time strings
-DateString: TypeAlias = str  # Format: YYYY-MM-DD
-DateTimeString: TypeAlias = str  # ISO 8601 format
+type DateString = str  # Format: YYYY-MM-DD
+type DateTimeString = str  # ISO 8601 format
 
 # Queue names
-QueueName: TypeAlias = str
+type QueueName = str
 
 __all__ = [
-    "TaskResult",
-    "UserId",
-    "NodeId",
-    "PaymentId",
-    "NotificationId",
-    "SubscriptionId",
-    "BulkOperationType",
     "BulkOperationStatus",
+    "BulkOperationType",
     "DateString",
     "DateTimeString",
+    "NodeId",
+    "NotificationId",
+    "PaymentId",
     "QueueName",
+    "SubscriptionId",
+    "TaskResult",
+    "UserId",
 ]

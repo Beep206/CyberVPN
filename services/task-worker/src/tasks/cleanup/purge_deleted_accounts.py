@@ -20,7 +20,7 @@ Processing is batched (default 100 users per iteration) to avoid long
 transactions and excessive memory consumption.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import structlog
@@ -51,7 +51,7 @@ async def purge_deleted_accounts() -> dict:
         and ``purged_user_ids`` (list of UUID strings) for audit.
     """
     factory = get_session_factory()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff = now - timedelta(days=GRACE_PERIOD_DAYS)
 
     total_purged = 0

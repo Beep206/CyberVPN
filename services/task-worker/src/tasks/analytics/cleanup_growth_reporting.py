@@ -33,12 +33,8 @@ def _record_cleanup_result(
     now_unix = time()
     GROWTH_REPORTING_CLEANUP_LAST_ATTEMPT_UNIXTIME.set(now_unix)
     GROWTH_REPORTING_CLEANUP_LAST_DELETED.labels(artifact_kind="rollups").set(max(rollups_deleted, 0))
-    GROWTH_REPORTING_CLEANUP_LAST_DELETED.labels(artifact_kind="refresh_runs").set(
-        max(refresh_runs_deleted, 0)
-    )
-    GROWTH_REPORTING_CLEANUP_LAST_DELETED.labels(artifact_kind="deliveries").set(
-        max(deliveries_deleted, 0)
-    )
+    GROWTH_REPORTING_CLEANUP_LAST_DELETED.labels(artifact_kind="refresh_runs").set(max(refresh_runs_deleted, 0))
+    GROWTH_REPORTING_CLEANUP_LAST_DELETED.labels(artifact_kind="deliveries").set(max(deliveries_deleted, 0))
     GROWTH_REPORTING_CLEANUP_DURATION.observe(duration_seconds)
     GROWTH_REPORTING_CLEANUP_RUNS_TOTAL.labels(result=result).inc()
     if result == "failure":

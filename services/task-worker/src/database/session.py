@@ -58,7 +58,7 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
     )
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session() -> AsyncGenerator[AsyncSession]:
     """Async generator for database sessions with automatic lifecycle management.
 
     Yields an AsyncSession that commits on success or rolls back on exception.

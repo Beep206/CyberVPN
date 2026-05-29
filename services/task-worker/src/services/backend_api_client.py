@@ -81,9 +81,7 @@ class BackendAPIClient:
                 "backend_stage1_payment_reconciliation_failed",
                 status_code=response.status_code,
             )
-            raise BackendAPIError(
-                f"Stage 1 payment reconciliation failed: {response.status_code}"
-            )
+            raise BackendAPIError(f"Stage 1 payment reconciliation failed: {response.status_code}")
         return response.json()
 
     async def get_public_network_regions(self) -> dict[str, Any]:
@@ -99,9 +97,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Public network regions request failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Public network regions request failed: {response.status_code} {response.text}")
         return response.json()
 
     async def publish_public_network_dpi_score(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -117,9 +113,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Public network DPI publish failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Public network DPI publish failed: {response.status_code} {response.text}")
         return response.json()
 
     async def claim_partner_bot_provisioning_job(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -160,9 +154,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Partner bot finalize failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Partner bot finalize failed: {response.status_code} {response.text}")
         return response.json()
 
     async def refresh_growth_reporting(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -178,9 +170,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Growth reporting refresh failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Growth reporting refresh failed: {response.status_code} {response.text}")
         return response.json()
 
     async def claim_growth_reporting_deliveries(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -196,9 +186,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Growth reporting claim failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Growth reporting claim failed: {response.status_code} {response.text}")
         return response.json()
 
     async def complete_growth_reporting_delivery(
@@ -223,9 +211,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Growth reporting complete failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Growth reporting complete failed: {response.status_code} {response.text}")
         return response.json()
 
     async def cleanup_growth_reporting_artifacts(self) -> dict[str, Any]:
@@ -241,9 +227,7 @@ class BackendAPIClient:
                 status_code=response.status_code,
                 response=response.text,
             )
-            raise BackendAPIError(
-                f"Growth reporting cleanup failed: {response.status_code} {response.text}"
-            )
+            raise BackendAPIError(f"Growth reporting cleanup failed: {response.status_code} {response.text}")
         return response.json()
 
     async def process_growth_reporting_governance_followups(self) -> dict[str, Any]:
@@ -260,7 +244,6 @@ class BackendAPIClient:
                 response=response.text,
             )
             raise BackendAPIError(
-                "Growth reporting governance follow-up processing failed: "
-                f"{response.status_code} {response.text}"
+                f"Growth reporting governance follow-up processing failed: {response.status_code} {response.text}"
             )
         return response.json()

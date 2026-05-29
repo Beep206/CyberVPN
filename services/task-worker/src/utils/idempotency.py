@@ -11,7 +11,8 @@ multiple worker instances.
 import functools
 import hashlib
 import json
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import structlog
 

@@ -85,11 +85,7 @@ async def process_payment_completion(payment_id: str) -> dict:
     telegram_id = user.get("telegram_id")
     plan_name = ""
     if payment.metadata_ and isinstance(payment.metadata_, dict):
-        plan_name = (
-            payment.metadata_.get("plan_name")
-            or payment.metadata_.get("planName")
-            or ""
-        )
+        plan_name = payment.metadata_.get("plan_name") or payment.metadata_.get("planName") or ""
     if telegram_id:
         msg = payment_received(
             username,

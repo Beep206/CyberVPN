@@ -123,9 +123,7 @@ def _derive_country_confidence(
     probe_count: int,
     protocol_payloads: list[dict[str, Any]],
 ) -> str:
-    deeply_measured_protocols = sum(
-        1 for payload in protocol_payloads if _count_protocol_dimensions(payload) >= 3
-    )
+    deeply_measured_protocols = sum(1 for payload in protocol_payloads if _count_protocol_dimensions(payload) >= 3)
     if probe_count >= MINIMUM_PUBLISH_PROBE_COUNT and deeply_measured_protocols >= 1:
         return "high"
     if probe_count >= 6 and deeply_measured_protocols >= 1:
@@ -137,8 +135,7 @@ def _is_country_publishable(country_payload: dict[str, Any]) -> bool:
     if country_payload.get("confidence") not in {"medium", "high"}:
         return False
     return any(
-        _count_protocol_dimensions(protocol_payload) >= 3
-        for protocol_payload in country_payload.get("protocols", [])
+        _count_protocol_dimensions(protocol_payload) >= 3 for protocol_payload in country_payload.get("protocols", [])
     )
 
 
@@ -170,9 +167,11 @@ def _derive_protocol_label(
     probe_mode: str,
 ) -> str:
     protocol = str((inbound or {}).get("protocol") or node.get("vpn_protocol") or "unknown").strip().lower()
-    security = str(
-        (host or {}).get("security") or (inbound or {}).get("security") or (inbound or {}).get("tls") or ""
-    ).strip().lower()
+    security = (
+        str((host or {}).get("security") or (inbound or {}).get("security") or (inbound or {}).get("tls") or "")
+        .strip()
+        .lower()
+    )
     network = str((inbound or {}).get("network") or "").strip().lower()
 
     parts = [protocol]
@@ -195,12 +194,12 @@ def _build_target_from_binding(
     if not address or port <= 0:
         return None
 
-    security = str(
-        (host or {}).get("security") or (inbound or {}).get("security") or (inbound or {}).get("tls") or ""
-    ).strip().lower()
-    server_hostname = str(
-        (host or {}).get("sni") or (host or {}).get("host") or ""
-    ).strip()
+    security = (
+        str((host or {}).get("security") or (inbound or {}).get("security") or (inbound or {}).get("tls") or "")
+        .strip()
+        .lower()
+    )
+    server_hostname = str((host or {}).get("sni") or (host or {}).get("host") or "").strip()
     probe_mode = "tls_handshake" if security == "tls" and server_hostname else "tcp_connect"
 
     country_id, public_name = _normalize_country_code(node.get("country_code"))
@@ -456,9 +455,7 @@ def _build_country_payloads(results: list[dict[str, Any]]) -> list[dict[str, Any
     countries: list[dict[str, Any]] = []
     for _country_id, bucket in sorted(by_country.items()):
         country_results = list(bucket["results"])
-        country_score_results = [
-            item for item in country_results if item.get("metric_kind") in CONNECTION_METRIC_KINDS
-        ]
+        country_score_results = [item for item in country_results if item.get("metric_kind") in CONNECTION_METRIC_KINDS]
         total = len(country_score_results)
         last_probe_at = max((item["last_probe_at"] for item in country_results), default=None)
 
@@ -469,27 +466,17 @@ def _build_country_payloads(results: list[dict[str, Any]]) -> list[dict[str, Any
             ]
             protocol_total = len(protocol_connection_results)
             protocol_successes = sum(1 for item in protocol_connection_results if item["success"])
-            protocol_success_rate = (
-                (protocol_successes / protocol_total) * 100 if protocol_total else 0.0
-            )
+            protocol_success_rate = (protocol_successes / protocol_total) * 100 if protocol_total else 0.0
             latencies = [
                 item["latency_ms"]
                 for item in protocol_results
                 if item["latency_ms"] is not None and item.get("metric_kind") == "tls_handshake_ms"
             ]
-            baseline_results = [
-                item for item in protocol_results if item.get("metric_kind") == "https_head_ms"
-            ]
+            baseline_results = [item for item in protocol_results if item.get("metric_kind") == "https_head_ms"]
             baseline_total = len(baseline_results)
             baseline_successes = sum(1 for item in baseline_results if item["success"])
-            baseline_success_rate = (
-                (baseline_successes / baseline_total) * 100 if baseline_total else None
-            )
-            baseline_latencies = [
-                item["latency_ms"]
-                for item in baseline_results
-                if item["latency_ms"] is not None
-            ]
+            baseline_success_rate = (baseline_successes / baseline_total) * 100 if baseline_total else None
+            baseline_latencies = [item["latency_ms"] for item in baseline_results if item["latency_ms"] is not None]
             protocol_payloads.append(
                 {
                     "protocol": protocol,
@@ -505,9 +492,7 @@ def _build_country_payloads(results: list[dict[str, Any]]) -> list[dict[str, Any
 
         protocol_scores = [_derive_protocol_score(payload) for payload in protocol_payloads]
         country_score = (
-            round(sum(protocol_scores) / len(protocol_scores))
-            if protocol_scores
-            else _derive_score(success_rate=0.0)
+            round(sum(protocol_scores) / len(protocol_scores)) if protocol_scores else _derive_score(success_rate=0.0)
         )
 
         countries.append(

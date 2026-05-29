@@ -431,7 +431,6 @@ task-worker:lint:
   extends:
     - .python_job
     - .rules_task_worker
-  allow_failure: true
   script:
     - cd services/task-worker
     - pip install -e ".[dev]"

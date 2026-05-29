@@ -1,7 +1,7 @@
 """Retry failed/unprocessed valid webhooks."""
 
-from datetime import datetime, timedelta, timezone
 import re
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from sqlalchemy import select
@@ -37,7 +37,7 @@ async def retry_failed_webhooks() -> dict:
     """Reprocess valid but unprocessed webhook entries."""
     factory = get_session_factory()
     retried = 0
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
 
     async with factory() as session:
         stmt = (
@@ -56,7 +56,7 @@ async def retry_failed_webhooks() -> dict:
             attempts = _parse_attempts(webhook.error_message)
 
             if attempts >= MAX_ATTEMPTS:
-                webhook.processed_at = datetime.now(timezone.utc)
+                webhook.processed_at = datetime.now(UTC)
                 webhook.error_message = _format_error(attempts, "max_attempts_reached")
                 session.add(webhook)
                 await session.commit()
@@ -66,7 +66,7 @@ async def retry_failed_webhooks() -> dict:
                 attempts += 1
                 webhook.error_message = _format_error(attempts, "missing_payment_id")
                 if attempts >= MAX_ATTEMPTS:
-                    webhook.processed_at = datetime.now(timezone.utc)
+                    webhook.processed_at = datetime.now(UTC)
                 session.add(webhook)
                 await session.commit()
                 continue
@@ -74,7 +74,7 @@ async def retry_failed_webhooks() -> dict:
             try:
                 await process_payment_completion.kiq(payment_id=payment_id)
                 retried += 1
-                webhook.processed_at = datetime.now(timezone.utc)
+                webhook.processed_at = datetime.now(UTC)
                 webhook.error_message = None
                 session.add(webhook)
                 await session.commit()
@@ -82,7 +82,7 @@ async def retry_failed_webhooks() -> dict:
                 attempts += 1
                 webhook.error_message = _format_error(attempts, str(exc))
                 if attempts >= MAX_ATTEMPTS:
-                    webhook.processed_at = datetime.now(timezone.utc)
+                    webhook.processed_at = datetime.now(UTC)
                 session.add(webhook)
                 await session.commit()
 

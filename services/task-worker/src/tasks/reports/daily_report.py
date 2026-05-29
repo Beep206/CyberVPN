@@ -1,7 +1,8 @@
 """Send daily admin report via Telegram."""
 
+from datetime import UTC, datetime, timedelta
+
 import structlog
-from datetime import datetime, timedelta, timezone
 
 from src.broker import broker
 from src.services.cache_service import CacheService
@@ -21,7 +22,7 @@ async def send_daily_report() -> dict:
     cache = CacheService(redis)
 
     try:
-        target_date = (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+        target_date = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
         stats_key = STATS_DAILY_KEY.format(date=target_date)
         payments_key = STATS_PAYMENTS_KEY.format(date=target_date)
 

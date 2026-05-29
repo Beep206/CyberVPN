@@ -1,6 +1,6 @@
 """Cleanup sent and failed notifications older than 7 days."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from sqlalchemy import delete
@@ -23,7 +23,7 @@ async def cleanup_notifications() -> dict:
     Processes in batches of 1000 to avoid long-running transactions.
     """
     factory = get_session_factory()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff = now - timedelta(days=7)
     total_deleted = 0
     batch_size = 1000

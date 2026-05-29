@@ -40,13 +40,8 @@ async def audit_helix_rollouts() -> dict:
                 issue_codes: list[str] = []
                 reasons: list[str] = []
                 active_profile_policy = rollout.policy.active_profile_policy
-                desktop_signal_present = (
-                    rollout.desktop.connect_success_rate > 0
-                    or rollout.desktop.fallback_rate > 0
-                )
-                continuity_signal_present = (
-                    rollout.desktop.continuity_observed_events > 0
-                )
+                desktop_signal_present = rollout.desktop.connect_success_rate > 0 or rollout.desktop.fallback_rate > 0
+                continuity_signal_present = rollout.desktop.continuity_observed_events > 0
 
                 if rollout.current_batch.failed_nodes > 0:
                     issue_codes.append("failed-nodes")
@@ -54,49 +49,31 @@ async def audit_helix_rollouts() -> dict:
 
                 if (
                     desktop_signal_present
-                    and rollout.desktop.connect_success_rate
-                    < settings.helix_rollout_min_connect_success_rate
+                    and rollout.desktop.connect_success_rate < settings.helix_rollout_min_connect_success_rate
                 ):
                     issue_codes.append("connect-success")
-                    reasons.append(
-                        "connect success rate="
-                        f"{rollout.desktop.connect_success_rate:.2%}"
-                    )
+                    reasons.append(f"connect success rate={rollout.desktop.connect_success_rate:.2%}")
 
-                if (
-                    desktop_signal_present
-                    and rollout.desktop.fallback_rate
-                    > settings.helix_rollout_max_fallback_rate
-                ):
+                if desktop_signal_present and rollout.desktop.fallback_rate > settings.helix_rollout_max_fallback_rate:
                     issue_codes.append("fallback-rate")
                     reasons.append(f"fallback rate={rollout.desktop.fallback_rate:.2%}")
 
                 if (
                     continuity_signal_present
-                    and rollout.desktop.continuity_success_rate
-                    < settings.helix_rollout_min_continuity_success_rate
+                    and rollout.desktop.continuity_success_rate < settings.helix_rollout_min_continuity_success_rate
                 ):
                     issue_codes.append("continuity-success")
-                    reasons.append(
-                        "continuity success rate="
-                        f"{rollout.desktop.continuity_success_rate:.2%}"
-                    )
+                    reasons.append(f"continuity success rate={rollout.desktop.continuity_success_rate:.2%}")
 
                 if (
                     continuity_signal_present
-                    and rollout.desktop.cross_route_recovery_rate
-                    < settings.helix_rollout_min_cross_route_recovery_rate
+                    and rollout.desktop.cross_route_recovery_rate < settings.helix_rollout_min_cross_route_recovery_rate
                 ):
                     issue_codes.append("cross-route-recovery")
-                    reasons.append(
-                        "cross-route recovery rate="
-                        f"{rollout.desktop.cross_route_recovery_rate:.2%}"
-                    )
+                    reasons.append(f"cross-route recovery rate={rollout.desktop.cross_route_recovery_rate:.2%}")
 
                 if rollout.policy.profile_rotation_recommended:
-                    issue_codes.append(
-                        f"auto-{rollout.policy.automatic_reaction or 'profile-rotation'}"
-                    )
+                    issue_codes.append(f"auto-{rollout.policy.automatic_reaction or 'profile-rotation'}")
                     reasons.append(
                         rollout.policy.recommended_action
                         or (
@@ -106,36 +83,27 @@ async def audit_helix_rollouts() -> dict:
                         )
                     )
 
-                if rollout.policy.pause_recommended:
-                    if rollout.policy.automatic_reaction not in {
-                        "pause-new-sessions",
-                        "pause-channel",
-                    }:
-                        issue_codes.append("pause-recommended")
-                        reasons.append(
-                            rollout.policy.recommended_action
-                            or (
-                                "pause recommended for profile "
-                                f"{rollout.policy.active_transport_profile_id or 'unknown'}"
-                            )
-                        )
+                if rollout.policy.pause_recommended and rollout.policy.automatic_reaction not in {
+                    "pause-new-sessions",
+                    "pause-channel",
+                }:
+                    issue_codes.append("pause-recommended")
+                    reasons.append(
+                        rollout.policy.recommended_action
+                        or (f"pause recommended for profile {rollout.policy.active_transport_profile_id or 'unknown'}")
+                    )
 
                 if active_profile_policy is not None and (
-                    active_profile_policy.advisory_state
-                    in {"degraded", "avoid-new-sessions"}
+                    active_profile_policy.advisory_state in {"degraded", "avoid-new-sessions"}
                 ):
-                    issue_codes.append(
-                        f"policy-{active_profile_policy.advisory_state}"
-                    )
+                    issue_codes.append(f"policy-{active_profile_policy.advisory_state}")
                     reasons.append(
                         "policy advisory="
                         f"{active_profile_policy.advisory_state}"
                         f" posture={active_profile_policy.new_session_posture}"
                     )
 
-                audit_key = HELIX_ROLLOUT_AUDIT_KEY.format(
-                    rollout_id=rollout.rollout_id
-                )
+                audit_key = HELIX_ROLLOUT_AUDIT_KEY.format(rollout_id=rollout.rollout_id)
                 previous_state = await cache.get(audit_key) or {}
                 previous_signature = previous_state.get("issue_signature", "")
                 current_signature = "|".join(issue_codes)
@@ -143,30 +111,47 @@ async def audit_helix_rollouts() -> dict:
                 if issue_codes:
                     issue_rollouts += 1
                     if previous_signature != current_signature:
+                        active_profile = rollout.policy.active_transport_profile_id or "unknown"
+                        recommended_profile = rollout.policy.recommended_transport_profile_id or "none"
+                        applied_target_profile = rollout.policy.applied_transport_profile_id or "none"
+                        policy_score = active_profile_policy.policy_score if active_profile_policy else "n/a"
+                        advisory_state = active_profile_policy.advisory_state if active_profile_policy else "unknown"
+                        new_session_posture = (
+                            active_profile_policy.new_session_posture if active_profile_policy else "unknown"
+                        )
+                        new_session_issuable = (
+                            active_profile_policy.new_session_issuable if active_profile_policy else "unknown"
+                        )
+                        suppression_window_active = (
+                            active_profile_policy.suppression_window_active if active_profile_policy else "unknown"
+                        )
+                        recommended_action = (
+                            rollout.policy.recommended_action or "Investigate rollout policy and quality signals."
+                        )
                         message = (
                             "🚨 <b>Helix Rollout Advisory</b>\n\n"
                             f"Rollout: <code>{rollout.rollout_id}</code>\n"
                             f"Channel: <code>{rollout.channel}</code>\n"
                             f"Issues: <b>{', '.join(reasons)}</b>\n"
-                            f"Active profile: <code>{rollout.policy.active_transport_profile_id or 'unknown'}</code>\n"
-                            f"Recommended profile: <code>{rollout.policy.recommended_transport_profile_id or 'none'}</code>\n"
+                            f"Active profile: <code>{active_profile}</code>\n"
+                            f"Recommended profile: <code>{recommended_profile}</code>\n"
                             f"Channel posture: <b>{rollout.policy.channel_posture}</b>\n"
                             f"Automatic reaction: <b>{rollout.policy.automatic_reaction}</b>\n"
                             f"Applied reaction: <b>{rollout.policy.applied_automatic_reaction or 'none'}</b>\n"
-                            f"Applied target profile: <code>{rollout.policy.applied_transport_profile_id or 'none'}</code>\n"
+                            f"Applied target profile: <code>{applied_target_profile}</code>\n"
                             f"Suppressed candidates: <b>{rollout.policy.suppressed_candidate_count}</b>\n"
                             f"Active profile suppressed: <b>{rollout.policy.active_profile_suppressed}</b>\n"
-                            f"Policy score: <b>{active_profile_policy.policy_score if active_profile_policy else 'n/a'}</b>\n"
-                            f"Advisory state: <b>{active_profile_policy.advisory_state if active_profile_policy else 'unknown'}</b>\n"
-                            f"New-session posture: <b>{active_profile_policy.new_session_posture if active_profile_policy else 'unknown'}</b>\n"
-                            f"New-session issuable: <b>{active_profile_policy.new_session_issuable if active_profile_policy else 'unknown'}</b>\n"
-                            f"Suppression window active: <b>{active_profile_policy.suppression_window_active if active_profile_policy else 'unknown'}</b>\n"
+                            f"Policy score: <b>{policy_score}</b>\n"
+                            f"Advisory state: <b>{advisory_state}</b>\n"
+                            f"New-session posture: <b>{new_session_posture}</b>\n"
+                            f"New-session issuable: <b>{new_session_issuable}</b>\n"
+                            f"Suppression window active: <b>{suppression_window_active}</b>\n"
                             f"Connect success: <b>{rollout.desktop.connect_success_rate:.2%}</b>\n"
                             f"Fallback rate: <b>{rollout.desktop.fallback_rate:.2%}</b>\n"
                             f"Continuity observations: <b>{rollout.desktop.continuity_observed_events}</b>\n"
                             f"Continuity success: <b>{rollout.desktop.continuity_success_rate:.2%}</b>\n"
                             f"Cross-route recovery: <b>{rollout.desktop.cross_route_recovery_rate:.2%}</b>\n"
-                            f"Action: {rollout.policy.recommended_action or 'Investigate rollout policy and quality signals.'}"
+                            f"Action: {recommended_action}"
                         )
                         await telegram.send_admin_alert(message, severity="critical")
                         alerts_sent += 1
