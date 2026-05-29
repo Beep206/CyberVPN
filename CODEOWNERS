@@ -1,0 +1,60 @@
+# CyberVPN advisory code ownership map.
+#
+# GitLab CE on the home server does not expose required approval rules for this
+# project. Treat this file as the repository-level ownership map and use
+# docs/gitlab/AI_REVIEW_MAP.md as the Paperclip process gate until GitLab
+# required approvals are available.
+#
+# All handles below are real GitLab project members as of 2026-05-29.
+
+# Default safety net: project owner plus Paperclip maintainer bot.
+* @root @project_2_bot_47e02027a044988533d001e0f32068e4
+
+# Backend API and domain logic.
+/backend/ @project_2_bot_636d1e9cec59fb2c62c1a196e9ebbe19 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/backend/src/**/support/** @project_2_bot_636d1e9cec59fb2c62c1a196e9ebbe19 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_c28b4531b213a91cac4be03b85d51e53
+/backend/src/**/admin/** @project_2_bot_636d1e9cec59fb2c62c1a196e9ebbe19 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/backend/src/**/auth/** @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4
+/backend/src/**/permissions/** @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4
+/backend/src/**/billing/** @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4 @root
+
+# Customer frontend and Telegram Mini App.
+/frontend/ @project_2_bot_0ebf743cab9a2612b1090188a0d202d4 @project_2_bot_78474156d1e0e66966f321d6b7f5cd99
+/frontend/src/**/support/** @project_2_bot_0ebf743cab9a2612b1090188a0d202d4 @project_2_bot_78474156d1e0e66966f321d6b7f5cd99 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/frontend/src/**/miniapp/** @project_2_bot_78474156d1e0e66966f321d6b7f5cd99 @project_2_bot_0ebf743cab9a2612b1090188a0d202d4 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/frontend/src/**/auth/** @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4
+
+# Admin and partner surfaces.
+/admin/ @project_2_bot_935b03b6d9ae0de290d6013f6305a68a @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/partner/ @project_2_bot_935b03b6d9ae0de290d6013f6305a68a
+/partner/src/**/support/** @project_2_bot_935b03b6d9ae0de290d6013f6305a68a @project_2_bot_c28b4531b213a91cac4be03b85d51e53
+
+# Telegram bot and task workers.
+/services/telegram-bot/ @project_2_bot_d1b79d24eaa7e4d697a18499471878ce @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/services/task-worker/ @project_2_bot_d1b79d24eaa7e4d697a18499471878ce @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+
+# Mobile, desktop, browser, and TV apps. No dedicated GitLab bot exists yet;
+# route through the owner and Paperclip maintainer bot.
+/cybervpn_mobile/ @root @project_2_bot_47e02027a044988533d001e0f32068e4
+/apps/android-tv/ @root @project_2_bot_47e02027a044988533d001e0f32068e4
+/apps/browser-extension/ @root @project_2_bot_47e02027a044988533d001e0f32068e4
+/apps/desktop-client/ @root @project_2_bot_47e02027a044988533d001e0f32068e4
+/SDK/ @root @project_2_bot_47e02027a044988533d001e0f32068e4
+
+# Infrastructure, deploy, and production-adjacent controls.
+/infra/ @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4 @root
+/charts/ @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4
+/platform-gitops/ @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4
+
+# CI, repository automation, and governance docs.
+/.gitlab-ci.yml @project_2_bot_47e02027a044988533d001e0f32068e4 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/.github/ @project_2_bot_47e02027a044988533d001e0f32068e4 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0
+/docs/ @project_2_bot_dddce23b58dd40c3c5049137c898ab16
+/docs/gitlab/ @project_2_bot_dddce23b58dd40c3c5049137c898ab16 @project_2_bot_c28b4531b213a91cac4be03b85d51e53 @project_2_bot_47e02027a044988533d001e0f32068e4
+/docs/runbooks/ @project_2_bot_dddce23b58dd40c3c5049137c898ab16 @project_2_bot_c28b4531b213a91cac4be03b85d51e53
+/docs/security/ @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_dddce23b58dd40c3c5049137c898ab16
+/docs/evidence/ @project_2_bot_dddce23b58dd40c3c5049137c898ab16 @project_2_bot_c28b4531b213a91cac4be03b85d51e53
+
+# Ownership map itself.
+/CODEOWNERS @project_2_bot_dddce23b58dd40c3c5049137c898ab16 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_47e02027a044988533d001e0f32068e4
+/docs/gitlab/AI_REVIEW_MAP.md @project_2_bot_dddce23b58dd40c3c5049137c898ab16 @project_2_bot_1bc2e283e4524b692d54cee8bc5038a0 @project_2_bot_c28b4531b213a91cac4be03b85d51e53
