@@ -19,6 +19,7 @@ The project is configured so that:
 - All GitLab discussions must be resolved before merge.
 - Source branches are deleted after merge.
 - Squash is enabled by default.
+- Phase 5 factory dry runs use disposable docs-only merge requests for gate evidence.
 
 GitLab CE does not expose required approval rules on this instance, so reviewer
 approvals are represented as Paperclip gates and GitLab discussions.
