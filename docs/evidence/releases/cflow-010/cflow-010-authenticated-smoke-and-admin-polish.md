@@ -25,10 +25,13 @@ Date: 2026-05-29
   - `docs/evidence/releases/cflow-010/stage1-gitlab-deploy-cflow-010-admin-auth-91af2373-20260529T0515Z.md`
 - Final admin payments deploy evidence:
   - `docs/evidence/releases/cflow-010/stage1-gitlab-deploy-cflow-010-admin-payments-91af2373-20260529T0523Z.md`
+- Commit-aligned final admin deploy evidence:
+  - `docs/evidence/releases/cflow-010/stage1-gitlab-deploy-cflow-010-feea5c11-20260529T0530Z.md`
 
 ## Authenticated Smoke Result
 
 Temporary customer smoke account was created, verified via OTP, used for browser smoke, then removed.
+The result below was captured again after the commit-aligned final deploy.
 
 ```json
 {
