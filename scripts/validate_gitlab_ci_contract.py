@@ -13,6 +13,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CI_FILE = ROOT / ".gitlab-ci.yml"
+MR_TEMPLATE_FILE = ROOT / ".gitlab" / "merge_request_templates" / "Default.md"
+AI_MR_CONTRACT_FILE = ROOT / "docs" / "gitlab" / "AI_MR_CONTRACT.md"
+AI_REVIEW_MAP_FILE = ROOT / "docs" / "gitlab" / "AI_REVIEW_MAP.md"
+CODEOWNERS_FILE = ROOT / "CODEOWNERS"
 DOCKER_SOCK_MARKER = "/var/run/" + "docker.sock"
 
 REQUIRED_TOP_LEVEL_KEYS = (
@@ -140,6 +144,73 @@ REQUIRED_STAGE2_RELEASE_SPEED_MARKERS = (
     "Production deploys must use immutable SHA/tag",
 )
 
+REQUIRED_GITLAB_CONFIG_PATH_MARKERS = (
+    "CODEOWNERS",
+    ".gitlab/merge_request_templates/**/*",
+    "docs/gitlab/**/*",
+    "scripts/validate_gitlab_ci_contract.py",
+)
+
+REQUIRED_MR_TEMPLATE_MARKERS = (
+    "# Summary",
+    "# Scope Classification",
+    "# Touched Paths",
+    "# What Was Intentionally Not Changed",
+    "# Tests Run",
+    "# Remote CI",
+    "# Screenshots / UI Evidence",
+    "# Security Notes",
+    "# Rollback Notes",
+    "# Reviewer Agents Required",
+    "# Paperclip Links",
+    "# Labels",
+    "# Merge Gate",
+    "risk::green",
+    "risk::amber",
+    "risk::red",
+    "lane::autonomous",
+)
+
+REQUIRED_MR_CONTRACT_MARKERS = (
+    "GitLab CE does not expose required approval rules",
+    "lane::autonomous",
+    "risk::green",
+    "risk::amber",
+    "risk::red",
+    "area::backend",
+    "area::frontend",
+    "area::admin",
+    "area::partner",
+    "area::telegram",
+    "area::docs",
+    "data::none",
+    "data::synthetic-only",
+    "data::sensitive",
+    "needs::security",
+    "needs::qa",
+    "needs::luma",
+    "sentinel::candidate",
+    "only_allow_merge_if_pipeline_succeeds",
+    "Test and build jobs must not use `allow_failure`",
+)
+
+REQUIRED_REVIEW_MAP_MARKERS = (
+    "Paperclip AI agents",
+    "Risk Levels",
+    "Path Review Matrix",
+    "Support Platform Initial Gate",
+)
+
+REQUIRED_CODEOWNERS_MARKERS = (
+    "/backend/",
+    "/frontend/",
+    "/admin/",
+    "/partner/",
+    "/services/telegram-bot/",
+    "/services/task-worker/",
+    "/docs/gitlab/AI_REVIEW_MAP.md",
+)
+
 FORBIDDEN_MARKERS = (
     "<<<<<<<",
     "=======",
@@ -155,6 +226,42 @@ FORBIDDEN_MARKERS = (
 
 def require_all(content: str, markers: tuple[str, ...], label: str) -> list[str]:
     return [f"missing {label}: {marker}" for marker in markers if marker not in content]
+
+
+def read_required_file(path: Path, label: str) -> tuple[list[str], str]:
+    if not path.exists():
+        return [f"missing {label}: {path.relative_to(ROOT)}"], ""
+    return [], path.read_text(encoding="utf-8")
+
+
+def require_file_markers(path: Path, markers: tuple[str, ...], label: str) -> list[str]:
+    failures, content = read_required_file(path, label)
+    return failures + require_all(content, markers, label)
+
+
+def collect_top_level_blocks(content: str) -> dict[str, str]:
+    blocks: dict[str, list[str]] = {}
+    current_name: str | None = None
+
+    for line in content.splitlines():
+        if line and not line.startswith((" ", "\t", "-")) and line.endswith(":"):
+            current_name = line[:-1]
+            blocks[current_name] = []
+            continue
+
+        if current_name is not None:
+            blocks[current_name].append(line)
+
+    return {name: "\n".join(lines) for name, lines in blocks.items()}
+
+
+def require_blocking_test_and_build_jobs(content: str) -> list[str]:
+    failures: list[str] = []
+    for name, block in collect_top_level_blocks(content).items():
+        is_blocking_stage = "  stage: test" in block or "  stage: build" in block
+        if is_blocking_stage and "  allow_failure: true" in block:
+            failures.append(f"test/build job must not allow failure: {name}")
+    return failures
 
 
 def main() -> int:
@@ -176,6 +283,22 @@ def main() -> int:
     failures.extend(
         require_all(content, REQUIRED_STAGE2_RELEASE_SPEED_MARKERS, "stage2 release-speed marker")
     )
+    failures.extend(
+        require_all(content, REQUIRED_GITLAB_CONFIG_PATH_MARKERS, "GitLab config path marker")
+    )
+    failures.extend(
+        require_file_markers(MR_TEMPLATE_FILE, REQUIRED_MR_TEMPLATE_MARKERS, "MR template marker")
+    )
+    failures.extend(
+        require_file_markers(AI_MR_CONTRACT_FILE, REQUIRED_MR_CONTRACT_MARKERS, "MR contract marker")
+    )
+    failures.extend(
+        require_file_markers(AI_REVIEW_MAP_FILE, REQUIRED_REVIEW_MAP_MARKERS, "AI review map marker")
+    )
+    failures.extend(
+        require_file_markers(CODEOWNERS_FILE, REQUIRED_CODEOWNERS_MARKERS, "CODEOWNERS marker")
+    )
+    failures.extend(require_blocking_test_and_build_jobs(content))
 
     for marker in FORBIDDEN_MARKERS:
         if marker in content:
