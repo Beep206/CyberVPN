@@ -3,7 +3,12 @@ import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_local_ds.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart'
-    show SubscriptionRemoteDataSource, PaginatedPaymentHistory;
+    show
+        CommercialCatalogRequest,
+        CommercialCatalogSnapshot,
+        CommercialCatalogContext,
+        SubscriptionRemoteDataSource,
+        PaginatedPaymentHistory;
 import 'package:cybervpn_mobile/features/subscription/data/repositories/subscription_repository_impl.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
@@ -21,6 +26,32 @@ class _MockRemoteDataSource implements SubscriptionRemoteDataSource {
   int fetchSubCallCount = 0;
   bool shouldFail = false;
   String errorMsg = 'Server error';
+
+  @override
+  Future<CommercialCatalogSnapshot> fetchCommercialCatalog({
+    CommercialCatalogRequest request = const CommercialCatalogRequest(),
+  }) async {
+    return CommercialCatalogSnapshot(
+      catalogVersion: 'test',
+      cacheKey: 'test-cache',
+      context: const CommercialCatalogContext(
+        uiLocale: 'en-EN',
+        displayCountry: 'US',
+        pricingCountry: 'US',
+        paymentCountry: 'US',
+        currency: 'USD',
+        confidence: 'test',
+        selectableCountries: ['US'],
+        selectableCurrencies: ['USD'],
+        paymentMethods: <String, dynamic>{},
+        cacheKey: 'ctx-test',
+        resolutionTrace: <String>[],
+      ),
+      plans: plans,
+      sourceChannel: request.channel,
+      iapStorefrontActive: false,
+    );
+  }
 
   @override
   Future<List<PlanEntity>> fetchPlans() async {
