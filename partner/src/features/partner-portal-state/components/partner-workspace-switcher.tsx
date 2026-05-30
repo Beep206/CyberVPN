@@ -10,8 +10,8 @@ interface PartnerWorkspaceSwitcherProps {
 export function PartnerWorkspaceSwitcher({
   compact = false,
 }: PartnerWorkspaceSwitcherProps) {
-  const t = useTranslations('workspaceSwitcher');
-  const portalStateT = useTranslations('portalState');
+  const t = useTranslations('Partner.workspaceSwitcher');
+  const portalStateT = useTranslations('Partner.portalState');
   const {
     workspaces,
     activeWorkspace,

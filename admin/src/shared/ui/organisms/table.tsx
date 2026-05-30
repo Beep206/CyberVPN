@@ -7,10 +7,10 @@ interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 }
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(({ className, containerClassName, ...props }, ref) => (
-    <div className={cn("relative w-full overflow-auto rounded-lg border border-grid-line/30 bg-terminal-surface/50 backdrop-blur", containerClassName)}>
+    <div className={cn("relative max-w-full overflow-auto overscroll-x-contain rounded-lg border border-grid-line/30 bg-terminal-surface/50 backdrop-blur", containerClassName)}>
         <table
             ref={ref}
-            className={cn("w-full caption-bottom text-sm", className)}
+            className={cn("w-full min-w-max caption-bottom text-sm", className)}
             {...props}
         />
     </div>

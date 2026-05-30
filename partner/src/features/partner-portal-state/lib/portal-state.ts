@@ -466,6 +466,8 @@ export interface PartnerIntegrationDeliveryLog {
 
 export interface PartnerResellerStorefront {
   id: string;
+  storefrontKey?: string;
+  partnerCode?: string;
   label: string;
   domain: string;
   status: PartnerResellerStorefrontStatus;
@@ -2316,6 +2318,8 @@ function buildScenarioResellerStorefronts(
     return [
       {
         id: 'reseller-eu-storefront',
+        storefrontKey: 'reseller-eu-storefront',
+        partnerCode: 'RESELLER-EU',
         label: 'CyberVPN EU Distribution',
         domain: 'vpn.example-distribution.eu',
         status: 'ready',
@@ -2325,6 +2329,8 @@ function buildScenarioResellerStorefronts(
       },
       {
         id: 'reseller-apac-storefront',
+        storefrontKey: 'reseller-apac-storefront',
+        partnerCode: 'RESELLER-APAC',
         label: 'CyberVPN APAC Privacy Hub',
         domain: 'privacyhub.example-asia.com',
         status: 'in_review',
@@ -2338,6 +2344,8 @@ function buildScenarioResellerStorefronts(
   return [
     {
       id: 'reseller-eu-storefront',
+      storefrontKey: 'reseller-eu-storefront',
+      partnerCode: 'RESELLER-EU',
       label: 'CyberVPN EU Distribution',
       domain: 'vpn.example-distribution.eu',
       status: 'restricted',
@@ -3550,8 +3558,13 @@ function readStoredPartnerPortalState(
             return null;
           }
 
+          const storefrontKey = readStringField(candidate.storefrontKey);
+          const partnerCode = readStringField(candidate.partnerCode);
+
           return {
             id: readStringField(candidate.id),
+            ...(storefrontKey ? { storefrontKey } : {}),
+            ...(partnerCode ? { partnerCode } : {}),
             label: readStringField(candidate.label),
             domain: readStringField(candidate.domain),
             status,

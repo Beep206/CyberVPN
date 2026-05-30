@@ -4717,6 +4717,27 @@
         },
         "title": "Reseller capability posture"
       },
+      "commercialPreview": {
+        "boolean": {
+          "no": "No",
+          "yes": "Yes"
+        },
+        "contractTitle": "Storefront contract",
+        "description": "Resolve the selected storefront contract and effective catalog in read-only mode before partners route live traffic.",
+        "empty": "No storefront is assigned to this reseller workspace yet.",
+        "entryPath": "Entry path",
+        "error": "The reseller commercial preview could not be loaded.",
+        "metrics": {
+          "billingPeriods": "Billing periods",
+          "currency": "Currency",
+          "sideEffects": "Checkout side effects",
+          "status": "Status"
+        },
+        "partnerCode": "Partner code",
+        "routeHost": "Route host",
+        "selectLabel": "Preview storefront",
+        "title": "Commercial preview"
+      },
       "eyebrow": "PP6 RESELLER OPERATIONS CONSOLE",
       "links": {
         "conversions": "Open conversions / orders",
@@ -4760,14 +4781,18 @@
         "title": "Voucher batches"
       },
       "voucherRequest": {
+        "countLabel": "Voucher count",
         "countPlaceholder": "Voucher count",
         "description": "Issue a reseller-scoped voucher batch directly from the partner surface. The raw codes are shown once after issuance.",
         "error": "The reseller voucher batch could not be issued.",
         "issuedCodesTitle": "Issued codes",
+        "messageLabel": "Batch message",
         "messagePlaceholder": "Optional batch note or message for the voucher pack.",
+        "planLabel": "Subscription plan",
         "planPlaceholder": "Select subscription plan",
         "planRequired": "Select a subscription plan before requesting vouchers.",
         "readOnly": "This role can review voucher posture, but new reseller voucher requests are blocked.",
+        "recipientHintLabel": "Recipient or campaign",
         "recipientHintPlaceholder": "Recipient hint or campaign label",
         "submit": "Issue voucher batch",
         "submitting": "Issuing...",
