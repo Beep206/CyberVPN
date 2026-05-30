@@ -2018,6 +2018,21 @@
       "subtitle": "Публичная линейка остаётся короткой. Гибкость добавляется только там, где пользователь понимает ценность сразу.",
       "title": "Add-ons вместо раздувания тарифов"
     },
+    "catalog": {
+      "unavailableBody": "Цены загружаются только из backend commercial catalog. Обновите страницу после восстановления сервиса каталога.",
+      "unavailableTitle": "Каталог временно недоступен"
+    },
+    "commercialContext": {
+      "resolved": "Pricing country {country} · {currency}",
+      "title": "Коммерческий context"
+    },
+    "countrySelector": {
+      "aria": "Выбрать страну",
+      "empty": "Страна не найдена",
+      "search": "ПОИСК_СТРАНЫ...",
+      "searchAria": "Поиск стран",
+      "title": "SELECT_COUNTRY"
+    },
     "faq": {
       "items": [
         {
@@ -2041,8 +2056,10 @@
     },
     "introPills": {
       "addons": "Опции",
+      "live": "Живой каталог",
       "periods": "4 периода",
-      "plans": "4 плана"
+      "plans": "4 плана",
+      "unavailable": "Каталог недоступен"
     },
     "labels": {
       "chargedInBillingCurrency": "Списание в {currency}",
@@ -3054,6 +3071,16 @@
     },
     "checkoutCodesDescription": "Promo-коды применяются в checkout. Invite redemption остаётся в центре наград, чтобы цены и доступ не расходились между поверхностями.",
     "checkoutCodesTitle": "Checkout-коды",
+    "checkoutQuote": {
+      "chargedIn": "Списание в {currency}",
+      "expiredBody": "Обновите quote перед checkout, чтобы backend totals, страна и валюта были актуальны.",
+      "expiredTitle": "Quote истёк",
+      "gatewayAmount": "Gateway amount: {amount}. Списание в {currency}.",
+      "loadError": "Не удалось загрузить checkout quote",
+      "refreshCta": "Обновить quote",
+      "refreshError": "Не удалось обновить checkout quote",
+      "refreshing": "Обновляем quote..."
+    },
     "choosePlanBelow": "Выберите план ниже, чтобы начать",
     "codesAndRewards": "Коды и награды",
     "current": {

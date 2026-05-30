@@ -43,11 +43,16 @@ class RemnawaveStage1PaidProvisioningGateway:
                 raise Stage1PaidProvisioningError("Existing Remnawave UUID is invalid") from exc
             created = False
         else:
-            user = await self._user_gateway.create(
-                username=request.remnawave_username,
-                **payload,
-            )
-            created = True
+            user = await self._user_gateway.get_by_username(request.remnawave_username)
+            if user is not None:
+                user = await self._user_gateway.update(user.uuid, **payload)
+                created = False
+            else:
+                user = await self._user_gateway.create(
+                    username=request.remnawave_username,
+                    **payload,
+                )
+                created = True
 
         return Stage1PaidProvisioningResult(
             customer_account_id=request.customer_account_id,

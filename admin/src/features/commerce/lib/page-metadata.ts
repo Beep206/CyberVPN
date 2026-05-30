@@ -17,6 +17,16 @@ const COMMERCE_PAGE_CONFIG = {
     titleKey: 'addons.metaTitle',
     descriptionKey: 'addons.description',
   },
+  pricebooks: {
+    canonicalPath: '/commerce/pricebooks',
+    titleKey: 'pricebooks.metaTitle',
+    descriptionKey: 'pricebooks.description',
+  },
+  catalogPreview: {
+    canonicalPath: '/commerce/catalog-preview',
+    titleKey: 'catalogPreview.metaTitle',
+    descriptionKey: 'catalogPreview.description',
+  },
   subscriptionTemplates: {
     canonicalPath: '/commerce/subscription-templates',
     titleKey: 'subscriptionTemplates.metaTitle',

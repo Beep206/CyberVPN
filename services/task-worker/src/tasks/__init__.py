@@ -4,5 +4,6 @@ import src.tasks.analytics
 import src.tasks.email
 import src.tasks.monitoring
 import src.tasks.notifications
+import src.tasks.payments
 import src.tasks.sync
 import src.tasks.wallet  # noqa: F401

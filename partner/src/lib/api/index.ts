@@ -30,6 +30,7 @@ export { promoApi } from './promo';
 export { invitesApi } from './invites';
 export { addonsApi } from './addons';
 export { storefrontApi } from './storefront';
+export { publicCatalogApi } from './catalog';
 export { partnerPortalApi } from './partner-portal';
 
 // Subscriptions

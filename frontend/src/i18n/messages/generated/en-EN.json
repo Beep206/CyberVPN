@@ -2085,6 +2085,21 @@
       "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
       "title": "Add-ons, Not Tariff Sprawl"
     },
+    "catalog": {
+      "unavailableBody": "Pricing is loaded only from the backend commercial catalog. Refresh after the catalog service is available.",
+      "unavailableTitle": "Catalog temporarily unavailable"
+    },
+    "commercialContext": {
+      "resolved": "Pricing country {country} · {currency}",
+      "title": "Commercial context"
+    },
+    "countrySelector": {
+      "aria": "Select country",
+      "empty": "No country found",
+      "search": "SEARCH_COUNTRY...",
+      "searchAria": "Search countries",
+      "title": "SELECT_COUNTRY"
+    },
     "faq": {
       "items": [
         {
@@ -2108,8 +2123,10 @@
     },
     "introPills": {
       "addons": "Options",
+      "live": "Live catalog",
       "periods": "4 periods",
-      "plans": "4 plans"
+      "plans": "4 plans",
+      "unavailable": "Catalog unavailable"
     },
     "labels": {
       "chargedInBillingCurrency": "Charged in {currency}",
@@ -3201,6 +3218,16 @@
     },
     "checkoutCodesDescription": "Promo codes belong in checkout. Invite redemption stays in the rewards hub so pricing and access do not diverge across surfaces.",
     "checkoutCodesTitle": "Checkout codes",
+    "checkoutQuote": {
+      "chargedIn": "Charged in {currency}",
+      "expiredBody": "Refresh the quote before checkout so backend totals, country and currency are current.",
+      "expiredTitle": "Quote expired",
+      "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
+      "loadError": "Failed to load checkout quote",
+      "refreshCta": "Refresh quote",
+      "refreshError": "Failed to refresh checkout quote",
+      "refreshing": "Refreshing quote..."
+    },
     "choosePlanBelow": "Choose a plan below to get started",
     "codesAndRewards": "Codes & Rewards",
     "current": {

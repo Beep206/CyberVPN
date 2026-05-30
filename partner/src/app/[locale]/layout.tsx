@@ -7,6 +7,7 @@ import { AnalyticsReporters } from '@/app/providers/analytics-reporters';
 import { AuthSessionBootstrap } from '@/app/providers/auth-provider';
 import { DevTools } from '@/app/providers/dev-tools';
 import { MotionProvider } from '@/app/providers/motion-provider';
+import { QueryProvider } from '@/app/providers/query-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
 import { getPartnerSurfaceContext } from '@/features/storefront-shell/lib/server-surface-context';
 import { getStaticParamsLocales } from '@/i18n/config';
@@ -97,17 +98,19 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <MotionProvider>
-            <Suspense fallback={null}>
-              <PortalAuthSessionBootstrap />
-              <SkipNavLink label={t('skipToMainContent')} />
-              <div className="relative z-10 min-h-full w-full">{children}</div>
-            </Suspense>
-            <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
+            <QueryProvider>
+              <Suspense fallback={null}>
+                <PortalAuthSessionBootstrap />
+                <SkipNavLink label={t('skipToMainContent')} />
+                <div className="relative z-10 min-h-full w-full">{children}</div>
+              </Suspense>
+              <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
 
-            <Suspense fallback={null}>
-              <AnalyticsReporters />
-            </Suspense>
-            {isDevelopment ? <DevTools /> : null}
+              <Suspense fallback={null}>
+                <AnalyticsReporters />
+              </Suspense>
+              {isDevelopment ? <DevTools /> : null}
+            </QueryProvider>
           </MotionProvider>
         </ThemeProvider>
 

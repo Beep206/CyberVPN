@@ -147,6 +147,7 @@ from src.infrastructure.database.models.risk_subject_model import RiskSubjectMod
 from src.infrastructure.database.models.server_geolocation_model import ServerGeolocation
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.models.settlement_period_model import SettlementPeriodModel
+from src.infrastructure.database.models.stage1_provisioning_retry_model import Stage1ProvisioningRetryJobModel
 from src.infrastructure.database.models.statement_adjustment_model import StatementAdjustmentModel
 from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
@@ -269,6 +270,7 @@ __all__ = [
     "ServerGeolocation",
     "ServiceIdentityModel",
     "StatementAdjustmentModel",
+    "Stage1ProvisioningRetryJobModel",
     "SubscriptionAddonModel",
     "SubscriptionPlanModel",
     "StorefrontModel",

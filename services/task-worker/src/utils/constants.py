@@ -56,6 +56,7 @@ SCHEDULE_HOURLY_BANDWIDTH: Final[str] = "5 * * * *"  # At :05 every hour
 INTERVAL_REALTIME_METRICS_SECONDS: Final[int] = 30  # Every 30 seconds
 SCHEDULE_PAYMENT_VERIFY: Final[str] = "*/5 * * * *"  # Every 5 minutes
 SCHEDULE_STAGE1_PAYMENT_RECONCILIATION: Final[str] = "*/15 * * * *"  # Every 15 minutes
+SCHEDULE_STAGE1_PROVISIONING_RETRY: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_TELEGRAM_STARS_RECONCILIATION: Final[str] = "*/10 * * * *"  # Every 10 minutes
 SCHEDULE_PARTNER_BOT_PROVISIONING: Final[str] = "*/2 * * * *"  # Every 2 minutes
 SCHEDULE_WEBHOOK_RETRY: Final[str] = "*/30 * * * *"  # Every 30 minutes
@@ -251,6 +252,8 @@ __all__ = [  # noqa: RUF022
     "INTERVAL_REALTIME_METRICS_SECONDS",
     "SCHEDULE_REALTIME_METRICS",
     "SCHEDULE_PAYMENT_VERIFY",
+    "SCHEDULE_STAGE1_PAYMENT_RECONCILIATION",
+    "SCHEDULE_STAGE1_PROVISIONING_RETRY",
     "SCHEDULE_TELEGRAM_STARS_RECONCILIATION",
     "SCHEDULE_WEBHOOK_RETRY",
     "SCHEDULE_CLEANUP",

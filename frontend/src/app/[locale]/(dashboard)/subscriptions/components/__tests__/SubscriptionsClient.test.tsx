@@ -132,6 +132,84 @@ const PLANS = [
   },
 ];
 
+const COMMERCIAL_CATALOG = {
+  catalogVersion: 'v1',
+  cacheKey: 'catalog-web-usd',
+  context: {
+    uiLocale: 'en-EN',
+    displayCountry: 'US',
+    pricingCountry: 'US',
+    paymentCountry: 'US',
+    currency: 'USD',
+    confidence: 'explicit',
+    selectableCountries: ['US'],
+    selectableCurrencies: ['USD'],
+    paymentMethods: {
+      availableMethods: ['crypto'],
+      webCheckout: true,
+      cryptobot: true,
+      telegramStars: false,
+      manualInvoice: false,
+      autorenewal: false,
+    },
+    cacheKey: 'ctx-web-usd',
+    resolutionTrace: ['test'],
+  },
+  plans: PLANS.map((plan) => ({
+    planCode: plan.plan_code,
+    displayName: plan.display_name,
+    version: 'v1',
+    billingPeriods: [
+      {
+        planId: plan.uuid,
+        catalogItemKey: `${plan.plan_code}_${plan.duration_days}`,
+        durationDays: plan.duration_days,
+        displayPrice: {
+          amount: String(plan.price_usd),
+          currency: 'USD',
+          minorUnits: 2,
+        },
+        version: 'v1',
+        quote: {
+          planId: plan.uuid,
+          planCode: plan.plan_code,
+          billingPeriodDays: plan.duration_days,
+          currency: 'USD',
+          catalogItemKey: `${plan.plan_code}_${plan.duration_days}`,
+          contextCacheKey: 'ctx-web-usd',
+        },
+        includedAddonCodes: [],
+        availability: ['web'],
+        metadata: {},
+      },
+    ],
+    devicesIncluded: plan.devices_included,
+    trafficLimitBytes: plan.traffic_limit_bytes,
+    trafficPolicy: plan.traffic_policy,
+    connectionModes: plan.connection_modes,
+    serverPool: plan.server_pool,
+    supportSla: plan.support_sla,
+    dedicatedIp: plan.dedicated_ip,
+    inviteBundle: plan.invite_bundle,
+    trialEligible: plan.trial_eligible,
+    promoEligible: true,
+    metadata: {},
+  })),
+  addons: [],
+  trialEligible: false,
+  promoEligible: true,
+  metadata: {
+    policyIds: [],
+    source: 'test',
+    channel: 'web',
+    storefrontKey: 'cybervpn-web',
+    addonsEnabled: false,
+    promoCodesEnabled: true,
+    checkoutCodeDiscountsEnabled: true,
+    invalidationEvents: [],
+  },
+};
+
 const ORDERS = [
   {
     id: 'order-paid-001',
@@ -329,9 +407,9 @@ describe('SubscriptionsClient', () => {
     server.use(
       http.get(`${API_BASE}/entitlements/current`, () =>
         HttpResponse.json(CURRENT_ENTITLEMENT, { status: 200 })),
-      http.get(`${API_BASE}/plans`, ({ request }) => {
+      http.get(`${API_BASE}/catalog/`, ({ request }) => {
         expect(new URL(request.url).searchParams.get('channel')).toBe('web');
-        return HttpResponse.json(PLANS, { status: 200 });
+        return HttpResponse.json(COMMERCIAL_CATALOG, { status: 200 });
       }),
       http.get(`${API_BASE}/orders/`, () =>
         HttpResponse.json(ORDERS, { status: 200 })),
@@ -349,7 +427,7 @@ describe('SubscriptionsClient', () => {
       expect(screen.getByText('awaiting payment')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', { name: /Current Plan/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Current Plan/i })).toBeDisabled();
     expect(screen.getByText('remnawave')).toBeInTheDocument();
     expect(screen.getAllByText('Max Plan').length).toBeGreaterThan(0);
   });

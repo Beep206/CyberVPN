@@ -36,17 +36,20 @@ const plan: SubscriptionPlan = {
   sort_order: 10,
 };
 
-describe('subscription plan-presenter S2 currency rule', () => {
-  it('returns the locale display currency as the formatted billing price', () => {
-    const price = getPlanPrice(plan, 'ru-RU');
+describe('subscription plan-presenter backend catalog price rule', () => {
+  it('uses backend catalog money when a commercial catalog price is present', () => {
+    const price = getPlanPrice({
+      ...plan,
+      public_catalog_price: {
+        amount: '79',
+        currency: 'EUR',
+        minorUnits: 2,
+      },
+    }, 'ru-RU');
 
-    expect(price.currency).toBe('RUB');
-    expect(price.amount).toBe(7910);
-    expect(price.formatted).toContain('7 910');
-    expect(price.localEstimate).toMatchObject({
-      amount: 7910,
-      currency: 'RUB',
-      source: 'catalog',
-    });
+    expect(price.currency).toBe('EUR');
+    expect(price.amount).toBe(79);
+    expect(price.formatted).toContain('79');
+    expect(price.localEstimate).toBeNull();
   });
 });

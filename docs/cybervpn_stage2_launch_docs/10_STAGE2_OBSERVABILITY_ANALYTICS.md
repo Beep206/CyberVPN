@@ -50,6 +50,7 @@ If home observability goes down, the customer service should continue to work. T
 | Stage 2 Support SLA | `infra/grafana/dashboards/stage2-support-sla-dashboard.json` | open support items, overdue SLA, first-response p95, resolution p95 |
 | Stage 2 Status Page Data Source | `infra/grafana/dashboards/stage2-status-page-dashboard.json` | `.net` customer edge, subscription route, `.org` VPN node TCP, home ops edge, TLS, synthetic failures |
 | Stage 2 Product Analytics | `infra/grafana/dashboards/stage2-product-analytics-dashboard.json` | ingestion drops, Web Vitals, checkout conversion, funnel events |
+| Stage 2 Commerce Operations | `infra/grafana/dashboards/stage2-commerce-ops-dashboard.json` | pricing/catalog latency, quote latency, checkout starts/failures, selector/fallback usage, add-on attach rate, PriceBook publish errors, provisioning retries, Remnawave sync lag |
 | Stage 2 Release Quality Gates | `infra/grafana/dashboards/stage2-release-quality-dashboard.json` | security gates, SBOM age, restore drill age, Sentry frontend errors |
 
 Dashboard generation source:
@@ -79,6 +80,7 @@ The rule file provides:
 - customer edge, subscription route, VPN node and home ops synthetic success ratios;
 - TLS certificate age;
 - product analytics ingestion signals;
+- commerce catalog, quote, checkout, add-on, selector/fallback, PriceBook and provisioning safety signals;
 - release quality signals.
 
 ### 4.2 Target Files
@@ -120,6 +122,11 @@ A healthy system may answer `404`, `401` or `403` for an unknown token. That sti
 | `Stage2HomeOpsEdgeProbeFailed` | P1 | Home ops public services have a probe failure | Check home server, Cloudflare tunnel/proxy and power/network |
 | `Stage2TlsCertificateExpiresSoon` | P1 | Public TLS cert under 14 days | Check Cloudflare/Caddy certificate lifecycle |
 | `Stage2AnalyticsIngestionDroppingEvents` | P1 | Product analytics drops/rejects events | Confirm analytics is not blocking checkout/auth |
+| `Stage2CommerceQuoteLatencyHigh` | P1 | Catalog or quote p95 latency is high | Check backend pricing/catalog resolver and quote session logs |
+| `Stage2CommerceQuoteInvalidationSpike` | P1 | Quote invalidation, expiration or checkout failures spiked | Check recent country/currency, add-on and PriceBook changes |
+| `Stage2CommerceFallbackSpike` | P1 | Unknown-country or fallback usage is elevated | Check selector persistence, country options and locale signals |
+| `Stage2PricebookPublishFailures` | P1 | PriceBook publish failed or validation errors exist | Preserve validation evidence and stop production publish/rollback until reviewed |
+| `Stage2ProvisioningRetryBacklog` | P1 | Provisioning retry backlog, Remnawave errors or sync lag exist | Check worker retry report and paid-but-no-access reconciliation |
 | `Stage2RestoreDrillOverdue` | P1 | Restore drill evidence older than 30 days | Run restore drill under S2-STAGE-12 |
 | `Stage2SentryFrontendErrorsElevated` | P1 | Frontend Sentry errors crossed threshold | Check release health and recent frontend deploy |
 
@@ -147,6 +154,21 @@ Rules:
 3. Events must use stable names and low-cardinality labels.
 4. Do not send raw Telegram init data, payment payloads, provider secrets, access tokens, refresh tokens, subscription URLs, VPN config URLs, private support notes or full request bodies.
 5. Prefer aggregate counters and redacted event properties over user-level logs.
+
+---
+
+## 6.1 Commerce Operations Metrics Policy
+
+Commerce Operations covers the W13 contract for catalog resolution latency, quote creation latency, checkout starts, payment success/failure context, country/currency selector usage, fallback/unknown country usage, quote invalidation, add-on attach rate, provisioning retry health, Remnawave sync lag and PriceBook publish failures.
+
+Rules:
+
+1. Metrics must use bounded labels such as `channel`, `currency`, `status`, `reason`, `action`, `severity`, `country_source` and `currency_source`.
+2. Metrics must not include user IDs, payment provider payloads, subscription URL tokens, VPN config URLs, Telegram init data, Remnawave tokens or raw request/response bodies.
+3. Quote invalidation is a customer-facing safety signal. Spikes require checking country/currency changes, PriceBook publish/rollback events, add-on compatibility and stale quote handling.
+4. PriceBook publish failures are admin safety signals. Production publish or rollback remains gated by the required Board/Orion/Security review path.
+5. Remnawave sync lag is inferred from `cybervpn_remnawave_sync_lag_seconds` when available and falls back to provisioning retry max age until a dedicated sync emitter exists.
+6. Web, Telegram, Mini App and partner sales must be reviewed by channel because a healthy aggregate can hide a broken surface.
 
 ---
 

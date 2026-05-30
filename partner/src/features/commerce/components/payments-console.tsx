@@ -1,8 +1,8 @@
 'use client';
 
-import { useDeferredValue, useState, type FormEvent } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, Search, X } from 'lucide-react';
+import { CreditCard, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,20 +27,17 @@ import {
 
 export function PaymentsConsole() {
   const t = useTranslations('Commerce');
-  const [lookupInput, setLookupInput] = useState('');
-  const [appliedUserUuid, setAppliedUserUuid] = useState('');
   const [providerFilter, setProviderFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [idSearch, setIdSearch] = useState('');
   const deferredSearch = useDeferredValue(idSearch.trim().toLowerCase());
 
   const paymentsQuery = useQuery({
-    queryKey: ['commerce', 'payments', { userUuid: appliedUserUuid || null }],
+    queryKey: ['commerce', 'payments', { limit: 100 }],
     queryFn: async () => {
       const response = await paymentsApi.getHistory({
         offset: 0,
         limit: 100,
-        user_uuid: appliedUserUuid || undefined,
       });
       return response.data.payments;
     },
@@ -65,11 +62,6 @@ export function PaymentsConsole() {
   const statuses = Array.from(new Set(payments.map((payment) => payment.status)));
   const totalVolume = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const completedPayments = filteredPayments.filter((payment) => payment.status === 'completed').length;
-
-  function handleLookupSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setAppliedUserUuid(lookupInput.trim());
-  }
 
   function statusTone(status: string) {
     if (status === 'completed') return 'success' as const;
@@ -119,18 +111,7 @@ export function PaymentsConsole() {
             {t('payments.filtersDescription')}
           </p>
 
-          <form className="mt-5 space-y-4" onSubmit={handleLookupSubmit}>
-            <label className="block space-y-2">
-              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                {t('common.userUuid')}
-              </span>
-              <Input
-                value={lookupInput}
-                onChange={(event) => setLookupInput(event.target.value)}
-                placeholder={t('payments.userUuidPlaceholder')}
-              />
-            </label>
-
+          <div className="mt-5 space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
               <label className="block space-y-2">
                 <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
@@ -181,27 +162,22 @@ export function PaymentsConsole() {
             </label>
 
             <div className="flex flex-wrap gap-3">
-              <Button type="submit" magnetic={false}>
-                <Search className="mr-2 h-4 w-4" />
-                {t('common.apply')}
-              </Button>
               <Button
                 type="button"
                 variant="ghost"
                 magnetic={false}
                 onClick={() => {
-                  setLookupInput('');
-                  setAppliedUserUuid('');
                   setProviderFilter('all');
                   setStatusFilter('all');
                   setIdSearch('');
                 }}
+                aria-label={t('common.reset')}
               >
                 <X className="mr-2 h-4 w-4" />
                 {t('common.reset')}
               </Button>
             </div>
-          </form>
+          </div>
 
           <div className="mt-5 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4 text-sm font-mono leading-6 text-muted-foreground">
             {t('payments.serverFilterHint')}

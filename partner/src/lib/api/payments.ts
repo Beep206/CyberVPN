@@ -17,6 +17,12 @@ export type CheckoutQuoteResponse =
   operations['quote_checkout_api_v1_payments_checkout_quote_post']['responses'][200]['content']['application/json'];
 export type CheckoutCommitResponse =
   operations['commit_checkout_api_v1_payments_checkout_commit_post']['responses'][200]['content']['application/json'];
+export type AdminPaymentAttemptListResponse =
+  operations['list_customer_payment_attempts_for_support_api_v1_admin_mobile_users__user_id__payment_attempts_get']['responses'][200]['content']['application/json'];
+export type AdminPaymentAttemptListParams =
+  operations['list_customer_payment_attempts_for_support_api_v1_admin_mobile_users__user_id__payment_attempts_get']['parameters']['query'];
+export type AdminPaymentAttemptDirectoryParams =
+  operations['list_admin_payment_attempts_api_v1_admin_payment_attempts_get']['parameters']['query'];
 
 /**
  * Payments API client
@@ -75,4 +81,12 @@ export const paymentsApi = {
    */
   getHistory: (params?: PaymentHistoryParams) =>
     apiClient.get<PaymentHistoryResponse>('/payments/history', { params }),
+};
+
+export const adminPaymentsApi = {
+  getPaymentAttempts: (params?: AdminPaymentAttemptDirectoryParams) =>
+    apiClient.get<AdminPaymentAttemptListResponse>('/admin/payment-attempts', { params }),
+
+  getCustomerPaymentAttempts: (userId: string, params?: AdminPaymentAttemptListParams) =>
+    apiClient.get<AdminPaymentAttemptListResponse>(`/admin/mobile-users/${userId}/payment-attempts`, { params }),
 };

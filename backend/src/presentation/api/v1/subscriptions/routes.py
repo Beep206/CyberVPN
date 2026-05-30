@@ -1,10 +1,11 @@
+import hmac
 from dataclasses import asdict
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.cache_service import CacheService
@@ -16,13 +17,18 @@ from src.application.use_cases.subscriptions import (
     GetActiveSubscriptionUseCase,
     GetCurrentEntitlementsUseCase,
     PurchaseAddonsUseCase,
+    Stage1ProvisioningRetryService,
+    Stage1ProvisioningRetryWorker,
+    Stage1ProvisioningRetryWorkerResult,
     UpgradeSubscriptionUseCase,
 )
+from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
+from src.infrastructure.database.repositories.stage1_provisioning_retry_repo import Stage1ProvisioningRetryJobRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_subscription_activation
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient
@@ -31,6 +37,8 @@ from src.infrastructure.remnawave.contracts import (
     RemnawaveSubscriptionResponse,
     StatusMessageResponse,
 )
+from src.infrastructure.remnawave.stage1_paid_gateway import RemnawaveStage1PaidProvisioningGateway
+from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
 from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient, RemnawaveSubscriptionClient
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.payments.schemas import (
@@ -58,6 +66,51 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
+
+
+def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
+    configured = settings.telegram_bot_internal_secret.get_secret_value().strip()
+    if not configured or not secret:
+        return False
+    return hmac.compare_digest(secret.strip(), configured)
+
+
+def _require_telegram_bot_secret(secret: str | None) -> None:
+    if _is_valid_telegram_bot_secret(secret):
+        return
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+@router.post("/internal/provisioning-retries/run")
+async def run_stage1_provisioning_retries(
+    limit: int = Query(25, ge=1, le=100),
+    worker_id: str = Query("task-worker", min_length=1, max_length=120),
+    db: AsyncSession = Depends(get_db),
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+    telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
+) -> dict:
+    """Run a bounded durable S1 provisioning retry pass for the task worker."""
+
+    _require_telegram_bot_secret(telegram_bot_secret)
+    repository = Stage1ProvisioningRetryJobRepository(db)
+    if not settings.stage1_provisioning_retry_claiming_enabled:
+        metrics = await repository.metrics_snapshot(now=datetime.now(UTC))
+        return Stage1ProvisioningRetryWorkerResult(
+            skipped=True,
+            skipped_reason="claiming_disabled",
+            metrics=metrics,
+        ).to_safe_dict()
+
+    user_gateway = RemnawaveUserGateway(remnawave_client)
+    retry_service = Stage1ProvisioningRetryService(queue=repository)
+    runner = Stage1ProvisioningRetryWorker(
+        repository=repository,
+        retry_service=retry_service,
+        paid_gateway=RemnawaveStage1PaidProvisioningGateway(user_gateway),
+        trial_gateway=RemnawaveStage1TrialProvisioningGateway(user_gateway),
+    )
+    run_limit = max(1, min(limit, settings.stage1_provisioning_retry_batch_limit))
+    return (await runner.run_due_jobs(limit=run_limit, worker_id=worker_id)).to_safe_dict()
 
 
 def _serialize_subscription_quote(result) -> CheckoutQuoteResponse:

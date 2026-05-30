@@ -16,12 +16,13 @@ vi.mock('@/shared/ui/modal', () => ({
 }));
 
 const MATCH_ANY_API_ORIGIN = {
-  clientCapabilities: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/client\/capabilities$/,
-  quoteSessions: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/quotes\/?$/,
-  resolveCodes: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/codes\/resolve$/,
-  checkoutSessions: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/checkout-sessions\/?$/,
-  ordersCommit: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/orders\/commit$/,
-  paymentAttempts: /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/v1\/payment-attempts\/?$/,
+  clientCapabilities: /^(?:https?:\/\/[^/]+)?\/api\/v1\/client\/capabilities$/,
+  quoteSessions: /^(?:https?:\/\/[^/]+)?\/api\/v1\/quotes\/?$/,
+  quoteSessionById: /^(?:https?:\/\/[^/]+)?\/api\/v1\/quotes\/11111111-1111-1111-1111-111111111111$/,
+  resolveCodes: /^(?:https?:\/\/[^/]+)?\/api\/v1\/codes\/resolve$/,
+  checkoutSessions: /^(?:https?:\/\/[^/]+)?\/api\/v1\/checkout-sessions\/?$/,
+  ordersCommit: /^(?:https?:\/\/[^/]+)?\/api\/v1\/orders\/commit$/,
+  paymentAttempts: /^(?:https?:\/\/[^/]+)?\/api\/v1\/payment-attempts\/?$/,
 };
 
 function createQueryClient() {
@@ -142,7 +143,7 @@ function createQuoteSession(overrides: Record<string, unknown> = {}) {
     sale_channel: 'web',
     currency_code: 'USD',
     status: 'open',
-    expires_at: '2026-04-18T12:00:00Z',
+    expires_at: '2099-04-18T12:00:00Z',
     quote: createQuote(),
     created_at: '2026-04-18T10:00:00Z',
     updated_at: '2026-04-18T10:00:00Z',
@@ -174,7 +175,7 @@ function createCheckoutSession(overrides: Record<string, unknown> = {}) {
     currency_code: 'USD',
     status: 'open',
     idempotency_key: 'checkout-session-test',
-    expires_at: '2026-04-18T12:05:00Z',
+    expires_at: '2099-04-18T12:05:00Z',
     quote: createQuote(),
     created_at: '2026-04-18T10:01:00Z',
     updated_at: '2026-04-18T10:01:00Z',
@@ -386,9 +387,35 @@ describe('PurchaseConfirmModal', () => {
 
     await screen.findByText('Checkout total');
 
-    expect(screen.getByText('Charged in USD')).toBeInTheDocument();
+    expect(screen.getByText('checkoutQuote.chargedIn')).toBeInTheDocument();
     expect(screen.queryByText(/display only/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/approx/i)).not.toBeInTheDocument();
+  });
+
+  it('disables checkout and offers quote refresh when the backend quote is expired', async () => {
+    server.use(
+      http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>
+        HttpResponse.json(createQuoteSession({
+          status: 'expired',
+          expires_at: '2020-04-18T12:00:00Z',
+        }), { status: 201 })),
+    );
+
+    renderWithProviders(
+      <PurchaseConfirmModal
+        isOpen={true}
+        onClose={vi.fn()}
+        plan={createPlan()}
+      />,
+    );
+
+    await screen.findByText('Checkout total');
+
+    await waitFor(() => {
+      expect(screen.getByText('checkoutQuote.expiredTitle')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Pay with Crypto/i })).toBeDisabled();
+    });
+    expect(screen.getByRole('button', { name: 'checkoutQuote.refreshCta' })).toBeInTheDocument();
   });
 
   it('hides checkout code entry while S1 growth flows are disabled', async () => {
@@ -466,6 +493,8 @@ describe('PurchaseConfirmModal', () => {
     server.use(
       http.post(MATCH_ANY_API_ORIGIN.quoteSessions, async () =>
         HttpResponse.json(createQuoteSession(), { status: 201 })),
+      http.get(MATCH_ANY_API_ORIGIN.quoteSessionById, async () =>
+        HttpResponse.json(createQuoteSession(), { status: 200 })),
       http.post(MATCH_ANY_API_ORIGIN.checkoutSessions, async ({ request }) => {
         checkoutBody = (await request.json()) as Record<string, unknown>;
         checkoutIdempotencyKey = request.headers.get(CANONICAL_IDEMPOTENCY_HEADER);

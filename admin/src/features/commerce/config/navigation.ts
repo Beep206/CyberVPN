@@ -12,6 +12,14 @@ export const COMMERCE_NAV_ITEMS = [
     labelKey: 'nav.addons',
   },
   {
+    href: '/commerce/pricebooks',
+    labelKey: 'nav.pricebooks',
+  },
+  {
+    href: '/commerce/catalog-preview',
+    labelKey: 'nav.catalogPreview',
+  },
+  {
     href: '/commerce/subscription-templates',
     labelKey: 'nav.subscriptionTemplates',
   },

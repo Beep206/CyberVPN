@@ -144,6 +144,9 @@ async def test_payment_attempts_are_idempotent_and_support_retry_after_terminal_
             assert first_attempt["order_id"] == order_payload["id"]
             assert first_attempt["attempt_number"] == 1
             assert first_attempt["status"] == "pending"
+            assert first_attempt["displayed_amount"] == 75.0
+            assert first_attempt["gateway_amount"] == 75.0
+            assert first_attempt["invoice"]["amount"] == 75.0
             assert first_attempt["invoice"]["invoice_id"] == "1001"
 
             duplicate_response = await async_client.post(

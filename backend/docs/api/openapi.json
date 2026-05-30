@@ -1331,6 +1331,61 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "mobile-auth"
+        ],
+        "summary": "Delete Me",
+        "description": "Delete the current mobile account and revoke VPN access.",
+        "operationId": "delete_me_api_v1_mobile_auth_me_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteMobileAccountResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "VPN access could not be revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/mobile/auth/devices": {
@@ -4635,6 +4690,28 @@
         }
       }
     },
+    "/api/v1/client/capabilities": {
+      "get": {
+        "tags": [
+          "client"
+        ],
+        "summary": "Get Client Capabilities",
+        "description": "Return runtime feature capabilities for public clients.",
+        "operationId": "get_client_capabilities_api_v1_client_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientCapabilityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/": {
       "get": {
         "tags": [
@@ -4890,6 +4967,535 @@
         }
       }
     },
+    "/api/v1/customer-subscriptions/": {
+      "get": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "List Customer Subscriptions",
+        "operationId": "list_customer_subscriptions_api_v1_customer_subscriptions__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "selected_subscription_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Selected Subscription Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSubscriptionListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/entitlements": {
+      "get": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Get Customer Subscription Entitlements",
+        "operationId": "get_customer_subscription_entitlements_api_v1_customer_subscriptions__subscription_key__entitlements_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentEntitlementStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/service-state": {
+      "post": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Get Customer Subscription Service State",
+        "operationId": "get_customer_subscription_service_state_api_v1_customer_subscriptions__subscription_key__service_state_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetCurrentServiceStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentServiceStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/config": {
+      "get": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Get Customer Subscription Config",
+        "operationId": "get_customer_subscription_config_api_v1_customer_subscriptions__subscription_key__config_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemnawaveSubscriptionConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/usage": {
+      "get": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Get Customer Subscription Usage",
+        "operationId": "get_customer_subscription_usage_api_v1_customer_subscriptions__subscription_key__usage_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/upgrade/quote": {
+      "post": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Quote Customer Subscription Upgrade",
+        "operationId": "quote_customer_subscription_upgrade_api_v1_customer_subscriptions__subscription_key__upgrade_quote_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutQuoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/upgrade": {
+      "post": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Commit Customer Subscription Upgrade",
+        "operationId": "commit_customer_subscription_upgrade_api_v1_customer_subscriptions__subscription_key__upgrade_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutCommitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/addons/quote": {
+      "post": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Quote Customer Subscription Addons",
+        "operationId": "quote_customer_subscription_addons_api_v1_customer_subscriptions__subscription_key__addons_quote_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseSubscriptionAddonsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutQuoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}/addons": {
+      "post": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Purchase Customer Subscription Addons",
+        "operationId": "purchase_customer_subscription_addons_api_v1_customer_subscriptions__subscription_key__addons_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseSubscriptionAddonsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutCommitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer-subscriptions/{subscription_key}": {
+      "get": {
+        "tags": [
+          "customer-subscriptions"
+        ],
+        "summary": "Get Customer Subscription",
+        "operationId": "get_customer_subscription_api_v1_customer_subscriptions__subscription_key__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subscription_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subscription Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSubscriptionSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me/profile": {
       "get": {
         "tags": [
@@ -5040,7 +5646,7 @@
           "servers"
         ],
         "summary": "List Servers",
-        "description": "List all Remnawave VPN servers.",
+        "description": "List customer-visible Remnawave VPN servers.",
         "operationId": "list_servers_api_v1_servers__get",
         "responses": {
           "200": {
@@ -5116,7 +5722,7 @@
           "servers"
         ],
         "summary": "Get Server Stats",
-        "description": "Get Remnawave server statistics by status.",
+        "description": "Get customer-visible Remnawave server statistics by status.",
         "operationId": "get_server_stats_api_v1_servers_stats_get",
         "responses": {
           "200": {
@@ -5572,7 +6178,7 @@
           "subscriptions"
         ],
         "summary": "Generate Config",
-        "description": "Generate VPN configuration for a user",
+        "description": "Generate VPN configuration for the authenticated customer or an admin-selected user.",
         "operationId": "generate_config_api_v1_subscriptions_config__user_uuid__get",
         "security": [
           {
@@ -6285,6 +6891,180 @@
         }
       }
     },
+    "/api/v1/catalog/context": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Resolve Public Catalog Context",
+        "operationId": "resolve_public_catalog_context_api_v1_catalog_context_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveCatalogContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCatalogContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Get Public Catalog",
+        "operationId": "get_public_catalog_api_v1_catalog__get",
+        "parameters": [
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "default": "web",
+              "title": "Channel"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 2
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "name": "uiLocale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uilocale"
+            }
+          },
+          {
+            "name": "urlLocale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Urllocale"
+            }
+          },
+          {
+            "name": "storefrontKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Storefrontkey"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCommercialCatalogResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/offers/": {
       "get": {
         "tags": [
@@ -6828,6 +7608,69 @@
                     "$ref": "#/components/schemas/ProgramEligibilityPolicyResponse"
                   },
                   "title": "Response List Admin Program Eligibility Api V1 Program Eligibility Admin Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/storefronts/{storefront_key}/preview": {
+      "get": {
+        "tags": [
+          "storefronts"
+        ],
+        "summary": "Preview Storefront Contract",
+        "description": "Return a read-only reseller storefront contract preview.\n\nThe endpoint is intentionally side-effect free: it does not create quotes,\ncheckout sessions, attribution touchpoints, or commercial bindings.",
+        "operationId": "preview_storefront_contract_api_v1_storefronts__storefront_key__preview_get",
+        "parameters": [
+          {
+            "name": "storefront_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Storefront Key"
+            }
+          },
+          {
+            "name": "partner_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 30
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Partner Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorefrontPreviewResponse"
                 }
               }
             }
@@ -18978,6 +19821,232 @@
         }
       }
     },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/ops-overview": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Admin Partner Workspace Ops Overview",
+        "operationId": "get_admin_partner_workspace_ops_overview_api_v1_admin_partner_workspaces__workspace_id__ops_overview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerAdminOpsOverviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/payout-review-queue": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Admin Partner Workspace Payout Review Queue",
+        "operationId": "list_admin_partner_workspace_payout_review_queue_api_v1_admin_partner_workspaces__workspace_id__payout_review_queue_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PartnerAdminPayoutReviewItemResponse"
+                  },
+                  "title": "Response List Admin Partner Workspace Payout Review Queue Api V1 Admin Partner Workspaces  Workspace Id  Payout Review Queue Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/status": {
+      "patch": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Update Admin Partner Workspace Status",
+        "operationId": "update_admin_partner_workspace_status_api_v1_admin_partner_workspaces__workspace_id__status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartnerWorkspaceStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/partner-workspaces/{workspace_id}/codes/{code_id}/status": {
+      "patch": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Update Admin Partner Workspace Code Status",
+        "operationId": "update_admin_partner_workspace_code_status_api_v1_admin_partner_workspaces__workspace_id__codes__code_id__status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "code_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Code Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartnerWorkspaceCodeStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/partner-applications": {
       "get": {
         "tags": [
@@ -21860,6 +22929,102 @@
         }
       }
     },
+    "/api/v1/partner-workspaces/{workspace_id}/reporting-summary": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Partner Workspace Reporting Summary",
+        "operationId": "get_partner_workspace_reporting_summary_api_v1_partner_workspaces__workspace_id__reporting_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceReportingSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/settlement-sandbox": {
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "Get Partner Workspace Settlement Sandbox",
+        "operationId": "get_partner_workspace_settlement_sandbox_api_v1_partner_workspaces__workspace_id__settlement_sandbox_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspaceSettlementSandboxSimulationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/partner-workspaces/{workspace_id}/report-exports": {
       "get": {
         "tags": [
@@ -23221,6 +24386,24 @@
               ],
               "title": "Startparam"
             }
+          },
+          {
+            "name": "selectedSubscriptionKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Selectedsubscriptionkey"
+            }
           }
         ],
         "responses": {
@@ -23254,6 +24437,31 @@
         ],
         "summary": "Get Miniapp Offers",
         "operationId": "get_miniapp_offers_api_v1_miniapp_offers_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "selectedSubscriptionKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Selectedsubscriptionkey"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -23264,13 +24472,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/miniapp/trial/activate": {
@@ -23446,6 +24659,31 @@
         ],
         "summary": "Get Miniapp Config",
         "operationId": "get_miniapp_config_api_v1_miniapp_config_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "selectedSubscriptionKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Selectedsubscriptionkey"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -23456,13 +24694,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/status": {
@@ -27124,6 +28367,600 @@
         }
       }
     },
+    "/api/v1/admin/pricebooks": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "List Admin Commercial Pricebooks",
+        "operationId": "list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Inactive"
+            }
+          },
+          {
+            "name": "storefront_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Storefront Id"
+            }
+          },
+          {
+            "name": "storefront_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Storefront Key"
+            }
+          },
+          {
+            "name": "currency_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency Code"
+            }
+          },
+          {
+            "name": "region_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 16
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Region Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminPricebookVersionResponse"
+                  },
+                  "title": "Response List Admin Commercial Pricebooks Api V1 Admin Pricebooks Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}": {
+      "patch": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Update Admin Commercial Pricebook",
+        "operationId": "update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/publish": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Publish Admin Commercial Pricebook",
+        "operationId": "publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/schedule": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Schedule Admin Commercial Pricebook",
+        "operationId": "schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/rollback": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Rollback Admin Commercial Pricebook",
+        "operationId": "rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_key}/history": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Get Admin Commercial Pricebook History",
+        "operationId": "get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pricebook Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/audit": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Get Admin Commercial Pricebook Audit",
+        "operationId": "get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogResponse"
+                  },
+                  "title": "Response Get Admin Commercial Pricebook Audit Api V1 Admin Pricebooks  Pricebook Id  Audit Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/validate": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Validate Admin Commercial Pricebook",
+        "operationId": "validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/commercial-context/options": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Get Admin Commercial Context Options",
+        "operationId": "get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialContextOptionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Update Admin Commercial Context Options",
+        "operationId": "update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommercialContextOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialContextOptionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/mobile-users/{user_id}/notes": {
       "get": {
         "tags": [
@@ -27240,6 +29077,74 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminCustomerStaffNoteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mobile-users/{user_id}/customer-subscriptions": {
+      "get": {
+        "tags": [
+          "admin",
+          "customer-support"
+        ],
+        "summary": "List Admin Customer Subscriptions",
+        "description": "Return all customer subscriptions for support-side selected-subscription inspection.",
+        "operationId": "list_admin_customer_subscriptions_api_v1_admin_mobile_users__user_id__customer_subscriptions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "selected_subscription_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Selected Subscription Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSubscriptionListResponse"
                 }
               }
             }
@@ -28739,7 +30644,7 @@
           "telegram"
         ],
         "summary": "Get Bot User Subscriptions",
-        "description": "Return Telegram bot-facing subscriptions list from the canonical entitlement snapshot.",
+        "description": "Return Telegram bot-facing subscriptions list from the selected-subscription read model.",
         "operationId": "get_bot_user_subscriptions_api_v1_telegram_bot_user__telegram_id__subscriptions_get",
         "parameters": [
           {
@@ -28957,6 +30862,24 @@
             "schema": {
               "type": "integer",
               "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "subscription_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subscription Key"
             }
           },
           {
@@ -29773,6 +31696,92 @@
         }
       }
     },
+    "/api/v1/telegram/bot/user/{telegram_id}/invite-codes": {
+      "get": {
+        "tags": [
+          "telegram"
+        ],
+        "summary": "Get Bot User Invite Codes",
+        "description": "Return Telegram bot-facing invite codes owned by the user.",
+        "operationId": "get_bot_user_invite_codes_api_v1_telegram_bot_user__telegram_id__invite_codes_get",
+        "parameters": [
+          {
+            "name": "telegram_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramBotInviteCodeResponse"
+                  },
+                  "title": "Response Get Bot User Invite Codes Api V1 Telegram Bot User  Telegram Id  Invite Codes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/telegram/bot/user/{telegram_id}/config": {
       "get": {
         "tags": [
@@ -29789,6 +31798,24 @@
             "schema": {
               "type": "integer",
               "title": "Telegram Id"
+            }
+          },
+          {
+            "name": "subscription_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 220
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subscription Key"
             }
           },
           {
@@ -34602,6 +36629,19 @@
             "minLength": 3,
             "title": "Reason"
           },
+          "plan_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Code"
+          },
           "duration_days": {
             "type": "integer",
             "maximum": 365.0,
@@ -35279,6 +37319,21 @@
           "upstream_subscription_url": {
             "type": "string",
             "title": "Upstream Subscription Url"
+          },
+          "previous_subscription_url_present": {
+            "type": "boolean",
+            "title": "Previous Subscription Url Present",
+            "default": false
+          },
+          "stored_subscription_url_present": {
+            "type": "boolean",
+            "title": "Stored Subscription Url Present",
+            "default": false
+          },
+          "upstream_subscription_url_present": {
+            "type": "boolean",
+            "title": "Upstream Subscription Url Present",
+            "default": false
           },
           "changed": {
             "type": "boolean",
@@ -40621,6 +42676,275 @@
         "title": "AdminPaymentAttemptResponse",
         "description": "Admin-safe payment attempt row.\n\nProvider snapshots, request snapshots, idempotency keys, checkout URLs and\nraw external references are intentionally excluded."
       },
+      "AdminPricebookHistoryResponse": {
+        "properties": {
+          "pricebook_key": {
+            "type": "string",
+            "title": "Pricebook Key"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPricebookVersionResponse"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook_key",
+          "versions"
+        ],
+        "title": "AdminPricebookHistoryResponse"
+      },
+      "AdminPricebookLifecycleResponse": {
+        "properties": {
+          "pricebook": {
+            "$ref": "#/components/schemas/PricebookResponse"
+          },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          },
+          "audit_action": {
+            "type": "string",
+            "title": "Audit Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook",
+          "lifecycle_status",
+          "audit_action"
+        ],
+        "title": "AdminPricebookLifecycleResponse"
+      },
+      "AdminPricebookValidationIssueResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "missing_price",
+              "unsupported_currency",
+              "missing_provisioning_profile",
+              "incompatible_addon"
+            ],
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "offer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "AdminPricebookValidationIssueResponse"
+      },
+      "AdminPricebookValidationResponse": {
+        "properties": {
+          "pricebook_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pricebook Id"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPricebookValidationIssueResponse"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook_id",
+          "valid",
+          "checked_at",
+          "issues"
+        ],
+        "title": "AdminPricebookValidationResponse"
+      },
+      "AdminPricebookVersionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "pricebook_key": {
+            "type": "string",
+            "title": "Pricebook Key"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "storefront_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Storefront Id"
+          },
+          "merchant_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Profile Id"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          },
+          "discount_rules": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Discount Rules"
+          },
+          "renewal_pricing_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Renewal Pricing Policy"
+          },
+          "version_status": {
+            "type": "string",
+            "title": "Version Status"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/PricebookEntryResponse"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "pricebook_key",
+          "display_name",
+          "storefront_id",
+          "merchant_profile_id",
+          "currency_code",
+          "region_code",
+          "discount_rules",
+          "renewal_pricing_policy",
+          "version_status",
+          "effective_from",
+          "effective_to",
+          "is_active",
+          "entries",
+          "lifecycle_status"
+        ],
+        "title": "AdminPricebookVersionResponse"
+      },
       "AdminProcessWithdrawalRequest": {
         "properties": {
           "admin_note": {
@@ -42991,6 +45315,213 @@
         "type": "object",
         "title": "ClaimPartnerBotProvisioningJobResponse"
       },
+      "ClientAuthCapabilities": {
+        "properties": {
+          "email_password": {
+            "type": "boolean",
+            "title": "Email Password",
+            "default": true
+          },
+          "magic_link": {
+            "type": "boolean",
+            "title": "Magic Link",
+            "default": true
+          },
+          "telegram": {
+            "type": "boolean",
+            "title": "Telegram",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "ClientAuthCapabilities"
+      },
+      "ClientCapabilityResponse": {
+        "properties": {
+          "auth": {
+            "$ref": "#/components/schemas/ClientAuthCapabilities"
+          },
+          "payments": {
+            "$ref": "#/components/schemas/ClientPaymentCapabilities"
+          },
+          "growth": {
+            "$ref": "#/components/schemas/ClientGrowthCapabilities"
+          },
+          "subscriptions": {
+            "$ref": "#/components/schemas/ClientSubscriptionCapabilities"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/ClientPartnerCapabilities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "payments",
+          "growth",
+          "subscriptions",
+          "partner"
+        ],
+        "title": "ClientCapabilityResponse"
+      },
+      "ClientGrowthCapabilities": {
+        "properties": {
+          "invites": {
+            "type": "boolean",
+            "title": "Invites",
+            "default": true
+          },
+          "referral": {
+            "type": "boolean",
+            "title": "Referral",
+            "default": false
+          },
+          "promo_codes": {
+            "type": "boolean",
+            "title": "Promo Codes",
+            "default": false
+          },
+          "gift_codes": {
+            "type": "boolean",
+            "title": "Gift Codes",
+            "default": false
+          },
+          "checkout_code_discounts": {
+            "type": "boolean",
+            "title": "Checkout Code Discounts",
+            "default": false
+          },
+          "growth_hub": {
+            "type": "boolean",
+            "title": "Growth Hub",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ClientGrowthCapabilities"
+      },
+      "ClientPartnerCapabilities": {
+        "properties": {
+          "portal": {
+            "type": "boolean",
+            "title": "Portal",
+            "default": false
+          },
+          "applications": {
+            "type": "boolean",
+            "title": "Applications",
+            "default": false
+          },
+          "codes": {
+            "type": "boolean",
+            "title": "Codes",
+            "default": false
+          },
+          "attribution": {
+            "type": "boolean",
+            "title": "Attribution",
+            "default": false
+          },
+          "storefronts": {
+            "type": "boolean",
+            "title": "Storefronts",
+            "default": false
+          },
+          "reporting": {
+            "type": "boolean",
+            "title": "Reporting",
+            "default": false
+          },
+          "settlement_sandbox": {
+            "type": "boolean",
+            "title": "Settlement Sandbox",
+            "default": false
+          },
+          "webhooks": {
+            "type": "boolean",
+            "title": "Webhooks",
+            "default": false
+          },
+          "payouts": {
+            "type": "boolean",
+            "title": "Payouts",
+            "default": false
+          },
+          "event_backbone": {
+            "type": "boolean",
+            "title": "Event Backbone",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ClientPartnerCapabilities"
+      },
+      "ClientPaymentCapabilities": {
+        "properties": {
+          "web_checkout": {
+            "type": "boolean",
+            "title": "Web Checkout",
+            "default": false
+          },
+          "telegram_stars": {
+            "type": "boolean",
+            "title": "Telegram Stars",
+            "default": false
+          },
+          "cryptobot": {
+            "type": "boolean",
+            "title": "Cryptobot",
+            "default": false
+          },
+          "manual_invoice": {
+            "type": "boolean",
+            "title": "Manual Invoice",
+            "default": false
+          },
+          "autorenewal": {
+            "type": "boolean",
+            "title": "Autorenewal",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ClientPaymentCapabilities"
+      },
+      "ClientSubscriptionCapabilities": {
+        "properties": {
+          "multi_subscription": {
+            "type": "boolean",
+            "title": "Multi Subscription",
+            "default": true
+          },
+          "selected_subscription_required": {
+            "type": "boolean",
+            "title": "Selected Subscription Required",
+            "default": true
+          },
+          "addons": {
+            "type": "boolean",
+            "title": "Addons",
+            "default": false
+          },
+          "upgrade": {
+            "type": "boolean",
+            "title": "Upgrade",
+            "default": true
+          },
+          "trial": {
+            "type": "boolean",
+            "title": "Trial",
+            "default": false
+          },
+          "paid_provisioning": {
+            "type": "boolean",
+            "title": "Paid Provisioning",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ClientSubscriptionCapabilities"
+      },
       "CloneNodePluginRequest": {
         "properties": {
           "cloneFromUuid": {
@@ -43004,6 +45535,100 @@
           "cloneFromUuid"
         ],
         "title": "CloneNodePluginRequest"
+      },
+      "CommercialContextCountryOptionResponse": {
+        "properties": {
+          "country_code": {
+            "type": "string",
+            "title": "Country Code"
+          },
+          "default_currency_code": {
+            "type": "string",
+            "title": "Default Currency Code"
+          },
+          "supported_currency_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Currency Codes"
+          },
+          "payment_country_code": {
+            "type": "string",
+            "title": "Payment Country Code"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "country_code",
+          "default_currency_code",
+          "supported_currency_codes",
+          "payment_country_code",
+          "is_enabled"
+        ],
+        "title": "CommercialContextCountryOptionResponse"
+      },
+      "CommercialContextCurrencyOptionResponse": {
+        "properties": {
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "minor_units": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Minor Units"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency_code",
+          "minor_units",
+          "is_enabled"
+        ],
+        "title": "CommercialContextCurrencyOptionResponse"
+      },
+      "CommercialContextOptionsResponse": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/CommercialContextCountryOptionResponse"
+            },
+            "type": "array",
+            "title": "Countries"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CommercialContextCurrencyOptionResponse"
+            },
+            "type": "array",
+            "title": "Currencies"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "default",
+              "system_config"
+            ],
+            "title": "Source",
+            "default": "default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "countries",
+          "currencies"
+        ],
+        "title": "CommercialContextOptionsResponse"
       },
       "CommercialOwnerSource": {
         "type": "string",
@@ -43191,13 +45816,39 @@
             "type": "string",
             "maxLength": 5000,
             "title": "Config String",
-            "description": "VPN configuration string"
+            "description": "Primary VPN subscription URL or fallback config"
           },
           "client_type": {
             "type": "string",
             "maxLength": 50,
             "title": "Client Type",
             "description": "VPN client type (vless, vmess, etc.)"
+          },
+          "subscription_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Url",
+            "description": "Canonical subscription URL when available"
+          },
+          "subscription_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 220
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Key",
+            "description": "Selected customer subscription key"
           }
         },
         "type": "object",
@@ -47787,6 +50438,249 @@
         ],
         "title": "CustomerCommercialBindingType"
       },
+      "CustomerSubscriptionListResponse": {
+        "properties": {
+          "customer_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Customer Account Id"
+          },
+          "auth_realm_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Auth Realm Id"
+          },
+          "selected_subscription_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Subscription Key"
+          },
+          "default_subscription_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Subscription Key"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerSubscriptionSummaryResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_account_id",
+          "auth_realm_id"
+        ],
+        "title": "CustomerSubscriptionListResponse"
+      },
+      "CustomerSubscriptionSummaryResponse": {
+        "properties": {
+          "subscription_key": {
+            "type": "string",
+            "title": "Subscription Key"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "entitlement_grant",
+              "trial",
+              "legacy_payment"
+            ],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "plan_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Uuid"
+          },
+          "plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Code"
+          },
+          "source_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Type"
+          },
+          "source_order_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Order Id"
+          },
+          "entitlement_grant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entitlement Grant Id"
+          },
+          "service_identity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Identity Id"
+          },
+          "provider_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Name"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "effective_entitlements": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Effective Entitlements"
+          },
+          "invite_bundle": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Invite Bundle"
+          },
+          "is_trial": {
+            "type": "boolean",
+            "title": "Is Trial"
+          },
+          "addons": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Addons"
+          },
+          "can_manage": {
+            "type": "boolean",
+            "title": "Can Manage"
+          },
+          "can_deliver_config": {
+            "type": "boolean",
+            "title": "Can Deliver Config"
+          },
+          "management_scope": {
+            "type": "string",
+            "enum": [
+              "subscription_entitlement",
+              "account_vpn_identity",
+              "subscription_vpn_identity"
+            ],
+            "title": "Management Scope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subscription_key",
+          "kind",
+          "status",
+          "is_trial",
+          "can_manage",
+          "can_deliver_config",
+          "management_scope"
+        ],
+        "title": "CustomerSubscriptionSummaryResponse"
+      },
       "DedicatedIpSchema": {
         "properties": {
           "included": {
@@ -47827,6 +50721,19 @@
         "type": "object",
         "title": "DeleteAntiPhishingCodeResponse",
         "description": "Response after deleting anti-phishing code."
+      },
+      "DeleteMobileAccountResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Deletion result message",
+            "default": "Account has been deleted"
+          }
+        },
+        "type": "object",
+        "title": "DeleteMobileAccountResponse",
+        "description": "Response schema for authenticated mobile account deletion."
       },
       "DeleteNodePluginResponse": {
         "properties": {
@@ -52936,6 +55843,22 @@
           },
           "user": {
             "$ref": "#/components/schemas/AdminUserResponse"
+          },
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
           }
         },
         "type": "object",
@@ -54325,6 +57248,19 @@
             ],
             "title": "Flow",
             "default": "checkout"
+          },
+          "subscriptionKey": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 220,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscriptionkey"
           },
           "planId": {
             "anyOf": [
@@ -56150,6 +59086,185 @@
           "updated_at"
         ],
         "title": "OutboxPublicationResponse"
+      },
+      "PartnerAdminOpsActionResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "required_role": {
+            "type": "string",
+            "title": "Required Role"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "status",
+          "required_role"
+        ],
+        "title": "PartnerAdminOpsActionResponse"
+      },
+      "PartnerAdminOpsOverviewResponse": {
+        "properties": {
+          "workspace": {
+            "$ref": "#/components/schemas/PartnerWorkspaceResponse"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "open_cases": {
+            "type": "integer",
+            "title": "Open Cases",
+            "default": 0
+          },
+          "waiting_on_ops_cases": {
+            "type": "integer",
+            "title": "Waiting On Ops Cases",
+            "default": 0
+          },
+          "open_review_requests": {
+            "type": "integer",
+            "title": "Open Review Requests",
+            "default": 0
+          },
+          "payout_review_items": {
+            "type": "integer",
+            "title": "Payout Review Items",
+            "default": 0
+          },
+          "frozen": {
+            "type": "boolean",
+            "title": "Frozen",
+            "default": false
+          },
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerWorkspaceCaseResponse"
+            },
+            "type": "array",
+            "title": "Cases"
+          },
+          "review_requests": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerWorkspaceReviewRequestResponse"
+            },
+            "type": "array",
+            "title": "Review Requests"
+          },
+          "payout_review_queue": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerAdminPayoutReviewItemResponse"
+            },
+            "type": "array",
+            "title": "Payout Review Queue"
+          },
+          "recent_audit_events": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerWorkspaceThreadEventResponse"
+            },
+            "type": "array",
+            "title": "Recent Audit Events"
+          },
+          "available_admin_actions": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerAdminOpsActionResponse"
+            },
+            "type": "array",
+            "title": "Available Admin Actions"
+          },
+          "escalation_path": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Escalation Path"
+          },
+          "redaction_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Redaction Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace",
+          "generated_at"
+        ],
+        "title": "PartnerAdminOpsOverviewResponse"
+      },
+      "PartnerAdminPayoutReviewItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "required_role": {
+            "type": "string",
+            "title": "Required Role"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "source",
+          "required_role",
+          "updated_at"
+        ],
+        "title": "PartnerAdminPayoutReviewItemResponse"
       },
       "PartnerApplicationAdminDetailResponse": {
         "properties": {
@@ -58691,6 +61806,21 @@
             "type": "string",
             "title": "Trend"
           },
+          "source_of_truth": {
+            "type": "string",
+            "title": "Source Of Truth",
+            "default": "partner_reporting_mart"
+          },
+          "workspace_scoped": {
+            "type": "boolean",
+            "title": "Workspace Scoped",
+            "default": true
+          },
+          "pii_redacted": {
+            "type": "boolean",
+            "title": "Pii Redacted",
+            "default": true
+          },
           "notes": {
             "items": {
               "type": "string"
@@ -59935,6 +63065,40 @@
         ],
         "title": "PartnerWorkspaceProgramsResponse"
       },
+      "PartnerWorkspaceReportExportRedactionResponse": {
+        "properties": {
+          "policy": {
+            "type": "string",
+            "title": "Policy"
+          },
+          "pii_fields_excluded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pii Fields Excluded"
+          },
+          "masked_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Masked Fields"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policy"
+        ],
+        "title": "PartnerWorkspaceReportExportRedactionResponse"
+      },
       "PartnerWorkspaceReportExportResponse": {
         "properties": {
           "id": {
@@ -59952,6 +63116,23 @@
           "cadence": {
             "type": "string",
             "title": "Cadence"
+          },
+          "source_of_truth": {
+            "type": "string",
+            "title": "Source Of Truth",
+            "default": "workspace_scoped_backend_reporting_marts"
+          },
+          "redaction_policy": {
+            "type": "string",
+            "title": "Redaction Policy",
+            "default": "redacted_partner_export"
+          },
+          "pii_fields_excluded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pii Fields Excluded"
           },
           "notes": {
             "items": {
@@ -59995,6 +63176,115 @@
           "cadence"
         ],
         "title": "PartnerWorkspaceReportExportResponse"
+      },
+      "PartnerWorkspaceReportingReconciliationResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "mismatch_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Mismatch Counts"
+          },
+          "blocking_mismatch_count": {
+            "type": "integer",
+            "title": "Blocking Mismatch Count",
+            "default": 0
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "PartnerWorkspaceReportingReconciliationResponse"
+      },
+      "PartnerWorkspaceReportingSummaryMetricResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "source_of_truth": {
+            "type": "string",
+            "title": "Source Of Truth"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "source_of_truth"
+        ],
+        "title": "PartnerWorkspaceReportingSummaryMetricResponse"
+      },
+      "PartnerWorkspaceReportingSummaryResponse": {
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "report_version": {
+            "type": "string",
+            "title": "Report Version"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerWorkspaceReportingSummaryMetricResponse"
+            },
+            "type": "array",
+            "title": "Metrics"
+          },
+          "reconciliation": {
+            "$ref": "#/components/schemas/PartnerWorkspaceReportingReconciliationResponse"
+          },
+          "export_redaction": {
+            "$ref": "#/components/schemas/PartnerWorkspaceReportExportRedactionResponse"
+          },
+          "source_of_truth_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Of Truth Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "generated_at",
+          "report_version",
+          "reconciliation",
+          "export_redaction"
+        ],
+        "title": "PartnerWorkspaceReportingSummaryResponse"
       },
       "PartnerWorkspaceResellerVoucherBatchResponse": {
         "properties": {
@@ -60378,6 +63668,213 @@
           "reviewed_active_sessions"
         ],
         "title": "PartnerWorkspaceSettingsResponse"
+      },
+      "PartnerWorkspaceSettlementSandboxEligibilityResponse": {
+        "properties": {
+          "settlement_simulation_reproducible": {
+            "type": "boolean",
+            "title": "Settlement Simulation Reproducible"
+          },
+          "payout_instruction_allowed": {
+            "type": "boolean",
+            "title": "Payout Instruction Allowed"
+          },
+          "dry_run_execution_allowed": {
+            "type": "boolean",
+            "title": "Dry Run Execution Allowed"
+          },
+          "live_payout_allowed": {
+            "type": "boolean",
+            "title": "Live Payout Allowed"
+          },
+          "manual_approval_required": {
+            "type": "boolean",
+            "title": "Manual Approval Required"
+          },
+          "maker_checker_required": {
+            "type": "boolean",
+            "title": "Maker Checker Required"
+          },
+          "blocked_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blocked Reasons"
+          },
+          "eligible_statement_count": {
+            "type": "integer",
+            "title": "Eligible Statement Count",
+            "default": 0
+          },
+          "eligible_payout_account_count": {
+            "type": "integer",
+            "title": "Eligible Payout Account Count",
+            "default": 0
+          },
+          "pending_instruction_count": {
+            "type": "integer",
+            "title": "Pending Instruction Count",
+            "default": 0
+          },
+          "approved_instruction_count": {
+            "type": "integer",
+            "title": "Approved Instruction Count",
+            "default": 0
+          },
+          "dry_run_execution_count": {
+            "type": "integer",
+            "title": "Dry Run Execution Count",
+            "default": 0
+          },
+          "live_execution_count": {
+            "type": "integer",
+            "title": "Live Execution Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "settlement_simulation_reproducible",
+          "payout_instruction_allowed",
+          "dry_run_execution_allowed",
+          "live_payout_allowed",
+          "manual_approval_required",
+          "maker_checker_required"
+        ],
+        "title": "PartnerWorkspaceSettlementSandboxEligibilityResponse"
+      },
+      "PartnerWorkspaceSettlementSandboxMetricResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "source_of_truth": {
+            "type": "string",
+            "title": "Source Of Truth"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "source_of_truth"
+        ],
+        "title": "PartnerWorkspaceSettlementSandboxMetricResponse"
+      },
+      "PartnerWorkspaceSettlementSandboxPolicyResponse": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage",
+            "default": "S3-STAGE-11"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "sandbox_only"
+          },
+          "payout_export_status": {
+            "type": "string",
+            "title": "Payout Export Status",
+            "default": "disabled_by_default"
+          },
+          "live_payouts_enabled": {
+            "type": "boolean",
+            "title": "Live Payouts Enabled",
+            "default": false
+          },
+          "requires_finance_approval": {
+            "type": "boolean",
+            "title": "Requires Finance Approval",
+            "default": true
+          },
+          "requires_maker_checker": {
+            "type": "boolean",
+            "title": "Requires Maker Checker",
+            "default": true
+          },
+          "same_admin_approval_allowed": {
+            "type": "boolean",
+            "title": "Same Admin Approval Allowed",
+            "default": false
+          },
+          "required_next_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Next Stages"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "title": "PartnerWorkspaceSettlementSandboxPolicyResponse"
+      },
+      "PartnerWorkspaceSettlementSandboxSimulationResponse": {
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/PartnerWorkspaceSettlementSandboxMetricResponse"
+            },
+            "type": "array",
+            "title": "Metrics"
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/PartnerWorkspaceSettlementSandboxEligibilityResponse"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PartnerWorkspaceSettlementSandboxPolicyResponse"
+          },
+          "calculation_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Calculation Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "generated_at",
+          "currency_code",
+          "eligibility",
+          "policy"
+        ],
+        "title": "PartnerWorkspaceSettlementSandboxSimulationResponse"
       },
       "PartnerWorkspaceThreadEventResponse": {
         "properties": {
@@ -60840,6 +64337,47 @@
         ],
         "title": "PaymentHistoryResponse",
         "description": "Response schema for payment history."
+      },
+      "PaymentMethodAvailabilityResponse": {
+        "properties": {
+          "availableMethods": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availablemethods"
+          },
+          "webCheckout": {
+            "type": "boolean",
+            "title": "Webcheckout"
+          },
+          "cryptobot": {
+            "type": "boolean",
+            "title": "Cryptobot"
+          },
+          "telegramStars": {
+            "type": "boolean",
+            "title": "Telegramstars"
+          },
+          "manualInvoice": {
+            "type": "boolean",
+            "title": "Manualinvoice"
+          },
+          "autorenewal": {
+            "type": "boolean",
+            "title": "Autorenewal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "availableMethods",
+          "webCheckout",
+          "cryptobot",
+          "telegramStars",
+          "manualInvoice",
+          "autorenewal"
+        ],
+        "title": "PaymentMethodAvailabilityResponse"
       },
       "PaymentProvider": {
         "type": "string",
@@ -63448,6 +66986,487 @@
         ],
         "title": "ProvisioningProfileStatus"
       },
+      "PublicCatalogAddonResponse": {
+        "properties": {
+          "addonId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Addonid"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "durationMode": {
+            "type": "string",
+            "title": "Durationmode"
+          },
+          "isStackable": {
+            "type": "boolean",
+            "title": "Isstackable"
+          },
+          "quantityStep": {
+            "type": "integer",
+            "title": "Quantitystep"
+          },
+          "displayPrice": {
+            "$ref": "#/components/schemas/PublicCatalogMoneyResponse"
+          },
+          "maxQuantityByPlan": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Maxquantitybyplan"
+          },
+          "deltaEntitlements": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Deltaentitlements"
+          },
+          "requiresLocation": {
+            "type": "boolean",
+            "title": "Requireslocation"
+          },
+          "saleChannels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Salechannels"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "addonId",
+          "code",
+          "displayName",
+          "durationMode",
+          "isStackable",
+          "quantityStep",
+          "displayPrice",
+          "maxQuantityByPlan",
+          "deltaEntitlements",
+          "requiresLocation",
+          "saleChannels"
+        ],
+        "title": "PublicCatalogAddonResponse"
+      },
+      "PublicCatalogBillingPeriodResponse": {
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Planid"
+          },
+          "catalogItemKey": {
+            "type": "string",
+            "title": "Catalogitemkey"
+          },
+          "durationDays": {
+            "type": "integer",
+            "title": "Durationdays"
+          },
+          "displayPrice": {
+            "$ref": "#/components/schemas/PublicCatalogMoneyResponse"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/PublicCatalogQuoteHandoffResponse"
+          },
+          "includedAddonCodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Includedaddoncodes"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availability"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planId",
+          "catalogItemKey",
+          "durationDays",
+          "displayPrice",
+          "version",
+          "quote",
+          "includedAddonCodes",
+          "availability"
+        ],
+        "title": "PublicCatalogBillingPeriodResponse"
+      },
+      "PublicCatalogContextResponse": {
+        "properties": {
+          "uiLocale": {
+            "type": "string",
+            "title": "Uilocale"
+          },
+          "displayCountry": {
+            "type": "string",
+            "title": "Displaycountry"
+          },
+          "pricingCountry": {
+            "type": "string",
+            "title": "Pricingcountry"
+          },
+          "paymentCountry": {
+            "type": "string",
+            "title": "Paymentcountry"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "selectableCountries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Selectablecountries"
+          },
+          "selectableCurrencies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Selectablecurrencies"
+          },
+          "paymentMethods": {
+            "$ref": "#/components/schemas/PaymentMethodAvailabilityResponse"
+          },
+          "cacheKey": {
+            "type": "string",
+            "title": "Cachekey"
+          },
+          "resolutionTrace": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resolutiontrace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uiLocale",
+          "displayCountry",
+          "pricingCountry",
+          "paymentCountry",
+          "currency",
+          "confidence",
+          "selectableCountries",
+          "selectableCurrencies",
+          "paymentMethods",
+          "cacheKey",
+          "resolutionTrace"
+        ],
+        "title": "PublicCatalogContextResponse"
+      },
+      "PublicCatalogMetadataResponse": {
+        "properties": {
+          "policyIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Policyids"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "storefrontKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storefrontkey"
+          },
+          "addonsEnabled": {
+            "type": "boolean",
+            "title": "Addonsenabled"
+          },
+          "promoCodesEnabled": {
+            "type": "boolean",
+            "title": "Promocodesenabled"
+          },
+          "checkoutCodeDiscountsEnabled": {
+            "type": "boolean",
+            "title": "Checkoutcodediscountsenabled"
+          },
+          "invalidationEvents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Invalidationevents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policyIds",
+          "source",
+          "channel",
+          "storefrontKey",
+          "addonsEnabled",
+          "promoCodesEnabled",
+          "checkoutCodeDiscountsEnabled",
+          "invalidationEvents"
+        ],
+        "title": "PublicCatalogMetadataResponse"
+      },
+      "PublicCatalogMoneyResponse": {
+        "properties": {
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "minorUnits": {
+            "type": "integer",
+            "title": "Minorunits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "currency",
+          "minorUnits"
+        ],
+        "title": "PublicCatalogMoneyResponse"
+      },
+      "PublicCatalogPlanResponse": {
+        "properties": {
+          "planCode": {
+            "type": "string",
+            "title": "Plancode"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "billingPeriods": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCatalogBillingPeriodResponse"
+            },
+            "type": "array",
+            "title": "Billingperiods"
+          },
+          "devicesIncluded": {
+            "type": "integer",
+            "title": "Devicesincluded"
+          },
+          "trafficLimitBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trafficlimitbytes"
+          },
+          "trafficPolicy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trafficpolicy"
+          },
+          "connectionModes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Connectionmodes"
+          },
+          "serverPool": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Serverpool"
+          },
+          "supportSla": {
+            "type": "string",
+            "title": "Supportsla"
+          },
+          "dedicatedIp": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Dedicatedip"
+          },
+          "inviteBundle": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Invitebundle"
+          },
+          "trialEligible": {
+            "type": "boolean",
+            "title": "Trialeligible"
+          },
+          "promoEligible": {
+            "type": "boolean",
+            "title": "Promoeligible"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planCode",
+          "displayName",
+          "version",
+          "billingPeriods",
+          "devicesIncluded",
+          "trafficLimitBytes",
+          "trafficPolicy",
+          "connectionModes",
+          "serverPool",
+          "supportSla",
+          "dedicatedIp",
+          "inviteBundle",
+          "trialEligible",
+          "promoEligible"
+        ],
+        "title": "PublicCatalogPlanResponse"
+      },
+      "PublicCatalogQuoteHandoffResponse": {
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Planid"
+          },
+          "planCode": {
+            "type": "string",
+            "title": "Plancode"
+          },
+          "billingPeriodDays": {
+            "type": "integer",
+            "title": "Billingperioddays"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "catalogItemKey": {
+            "type": "string",
+            "title": "Catalogitemkey"
+          },
+          "contextCacheKey": {
+            "type": "string",
+            "title": "Contextcachekey"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planId",
+          "planCode",
+          "billingPeriodDays",
+          "currency",
+          "catalogItemKey",
+          "contextCacheKey"
+        ],
+        "title": "PublicCatalogQuoteHandoffResponse"
+      },
+      "PublicCommercialCatalogResponse": {
+        "properties": {
+          "catalogVersion": {
+            "type": "string",
+            "title": "Catalogversion"
+          },
+          "cacheKey": {
+            "type": "string",
+            "title": "Cachekey"
+          },
+          "context": {
+            "$ref": "#/components/schemas/PublicCatalogContextResponse"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCatalogPlanResponse"
+            },
+            "type": "array",
+            "title": "Plans"
+          },
+          "addons": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCatalogAddonResponse"
+            },
+            "type": "array",
+            "title": "Addons"
+          },
+          "trialEligible": {
+            "type": "boolean",
+            "title": "Trialeligible"
+          },
+          "promoEligible": {
+            "type": "boolean",
+            "title": "Promoeligible"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PublicCatalogMetadataResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "catalogVersion",
+          "cacheKey",
+          "context",
+          "plans",
+          "addons",
+          "trialEligible",
+          "promoEligible",
+          "metadata"
+        ],
+        "title": "PublicCommercialCatalogResponse"
+      },
       "PublicNetworkDpiCountryResponse": {
         "properties": {
           "countryCode": {
@@ -64507,6 +68526,36 @@
           "incidentsCount"
         ],
         "title": "PublicNetworkWidgetSummaryResponse"
+      },
+      "PublishAdminPricebookRequest": {
+        "properties": {
+          "effective_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "title": "PublishAdminPricebookRequest"
       },
       "PurchaseSubscriptionAddonsRequest": {
         "properties": {
@@ -67080,6 +71129,196 @@
         "title": "ResetPasswordResponse",
         "description": "Response for successful password reset."
       },
+      "ResolveCatalogContextRequest": {
+        "properties": {
+          "urlLocale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urllocale"
+          },
+          "browserLanguage": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browserlanguage"
+          },
+          "telegramLanguageCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegramlanguagecode"
+          },
+          "explicitUiLocale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicituilocale"
+          },
+          "explicitCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitcountrycode"
+          },
+          "explicitDisplayCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitdisplaycountrycode"
+          },
+          "explicitPricingCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitpricingcountrycode"
+          },
+          "explicitCurrencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitcurrencycode"
+          },
+          "sessionCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessioncountrycode"
+          },
+          "sessionCurrencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessioncurrencycode"
+          },
+          "cookieCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cookiecountrycode"
+          },
+          "cookieCurrencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cookiecurrencycode"
+          },
+          "channelKey": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channelkey"
+          },
+          "channelDefaultLocale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channeldefaultlocale"
+          },
+          "fallbackCountryCode": {
+            "type": "string",
+            "maxLength": 2,
+            "minLength": 2,
+            "title": "Fallbackcountrycode",
+            "default": "US"
+          }
+        },
+        "type": "object",
+        "title": "ResolveCatalogContextRequest"
+      },
       "ResolveCurrentAccessDeliveryChannelRequest": {
         "properties": {
           "provider_name": {
@@ -67955,6 +72194,36 @@
         ],
         "title": "RiskSubjectResponse"
       },
+      "RollbackAdminPricebookRequest": {
+        "properties": {
+          "target_pricebook_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Pricebook Id"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "title": "RollbackAdminPricebookRequest"
+      },
       "RotatePartnerBotTokenRequest": {
         "properties": {
           "request_payload": {
@@ -68011,6 +72280,32 @@
           "issued_at"
         ],
         "title": "RotatePartnerWorkspaceIntegrationCredentialResponse"
+      },
+      "ScheduleAdminPricebookRequest": {
+        "properties": {
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled For"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scheduled_for"
+        ],
+        "title": "ScheduleAdminPricebookRequest"
       },
       "SchedulePartnerWorkspaceReportExportRequest": {
         "properties": {
@@ -68831,6 +73126,22 @@
             "type": "string",
             "title": "Provider Name"
           },
+          "identity_scope": {
+            "type": "string",
+            "title": "Identity Scope",
+            "default": "account"
+          },
+          "subscription_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Key"
+          },
           "provider_subject_ref": {
             "anyOf": [
               {
@@ -69350,6 +73661,398 @@
         "title": "StatusResponse",
         "description": "Public API status response.\n\nReturned by ``GET /api/v1/status`` without authentication.\nMobile clients use this endpoint to verify backend reachability\nbefore attempting authenticated requests."
       },
+      "StorefrontAnalyticsContractResponse": {
+        "properties": {
+          "preview_records_touchpoint": {
+            "type": "boolean",
+            "title": "Preview Records Touchpoint",
+            "default": false
+          },
+          "checkout_records_storefront_origin": {
+            "type": "boolean",
+            "title": "Checkout Records Storefront Origin"
+          },
+          "checkout_records_explicit_code": {
+            "type": "boolean",
+            "title": "Checkout Records Explicit Code"
+          },
+          "expected_dimensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Dimensions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkout_records_storefront_origin",
+          "checkout_records_explicit_code"
+        ],
+        "title": "StorefrontAnalyticsContractResponse"
+      },
+      "StorefrontAttributionContractResponse": {
+        "properties": {
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "direct_store",
+              "affiliate",
+              "reseller"
+            ],
+            "title": "Owner Type"
+          },
+          "owner_source": {
+            "type": "string",
+            "enum": [
+              "none",
+              "explicit_code"
+            ],
+            "title": "Owner Source"
+          },
+          "partner_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Account Id"
+          },
+          "partner_account_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Account Key"
+          },
+          "partner_account_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Account Status"
+          },
+          "partner_code_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Code Id"
+          },
+          "partner_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Code"
+          },
+          "partner_code_required_for_reseller": {
+            "type": "boolean",
+            "title": "Partner Code Required For Reseller"
+          },
+          "touchpoint_policy": {
+            "type": "string",
+            "title": "Touchpoint Policy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner_type",
+          "owner_source",
+          "partner_code_required_for_reseller",
+          "touchpoint_policy"
+        ],
+        "title": "StorefrontAttributionContractResponse"
+      },
+      "StorefrontBrandingBoundaryResponse": {
+        "properties": {
+          "brand_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Brand Id"
+          },
+          "brand_key": {
+            "type": "string",
+            "title": "Brand Key"
+          },
+          "brand_display_name": {
+            "type": "string",
+            "title": "Brand Display Name"
+          },
+          "brand_status": {
+            "type": "string",
+            "title": "Brand Status"
+          },
+          "allowed_customizations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Customizations"
+          },
+          "prohibited_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prohibited Claims"
+          },
+          "legal_copy_source": {
+            "type": "string",
+            "title": "Legal Copy Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "brand_id",
+          "brand_key",
+          "brand_display_name",
+          "brand_status",
+          "legal_copy_source"
+        ],
+        "title": "StorefrontBrandingBoundaryResponse"
+      },
+      "StorefrontPreviewResponse": {
+        "properties": {
+          "storefront_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Storefront Id"
+          },
+          "storefront_key": {
+            "type": "string",
+            "title": "Storefront Key"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "route_contract": {
+            "$ref": "#/components/schemas/StorefrontRouteContractResponse"
+          },
+          "branding_boundary": {
+            "$ref": "#/components/schemas/StorefrontBrandingBoundaryResponse"
+          },
+          "pricing_boundary": {
+            "$ref": "#/components/schemas/StorefrontPricingBoundaryResponse"
+          },
+          "attribution_contract": {
+            "$ref": "#/components/schemas/StorefrontAttributionContractResponse"
+          },
+          "analytics_contract": {
+            "$ref": "#/components/schemas/StorefrontAnalyticsContractResponse"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "storefront_id",
+          "storefront_key",
+          "display_name",
+          "status",
+          "route_contract",
+          "branding_boundary",
+          "pricing_boundary",
+          "attribution_contract",
+          "analytics_contract",
+          "generated_at"
+        ],
+        "title": "StorefrontPreviewResponse"
+      },
+      "StorefrontPricingBoundaryResponse": {
+        "properties": {
+          "display_policy": {
+            "type": "string",
+            "title": "Display Policy"
+          },
+          "finance_policy": {
+            "type": "string",
+            "title": "Finance Policy"
+          },
+          "offers": {
+            "items": {
+              "$ref": "#/components/schemas/StorefrontPricingOfferResponse"
+            },
+            "type": "array",
+            "title": "Offers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_policy",
+          "finance_policy"
+        ],
+        "title": "StorefrontPricingBoundaryResponse"
+      },
+      "StorefrontPricingOfferResponse": {
+        "properties": {
+          "pricebook_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pricebook Id"
+          },
+          "pricebook_key": {
+            "type": "string",
+            "title": "Pricebook Key"
+          },
+          "pricebook_display_name": {
+            "type": "string",
+            "title": "Pricebook Display Name"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          },
+          "offer_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Offer Id"
+          },
+          "offer_key": {
+            "type": "string",
+            "title": "Offer Key"
+          },
+          "offer_display_name": {
+            "type": "string",
+            "title": "Offer Display Name"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Plan Id"
+          },
+          "visible_price": {
+            "type": "number",
+            "title": "Visible Price"
+          },
+          "compare_at_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compare At Price"
+          },
+          "sale_channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sale Channels"
+          },
+          "pricing_source": {
+            "type": "string",
+            "const": "storefront_pricebook",
+            "title": "Pricing Source",
+            "default": "storefront_pricebook"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook_id",
+          "pricebook_key",
+          "pricebook_display_name",
+          "currency_code",
+          "offer_id",
+          "offer_key",
+          "offer_display_name",
+          "plan_id",
+          "visible_price"
+        ],
+        "title": "StorefrontPricingOfferResponse"
+      },
+      "StorefrontRouteContractResponse": {
+        "properties": {
+          "storefront_key": {
+            "type": "string",
+            "title": "Storefront Key"
+          },
+          "host": {
+            "type": "string",
+            "title": "Host"
+          },
+          "preview_api_path": {
+            "type": "string",
+            "title": "Preview Api Path"
+          },
+          "customer_entry_path": {
+            "type": "string",
+            "title": "Customer Entry Path"
+          },
+          "route_status": {
+            "type": "string",
+            "enum": [
+              "preview",
+              "inactive"
+            ],
+            "title": "Route Status"
+          },
+          "public_launch_requires_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Public Launch Requires Stages"
+          },
+          "checkout_side_effects": {
+            "type": "boolean",
+            "title": "Checkout Side Effects",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "storefront_key",
+          "host",
+          "preview_api_path",
+          "customer_entry_path",
+          "route_status"
+        ],
+        "title": "StorefrontRouteContractResponse"
+      },
       "SubmitPartnerWorkspaceCaseResponseRequest": {
         "properties": {
           "message": {
@@ -69773,6 +74476,54 @@
         "title": "TelegramBotCheckoutRequest",
         "description": "Canonical checkout payload accepted from the Telegram bot."
       },
+      "TelegramBotInviteCodeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "free_days": {
+            "type": "integer",
+            "title": "Free Days"
+          },
+          "is_used": {
+            "type": "boolean",
+            "title": "Is Used"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "free_days",
+          "is_used",
+          "created_at"
+        ],
+        "title": "TelegramBotInviteCodeResponse",
+        "description": "Bot-facing invite code payload."
+      },
       "TelegramBotLinkRequest": {
         "properties": {
           "token": {
@@ -69926,9 +74677,42 @@
       },
       "TelegramBotSubscriptionResponse": {
         "properties": {
+          "subscription_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Key"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
           "status": {
             "type": "string",
             "title": "Status"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
           },
           "plan_name": {
             "anyOf": [
@@ -69974,6 +74758,11 @@
               }
             ],
             "title": "Used Traffic Bytes"
+          },
+          "can_deliver_config": {
+            "type": "boolean",
+            "title": "Can Deliver Config",
+            "default": false
           },
           "auto_renew": {
             "type": "boolean",
@@ -72607,6 +77396,274 @@
         ],
         "title": "UpdateAdminMiniAppRuntimeConfigRequest"
       },
+      "UpdateAdminPricebookRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "merchant_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Profile Id"
+          },
+          "currency_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Code"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          },
+          "discount_rules": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Rules"
+          },
+          "renewal_pricing_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renewal Pricing Policy"
+          },
+          "version_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Status"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "entries": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PricebookEntryRequest"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entries"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "title": "UpdateAdminPricebookRequest"
+      },
+      "UpdateCommercialContextCountryOptionRequest": {
+        "properties": {
+          "country_code": {
+            "type": "string",
+            "maxLength": 2,
+            "minLength": 2,
+            "title": "Country Code"
+          },
+          "default_currency_code": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Default Currency Code"
+          },
+          "supported_currency_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Supported Currency Codes"
+          },
+          "payment_country_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Country Code"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "country_code",
+          "default_currency_code",
+          "supported_currency_codes"
+        ],
+        "title": "UpdateCommercialContextCountryOptionRequest"
+      },
+      "UpdateCommercialContextCurrencyOptionRequest": {
+        "properties": {
+          "currency_code": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency Code"
+          },
+          "minor_units": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Minor Units",
+            "default": 2
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency_code"
+        ],
+        "title": "UpdateCommercialContextCurrencyOptionRequest"
+      },
+      "UpdateCommercialContextOptionsRequest": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/UpdateCommercialContextCountryOptionRequest"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Countries"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/UpdateCommercialContextCurrencyOptionRequest"
+            },
+            "type": "array",
+            "title": "Currencies"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "countries"
+        ],
+        "title": "UpdateCommercialContextOptionsRequest"
+      },
       "UpdateHostRequest": {
         "properties": {
           "name": {
@@ -72781,6 +77838,26 @@
         },
         "type": "object",
         "title": "UpdatePartnerLaneApplicationRequest"
+      },
+      "UpdatePartnerWorkspaceCodeStatusRequest": {
+        "properties": {
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_active",
+          "reason"
+        ],
+        "title": "UpdatePartnerWorkspaceCodeStatusRequest"
       },
       "UpdatePartnerWorkspaceMemberRequest": {
         "properties": {
@@ -73058,6 +78135,33 @@
         },
         "type": "object",
         "title": "UpdatePartnerWorkspaceSettingsRequest"
+      },
+      "UpdatePartnerWorkspaceStatusRequest": {
+        "properties": {
+          "workspace_status": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Workspace Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspace_status"
+        ],
+        "title": "UpdatePartnerWorkspaceStatusRequest"
       },
       "UpdatePlanRequest": {
         "properties": {

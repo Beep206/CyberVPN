@@ -4,7 +4,9 @@
   "introPills": {
     "plans": "4 plans",
     "periods": "4 periods",
-    "addons": "Options"
+    "addons": "Options",
+    "live": "Live catalog",
+    "unavailable": "Catalog unavailable"
   },
   "periods": {
     "label": "Choose your billing term",
@@ -133,5 +135,20 @@
         "a": "No. It is a premium option. You can buy it as an add-on on paid plans, and Max already includes one dedicated IP."
       }
     ]
+  },
+  "commercialContext": {
+    "title": "Commercial context",
+    "resolved": "Pricing country {country} · {currency}"
+  },
+  "countrySelector": {
+    "aria": "Select country",
+    "empty": "No country found",
+    "search": "SEARCH_COUNTRY...",
+    "searchAria": "Search countries",
+    "title": "SELECT_COUNTRY"
+  },
+  "catalog": {
+    "unavailableTitle": "Catalog temporarily unavailable",
+    "unavailableBody": "Pricing is loaded only from the backend commercial catalog. Refresh after the catalog service is available."
   }
 }

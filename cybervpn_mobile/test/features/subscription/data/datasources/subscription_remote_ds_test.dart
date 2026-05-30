@@ -1,6 +1,7 @@
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/network/api_client.dart';
 import 'package:cybervpn_mobile/features/subscription/data/datasources/subscription_remote_ds.dart';
+import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,169 @@ void main() {
   });
 
   RequestOptions requestOptions(String path) => RequestOptions(path: path);
+
+  group('fetchCommercialCatalog', () {
+    test(
+      'maps backend-owned public catalog into mobile plans without price input',
+      () async {
+        when(
+          () => mockApiClient.get<Map<String, dynamic>>(
+            ApiConstants.commercialCatalog,
+            queryParameters: any<Map<String, dynamic>?>(
+              named: 'queryParameters',
+            ),
+            options: any<Options?>(named: 'options'),
+            cancelToken: any<CancelToken?>(named: 'cancelToken'),
+          ),
+        ).thenAnswer(
+          (_) async => Response(
+            data: {
+              'catalogVersion': 'v1',
+              'cacheKey': 'catalog-de-eur',
+              'context': {
+                'uiLocale': 'de-DE',
+                'displayCountry': 'DE',
+                'pricingCountry': 'DE',
+                'paymentCountry': 'DE',
+                'currency': 'EUR',
+                'confidence': 'explicit',
+                'selectableCountries': ['DE', 'US'],
+                'selectableCurrencies': ['EUR', 'USD'],
+                'paymentMethods': {
+                  'availableMethods': ['crypto'],
+                  'webCheckout': true,
+                  'cryptobot': true,
+                  'telegramStars': false,
+                  'manualInvoice': false,
+                  'autorenewal': false,
+                },
+                'cacheKey': 'ctx-de-eur',
+                'resolutionTrace': ['explicit_country'],
+              },
+              'plans': [
+                {
+                  'planCode': 'plus',
+                  'displayName': 'Plus',
+                  'version': '2026.05',
+                  'billingPeriods': [
+                    {
+                      'planId': 'plus-30-uuid',
+                      'catalogItemKey': 'plus_30',
+                      'durationDays': 30,
+                      'displayPrice': {
+                        'amount': '9.99',
+                        'currency': 'EUR',
+                        'minorUnits': 2,
+                      },
+                      'version': '2026.05',
+                      'quote': {
+                        'planId': 'plus-30-uuid',
+                        'planCode': 'plus',
+                        'billingPeriodDays': 30,
+                        'currency': 'EUR',
+                        'catalogItemKey': 'plus_30',
+                        'contextCacheKey': 'ctx-de-eur',
+                      },
+                      'includedAddonCodes': const [],
+                      'availability': ['web'],
+                      'metadata': {'requires_quote': true},
+                    },
+                    {
+                      'planId': 'plus-180-uuid',
+                      'catalogItemKey': 'plus_180',
+                      'durationDays': 180,
+                      'displayPrice': {
+                        'amount': '49.99',
+                        'currency': 'EUR',
+                        'minorUnits': 2,
+                      },
+                      'version': '2026.05',
+                      'quote': {
+                        'planId': 'plus-180-uuid',
+                        'planCode': 'plus',
+                        'billingPeriodDays': 180,
+                        'currency': 'EUR',
+                        'catalogItemKey': 'plus_180',
+                        'contextCacheKey': 'ctx-de-eur',
+                      },
+                      'includedAddonCodes': const [],
+                      'availability': ['web'],
+                      'metadata': {'requires_quote': true},
+                    },
+                  ],
+                  'devicesIncluded': 5,
+                  'trafficLimitBytes': null,
+                  'trafficPolicy': {'display_label': 'Unlimited'},
+                  'connectionModes': ['standard', 'stealth'],
+                  'serverPool': ['shared_plus'],
+                  'supportSla': 'standard',
+                  'dedicatedIp': {'included': 0, 'eligible': true},
+                  'inviteBundle': {'count': 0, 'friend_days': 0, 'expiry_days': 0},
+                  'trialEligible': false,
+                  'promoEligible': true,
+                  'metadata': {
+                    'features': {'marketing_badge': 'Most Popular'},
+                  },
+                },
+              ],
+              'addons': const [],
+              'trialEligible': false,
+              'promoEligible': true,
+              'metadata': {
+                'source': 'effective_catalog',
+                'channel': 'web',
+                'storefrontKey': null,
+                'addonsEnabled': false,
+                'promoCodesEnabled': true,
+                'checkoutCodeDiscountsEnabled': true,
+                'invalidationEvents': const [],
+                'policyIds': const [],
+              },
+            },
+            statusCode: 200,
+            requestOptions: requestOptions(ApiConstants.commercialCatalog),
+          ),
+        );
+
+        final catalog = await dataSource.fetchCommercialCatalog(
+          request: const CommercialCatalogRequest(
+            country: 'DE',
+            currency: 'EUR',
+            uiLocale: 'de-DE',
+          ),
+        );
+
+        expect(catalog.context.pricingCountry, 'DE');
+        expect(catalog.context.currency, 'EUR');
+        expect(catalog.sourceChannel, 'web');
+        expect(catalog.iapStorefrontActive, isFalse);
+        expect(catalog.plans, hasLength(2));
+        expect(catalog.plans.first.id, 'plus-30-uuid');
+        expect(catalog.plans.first.price, 9.99);
+        expect(catalog.plans.first.isPopular, isTrue);
+        expect(catalog.plans.last.duration, PlanDuration.semiannual);
+        expect(catalog.plans.last.durationDays, 180);
+
+        final captured = verify(
+          () => mockApiClient.get<Map<String, dynamic>>(
+            ApiConstants.commercialCatalog,
+            queryParameters: captureAny<Map<String, dynamic>?>(
+              named: 'queryParameters',
+            ),
+            options: any<Options?>(named: 'options'),
+            cancelToken: any<CancelToken?>(named: 'cancelToken'),
+          ),
+        ).captured.single! as Map<String, dynamic>;
+
+        expect(captured, containsPair('channel', 'web'));
+        expect(captured, containsPair('country', 'DE'));
+        expect(captured, containsPair('currency', 'EUR'));
+        expect(captured, isNot(contains('amount')));
+        expect(captured, isNot(contains('price')));
+        expect(captured, isNot(contains('visiblePrice')));
+      },
+    );
+  });
 
   group('fetchActiveSubscription', () {
     test(

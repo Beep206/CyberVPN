@@ -8,6 +8,7 @@ from src.presentation.api.v1.admin.growth import router as admin_growth_router
 from src.presentation.api.v1.admin.invites import router as invites_router
 from src.presentation.api.v1.admin.mobile_users import router as admin_mobile_users_router
 from src.presentation.api.v1.admin.payment_attempts import router as admin_payment_attempts_router
+from src.presentation.api.v1.admin.pricebooks import router as admin_pricebooks_router
 from src.presentation.api.v1.admin.routes import router as admin_router
 from src.presentation.api.v1.admin.system_config import router as admin_system_config_router
 from src.presentation.api.v1.attribution.routes import router as attribution_router
@@ -15,6 +16,7 @@ from src.presentation.api.v1.auth.registration import router as registration_rou
 from src.presentation.api.v1.auth.routes import router as auth_router
 from src.presentation.api.v1.billing.routes import router as billing_router
 from src.presentation.api.v1.billing_descriptors.routes import router as billing_descriptors_router
+from src.presentation.api.v1.catalog.routes import router as catalog_router
 from src.presentation.api.v1.checkout_sessions.routes import router as checkout_sessions_router
 from src.presentation.api.v1.client_capabilities.routes import router as client_capabilities_router
 from src.presentation.api.v1.codes.routes import router as codes_router
@@ -186,6 +188,7 @@ api_router.include_router(servers_router)
 api_router.include_router(subscriptions_router)
 api_router.include_router(plans_router)
 api_router.include_router(addons_router)
+api_router.include_router(catalog_router)
 api_router.include_router(offers_router)
 api_router.include_router(pricebooks_router)
 api_router.include_router(program_eligibility_router)
@@ -253,6 +256,7 @@ api_router.include_router(invites_router)
 api_router.include_router(admin_growth_router)
 api_router.include_router(admin_mobile_users_router)
 api_router.include_router(admin_payment_attempts_router)
+api_router.include_router(admin_pricebooks_router)
 api_router.include_router(admin_customer_support_router)
 api_router.include_router(admin_customer_operations_router)
 

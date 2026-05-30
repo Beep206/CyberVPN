@@ -374,6 +374,18 @@ async def test_order_commit_creates_canonical_order_and_history_views(async_clie
             assert order_payload["merchant_snapshot"]["merchant_profile"]["legal_entity_name"] == "Partner Merchant Ltd"
             assert order_payload["policy_snapshot"]["offer"]["offer_key"] == seeded["offer_key"]
             assert order_payload["pricing_snapshot"]["pricebook"]["id"] == seeded["pricebook_id"]
+            assert order_payload["base_price"] == 75.0
+            assert order_payload["displayed_price"] == 75.0
+            assert order_payload["gateway_amount"] == 75.0
+            subscription_snapshot = order_payload["entitlements_snapshot"]["subscription_snapshot"]
+            assert subscription_snapshot["snapshot_version"] == "commercial_subscription_snapshot.v1"
+            assert subscription_snapshot["price"]["base_price"] == "75.00"
+            assert subscription_snapshot["price"]["currency"] == "USD"
+            assert subscription_snapshot["price"]["pricebook_id"] == seeded["pricebook_id"]
+            assert subscription_snapshot["plan"]["offer_key"] == seeded["offer_key"]
+            assert subscription_snapshot["addons"] == []
+            assert subscription_snapshot["entitlements"]["device_limit"] == 5
+            assert subscription_snapshot["provisioning_profile"]["server_pool"] == ["eu-west"]
             assert len(order_payload["items"]) == 1
             assert order_payload["items"][0]["item_type"] == "plan"
 
@@ -477,6 +489,9 @@ async def test_order_snapshot_stays_stable_after_catalog_mutation(async_client: 
             stable_order = stable_order_response.json()
             assert stable_order["policy_snapshot"]["offer"]["display_name"] == "Partner 365 Offer"
             assert stable_order["pricing_snapshot"]["pricebook"]["pricebook_key"] == seeded["pricebook_key"]
+            assert stable_order["pricing_snapshot"]["quote"]["base_price"] == 75.0
+            assert stable_order["pricing_snapshot"]["quote"]["gateway_amount"] == 75.0
+            assert stable_order["entitlements_snapshot"]["subscription_snapshot"]["price"]["base_price"] == "75.00"
             assert stable_order["merchant_snapshot"]["merchant_profile"]["legal_entity_name"] == "Partner Merchant Ltd"
 
             with sessionmaker() as db:
