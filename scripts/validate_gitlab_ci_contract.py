@@ -16,6 +16,7 @@ CI_FILE = ROOT / ".gitlab-ci.yml"
 MR_TEMPLATE_FILE = ROOT / ".gitlab" / "merge_request_templates" / "Default.md"
 AI_MR_CONTRACT_FILE = ROOT / "docs" / "gitlab" / "AI_MR_CONTRACT.md"
 AI_REVIEW_MAP_FILE = ROOT / "docs" / "gitlab" / "AI_REVIEW_MAP.md"
+AUTONOMY_POLICY_FILE = ROOT / "docs" / "gitlab" / "AUTONOMY_POLICY_V1.md"
 CODEOWNERS_FILE = ROOT / "CODEOWNERS"
 DOCKER_SOCK_MARKER = "/var/run/" + "docker.sock"
 
@@ -169,9 +170,13 @@ REQUIRED_MR_TEMPLATE_MARKERS = (
     "risk::amber",
     "risk::red",
     "lane::autonomous",
+    "autonomy::v1",
+    "# Autonomy Policy Decision",
 )
 
 REQUIRED_MR_CONTRACT_MARKERS = (
+    "AUTONOMY_POLICY_V1.md",
+    "Autonomy Policy v1 is active",
     "GitLab CE does not expose required approval rules",
     "lane::autonomous",
     "risk::green",
@@ -192,13 +197,26 @@ REQUIRED_MR_CONTRACT_MARKERS = (
     "sentinel::candidate",
     "only_allow_merge_if_pipeline_succeeds",
     "Test and build jobs must not use `allow_failure`",
+    "Production deploys are always Red",
 )
 
 REQUIRED_REVIEW_MAP_MARKERS = (
     "Paperclip AI agents",
+    "Autonomy Policy v1",
     "Risk Levels",
     "Path Review Matrix",
     "Support Platform Initial Gate",
+)
+
+REQUIRED_AUTONOMY_POLICY_MARKERS = (
+    "CyberVPN Autonomy Policy v1",
+    "Green work is approved for autonomous merge after CI",
+    "Amber work is approved for autonomous merge after reviewer-agent gates",
+    "Red work is not covered by standing autonomy",
+    "Production deploys are Red",
+    "Staging deploys are approved to run automatically after merge to `main`",
+    "The Paperclip maintainer bot may merge Green MRs",
+    "The Paperclip maintainer bot may merge Amber MRs",
 )
 
 REQUIRED_CODEOWNERS_MARKERS = (
@@ -294,6 +312,13 @@ def main() -> int:
     )
     failures.extend(
         require_file_markers(AI_REVIEW_MAP_FILE, REQUIRED_REVIEW_MAP_MARKERS, "AI review map marker")
+    )
+    failures.extend(
+        require_file_markers(
+            AUTONOMY_POLICY_FILE,
+            REQUIRED_AUTONOMY_POLICY_MARKERS,
+            "Autonomy Policy v1 marker",
+        )
     )
     failures.extend(
         require_file_markers(CODEOWNERS_FILE, REQUIRED_CODEOWNERS_MARKERS, "CODEOWNERS marker")

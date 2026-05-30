@@ -1,12 +1,13 @@
 # CyberVPN AI Merge Request Contract
 
 Status: active
-Updated: 2026-05-29
+Updated: 2026-05-30
 Applies to: autonomous Paperclip AI merge requests in `root/CyberVPN`
 
 This contract defines what every autonomous AI merge request must include before
 it is eligible for maintainer merge. It complements `CODEOWNERS` and
-`docs/gitlab/AI_REVIEW_MAP.md`.
+`docs/gitlab/AI_REVIEW_MAP.md`, and is governed by
+`docs/gitlab/AUTONOMY_POLICY_V1.md`.
 
 ## Repository Gates
 
@@ -23,6 +24,15 @@ The project is configured so that:
 
 GitLab CE does not expose required approval rules on this instance, so reviewer
 approvals are represented as Paperclip gates and GitLab discussions.
+
+Autonomy Policy v1 is active:
+
+- Green MRs may be merged by the Paperclip maintainer bot after CI is green and
+  discussions are resolved.
+- Amber MRs may be merged by the Paperclip maintainer bot after CI is green,
+  discussions are resolved, and required Paperclip gates are linked.
+- Red MRs require explicit owner or Board approval before merge or production
+  deploy.
 
 ## Required MR Description Sections
 
@@ -118,6 +128,14 @@ Red scope:
 - No production deploy or production secret movement unless the approval says so
   explicitly.
 
+Production deploys are always Red. They require a one-time owner override or a
+pre-signed release window that names the commit range, deploy jobs, environment,
+rollback point, and expiry.
+
+Staging deploys are approved for automatic post-merge execution only after a
+staging target and staging-only GitLab variables exist. Until then, main-branch
+CI/build/smoke is the staging substitute.
+
 ## CI Contract
 
 The monorepo CI contract is checked by `gitlab:ci-contract`, which runs
@@ -132,6 +150,7 @@ The validator must ensure:
 - Manual deploy and package controls remain present.
 - The default MR template exists.
 - This MR contract document exists.
+- The Autonomy Policy v1 document exists.
 - Test and build jobs must not use `allow_failure`.
 - `CODEOWNERS` and `docs/gitlab/AI_REVIEW_MAP.md` remain present.
 
