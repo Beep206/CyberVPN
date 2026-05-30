@@ -143,6 +143,7 @@ async def _build_quote(
         return await use_case.execute(
             user_id=user_id,
             plan_id=body.plan_id,
+            currency=body.currency,
             code_input=body.code_input,
             promo_code=body.promo_code,
             partner_code=body.partner_code,

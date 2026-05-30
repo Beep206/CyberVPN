@@ -4,12 +4,15 @@ from decimal import Decimal
 from uuid import UUID
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.cache_service import CacheService
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
-from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.payments.commit_checkout import (
+    CheckoutIdempotencyConflictError,
+    CommitCheckoutUseCase,
+)
 from src.application.use_cases.subscriptions import (
     CancelSubscriptionUseCase,
     GenerateConfigUseCase,
@@ -35,7 +38,9 @@ from src.infrastructure.remnawave.subscription_client import CachedSubscriptionC
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
+    CheckoutCodeResolutionResponse,
     CheckoutCommitResponse,
+    CheckoutDiscountResponse,
     CheckoutQuoteResponse,
     EntitlementsSnapshotResponse,
     InvoiceResponse,
@@ -73,6 +78,37 @@ def _serialize_subscription_quote(result) -> CheckoutQuoteResponse:
         plan_id=result.plan_id,
         promo_code_id=result.promo_code_id,
         partner_code_id=result.partner_code_id,
+        code_input=result.code_input,
+        code_resolution=(
+            CheckoutCodeResolutionResponse(
+                accepted=result.code_resolution.accepted,
+                code_type=result.code_resolution.code_type,
+                action_context=result.code_resolution.action_context,
+                result=result.code_resolution.result,
+                reject_reason=result.code_resolution.reject_reason,
+                conflict_code=result.code_resolution.conflict_code,
+                wrong_context_target=result.code_resolution.wrong_context_target,
+                issuer_type=result.code_resolution.issuer_type,
+                owner_type=result.code_resolution.owner_type,
+                resolved_code_id=result.code_resolution.resolved_code_id,
+                growth_code_id=result.code_resolution.growth_code_id,
+                promo_code_id=result.code_resolution.promo_code_id,
+                partner_code_id=result.code_resolution.partner_code_id,
+                user_message_key=result.code_resolution.user_message_key,
+                reservation_id=result.reservation_id,
+            )
+            if result.code_resolution is not None
+            else None
+        ),
+        discounts=[
+            CheckoutDiscountResponse(
+                type=discount.discount_type,
+                code=discount.code,
+                amount=float(discount.amount),
+                policy_version_id=discount.policy_version_id,
+            )
+            for discount in result.discounts
+        ],
         addons=[
             CheckoutAddonResponse(
                 addon_id=line.addon_id,
@@ -119,6 +155,7 @@ async def quote_subscription_upgrade(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
@@ -132,6 +169,7 @@ async def commit_subscription_upgrade(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
     crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
 ) -> CheckoutCommitResponse:
     use_case = UpgradeSubscriptionUseCase(db)
     try:
@@ -141,6 +179,7 @@ async def commit_subscription_upgrade(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
@@ -157,7 +196,10 @@ async def commit_subscription_upgrade(
             payload=f"{user_id}:{body.target_plan_id}:upgrade",
             checkout_mode="upgrade",
             payment_plan_id=result.plan_id,
+            idempotency_key=idempotency_key,
         )
+    except CheckoutIdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from None
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:
@@ -198,6 +240,7 @@ async def quote_subscription_addons(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
@@ -211,6 +254,7 @@ async def purchase_subscription_addons(
     user_id: UUID = Depends(get_current_mobile_user_id),
     db: AsyncSession = Depends(get_db),
     crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
 ) -> CheckoutCommitResponse:
     use_case = PurchaseAddonsUseCase(db)
     try:
@@ -227,6 +271,7 @@ async def purchase_subscription_addons(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
@@ -246,7 +291,10 @@ async def purchase_subscription_addons(
             use_quote_plan_id_for_payment=False,
             subscription_days_override=result.duration_days,
             metadata_extra={"base_plan_id": str(result.plan_id) if result.plan_id else None},
+            idempotency_key=idempotency_key,
         )
+    except CheckoutIdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from None
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:

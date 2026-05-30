@@ -26,12 +26,14 @@ class UpgradeSubscriptionUseCase:
         promo_code: str | None = None,
         use_wallet: Decimal = Decimal("0"),
         sale_channel: str = "web",
+        currency: str = "USD",
     ) -> CheckoutResult:
         active_payment = await self._payments.get_latest_active_plan_payment(user_id)
         if active_payment is None or active_payment.plan_id is None:
             return await self._checkout.execute(
                 user_id=user_id,
                 plan_id=target_plan_id,
+                currency=currency,
                 promo_code=promo_code,
                 use_wallet=use_wallet,
                 sale_channel=sale_channel,
@@ -42,6 +44,7 @@ class UpgradeSubscriptionUseCase:
         quote = await self._checkout.execute(
             user_id=user_id,
             plan_id=target_plan_id,
+            currency=currency,
             promo_code=promo_code,
             use_wallet=use_wallet,
             sale_channel=sale_channel,

@@ -13,6 +13,10 @@ from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.wallet_service import WalletService
 from src.application.use_cases.attribution.qualifying_events import EvaluateOrderPolicyUseCase
 from src.application.use_cases.gifts.service import IssueGiftCodeUseCase
+from src.application.use_cases.growth_codes.reservations import (
+    GrowthCodeReservationError,
+    GrowthCodeReservationService,
+)
 from src.application.use_cases.invites.generate_invites import (
     GenerateInvitesForPaymentUseCase,
 )
@@ -476,6 +480,26 @@ class PostPaymentProcessingUseCase:
                     extra={"payment_id": str(payment_id)},
                 )
                 results["promo_usage_recorded"] = False
+
+        direct_reservation_id = _parse_optional_uuid(payment_metadata.get("growth_code_reservation_id"))
+        if direct_reservation_id is not None:
+            try:
+                await GrowthCodeReservationService(self._session).consume_for_payment(
+                    reservation_id=direct_reservation_id,
+                    payment_id=payment.id,
+                    user_id=payment.user_uuid,
+                )
+                results["growth_code_reservation_consumed"] = str(direct_reservation_id)
+            except GrowthCodeReservationError as exc:
+                logger.exception(
+                    "post_payment_growth_code_reservation_consume_failed",
+                    extra={
+                        "payment_id": str(payment_id),
+                        "reservation_id": str(direct_reservation_id),
+                        "reason": str(exc),
+                    },
+                )
+                results["growth_code_reservation_consumed"] = None
 
         logger.info("post_payment_processing_completed", extra=results)
         return results

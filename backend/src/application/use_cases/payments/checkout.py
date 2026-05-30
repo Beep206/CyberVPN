@@ -126,6 +126,8 @@ class CheckoutUseCase:
         user_id: UUID,
         plan_id: UUID,
         *,
+        currency: str = "USD",
+        base_price_override: Decimal | None = None,
         code_input: str | None = None,
         promo_code: str | None = None,
         partner_code: str | None = None,
@@ -135,9 +137,17 @@ class CheckoutUseCase:
         storefront_id: UUID | None = None,
     ) -> CheckoutResult:
         plan = await self._resolve_plan(plan_id, sale_channel=sale_channel)
-        addon_lines = await self._resolve_addons(plan=plan, addon_inputs=addons or [], sale_channel=sale_channel)
+        normalized_currency = _normalize_currency(currency)
+        addon_lines = await self._resolve_addons(
+            plan=plan,
+            addon_inputs=addons or [],
+            sale_channel=sale_channel,
+            currency=normalized_currency,
+        )
 
-        base_price = Decimal(str(plan.price_usd))
+        base_price = (
+            base_price_override if base_price_override is not None else _resolve_plan_price(plan, normalized_currency)
+        )
         addon_amount = sum((line.total_price for line in addon_lines), Decimal("0"))
 
         partner_markup = Decimal("0")
@@ -371,6 +381,7 @@ class CheckoutUseCase:
         addon_inputs: list[CheckoutAddonInput],
         sale_channel: str,
         existing_quantities_by_code: dict[str, int] | None = None,
+        currency: str = "USD",
     ) -> list[CheckoutAddonLine]:
         if not addon_inputs:
             return []
@@ -385,6 +396,7 @@ class CheckoutUseCase:
         }
         totals_by_code: dict[str, int] = dict(existing_quantities_by_code or {})
         lines: list[CheckoutAddonLine] = []
+        normalized_currency = _normalize_currency(currency)
 
         for addon_input in addon_inputs:
             addon = catalog.get(addon_input.code)
@@ -392,6 +404,7 @@ class CheckoutUseCase:
                 raise ValueError(f"Addon not found: {addon_input.code}")
             self._validate_addon(addon, addon_input, plan=plan, sale_channel=sale_channel)
             totals_by_code[addon.code] = totals_by_code.get(addon.code, 0) + addon_input.qty
+            unit_price = _resolve_addon_price(addon, normalized_currency)
 
             lines.append(
                 CheckoutAddonLine(
@@ -399,8 +412,8 @@ class CheckoutUseCase:
                     code=addon.code,
                     display_name=addon.display_name,
                     qty=addon_input.qty,
-                    unit_price=Decimal(str(addon.price_usd)),
-                    total_price=Decimal(str(addon.price_usd)) * addon_input.qty,
+                    unit_price=unit_price,
+                    total_price=unit_price * addon_input.qty,
                     location_code=addon_input.location_code,
                     delta_entitlements=addon.delta_entitlements or {},
                 )
@@ -460,6 +473,29 @@ def _addon_grants_dedicated_ip(addon: PlanAddonModel) -> bool:
 def _plan_allows_dedicated_ip(plan: SubscriptionPlanModel) -> bool:
     dedicated_ip = plan.dedicated_ip or {}
     return bool(dedicated_ip.get("eligible"))
+
+
+def _normalize_currency(currency: str) -> str:
+    normalized = currency.upper().strip()
+    if normalized not in {"USD", "RUB", "XTR"}:
+        raise ValueError(f"Unsupported checkout currency: {currency}")
+    return normalized
+
+
+def _resolve_plan_price(plan: SubscriptionPlanModel, currency: str) -> Decimal:
+    if currency in {"USD", "XTR"}:
+        return Decimal(str(plan.price_usd))
+    if currency == "RUB" and plan.price_rub is not None:
+        return Decimal(str(plan.price_rub))
+    raise ValueError(f"Missing {currency} price for plan {plan.plan_code or plan.id}")
+
+
+def _resolve_addon_price(addon: PlanAddonModel, currency: str) -> Decimal:
+    if currency == "USD":
+        return Decimal(str(addon.price_usd))
+    if currency == "RUB" and addon.price_rub is not None:
+        return Decimal(str(addon.price_rub))
+    raise ValueError(f"Missing {currency} price for addon {addon.code}")
 
 
 def _quote_resolution_error_message(resolution) -> str:

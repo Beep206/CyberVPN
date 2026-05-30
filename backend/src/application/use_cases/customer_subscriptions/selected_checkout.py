@@ -11,12 +11,16 @@ from src.application.services.entitlements_service import EntitlementsService
 from src.application.services.stage1_growth_policy import assert_stage1_checkout_codes_enabled
 from src.application.services.stage1_plan_policy import assert_stage1_addons_enabled
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.growth_codes import ResolveGrowthCodeUseCase
 from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
+    CheckoutAppliedDiscount,
     CheckoutResult,
     CheckoutUseCase,
+    _quote_resolution_error_message,
 )
 from src.config.settings import settings
+from src.domain.enums import GrowthCodeActionContext, GrowthCodeType
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.repositories.plan_addon_repo import PlanAddonRepository
 from src.infrastructure.database.repositories.promo_code_repo import PromoCodeRepository
@@ -35,6 +39,7 @@ class SelectedSubscriptionCheckoutUseCase:
         self._addons = PlanAddonRepository(session)
         self._promo_repo = PromoCodeRepository(session)
         self._checkout = CheckoutUseCase(session)
+        self._growth_codes = ResolveGrowthCodeUseCase(session)
         self._wallet = WalletService(WalletRepository(session))
 
     async def quote_upgrade(
@@ -47,6 +52,7 @@ class SelectedSubscriptionCheckoutUseCase:
         promo_code: str | None,
         use_wallet: Decimal,
         sale_channel: str,
+        currency: str = "USD",
     ) -> CheckoutResult:
         grant = await self._get_active_grant(
             customer_account_id=customer_account_id,
@@ -60,6 +66,7 @@ class SelectedSubscriptionCheckoutUseCase:
         quote = await self._checkout.execute(
             user_id=customer_account_id,
             plan_id=target_plan_id,
+            currency=currency,
             promo_code=promo_code,
             use_wallet=use_wallet,
             sale_channel=sale_channel,
@@ -82,6 +89,7 @@ class SelectedSubscriptionCheckoutUseCase:
         promo_code: str | None,
         use_wallet: Decimal,
         sale_channel: str,
+        currency: str = "USD",
     ) -> CheckoutResult:
         assert_stage1_addons_enabled(
             addon_count=max(1, len(addons)),
@@ -117,19 +125,45 @@ class SelectedSubscriptionCheckoutUseCase:
             addon_inputs=addons,
             sale_channel=sale_channel,
             existing_quantities_by_code=existing_quantities,
+            currency=currency,
         )
 
         addon_amount = sum((line.total_price for line in addon_lines), Decimal("0"))
         discount_amount = Decimal("0")
         promo_code_id = None
+        discounts: list[CheckoutAppliedDiscount] = []
+        code_resolution = None
+        normalized_promo_code = promo_code.strip() if promo_code else None
         if promo_code:
+            code_resolution = await self._growth_codes.execute(
+                code=promo_code,
+                action_context=GrowthCodeActionContext.CHECKOUT,
+                user_id=customer_account_id,
+                plan_id=plan.id,
+                amount=addon_amount,
+                storefront_id=grant.origin_storefront_id,
+                existing_partner_code_present=False,
+                surface=sale_channel,
+            )
+            if not code_resolution.accepted:
+                raise ValueError(_quote_resolution_error_message(code_resolution))
+            if code_resolution.code_type != GrowthCodeType.PROMO:
+                raise ValueError("Only promo codes are supported for selected subscription add-ons")
             promo = await self._promo_repo.get_active_by_code(promo_code)
-            if promo:
-                promo_code_id = promo.id
-                if promo.discount_type == "percent":
-                    discount_amount = addon_amount * (Decimal(str(promo.discount_value)) / Decimal("100"))
-                else:
-                    discount_amount = min(Decimal(str(promo.discount_value)), addon_amount)
+            if promo is None:
+                raise ValueError("Promo code is not valid")
+            promo_code_id = promo.id
+            if promo.discount_type == "percent":
+                discount_amount = addon_amount * (Decimal(str(promo.discount_value)) / Decimal("100"))
+            else:
+                discount_amount = min(Decimal(str(promo.discount_value)), addon_amount)
+            discounts.append(
+                CheckoutAppliedDiscount(
+                    discount_type=GrowthCodeType.PROMO.value,
+                    code=normalized_promo_code or promo_code,
+                    amount=discount_amount,
+                )
+            )
 
         after_promo = addon_amount - discount_amount
         wallet_amount = Decimal("0")
@@ -174,6 +208,9 @@ class SelectedSubscriptionCheckoutUseCase:
             addons=addon_lines,
             entitlements_snapshot=entitlements_snapshot,
             commission_base_amount=Decimal("0"),
+            discounts=discounts,
+            code_input=normalized_promo_code,
+            code_resolution=code_resolution,
         )
 
     async def _get_active_grant(

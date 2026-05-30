@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.use_cases.customer_subscriptions import (
@@ -15,7 +15,10 @@ from src.application.use_cases.customer_subscriptions import (
     SelectedSubscriptionCheckoutUseCase,
 )
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
-from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.payments.commit_checkout import (
+    CheckoutIdempotencyConflictError,
+    CommitCheckoutUseCase,
+)
 from src.application.use_cases.usage.get_user_usage import GetUserUsageUseCase
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
@@ -292,6 +295,7 @@ async def quote_customer_subscription_upgrade(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -306,6 +310,7 @@ async def commit_customer_subscription_upgrade(
     crypto_client: CryptoBotClient = Depends(get_crypto_client),
     customer_account_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
 ) -> CheckoutCommitResponse:
     try:
         result = await SelectedSubscriptionCheckoutUseCase(db).quote_upgrade(
@@ -316,6 +321,7 @@ async def commit_customer_subscription_upgrade(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
         quote = _serialize_subscription_quote(result)
         commit_result = await CommitCheckoutUseCase(db, crypto_client).execute(
@@ -328,7 +334,10 @@ async def commit_customer_subscription_upgrade(
             checkout_mode="selected_subscription_upgrade",
             payment_plan_id=result.plan_id,
             metadata_extra={"target_subscription_key": subscription_key},
+            idempotency_key=idempotency_key,
         )
+    except CheckoutIdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:
@@ -372,6 +381,7 @@ async def quote_customer_subscription_addons(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -386,6 +396,7 @@ async def purchase_customer_subscription_addons(
     crypto_client: CryptoBotClient = Depends(get_crypto_client),
     customer_account_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
 ) -> CheckoutCommitResponse:
     try:
         result = await SelectedSubscriptionCheckoutUseCase(db).quote_addons(
@@ -403,6 +414,7 @@ async def purchase_customer_subscription_addons(
             promo_code=body.promo_code,
             use_wallet=Decimal(str(body.use_wallet)),
             sale_channel=body.channel,
+            currency=body.currency,
         )
         quote = _serialize_subscription_quote(result)
         commit_result = await CommitCheckoutUseCase(db, crypto_client).execute(
@@ -420,7 +432,10 @@ async def purchase_customer_subscription_addons(
                 "target_subscription_key": subscription_key,
                 "base_plan_id": str(result.plan_id) if result.plan_id else None,
             },
+            idempotency_key=idempotency_key,
         )
+    except CheckoutIdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:

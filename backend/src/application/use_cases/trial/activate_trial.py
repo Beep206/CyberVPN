@@ -12,6 +12,7 @@ from .stage1_trial_policy import (
     STAGE1_TRIAL_DEVICE_LIMIT,
     STAGE1_TRIAL_DURATION_DAYS,
     STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_POLICY_CONTEXT,
     STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
 )
 from .stage1_trial_provisioning import (
@@ -44,6 +45,7 @@ class TrialActivationResult:
         self.device_limit = STAGE1_TRIAL_DEVICE_LIMIT
         self.traffic_limit_bytes = STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
         self.one_trial_per_account = STAGE1_TRIAL_ONE_PER_ACCOUNT
+        self.policy_context = dict(STAGE1_TRIAL_POLICY_CONTEXT)
 
 
 class ActivateTrialUseCase:

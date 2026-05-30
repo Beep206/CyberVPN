@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.billing_descriptor_model import BillingDescriptorModel
@@ -395,7 +396,11 @@ async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_
 
 
 @pytest.mark.asyncio
-async def test_quote_session_reserves_promo_and_binds_it_to_checkout(async_client: AsyncClient) -> None:
+async def test_quote_session_reserves_promo_and_binds_it_to_checkout(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -461,7 +466,8 @@ async def test_quote_session_reserves_promo_and_binds_it_to_checkout(async_clien
             assert quote_payload["quote"]["code_input"] == "PROMOSESSION10"
             assert quote_payload["quote"]["code_resolution"]["code_type"] == "promo"
             assert quote_payload["quote"]["discounts"][0]["type"] == "promo"
-            assert quote_payload["quote"]["discount_amount"] == 9.0
+            assert quote_payload["quote"]["base_price"] == 75.0
+            assert quote_payload["quote"]["discount_amount"] == 7.5
             assert reservation_id is not None
 
             with sessionmaker() as db:
@@ -562,7 +568,11 @@ async def test_checkout_session_creation_fails_when_quote_becomes_stale(async_cl
 
 
 @pytest.mark.asyncio
-async def test_stale_quote_releases_reserved_promo(async_client: AsyncClient) -> None:
+async def test_stale_quote_releases_reserved_promo(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -722,7 +732,11 @@ async def test_checkout_session_creation_fails_for_expired_quote(async_client: A
 
 
 @pytest.mark.asyncio
-async def test_expired_quote_expires_reserved_promo(async_client: AsyncClient) -> None:
+async def test_expired_quote_expires_reserved_promo(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()

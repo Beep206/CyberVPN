@@ -158,6 +158,8 @@ class CreateCheckoutSessionUseCase:
         checkout_result = await self._checkout.execute(
             user_id=user_id,
             plan_id=UUID(request_snapshot["plan_id"]),
+            currency=request_snapshot["currency"],
+            base_price_override=Decimal(str(resolved_context.pricebook_entry.visible_price)),
             code_input=request_snapshot.get("code_input"),
             promo_code=request_snapshot.get("promo_code"),
             partner_code=request_snapshot.get("partner_code"),
