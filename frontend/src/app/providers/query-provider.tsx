@@ -35,7 +35,12 @@ const ReactQueryDevtools =
         { ssr: false },
       );
 
-export function QueryProvider({ children }: { children: React.ReactNode }) {
+type QueryProviderProps = {
+  children: React.ReactNode;
+  showDevtools?: boolean;
+};
+
+export function QueryProvider({ children, showDevtools = true }: QueryProviderProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -54,7 +59,9 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      {showDevtools ? (
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      ) : null}
     </QueryClientProvider>
   );
 }

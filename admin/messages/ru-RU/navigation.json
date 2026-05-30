@@ -3,6 +3,8 @@
   "dashboardHint": "Здоровье, очереди, инциденты",
   "customers": "КЛИЕНТЫ",
   "customersHint": "Жизненный цикл, поддержка, аккаунты",
+  "support": "ПОДДЕРЖКА",
+  "supportHint": "Инбокс, ответы, internal notes",
   "commerce": "КОММЕРЦИЯ",
   "commerceHint": "Тарифы, платежи, кошельки",
   "growth": "РОСТ",

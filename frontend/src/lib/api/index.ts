@@ -31,6 +31,7 @@ export { giftsApi } from './gifts';
 export { growthNotificationsApi } from './growth-notifications';
 export { addonsApi } from './addons';
 export { clientCapabilitiesApi } from './client-capabilities';
+export { supportTicketsApi } from './support-tickets';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';

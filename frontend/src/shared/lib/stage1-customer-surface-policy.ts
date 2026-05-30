@@ -9,6 +9,7 @@ export type Stage1CustomerDashboardSurface =
   | 'referral'
   | 'servers'
   | 'settings'
+  | 'support'
   | 'subscriptions'
   | 'users'
   | 'wallet';
@@ -42,6 +43,7 @@ export function getStage1CustomerDashboardSurfacePolicy(): Record<
     referral: STAGE1_REFERRAL_UI_ENABLED,
     servers: true,
     settings: true,
+    support: true,
     subscriptions: true,
     users: false,
     wallet: true,

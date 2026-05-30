@@ -21,6 +21,8 @@ class _I18nStub:
             return f"Escalated reference={kwargs['reference']} contact={kwargs['contact']}"
         if key == "support-escalation-fallback":
             return f"Fallback reference={kwargs['reference']} contact={kwargs['contact']}"
+        if key == "btn-support":
+            return "Support"
         return key
 
 
@@ -101,3 +103,42 @@ async def test_support_menu_uses_same_contact_format() -> None:
 
     callback.answer.assert_awaited_once()
     callback.message.edit_text.assert_awaited_once_with("Support contact: @CyberVPNSupport")
+
+
+@pytest.mark.asyncio
+async def test_support_command_includes_tma_support_button_when_configured() -> None:
+    message = MagicMock(spec=Message)
+    message.from_user = User(id=123456, is_bot=False, first_name="Test")
+    message.text = "/support"
+    message.answer = AsyncMock()
+    settings = SimpleNamespace(
+        support_username="CyberVPNSupport",
+        miniapp_url="https://cyber-vpn.net/en-EN/miniapp",
+    )
+
+    await support_command(message, _I18nStub(), settings)
+
+    kwargs = message.answer.await_args.kwargs
+    keyboard = kwargs["reply_markup"]
+    button = keyboard.inline_keyboard[0][0]
+    assert button.text == "Support"
+    assert button.web_app.url == "https://cyber-vpn.net/en-EN/miniapp/support"
+
+
+@pytest.mark.asyncio
+async def test_support_menu_preserves_existing_support_route_url() -> None:
+    callback = MagicMock(spec=CallbackQuery)
+    callback.from_user = User(id=123456, is_bot=False, first_name="Test")
+    callback.message = MagicMock()
+    callback.message.edit_text = AsyncMock()
+    callback.answer = AsyncMock()
+    settings = SimpleNamespace(
+        support_username="@CyberVPNSupport",
+        miniapp_url="https://cyber-vpn.net/ru-RU/miniapp/support",
+    )
+
+    await support_menu(callback, _I18nStub(), settings)
+
+    kwargs = callback.message.edit_text.await_args.kwargs
+    button = kwargs["reply_markup"].inline_keyboard[0][0]
+    assert button.web_app.url == "https://cyber-vpn.net/ru-RU/miniapp/support"

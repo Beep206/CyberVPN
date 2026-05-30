@@ -1,0 +1,156 @@
+{
+  "common": {
+    "actionFailed": "Action failed. Try again.",
+    "actions": "Actions",
+    "refresh": "Refresh"
+  },
+  "inbox": {
+    "metaTitle": "Support Inbox - Ozoxy Admin",
+    "eyebrow": "SUPPORT OPERATIONS",
+    "title": "Support inbox",
+    "description": "Triage customer and partner tickets, keep public replies separate from internal notes, and record assignment, priority, category, and status changes from one operator console."
+  },
+  "permissionDenied": {
+    "title": "Support permission required",
+    "description": "This account cannot read the admin support queue. Use a support, admin, or owner role with support ticket read permission."
+  },
+  "metrics": {
+    "visible": "Visible",
+    "visibleHint": "tickets after filters",
+    "active": "Needs support",
+    "activeHint": "open or pending support",
+    "urgent": "Urgent",
+    "urgentHint": "manual escalation priority",
+    "internalNotes": "Internal notes",
+    "internalNotesHint": "notes on selected ticket"
+  },
+  "filters": {
+    "search": "Search support tickets",
+    "searchPlaceholder": "Public id, safe account/workspace id, subject",
+    "status": "Status filter",
+    "priority": "Priority filter",
+    "category": "Category filter",
+    "source": "Source filter",
+    "allStatuses": "All statuses",
+    "allPriorities": "All priorities",
+    "allCategories": "All categories",
+    "allSources": "All sources",
+    "assignment": {
+      "all": "All tickets",
+      "mine": "Assigned to me",
+      "unassigned": "Unassigned",
+      "unassignedScopeHint": "Unassigned is filtered on the current {count}-ticket page because the admin API has no backend unassigned filter yet. Narrow the queue with search or status for exact triage."
+    }
+  },
+  "owner": {
+    "customer": "Customer",
+    "partner": "Partner"
+  },
+  "list": {
+    "tableCaption": "Admin support ticket inbox",
+    "mobileListLabel": "Compact admin support ticket inbox",
+    "loadError": "Support tickets failed to load.",
+    "empty": "No support tickets match the current filters.",
+    "noPreview": "No public preview is available.",
+    "safeOwnerRef": "Safe ref #{id}",
+    "selectTicket": "Select support ticket {publicId}",
+    "openRoute": "Open support ticket route {publicId}",
+    "open": "Open",
+    "table": {
+      "ticket": "Ticket",
+      "state": "State",
+      "owner": "Owner",
+      "updated": "Updated"
+    }
+  },
+  "detail": {
+    "loadError": "Selected conversation failed to load.",
+    "empty": "Select a ticket from the inbox to inspect the conversation.",
+    "updatedAt": "Updated {value}",
+    "owner": "Owner",
+    "customerRef": "Customer ref",
+    "partnerRef": "Partner workspace",
+    "conversationTitle": "Conversation",
+    "conversationDescription": "Public replies and gated internal notes are rendered as separate message types.",
+    "noMessages": "No messages are attached to this ticket yet.",
+    "publicPreviewTitle": "Customer/partner preview",
+    "publicPreviewDescription": "Internal notes excluded: {count}",
+    "publicPreviewEmpty": "No public reply has been recorded yet.",
+    "auditTitle": "Audit timeline",
+    "noEvents": "No audit events are attached to this ticket yet.",
+    "transition": "{from} -> {to}"
+  },
+  "actions": {
+    "title": "Ticket controls",
+    "description": "Update metadata and lifecycle without touching billing, VPN provisioning, or entitlement state.",
+    "readOnly": "This role can inspect support tickets but cannot reply, note, assign, or change lifecycle state.",
+    "status": "Ticket status",
+    "priority": "Ticket priority",
+    "category": "Ticket category",
+    "assignedAdmin": "Assigned admin id",
+    "assignedAdminPlaceholder": "Admin UUID or blank for unassigned",
+    "saving": "Saving",
+    "save": "Save metadata",
+    "quick": {
+      "resolved": "Resolve",
+      "closed": "Close",
+      "pending_support": "Reopen"
+    }
+  },
+  "reply": {
+    "title": "Public reply",
+    "description": "Visible to the customer or partner and may trigger notification workflows.",
+    "message": "Public reply message",
+    "placeholder": "Write a public support reply. Do not include secrets, payment card numbers, private keys, or VPN credential URLs.",
+    "sending": "Sending",
+    "submit": "Send public reply"
+  },
+  "internalNote": {
+    "title": "Internal note",
+    "description": "Admin-only context. This composer never writes to the public reply endpoint.",
+    "message": "Internal note message",
+    "placeholder": "Record operator-only context, escalation notes, or safe audit breadcrumbs.",
+    "saving": "Saving",
+    "submit": "Save internal note"
+  },
+  "feedback": {
+    "selectTicket": "Select a support ticket first.",
+    "messageRequired": "Enter a message before submitting.",
+    "messageTooLong": "Message must be {count} characters or fewer.",
+    "publicReplySent": "Public reply sent.",
+    "internalNoteSaved": "Internal note saved.",
+    "ticketUpdated": "Ticket metadata updated.",
+    "statusUpdated": "Ticket status updated."
+  },
+  "statuses": {
+    "open": "Open",
+    "pending_support": "Pending support",
+    "pending_customer": "Pending customer",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "priorities": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "categories": {
+    "account": "Account",
+    "billing": "Billing",
+    "setup": "Setup",
+    "vpn_access": "VPN access",
+    "status": "Status",
+    "privacy": "Privacy",
+    "other": "Other",
+    "abuse_review": "Abuse review",
+    "duplicate": "Duplicate"
+  },
+  "sources": {
+    "customer_web": "Customer web",
+    "telegram_mini_app": "Telegram Mini App",
+    "partner_portal": "Partner portal",
+    "admin_manual": "Admin manual",
+    "telegram_bot": "Telegram bot"
+  }
+}

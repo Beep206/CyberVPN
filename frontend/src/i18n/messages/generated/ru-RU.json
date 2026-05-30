@@ -785,6 +785,89 @@
     "serverStatus": "СТАТУС СЕРВЕРОВ",
     "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
     "statusValue": "ОПТИМАЛЬНО",
+    "support": {
+      "actions": {
+        "close": "Закрыть обращение",
+        "refreshList": "Обновить список обращений",
+        "reopen": "Переоткрыть обращение"
+      },
+      "categories": {
+        "account": "Аккаунт",
+        "billing": "Billing",
+        "other": "Другое",
+        "privacy": "Privacy",
+        "setup": "Настройка",
+        "status": "Статус сервиса",
+        "vpn_access": "VPN-доступ"
+      },
+      "description": "Создайте обращение, следите за перепиской, отвечайте поддержке, закрывайте и переоткрывайте свои обращения без выхода из cabinet.",
+      "detail": {
+        "closedDescription": "Переоткройте обращение, если проблема вернулась или нужно добавить информацию.",
+        "closedTitle": "Обращение закрыто",
+        "conversationTitle": "Переписка",
+        "customerAuthor": "Вы",
+        "emptyDescription": "Здесь появятся детали обращения и публичные ответы.",
+        "emptyTitle": "Выберите обращение",
+        "noMessages": "К этому обращению пока не прикреплены публичные сообщения.",
+        "supportAuthor": "Поддержка"
+      },
+      "errors": {
+        "close": "Не удалось закрыть обращение. Попробуйте ещё раз.",
+        "create": "Не удалось создать обращение. Попробуйте ещё раз.",
+        "detail": "Не удалось загрузить это обращение.",
+        "list": "Обращения временно недоступны.",
+        "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз.",
+        "reply": "Не удалось отправить ответ. Попробуйте ещё раз."
+      },
+      "eyebrow": "SUPPORT LINK",
+      "filters": {
+        "all": "Все обращения",
+        "statusLabel": "Фильтр обращений по статусу"
+      },
+      "form": {
+        "categoryLabel": "Категория",
+        "messageHelp": "{count}/4000 символов. Редактируйте diagnostics и не отправляйте приватные значения.",
+        "messageLabel": "Сообщение",
+        "messagePlaceholder": "Опишите, что произошло, что ожидали увидеть и безопасный текст ошибки.",
+        "subjectLabel": "Тема",
+        "subjectPlaceholder": "Коротко опишите проблему",
+        "submit": "Создать обращение",
+        "submitting": "Создание...",
+        "title": "Создать обращение"
+      },
+      "list": {
+        "emptyDescription": "Создайте обращение, если нужна помощь с оплатой, доступом, настройкой или восстановлением аккаунта.",
+        "emptyTitle": "Обращений пока нет",
+        "openTicket": "Открыть обращение {id}",
+        "title": "Мои обращения"
+      },
+      "meta": {
+        "description": "Создавайте и отслеживайте обращения CyberVPN из customer cabinet.",
+        "title": "Обращения в поддержку - CyberVPN"
+      },
+      "reply": {
+        "label": "Ответ",
+        "placeholder": "Добавьте безопасное обновление для поддержки.",
+        "submit": "Отправить ответ",
+        "submitting": "Отправка..."
+      },
+      "sensitiveWarning": {
+        "description": "Не добавляйте пароли, 2FA codes, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files.",
+        "title": "Не отправляйте секреты"
+      },
+      "status": {
+        "closed": "Закрыто",
+        "open": "Открыто",
+        "pending_customer": "Ожидает клиента",
+        "pending_support": "Ожидает поддержку",
+        "resolved": "Решено"
+      },
+      "surface": {
+        "dashboard": "Customer cabinet",
+        "miniapp": "Telegram Mini App"
+      },
+      "title": "Обращения в поддержку"
+    },
     "thisMonth": "Этот месяц",
     "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
     "totalNodes": "Всего узлов",
@@ -1325,6 +1408,7 @@
       "sessionRestoringTitle": "Восстанавливаем вход через Telegram",
       "settings": "Настройки",
       "subscriptionActive": "Подписка активна",
+      "support": "Поддержка",
       "trafficLimit": "Трафик",
       "trial": "ПРОБНЫЙ ДОСТУП",
       "trialAvailable": "Доступен бесплатный пробный период",
@@ -1739,6 +1823,89 @@
       "title": "Центр наград",
       "yourCode": "Ваш реферальный код"
     },
+    "support": {
+      "actions": {
+        "close": "Закрыть обращение",
+        "refreshList": "Обновить список обращений",
+        "reopen": "Переоткрыть обращение"
+      },
+      "categories": {
+        "account": "Аккаунт",
+        "billing": "Billing",
+        "other": "Другое",
+        "privacy": "Privacy",
+        "setup": "Настройка",
+        "status": "Статус сервиса",
+        "vpn_access": "VPN-доступ"
+      },
+      "description": "Создайте обращение, следите за ответами, закрывайте и переоткрывайте свои обращения из Telegram.",
+      "detail": {
+        "closedDescription": "Переоткройте обращение, если проблема вернулась или нужно добавить информацию.",
+        "closedTitle": "Обращение закрыто",
+        "conversationTitle": "Переписка",
+        "customerAuthor": "Вы",
+        "emptyDescription": "Здесь появятся детали обращения и ответы.",
+        "emptyTitle": "Выберите обращение",
+        "noMessages": "К этому обращению пока не прикреплены публичные сообщения.",
+        "supportAuthor": "Поддержка"
+      },
+      "errors": {
+        "close": "Не удалось закрыть обращение. Попробуйте ещё раз.",
+        "create": "Не удалось создать обращение. Попробуйте ещё раз.",
+        "detail": "Не удалось загрузить это обращение.",
+        "list": "Обращения временно недоступны.",
+        "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз.",
+        "reply": "Не удалось отправить ответ. Попробуйте ещё раз."
+      },
+      "eyebrow": "SUPPORT LINK",
+      "filters": {
+        "all": "Все обращения",
+        "statusLabel": "Фильтр обращений по статусу"
+      },
+      "form": {
+        "categoryLabel": "Категория",
+        "messageHelp": "{count}/4000 символов. Редактируйте приватные значения перед отправкой.",
+        "messageLabel": "Сообщение",
+        "messagePlaceholder": "Опишите, что произошло, и добавьте только безопасный текст ошибки.",
+        "subjectLabel": "Тема",
+        "subjectPlaceholder": "Коротко опишите проблему",
+        "submit": "Создать обращение",
+        "submitting": "Создание...",
+        "title": "Создать обращение"
+      },
+      "list": {
+        "emptyDescription": "Создайте обращение, если нужна помощь с оплатой, доступом, настройкой или восстановлением аккаунта.",
+        "emptyTitle": "Обращений пока нет",
+        "openTicket": "Открыть обращение {id}",
+        "title": "Мои обращения"
+      },
+      "meta": {
+        "description": "Создавайте и отслеживайте обращения CyberVPN в Telegram.",
+        "title": "Обращения в поддержку - CyberVPN Mini App"
+      },
+      "reply": {
+        "label": "Ответ",
+        "placeholder": "Добавьте безопасное обновление для поддержки.",
+        "submit": "Отправить ответ",
+        "submitting": "Отправка..."
+      },
+      "sensitiveWarning": {
+        "description": "Не добавляйте пароли, 2FA codes, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files.",
+        "title": "Не отправляйте секреты"
+      },
+      "status": {
+        "closed": "Закрыто",
+        "open": "Открыто",
+        "pending_customer": "Ожидает клиента",
+        "pending_support": "Ожидает поддержку",
+        "resolved": "Решено"
+      },
+      "surface": {
+        "dashboard": "Customer cabinet",
+        "miniapp": "Telegram Mini App"
+      },
+      "title": "Обращения в поддержку"
+    },
     "wallet": {
       "amount": "Сумма",
       "available": "Доступно",
@@ -1787,6 +1954,7 @@
     "servers": "СЕТЬ",
     "settings": "НАСТРОЙКИ",
     "sidebar": "Боковая панель",
+    "support": "ПОДДЕРЖКА",
     "users": "КЛИЕНТЫ",
     "wallet": "КОШЕЛЁК"
   },

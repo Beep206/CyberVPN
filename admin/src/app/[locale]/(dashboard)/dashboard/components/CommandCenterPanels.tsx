@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import {
   ADMIN_NAV_ITEMS,
   ADMIN_SECTION_OVERVIEWS,
+  type AdminNavItem,
   type AdminSectionSlug,
 } from '@/features/admin-shell/config/section-registry';
 import {
@@ -68,6 +69,21 @@ function readinessToneClass(readinessTone: 'strong' | 'partial' | 'blocked') {
     return 'border-neon-cyan/35 bg-neon-cyan/10 text-neon-cyan';
   }
   return 'border-neon-pink/35 bg-neon-pink/10 text-neon-pink';
+}
+
+const SUPPORT_SECTION_CARD_OVERVIEW = {
+  availableNow: ['inbox', 'conversation', 'internalNotes'],
+  nextModules: ['securityGate', 'qaEvidence', 'partnerWorkspaceSupport'],
+  readinessTone: 'partial',
+} as const;
+
+function getSectionCardOverview(item: AdminNavItem) {
+  if (item.href === '/support') {
+    return SUPPORT_SECTION_CARD_OVERVIEW;
+  }
+
+  const slug = item.href.slice(1) as AdminSectionSlug;
+  return ADMIN_SECTION_OVERVIEWS[slug];
 }
 
 function statusToneClass(status: string) {
@@ -172,8 +188,7 @@ function SectionCards() {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {sectionItems.map((item) => {
-        const slug = item.href.slice(1) as AdminSectionSlug;
-        const overview = ADMIN_SECTION_OVERVIEWS[slug];
+        const overview = getSectionCardOverview(item);
         const Icon = item.icon;
 
         return (

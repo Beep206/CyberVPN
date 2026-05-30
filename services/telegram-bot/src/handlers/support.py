@@ -6,10 +6,12 @@ Displays support contact information and creates first-line S1 support escalatio
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit, urlunsplit
 
 import structlog
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from src.services.api_client import APIError
 from src.services.support_triage import Stage1SupportTriageService
@@ -38,6 +40,55 @@ def _render_support_message(
 ) -> str:
     """Build localized support message shared by menu and command entrypoints."""
     return i18n("support-message", contact=_normalize_support_contact(settings.support_username))
+
+
+def _support_miniapp_url(settings: BotSettings) -> str | None:
+    raw_url = getattr(settings, "miniapp_url", None)
+    if raw_url is None:
+        return None
+
+    parsed = urlsplit(str(raw_url))
+    path = parsed.path.rstrip("/")
+    if path.endswith("/miniapp/support"):
+        support_path = path
+    elif path.endswith("/miniapp"):
+        support_path = f"{path}/support"
+    else:
+        support_path = f"{path}/miniapp/support"
+
+    return urlunsplit((parsed.scheme, parsed.netloc, support_path, "", ""))
+
+
+def _support_miniapp_keyboard(
+    i18n: Callable[..., str],
+    settings: BotSettings,
+) -> InlineKeyboardMarkup | None:
+    support_url = _support_miniapp_url(settings)
+    if support_url is None:
+        return None
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=i18n("btn-support"),
+                    web_app=WebAppInfo(url=support_url),
+                )
+            ]
+        ]
+    )
+
+
+async def _answer_support_message(
+    message: Message,
+    i18n: Callable[..., str],
+    settings: BotSettings,
+) -> None:
+    reply_markup = _support_miniapp_keyboard(i18n, settings)
+    text = _render_support_message(i18n, settings)
+    if reply_markup is None:
+        await message.answer(text)
+        return
+    await message.answer(text, reply_markup=reply_markup)
 
 
 def _extract_support_request(message: Message, command: CommandObject | None = None) -> str:
@@ -115,12 +166,12 @@ async def support_command(
     """Provide support contact or triage a support request from command args."""
     support_request = _extract_support_request(message, command)
     if not support_request:
-        await message.answer(_render_support_message(i18n, settings))
+        await _answer_support_message(message, i18n, settings)
         return
 
     telegram_user = message.from_user
     if telegram_user is None:
-        await message.answer(_render_support_message(i18n, settings))
+        await _answer_support_message(message, i18n, settings)
         return
 
     contact = _normalize_support_contact(settings.support_username)
@@ -160,6 +211,9 @@ async def support_menu(
         settings: Bot settings with support username.
     """
     await callback.answer()
-    await callback.message.edit_text(
-        _render_support_message(i18n, settings),
-    )
+    reply_markup = _support_miniapp_keyboard(i18n, settings)
+    text = _render_support_message(i18n, settings)
+    if reply_markup is None:
+        await callback.message.edit_text(text)
+        return
+    await callback.message.edit_text(text, reply_markup=reply_markup)

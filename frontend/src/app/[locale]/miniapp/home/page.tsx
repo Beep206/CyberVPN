@@ -17,6 +17,7 @@ import {
   Server,
   Gift,
   ExternalLink,
+  LifeBuoy,
   Loader2,
   Users,
 } from 'lucide-react';
@@ -458,6 +459,12 @@ export default function MiniAppHomePage() {
             href="/miniapp/wallet"
             icon={Zap}
             label={t('wallet')}
+            onPress={() => haptic('medium')}
+          />
+          <QuickActionCard
+            href="/miniapp/support"
+            icon={LifeBuoy}
+            label={t('support')}
             onPress={() => haptic('medium')}
           />
           <QuickActionCard

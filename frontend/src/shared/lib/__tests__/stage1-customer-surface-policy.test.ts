@@ -18,6 +18,7 @@ describe('stage1 customer surface policy', () => {
       referral: true,
       servers: true,
       settings: true,
+      support: true,
       subscriptions: true,
       users: false,
       wallet: true,

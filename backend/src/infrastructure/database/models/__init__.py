@@ -151,6 +151,11 @@ from src.infrastructure.database.models.statement_adjustment_model import Statem
 from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.models.support_profile_model import SupportProfileModel
+from src.infrastructure.database.models.support_ticket_model import (
+    SupportTicketEventModel,
+    SupportTicketMessageModel,
+    SupportTicketModel,
+)
 from src.infrastructure.database.models.system_config_model import SystemConfigModel
 from src.infrastructure.database.models.wallet_model import WalletModel, WalletTransactionModel
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
@@ -273,6 +278,9 @@ __all__ = [
     "SubscriptionPlanModel",
     "StorefrontModel",
     "SupportProfileModel",
+    "SupportTicketEventModel",
+    "SupportTicketMessageModel",
+    "SupportTicketModel",
     "SystemConfigModel",
     "WalletModel",
     "WalletTransactionModel",

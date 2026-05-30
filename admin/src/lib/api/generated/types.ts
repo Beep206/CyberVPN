@@ -132,6 +132,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/me/privacy-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Privacy Request
+         * @description Open a manual S1 privacy request for account deletion or data export.
+         *
+         *     This endpoint creates a safe support/escalation reference only. S1 does not
+         *     automatically export raw data or perform destructive deletion from this
+         *     request path.
+         */
+        post: operations["create_privacy_request_api_v1_auth_me_privacy_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/verify-email": {
         parameters: {
             query?: never;
@@ -4741,7 +4765,7 @@ export interface paths {
         };
         /**
          * Get current user usage statistics
-         * @description Returns VPN usage statistics for the currently authenticated user. If the VPN backend is unavailable or the user has no upstream record yet, the endpoint falls back to an empty usage snapshot.
+         * @description Returns VPN usage statistics for the currently authenticated user. If the VPN backend is unavailable or the user has no upstream record yet, the endpoint returns an explicit unavailable snapshot so clients do not display zero usage as accurate data.
          */
         get: operations["get_usage_api_v1_users_me_usage_get"];
         put?: never;
@@ -4841,7 +4865,7 @@ export interface paths {
         };
         /**
          * Get Payment History
-         * @description Get payment history with optional user filter.
+         * @description Return safe payment history for the authenticated customer.
          */
         get: operations["get_payment_history_api_v1_payments_history_get"];
         put?: never;
@@ -4927,6 +4951,30 @@ export interface paths {
          * @description Backward-compatible alias for commit checkout.
          */
         post: operations["checkout_alias_api_v1_payments_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/internal/reconciliation/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Stage1 Payment Reconciliation
+         * @description Run the internal S1 payment reconciliation scan.
+         *
+         *     The response is intentionally redacted so it can be stored as launch
+         *     evidence without raw provider ids, payment ids, order ids or idempotency
+         *     keys.
+         */
+        post: operations["run_stage1_payment_reconciliation_api_v1_payments_internal_reconciliation_run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -18043,6 +18091,15 @@ export interface components {
         };
         /** MiniAppBootstrapUsageResponse */
         MiniAppBootstrapUsageResponse: {
+            /** Usageavailable */
+            usageAvailable: boolean;
+            /**
+             * Usagesource
+             * @enum {string}
+             */
+            usageSource: "remnawave" | "unavailable";
+            /** Usageunavailablereason */
+            usageUnavailableReason?: ("upstream_user_not_found" | "upstream_unavailable") | null;
             /** Bandwidthusedbytes */
             bandwidthUsedBytes: number;
             /** Bandwidthlimitbytes */
@@ -21590,6 +21647,56 @@ export interface components {
          * @enum {string}
          */
         PrincipalClass: "customer" | "partner_operator" | "admin" | "service";
+        /**
+         * PrivacyRequestCreate
+         * @description Request to open an S1 manual privacy review item.
+         */
+        PrivacyRequestCreate: {
+            /**
+             * Request Type
+             * @description S1 privacy request type.
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /**
+             * Notes
+             * @description Optional user-provided context; secrets and configs are redacted before staff use.
+             */
+            notes?: string | null;
+        };
+        /**
+         * PrivacyRequestResponse
+         * @description Response for an accepted S1 manual privacy request.
+         */
+        PrivacyRequestResponse: {
+            /**
+             * Request Type
+             * @enum {string}
+             */
+            request_type: "account_deletion" | "data_export";
+            /** Message */
+            message: string;
+            /** Ticket Reference */
+            ticket_reference: string;
+            /** Target Contact */
+            target_contact: string;
+            /** Priority */
+            priority: string;
+            /** Support State */
+            support_state: string;
+            /** Ack Sla Minutes */
+            ack_sla_minutes?: number | null;
+            /** Customer Response Sla Minutes */
+            customer_response_sla_minutes: number;
+            /** Manual Fulfillment Target Days */
+            manual_fulfillment_target_days: number;
+            /** Required Actions */
+            required_actions: string[];
+            /** Forbidden Actions */
+            forbidden_actions: string[];
+            /** Audit Required */
+            audit_required: boolean;
+        };
         /**
          * ProfileResponse
          * @description Response schema for the authenticated user profile.
@@ -26296,6 +26403,22 @@ export interface components {
          */
         UsageResponse: {
             /**
+             * Usage Available
+             * @description True when aggregate usage was fetched from the authoritative VPN backend
+             */
+            usage_available: boolean;
+            /**
+             * Usage Source
+             * @description Authoritative source for this usage snapshot
+             * @enum {string}
+             */
+            usage_source: "remnawave" | "unavailable";
+            /**
+             * Usage Unavailable Reason
+             * @description Reason usage is unavailable when usage_available is false
+             */
+            usage_unavailable_reason?: ("upstream_user_not_found" | "upstream_unavailable") | null;
+            /**
              * Bandwidth Used Bytes
              * @description Total bandwidth consumed in bytes
              */
@@ -26332,6 +26455,12 @@ export interface components {
              * @description Timestamp of last VPN connection
              */
             last_connection_at?: string | null;
+            /**
+             * Generated At
+             * Format: date-time
+             * @description Timestamp when this usage snapshot was generated
+             */
+            generated_at: string;
         };
         /**
          * UserListResponse
@@ -27161,6 +27290,44 @@ export interface operations {
             };
             /** @description User not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_privacy_request_api_v1_auth_me_privacy_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivacyRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestResponse"];
+                };
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -37417,8 +37584,6 @@ export interface operations {
     get_payment_history_api_v1_payments_history_get: {
         parameters: {
             query?: {
-                /** @description Filter by user UUID */
-                user_uuid?: string | null;
                 /** @description Pagination offset */
                 offset?: number;
                 /** @description Pagination limit */
@@ -37569,6 +37734,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_stage1_payment_reconciliation_api_v1_payments_internal_reconciliation_run_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

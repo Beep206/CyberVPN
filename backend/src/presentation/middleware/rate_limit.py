@@ -33,6 +33,7 @@ class RateLimitRule:
     exact_paths: frozenset[str] = field(default_factory=frozenset)
     path_prefixes: tuple[str, ...] = ()
     path_suffixes: tuple[str, ...] = ()
+    path_contains: tuple[str, ...] = ()
 
     def matches(self, request: Request) -> bool:
         method = request.method.upper()
@@ -43,6 +44,7 @@ class RateLimitRule:
             path in self.exact_paths
             or any(path.startswith(prefix) for prefix in self.path_prefixes)
             or any(path.endswith(suffix) for suffix in self.path_suffixes)
+            or any(part in path for part in self.path_contains)
         )
 
 
@@ -443,7 +445,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 path_prefixes=(
                     "/api/v1/admin/mobile-users/",
                     "/api/v1/admin/customer-operations/",
+                    "/api/v1/support/tickets",
+                    "/api/v1/admin/support/tickets",
                 ),
+                path_contains=("/support/tickets",),
             ),
         )
 

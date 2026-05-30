@@ -11,6 +11,7 @@ import {
 const respondToWorkspaceReviewRequest = vi.fn();
 const respondToWorkspaceCase = vi.fn();
 const markWorkspaceCaseReadyForOps = vi.fn();
+const listWorkspaceSupportTickets = vi.fn();
 
 const mockRuntimeState = vi.fn<
   () => {
@@ -108,6 +109,8 @@ vi.mock('@/lib/api/partner-portal', () => ({
       respondToWorkspaceCase(...args),
     markWorkspaceCaseReadyForOps: (...args: unknown[]) =>
       markWorkspaceCaseReadyForOps(...args),
+    listWorkspaceSupportTickets: (...args: unknown[]) =>
+      listWorkspaceSupportTickets(...args),
   },
 }));
 
@@ -133,6 +136,7 @@ describe('PartnerCasesPage', () => {
     respondToWorkspaceReviewRequest.mockReset();
     respondToWorkspaceCase.mockReset();
     markWorkspaceCaseReadyForOps.mockReset();
+    listWorkspaceSupportTickets.mockReset();
     respondToWorkspaceReviewRequest.mockResolvedValue({
       data: { id: 'event_001' },
     });
@@ -141,6 +145,12 @@ describe('PartnerCasesPage', () => {
     });
     markWorkspaceCaseReadyForOps.mockResolvedValue({
       data: { id: 'event_003' },
+    });
+    listWorkspaceSupportTickets.mockResolvedValue({
+      data: {
+        nextCursor: null,
+        tickets: [],
+      },
     });
   });
 

@@ -833,6 +833,7 @@
     "eyebrow": "PP2 SUPPORT AND REVIEW LOOP",
     "title": "Support & Cases",
     "subtitle": "Applicants and early-stage partners can now stay inside the portal while answering partner ops, review, finance, and compliance requests.",
+    "workspaceFallback": "Current workspace",
     "summary": {
       "routeAccess": "Route access",
       "surfaceMode": "Surface mode",
@@ -1760,6 +1761,117 @@
       "conversions": "Open conversions / orders",
       "integrations": "Open integrations",
       "finance": "Open finance"
+    }
+  },
+  "supportTickets": {
+    "eyebrow": "WORKSPACE SUPPORT TICKETS",
+    "title": "Partner Support Tickets",
+    "subtitle": "Create and manage support tickets only for {workspace}. Internal support notes and other workspace tickets stay outside this partner surface.",
+    "summary": {
+      "workspace": "Workspace",
+      "visibleTickets": "Visible tickets",
+      "writeAccess": "Write access",
+      "writeEnabled": "Enabled",
+      "writeDisabled": "Read only"
+    },
+    "filters": {
+      "statusLabel": "Status",
+      "categoryLabel": "Category",
+      "allStatuses": "All statuses",
+      "allCategories": "All categories"
+    },
+    "statuses": {
+      "open": "Open",
+      "pending_support": "Pending support",
+      "pending_customer": "Waiting on partner",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "categories": {
+      "account": "Account",
+      "billing": "Billing",
+      "setup": "Setup",
+      "vpn_access": "VPN access",
+      "status": "Status",
+      "privacy": "Privacy",
+      "other": "Other"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "authors": {
+      "customer": "Customer",
+      "partner": "Partner",
+      "admin": "Support",
+      "system": "System"
+    },
+    "events": {
+      "ticket_created": "Ticket created",
+      "public_reply_added": "Public reply added",
+      "status_changed": "Status changed",
+      "priority_changed": "Priority changed",
+      "category_changed": "Category changed",
+      "closed": "Ticket closed",
+      "reopened": "Ticket reopened"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "refreshing": "Refreshing..."
+    },
+    "states": {
+      "workspaceUnavailable": "Select a canonical partner workspace before using support tickets.",
+      "readOnly": "This role can review workspace tickets, but cannot create, reply, close, or reopen them.",
+      "loading": "Loading workspace tickets...",
+      "detailLoading": "Loading ticket detail...",
+      "empty": "No support tickets were returned for this workspace.",
+      "listError": "Could not load support tickets for this workspace.",
+      "detailError": "Could not open this support ticket.",
+      "isolationBlocked": "This ticket does not belong to the active workspace, so the portal will not render its detail."
+    },
+    "list": {
+      "title": "Workspace ticket list",
+      "updatedAt": "Updated: {value}"
+    },
+    "create": {
+      "title": "Create ticket",
+      "description": "Use synthetic, support-safe details only. Billing and VPN categories do not mutate billing, entitlement, or provisioning state.",
+      "subjectLabel": "Subject",
+      "categoryLabel": "Category",
+      "priorityLabel": "Priority",
+      "messageLabel": "Message",
+      "submit": "Create ticket",
+      "sending": "Creating...",
+      "success": "Support ticket created for this workspace.",
+      "error": "Could not create the support ticket."
+    },
+    "detail": {
+      "title": "Ticket detail",
+      "description": "Only public partner-visible messages and events are rendered here.",
+      "selectPrompt": "Select a ticket from the workspace list to open the conversation.",
+      "updatedAt": "Updated: {value}",
+      "messagesTitle": "Public messages",
+      "messagesEmpty": "No public messages were returned for this ticket.",
+      "eventsTitle": "Public timeline",
+      "eventsEmpty": "No public events were returned for this ticket.",
+      "replyLabel": "Public reply",
+      "replyAction": "Reply",
+      "replySending": "Replying...",
+      "replySuccess": "Reply added to the support ticket.",
+      "replyError": "Could not add the support reply.",
+      "closeAction": "Close",
+      "closeSending": "Closing...",
+      "closeSuccess": "Support ticket closed.",
+      "closeError": "Could not close the support ticket.",
+      "reopenAction": "Reopen",
+      "reopenSending": "Reopening...",
+      "reopenSuccess": "Support ticket reopened.",
+      "reopenError": "Could not reopen the support ticket."
+    },
+    "errors": {
+      "workspaceMissing": "Workspace context is required before support ticket actions."
     }
   },
   "workspaceSwitcher": {

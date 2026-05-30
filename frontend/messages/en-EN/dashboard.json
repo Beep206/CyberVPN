@@ -317,5 +317,88 @@
         }
       }
     }
+  },
+  "support": {
+    "meta": {
+      "title": "Support tickets - CyberVPN",
+      "description": "Create and track CyberVPN support tickets from the customer cabinet."
+    },
+    "eyebrow": "SUPPORT LINK",
+    "title": "Support tickets",
+    "description": "Create a support ticket, follow the conversation, reply to staff, and close or reopen your own case without leaving the cabinet.",
+    "surface": {
+      "dashboard": "Customer cabinet",
+      "miniapp": "Telegram Mini App"
+    },
+    "sensitiveWarning": {
+      "title": "Do not send secrets",
+      "description": "Never include passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs, or raw VPN config files."
+    },
+    "form": {
+      "title": "Create ticket",
+      "categoryLabel": "Category",
+      "subjectLabel": "Subject",
+      "subjectPlaceholder": "Short summary of the issue",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Describe what happened, what you expected, and any safe error text.",
+      "messageHelp": "{count}/4000 characters. Keep diagnostics safe and redact private values.",
+      "submit": "Create ticket",
+      "submitting": "Creating..."
+    },
+    "categories": {
+      "account": "Account",
+      "billing": "Billing",
+      "setup": "Setup",
+      "vpn_access": "VPN access",
+      "status": "Service status",
+      "privacy": "Privacy",
+      "other": "Other"
+    },
+    "status": {
+      "open": "Open",
+      "pending_support": "Support reply due",
+      "pending_customer": "Customer reply due",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "filters": {
+      "statusLabel": "Filter tickets by status",
+      "all": "All tickets"
+    },
+    "list": {
+      "title": "My tickets",
+      "emptyTitle": "No tickets yet",
+      "emptyDescription": "Create a ticket when payment, access, setup, or account recovery needs help.",
+      "openTicket": "Open ticket {id}"
+    },
+    "detail": {
+      "emptyTitle": "Select a ticket",
+      "emptyDescription": "Ticket details and public replies appear here.",
+      "conversationTitle": "Conversation",
+      "noMessages": "No public messages are attached to this ticket yet.",
+      "customerAuthor": "You",
+      "supportAuthor": "Support",
+      "closedTitle": "Ticket is closed",
+      "closedDescription": "Reopen the ticket if the issue returned or you need to add more information."
+    },
+    "reply": {
+      "label": "Reply",
+      "placeholder": "Add a safe update for support.",
+      "submit": "Send reply",
+      "submitting": "Sending..."
+    },
+    "actions": {
+      "refreshList": "Refresh ticket list",
+      "close": "Close ticket",
+      "reopen": "Reopen ticket"
+    },
+    "errors": {
+      "list": "Support tickets are temporarily unavailable.",
+      "detail": "This support ticket could not be loaded.",
+      "create": "Ticket creation failed. Please try again.",
+      "reply": "Reply failed. Please try again.",
+      "close": "Ticket close failed. Please try again.",
+      "reopen": "Ticket reopen failed. Please try again."
+    }
   }
 }
