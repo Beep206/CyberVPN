@@ -1,5 +1,6 @@
 import type {
   PricingAddon,
+  PricingCatalogMoney,
   PricingCatalogData,
   PricingPlanFamily,
   PricingPlanPeriod,
@@ -12,12 +13,29 @@ import {
 
 export { formatMoney, getPricePresentation };
 
-export function getBillingPrice(locale: string, period: PricingPlanPeriod) {
-  return getPricePresentation(locale, period).billing;
+export function getCatalogMoneyAmount(money: PricingCatalogMoney): number {
+  const amount = Number(money.amount);
+  return Number.isFinite(amount) ? amount : 0;
 }
 
-export function getLocalPriceEstimate(locale: string, period: PricingPlanPeriod) {
-  return getPricePresentation(locale, period).localEstimate;
+export function formatCatalogMoney(locale: string, money: PricingCatalogMoney) {
+  return formatMoney(locale, getCatalogMoneyAmount(money), money.currency);
+}
+
+export function getBillingPrice(_locale: string, period: PricingPlanPeriod) {
+  return {
+    amount: getCatalogMoneyAmount(period.display_price),
+    currency: period.display_price.currency,
+  };
+}
+
+export function getLocalPriceEstimate(_locale: string, period: PricingPlanPeriod) {
+  return {
+    amount: getCatalogMoneyAmount(period.display_price),
+    currency: period.display_price.currency,
+    source: 'catalog' as const,
+    rateVersion: period.version,
+  };
 }
 
 export function getPlanPeriod(
