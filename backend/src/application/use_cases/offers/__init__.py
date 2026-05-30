@@ -1,5 +1,9 @@
 from src.application.use_cases.offers.create_offer import CreateOfferUseCase
 from src.application.use_cases.offers.create_pricebook import CreatePricebookUseCase
+from src.application.use_cases.offers.admin_pricebook_lifecycle import (
+    AdminCommercialContextOptionsUseCase,
+    AdminPricebookLifecycleUseCase,
+)
 from src.application.use_cases.offers.create_program_eligibility_policy import (
     CreateProgramEligibilityPolicyUseCase,
 )
@@ -10,6 +14,8 @@ from src.application.use_cases.offers.list_program_eligibility_policies import (
 )
 
 __all__ = [
+    "AdminCommercialContextOptionsUseCase",
+    "AdminPricebookLifecycleUseCase",
     "CreateOfferUseCase",
     "CreatePricebookUseCase",
     "CreateProgramEligibilityPolicyUseCase",

@@ -126,6 +126,7 @@ class CheckoutUseCase:
         user_id: UUID,
         plan_id: UUID,
         *,
+        catalog_base_price: Decimal | None = None,
         code_input: str | None = None,
         promo_code: str | None = None,
         partner_code: str | None = None,
@@ -137,7 +138,9 @@ class CheckoutUseCase:
         plan = await self._resolve_plan(plan_id, sale_channel=sale_channel)
         addon_lines = await self._resolve_addons(plan=plan, addon_inputs=addons or [], sale_channel=sale_channel)
 
-        base_price = Decimal(str(plan.price_usd))
+        base_price = catalog_base_price if catalog_base_price is not None else Decimal(str(plan.price_usd))
+        if base_price < 0:
+            raise ValueError("Catalog base price cannot be negative")
         addon_amount = sum((line.total_price for line in addon_lines), Decimal("0"))
 
         partner_markup = Decimal("0")

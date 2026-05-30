@@ -22,6 +22,7 @@ from src.application.use_cases.subscriptions.stage1_provisioning_retry import (
     Stage1ProvisioningRetryPolicy,
     Stage1ProvisioningRetryService,
 )
+from src.application.use_cases.subscriptions.stage1_provisioning_retry_worker import Stage1ProvisioningRetryWorker
 from src.application.use_cases.trial.stage1_trial_provisioning import (
     STAGE1_TRIAL_DURATION_DAYS,
     Stage1TrialProvisioningRequest,
@@ -57,6 +58,78 @@ class InMemoryRetryQueue:
         self.jobs[str(job.job_id)] = job
         self.saved.append(job)
         return job
+
+
+class DurableLikeRetryQueue(InMemoryRetryQueue):
+    def __init__(self) -> None:
+        super().__init__()
+        self.jobs_by_key: dict[tuple[str, str], Stage1ProvisioningRetryJob] = {}
+
+    async def save_retry_job(self, job: Stage1ProvisioningRetryJob) -> Stage1ProvisioningRetryJob:
+        key = (job.operation.value, job.correlation_id)
+        existing = self.jobs_by_key.get(key)
+        if (
+            existing is not None
+            and existing.job_id != job.job_id
+            and existing.state
+            in {
+                Stage1ProvisioningRetryJobState.QUEUED,
+                Stage1ProvisioningRetryJobState.RETRYING,
+            }
+        ):
+            self.saved.append(existing)
+            return existing
+        self.jobs_by_key[key] = job
+        return await super().save_retry_job(job)
+
+    async def claim_due_jobs(
+        self,
+        *,
+        now: datetime,
+        limit: int,
+        worker_id: str,
+    ) -> list[Stage1ProvisioningRetryJob]:
+        _ = worker_id
+        due = [
+            job
+            for job in self.jobs_by_key.values()
+            if job.state in {Stage1ProvisioningRetryJobState.QUEUED, Stage1ProvisioningRetryJobState.RETRYING}
+            and job.next_attempt_at <= now
+        ]
+        return due[:limit]
+
+    async def mark_reconciliation_required(
+        self,
+        job: Stage1ProvisioningRetryJob,
+        *,
+        completed_at: datetime,
+        error_code: str,
+    ) -> Stage1ProvisioningRetryJob:
+        updated = replace(
+            job,
+            state=Stage1ProvisioningRetryJobState.DEAD_LETTER,
+            provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
+            support_state=Stage1SupportState.OPS_ESCALATION,
+            completed_at=completed_at,
+            last_error_code=error_code,
+            last_error_message="Remnawave provisioning retry requires reconciliation; details redacted.",
+        )
+        return await self.save_retry_job(updated)
+
+    async def metrics_snapshot(self, *, now: datetime) -> dict:
+        active = [
+            job
+            for job in self.jobs_by_key.values()
+            if job.state in {Stage1ProvisioningRetryJobState.QUEUED, Stage1ProvisioningRetryJobState.RETRYING}
+        ]
+        max_age_seconds = int(max(((now - job.queued_at).total_seconds() for job in active), default=0))
+        return {
+            "counts_by_state": {
+                state.value: sum(1 for job in self.jobs_by_key.values() if job.state == state)
+                for state in Stage1ProvisioningRetryJobState
+            },
+            "max_job_age_seconds": max_age_seconds,
+        }
 
 
 class FlakyPaidGateway:
@@ -137,6 +210,29 @@ async def test_stage1_paid_remnawave_outage_preserves_paid_state_and_queues_retr
 
 
 @pytest.mark.asyncio
+async def test_stage1_paid_retry_queue_is_idempotent_by_operation_and_correlation() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = _build_paid_request(clock.value)
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+
+    first = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([ConnectionError("remnawave down")]),
+    )
+    duplicate = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([TimeoutError("same webhook replay")]),
+    )
+
+    assert first.retry_job is not None
+    assert duplicate.retry_job is not None
+    assert duplicate.retry_job.job_id == first.retry_job.job_id
+    assert len(queue.jobs_by_key) == 1
+    assert duplicate.retry_job.attempt_count == 1
+
+
+@pytest.mark.asyncio
 async def test_stage1_paid_retry_later_succeeds_and_marks_job_ready() -> None:
     clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
     queue = InMemoryRetryQueue()
@@ -176,6 +272,46 @@ async def test_stage1_paid_retry_later_succeeds_and_marks_job_ready() -> None:
     assert retry.retry_job.completed_at == clock.value
     assert retry.retry_job.result_payload["profile_id"] == STAGE1_DEFAULT_VPN_PROFILE_ID
     assert "subscription" not in str(retry.retry_job.to_safe_dict()).lower()
+
+
+@pytest.mark.asyncio
+async def test_stage1_worker_replays_due_job_from_durable_state_after_broker_restart() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = _build_paid_request(clock.value)
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+    first = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([ConnectionError("redis stream lost but postgres kept the job")]),
+    )
+    assert first.retry_job is not None
+    clock.advance(timedelta(seconds=60))
+    success = Stage1PaidProvisioningResult(
+        customer_account_id=request.customer_account_id,
+        order_id=request.order_id,
+        remnawave_uuid=str(uuid4()),
+        profile_id=request.profile_id,
+        status="active",
+        expires_at=request.access_expires_at,
+        subscription_url="https://subscription.example.local/sub/redacted-paid",
+        created=False,
+    )
+
+    result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=FlakyPaidGateway([success]),
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+
+    assert result.claimed == 1
+    assert result.succeeded == 1
+    assert result.retrying == 0
+    assert result.dead_letter == 0
+    assert queue.jobs_by_key[(Stage1ProvisioningRetryOperation.PAID_ACCESS.value, str(request.order_id))].state == (
+        Stage1ProvisioningRetryJobState.SUCCEEDED
+    )
 
 
 @pytest.mark.asyncio
@@ -231,6 +367,41 @@ async def test_stage1_retry_exhaustion_moves_job_to_dead_letter_reconciliation()
     assert retry.provisioning_state == Stage1ProvisioningState.RECONCILIATION_REQUIRED
     assert retry.support_state == Stage1SupportState.OPS_ESCALATION
     assert retry.to_flow_status().support_escalation is True
+
+
+@pytest.mark.asyncio
+async def test_stage1_worker_exhausts_due_job_to_dead_letter() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = _build_paid_request(clock.value)
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+    first = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([ConnectionError("temporary outage")]),
+    )
+    assert first.retry_job is not None
+    exhausted = replace(
+        first.retry_job,
+        attempt_count=5,
+        next_attempt_at=clock.value,
+    )
+    await queue.save_retry_job(exhausted)
+
+    result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=FlakyPaidGateway([ConnectionError("still unavailable raw detail should not leak")]),
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+
+    stored = queue.jobs_by_key[(Stage1ProvisioningRetryOperation.PAID_ACCESS.value, str(request.order_id))]
+    serialized = str(stored.to_safe_dict()).lower()
+    assert result.dead_letter == 1
+    assert result.reconciliation_required == 1
+    assert stored.state == Stage1ProvisioningRetryJobState.DEAD_LETTER
+    assert stored.provisioning_state == Stage1ProvisioningState.RECONCILIATION_REQUIRED
+    assert "raw detail should not leak" not in serialized
 
 
 @pytest.mark.asyncio

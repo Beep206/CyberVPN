@@ -43,6 +43,7 @@ PUBLIC_PREFIXES = (
     "/api/v1/oauth",
     "/api/v1/plans",
     "/api/v1/addons/catalog",
+    "/api/v1/catalog",
     "/api/v1/offers",
     "/api/v1/pricebooks/resolve",
     "/api/v1/program-eligibility",

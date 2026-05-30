@@ -310,6 +310,76 @@ payments_total = Counter(
     ["status", "currency"],  # status: success/pending/failed
 )
 
+# Commerce catalog / quote / checkout observability
+commerce_catalog_context_resolutions_total = Counter(
+    "cybervpn_commerce_catalog_context_resolutions_total",
+    "Commercial catalog context resolution attempts",
+    ["channel", "result", "country_source", "currency_source"],
+)
+
+commerce_catalog_context_fallbacks_total = Counter(
+    "cybervpn_commerce_catalog_context_fallbacks_total",
+    "Commercial catalog context fallback usage by bounded source",
+    ["channel", "fallback_type"],
+)
+
+commerce_catalog_resolution_duration_seconds = Histogram(
+    "cybervpn_commerce_catalog_resolution_duration_seconds",
+    "Commercial catalog/context resolution latency in seconds",
+    ["channel", "result"],
+    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+)
+
+commerce_quote_sessions_total = Counter(
+    "cybervpn_commerce_quote_sessions_total",
+    "Commerce quote session creation attempts",
+    ["channel", "currency", "status"],
+)
+
+commerce_quote_session_duration_seconds = Histogram(
+    "cybervpn_commerce_quote_session_duration_seconds",
+    "Commerce quote session creation latency in seconds",
+    ["channel", "status"],
+    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+)
+
+commerce_checkout_sessions_total = Counter(
+    "cybervpn_commerce_checkout_sessions_total",
+    "Commerce checkout session handoff attempts",
+    ["channel", "currency", "status"],
+)
+
+commerce_checkout_session_duration_seconds = Histogram(
+    "cybervpn_commerce_checkout_session_duration_seconds",
+    "Commerce checkout session handoff latency in seconds",
+    ["channel", "status"],
+    buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+)
+
+commerce_quote_invalidations_total = Counter(
+    "cybervpn_commerce_quote_invalidations_total",
+    "Commerce quote invalidations by bounded reason",
+    ["reason"],
+)
+
+commerce_checkout_addons_total = Counter(
+    "cybervpn_commerce_checkout_addons_total",
+    "Commerce checkout addon selections processed",
+    ["channel", "status"],
+)
+
+commerce_pricebook_lifecycle_total = Counter(
+    "cybervpn_commerce_pricebook_lifecycle_total",
+    "Admin pricebook lifecycle actions",
+    ["action", "status"],
+)
+
+commerce_pricebook_validation_issues_current = Gauge(
+    "cybervpn_commerce_pricebook_validation_issues_current",
+    "Current pricebook validation issues by severity from the latest validation call",
+    ["severity"],
+)
+
 # Trial metrics
 trials_activated_total = Counter(
     "trials_activated_total",
