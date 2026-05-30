@@ -1,13 +1,14 @@
 # CyberVPN AI Review Map
 
 Status: active advisory map
-Updated: 2026-05-29
+Updated: 2026-05-30
 Applies to: Paperclip AI agents working in `root/CyberVPN`
 
 This document is the operational review map for autonomous Paperclip work in the
 CyberVPN repository. `CODEOWNERS` mirrors the GitLab-visible owners, while this
 document defines the Paperclip process gates that GitLab CE cannot enforce as
-required approvals today.
+required approvals today. Merge authority and risk decisions are governed by
+`docs/gitlab/AUTONOMY_POLICY_V1.md`.
 
 ## Current GitLab Constraints
 
@@ -18,6 +19,21 @@ required approvals today.
 - GitLab requires all discussions to be resolved before merge.
 - GitLab approval settings/rules APIs return `404` on this instance, so required
   reviewer approvals are handled as Paperclip gates plus maintainer merge.
+
+## Autonomy Policy v1
+
+Autonomy Policy v1 is active as of 2026-05-30.
+
+- Green work can merge without owner approval after CI is green and discussions
+  are resolved.
+- Amber work can merge without owner approval after CI is green, discussions are
+  resolved, and required Paperclip gates are complete.
+- Red work still requires explicit owner or Board approval before merge or
+  production deploy.
+- Production deploys are Red even when the code change itself was Green or
+  Amber.
+- Staging deploys may become automatic after a staging target and staging-only
+  credentials exist.
 
 ## Branch And MR Rules
 
@@ -87,6 +103,10 @@ Required gates:
 - Discussions resolved.
 - Scribe evidence note if release-facing.
 
+Merge authority:
+
+- Paperclip maintainer bot may merge without owner approval.
+
 ### Amber
 
 Amber changes can be implemented autonomously, but require Paperclip reviewer
@@ -110,6 +130,11 @@ Required gates:
 - Orion CTO Paperclip gate complete for architecture-affecting scope.
 - Scribe evidence pack complete for release candidates.
 
+Merge authority:
+
+- Paperclip maintainer bot may merge without owner approval after all required
+  Paperclip gates are linked from the MR.
+
 ### Red
 
 Red changes need explicit human or Board approval before implementation or
@@ -132,6 +157,10 @@ Required gates:
   Orion for architecture.
 - CI pipeline green.
 - Scribe release evidence.
+
+Merge authority:
+
+- Owner or Board approval is required. CI alone is never enough for Red scope.
 
 ## Path Review Matrix
 
@@ -179,6 +208,10 @@ Paperclip gate must name a separate reviewer agent in the MR description.
 6. Maintainer bot or human owner merges after GitLab reports a green pipeline.
 
 Never merge Red scope solely because CI is green.
+
+Under Autonomy Policy v1, the maintainer bot is allowed to perform step 6 for
+Green and Amber MRs without owner approval when the MR evidence proves the
+required gates are complete.
 
 ## Maintenance
 

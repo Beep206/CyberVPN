@@ -91,12 +91,28 @@ Check all required Paperclip gates:
 Apply the relevant labels before merge:
 
 ```text
+autonomy::v1
 lane::autonomous
 risk::green | risk::amber | risk::red
 area::backend | area::frontend | area::admin | area::partner | area::telegram | area::docs
 data::none | data::synthetic-only | data::sensitive
 needs::security | needs::qa | needs::luma
+deploy::staging-auto | deploy::prod-manual | deploy::prod-release-window
 sentinel::candidate
+```
+
+# Autonomy Policy Decision
+
+Choose exactly one:
+
+- [ ] Green: maintainer bot may merge after CI is green and discussions are resolved.
+- [ ] Amber: maintainer bot may merge after CI is green, discussions are resolved, and required Paperclip gates are linked.
+- [ ] Red: owner or Board approval is linked before merge/deploy.
+
+For Red scope, link the approval:
+
+```text
+not applicable
 ```
 
 # Merge Gate
@@ -105,4 +121,5 @@ sentinel::candidate
 - [ ] CI pipeline is green.
 - [ ] All GitLab discussions are resolved.
 - [ ] Required Paperclip reviewer gates are complete.
+- [ ] Autonomy Policy v1 allows merge without owner approval, or owner/Board Red approval is linked.
 - [ ] Source branch can be deleted after merge.
