@@ -159,6 +159,82 @@ groups:
             clamp_min(sum(increase(miniapp_checkout_commits_total[24h])), 1e-9)
           ) or vector(0)
 
+      - record: stage2:commerce_catalog_resolution_p95_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(cybervpn_commerce_catalog_resolution_duration_seconds_bucket{result=~"catalog_success|context_success"}[15m])) by (le)
+          ) or vector(0)
+
+      - record: stage2:commerce_catalog_context_fallbacks:1h
+        expr: |
+          sum(increase(cybervpn_commerce_catalog_context_fallbacks_total[1h])) or vector(0)
+
+      - record: stage2:commerce_unknown_country_fallbacks:1h
+        expr: |
+          sum(increase(cybervpn_commerce_catalog_context_fallbacks_total{fallback_type=~"fallback_.*"}[1h])) or vector(0)
+
+      - record: stage2:commerce_selector_usage:1h
+        expr: |
+          sum(increase(cybervpn_commerce_selector_usage_total[1h]))
+          or
+          sum(increase(cybervpn_product_analytics_events_total{event_name=~"country_selector_changed|currency_selector_changed"}[1h]))
+          or vector(0)
+
+      - record: stage2:commerce_quote_creation_p95_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(cybervpn_commerce_quote_session_duration_seconds_bucket{status="created"}[15m])) by (le)
+          ) or vector(0)
+
+      - record: stage2:commerce_checkout_starts:1h
+        expr: |
+          sum(increase(cybervpn_commerce_checkout_sessions_total{status=~"created|idempotent_replay"}[1h])) or vector(0)
+
+      - record: stage2:commerce_checkout_failures:1h
+        expr: |
+          sum(increase(cybervpn_commerce_checkout_sessions_total{status=~"failure|expired|stale|conflict"}[1h])) or vector(0)
+
+      - record: stage2:commerce_quote_invalidations:1h
+        expr: |
+          sum(increase(cybervpn_commerce_quote_invalidations_total[1h])) or vector(0)
+
+      - record: stage2:commerce_addon_attach_rate:1h
+        expr: |
+          (
+            sum(increase(cybervpn_commerce_checkout_addons_total{status=~"quoted|attached"}[1h]))
+            /
+            clamp_min(sum(increase(cybervpn_commerce_quote_sessions_total{status="created"}[1h])), 1e-9)
+          ) or vector(0)
+
+      - record: stage2:commerce_pricebook_publish_failures:1h
+        expr: |
+          sum(increase(cybervpn_commerce_pricebook_lifecycle_total{action="publish",status="failure"}[1h])) or vector(0)
+
+      - record: stage2:commerce_pricebook_validation_errors:current
+        expr: |
+          sum(cybervpn_commerce_pricebook_validation_issues_current{severity="error"}) or vector(0)
+
+      - record: stage2:provisioning_retry_backlog:current
+        expr: |
+          sum(cybervpn_stage1_provisioning_retry_jobs_current{state=~"queued|retrying|dead_letter"}) or vector(0)
+
+      - record: stage2:provisioning_retry_max_age_seconds
+        expr: |
+          max(cybervpn_stage1_provisioning_retry_max_age_seconds) or vector(0)
+
+      - record: stage2:remnawave_dependency_errors:1h
+        expr: |
+          sum(increase(cybervpn_stage1_provisioning_retry_remnawave_errors_total[1h])) or vector(0)
+
+      - record: stage2:remnawave_sync_lag_seconds
+        expr: |
+          max(cybervpn_remnawave_sync_lag_seconds)
+          or
+          max(cybervpn_stage1_provisioning_retry_max_age_seconds)
+          or vector(0)
+
       - record: stage2:release_security_gate_failures:24h
         expr: |
           sum(increase(cybervpn_ci_security_gate_total{result=~"failed|blocked"}[24h])) or vector(0)
@@ -360,6 +436,86 @@ groups:
           summary: "Stage 2 product analytics ingestion is dropping events"
           description: "Analytics ingestion dropped or rejected events for at least 10 minutes."
           dashboard_path: "/d/stage2-product-analytics/stage-2-product-analytics"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2CommerceQuoteLatencyHigh
+        expr: |
+          stage2:commerce_quote_creation_p95_seconds > 1
+          or stage2:commerce_catalog_resolution_p95_seconds > 1
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: commerce
+          stage: s2
+        annotations:
+          summary: "Stage 2 commerce quote or catalog latency is high"
+          description: "Catalog resolution or quote creation p95 exceeded 1 second for 15 minutes."
+          dashboard_path: "/d/stage2-commerce-ops/stage-2-commerce-operations"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2CommerceQuoteInvalidationSpike
+        expr: |
+          stage2:commerce_quote_invalidations:1h > 10
+          or stage2:commerce_checkout_failures:1h > 10
+        for: 20m
+        labels:
+          severity: warning
+          priority: p1
+          service: commerce
+          stage: s2
+        annotations:
+          summary: "Stage 2 commerce quote invalidations or checkout failures spiked"
+          description: "Quote expiration, stale quote, checkout conflict, or checkout failure volume crossed the Stage 2 threshold."
+          dashboard_path: "/d/stage2-commerce-ops/stage-2-commerce-operations"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2CommerceFallbackSpike
+        expr: |
+          stage2:commerce_unknown_country_fallbacks:1h > 25
+        for: 30m
+        labels:
+          severity: warning
+          priority: p1
+          service: commerce
+          stage: s2
+        annotations:
+          summary: "Stage 2 commerce fallback usage is elevated"
+          description: "Country/currency fallback usage may indicate broken selector persistence, missing country options, or unsupported locale signals."
+          dashboard_path: "/d/stage2-commerce-ops/stage-2-commerce-operations"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2PricebookPublishFailures
+        expr: |
+          stage2:commerce_pricebook_publish_failures:1h > 0
+          or stage2:commerce_pricebook_validation_errors:current > 0
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: commerce-admin
+          stage: s2
+        annotations:
+          summary: "Stage 2 PriceBook publish or validation failure exists"
+          description: "Admin PriceBook publish failed or current validation found blocking errors."
+          dashboard_path: "/d/stage2-commerce-ops/stage-2-commerce-operations"
+          runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
+
+      - alert: Stage2ProvisioningRetryBacklog
+        expr: |
+          stage2:provisioning_retry_backlog:current > 0
+          or stage2:remnawave_dependency_errors:1h > 0
+          or stage2:remnawave_sync_lag_seconds > 900
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: provisioning
+          stage: s2
+        annotations:
+          summary: "Stage 2 provisioning retry or Remnawave sync backlog exists"
+          description: "Provisioning retry backlog, Remnawave dependency errors, or sync lag require operator review before broader rollout."
+          dashboard_path: "/d/stage2-commerce-ops/stage-2-commerce-operations"
           runbook_path: "docs/runbooks/STAGE2_ANALYTICS_AND_REPORTING.md"
 
       - alert: Stage2RestoreDrillOverdue

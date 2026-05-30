@@ -85,6 +85,44 @@ STAGE1_PAYMENT_RECONCILIATION_LAUNCH_BLOCKED = Gauge(
     multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
 )
 
+# Stage 1 Remnawave provisioning retry metrics.
+STAGE1_PROVISIONING_RETRY_RUNS_TOTAL = Counter(
+    "cybervpn_stage1_provisioning_retry_runs_total",
+    "Total Stage 1 provisioning retry worker runs",
+    ["result"],
+)
+
+STAGE1_PROVISIONING_RETRY_JOBS_CURRENT = Gauge(
+    "cybervpn_stage1_provisioning_retry_jobs_current",
+    "Current Stage 1 provisioning retry jobs by durable state",
+    ["state"],
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
+STAGE1_PROVISIONING_RETRY_MAX_AGE_SECONDS = Gauge(
+    "cybervpn_stage1_provisioning_retry_max_age_seconds",
+    "Maximum age in seconds of active Stage 1 provisioning retry jobs",
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
+STAGE1_PROVISIONING_RETRY_ACTIONS_TOTAL = Counter(
+    "cybervpn_stage1_provisioning_retry_actions_total",
+    "Stage 1 provisioning retry worker actions",
+    ["action"],
+)
+
+STAGE1_PROVISIONING_RETRY_REMNAWAVE_ERRORS_TOTAL = Counter(
+    "cybervpn_stage1_provisioning_retry_remnawave_errors_total",
+    "Stage 1 provisioning retry Remnawave dependency failures by safe error type",
+    ["error_type"],
+)
+
+STAGE1_PROVISIONING_RETRY_CLAIMS_TOTAL = Counter(
+    "cybervpn_stage1_provisioning_retry_claims_total",
+    "Stage 1 provisioning retry claim outcomes",
+    ["result"],
+)
+
 # OTP Email metrics (for Grafana monitoring per PRD requirements)
 OTP_EMAILS_SENT = Counter(
     "cybervpn_otp_emails_sent_total",

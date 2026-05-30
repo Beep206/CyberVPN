@@ -84,6 +84,21 @@ class BackendAPIClient:
             raise BackendAPIError(f"Stage 1 payment reconciliation failed: {response.status_code}")
         return response.json()
 
+    async def run_stage1_provisioning_retries(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if not self._enabled:
+            raise BackendAPIError("Internal backend provisioning retry API is not configured")
+        if self._client is None:
+            raise RuntimeError("BackendAPIClient must be used as a context manager")
+
+        response = await self._client.post("subscriptions/internal/provisioning-retries/run", params=payload)
+        if response.status_code >= 400:
+            logger.error(
+                "backend_stage1_provisioning_retries_failed",
+                status_code=response.status_code,
+            )
+            raise BackendAPIError(f"Stage 1 provisioning retries failed: {response.status_code}")
+        return response.json()
+
     async def get_public_network_regions(self) -> dict[str, Any]:
         if not self._enabled:
             raise BackendAPIError("Internal backend reconciliation API is not configured")

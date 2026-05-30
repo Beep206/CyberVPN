@@ -1,21 +1,24 @@
 """Unit tests for payment tasks."""
 
 import os
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 # Set required environment variables before importing modules
 os.environ.setdefault("REMNAWAVE_API_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123:test-bot")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
+os.environ.setdefault("METRICS_PROTECT", "false")
 
-from src.tasks.payments.verify_pending import verify_pending_payments
 from src.tasks.payments.process_completion import process_payment_completion
+from src.tasks.payments.provisioning_retries import process_stage1_provisioning_retries
 from src.tasks.payments.reconcile_stage1 import reconcile_stage1_payments
 from src.tasks.payments.reconcile_telegram_stars import reconcile_telegram_stars_refunds
 from src.tasks.payments.retry_webhooks import retry_failed_webhooks
+from src.tasks.payments.verify_pending import verify_pending_payments
 
 
 def _scalar_result(value: int) -> MagicMock:
@@ -38,20 +41,18 @@ async def test_verify_pending_checks_invoices(
     payment1.external_id = "123"
     payment1.status = "pending"
     payment1.provider = "cryptobot"
-    payment1.created_at = datetime.now(timezone.utc)
+    payment1.created_at = datetime.now(UTC)
 
     payment2 = MagicMock()
     payment2.id = uuid4()
     payment2.external_id = "456"
     payment2.status = "pending"
     payment2.provider = "cryptobot"
-    payment2.created_at = datetime.now(timezone.utc)
+    payment2.created_at = datetime.now(UTC)
 
     pending_result = MagicMock()
     pending_result.scalars.return_value.all.return_value = [payment1, payment2]
-    mock_db_session.execute = AsyncMock(
-        side_effect=[pending_result, _scalar_result(2), _scalar_result(0)]
-    )
+    mock_db_session.execute = AsyncMock(side_effect=[pending_result, _scalar_result(2), _scalar_result(0)])
 
     mock_cryptobot.get_invoices.return_value = [
         {"invoice_id": 123, "status": "active"},
@@ -60,22 +61,22 @@ async def test_verify_pending_checks_invoices(
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.verify_pending.CryptoBotClient") as MockCB,
-        patch("src.tasks.payments.verify_pending.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.verify_pending.TelegramClient") as MockTg,
+        patch("src.tasks.payments.verify_pending.CryptoBotClient") as mock_cb,
+        patch("src.tasks.payments.verify_pending.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.verify_pending.TelegramClient") as mock_tg,
         patch("src.tasks.payments.verify_pending.get_redis_client") as mock_redis_fn,
         patch("src.tasks.payments.verify_pending.process_payment_completion") as mock_task,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockCB.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
-        MockCB.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_cb.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
+        mock_cb.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_redis_fn.return_value = mock_redis
 
@@ -98,13 +99,11 @@ async def test_verify_pending_triggers_completion(
     payment.status = "pending"
     payment.provider = "cryptobot"
     payment.user_uuid = "user-123"
-    payment.created_at = datetime.now(timezone.utc)
+    payment.created_at = datetime.now(UTC)
 
     pending_result = MagicMock()
     pending_result.scalars.return_value.all.return_value = [payment]
-    mock_db_session.execute = AsyncMock(
-        side_effect=[pending_result, _scalar_result(1), _scalar_result(0)]
-    )
+    mock_db_session.execute = AsyncMock(side_effect=[pending_result, _scalar_result(1), _scalar_result(0)])
 
     mock_cryptobot.get_invoices.return_value = [
         {"invoice_id": 123, "status": "paid"},
@@ -112,22 +111,22 @@ async def test_verify_pending_triggers_completion(
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.verify_pending.CryptoBotClient") as MockCB,
-        patch("src.tasks.payments.verify_pending.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.verify_pending.TelegramClient") as MockTg,
+        patch("src.tasks.payments.verify_pending.CryptoBotClient") as mock_cb,
+        patch("src.tasks.payments.verify_pending.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.verify_pending.TelegramClient") as mock_tg,
         patch("src.tasks.payments.verify_pending.get_redis_client") as mock_redis_fn,
         patch("src.tasks.payments.verify_pending.process_payment_completion") as mock_task,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockCB.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
-        MockCB.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_cb.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
+        mock_cb.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_redis_fn.return_value = mock_redis
 
@@ -150,13 +149,11 @@ async def test_verify_pending_updates_cancelled_invoices(
     payment.external_id = "123"
     payment.status = "pending"
     payment.provider = "cryptobot"
-    payment.created_at = datetime.now(timezone.utc)
+    payment.created_at = datetime.now(UTC)
 
     pending_result = MagicMock()
     pending_result.scalars.return_value.all.return_value = [payment]
-    mock_db_session.execute = AsyncMock(
-        side_effect=[pending_result, _scalar_result(1), _scalar_result(1)]
-    )
+    mock_db_session.execute = AsyncMock(side_effect=[pending_result, _scalar_result(1), _scalar_result(1)])
 
     mock_cryptobot.get_invoices.return_value = [
         {"invoice_id": 123, "status": "expired"},
@@ -166,22 +163,22 @@ async def test_verify_pending_updates_cancelled_invoices(
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.verify_pending.CryptoBotClient") as MockCB,
-        patch("src.tasks.payments.verify_pending.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.verify_pending.TelegramClient") as MockTg,
+        patch("src.tasks.payments.verify_pending.CryptoBotClient") as mock_cb,
+        patch("src.tasks.payments.verify_pending.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.verify_pending.TelegramClient") as mock_tg,
         patch("src.tasks.payments.verify_pending.get_redis_client") as mock_redis_fn,
         patch("src.tasks.payments.verify_pending.process_payment_completion") as mock_task,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockCB.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
-        MockCB.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_cb.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
+        mock_cb.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_redis_fn.return_value = mock_redis
 
@@ -201,27 +198,25 @@ async def test_verify_pending_empty_queue(mock_db_session, mock_cryptobot, mock_
     """Test verify pending with no pending payments."""
     pending_result = MagicMock()
     pending_result.scalars.return_value.all.return_value = []
-    mock_db_session.execute = AsyncMock(
-        side_effect=[pending_result, _scalar_result(0), _scalar_result(0)]
-    )
+    mock_db_session.execute = AsyncMock(side_effect=[pending_result, _scalar_result(0), _scalar_result(0)])
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.verify_pending.CryptoBotClient") as MockCB,
-        patch("src.tasks.payments.verify_pending.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.verify_pending.TelegramClient") as MockTg,
+        patch("src.tasks.payments.verify_pending.CryptoBotClient") as mock_cb,
+        patch("src.tasks.payments.verify_pending.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.verify_pending.TelegramClient") as mock_tg,
         patch("src.tasks.payments.verify_pending.get_redis_client") as mock_redis_fn,
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockCB.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
-        MockCB.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_cb.return_value.__aenter__ = AsyncMock(return_value=mock_cryptobot)
+        mock_cb.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         mock_redis_fn.return_value = mock_redis
 
@@ -253,19 +248,17 @@ async def test_reconcile_telegram_stars_refunds_syncs_provider_state(mock_settin
     }
     mock_backend = AsyncMock()
     mock_backend.enabled = True
-    mock_backend.reconcile_telegram_stars_refund = AsyncMock(
-        return_value={"action": "created_and_reconciled"}
-    )
+    mock_backend.reconcile_telegram_stars_refund = AsyncMock(return_value={"action": "created_and_reconciled"})
 
     with (
         patch("src.tasks.payments.reconcile_telegram_stars.get_settings", return_value=mock_settings),
-        patch("src.tasks.payments.reconcile_telegram_stars.TelegramClient") as MockTg,
-        patch("src.tasks.payments.reconcile_telegram_stars.BackendAPIClient") as MockBackend,
+        patch("src.tasks.payments.reconcile_telegram_stars.TelegramClient") as mock_tg,
+        patch("src.tasks.payments.reconcile_telegram_stars.BackendAPIClient") as mock_backend_cls,
     ):
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
-        MockBackend.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
-        MockBackend.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=mock_backend)
+        mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await reconcile_telegram_stars_refunds()
 
@@ -335,10 +328,7 @@ async def test_reconcile_stage1_payments_calls_internal_backend_job(mock_setting
     assert result["summary"]["total_items"] == 2
     assert result["items_count"] == 1
     mock_backend.run_stage1_payment_reconciliation.assert_awaited_once_with({"limit": 250})
-    assert (
-        _metric_value(STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL, result="success")
-        == before_success_runs + 1
-    )
+    assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_RUNS_TOTAL, result="success") == before_success_runs + 1
     assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="manual_review") == 2
     assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="alert_15m") == 1
     assert _metric_value(STAGE1_PAYMENT_RECONCILIATION_ITEMS_CURRENT, severity="p1_escalation") == 0
@@ -358,6 +348,68 @@ async def test_reconcile_stage1_payments_skips_without_backend_config(mock_setti
 
     assert result["skipped"] is True
     assert result["reason"] == "backend_api_not_configured"
+
+
+@pytest.mark.asyncio
+async def test_stage1_provisioning_retry_worker_skips_when_claiming_disabled(mock_settings):
+    """Test provisioning retry worker is disabled by default before Security review."""
+    mock_settings.stage1_provisioning_retry_claiming_enabled = False
+
+    with patch("src.tasks.payments.provisioning_retries.get_settings", return_value=mock_settings):
+        result = await process_stage1_provisioning_retries()
+
+    assert result == {"skipped": True, "reason": "claiming_disabled"}
+
+
+@pytest.mark.asyncio
+async def test_stage1_provisioning_retry_worker_calls_backend_and_updates_metrics(mock_settings):
+    """Test provisioning retry worker calls the internal backend runner."""
+    from src.metrics import (
+        STAGE1_PROVISIONING_RETRY_CLAIMS_TOTAL,
+        STAGE1_PROVISIONING_RETRY_JOBS_CURRENT,
+        STAGE1_PROVISIONING_RETRY_REMNAWAVE_ERRORS_TOTAL,
+    )
+
+    mock_settings.stage1_provisioning_retry_claiming_enabled = True
+    mock_settings.stage1_provisioning_retry_batch_limit = 7
+    report = {
+        "claimed": 2,
+        "succeeded": 1,
+        "retrying": 1,
+        "dead_letter": 0,
+        "reconciliation_required": 0,
+        "skipped": False,
+        "remnawave_dependency_errors": {"ConnectionError": 1},
+        "metrics": {
+            "counts_by_state": {"queued": 3, "retrying": 1, "dead_letter": 0, "succeeded": 1},
+            "max_job_age_seconds": 120,
+        },
+    }
+
+    before_claims = _metric_value(STAGE1_PROVISIONING_RETRY_CLAIMS_TOTAL, result="claimed")
+    before_errors = _metric_value(STAGE1_PROVISIONING_RETRY_REMNAWAVE_ERRORS_TOTAL, error_type="ConnectionError")
+    with (
+        patch("src.tasks.payments.provisioning_retries.get_settings", return_value=mock_settings),
+        patch("src.tasks.payments.provisioning_retries.BackendAPIClient") as mock_backend_cls,
+    ):
+        backend = AsyncMock()
+        backend.enabled = True
+        backend.run_stage1_provisioning_retries.return_value = report
+        mock_backend_cls.return_value.__aenter__ = AsyncMock(return_value=backend)
+        mock_backend_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await process_stage1_provisioning_retries()
+
+    assert result == report
+    backend.run_stage1_provisioning_retries.assert_awaited_once()
+    payload = backend.run_stage1_provisioning_retries.await_args.args[0]
+    assert payload["limit"] == 7
+    assert payload["worker_id"].endswith(":task-worker")
+    assert _metric_value(STAGE1_PROVISIONING_RETRY_CLAIMS_TOTAL, result="claimed") == before_claims + 1
+    assert _metric_value(STAGE1_PROVISIONING_RETRY_REMNAWAVE_ERRORS_TOTAL, error_type="ConnectionError") == (
+        before_errors + 1
+    )
+    assert _metric_value(STAGE1_PROVISIONING_RETRY_JOBS_CURRENT, state="queued") == 3
 
 
 @pytest.mark.asyncio
@@ -387,17 +439,17 @@ async def test_process_completion_activates_user(mock_db_session, mock_remnawave
 
     with (
         patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.process_completion.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.process_completion.TelegramClient") as MockTg,
-        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.TelegramClient") as mock_tg,
+        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await process_payment_completion(payment_id=payment_id)
 
@@ -437,17 +489,17 @@ async def test_process_completion_sends_notification(mock_db_session, mock_remna
 
     with (
         patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.process_completion.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.process_completion.TelegramClient") as MockTg,
-        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.TelegramClient") as mock_tg,
+        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        MockTg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
-        MockTg.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
         await process_payment_completion(payment_id=payment_id)
 
@@ -518,13 +570,13 @@ async def test_process_completion_enable_user_fails(mock_db_session, mock_remnaw
 
     with (
         patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
-        patch("src.tasks.payments.process_completion.RemnawaveClient") as MockRW,
-        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock) as mock_publish,
+        patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
-        MockRW.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
-        MockRW.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
 
         result = await process_payment_completion(payment_id=payment_id)
 
