@@ -48,6 +48,7 @@ def test_stage1_support_ops_finance_permission_matrix_is_separated() -> None:
         allowed={
             Permission.USER_READ,
             Permission.USER_UPDATE,
+            Permission.SUPPORT_TICKET_READ,
             Permission.SERVER_READ,
             Permission.MONITORING_READ,
             Permission.VPN_CREDENTIAL_REGENERATE,
@@ -82,6 +83,7 @@ def test_stage1_support_ops_finance_permission_matrix_is_separated() -> None:
             Permission.WEBHOOK_READ,
             Permission.VPN_CREDENTIAL_REGENERATE,
             Permission.MANAGE_INVITES,
+            Permission.SUPPORT_TICKET_READ,
         },
     )
     _assert_permissions(
@@ -102,6 +104,7 @@ def test_stage1_support_ops_finance_permission_matrix_is_separated() -> None:
             Permission.VPN_CREDENTIAL_REGENERATE,
             Permission.MANAGE_INVITES,
             Permission.VIEW_ANALYTICS,
+            Permission.SUPPORT_TICKET_READ,
         },
     )
 
@@ -124,11 +127,13 @@ async def test_stage1_permission_dependency_enforces_cross_role_denials() -> Non
     credential_regen = require_permission(Permission.VPN_CREDENTIAL_REGENERATE)
     subscription_create = require_permission(Permission.SUBSCRIPTION_CREATE)
     server_update = require_permission(Permission.SERVER_UPDATE)
+    support_ticket_read = require_permission(Permission.SUPPORT_TICKET_READ)
 
     assert await payment_read(_admin_user(AdminRole.FINANCE))
     assert await credential_regen(_admin_user(AdminRole.SUPPORT))
     assert await subscription_create(_admin_user(AdminRole.OPERATOR))
     assert await server_update(_admin_user(AdminRole.OPERATOR))
+    assert await support_ticket_read(_admin_user(AdminRole.SUPPORT))
 
     with pytest.raises(HTTPException) as finance_vpn_error:
         await credential_regen(_admin_user(AdminRole.FINANCE))
@@ -149,6 +154,12 @@ async def test_stage1_permission_dependency_enforces_cross_role_denials() -> Non
         await subscription_create(_admin_user(AdminRole.SUPPORT))
     assert support_subscription_error.value.status_code == 403
     assert support_subscription_error.value.detail == "Missing permission: subscription_create"
+
+    for denied_role in (AdminRole.VIEWER, AdminRole.FINANCE):
+        with pytest.raises(HTTPException) as support_ticket_error:
+            await support_ticket_read(_admin_user(denied_role))
+        assert support_ticket_error.value.status_code == 403
+        assert support_ticket_error.value.detail == "Missing permission: support_ticket_read"
 
 
 @pytest.mark.asyncio

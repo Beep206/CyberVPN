@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import { getCasesRestrictionReasons } from '@/features/partner-compliance/lib/compliance-runtime';
 import { PartnerRouteGuard } from '@/features/partner-portal-state/components/partner-route-guard';
+import { PartnerSupportTicketsPanel } from '@/features/partner-support/components/partner-support-tickets-panel';
 import {
   submitPartnerReviewRequests,
   type PartnerPortalCase,
@@ -56,6 +57,7 @@ export function PartnerCasesPage() {
     () => getCasesRestrictionReasons(blockedReasons),
     [blockedReasons],
   );
+  const currentPermissionKeys = activeWorkspace?.current_permission_keys ?? [];
 
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, string>>({});
   const [caseDrafts, setCaseDrafts] = useState<Record<string, string>>({});
@@ -383,6 +385,14 @@ export function PartnerCasesPage() {
                 </p>
               </article>
             </section>
+
+            <PartnerSupportTicketsPanel
+              access={access}
+              currentPermissionKeys={currentPermissionKeys}
+              isCanonicalWorkspace={isCanonicalWorkspace}
+              workspaceId={workspaceId}
+              workspaceName={activeWorkspace?.display_name ?? state.activeWorkspaceDisplayName ?? t('workspaceFallback')}
+            />
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
               <article className="rounded-[1.5rem] border border-grid-line/20 bg-terminal-surface/35 p-5 shadow-[0_0_24px_rgba(0,255,255,0.04)] md:p-6">

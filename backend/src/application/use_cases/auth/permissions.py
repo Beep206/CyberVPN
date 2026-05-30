@@ -9,6 +9,7 @@ class Permission(StrEnum):
     USER_CREATE = "user_create"
     USER_UPDATE = "user_update"
     USER_DELETE = "user_delete"
+    SUPPORT_TICKET_READ = "support_ticket_read"
     # Server permissions
     SERVER_READ = "server_read"
     SERVER_CREATE = "server_create"
@@ -98,6 +99,7 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.USER_CREATE,
         Permission.USER_UPDATE,
         Permission.USER_DELETE,
+        Permission.SUPPORT_TICKET_READ,
         Permission.SERVER_READ,
         Permission.SERVER_CREATE,
         Permission.SERVER_UPDATE,
@@ -131,6 +133,7 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
     AdminRole.SUPPORT: {
         Permission.USER_READ,
         Permission.USER_UPDATE,
+        Permission.SUPPORT_TICKET_READ,
         Permission.SERVER_READ,
         Permission.MONITORING_READ,
         Permission.VPN_CREDENTIAL_REGENERATE,

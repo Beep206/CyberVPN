@@ -745,6 +745,144 @@ describe('partnerPortalApi', () => {
     });
   });
 
+  it('uses workspace-scoped partner support ticket routes', async () => {
+    const captured: {
+      listQuery?: string;
+      createBody?: unknown;
+      replyBody?: unknown;
+      closePath?: string;
+      reopenPath?: string;
+    } = {};
+
+    const ticketDetail = {
+      public_id: 'SUP-2026-001',
+      status: 'open',
+      category: 'setup',
+      priority: 'normal',
+      subject: 'Partner workspace setup',
+      last_message_preview: 'Synthetic setup question.',
+      created_at: '2026-05-29T10:00:00Z',
+      updated_at: '2026-05-29T10:00:00Z',
+      last_customer_message_at: null,
+      last_support_message_at: null,
+      resolved_at: null,
+      closed_at: null,
+      messages: [
+        {
+          author_label: 'partner',
+          body: 'Synthetic setup question.',
+          created_at: '2026-05-29T10:00:00Z',
+        },
+      ],
+      events: [
+        {
+          actor_label: 'partner',
+          event_type: 'ticket_created',
+          from_value: null,
+          to_value: 'open',
+          audit_summary: 'Partner ticket created.',
+          created_at: '2026-05-29T10:00:00Z',
+        },
+      ],
+    };
+
+    server.use(
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/support/tickets`, ({ request }) => {
+        captured.listQuery = new URL(request.url).search;
+        return HttpResponse.json({
+          tickets: [ticketDetail],
+          nextCursor: null,
+        });
+      }),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/support/tickets`, async ({ request }) => {
+        captured.createBody = await request.json();
+        return HttpResponse.json(ticketDetail, { status: 201 });
+      }),
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/support/tickets/SUP-2026-001`, () =>
+        HttpResponse.json(ticketDetail),
+      ),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/support/tickets/SUP-2026-001/replies`, async ({ request }) => {
+        captured.replyBody = await request.json();
+        return HttpResponse.json({
+          ...ticketDetail,
+          status: 'pending_support',
+        });
+      }),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/support/tickets/SUP-2026-001/close`, ({ request }) => {
+        captured.closePath = new URL(request.url).pathname;
+        return HttpResponse.json({
+          ...ticketDetail,
+          status: 'closed',
+        });
+      }),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/support/tickets/SUP-2026-001/reopen`, ({ request }) => {
+        captured.reopenPath = new URL(request.url).pathname;
+        return HttpResponse.json({
+          ...ticketDetail,
+          status: 'pending_support',
+        });
+      }),
+    );
+
+    const listResponse = await partnerPortalApi.listWorkspaceSupportTickets(
+      'workspace_001',
+      {
+        category: 'setup',
+        limit: 50,
+        status: 'open',
+      },
+    );
+    const createResponse = await partnerPortalApi.createWorkspaceSupportTicket(
+      'workspace_001',
+      {
+        category: 'setup',
+        message: 'Synthetic setup question.',
+        priority: 'normal',
+        subject: 'Partner workspace setup',
+      },
+    );
+    const detailResponse = await partnerPortalApi.getWorkspaceSupportTicket(
+      'workspace_001',
+      'SUP-2026-001',
+    );
+    const replyResponse = await partnerPortalApi.replyToWorkspaceSupportTicket(
+      'workspace_001',
+      'SUP-2026-001',
+      { message: 'Adding a partner-side reply.' },
+    );
+    const closeResponse = await partnerPortalApi.closeWorkspaceSupportTicket(
+      'workspace_001',
+      'SUP-2026-001',
+    );
+    const reopenResponse = await partnerPortalApi.reopenWorkspaceSupportTicket(
+      'workspace_001',
+      'SUP-2026-001',
+    );
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.data.tickets[0]?.public_id).toBe('SUP-2026-001');
+    expect(captured.listQuery).toContain('status=open');
+    expect(captured.listQuery).toContain('category=setup');
+    expect(createResponse.status).toBe(201);
+    expect(captured.createBody).toMatchObject({
+      category: 'setup',
+      message: 'Synthetic setup question.',
+      priority: 'normal',
+      subject: 'Partner workspace setup',
+    });
+    expect(captured.createBody).not.toHaveProperty('metadata');
+    expect(captured.createBody).not.toHaveProperty('source');
+    expect(detailResponse.data.public_id).toBe('SUP-2026-001');
+    expect(detailResponse.data.messages[0]?.author_label).toBe('partner');
+    expect(detailResponse.data).not.toHaveProperty('partner_workspace_id');
+    expect(replyResponse.data.status).toBe('pending_support');
+    expect(captured.replyBody).toEqual({ message: 'Adding a partner-side reply.' });
+    expect(closeResponse.data.status).toBe('closed');
+    expect(reopenResponse.data.status).toBe('pending_support');
+    expect(captured.closePath).toBe('/api/v1/partner-workspaces/workspace_001/support/tickets/SUP-2026-001/close');
+    expect(captured.reopenPath).toBe('/api/v1/partner-workspaces/workspace_001/support/tickets/SUP-2026-001/reopen');
+  });
+
   it('submits workspace traffic declarations and creative approvals through canonical workspace subresources', async () => {
     let trafficBody: Record<string, unknown> | null = null;
     let creativeBody: Record<string, unknown> | null = null;

@@ -141,6 +141,93 @@ type MarkPartnerWorkspaceCaseReadyForOpsPayload =
   operations['mark_partner_workspace_case_ready_for_ops_api_v1_partner_workspaces__workspace_id__cases__case_id__ready_for_ops_post']['requestBody']['content']['application/json'];
 type MarkPartnerWorkspaceCaseReadyForOpsResponse =
   operations['mark_partner_workspace_case_ready_for_ops_api_v1_partner_workspaces__workspace_id__cases__case_id__ready_for_ops_post']['responses'][201]['content']['application/json'];
+export type PartnerSupportTicketStatus =
+  | 'open'
+  | 'pending_support'
+  | 'pending_customer'
+  | 'resolved'
+  | 'closed';
+export type PartnerSupportTicketCategory =
+  | 'account'
+  | 'billing'
+  | 'setup'
+  | 'vpn_access'
+  | 'status'
+  | 'privacy'
+  | 'other';
+export type PartnerSupportTicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type PartnerSupportTicketEventType =
+  | 'ticket_created'
+  | 'public_reply_added'
+  | 'internal_note_added'
+  | 'status_changed'
+  | 'priority_changed'
+  | 'category_changed'
+  | 'assigned'
+  | 'closed'
+  | 'reopened'
+  | 'notification_queued'
+  | 'notification_failed';
+
+export interface PartnerSupportTicketSummary {
+  public_id: string;
+  status: PartnerSupportTicketStatus;
+  category: PartnerSupportTicketCategory;
+  priority: PartnerSupportTicketPriority;
+  subject: string;
+  last_message_preview: string;
+  created_at: string;
+  updated_at: string;
+  last_customer_message_at?: string | null;
+  last_support_message_at?: string | null;
+  resolved_at?: string | null;
+  closed_at?: string | null;
+}
+
+export interface PartnerSupportTicketMessage {
+  author_label: string;
+  body: string;
+  created_at: string;
+}
+
+export interface PartnerSupportTicketEvent {
+  actor_label: string;
+  event_type: PartnerSupportTicketEventType;
+  from_value?: string | null;
+  to_value?: string | null;
+  audit_summary: string;
+  created_at: string;
+}
+
+export interface PartnerSupportTicketDetail extends PartnerSupportTicketSummary {
+  messages: PartnerSupportTicketMessage[];
+  events: PartnerSupportTicketEvent[];
+}
+
+export interface ListPartnerSupportTicketsParams {
+  status?: PartnerSupportTicketStatus;
+  category?: PartnerSupportTicketCategory;
+  priority?: PartnerSupportTicketPriority;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface ListPartnerSupportTicketsResponse {
+  tickets: PartnerSupportTicketSummary[];
+  nextCursor?: string | null;
+  next_cursor?: string | null;
+}
+
+export interface CreatePartnerSupportTicketPayload {
+  category: PartnerSupportTicketCategory;
+  subject: string;
+  message: string;
+  priority?: PartnerSupportTicketPriority;
+}
+
+export interface ReplyPartnerSupportTicketPayload {
+  message: string;
+}
 type ListPartnerWorkspaceIntegrationCredentialsResponse =
   operations['list_partner_workspace_integration_credentials_api_v1_partner_workspaces__workspace_id__integration_credentials_get']['responses'][200]['content']['application/json'];
 type ListPartnerWorkspaceIntegrationDeliveryLogsResponse =
@@ -647,6 +734,51 @@ export const partnerPortalApi = {
   listWorkspaceCases: (workspaceId: string) =>
     apiClient.get<ListPartnerWorkspaceCasesResponse>(
       `/partner-workspaces/${workspaceId}/cases`,
+    ),
+
+  listWorkspaceSupportTickets: (
+    workspaceId: string,
+    params?: ListPartnerSupportTicketsParams,
+  ) =>
+    apiClient.get<ListPartnerSupportTicketsResponse>(
+      `/partner-workspaces/${workspaceId}/support/tickets`,
+      { params },
+    ),
+
+  createWorkspaceSupportTicket: (
+    workspaceId: string,
+    payload: CreatePartnerSupportTicketPayload,
+  ) =>
+    apiClient.post<PartnerSupportTicketDetail>(
+      `/partner-workspaces/${workspaceId}/support/tickets`,
+      payload,
+    ),
+
+  getWorkspaceSupportTicket: (workspaceId: string, ticketRef: string) =>
+    apiClient.get<PartnerSupportTicketDetail>(
+      `/partner-workspaces/${workspaceId}/support/tickets/${encodeURIComponent(ticketRef)}`,
+    ),
+
+  replyToWorkspaceSupportTicket: (
+    workspaceId: string,
+    ticketRef: string,
+    payload: ReplyPartnerSupportTicketPayload,
+  ) =>
+    apiClient.post<PartnerSupportTicketDetail>(
+      `/partner-workspaces/${workspaceId}/support/tickets/${encodeURIComponent(ticketRef)}/replies`,
+      payload,
+    ),
+
+  closeWorkspaceSupportTicket: (workspaceId: string, ticketRef: string) =>
+    apiClient.post<PartnerSupportTicketDetail>(
+      `/partner-workspaces/${workspaceId}/support/tickets/${encodeURIComponent(ticketRef)}/close`,
+      {},
+    ),
+
+  reopenWorkspaceSupportTicket: (workspaceId: string, ticketRef: string) =>
+    apiClient.post<PartnerSupportTicketDetail>(
+      `/partner-workspaces/${workspaceId}/support/tickets/${encodeURIComponent(ticketRef)}/reopen`,
+      {},
     ),
 
   respondToWorkspaceCase: (

@@ -816,10 +816,10 @@
     "payments": {
       "allProviders": "All providers",
       "allStatuses": "All statuses",
-      "description": "Inspect payment records, narrow by user UUID, and segment the list by provider or payment status.",
+      "description": "Inspect payment records and segment the fetched list by provider, payment status, or payment ID.",
       "empty": "No payments matched the current filters.",
       "eyebrow": "PAYMENT HISTORY",
-      "filtersDescription": "Server-side filtering is available by user UUID. Provider, status, and ID search are applied in the client console.",
+      "filtersDescription": "Provider, status, and ID search are applied to the fetched payment history in the client console.",
       "filtersTitle": "Filter Stack",
       "idSearchPlaceholder": "Search payment ID",
       "metaTitle": "Payments - Ozoxy Admin",
@@ -833,9 +833,7 @@
         "volume": "Volume",
         "volumeHint": "sum of filtered payment amounts"
       },
-      "serverFilterHint": "Use UUID lookup when you need a payment slice for a specific customer. Secondary filters stay client-side for quick operator pivots.",
-      "title": "Payments Console",
-      "userUuidPlaceholder": "550e8400-e29b-41d4-a716-446655440000"
+      "title": "Payments Console"
     },
     "plans": {
       "createAction": "Create plan",
@@ -3752,7 +3750,9 @@
     "secureSession": "SECURE SESSION",
     "security": "SECURITY",
     "securityHint": "Sessions, 2FA, trust",
-    "sidebar": "Admin sidebar"
+    "sidebar": "Admin sidebar",
+    "support": "SUPPORT",
+    "supportHint": "Inbox, replies, internal notes"
   },
   "Network": {
     "description": "5000+ RAM-only nodes deployed across structurally secure jurisdictions. Real-time telemetry routing for zero latency.",
@@ -4334,6 +4334,162 @@
     "subscriptionHistory": "Subscription History",
     "subtitle": "Manage your VPN subscription plans",
     "title": "SUBSCRIPTIONS"
+  },
+  "Support": {
+    "actions": {
+      "assignedAdmin": "Assigned admin id",
+      "assignedAdminPlaceholder": "Admin UUID or blank for unassigned",
+      "category": "Ticket category",
+      "description": "Update metadata and lifecycle without touching billing, VPN provisioning, or entitlement state.",
+      "priority": "Ticket priority",
+      "quick": {
+        "closed": "Close",
+        "pending_support": "Reopen",
+        "resolved": "Resolve"
+      },
+      "readOnly": "This role can inspect support tickets but cannot reply, note, assign, or change lifecycle state.",
+      "save": "Save metadata",
+      "saving": "Saving",
+      "status": "Ticket status",
+      "title": "Ticket controls"
+    },
+    "categories": {
+      "abuse_review": "Abuse review",
+      "account": "Account",
+      "billing": "Billing",
+      "duplicate": "Duplicate",
+      "other": "Other",
+      "privacy": "Privacy",
+      "setup": "Setup",
+      "status": "Status",
+      "vpn_access": "VPN access"
+    },
+    "common": {
+      "actionFailed": "Action failed. Try again.",
+      "actions": "Actions",
+      "refresh": "Refresh"
+    },
+    "detail": {
+      "auditTitle": "Audit timeline",
+      "conversationDescription": "Public replies and gated internal notes are rendered as separate message types.",
+      "conversationTitle": "Conversation",
+      "customerRef": "Customer ref",
+      "empty": "Select a ticket from the inbox to inspect the conversation.",
+      "loadError": "Selected conversation failed to load.",
+      "noEvents": "No audit events are attached to this ticket yet.",
+      "noMessages": "No messages are attached to this ticket yet.",
+      "owner": "Owner",
+      "partnerRef": "Partner workspace",
+      "publicPreviewDescription": "Internal notes excluded: {count}",
+      "publicPreviewEmpty": "No public reply has been recorded yet.",
+      "publicPreviewTitle": "Customer/partner preview",
+      "transition": "{from} -> {to}",
+      "updatedAt": "Updated {value}"
+    },
+    "feedback": {
+      "internalNoteSaved": "Internal note saved.",
+      "messageRequired": "Enter a message before submitting.",
+      "messageTooLong": "Message must be {count} characters or fewer.",
+      "publicReplySent": "Public reply sent.",
+      "selectTicket": "Select a support ticket first.",
+      "statusUpdated": "Ticket status updated.",
+      "ticketUpdated": "Ticket metadata updated."
+    },
+    "filters": {
+      "allCategories": "All categories",
+      "allPriorities": "All priorities",
+      "allSources": "All sources",
+      "allStatuses": "All statuses",
+      "assignment": {
+        "all": "All tickets",
+        "mine": "Assigned to me",
+        "unassigned": "Unassigned",
+        "unassignedScopeHint": "Unassigned is filtered on the current {count}-ticket page because the admin API has no backend unassigned filter yet. Narrow the queue with search or status for exact triage."
+      },
+      "category": "Category filter",
+      "priority": "Priority filter",
+      "search": "Search support tickets",
+      "searchPlaceholder": "Public id, safe account/workspace id, subject",
+      "source": "Source filter",
+      "status": "Status filter"
+    },
+    "inbox": {
+      "description": "Triage customer and partner tickets, keep public replies separate from internal notes, and record assignment, priority, category, and status changes from one operator console.",
+      "eyebrow": "SUPPORT OPERATIONS",
+      "metaTitle": "Support Inbox - Ozoxy Admin",
+      "title": "Support inbox"
+    },
+    "internalNote": {
+      "description": "Admin-only context. This composer never writes to the public reply endpoint.",
+      "message": "Internal note message",
+      "placeholder": "Record operator-only context, escalation notes, or safe audit breadcrumbs.",
+      "saving": "Saving",
+      "submit": "Save internal note",
+      "title": "Internal note"
+    },
+    "list": {
+      "empty": "No support tickets match the current filters.",
+      "loadError": "Support tickets failed to load.",
+      "mobileListLabel": "Compact admin support ticket inbox",
+      "noPreview": "No public preview is available.",
+      "open": "Open",
+      "openRoute": "Open support ticket route {publicId}",
+      "safeOwnerRef": "Safe ref #{id}",
+      "selectTicket": "Select support ticket {publicId}",
+      "table": {
+        "owner": "Owner",
+        "state": "State",
+        "ticket": "Ticket",
+        "updated": "Updated"
+      },
+      "tableCaption": "Admin support ticket inbox"
+    },
+    "metrics": {
+      "active": "Needs support",
+      "activeHint": "open or pending support",
+      "internalNotes": "Internal notes",
+      "internalNotesHint": "notes on selected ticket",
+      "urgent": "Urgent",
+      "urgentHint": "manual escalation priority",
+      "visible": "Visible",
+      "visibleHint": "tickets after filters"
+    },
+    "owner": {
+      "customer": "Customer",
+      "partner": "Partner"
+    },
+    "permissionDenied": {
+      "description": "This account cannot read the admin support queue. Use a support, admin, or owner role with support ticket read permission.",
+      "title": "Support permission required"
+    },
+    "priorities": {
+      "high": "High",
+      "low": "Low",
+      "normal": "Normal",
+      "urgent": "Urgent"
+    },
+    "reply": {
+      "description": "Visible to the customer or partner and may trigger notification workflows.",
+      "message": "Public reply message",
+      "placeholder": "Write a public support reply. Do not include secrets, payment card numbers, private keys, or VPN credential URLs.",
+      "sending": "Sending",
+      "submit": "Send public reply",
+      "title": "Public reply"
+    },
+    "sources": {
+      "admin_manual": "Admin manual",
+      "customer_web": "Customer web",
+      "partner_portal": "Partner portal",
+      "telegram_bot": "Telegram bot",
+      "telegram_mini_app": "Telegram Mini App"
+    },
+    "statuses": {
+      "closed": "Closed",
+      "open": "Open",
+      "pending_customer": "Pending customer",
+      "pending_support": "Pending support",
+      "resolved": "Resolved"
+    }
   },
   "Terms": {
     "description": "CRITICAL CLEARANCE: TERMS OF SERVICE. AWAITING ACKNOWLEDGMENT...",

@@ -309,5 +309,88 @@
         }
       }
     }
+  },
+  "support": {
+    "meta": {
+      "title": "Обращения в поддержку - CyberVPN",
+      "description": "Создавайте и отслеживайте обращения CyberVPN из customer cabinet."
+    },
+    "eyebrow": "SUPPORT LINK",
+    "title": "Обращения в поддержку",
+    "description": "Создайте обращение, следите за перепиской, отвечайте поддержке, закрывайте и переоткрывайте свои обращения без выхода из cabinet.",
+    "surface": {
+      "dashboard": "Customer cabinet",
+      "miniapp": "Telegram Mini App"
+    },
+    "sensitiveWarning": {
+      "title": "Не отправляйте секреты",
+      "description": "Не добавляйте пароли, 2FA codes, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files."
+    },
+    "form": {
+      "title": "Создать обращение",
+      "categoryLabel": "Категория",
+      "subjectLabel": "Тема",
+      "subjectPlaceholder": "Коротко опишите проблему",
+      "messageLabel": "Сообщение",
+      "messagePlaceholder": "Опишите, что произошло, что ожидали увидеть и безопасный текст ошибки.",
+      "messageHelp": "{count}/4000 символов. Редактируйте diagnostics и не отправляйте приватные значения.",
+      "submit": "Создать обращение",
+      "submitting": "Создание..."
+    },
+    "categories": {
+      "account": "Аккаунт",
+      "billing": "Billing",
+      "setup": "Настройка",
+      "vpn_access": "VPN-доступ",
+      "status": "Статус сервиса",
+      "privacy": "Privacy",
+      "other": "Другое"
+    },
+    "status": {
+      "open": "Открыто",
+      "pending_support": "Ожидает поддержку",
+      "pending_customer": "Ожидает клиента",
+      "resolved": "Решено",
+      "closed": "Закрыто"
+    },
+    "filters": {
+      "statusLabel": "Фильтр обращений по статусу",
+      "all": "Все обращения"
+    },
+    "list": {
+      "title": "Мои обращения",
+      "emptyTitle": "Обращений пока нет",
+      "emptyDescription": "Создайте обращение, если нужна помощь с оплатой, доступом, настройкой или восстановлением аккаунта.",
+      "openTicket": "Открыть обращение {id}"
+    },
+    "detail": {
+      "emptyTitle": "Выберите обращение",
+      "emptyDescription": "Здесь появятся детали обращения и публичные ответы.",
+      "conversationTitle": "Переписка",
+      "noMessages": "К этому обращению пока не прикреплены публичные сообщения.",
+      "customerAuthor": "Вы",
+      "supportAuthor": "Поддержка",
+      "closedTitle": "Обращение закрыто",
+      "closedDescription": "Переоткройте обращение, если проблема вернулась или нужно добавить информацию."
+    },
+    "reply": {
+      "label": "Ответ",
+      "placeholder": "Добавьте безопасное обновление для поддержки.",
+      "submit": "Отправить ответ",
+      "submitting": "Отправка..."
+    },
+    "actions": {
+      "refreshList": "Обновить список обращений",
+      "close": "Закрыть обращение",
+      "reopen": "Переоткрыть обращение"
+    },
+    "errors": {
+      "list": "Обращения временно недоступны.",
+      "detail": "Не удалось загрузить это обращение.",
+      "create": "Не удалось создать обращение. Попробуйте ещё раз.",
+      "reply": "Не удалось отправить ответ. Попробуйте ещё раз.",
+      "close": "Не удалось закрыть обращение. Попробуйте ещё раз.",
+      "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз."
+    }
   }
 }

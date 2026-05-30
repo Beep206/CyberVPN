@@ -85,6 +85,7 @@ from src.presentation.api.v1.squads.routes import router as squads_router
 from src.presentation.api.v1.status.routes import router as status_router
 from src.presentation.api.v1.storefronts.routes import router as storefronts_router
 from src.presentation.api.v1.subscriptions.routes import router as subscriptions_router
+from src.presentation.api.v1.support_tickets.routes import router as support_tickets_router
 from src.presentation.api.v1.telegram.routes import router as telegram_router
 from src.presentation.api.v1.traffic_declarations.routes import router as traffic_declarations_router
 from src.presentation.api.v1.trial.routes import router as trial_router
@@ -227,6 +228,7 @@ api_router.include_router(access_delivery_channels_router)
 api_router.include_router(helix_router)
 api_router.include_router(usage_router)
 api_router.include_router(trial_router)
+api_router.include_router(support_tickets_router)
 
 # Payments & billing
 api_router.include_router(payments_router)

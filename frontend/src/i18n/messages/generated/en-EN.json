@@ -835,6 +835,89 @@
     "serverStatus": "SERVER STATUS",
     "statusLabel": "SYSTEM STATUS:",
     "statusValue": "OPTIMAL",
+    "support": {
+      "actions": {
+        "close": "Close ticket",
+        "refreshList": "Refresh ticket list",
+        "reopen": "Reopen ticket"
+      },
+      "categories": {
+        "account": "Account",
+        "billing": "Billing",
+        "other": "Other",
+        "privacy": "Privacy",
+        "setup": "Setup",
+        "status": "Service status",
+        "vpn_access": "VPN access"
+      },
+      "description": "Create a support ticket, follow the conversation, reply to staff, and close or reopen your own case without leaving the cabinet.",
+      "detail": {
+        "closedDescription": "Reopen the ticket if the issue returned or you need to add more information.",
+        "closedTitle": "Ticket is closed",
+        "conversationTitle": "Conversation",
+        "customerAuthor": "You",
+        "emptyDescription": "Ticket details and public replies appear here.",
+        "emptyTitle": "Select a ticket",
+        "noMessages": "No public messages are attached to this ticket yet.",
+        "supportAuthor": "Support"
+      },
+      "errors": {
+        "close": "Ticket close failed. Please try again.",
+        "create": "Ticket creation failed. Please try again.",
+        "detail": "This support ticket could not be loaded.",
+        "list": "Support tickets are temporarily unavailable.",
+        "reopen": "Ticket reopen failed. Please try again.",
+        "reply": "Reply failed. Please try again."
+      },
+      "eyebrow": "SUPPORT LINK",
+      "filters": {
+        "all": "All tickets",
+        "statusLabel": "Filter tickets by status"
+      },
+      "form": {
+        "categoryLabel": "Category",
+        "messageHelp": "{count}/4000 characters. Keep diagnostics safe and redact private values.",
+        "messageLabel": "Message",
+        "messagePlaceholder": "Describe what happened, what you expected, and any safe error text.",
+        "subjectLabel": "Subject",
+        "subjectPlaceholder": "Short summary of the issue",
+        "submit": "Create ticket",
+        "submitting": "Creating...",
+        "title": "Create ticket"
+      },
+      "list": {
+        "emptyDescription": "Create a ticket when payment, access, setup, or account recovery needs help.",
+        "emptyTitle": "No tickets yet",
+        "openTicket": "Open ticket {id}",
+        "title": "My tickets"
+      },
+      "meta": {
+        "description": "Create and track CyberVPN support tickets from the customer cabinet.",
+        "title": "Support tickets - CyberVPN"
+      },
+      "reply": {
+        "label": "Reply",
+        "placeholder": "Add a safe update for support.",
+        "submit": "Send reply",
+        "submitting": "Sending..."
+      },
+      "sensitiveWarning": {
+        "description": "Never include passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs, or raw VPN config files.",
+        "title": "Do not send secrets"
+      },
+      "status": {
+        "closed": "Closed",
+        "open": "Open",
+        "pending_customer": "Customer reply due",
+        "pending_support": "Support reply due",
+        "resolved": "Resolved"
+      },
+      "surface": {
+        "dashboard": "Customer cabinet",
+        "miniapp": "Telegram Mini App"
+      },
+      "title": "Support tickets"
+    },
     "thisMonth": "This month",
     "title": "VPN COMMAND CENTER",
     "totalNodes": "Total Nodes",
@@ -1384,6 +1467,7 @@
       "sessionRestoringTitle": "Restoring Telegram sign-in",
       "settings": "Settings",
       "subscriptionActive": "Subscription Active",
+      "support": "Support",
       "trafficLimit": "Traffic",
       "trial": "TRIAL",
       "trialAvailable": "Free Trial Available",
@@ -1798,6 +1882,89 @@
       "title": "Rewards Hub",
       "yourCode": "Your referral code"
     },
+    "support": {
+      "actions": {
+        "close": "Close ticket",
+        "refreshList": "Refresh ticket list",
+        "reopen": "Reopen ticket"
+      },
+      "categories": {
+        "account": "Account",
+        "billing": "Billing",
+        "other": "Other",
+        "privacy": "Privacy",
+        "setup": "Setup",
+        "status": "Service status",
+        "vpn_access": "VPN access"
+      },
+      "description": "Create a support ticket, follow replies, and close or reopen your own case from Telegram.",
+      "detail": {
+        "closedDescription": "Reopen the ticket if the issue returned or you need to add more information.",
+        "closedTitle": "Ticket is closed",
+        "conversationTitle": "Conversation",
+        "customerAuthor": "You",
+        "emptyDescription": "Ticket details and replies appear here.",
+        "emptyTitle": "Select a ticket",
+        "noMessages": "No public messages are attached to this ticket yet.",
+        "supportAuthor": "Support"
+      },
+      "errors": {
+        "close": "Ticket close failed. Please try again.",
+        "create": "Ticket creation failed. Please try again.",
+        "detail": "This support ticket could not be loaded.",
+        "list": "Support tickets are temporarily unavailable.",
+        "reopen": "Ticket reopen failed. Please try again.",
+        "reply": "Reply failed. Please try again."
+      },
+      "eyebrow": "SUPPORT LINK",
+      "filters": {
+        "all": "All tickets",
+        "statusLabel": "Filter tickets by status"
+      },
+      "form": {
+        "categoryLabel": "Category",
+        "messageHelp": "{count}/4000 characters. Redact private values before sending.",
+        "messageLabel": "Message",
+        "messagePlaceholder": "Describe what happened and include only safe error text.",
+        "subjectLabel": "Subject",
+        "subjectPlaceholder": "Short summary of the issue",
+        "submit": "Create ticket",
+        "submitting": "Creating...",
+        "title": "Create ticket"
+      },
+      "list": {
+        "emptyDescription": "Create a ticket when payment, access, setup, or account recovery needs help.",
+        "emptyTitle": "No tickets yet",
+        "openTicket": "Open ticket {id}",
+        "title": "My tickets"
+      },
+      "meta": {
+        "description": "Create and track CyberVPN support tickets in Telegram.",
+        "title": "Support tickets - CyberVPN Mini App"
+      },
+      "reply": {
+        "label": "Reply",
+        "placeholder": "Add a safe update for support.",
+        "submit": "Send reply",
+        "submitting": "Sending..."
+      },
+      "sensitiveWarning": {
+        "description": "Never include passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs, or raw VPN config files.",
+        "title": "Do not send secrets"
+      },
+      "status": {
+        "closed": "Closed",
+        "open": "Open",
+        "pending_customer": "Customer reply due",
+        "pending_support": "Support reply due",
+        "resolved": "Resolved"
+      },
+      "surface": {
+        "dashboard": "Customer cabinet",
+        "miniapp": "Telegram Mini App"
+      },
+      "title": "Support tickets"
+    },
     "wallet": {
       "amount": "Amount",
       "available": "Available",
@@ -1849,6 +2016,7 @@
     "servers": "NETWORK",
     "settings": "CONFIG",
     "sidebar": "Sidebar",
+    "support": "SUPPORT",
     "users": "CLIENTS",
     "wallet": "WALLET"
   },

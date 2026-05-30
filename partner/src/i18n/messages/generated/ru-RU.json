@@ -3473,7 +3473,8 @@
       "thread": {
         "eventAt": "Обновление партнёра от {value}"
       },
-      "title": "Support & Cases"
+      "title": "Support & Cases",
+      "workspaceFallback": "Текущий workspace"
     },
     "codes": {
       "actions": {
@@ -4841,6 +4842,117 @@
         "role": "Роль workspace",
         "status": "Статус workspace"
       }
+    },
+    "supportTickets": {
+      "actions": {
+        "refresh": "Обновить",
+        "refreshing": "Обновление..."
+      },
+      "authors": {
+        "admin": "Support",
+        "customer": "Customer",
+        "partner": "Partner",
+        "system": "System"
+      },
+      "categories": {
+        "account": "Account",
+        "billing": "Billing",
+        "other": "Other",
+        "privacy": "Privacy",
+        "setup": "Setup",
+        "status": "Status",
+        "vpn_access": "VPN access"
+      },
+      "create": {
+        "categoryLabel": "Категория",
+        "description": "Используйте только synthetic и support-safe детали. Категории billing и VPN не меняют billing, entitlement или provisioning state.",
+        "error": "Не удалось создать support ticket.",
+        "messageLabel": "Message",
+        "priorityLabel": "Priority",
+        "sending": "Создание...",
+        "subjectLabel": "Subject",
+        "submit": "Создать ticket",
+        "success": "Support ticket создан для этого workspace.",
+        "title": "Создать ticket"
+      },
+      "detail": {
+        "closeAction": "Закрыть",
+        "closeError": "Не удалось закрыть support ticket.",
+        "closeSending": "Закрытие...",
+        "closeSuccess": "Support ticket закрыт.",
+        "description": "Здесь отображаются только public partner-visible messages и events.",
+        "eventsEmpty": "Для этого ticket public events не вернулись.",
+        "eventsTitle": "Public timeline",
+        "messagesEmpty": "Для этого ticket public messages не вернулись.",
+        "messagesTitle": "Public messages",
+        "reopenAction": "Переоткрыть",
+        "reopenError": "Не удалось переоткрыть support ticket.",
+        "reopenSending": "Переоткрытие...",
+        "reopenSuccess": "Support ticket переоткрыт.",
+        "replyAction": "Ответить",
+        "replyError": "Не удалось добавить support reply.",
+        "replyLabel": "Public reply",
+        "replySending": "Ответ...",
+        "replySuccess": "Reply добавлен в support ticket.",
+        "selectPrompt": "Выберите ticket из workspace list, чтобы открыть conversation.",
+        "title": "Ticket detail",
+        "updatedAt": "Обновлено: {value}"
+      },
+      "errors": {
+        "workspaceMissing": "Workspace context требуется перед действиями с support ticket."
+      },
+      "events": {
+        "category_changed": "Категория изменена",
+        "closed": "Ticket закрыт",
+        "priority_changed": "Priority изменён",
+        "public_reply_added": "Public reply добавлен",
+        "reopened": "Ticket переоткрыт",
+        "status_changed": "Статус изменён",
+        "ticket_created": "Ticket создан"
+      },
+      "eyebrow": "WORKSPACE SUPPORT TICKETS",
+      "filters": {
+        "allCategories": "Все категории",
+        "allStatuses": "Все статусы",
+        "categoryLabel": "Категория",
+        "statusLabel": "Статус"
+      },
+      "list": {
+        "title": "Workspace ticket list",
+        "updatedAt": "Обновлено: {value}"
+      },
+      "priorities": {
+        "high": "High",
+        "low": "Low",
+        "normal": "Normal",
+        "urgent": "Urgent"
+      },
+      "states": {
+        "detailError": "Не удалось открыть этот support ticket.",
+        "detailLoading": "Загрузка ticket detail...",
+        "empty": "Для этого workspace support tickets не найдены.",
+        "isolationBlocked": "Этот ticket не принадлежит активному workspace, поэтому портал не покажет его detail.",
+        "listError": "Не удалось загрузить support tickets этого workspace.",
+        "loading": "Загрузка workspace tickets...",
+        "readOnly": "Эта роль может просматривать workspace tickets, но не может создавать, отвечать, закрывать или переоткрывать их.",
+        "workspaceUnavailable": "Выберите canonical partner workspace перед использованием support tickets."
+      },
+      "statuses": {
+        "closed": "Closed",
+        "open": "Open",
+        "pending_customer": "Ожидает партнёра",
+        "pending_support": "Ожидает support",
+        "resolved": "Resolved"
+      },
+      "subtitle": "Создавайте и ведите support tickets только для {workspace}. Internal support notes и tickets других workspace не отображаются в этой partner surface.",
+      "summary": {
+        "visibleTickets": "Видимые tickets",
+        "workspace": "Workspace",
+        "writeAccess": "Write access",
+        "writeDisabled": "Только чтение",
+        "writeEnabled": "Включён"
+      },
+      "title": "Partner support tickets"
     },
     "team": {
       "actions": {

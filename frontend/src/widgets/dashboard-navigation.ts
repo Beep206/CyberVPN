@@ -1,6 +1,7 @@
 import {
   Activity,
   CreditCard,
+  LifeBuoy,
   Receipt,
   Server,
   Settings,
@@ -37,6 +38,12 @@ const DASHBOARD_NAV_ITEM_CANDIDATES = [
     surface: 'referral',
   },
   {
+    icon: LifeBuoy,
+    labelKey: 'support',
+    href: '/support',
+    surface: 'support',
+  },
+  {
     icon: Settings,
     labelKey: 'settings',
     href: '/settings',
@@ -71,5 +78,6 @@ export const DASHBOARD_NAV_LABEL_FALLBACKS = {
   servers: 'NETWORK',
   settings: 'SETTINGS',
   sidebar: 'Sidebar',
+  support: 'SUPPORT',
   wallet: 'WALLET',
 } as const;

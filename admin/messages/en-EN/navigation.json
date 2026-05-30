@@ -3,6 +3,8 @@
   "dashboardHint": "Health, queues, incidents",
   "customers": "CUSTOMERS",
   "customersHint": "Lifecycle, support, accounts",
+  "support": "SUPPORT",
+  "supportHint": "Inbox, replies, internal notes",
   "commerce": "COMMERCE",
   "commerceHint": "Plans, payments, wallets",
   "growth": "GROWTH",

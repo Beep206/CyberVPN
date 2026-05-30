@@ -17,6 +17,7 @@ export const ADMIN_PERMISSIONS = [
   'user_create',
   'user_update',
   'user_delete',
+  'support_ticket_read',
   'server_read',
   'server_create',
   'server_update',
@@ -47,6 +48,7 @@ export const ADMIN_PERMISSION_MATRIX: Record<
     'user_create',
     'user_update',
     'user_delete',
+    'support_ticket_read',
     'server_read',
     'server_create',
     'server_update',
@@ -80,6 +82,7 @@ export const ADMIN_PERMISSION_MATRIX: Record<
   support: [
     'user_read',
     'user_update',
+    'support_ticket_read',
     'server_read',
     'monitoring_read',
     'vpn_credential_regenerate',

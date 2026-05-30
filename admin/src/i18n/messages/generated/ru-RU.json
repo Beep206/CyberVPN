@@ -813,10 +813,10 @@
     "payments": {
       "allProviders": "Все провайдеры",
       "allStatuses": "Все статусы",
-      "description": "Просмотр платежей, фильтрация по UUID пользователя и сегментация списка по провайдеру или статусу.",
+      "description": "Просмотр платежей и сегментация полученного списка по провайдеру, статусу или ID платежа.",
       "empty": "По текущим фильтрам платежи не найдены.",
       "eyebrow": "ИСТОРИЯ ПЛАТЕЖЕЙ",
-      "filtersDescription": "Серверная фильтрация доступна по UUID пользователя. Провайдер, статус и поиск по ID применяются в клиентской консоли.",
+      "filtersDescription": "Провайдер, статус и поиск по ID применяются к полученной истории платежей в клиентской консоли.",
       "filtersTitle": "Стек фильтров",
       "idSearchPlaceholder": "Поиск по ID платежа",
       "metaTitle": "Платежи - Ozoxy Admin",
@@ -830,9 +830,7 @@
         "volume": "Объём",
         "volumeHint": "сумма отфильтрованных платежей"
       },
-      "serverFilterHint": "Используйте lookup по UUID, когда нужна выборка по конкретному клиенту. Остальные фильтры остаются на клиенте для быстрых переключений оператора.",
-      "title": "Консоль платежей",
-      "userUuidPlaceholder": "550e8400-e29b-41d4-a716-446655440000"
+      "title": "Консоль платежей"
     },
     "plans": {
       "createAction": "Создать тариф",
@@ -3697,7 +3695,9 @@
     "secureSession": "ЗАЩИЩЁННАЯ СЕССИЯ",
     "security": "БЕЗОПАСНОСТЬ",
     "securityHint": "Сессии, 2FA, доверие",
-    "sidebar": "Боковая панель админки"
+    "sidebar": "Боковая панель админки",
+    "support": "ПОДДЕРЖКА",
+    "supportHint": "Инбокс, ответы, internal notes"
   },
   "Network": {
     "description": "Более 5000 RAM-only узлов, развернутых в безопасных юрисдикциях. Телеметрия в реальном времени для нулевой задержки.",
@@ -4212,6 +4212,162 @@
     "title": "СИСТЕМНАЯ РАДАР"
   },
   "Subscriptions": {},
+  "Support": {
+    "actions": {
+      "assignedAdmin": "Assigned admin id",
+      "assignedAdminPlaceholder": "Admin UUID или пусто для unassigned",
+      "category": "Ticket category",
+      "description": "Обновляйте metadata и lifecycle, не затрагивая billing, VPN provisioning или entitlement state.",
+      "priority": "Ticket priority",
+      "quick": {
+        "closed": "Close",
+        "pending_support": "Reopen",
+        "resolved": "Resolve"
+      },
+      "readOnly": "Эта роль может просматривать support tickets, но не может отвечать, писать notes, назначать или менять lifecycle state.",
+      "save": "Сохранить metadata",
+      "saving": "Сохранение",
+      "status": "Ticket status",
+      "title": "Ticket controls"
+    },
+    "categories": {
+      "abuse_review": "Abuse review",
+      "account": "Account",
+      "billing": "Billing",
+      "duplicate": "Duplicate",
+      "other": "Other",
+      "privacy": "Privacy",
+      "setup": "Setup",
+      "status": "Status",
+      "vpn_access": "VPN access"
+    },
+    "common": {
+      "actionFailed": "Действие не выполнено. Повторите попытку.",
+      "actions": "Действия",
+      "refresh": "Обновить"
+    },
+    "detail": {
+      "auditTitle": "Audit timeline",
+      "conversationDescription": "Public replies и gated internal notes отображаются как отдельные типы сообщений.",
+      "conversationTitle": "Conversation",
+      "customerRef": "Customer ref",
+      "empty": "Выберите ticket из inbox, чтобы открыть conversation.",
+      "loadError": "Не удалось загрузить выбранную conversation.",
+      "noEvents": "У этого ticket пока нет audit events.",
+      "noMessages": "У этого ticket пока нет сообщений.",
+      "owner": "Owner",
+      "partnerRef": "Partner workspace",
+      "publicPreviewDescription": "Internal notes исключены: {count}",
+      "publicPreviewEmpty": "Public reply пока не записан.",
+      "publicPreviewTitle": "Customer/partner preview",
+      "transition": "{from} -> {to}",
+      "updatedAt": "Updated {value}"
+    },
+    "feedback": {
+      "internalNoteSaved": "Internal note сохранён.",
+      "messageRequired": "Введите сообщение перед отправкой.",
+      "messageTooLong": "Сообщение должно быть не длиннее {count} символов.",
+      "publicReplySent": "Public reply отправлен.",
+      "selectTicket": "Сначала выберите support ticket.",
+      "statusUpdated": "Ticket status обновлён.",
+      "ticketUpdated": "Ticket metadata обновлена."
+    },
+    "filters": {
+      "allCategories": "Все categories",
+      "allPriorities": "Все priorities",
+      "allSources": "Все sources",
+      "allStatuses": "Все statuses",
+      "assignment": {
+        "all": "Все tickets",
+        "mine": "Назначены мне",
+        "unassigned": "Unassigned",
+        "unassignedScopeHint": "Unassigned фильтруется только внутри текущей страницы на {count} tickets, потому что admin API пока не поддерживает backend unassigned filter. Для точной triage сузьте queue через search или status."
+      },
+      "category": "Фильтр category",
+      "priority": "Фильтр priority",
+      "search": "Поиск support tickets",
+      "searchPlaceholder": "Public id, safe account/workspace id, subject",
+      "source": "Фильтр source",
+      "status": "Фильтр status"
+    },
+    "inbox": {
+      "description": "Разбирайте customer и partner tickets, держите public replies отдельно от internal notes и фиксируйте назначение, priority, category и status в одной операторской консоли.",
+      "eyebrow": "SUPPORT OPERATIONS",
+      "metaTitle": "Support Inbox - Ozoxy Admin",
+      "title": "Инбокс поддержки"
+    },
+    "internalNote": {
+      "description": "Admin-only context. Этот composer никогда не пишет в public reply endpoint.",
+      "message": "Текст internal note",
+      "placeholder": "Зафиксируйте operator-only context, escalation notes или safe audit breadcrumbs.",
+      "saving": "Сохранение",
+      "submit": "Сохранить internal note",
+      "title": "Internal note"
+    },
+    "list": {
+      "empty": "Под текущие фильтры не подходит ни один support ticket.",
+      "loadError": "Не удалось загрузить support tickets.",
+      "mobileListLabel": "Компактный admin support ticket inbox",
+      "noPreview": "Public preview пока отсутствует.",
+      "open": "Открыть",
+      "openRoute": "Открыть route support ticket {publicId}",
+      "safeOwnerRef": "Safe ref #{id}",
+      "selectTicket": "Выбрать support ticket {publicId}",
+      "table": {
+        "owner": "Owner",
+        "state": "State",
+        "ticket": "Ticket",
+        "updated": "Updated"
+      },
+      "tableCaption": "Admin support ticket inbox"
+    },
+    "metrics": {
+      "active": "Ждут support",
+      "activeHint": "open или pending support",
+      "internalNotes": "Internal notes",
+      "internalNotesHint": "заметки выбранного ticket",
+      "urgent": "Urgent",
+      "urgentHint": "ручная escalation priority",
+      "visible": "Видимые",
+      "visibleHint": "tickets после фильтров"
+    },
+    "owner": {
+      "customer": "Customer",
+      "partner": "Partner"
+    },
+    "permissionDenied": {
+      "description": "Этот аккаунт не может читать admin support queue. Используйте роль support, admin или owner с support ticket read permission.",
+      "title": "Нужны права support"
+    },
+    "priorities": {
+      "high": "High",
+      "low": "Low",
+      "normal": "Normal",
+      "urgent": "Urgent"
+    },
+    "reply": {
+      "description": "Виден customer или partner и может запустить notification workflow.",
+      "message": "Текст public reply",
+      "placeholder": "Напишите public support reply. Не добавляйте secrets, payment card numbers, private keys или VPN credential URLs.",
+      "sending": "Отправка",
+      "submit": "Отправить public reply",
+      "title": "Public reply"
+    },
+    "sources": {
+      "admin_manual": "Admin manual",
+      "customer_web": "Customer web",
+      "partner_portal": "Partner portal",
+      "telegram_bot": "Telegram bot",
+      "telegram_mini_app": "Telegram Mini App"
+    },
+    "statuses": {
+      "closed": "Closed",
+      "open": "Open",
+      "pending_customer": "Pending customer",
+      "pending_support": "Pending support",
+      "resolved": "Resolved"
+    }
+  },
   "Terms": {
     "description": "КРИТИЧЕСКИЙ УРОВЕНЬ: УСЛОВИЯ ОБСЛУЖИВАНИЯ. ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ...",
     "sections": {

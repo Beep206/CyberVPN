@@ -125,6 +125,34 @@ def provisioning_failed(username: str, support_reference: str = "", retry_hint: 
     return msg
 
 
+def support_ticket_update(
+    *,
+    ticket_public_id: str,
+    event_type: str,
+    status: str,
+    category: str,
+    support_url: str = "",
+) -> str:
+    """Notification for support ticket updates without message body previews."""
+    event_titles = {
+        "public_reply_added": "Support replied to your ticket",
+        "status_changed": "Support ticket status changed",
+        "closed": "Support ticket closed",
+        "reopened": "Support ticket reopened",
+    }
+    title = event_titles.get(event_type, "Support ticket updated")
+    msg = (
+        f"🆘 <b>{_html(title)}</b>\n\n"
+        f"Ticket: <code>{_html(ticket_public_id)}</code>\n"
+        f"Status: <b>{_html(status)}</b>\n"
+        f"Category: {_html(category)}\n"
+        "Open the support screen to read the latest public conversation."
+    )
+    if support_url:
+        msg += f'\n\n<a href="{_html(support_url)}">Open support ticket</a>'
+    return msg
+
+
 # =============================================================================
 # Server / Infrastructure Alerts
 # =============================================================================

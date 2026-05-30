@@ -4,6 +4,7 @@ import {
   Bot,
   ChartColumnIncreasing,
   Landmark,
+  LifeBuoy,
   ScrollText,
   Shield,
   Users,
@@ -23,11 +24,12 @@ export const ADMIN_SECTION_SLUGS = [
 export type AdminSectionSlug = (typeof ADMIN_SECTION_SLUGS)[number];
 
 export interface AdminNavItem {
-  href: '/dashboard' | `/${AdminSectionSlug}`;
+  href: '/dashboard' | `/${AdminSectionSlug}` | '/support';
   icon: LucideIcon;
   labelKey:
     | 'dashboard'
     | 'customers'
+    | 'support'
     | 'commerce'
     | 'growth'
     | 'infrastructure'
@@ -37,6 +39,7 @@ export interface AdminNavItem {
   hintKey:
     | 'dashboardHint'
     | 'customersHint'
+    | 'supportHint'
     | 'commerceHint'
     | 'growthHint'
     | 'infrastructureHint'
@@ -57,6 +60,12 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     icon: Users,
     labelKey: 'customers',
     hintKey: 'customersHint',
+  },
+  {
+    href: '/support',
+    icon: LifeBuoy,
+    labelKey: 'support',
+    hintKey: 'supportHint',
   },
   {
     href: '/commerce',

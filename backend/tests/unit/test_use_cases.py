@@ -31,6 +31,7 @@ class TestPermissions:
         assert has_permission(AdminRole.VIEWER, Permission.USER_READ)
         assert not has_permission(AdminRole.VIEWER, Permission.USER_CREATE)
         assert not has_permission(AdminRole.VIEWER, Permission.SERVER_DELETE)
+        assert not has_permission(AdminRole.VIEWER, Permission.SUPPORT_TICKET_READ)
 
     def test_role_hierarchy(self):
         assert check_minimum_role(AdminRole.OWNER_SUPER_ADMIN, AdminRole.SUPER_ADMIN)
@@ -48,6 +49,7 @@ class TestPermissions:
         assert not has_permission(AdminRole.OPERATOR, Permission.USER_CREATE)
         assert not has_permission(AdminRole.OPERATOR, Permission.PAYMENT_READ)
         assert not has_permission(AdminRole.OPERATOR, Permission.MANAGE_ADMINS)
+        assert not has_permission(AdminRole.OPERATOR, Permission.SUPPORT_TICKET_READ)
 
     def test_finance_permissions(self):
         assert has_permission(AdminRole.FINANCE, Permission.USER_READ)
@@ -58,6 +60,7 @@ class TestPermissions:
         assert not has_permission(AdminRole.FINANCE, Permission.PAYMENT_CREATE)
         assert not has_permission(AdminRole.FINANCE, Permission.VPN_CREDENTIAL_REGENERATE)
         assert not has_permission(AdminRole.FINANCE, Permission.SERVER_UPDATE)
+        assert not has_permission(AdminRole.FINANCE, Permission.SUPPORT_TICKET_READ)
 
     def test_role_assignment_order_includes_finance(self):
         assert can_assign_role(AdminRole.ADMIN, AdminRole.FINANCE)

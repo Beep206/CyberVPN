@@ -1,0 +1,156 @@
+{
+  "common": {
+    "actionFailed": "Действие не выполнено. Повторите попытку.",
+    "actions": "Действия",
+    "refresh": "Обновить"
+  },
+  "inbox": {
+    "metaTitle": "Support Inbox - Ozoxy Admin",
+    "eyebrow": "SUPPORT OPERATIONS",
+    "title": "Инбокс поддержки",
+    "description": "Разбирайте customer и partner tickets, держите public replies отдельно от internal notes и фиксируйте назначение, priority, category и status в одной операторской консоли."
+  },
+  "permissionDenied": {
+    "title": "Нужны права support",
+    "description": "Этот аккаунт не может читать admin support queue. Используйте роль support, admin или owner с support ticket read permission."
+  },
+  "metrics": {
+    "visible": "Видимые",
+    "visibleHint": "tickets после фильтров",
+    "active": "Ждут support",
+    "activeHint": "open или pending support",
+    "urgent": "Urgent",
+    "urgentHint": "ручная escalation priority",
+    "internalNotes": "Internal notes",
+    "internalNotesHint": "заметки выбранного ticket"
+  },
+  "filters": {
+    "search": "Поиск support tickets",
+    "searchPlaceholder": "Public id, safe account/workspace id, subject",
+    "status": "Фильтр status",
+    "priority": "Фильтр priority",
+    "category": "Фильтр category",
+    "source": "Фильтр source",
+    "allStatuses": "Все statuses",
+    "allPriorities": "Все priorities",
+    "allCategories": "Все categories",
+    "allSources": "Все sources",
+    "assignment": {
+      "all": "Все tickets",
+      "mine": "Назначены мне",
+      "unassigned": "Unassigned",
+      "unassignedScopeHint": "Unassigned фильтруется только внутри текущей страницы на {count} tickets, потому что admin API пока не поддерживает backend unassigned filter. Для точной triage сузьте queue через search или status."
+    }
+  },
+  "owner": {
+    "customer": "Customer",
+    "partner": "Partner"
+  },
+  "list": {
+    "tableCaption": "Admin support ticket inbox",
+    "mobileListLabel": "Компактный admin support ticket inbox",
+    "loadError": "Не удалось загрузить support tickets.",
+    "empty": "Под текущие фильтры не подходит ни один support ticket.",
+    "noPreview": "Public preview пока отсутствует.",
+    "safeOwnerRef": "Safe ref #{id}",
+    "selectTicket": "Выбрать support ticket {publicId}",
+    "openRoute": "Открыть route support ticket {publicId}",
+    "open": "Открыть",
+    "table": {
+      "ticket": "Ticket",
+      "state": "State",
+      "owner": "Owner",
+      "updated": "Updated"
+    }
+  },
+  "detail": {
+    "loadError": "Не удалось загрузить выбранную conversation.",
+    "empty": "Выберите ticket из inbox, чтобы открыть conversation.",
+    "updatedAt": "Updated {value}",
+    "owner": "Owner",
+    "customerRef": "Customer ref",
+    "partnerRef": "Partner workspace",
+    "conversationTitle": "Conversation",
+    "conversationDescription": "Public replies и gated internal notes отображаются как отдельные типы сообщений.",
+    "noMessages": "У этого ticket пока нет сообщений.",
+    "publicPreviewTitle": "Customer/partner preview",
+    "publicPreviewDescription": "Internal notes исключены: {count}",
+    "publicPreviewEmpty": "Public reply пока не записан.",
+    "auditTitle": "Audit timeline",
+    "noEvents": "У этого ticket пока нет audit events.",
+    "transition": "{from} -> {to}"
+  },
+  "actions": {
+    "title": "Ticket controls",
+    "description": "Обновляйте metadata и lifecycle, не затрагивая billing, VPN provisioning или entitlement state.",
+    "readOnly": "Эта роль может просматривать support tickets, но не может отвечать, писать notes, назначать или менять lifecycle state.",
+    "status": "Ticket status",
+    "priority": "Ticket priority",
+    "category": "Ticket category",
+    "assignedAdmin": "Assigned admin id",
+    "assignedAdminPlaceholder": "Admin UUID или пусто для unassigned",
+    "saving": "Сохранение",
+    "save": "Сохранить metadata",
+    "quick": {
+      "resolved": "Resolve",
+      "closed": "Close",
+      "pending_support": "Reopen"
+    }
+  },
+  "reply": {
+    "title": "Public reply",
+    "description": "Виден customer или partner и может запустить notification workflow.",
+    "message": "Текст public reply",
+    "placeholder": "Напишите public support reply. Не добавляйте secrets, payment card numbers, private keys или VPN credential URLs.",
+    "sending": "Отправка",
+    "submit": "Отправить public reply"
+  },
+  "internalNote": {
+    "title": "Internal note",
+    "description": "Admin-only context. Этот composer никогда не пишет в public reply endpoint.",
+    "message": "Текст internal note",
+    "placeholder": "Зафиксируйте operator-only context, escalation notes или safe audit breadcrumbs.",
+    "saving": "Сохранение",
+    "submit": "Сохранить internal note"
+  },
+  "feedback": {
+    "selectTicket": "Сначала выберите support ticket.",
+    "messageRequired": "Введите сообщение перед отправкой.",
+    "messageTooLong": "Сообщение должно быть не длиннее {count} символов.",
+    "publicReplySent": "Public reply отправлен.",
+    "internalNoteSaved": "Internal note сохранён.",
+    "ticketUpdated": "Ticket metadata обновлена.",
+    "statusUpdated": "Ticket status обновлён."
+  },
+  "statuses": {
+    "open": "Open",
+    "pending_support": "Pending support",
+    "pending_customer": "Pending customer",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "priorities": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "categories": {
+    "account": "Account",
+    "billing": "Billing",
+    "setup": "Setup",
+    "vpn_access": "VPN access",
+    "status": "Status",
+    "privacy": "Privacy",
+    "other": "Other",
+    "abuse_review": "Abuse review",
+    "duplicate": "Duplicate"
+  },
+  "sources": {
+    "customer_web": "Customer web",
+    "telegram_mini_app": "Telegram Mini App",
+    "partner_portal": "Partner portal",
+    "admin_manual": "Admin manual",
+    "telegram_bot": "Telegram bot"
+  }
+}
