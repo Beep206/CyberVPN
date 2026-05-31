@@ -9,7 +9,7 @@ from typing import Literal
 from uuid import UUID
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService, MiniAppRuntimeConfig
@@ -26,7 +26,10 @@ from src.application.use_cases.customer_subscriptions import (
     SelectedSubscriptionCheckoutUseCase,
 )
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
-from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
+from src.application.use_cases.payments.commit_checkout import (
+    CheckoutIdempotencyConflictError,
+    CommitCheckoutUseCase,
+)
 from src.application.use_cases.referrals.get_referral_code import GetReferralCodeUseCase
 from src.application.use_cases.service_access import GetCurrentEntitlementStateUseCase, GetCurrentServiceStateUseCase
 from src.application.use_cases.subscriptions import (
@@ -516,6 +519,7 @@ async def _build_miniapp_quote(
                 promo_code=body.promo_code,
                 use_wallet=Decimal(str(body.use_wallet)),
                 sale_channel="miniapp",
+                currency=body.currency,
             )
             return _serialize_subscription_quote(result)
 
@@ -530,6 +534,7 @@ async def _build_miniapp_quote(
                 promo_code=body.promo_code,
                 use_wallet=Decimal(str(body.use_wallet)),
                 sale_channel="miniapp",
+                currency=body.currency,
             )
             return _serialize_subscription_quote(result)
 
@@ -547,6 +552,7 @@ async def _build_miniapp_quote(
                 promo_code=body.promo_code,
                 use_wallet=Decimal(str(body.use_wallet)),
                 sale_channel="miniapp",
+                currency=body.currency,
             )
             return _serialize_subscription_quote(result)
 
@@ -559,6 +565,7 @@ async def _build_miniapp_quote(
                 promo_code=body.promo_code,
                 use_wallet=Decimal(str(body.use_wallet)),
                 sale_channel="miniapp",
+                currency=body.currency,
             )
             return _serialize_subscription_quote(result)
 
@@ -1011,6 +1018,7 @@ async def commit_miniapp_checkout(
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
     crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key", min_length=1, max_length=120),
 ) -> MiniAppCheckoutCommitResponse:
     started = perf_counter()
     error: Exception | None = None
@@ -1022,6 +1030,11 @@ async def commit_miniapp_checkout(
             require_stage1_telegram_stars_enabled()
         else:
             require_stage1_payments_enabled()
+        if body.flow in {"addons", "upgrade"} and not idempotency_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Idempotency-Key header is required for Mini App add-on and upgrade commits",
+            )
 
         rollout = await _get_miniapp_runtime_config(db)
         telegram_user_id = await _resolve_miniapp_runtime_telegram_user_id(
@@ -1052,6 +1065,7 @@ async def commit_miniapp_checkout(
                     promo_code=body.promo_code,
                     use_wallet=Decimal(str(body.use_wallet)),
                     sale_channel="miniapp",
+                    currency=body.currency,
                 )
             else:
                 result = await PurchaseAddonsUseCase(db).execute(
@@ -1067,6 +1081,7 @@ async def commit_miniapp_checkout(
                     promo_code=body.promo_code,
                     use_wallet=Decimal(str(body.use_wallet)),
                     sale_channel="miniapp",
+                    currency=body.currency,
                 )
             quote = _serialize_subscription_quote(result)
             commit_result = await CommitCheckoutUseCase(db, crypto_client).execute(
@@ -1084,6 +1099,7 @@ async def commit_miniapp_checkout(
                     "base_plan_id": str(result.plan_id) if result.plan_id else None,
                     "target_subscription_key": body.subscription_key,
                 },
+                idempotency_key=idempotency_key,
             )
         elif body.flow == "upgrade":
             if body.plan_id is None:
@@ -1097,6 +1113,7 @@ async def commit_miniapp_checkout(
                     promo_code=body.promo_code,
                     use_wallet=Decimal(str(body.use_wallet)),
                     sale_channel="miniapp",
+                    currency=body.currency,
                 )
             else:
                 result = await UpgradeSubscriptionUseCase(db).execute(
@@ -1105,6 +1122,7 @@ async def commit_miniapp_checkout(
                     promo_code=body.promo_code,
                     use_wallet=Decimal(str(body.use_wallet)),
                     sale_channel="miniapp",
+                    currency=body.currency,
                 )
             quote = _serialize_subscription_quote(result)
             commit_result = await CommitCheckoutUseCase(db, crypto_client).execute(
@@ -1117,6 +1135,7 @@ async def commit_miniapp_checkout(
                 checkout_mode="selected_subscription_upgrade" if body.subscription_key else "upgrade",
                 payment_plan_id=result.plan_id,
                 metadata_extra={"target_subscription_key": body.subscription_key},
+                idempotency_key=idempotency_key,
             )
         else:
             if body.plan_id is None:
@@ -1177,6 +1196,7 @@ async def commit_miniapp_checkout(
                     payload=f"{user_id}:{body.plan_id}",
                     checkout_mode="new_purchase",
                     payment_plan_id=result.plan_id,
+                    idempotency_key=idempotency_key,
                 )
                 invoice = (
                     InvoiceResponse(**asdict(commit_result.invoice)) if commit_result.invoice is not None else None
@@ -1197,6 +1217,10 @@ async def commit_miniapp_checkout(
                 status=commit_result.status,
                 invoice=invoice,
             )
+    except CheckoutIdempotencyConflictError as exc:
+        error = HTTPException(status_code=409, detail=str(exc))
+        commit_metric_status = "client_error"
+        raise HTTPException(status_code=409, detail=str(exc)) from None
     except ValueError as exc:
         error = HTTPException(status_code=400, detail=str(exc))
         commit_metric_status = "client_error"

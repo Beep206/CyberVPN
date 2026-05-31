@@ -15,7 +15,6 @@ from src.application.use_cases.payments.checkout import (
     CheckoutAddonInput,
     CheckoutUseCase,
 )
-from src.application.use_cases.payments.commit_checkout import CommitCheckoutUseCase
 from src.application.use_cases.payments.crypto_payment import CreateCryptoInvoiceUseCase
 from src.application.use_cases.payments.payment_history import PaymentHistoryUseCase
 from src.application.use_cases.payments.stage1_reconciliation import (
@@ -25,7 +24,6 @@ from src.application.use_cases.payments.stage1_reconciliation import (
     assert_stage1_payment_reconciliation_output_is_redacted,
 )
 from src.config.settings import settings
-from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.payment_repo import PaymentRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
@@ -143,6 +141,7 @@ async def _build_quote(
         return await use_case.execute(
             user_id=user_id,
             plan_id=body.plan_id,
+            currency=body.currency,
             code_input=body.code_input,
             promo_code=body.promo_code,
             partner_code=body.partner_code,
@@ -258,53 +257,29 @@ async def quote_checkout(
     return _serialize_quote(result)
 
 
-@router.post("/checkout/commit", response_model=CheckoutCommitResponse)
+def _legacy_checkout_disabled_exception() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Legacy checkout commit is disabled. Use quote sessions, checkout sessions, orders, and payment attempts."
+        ),
+    )
+
+
+@router.post(
+    "/checkout/commit",
+    response_model=CheckoutCommitResponse,
+    deprecated=True,
+    responses={410: {"description": "Legacy checkout commit is disabled"}},
+)
 async def commit_checkout(
     body: CheckoutQuoteRequest,
-    db: AsyncSession = Depends(get_db),
-    crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> CheckoutCommitResponse:
-    """Create a local payment and optionally a CryptoBot invoice for the checkout basket."""
-    require_stage1_payments_enabled()
-    result = await _build_quote(body=body, db=db, user_id=user_id)
-    quote_response = _serialize_quote(result)
-    commit_use_case = CommitCheckoutUseCase(db, crypto_client)
-
-    try:
-        commit_result = await commit_use_case.execute(
-            user_id=user_id,
-            quote_result=result,
-            currency=body.currency,
-            channel=body.channel,
-            description=f"CyberVPN {result.plan_name or 'plan'} - {result.duration_days or 0} days",
-            payload=f"{user_id}:{body.plan_id}",
-            checkout_mode="new_purchase",
-            payment_plan_id=result.plan_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
-    except (InsufficientWalletBalanceError, WalletNotFoundError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
-    except Exception:
-        logger.exception("checkout_commit_failed")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Payment processing failed",
-        ) from None
-
-    track_payment(status=commit_result.status, currency=body.currency)
-    invoice = (
-        InvoiceResponse(**asdict(commit_result.invoice))
-        if commit_result.invoice is not None
-        else None
-    )
-    return CheckoutCommitResponse(
-        **quote_response.model_dump(),
-        payment_id=commit_result.payment.id,
-        status=commit_result.status,
-        invoice=invoice,
-    )
+    """Fail closed instead of committing payment from client-supplied quote inputs."""
+    _ = body, idempotency_key, user_id
+    raise _legacy_checkout_disabled_exception()
 
 
 @router.post("/checkout/telegram-stars", response_model=CheckoutCommitResponse)
@@ -365,12 +340,12 @@ async def commit_telegram_stars_checkout(
 @router.post("/checkout", response_model=CheckoutCommitResponse, deprecated=True)
 async def checkout_alias(
     body: CheckoutQuoteRequest,
-    db: AsyncSession = Depends(get_db),
-    crypto_client: CryptoBotClient = Depends(get_crypto_client),
+    idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),
     user_id: UUID = Depends(get_current_mobile_user_id),
 ) -> CheckoutCommitResponse:
-    """Backward-compatible alias for commit checkout."""
-    return await commit_checkout(body=body, db=db, crypto_client=crypto_client, user_id=user_id)
+    """Backward-compatible alias for the disabled legacy checkout commit."""
+    _ = body, idempotency_key, user_id
+    raise _legacy_checkout_disabled_exception()
 
 
 @router.post("/internal/reconciliation/run")

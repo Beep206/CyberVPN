@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { operations } from './generated/types';
+import type { components, operations } from './generated/types';
 
 type CreateInvoiceRequest =
   operations['create_crypto_invoice_api_v1_payments_crypto_invoice_post']['requestBody']['content']['application/json'];
@@ -16,8 +16,7 @@ export type CheckoutQuoteRequest =
   operations['quote_checkout_api_v1_payments_checkout_quote_post']['requestBody']['content']['application/json'];
 export type CheckoutQuoteResponse =
   operations['quote_checkout_api_v1_payments_checkout_quote_post']['responses'][200]['content']['application/json'];
-export type CheckoutCommitResponse =
-  operations['commit_checkout_api_v1_payments_checkout_commit_post']['responses'][200]['content']['application/json'];
+export type CheckoutCommitResponse = components['schemas']['CheckoutCommitResponse'];
 export interface PaymentStatusResponse {
   payment_id: string;
   status: string;
@@ -71,25 +70,11 @@ export const paymentsApi = {
     apiClient.post<CheckoutQuoteResponse>('/payments/checkout/quote', data),
 
   /**
-   * Commit a checkout basket and create a payment/invoice when needed.
-   * POST /api/v1/payments/checkout/commit
-   */
-  commitCheckout: (data: CheckoutQuoteRequest) =>
-    apiClient.post<CheckoutCommitResponse>('/payments/checkout/commit', data),
-
-  /**
    * Commit a Mini App Telegram Stars checkout for a base plan.
    * POST /api/v1/payments/checkout/telegram-stars
    */
   commitTelegramStarsCheckout: (data: CheckoutQuoteRequest) =>
     apiClient.post<CheckoutCommitResponse>('/payments/checkout/telegram-stars', data),
-
-  /**
-   * Backwards-compatible alias for canonical checkout commit.
-   * POST /api/v1/payments/checkout
-   */
-  checkout: (data: CheckoutQuoteRequest) =>
-    apiClient.post<CheckoutCommitResponse>('/payments/checkout', data),
 
   /**
    * Get authenticated user's payment status.

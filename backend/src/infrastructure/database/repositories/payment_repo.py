@@ -38,6 +38,34 @@ class PaymentRepository:
         )
         return list(result.scalars().all())
 
+    async def get_by_checkout_idempotency_key(
+        self,
+        *,
+        user_uuid: UUID,
+        idempotency_key: str,
+        checkout_mode: str | None = None,
+        limit: int = 200,
+    ) -> PaymentModel | None:
+        """Find a recent checkout payment created for the same customer retry key.
+
+        The legacy payments table does not have a dedicated idempotency column,
+        so Stage 2 direct checkout commits store retry keys in payment metadata.
+        """
+        result = await self._session.execute(
+            select(PaymentModel)
+            .where(PaymentModel.user_uuid == user_uuid)
+            .order_by(PaymentModel.created_at.desc())
+            .limit(limit)
+        )
+        for payment in result.scalars().all():
+            metadata = dict(payment.metadata_ or {})
+            if metadata.get("checkout_idempotency_key") != idempotency_key:
+                continue
+            if checkout_mode is not None and metadata.get("checkout_mode") != checkout_mode:
+                continue
+            return payment
+        return None
+
     async def get_paginated(self, offset: int = 0, limit: int = 100) -> list[PaymentModel]:
         result = await self._session.execute(
             select(PaymentModel).order_by(PaymentModel.created_at.desc()).offset(offset).limit(limit)

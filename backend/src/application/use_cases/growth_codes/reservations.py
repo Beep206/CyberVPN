@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,6 +89,58 @@ class GrowthCodeReservationService:
                 },
                 actor_context=OutboxActorContext(principal_type="customer", principal_id=str(user_id)),
                 source_context={"source_use_case": "GrowthCodeReservationService.reserve_for_quote"},
+            )
+            log_growth_code_event(
+                "growth_code.reserved",
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                code_type=code.code_type,
+                action_context="checkout",
+                result="success",
+                growth_code_id=str(code.id),
+                reservation_id=str(reservation.id),
+            )
+        return reservation
+
+    async def reserve_for_direct_checkout(
+        self,
+        *,
+        growth_code_id: UUID,
+        user_id: UUID,
+        expires_at: datetime | None = None,
+    ) -> GrowthCodeReservationModel:
+        """Reserve a promo for direct commit paths that do not create quote sessions."""
+        reservation = await self._codes.create_reservation(
+            GrowthCodeReservationModel(
+                growth_code_id=growth_code_id,
+                quote_session_id=None,
+                user_id=user_id,
+                reserved_at=datetime.now(UTC),
+                expires_at=_normalize_utc(expires_at or (datetime.now(UTC) + timedelta(minutes=30))),
+                status="reserved",
+            )
+        )
+        code = await self._codes.get_code_by_id(growth_code_id)
+        if code is not None:
+            adjust_growth_code_reservations_active(
+                code_type=code.code_type,
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                delta=1,
+            )
+            await self._outbox.append_event(
+                event_name="growth_code.reserved",
+                aggregate_type="growth_code",
+                aggregate_id=str(code.id),
+                partition_key=str(code.id),
+                event_payload={
+                    "growth_code_id": str(code.id),
+                    "reservation_id": str(reservation.id),
+                    "quote_session_id": None,
+                    "user_id": str(user_id),
+                    "expires_at": reservation.expires_at.isoformat(),
+                    "source": "direct_checkout",
+                },
+                actor_context=OutboxActorContext(principal_type="customer", principal_id=str(user_id)),
+                source_context={"source_use_case": "GrowthCodeReservationService.reserve_for_direct_checkout"},
             )
             log_growth_code_event(
                 "growth_code.reserved",
@@ -196,6 +248,97 @@ class GrowthCodeReservationService:
                 growth_code_id=str(code.id),
                 reservation_id=str(reservation.id),
                 order_id=str(order_id),
+            )
+        return reservation
+
+    async def consume_for_payment(
+        self,
+        *,
+        reservation_id: UUID,
+        payment_id: UUID,
+        user_id: UUID,
+    ) -> GrowthCodeReservationModel:
+        """Consume a direct-checkout reservation after the payment is completed."""
+        reservation = await self._codes.get_reservation_by_id(reservation_id)
+        if reservation is None:
+            raise GrowthCodeReservationError("Growth code reservation not found")
+        code = await self._codes.get_code_by_id(reservation.growth_code_id)
+
+        if reservation.status == "consumed":
+            return reservation
+
+        if reservation.status != "reserved":
+            raise GrowthCodeReservationError("Growth code reservation is not active")
+
+        if _normalize_utc(reservation.expires_at) <= datetime.now(UTC):
+            reservation.status = "expired"
+            await self._session.flush()
+            if code is not None:
+                adjust_growth_code_reservations_active(
+                    code_type=code.code_type,
+                    surface=CUSTOMER_COMMERCE_SURFACE,
+                    delta=-1,
+                )
+                observe_growth_code_reservation_expiration(
+                    code_type=code.code_type,
+                    surface=CUSTOMER_COMMERCE_SURFACE,
+                    reason_code="expired_before_payment_completion",
+                )
+            raise GrowthCodeReservationError("Growth code reservation has expired")
+
+        reservation.status = "consumed"
+        reservation.released_at = datetime.now(UTC)
+        reservation.release_reason = "payment_commit"
+        await self._session.flush()
+        if code is not None:
+            adjust_growth_code_reservations_active(
+                code_type=code.code_type,
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                delta=-1,
+            )
+            await self._outbox.append_event(
+                event_name="growth_code.redeemed",
+                aggregate_type="growth_code",
+                aggregate_id=str(code.id),
+                partition_key=str(code.id),
+                event_payload={
+                    "growth_code_id": str(code.id),
+                    "reservation_id": str(reservation.id),
+                    "payment_id": str(payment_id),
+                    "code_type": code.code_type,
+                },
+                actor_context=OutboxActorContext(principal_type="customer", principal_id=str(user_id)),
+                source_context={"source_use_case": "GrowthCodeReservationService.consume_for_payment"},
+            )
+            observe_growth_code_redemption(
+                code_type=code.code_type,
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                result="success",
+            )
+            if code.code_type == "promo":
+                await self._outbox.append_event(
+                    event_name="promo.applied_to_payment",
+                    aggregate_type="growth_code",
+                    aggregate_id=str(code.id),
+                    partition_key=str(code.id),
+                    event_payload={
+                        "growth_code_id": str(code.id),
+                        "reservation_id": str(reservation.id),
+                        "payment_id": str(payment_id),
+                    },
+                    actor_context=OutboxActorContext(principal_type="customer", principal_id=str(user_id)),
+                    source_context={"source_use_case": "GrowthCodeReservationService.consume_for_payment"},
+                )
+                observe_promo_applied(surface=CUSTOMER_COMMERCE_SURFACE, result="success")
+            log_growth_code_event(
+                "growth_code.redeemed",
+                surface=CUSTOMER_COMMERCE_SURFACE,
+                code_type=code.code_type,
+                action_context="checkout",
+                result="success",
+                growth_code_id=str(code.id),
+                reservation_id=str(reservation.id),
+                payment_id=str(payment_id),
             )
         return reservation
 

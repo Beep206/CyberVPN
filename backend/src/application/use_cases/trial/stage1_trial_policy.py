@@ -11,6 +11,15 @@ STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY = "NO_RESET"
 STAGE1_TRIAL_ONE_PER_ACCOUNT = True
 STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX = 3
 STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS = 3600
+STAGE1_TRIAL_POLICY_ID = "stage1_fixed_trial_policy_v1"
+STAGE1_TRIAL_POLICY_CONTEXT = {
+    "policy_id": STAGE1_TRIAL_POLICY_ID,
+    "contract": "stage1_fixed_user_account_policy",
+    "country_code": None,
+    "channel": "authenticated_api",
+    "segment": "stage1_default",
+    "context_variants_supported": False,
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,9 +33,10 @@ class Stage1TrialPolicy:
     one_trial_per_account: bool = STAGE1_TRIAL_ONE_PER_ACCOUNT
     activation_rate_limit_max: int = STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX
     activation_rate_limit_window_seconds: int = STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS
+    policy_context: dict[str, object] | None = None
 
 
 def get_stage1_trial_policy() -> Stage1TrialPolicy:
     """Return the immutable S1 trial policy used by API and provisioning code."""
 
-    return Stage1TrialPolicy()
+    return Stage1TrialPolicy(policy_context=dict(STAGE1_TRIAL_POLICY_CONTEXT))

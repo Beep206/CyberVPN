@@ -75,17 +75,17 @@ def test_validate_request_rejects_missing_timestamp_for_current_headers() -> Non
     assert result.reason == "missing_timestamp"
 
 
-def test_validate_request_allows_missing_timestamp_for_legacy_mode() -> None:
+def test_validate_request_rejects_missing_timestamp_for_legacy_signature() -> None:
     fixed_now = datetime(2026, 4, 11, 12, 0, tzinfo=UTC)
     secret = "test-remnawave-webhook-secret"
     body = b'{"event":"node.updated"}'
     signature = _sign(secret, body)
     validator = RemnawaveWebhookValidator(secret, now_provider=lambda: fixed_now)
 
-    result = validator.validate_request(body, signature, None, allow_missing_timestamp=True)
+    result = validator.validate_request(body, signature, None)
 
-    assert result.is_valid is True
-    assert result.reason is None
+    assert result.is_valid is False
+    assert result.reason == "missing_timestamp"
 
 
 def test_validate_request_rejects_invalid_timestamp() -> None:

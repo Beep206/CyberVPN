@@ -237,4 +237,6 @@ class TelegramOAuthProvider:
             "username": user_data.get("username"),
             "photo_url": user_data.get("photo_url"),
             "language_code": user_data.get("language_code"),
+            "auth_date": auth_date_str,
+            "replay_canonical_init_data": data_check_string,
         }

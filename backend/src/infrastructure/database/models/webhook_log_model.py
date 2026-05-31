@@ -16,8 +16,8 @@ class WebhookLog(Base):
     """
     Webhook log model for tracking incoming webhook events.
 
-    Stores webhook payloads, signatures, and processing status for
-    debugging and audit purposes.
+    Stores allowlisted webhook metadata, non-replayable signature fingerprints,
+    and processing status for debugging and audit purposes.
     """
 
     __tablename__ = "webhook_logs"
@@ -30,7 +30,7 @@ class WebhookLog(Base):
 
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
-    signature: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    signature_fingerprint: Mapped[str | None] = mapped_column("signature", String(64), nullable=True)
 
     is_valid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 

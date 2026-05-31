@@ -19,6 +19,7 @@ from src.application.use_cases.trial.get_trial_status import GetTrialStatusUseCa
 from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_MAX,
     STAGE1_TRIAL_ACTIVATE_RATE_LIMIT_WINDOW_SECONDS,
+    STAGE1_TRIAL_POLICY_CONTEXT,
 )
 from src.application.use_cases.trial.stage1_trial_provisioning import Stage1TrialProvisioningGateway
 from src.config.settings import settings
@@ -107,6 +108,7 @@ async def activate_trial(
             activated=result.activated,
             trial_end=result.trial_end,
             message=result.message,
+            policy_context=getattr(result, "policy_context", dict(STAGE1_TRIAL_POLICY_CONTEXT)),
         )
     except ValueError as exc:
         # User not found or trial already used
@@ -148,6 +150,7 @@ async def get_trial_status(
             trial_end=status_data.trial_end,
             days_remaining=status_data.days_remaining,
             is_eligible=status_data.is_eligible,
+            policy_context=dict(STAGE1_TRIAL_POLICY_CONTEXT),
         )
     except ValueError as exc:
         raise HTTPException(

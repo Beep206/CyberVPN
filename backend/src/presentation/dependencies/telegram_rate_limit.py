@@ -37,7 +37,8 @@ async def _check_rate_limit(key: str, limit: int) -> bool:
     """Check rate limit using Redis sorted set sliding window.
 
     Returns True if allowed, False if rate limited.
-    On Redis error, fail-open (allow the request).
+    In production, Redis/rate-limit errors fail closed with 503. Non-production
+    keeps fail-open behavior for local auth development.
     """
     pool = None
     client = None
@@ -55,8 +56,24 @@ async def _check_rate_limit(key: str, limit: int) -> bool:
 
         return results[2] <= limit
     except Exception as exc:
-        logger.warning("Telegram rate limit check failed: %s", exc)
-        return True  # Fail-open for these endpoints
+        if str(settings.environment).lower() == "production":
+            logger.error(
+                "Telegram rate limit check failed closed: %s",
+                exc,
+                extra={"posture": "fail_closed"},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Telegram authentication temporarily unavailable",
+                headers={"Retry-After": "30"},
+            ) from exc
+
+        logger.warning(
+            "Telegram rate limit check failed open outside production: %s",
+            exc,
+            extra={"posture": "fail_open_non_production"},
+        )
+        return True
     finally:
         if client is not None:
             await client.aclose()

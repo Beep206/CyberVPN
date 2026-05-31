@@ -13,6 +13,7 @@ class TestLoggingSanitization:
         sanitized = sanitize_url(
             "https://api.cyber-vpn.net/api/v1/auth/oauth/callback"
             "?code=oauth-code&state=oauth-state&tgWebAppData=telegram-init"
+            "&initData=miniapp-init&init_data=miniapp-init-snake&hash=telegram-hash"
             "&provider_payment_id=pay_123&region=nl"
         )
         params = parse_qs(urlparse(sanitized).query)
@@ -20,6 +21,9 @@ class TestLoggingSanitization:
         assert params["code"] == [REDACTED]
         assert params["state"] == [REDACTED]
         assert params["tgWebAppData"] == [REDACTED]
+        assert params["initData"] == [REDACTED]
+        assert params["init_data"] == [REDACTED]
+        assert params["hash"] == [REDACTED]
         assert params["provider_payment_id"] == [REDACTED]
         assert params["region"] == ["nl"]
 

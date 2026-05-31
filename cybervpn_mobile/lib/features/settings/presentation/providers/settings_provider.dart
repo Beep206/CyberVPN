@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:async';
 
 import 'package:cybervpn_mobile/core/di/providers.dart';
+import 'package:cybervpn_mobile/core/l10n/locale_config.dart';
 import 'package:cybervpn_mobile/core/services/fcm_topic_service.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
@@ -93,8 +94,9 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
 
   /// Update the application locale.
   Future<void> updateLocale(String locale) async {
+    final normalizedLocale = LocaleConfig.normalizeSelectableLocaleCode(locale);
     await _updateSetting(
-      (settings) => settings.copyWith(locale: locale),
+      (settings) => settings.copyWith(locale: normalizedLocale),
       'updateLocale',
     );
   }
@@ -811,7 +813,8 @@ final settingsProvider = AsyncNotifierProvider<SettingsNotifier, AppSettings>(
 /// instead of the full [settingsProvider] to minimize rebuilds.
 final currentLocaleProvider = Provider<String>((ref) {
   final asyncSettings = ref.watch(settingsProvider);
-  return asyncSettings.value?.locale ?? 'en';
+  final locale = asyncSettings.value?.locale ?? LocaleConfig.defaultLocaleCode;
+  return LocaleConfig.normalizeSelectableLocaleCode(locale);
 });
 
 /// The current text scale setting from settings.

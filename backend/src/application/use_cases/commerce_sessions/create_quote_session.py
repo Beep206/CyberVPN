@@ -68,6 +68,8 @@ class CreateQuoteSessionUseCase:
         checkout_result = await self._checkout.execute(
             user_id=user_id,
             plan_id=plan_id,
+            currency=currency,
+            base_price_override=Decimal(str(resolved_context.pricebook_entry.visible_price)),
             code_input=code_input,
             promo_code=promo_code,
             partner_code=partner_code,

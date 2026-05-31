@@ -8,6 +8,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_DEVICE_LIMIT,
     STAGE1_TRIAL_DURATION_DAYS,
     STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_POLICY_CONTEXT,
     STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
 )
 
@@ -36,6 +37,10 @@ class TrialActivateResponse(BaseModel):
         STAGE1_TRIAL_ONE_PER_ACCOUNT,
         description="Whether S1 allows only one trial per account",
     )
+    policy_context: dict = Field(
+        default_factory=lambda: dict(STAGE1_TRIAL_POLICY_CONTEXT),
+        description="Smallest compatible S1 policy context; Stage 1 does not vary trial by country/channel/segment.",
+    )
 
 
 class TrialStatusResponse(BaseModel):
@@ -63,4 +68,8 @@ class TrialStatusResponse(BaseModel):
     one_trial_per_account: bool = Field(
         STAGE1_TRIAL_ONE_PER_ACCOUNT,
         description="Whether S1 allows only one trial per account",
+    )
+    policy_context: dict = Field(
+        default_factory=lambda: dict(STAGE1_TRIAL_POLICY_CONTEXT),
+        description="Smallest compatible S1 policy context; Stage 1 does not vary trial by country/channel/segment.",
     )

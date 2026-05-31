@@ -91,21 +91,19 @@ void main() {
       );
     });
 
-    testWidgets('search filters by native name', (tester) async {
+    testWidgets('search hides fallback-only languages', (tester) async {
       await tester.pumpWidget(_buildTestWidget());
       await tester.pumpAndSettle();
 
-      // Search by Russian native name.
+      // Russian exists as a fallback-only ARB resource, but is not selectable.
       await tester.enterText(
         find.byKey(const Key('language_search_field')),
         '\u0420\u0443\u0441',
       );
       await tester.pumpAndSettle();
 
-      // Russian should be visible.
-      expect(find.text('Russian'), findsOneWidget);
-
-      // English should not appear (English native name does not contain the query).
+      expect(find.text('No languages found'), findsOneWidget);
+      expect(find.text('Russian'), findsNothing);
       expect(find.text('English'), findsNothing);
     });
 
@@ -151,8 +149,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap on the Russian language tile.
-      await tester.tap(find.text('Russian'));
+      // Tap on the reviewed English language tile.
+      await tester.tap(find.text('English').first);
       await tester.pumpAndSettle();
 
       // The screen should pop (Navigator.pop). We verify by checking
@@ -170,13 +168,14 @@ void main() {
       expect(languages.length, greaterThanOrEqualTo(2));
     });
 
-    test('getAvailableLanguages includes en and ru', () {
+    test('getAvailableLanguages exposes reviewed locales only', () {
       const repo = LanguageRepository();
       final languages = repo.getAvailableLanguages();
       final codes = languages.map((l) => l.localeCode).toSet();
 
-      expect(codes.contains('en'), isTrue);
-      expect(codes.contains('ru'), isTrue);
+      expect(codes, equals({'en'}));
+      expect(codes.contains('ru'), isFalse);
+      expect(codes.contains('zh_Hant'), isFalse);
     });
 
     test('getByLocaleCode returns correct item', () {
@@ -188,8 +187,7 @@ void main() {
       expect(en.nativeName, 'English');
 
       final ru = repo.getByLocaleCode('ru');
-      expect(ru, isNotNull);
-      expect(ru!.englishName, 'Russian');
+      expect(ru, isNull);
     });
 
     test('getByLocaleCode returns null for unknown code', () {
@@ -202,7 +200,8 @@ void main() {
       final codes = repo.supportedLocaleCodes;
 
       expect(codes, contains('en'));
-      expect(codes, contains('ru'));
+      expect(codes, isNot(contains('ru')));
+      expect(codes, isNot(contains('zh_Hant')));
       expect(codes, isNot(contains('xx')));
     });
   });

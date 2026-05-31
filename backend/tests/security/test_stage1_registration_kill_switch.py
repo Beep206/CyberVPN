@@ -17,6 +17,7 @@ from src.application.services.public_registration_policy import (
 )
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.telegram_miniapp import TelegramMiniAppUseCase
+from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.mobile_auth.register import MobileRegisterUseCase
 from src.application.use_cases.mobile_auth.telegram_auth import MobileTelegramAuthUseCase
 from src.application.use_cases.mobile_auth.telegram_oidc_auth import MobileTelegramOIDCAuthUseCase
@@ -43,6 +44,17 @@ def _auth_service() -> MagicMock:
     service.create_refresh_token.return_value = ("refresh_token", "refresh_jti", refresh_exp)
     service.hash_password = AsyncMock(return_value="$argon2id$synthetic")
     return service
+
+
+def _web_admin_realm() -> RealmResolution:
+    auth_realm = SimpleNamespace(
+        id=uuid4(),
+        realm_key="admin",
+        realm_type="admin",
+        audience="cybervpn:admin",
+        cookie_namespace="admin",
+    )
+    return RealmResolution(auth_realm=auth_realm, source="test")
 
 
 def _mobile_user() -> MagicMock:
@@ -168,12 +180,18 @@ async def test_telegram_miniapp_new_account_creation_blocked_when_paused():
         "id": "424242",
         "username": "new_tg",
         "first_name": "New",
+        "auth_date": "1760000000",
+        "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":424242}",
     }
+    telegram_provider.max_auth_age_seconds = 86400
+    replay_guard = AsyncMock()
+    replay_guard.accept.return_value = None
     use_case = TelegramMiniAppUseCase(
         user_repo=user_repo,
         auth_service=_auth_service(),
         session=AsyncMock(),
         telegram_provider=telegram_provider,
+        replay_guard=replay_guard,
         remnawave_gateway=AsyncMock(),
         allow_new_users=False,
     )
@@ -200,13 +218,19 @@ async def test_telegram_miniapp_bootstrap_allowlist_can_create_owner_when_paused
         "id": "424242",
         "username": "Sasha_Beep",
         "first_name": "Sasha",
+        "auth_date": "1760000000",
+        "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":424242}",
     }
+    telegram_provider.max_auth_age_seconds = 86400
+    replay_guard = AsyncMock()
+    replay_guard.accept.return_value = None
     session = AsyncMock()
     use_case = TelegramMiniAppUseCase(
         user_repo=user_repo,
         auth_service=_auth_service(),
         session=session,
         telegram_provider=telegram_provider,
+        replay_guard=replay_guard,
         remnawave_gateway=AsyncMock(),
         allow_new_users=False,
         bootstrap_usernames="@sasha_beep",
@@ -430,6 +454,7 @@ async def test_magic_link_new_account_creation_returns_403_when_registration_pau
                 db=AsyncMock(),
                 redis_client=AsyncMock(),
                 auth_service=auth_service,
+                current_realm=_web_admin_realm(),
             )
 
     assert exc_info.value.status_code == 403

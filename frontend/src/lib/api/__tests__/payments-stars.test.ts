@@ -17,6 +17,11 @@ describe('paymentsApi telegram stars helpers', () => {
     vi.clearAllMocks();
   });
 
+  it('does not expose disabled legacy checkout commit helpers', () => {
+    expect(paymentsApi).not.toHaveProperty('commitCheckout');
+    expect(paymentsApi).not.toHaveProperty('checkout');
+  });
+
   it('commitTelegramStarsCheckout posts to the dedicated endpoint', async () => {
     const payload = {
       plan_id: '550e8400-e29b-41d4-a716-446655440000' as never,

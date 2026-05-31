@@ -1,16 +1,19 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.stage1_plan_policy import filter_stage1_public_paid_plans
-from src.domain.enums import AdminRole, CatalogVisibility
+from src.application.use_cases.auth.permissions import Permission
+from src.domain.enums import CatalogVisibility
+from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_plan_query
 from src.infrastructure.remnawave.contracts import StatusMessageResponse
+from src.presentation.api.v1.admin.audit import write_required_commercial_catalog_audit_entry
 from src.presentation.dependencies.database import get_db
-from src.presentation.dependencies.roles import require_role
+from src.presentation.dependencies.roles import require_permission
 
 from .schemas import CreatePlanRequest, PlanResponse, UpdatePlanRequest
 
@@ -64,7 +67,7 @@ async def list_plans(
 async def list_admin_plans(
     include_inactive: bool = Query(True),
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role(AdminRole.ADMIN)),
+    _current_user: AdminUserModel = Depends(require_permission(Permission.MANAGE_PLANS)),
 ):
     """List all typed catalog plans, including hidden plans, for admin tooling."""
     repo = SubscriptionPlanRepository(db)
@@ -75,8 +78,9 @@ async def list_admin_plans(
 @router.post("/", response_model=PlanResponse, status_code=status.HTTP_201_CREATED)
 async def create_plan(
     plan_data: CreatePlanRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role(AdminRole.ADMIN)),
+    current_user: AdminUserModel = Depends(require_permission(Permission.MANAGE_PLANS)),
 ):
     """Create a new subscription plan in the canonical pricing catalog."""
     repo = SubscriptionPlanRepository(db)
@@ -107,6 +111,17 @@ async def create_plan(
         sort_order=plan_data.sort_order,
     )
     created = await repo.create(model)
+    after = _serialize_plan(created).model_dump(mode="json")
+    await write_required_commercial_catalog_audit_entry(
+        db=db,
+        action="commercial_catalog.plan.created",
+        resource_type="subscription_plan",
+        resource_id=created.id,
+        actor=current_user,
+        request=request,
+        before=None,
+        after=after,
+    )
     return _serialize_plan(created)
 
 
@@ -114,8 +129,9 @@ async def create_plan(
 async def update_plan(
     uuid: str,
     plan_data: UpdatePlanRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role(AdminRole.ADMIN)),
+    current_user: AdminUserModel = Depends(require_permission(Permission.MANAGE_PLANS)),
 ):
     """Update subscription plan (admin only)."""
     repo = SubscriptionPlanRepository(db)
@@ -128,6 +144,7 @@ async def update_plan(
     if model is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
 
+    before = _serialize_plan(model).model_dump(mode="json")
     payload = plan_data.model_dump(exclude_none=True)
     scalar_mapping = {
         "name": "name",
@@ -160,14 +177,26 @@ async def update_plan(
         model.invite_bundle = payload["invite_bundle"]
 
     updated = await repo.update(model)
+    after = _serialize_plan(updated).model_dump(mode="json")
+    await write_required_commercial_catalog_audit_entry(
+        db=db,
+        action="commercial_catalog.plan.updated",
+        resource_type="subscription_plan",
+        resource_id=updated.id,
+        actor=current_user,
+        request=request,
+        before=before,
+        after=after,
+    )
     return _serialize_plan(updated)
 
 
 @router.delete("/{uuid}", response_model=StatusMessageResponse)
 async def delete_plan(
     uuid: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role(AdminRole.ADMIN)),
+    current_user: AdminUserModel = Depends(require_permission(Permission.MANAGE_PLANS)),
 ):
     """Delete subscription plan (admin only)"""
     repo = SubscriptionPlanRepository(db)
@@ -176,5 +205,18 @@ async def delete_plan(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid plan UUID") from exc
 
+    model = await repo.get_by_id(plan_id)
+    before = _serialize_plan(model).model_dump(mode="json") if model is not None else None
     await repo.delete(plan_id)
+    if before is not None:
+        await write_required_commercial_catalog_audit_entry(
+            db=db,
+            action="commercial_catalog.plan.deleted",
+            resource_type="subscription_plan",
+            resource_id=plan_id,
+            actor=current_user,
+            request=request,
+            before=before,
+            after=None,
+        )
     return StatusMessageResponse(status="ok", message="Plan deleted")

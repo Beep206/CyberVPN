@@ -24,6 +24,7 @@ from src.application.services.public_registration_policy import (
     ensure_public_registration_enabled,
 )
 from src.application.services.telegram_auth import TelegramAuthService
+from src.application.services.telegram_init_data_replay import TelegramInitDataReplayUnavailableError
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.application.use_cases.auth.delete_account import DeleteAccountUseCase
 from src.application.use_cases.auth.forgot_password import ForgotPasswordUseCase
@@ -42,6 +43,7 @@ from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_real
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.cache.bot_link_tokens import generate_bot_link_token
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.cache.telegram_init_data_replay import RedisTelegramInitDataReplayGuard
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
@@ -1314,8 +1316,10 @@ async def verify_otp(
     )
 
     if not result.success:
-        verify_reason = "expired" if result.error_code == "OTP_EXPIRED" else (
-            "rate_limited" if result.error_code == "OTP_EXHAUSTED" else "invalid_otp"
+        verify_reason = (
+            "expired"
+            if result.error_code == "OTP_EXPIRED"
+            else ("rate_limited" if result.error_code == "OTP_EXHAUSTED" else "invalid_otp")
         )
         observe_partner_email_verification(result="failure", reason=verify_reason)
         bind_partner_context_from_realm(
@@ -2161,6 +2165,7 @@ async def verify_magic_link_otp(
     response_model=TelegramMiniAppResponse,
     responses={
         401: {"description": "Invalid or expired initData"},
+        503: {"description": "Telegram authentication temporarily unavailable"},
     },
 )
 async def telegram_miniapp_auth(
@@ -2169,6 +2174,7 @@ async def telegram_miniapp_auth(
     http_request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
     remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramMiniAppResponse:
@@ -2190,6 +2196,7 @@ async def telegram_miniapp_auth(
         auth_service=auth_service,
         session=db,
         telegram_provider=telegram_provider,
+        replay_guard=RedisTelegramInitDataReplayGuard(redis_client),
         remnawave_gateway=remnawave_adapter,
         allow_new_users=settings.registration_enabled,
         bootstrap_usernames=settings.telegram_miniapp_bootstrap_usernames,
@@ -2220,6 +2227,31 @@ async def telegram_miniapp_auth(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=e.public_detail(),
+        ) from e
+    except TelegramInitDataReplayUnavailableError as e:
+        track_auth_attempt(method="telegram", success=False)
+        track_auth_error("telegram_replay_guard_unavailable")
+        track_auth_flow_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            client_context=client_context,
+            step="login",
+            status="failure",
+        )
+        track_auth_security_event(
+            channel="web",
+            method="telegram",
+            provider="telegram",
+            locale="unknown",
+            error_type="telegram_replay_guard_unavailable",
+        )
+        observe_auth_request_duration("telegram", started_at)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Telegram authentication temporarily unavailable",
+            headers={"Retry-After": "30"},
         ) from e
     except ValueError as e:
         track_auth_attempt(method="telegram", success=False)

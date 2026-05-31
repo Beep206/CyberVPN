@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.billing_descriptor_model import BillingDescriptorModel
@@ -491,7 +492,11 @@ async def test_order_snapshot_stays_stable_after_catalog_mutation(async_client: 
 
 
 @pytest.mark.asyncio
-async def test_order_commit_consumes_reserved_promo(async_client: AsyncClient) -> None:
+async def test_order_commit_consumes_reserved_promo(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()

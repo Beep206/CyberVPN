@@ -34,8 +34,6 @@ class RemnawaveWebhookValidator:
         body: bytes,
         signature: str | None,
         timestamp: str | None,
-        *,
-        allow_missing_timestamp: bool = False,
     ) -> WebhookValidationResult:
         if not signature:
             return WebhookValidationResult(is_valid=False, reason="missing_signature")
@@ -44,8 +42,6 @@ class RemnawaveWebhookValidator:
             return WebhookValidationResult(is_valid=False, reason="invalid_signature")
 
         if not timestamp:
-            if allow_missing_timestamp:
-                return WebhookValidationResult(is_valid=True)
             return WebhookValidationResult(is_valid=False, reason="missing_timestamp")
 
         parsed_timestamp = self._parse_timestamp(timestamp)

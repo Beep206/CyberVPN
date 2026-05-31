@@ -34,9 +34,6 @@ async def remnawave_webhook(
     body = await request.body()
     signature = request.headers.get("X-Remnawave-Signature") or request.headers.get("X-Webhook-Signature")
     timestamp = request.headers.get("X-Remnawave-Timestamp")
-    allow_missing_timestamp = bool(request.headers.get("X-Webhook-Signature")) and not bool(
-        request.headers.get("X-Remnawave-Signature")
-    )
 
     webhook_secret = settings.remnawave_webhook_secret.get_secret_value() or settings.remnawave_token.get_secret_value()
     if not settings.remnawave_webhook_secret.get_secret_value() and not _webhook_secret_fallback_warned:
@@ -54,7 +51,6 @@ async def remnawave_webhook(
         body=body,
         signature=signature,
         timestamp=timestamp,
-        allow_missing_timestamp=allow_missing_timestamp,
     )
     webhook_operations_total.labels(provider="remnawave", status=result.get("status", "unknown")).inc()
     return result

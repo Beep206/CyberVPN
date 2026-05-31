@@ -13,6 +13,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_DEVICE_LIMIT,
     STAGE1_TRIAL_DURATION_DAYS,
     STAGE1_TRIAL_ONE_PER_ACCOUNT,
+    STAGE1_TRIAL_POLICY_CONTEXT,
     STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
 )
 from src.infrastructure.cache.redis_client import get_redis
@@ -100,6 +101,7 @@ async def test_get_trial_status_success() -> None:
     assert data["device_limit"] == STAGE1_TRIAL_DEVICE_LIMIT
     assert data["traffic_limit_bytes"] == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
     assert data["one_trial_per_account"] is STAGE1_TRIAL_ONE_PER_ACCOUNT
+    assert data["policy_context"] == STAGE1_TRIAL_POLICY_CONTEXT
 
 
 @pytest.mark.asyncio
@@ -128,6 +130,7 @@ async def test_activate_trial_success() -> None:
     assert data["device_limit"] == STAGE1_TRIAL_DEVICE_LIMIT
     assert data["traffic_limit_bytes"] == STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
     assert data["one_trial_per_account"] is STAGE1_TRIAL_ONE_PER_ACCOUNT
+    assert data["policy_context"] == STAGE1_TRIAL_POLICY_CONTEXT
 
     # trial_end should be in the future
     parsed_trial_end = datetime.fromisoformat(data["trial_end"])
