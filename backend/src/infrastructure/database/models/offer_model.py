@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, UniqueConstraint, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.database.session import Base
@@ -29,7 +30,7 @@ class OfferModel(Base):
         index=True,
     )
     included_addon_codes: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
-    sale_channels: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    sale_channels: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     visibility_rules: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     invite_bundle: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     trial_eligible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

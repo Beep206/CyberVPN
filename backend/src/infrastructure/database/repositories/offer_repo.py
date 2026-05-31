@@ -3,15 +3,29 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, String, cast, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from src.infrastructure.database.models.offer_model import OfferModel
+
+
+def _sale_channel_filter(sale_channel: str, dialect_name: str | None) -> ColumnElement[bool]:
+    if dialect_name == "postgresql":
+        return cast(OfferModel.sale_channels, JSONB).contains([sale_channel])
+
+    return cast(OfferModel.sale_channels, String).contains(f'"{sale_channel}"')
 
 
 class OfferRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    def _dialect_name(self) -> str | None:
+        bind = self._session.get_bind()
+        dialect = getattr(bind, "dialect", None)
+        return getattr(dialect, "name", None)
 
     async def create(self, model: OfferModel) -> OfferModel:
         self._session.add(model)
@@ -40,7 +54,7 @@ class OfferRepository:
                 (OfferModel.effective_to.is_(None)) | (OfferModel.effective_to > now),
             )
         if sale_channel is not None:
-            query = query.where(OfferModel.sale_channels.contains([sale_channel]))
+            query = query.where(_sale_channel_filter(sale_channel, self._dialect_name()))
         if subscription_plan_id is not None:
             query = query.where(OfferModel.subscription_plan_id == subscription_plan_id)
         result = await self._session.execute(query)
