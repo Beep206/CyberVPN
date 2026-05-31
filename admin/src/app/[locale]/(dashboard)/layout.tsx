@@ -68,7 +68,7 @@ export default async function DashboardLayout({
               }}
             />
 
-            <div className="flex min-h-dvh w-full bg-terminal-bg text-foreground">
+            <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-terminal-bg text-foreground">
               <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-neon-cyan focus:text-black focus:px-4 focus:py-2 focus:rounded-sm focus:font-mono focus:text-sm"
@@ -82,7 +82,7 @@ export default async function DashboardLayout({
                 <CyberSidebar />
               </ErrorBoundary>
 
-              <div className="relative flex min-h-dvh flex-1 flex-col md:pl-64">
+              <div className="relative flex min-h-dvh min-w-0 max-w-full flex-1 flex-col overflow-x-clip md:pl-64">
                 <ErrorBoundary label="Header">
                   <TerminalHeader performanceMode="always" showMobileSidebar />
                 </ErrorBoundary>
@@ -91,7 +91,7 @@ export default async function DashboardLayout({
                   id="main-content"
                   tabIndex={-1}
                   aria-live="polite"
-                  className="relative z-10 flex-1 p-4 pb-20 focus:outline-hidden md:p-6"
+                  className="relative z-10 min-w-0 max-w-full flex-1 overflow-x-clip p-4 pb-20 focus:outline-hidden md:p-6"
                 >
                   {children}
                 </main>

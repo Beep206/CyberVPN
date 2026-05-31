@@ -8,10 +8,11 @@ import {
   createClientIdempotencyKey,
   OFFICIAL_WEB_SALE_CHANNEL,
   OFFICIAL_WEB_STOREFRONT_KEY,
+  type QuoteSessionResponse,
 } from '@/lib/api/commerce';
 import { codesApi } from '@/lib/api/codes';
 import { motion } from 'motion/react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   AlertTriangle,
   CheckCircle,
@@ -49,7 +50,6 @@ import {
   formatTrafficLabel,
   getPlanPrice,
   type SubscriptionPlan,
-  type SubscriptionQuote,
 } from '../lib/plan-presenter';
 
 interface PurchaseConfirmModalProps {
@@ -59,17 +59,39 @@ interface PurchaseConfirmModalProps {
 }
 
 type ModalStep = 'confirm' | 'processing' | 'success' | 'error';
+const MAX_QUOTE_EXPIRY_TIMER_MS = 2_147_483_647;
 
 function buildQuoteRequest(plan: SubscriptionPlan, codeInput?: string) {
+  const quoteHandoff = plan.public_catalog_quote;
+  const catalogPrice = plan.public_catalog_price;
+
   return {
     storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
-    plan_id: plan.uuid,
+    plan_id: quoteHandoff?.planId ?? plan.uuid,
     addons: [],
     code_input: codeInput || undefined,
     use_wallet: 0,
-    currency: 'USD',
+    currency: quoteHandoff?.currency ?? catalogPrice?.currency ?? 'USD',
     channel: OFFICIAL_WEB_SALE_CHANNEL,
   };
+}
+
+function getPublicCatalogAmount(plan: SubscriptionPlan): number {
+  if (!plan.public_catalog_price) {
+    return plan.price_usd;
+  }
+
+  const amount = Number(plan.public_catalog_price.amount);
+  return Number.isFinite(amount) ? amount : plan.price_usd;
+}
+
+function getQuoteErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof AxiosError) {
+    const detail = err.response?.data?.detail;
+    return detail || fallback;
+  }
+
+  return fallback;
 }
 
 export function PurchaseConfirmModal({
@@ -78,6 +100,7 @@ export function PurchaseConfirmModal({
   plan,
 }: PurchaseConfirmModalProps) {
   const locale = useLocale();
+  const t = useTranslations('Subscriptions');
   const queryClient = useQueryClient();
   const { data: capabilities } = useClientCapabilities();
   const [step, setStep] = useState<ModalStep>('confirm');
@@ -85,8 +108,9 @@ export function PurchaseConfirmModal({
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
   const [codeFeedback, setCodeFeedback] = useState<string | null>(null);
-  const [quote, setQuote] = useState<SubscriptionQuote | null>(null);
+  const [quoteSession, setQuoteSession] = useState<QuoteSessionResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteExpired, setQuoteExpired] = useState(false);
   const [appliedCodeInput, setAppliedCodeInput] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('Payment page opened');
 
@@ -96,23 +120,16 @@ export function PurchaseConfirmModal({
     setCodeInput('');
     setCodeError('');
     setCodeFeedback(null);
-    setQuote(null);
+    setQuoteSession(null);
     setQuoteLoading(false);
+    setQuoteExpired(false);
     setAppliedCodeInput(null);
     setSuccessMessage('Payment page opened');
     onClose();
   };
 
   const planPrice = plan ? getPlanPrice(plan, locale) : null;
-
-  const handleQuoteError = (err: unknown, fallback: string) => {
-    if (err instanceof AxiosError) {
-      const detail = err.response?.data?.detail;
-      return detail || fallback;
-    }
-
-    return fallback;
-  };
+  const checkoutQuoteLoadError = t('checkoutQuote.loadError');
 
   useEffect(() => {
     const activePlan = plan;
@@ -130,7 +147,8 @@ export function PurchaseConfirmModal({
       setError('');
       setCodeError('');
       setCodeFeedback(null);
-      setQuote(null);
+      setQuoteSession(null);
+      setQuoteExpired(false);
       setAppliedCodeInput(null);
 
       try {
@@ -138,11 +156,11 @@ export function PurchaseConfirmModal({
           buildQuoteRequest(initialPlan),
         );
         if (!isCancelled) {
-          setQuote(response.data.quote);
+          setQuoteSession(response.data);
         }
       } catch (err) {
         if (!isCancelled) {
-          setError(handleQuoteError(err, 'Failed to load checkout quote'));
+          setError(getQuoteErrorMessage(err, checkoutQuoteLoadError));
         }
       } finally {
         if (!isCancelled) {
@@ -156,7 +174,36 @@ export function PurchaseConfirmModal({
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, plan]);
+  }, [checkoutQuoteLoadError, isOpen, plan]);
+
+  useEffect(() => {
+    if (!quoteSession) {
+      setQuoteExpired(false);
+      return;
+    }
+
+    const expiresAt = Date.parse(quoteSession.expires_at);
+    if (!Number.isFinite(expiresAt)) {
+      setQuoteExpired(false);
+      return;
+    }
+
+    const delay = expiresAt - Date.now();
+    if (delay <= 0 || quoteSession.status !== 'open') {
+      setQuoteExpired(true);
+      return;
+    }
+
+    setQuoteExpired(false);
+    const timeoutId = setTimeout(
+      () => setQuoteExpired(true),
+      Math.min(delay, MAX_QUOTE_EXPIRY_TIMER_MS),
+    );
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [quoteSession]);
 
   const handleApplyCode = async () => {
     const activePlan = plan;
@@ -179,8 +226,8 @@ export function PurchaseConfirmModal({
         code: normalizedCode,
         action_context: 'checkout',
         storefront_key: OFFICIAL_WEB_STOREFRONT_KEY,
-        plan_id: activePlan.uuid,
-        amount: activePlan.price_usd,
+        plan_id: activePlan.public_catalog_quote?.planId ?? activePlan.uuid,
+        amount: getPublicCatalogAmount(activePlan),
         channel: OFFICIAL_WEB_SALE_CHANNEL,
       });
       const resolution = resolutionResponse.data;
@@ -192,7 +239,7 @@ export function PurchaseConfirmModal({
         const fallbackQuote = await commerceApi.createQuoteSession(
           buildQuoteRequest(activePlan),
         );
-        setQuote(fallbackQuote.data.quote);
+        setQuoteSession(fallbackQuote.data);
         return;
       }
 
@@ -209,14 +256,15 @@ export function PurchaseConfirmModal({
         const fallbackQuote = await commerceApi.createQuoteSession(
           buildQuoteRequest(activePlan),
         );
-        setQuote(fallbackQuote.data.quote);
+        setQuoteSession(fallbackQuote.data);
         return;
       }
 
       const response = await commerceApi.createQuoteSession(
         buildQuoteRequest(activePlan, normalizedCode),
       );
-      setQuote(response.data.quote);
+      setQuoteSession(response.data);
+      setQuoteExpired(false);
       setAppliedCodeInput(normalizedCode);
       setCodeInput(normalizedCode);
       setCodeFeedback(
@@ -227,16 +275,37 @@ export function PurchaseConfirmModal({
     } catch (err) {
       setAppliedCodeInput(null);
       setCodeFeedback(null);
-      setCodeError(handleQuoteError(err, 'Checkout code not valid'));
+      setCodeError(getQuoteErrorMessage(err, 'Checkout code not valid'));
 
       try {
         const fallbackQuote = await commerceApi.createQuoteSession(
           buildQuoteRequest(activePlan),
         );
-        setQuote(fallbackQuote.data.quote);
+        setQuoteSession(fallbackQuote.data);
       } catch {
-        setQuote(null);
+        setQuoteSession(null);
       }
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+  const handleRefreshQuote = async () => {
+    const activePlan = plan;
+    if (!activePlan) return;
+
+    setQuoteLoading(true);
+    setError('');
+    setCodeError('');
+
+    try {
+      const response = await commerceApi.createQuoteSession(
+        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined),
+      );
+      setQuoteSession(response.data);
+      setQuoteExpired(false);
+    } catch (err) {
+      setError(getQuoteErrorMessage(err, t('checkoutQuote.refreshError')));
     } finally {
       setQuoteLoading(false);
     }
@@ -245,6 +314,11 @@ export function PurchaseConfirmModal({
   const handlePurchase = async () => {
     const activePlan = plan;
     if (!activePlan) return;
+    if (!quoteSession || quoteExpired) {
+      setError(t('checkoutQuote.expiredBody'));
+      setStep('confirm');
+      return;
+    }
 
     markPerformance(PerformanceMarks.PURCHASE_FLOW_START, {
       planId: activePlan.uuid,
@@ -256,11 +330,17 @@ export function PurchaseConfirmModal({
     setError('');
 
     try {
-      const quoteResponse = await commerceApi.createQuoteSession(
-        buildQuoteRequest(activePlan, appliedCodeInput ?? undefined),
-      );
+      const freshQuote = await commerceApi.getQuoteSession(quoteSession.id);
+      if (freshQuote.data.status !== 'open') {
+        setQuoteSession(freshQuote.data);
+        setQuoteExpired(true);
+        setStep('confirm');
+        setError(t('checkoutQuote.expiredBody'));
+        return;
+      }
+
       const checkoutSessionResponse = await commerceApi.createCheckoutSession(
-        { quote_session_id: quoteResponse.data.id },
+        { quote_session_id: freshQuote.data.id },
         createClientIdempotencyKey('checkout-session'),
       );
       const orderResponse = await commerceApi.commitOrder({
@@ -316,11 +396,17 @@ export function PurchaseConfirmModal({
   };
 
   if (!plan) return null;
+  const quote = quoteSession?.quote ?? null;
+  const quoteCurrency =
+    quoteSession?.currency_code ??
+    plan.public_catalog_price?.currency ??
+    planPrice?.currency ??
+    'USD';
   const quoteSnapshot = quote?.entitlements_snapshot.effective_entitlements;
-  const quotedTotal = quote?.displayed_price ?? plan.price_usd;
-  const quotedBase = quote?.base_price ?? plan.price_usd;
+  const quotedTotal = quote?.displayed_price ?? planPrice?.amount ?? plan.price_usd;
+  const quotedBase = quote?.base_price ?? planPrice?.amount ?? plan.price_usd;
   const hasDiscount = (quote?.discount_amount ?? 0) > 0;
-  const quotedGateway = quote?.gateway_amount ?? plan.price_usd;
+  const quotedGateway = quote?.gateway_amount ?? planPrice?.amount ?? plan.price_usd;
   const showPromoControls =
     arePromoCodesEnabled(capabilities) &&
     areCheckoutCodeDiscountsEnabled(capabilities);
@@ -394,14 +480,14 @@ export function PurchaseConfirmModal({
                 <div className="text-right">
                   {hasDiscount && (
                     <p className="font-mono text-xs text-white/35 line-through">
-                      {formatMoney(locale, quotedBase, 'USD')}
+                      {formatMoney(locale, quotedBase, quoteCurrency)}
                     </p>
                   )}
                   <p className="text-2xl font-display text-matrix-green">
-                    {formatMoney(locale, quotedTotal, 'USD')}
+                    {formatMoney(locale, quotedTotal, quoteCurrency)}
                   </p>
                   <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
-                    Charged in USD
+                    {t('checkoutQuote.chargedIn', { currency: quoteCurrency })}
                   </p>
                 </div>
               </div>
@@ -412,6 +498,25 @@ export function PurchaseConfirmModal({
                 Catalog price: {planPrice.formatted}
               </p>
             )}
+
+            {quoteExpired ? (
+              <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3">
+                <p className="text-sm font-semibold text-amber-200">
+                  {t('checkoutQuote.expiredTitle')}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-100/75">
+                  {t('checkoutQuote.expiredBody')}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRefreshQuote}
+                  disabled={quoteLoading}
+                  className="mt-3 rounded border border-amber-300/50 px-3 py-2 font-mono text-xs uppercase tracking-[0.16em] text-amber-100 transition-colors hover:bg-amber-300/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {quoteLoading ? t('checkoutQuote.refreshing') : t('checkoutQuote.refreshCta')}
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {showPromoControls ? (
@@ -452,7 +557,7 @@ export function PurchaseConfirmModal({
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {(quote?.discount_amount ?? 0) > 0
-                          ? `${appliedCodeInput} applied: ${formatMoney(locale, quote?.discount_amount ?? 0, 'USD')} off`
+                          ? `${appliedCodeInput} applied: ${formatMoney(locale, quote?.discount_amount ?? 0, quoteCurrency)} off`
                           : `${appliedCodeInput} applied`}
                       </p>
                     </div>
@@ -488,8 +593,10 @@ export function PurchaseConfirmModal({
                   carries accepted pricing directly into checkout.
                 </p>
                 <p className="text-xs font-mono text-white/55">
-                  Gateway amount: {formatMoney(locale, quotedGateway, 'USD')}.
-                  Charged in USD.
+                  {t('checkoutQuote.gatewayAmount', {
+                    amount: formatMoney(locale, quotedGateway, quoteCurrency),
+                    currency: quoteCurrency,
+                  })}
                 </p>
               </div>
             </div>
@@ -510,7 +617,7 @@ export function PurchaseConfirmModal({
             </button>
             <button
               onClick={handlePurchase}
-              disabled={quoteLoading || Boolean(error)}
+              disabled={quoteLoading || Boolean(error) || quoteExpired || !quoteSession}
               className="flex-1 px-4 py-3 bg-neon-cyan/20 hover:bg-neon-cyan/30 border border-neon-cyan/50 text-neon-cyan font-mono text-sm rounded transition-colors hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {quote?.is_zero_gateway ? 'Activate Now' : 'Pay with Crypto'}

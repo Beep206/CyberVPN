@@ -85,7 +85,7 @@ void main() {
     final result = await dataSource.getCachedPlans(allowExpired: true);
 
     expect(result, isNull);
-    expect(prefs.getInt('subscription_cache_version'), 2);
+    expect(prefs.getInt('subscription_cache_version'), 3);
     expect(prefs.getString('cached_plans'), isNull);
   });
 }

@@ -1713,6 +1713,27 @@
       "description": "Видимость storefront остаётся ограниченной reseller scope, заданным contracts, assigned domains и support ownership.",
       "supportOwner": "Ответственный за support: {value}"
     },
+    "commercialPreview": {
+      "title": "Commercial preview",
+      "description": "Рассчитывайте выбранный storefront contract и effective catalog в read-only режиме до отправки live traffic партнёром.",
+      "empty": "Для этого reseller workspace пока не назначен storefront.",
+      "error": "Не удалось загрузить reseller commercial preview.",
+      "selectLabel": "Preview storefront",
+      "contractTitle": "Storefront contract",
+      "routeHost": "Route host",
+      "entryPath": "Entry path",
+      "partnerCode": "Partner code",
+      "metrics": {
+        "status": "Статус",
+        "currency": "Валюта",
+        "billingPeriods": "Billing periods",
+        "sideEffects": "Checkout side effects"
+      },
+      "boolean": {
+        "yes": "Да",
+        "no": "Нет"
+      }
+    },
     "capabilities": {
       "title": "Reseller capability posture",
       "items": {
@@ -1740,9 +1761,13 @@
       "title": "Request voucher batch",
       "description": "Выпускайте reseller-scoped voucher batch прямо из partner surface. Raw codes показываются один раз сразу после issuance.",
       "readOnly": "Эта роль может просматривать voucher posture, но новые reseller voucher requests заблокированы.",
+      "planLabel": "Subscription plan",
       "planPlaceholder": "Выберите subscription plan",
+      "countLabel": "Количество vouchers",
       "countPlaceholder": "Количество voucher codes",
+      "recipientHintLabel": "Получатель или кампания",
       "recipientHintPlaceholder": "Recipient hint или campaign label",
+      "messageLabel": "Сообщение batch",
       "messagePlaceholder": "Необязательная заметка или сообщение для этого voucher pack.",
       "submit": "Выпустить voucher batch",
       "submitting": "Выпуск...",

@@ -28,6 +28,9 @@ export { referralApi } from './referral';
 export { promoApi } from './promo';
 export { invitesApi } from './invites';
 export { addonsApi } from './addons';
+export { offersApi } from './offers';
+export { pricebooksApi } from './pricebooks';
+export { publicCatalogApi } from './catalog';
 
 // Subscriptions
 export { subscriptionsApi } from './subscriptions';

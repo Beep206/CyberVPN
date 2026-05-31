@@ -118,13 +118,20 @@ export const connectProfile = async (
   id: string,
   tunMode: boolean,
   systemProxy = false,
-  sourceSurface = "dashboard"
+  sourceSurface = "dashboard",
 ): Promise<void> => {
-  return await invoke("connect_profile", { id, tunMode, systemProxy, sourceSurface });
+  return await invoke("connect_profile", {
+    id,
+    tunMode,
+    systemProxy,
+    sourceSurface,
+  });
 };
 
 /** Disconnect the active proxy */
-export const disconnectProxy = async (sourceSurface = "dashboard"): Promise<void> => {
+export const disconnectProxy = async (
+  sourceSurface = "dashboard",
+): Promise<void> => {
   return await invoke("disconnect", { sourceSurface });
 };
 
@@ -135,25 +142,28 @@ export const getConnectionStatus = async (): Promise<ConnectionStatus> => {
 
 /** Listen for real-time connection status updates securely from Rust */
 export const listenConnectionStatus = async (
-  callback: (status: ConnectionStatus) => void
+  callback: (status: ConnectionStatus) => void,
 ) => {
   return await listen<ConnectionStatus>("connection-status", (event) => {
     callback(event.payload);
   });
 };
 
-export const getLastConnectionOptions = async (): Promise<LastConnectionOptions> => {
-  return await invoke<LastConnectionOptions>("get_last_connection_options");
-};
+export const getLastConnectionOptions =
+  async (): Promise<LastConnectionOptions> => {
+    return await invoke<LastConnectionOptions>("get_last_connection_options");
+  };
 
 export const saveLastConnectionOptions = async (
-  options: LastConnectionOptions
+  options: LastConnectionOptions,
 ): Promise<LastConnectionOptions> => {
-  return await invoke<LastConnectionOptions>("save_last_connection_options", { options });
+  return await invoke<LastConnectionOptions>("save_last_connection_options", {
+    options,
+  });
 };
 
 export const listenConnectionOptions = async (
-  callback: (options: LastConnectionOptions) => void
+  callback: (options: LastConnectionOptions) => void,
 ) => {
   return await listen<LastConnectionOptions>("connection-options", (event) => {
     callback(event.payload);
@@ -177,11 +187,14 @@ export const parseClipboardLink = async (link: string): Promise<ProxyNode> => {
 
 /** Listen for real-time traffic statistics */
 export const listenTrafficUpdate = async (
-  callback: (data: { up: number; down: number }) => void
+  callback: (data: { up: number; down: number }) => void,
 ) => {
-  return await listen<{ up: number; down: number }>("traffic_update", (event) => {
-    callback(event.payload);
-  });
+  return await listen<{ up: number; down: number }>(
+    "traffic_update",
+    (event) => {
+      callback(event.payload);
+    },
+  );
 };
 
 /** Get all routing rules */
@@ -253,7 +266,9 @@ export const getCustomConfig = async (): Promise<string | null> => {
 };
 
 /** Save a custom config override */
-export const saveCustomConfig = async (config: string | null): Promise<void> => {
+export const saveCustomConfig = async (
+  config: string | null,
+): Promise<void> => {
   return await invoke("save_custom_config", { config });
 };
 
@@ -645,6 +660,92 @@ export interface CanonicalOrder {
   updated_at: string;
 }
 
+export interface PublicCatalogMoneyResponse {
+  amount: string;
+  currency: string;
+  minorUnits: number;
+}
+
+export interface PublicCatalogQuoteHandoffResponse {
+  planId: string;
+  planCode: string;
+  billingPeriodDays: number;
+  currency: string;
+  catalogItemKey: string;
+  contextCacheKey: string;
+}
+
+export interface PublicCatalogBillingPeriodResponse {
+  planId: string;
+  catalogItemKey: string;
+  durationDays: number;
+  displayPrice: PublicCatalogMoneyResponse;
+  version: string;
+  quote: PublicCatalogQuoteHandoffResponse;
+  includedAddonCodes: string[];
+  availability: string[];
+  metadata: Record<string, unknown>;
+}
+
+export interface PublicCatalogPlanResponse {
+  planCode: string;
+  displayName: string;
+  version: string;
+  billingPeriods: PublicCatalogBillingPeriodResponse[];
+  devicesIncluded: number;
+  trafficLimitBytes: number | null;
+  trafficPolicy: Record<string, unknown>;
+  connectionModes: string[];
+  serverPool: string[];
+  supportSla: string;
+  dedicatedIp: Record<string, unknown>;
+  inviteBundle: Record<string, unknown>;
+  trialEligible: boolean;
+  promoEligible: boolean;
+  metadata: Record<string, unknown>;
+}
+
+export interface PublicCatalogContextResponse {
+  uiLocale: string;
+  displayCountry: string;
+  pricingCountry: string;
+  paymentCountry: string;
+  currency: string;
+  confidence: string;
+  selectableCountries: string[];
+  selectableCurrencies: string[];
+  paymentMethods: {
+    availableMethods: string[];
+    webCheckout: boolean;
+    cryptobot: boolean;
+    telegramStars: boolean;
+    manualInvoice: boolean;
+    autorenewal: boolean;
+  };
+  cacheKey: string;
+  resolutionTrace: string[];
+}
+
+export interface PublicCommercialCatalogResponse {
+  catalogVersion: string;
+  cacheKey: string;
+  context: PublicCatalogContextResponse;
+  plans: PublicCatalogPlanResponse[];
+  addons: unknown[];
+  trialEligible: boolean;
+  promoEligible: boolean;
+  metadata: {
+    policyIds: string[];
+    source: string;
+    channel: string;
+    storefrontKey: string | null;
+    addonsEnabled: boolean;
+    promoCodesEnabled: boolean;
+    checkoutCodeDiscountsEnabled: boolean;
+    invalidationEvents: string[];
+  };
+}
+
 export interface TransportBenchmarkRequest {
   proxy_url?: string | null;
   target_host?: string | null;
@@ -934,35 +1035,48 @@ export const getHelixManifest =
     return await invoke<HelixResolvedManifest | null>("get_helix_manifest");
   };
 
-export const getHelixRuntimeState =
-  async (): Promise<HelixRuntimeState> => {
-    return await invoke<HelixRuntimeState>("get_helix_runtime_state");
-  };
+export const getHelixRuntimeState = async (): Promise<HelixRuntimeState> => {
+  return await invoke<HelixRuntimeState>("get_helix_runtime_state");
+};
 
 export const getCanonicalCustomerProfile =
   async (): Promise<CanonicalCustomerProfile> => {
-    return await invoke<CanonicalCustomerProfile>("get_canonical_customer_profile");
+    return await invoke<CanonicalCustomerProfile>(
+      "get_canonical_customer_profile",
+    );
   };
 
 export const getCanonicalCurrentEntitlements =
   async (): Promise<CanonicalEntitlementState> => {
-    return await invoke<CanonicalEntitlementState>("get_canonical_current_entitlements");
+    return await invoke<CanonicalEntitlementState>(
+      "get_canonical_current_entitlements",
+    );
   };
 
 export const getCanonicalCurrentServiceState =
   async (): Promise<CanonicalCurrentServiceState> => {
-    return await invoke<CanonicalCurrentServiceState>("get_canonical_current_service_state");
+    return await invoke<CanonicalCurrentServiceState>(
+      "get_canonical_current_service_state",
+    );
   };
 
-export const getCanonicalOrders =
-  async (limit = 20): Promise<CanonicalOrder[]> => {
-    return await invoke<CanonicalOrder[]>("get_canonical_orders", { limit });
+export const getCanonicalOrders = async (
+  limit = 20,
+): Promise<CanonicalOrder[]> => {
+  return await invoke<CanonicalOrder[]>("get_canonical_orders", { limit });
+};
+
+export const getPublicCommercialCatalog =
+  async (): Promise<PublicCommercialCatalogResponse> => {
+    return await invoke<PublicCommercialCatalogResponse>(
+      "get_public_commercial_catalog",
+    );
   };
 
 export const resolveHelixManifest = async (
   baseUrl: string,
   accessToken: string,
-  preferredFallbackCore?: StableCore
+  preferredFallbackCore?: StableCore,
 ): Promise<HelixResolvedManifest> => {
   return await invoke<HelixResolvedManifest>("resolve_helix_manifest", {
     baseUrl,
@@ -971,50 +1085,61 @@ export const resolveHelixManifest = async (
   });
 };
 
-export const prepareHelixRuntime =
-  async (): Promise<HelixPreparedRuntime> => {
-    return await invoke<HelixPreparedRuntime>("prepare_helix_runtime");
-  };
-
-export const runTransportBenchmark = async (
-  request: TransportBenchmarkRequest
-): Promise<TransportBenchmarkReport> => {
-  return await invoke<TransportBenchmarkReport>("run_transport_benchmark", { request });
+export const prepareHelixRuntime = async (): Promise<HelixPreparedRuntime> => {
+  return await invoke<HelixPreparedRuntime>("prepare_helix_runtime");
 };
 
-export const runTransportCoreComparison = async (
-  request: TransportBenchmarkComparisonRequest
-): Promise<TransportBenchmarkComparisonReport> => {
-  return await invoke<TransportBenchmarkComparisonReport>("run_transport_core_comparison", {
+export const runTransportBenchmark = async (
+  request: TransportBenchmarkRequest,
+): Promise<TransportBenchmarkReport> => {
+  return await invoke<TransportBenchmarkReport>("run_transport_benchmark", {
     request,
   });
 };
 
+export const runTransportCoreComparison = async (
+  request: TransportBenchmarkComparisonRequest,
+): Promise<TransportBenchmarkComparisonReport> => {
+  return await invoke<TransportBenchmarkComparisonReport>(
+    "run_transport_core_comparison",
+    {
+      request,
+    },
+  );
+};
+
 export const runTransportTargetMatrixComparison = async (
-  request: TransportBenchmarkMatrixRequest
+  request: TransportBenchmarkMatrixRequest,
 ): Promise<TransportBenchmarkMatrixReport> => {
   return await invoke<TransportBenchmarkMatrixReport>(
     "run_transport_target_matrix_comparison",
-    { request }
+    { request },
   );
 };
 
 export const runHelixRecoveryBenchmark = async (
-  request: HelixRecoveryBenchmarkRequest
+  request: HelixRecoveryBenchmarkRequest,
 ): Promise<HelixRecoveryBenchmarkReport> => {
-  return await invoke<HelixRecoveryBenchmarkReport>("run_helix_recovery_benchmark", {
-    request,
-  });
+  return await invoke<HelixRecoveryBenchmarkReport>(
+    "run_helix_recovery_benchmark",
+    {
+      request,
+    },
+  );
 };
 
 export const getDesktopDiagnosticsSnapshot =
   async (): Promise<DesktopDiagnosticsSnapshot> => {
-    return await invoke<DesktopDiagnosticsSnapshot>("get_desktop_diagnostics_snapshot");
+    return await invoke<DesktopDiagnosticsSnapshot>(
+      "get_desktop_diagnostics_snapshot",
+    );
   };
 
 export const exportDesktopSupportBundle =
   async (): Promise<SupportBundleExportResult> => {
-    return await invoke<SupportBundleExportResult>("export_desktop_support_bundle");
+    return await invoke<SupportBundleExportResult>(
+      "export_desktop_support_bundle",
+    );
   };
 
 export const clearDesktopDiagnosticsLogs = async (): Promise<void> => {
@@ -1022,7 +1147,7 @@ export const clearDesktopDiagnosticsLogs = async (): Promise<void> => {
 };
 
 export const listenDesktopDiagnostics = async (
-  callback: (entry: DiagnosticEntry) => void
+  callback: (entry: DiagnosticEntry) => void,
 ) => {
   return await listen<DiagnosticEntry>("desktop-diagnostic", (event) => {
     callback(event.payload);
@@ -1030,7 +1155,7 @@ export const listenDesktopDiagnostics = async (
 };
 
 export const listenHelixHealth = async (
-  callback: (health: HelixSidecarHealth) => void
+  callback: (health: HelixSidecarHealth) => void,
 ) => {
   return await listen<HelixSidecarHealth>("helix-health", (event) => {
     callback(event.payload);
@@ -1199,22 +1324,34 @@ export const getSmartConnectStatus = async (): Promise<boolean> => {
   return await invoke("get_smart_connect_status");
 };
 
-export const setSmartConnectStatus = async (enabled: boolean): Promise<void> => {
+export const setSmartConnectStatus = async (
+  enabled: boolean,
+): Promise<void> => {
   return await invoke("set_smart_connect_status", { enabled });
 };
 
-export const getNetworkRules = async (): Promise<Record<string, NetworkProfile>> => {
+export const getNetworkRules = async (): Promise<
+  Record<string, NetworkProfile>
+> => {
   return await invoke("get_network_rules");
 };
 
-export const updateNetworkRule = async (ssid: string, profile: NetworkProfile): Promise<void> => {
+export const updateNetworkRule = async (
+  ssid: string,
+  profile: NetworkProfile,
+): Promise<void> => {
   return await invoke("update_network_rule", { ssid, profile });
 };
 
-export const listenNetworkChanged = (callback: (event: { ssid: string, is_trusted: boolean }) => void) => {
-  const unlistenPromise = listen<{ ssid: string, is_trusted: boolean }>("network-changed", (event) => {
-    callback(event.payload);
-  });
+export const listenNetworkChanged = (
+  callback: (event: { ssid: string; is_trusted: boolean }) => void,
+) => {
+  const unlistenPromise = listen<{ ssid: string; is_trusted: boolean }>(
+    "network-changed",
+    (event) => {
+      callback(event.payload);
+    },
+  );
   return () => {
     unlistenPromise.then((f) => f());
   };
@@ -1352,24 +1489,27 @@ export interface StealthActionResult {
   health?: StealthHealthAssessment | null;
 }
 
-export const runStealthDiagnostics = async (nodeId: string): Promise<CensorshipReport> => {
-    return await invoke("run_stealth_diagnostics", { nodeId });
+export const runStealthDiagnostics = async (
+  nodeId: string,
+): Promise<CensorshipReport> => {
+  return await invoke("run_stealth_diagnostics", { nodeId });
 };
 
 export const applyStealthFix = async (
   nodeId: string,
-  recommendationId: string
+  recommendationId: string,
 ): Promise<StealthActionResult> => {
-    return await invoke("apply_stealth_fix", { nodeId, recommendationId });
+  return await invoke("apply_stealth_fix", { nodeId, recommendationId });
 };
 
-export const rollbackLastStealthFix = async (): Promise<StealthActionResult> => {
-  return await invoke("rollback_last_stealth_fix");
-};
+export const rollbackLastStealthFix =
+  async (): Promise<StealthActionResult> => {
+    return await invoke("rollback_last_stealth_fix");
+  };
 
 export const compareStealthStrategies = async (
   nodeId: string,
-  strategyIds: string[]
+  strategyIds: string[],
 ): Promise<StealthCompareReport> => {
   return await invoke("compare_stealth_strategies", { nodeId, strategyIds });
 };
@@ -1379,18 +1519,25 @@ export const clearNetworkStealthPolicy = async (): Promise<NetworkProfile> => {
 };
 
 export const listenStealthProbeLog = (callback: (log: string) => void) => {
-    const unlistenPromise = listen<string>("stealth-probe-log", (event) => callback(event.payload));
-    return () => { unlistenPromise.then(f => f()); };
+  const unlistenPromise = listen<string>("stealth-probe-log", (event) =>
+    callback(event.payload),
+  );
+  return () => {
+    unlistenPromise.then((f) => f());
+  };
 };
 
-export const getStealthAutoPilotMode = async (): Promise<StealthAutoPilotMode> => {
-  return await invoke<StealthAutoPilotMode>("get_stealth_auto_pilot_mode");
-};
+export const getStealthAutoPilotMode =
+  async (): Promise<StealthAutoPilotMode> => {
+    return await invoke<StealthAutoPilotMode>("get_stealth_auto_pilot_mode");
+  };
 
 export const setStealthAutoPilotMode = async (
-  mode: StealthAutoPilotMode
+  mode: StealthAutoPilotMode,
 ): Promise<StealthAutoPilotMode> => {
-  return await invoke<StealthAutoPilotMode>("set_stealth_auto_pilot_mode", { mode });
+  return await invoke<StealthAutoPilotMode>("set_stealth_auto_pilot_mode", {
+    mode,
+  });
 };
 
 // Phase 30 - Telemetry & Analytics
@@ -1402,10 +1549,12 @@ export interface UsageRecord {
   country_code: string;
 }
 
-export const getUsageHistory = async (period: string): Promise<UsageRecord[]> => {
+export const getUsageHistory = async (
+  period: string,
+): Promise<UsageRecord[]> => {
   return await invoke("get_usage_history", { period });
 };
 
 export const getGlobalFootprint = async (): Promise<Record<string, number>> => {
-    return await invoke("get_global_footprint");
+  return await invoke("get_global_footprint");
 };

@@ -2065,6 +2065,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/internal/provisioning-retries/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Stage1 Provisioning Retries
+         * @description Run a bounded durable S1 provisioning retry pass for the task worker.
+         */
+        post: operations["run_stage1_provisioning_retries_api_v1_subscriptions_internal_provisioning_retries_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subscriptions/current/entitlements": {
         parameters: {
             query?: never;
@@ -2378,6 +2398,40 @@ export interface paths {
         get?: never;
         /** Update Addon */
         put: operations["update_addon_api_v1_addons__addon_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Public Catalog Context */
+        post: operations["resolve_public_catalog_context_api_v1_catalog_context_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Public Catalog */
+        get: operations["get_public_catalog_api_v1_catalog__get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -8580,6 +8634,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/pricebooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Commercial Pricebooks */
+        get: operations["list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Commercial Pricebook */
+        patch: operations["update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Admin Commercial Pricebook */
+        post: operations["publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule Admin Commercial Pricebook */
+        post: operations["schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback Admin Commercial Pricebook */
+        post: operations["rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_key}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Commercial Pricebook History */
+        get: operations["get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Commercial Pricebook Audit */
+        get: operations["get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pricebooks/{pricebook_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Admin Commercial Pricebook */
+        post: operations["validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/commercial-context/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Commercial Context Options */
+        get: operations["get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get"];
+        /** Update Admin Commercial Context Options */
+        put: operations["update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/mobile-users/{user_id}/notes": {
         parameters: {
             query?: never;
@@ -13252,6 +13460,107 @@ export interface components {
             /** Redacted Fields */
             redacted_fields?: string[];
         };
+        /** AdminPricebookHistoryResponse */
+        AdminPricebookHistoryResponse: {
+            /** Pricebook Key */
+            pricebook_key: string;
+            /** Versions */
+            versions: components["schemas"]["AdminPricebookVersionResponse"][];
+        };
+        /** AdminPricebookLifecycleResponse */
+        AdminPricebookLifecycleResponse: {
+            pricebook: components["schemas"]["PricebookResponse"];
+            /** Lifecycle Status */
+            lifecycle_status: string;
+            /** Audit Action */
+            audit_action: string;
+        };
+        /** AdminPricebookValidationIssueResponse */
+        AdminPricebookValidationIssueResponse: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "missing_price" | "unsupported_currency" | "missing_provisioning_profile" | "incompatible_addon";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "error" | "warning";
+            /** Message */
+            message: string;
+            /** Field */
+            field?: string | null;
+            /** Entry Id */
+            entry_id?: string | null;
+            /** Offer Id */
+            offer_id?: string | null;
+            /** Remediation */
+            remediation?: string | null;
+        };
+        /** AdminPricebookValidationResponse */
+        AdminPricebookValidationResponse: {
+            /**
+             * Pricebook Id
+             * Format: uuid
+             */
+            pricebook_id: string;
+            /** Valid */
+            valid: boolean;
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Issues */
+            issues: components["schemas"]["AdminPricebookValidationIssueResponse"][];
+        };
+        /** AdminPricebookVersionResponse */
+        AdminPricebookVersionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Pricebook Key */
+            pricebook_key: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Storefront Id
+             * Format: uuid
+             */
+            storefront_id: string;
+            /** Merchant Profile Id */
+            merchant_profile_id: string | null;
+            /** Currency Code */
+            currency_code: string;
+            /** Region Code */
+            region_code: string | null;
+            /** Discount Rules */
+            discount_rules: {
+                [key: string]: unknown;
+            };
+            /** Renewal Pricing Policy */
+            renewal_pricing_policy: {
+                [key: string]: unknown;
+            };
+            /** Version Status */
+            version_status: string;
+            /**
+             * Effective From
+             * Format: date-time
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Entries */
+            entries: components["schemas"]["PricebookEntryResponse"][];
+            /** Lifecycle Status */
+            lifecycle_status: string;
+        };
         /** AdminProcessWithdrawalRequest */
         AdminProcessWithdrawalRequest: {
             /** Admin Note */
@@ -14252,6 +14561,41 @@ export interface components {
             cloneFromUuid: string;
         } & {
             [key: string]: unknown;
+        };
+        /** CommercialContextCountryOptionResponse */
+        CommercialContextCountryOptionResponse: {
+            /** Country Code */
+            country_code: string;
+            /** Default Currency Code */
+            default_currency_code: string;
+            /** Supported Currency Codes */
+            supported_currency_codes: string[];
+            /** Payment Country Code */
+            payment_country_code: string;
+            /** Is Enabled */
+            is_enabled: boolean;
+        };
+        /** CommercialContextCurrencyOptionResponse */
+        CommercialContextCurrencyOptionResponse: {
+            /** Currency Code */
+            currency_code: string;
+            /** Minor Units */
+            minor_units: number;
+            /** Is Enabled */
+            is_enabled: boolean;
+        };
+        /** CommercialContextOptionsResponse */
+        CommercialContextOptionsResponse: {
+            /** Countries */
+            countries: components["schemas"]["CommercialContextCountryOptionResponse"][];
+            /** Currencies */
+            currencies: components["schemas"]["CommercialContextCurrencyOptionResponse"][];
+            /**
+             * Source
+             * @default default
+             * @enum {string}
+             */
+            source: "default" | "system_config";
         };
         /**
          * CommercialOwnerSource
@@ -22037,6 +22381,21 @@ export interface components {
              */
             payments: components["schemas"]["PaymentHistoryItem"][];
         };
+        /** PaymentMethodAvailabilityResponse */
+        PaymentMethodAvailabilityResponse: {
+            /** Availablemethods */
+            availableMethods: string[];
+            /** Webcheckout */
+            webCheckout: boolean;
+            /** Cryptobot */
+            cryptobot: boolean;
+            /** Telegramstars */
+            telegramStars: boolean;
+            /** Manualinvoice */
+            manualInvoice: boolean;
+            /** Autorenewal */
+            autorenewal: boolean;
+        };
         /**
          * PaymentProvider
          * @enum {string}
@@ -23117,6 +23476,193 @@ export interface components {
          * @enum {string}
          */
         ProvisioningProfileStatus: "draft" | "active" | "archived";
+        /** PublicCatalogAddonResponse */
+        PublicCatalogAddonResponse: {
+            /**
+             * Addonid
+             * Format: uuid
+             */
+            addonId: string;
+            /** Code */
+            code: string;
+            /** Displayname */
+            displayName: string;
+            /** Durationmode */
+            durationMode: string;
+            /** Isstackable */
+            isStackable: boolean;
+            /** Quantitystep */
+            quantityStep: number;
+            displayPrice: components["schemas"]["PublicCatalogMoneyResponse"];
+            /** Maxquantitybyplan */
+            maxQuantityByPlan: {
+                [key: string]: number;
+            };
+            /** Deltaentitlements */
+            deltaEntitlements: {
+                [key: string]: unknown;
+            };
+            /** Requireslocation */
+            requiresLocation: boolean;
+            /** Salechannels */
+            saleChannels: string[];
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** PublicCatalogBillingPeriodResponse */
+        PublicCatalogBillingPeriodResponse: {
+            /**
+             * Planid
+             * Format: uuid
+             */
+            planId: string;
+            /** Catalogitemkey */
+            catalogItemKey: string;
+            /** Durationdays */
+            durationDays: number;
+            displayPrice: components["schemas"]["PublicCatalogMoneyResponse"];
+            /** Version */
+            version: string;
+            quote: components["schemas"]["PublicCatalogQuoteHandoffResponse"];
+            /** Includedaddoncodes */
+            includedAddonCodes: string[];
+            /** Availability */
+            availability: string[];
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** PublicCatalogContextResponse */
+        PublicCatalogContextResponse: {
+            /** Uilocale */
+            uiLocale: string;
+            /** Displaycountry */
+            displayCountry: string;
+            /** Pricingcountry */
+            pricingCountry: string;
+            /** Paymentcountry */
+            paymentCountry: string;
+            /** Currency */
+            currency: string;
+            /** Confidence */
+            confidence: string;
+            /** Selectablecountries */
+            selectableCountries: string[];
+            /** Selectablecurrencies */
+            selectableCurrencies: string[];
+            paymentMethods: components["schemas"]["PaymentMethodAvailabilityResponse"];
+            /** Cachekey */
+            cacheKey: string;
+            /** Resolutiontrace */
+            resolutionTrace: string[];
+        };
+        /** PublicCatalogMetadataResponse */
+        PublicCatalogMetadataResponse: {
+            /** Policyids */
+            policyIds: string[];
+            /** Source */
+            source: string;
+            /** Channel */
+            channel: string;
+            /** Storefrontkey */
+            storefrontKey: string | null;
+            /** Addonsenabled */
+            addonsEnabled: boolean;
+            /** Promocodesenabled */
+            promoCodesEnabled: boolean;
+            /** Checkoutcodediscountsenabled */
+            checkoutCodeDiscountsEnabled: boolean;
+            /** Invalidationevents */
+            invalidationEvents: string[];
+        };
+        /** PublicCatalogMoneyResponse */
+        PublicCatalogMoneyResponse: {
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /** Minorunits */
+            minorUnits: number;
+        };
+        /** PublicCatalogPlanResponse */
+        PublicCatalogPlanResponse: {
+            /** Plancode */
+            planCode: string;
+            /** Displayname */
+            displayName: string;
+            /** Version */
+            version: string;
+            /** Billingperiods */
+            billingPeriods: components["schemas"]["PublicCatalogBillingPeriodResponse"][];
+            /** Devicesincluded */
+            devicesIncluded: number;
+            /** Trafficlimitbytes */
+            trafficLimitBytes: number | null;
+            /** Trafficpolicy */
+            trafficPolicy: {
+                [key: string]: unknown;
+            };
+            /** Connectionmodes */
+            connectionModes: string[];
+            /** Serverpool */
+            serverPool: string[];
+            /** Supportsla */
+            supportSla: string;
+            /** Dedicatedip */
+            dedicatedIp: {
+                [key: string]: unknown;
+            };
+            /** Invitebundle */
+            inviteBundle: {
+                [key: string]: unknown;
+            };
+            /** Trialeligible */
+            trialEligible: boolean;
+            /** Promoeligible */
+            promoEligible: boolean;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** PublicCatalogQuoteHandoffResponse */
+        PublicCatalogQuoteHandoffResponse: {
+            /**
+             * Planid
+             * Format: uuid
+             */
+            planId: string;
+            /** Plancode */
+            planCode: string;
+            /** Billingperioddays */
+            billingPeriodDays: number;
+            /** Currency */
+            currency: string;
+            /** Catalogitemkey */
+            catalogItemKey: string;
+            /** Contextcachekey */
+            contextCacheKey: string;
+        };
+        /** PublicCommercialCatalogResponse */
+        PublicCommercialCatalogResponse: {
+            /** Catalogversion */
+            catalogVersion: string;
+            /** Cachekey */
+            cacheKey: string;
+            context: components["schemas"]["PublicCatalogContextResponse"];
+            /** Plans */
+            plans: components["schemas"]["PublicCatalogPlanResponse"][];
+            /** Addons */
+            addons: components["schemas"]["PublicCatalogAddonResponse"][];
+            /** Trialeligible */
+            trialEligible: boolean;
+            /** Promoeligible */
+            promoEligible: boolean;
+            metadata: components["schemas"]["PublicCatalogMetadataResponse"];
+        };
         /** PublicNetworkDpiCountryResponse */
         PublicNetworkDpiCountryResponse: {
             /** Countrycode */
@@ -23667,6 +24213,13 @@ export interface components {
             resolved_at?: string | null;
             /** Closed At */
             closed_at?: string | null;
+        };
+        /** PublishAdminPricebookRequest */
+        PublishAdminPricebookRequest: {
+            /** Effective From */
+            effective_from?: string | null;
+            /** Change Reason */
+            change_reason?: string | null;
         };
         /** PurchaseSubscriptionAddonsRequest */
         PurchaseSubscriptionAddonsRequest: {
@@ -24880,6 +25433,42 @@ export interface components {
              */
             message: string;
         };
+        /** ResolveCatalogContextRequest */
+        ResolveCatalogContextRequest: {
+            /** Urllocale */
+            urlLocale?: string | null;
+            /** Browserlanguage */
+            browserLanguage?: string | null;
+            /** Telegramlanguagecode */
+            telegramLanguageCode?: string | null;
+            /** Explicituilocale */
+            explicitUiLocale?: string | null;
+            /** Explicitcountrycode */
+            explicitCountryCode?: string | null;
+            /** Explicitdisplaycountrycode */
+            explicitDisplayCountryCode?: string | null;
+            /** Explicitpricingcountrycode */
+            explicitPricingCountryCode?: string | null;
+            /** Explicitcurrencycode */
+            explicitCurrencyCode?: string | null;
+            /** Sessioncountrycode */
+            sessionCountryCode?: string | null;
+            /** Sessioncurrencycode */
+            sessionCurrencyCode?: string | null;
+            /** Cookiecountrycode */
+            cookieCountryCode?: string | null;
+            /** Cookiecurrencycode */
+            cookieCurrencyCode?: string | null;
+            /** Channelkey */
+            channelKey?: string | null;
+            /** Channeldefaultlocale */
+            channelDefaultLocale?: string | null;
+            /**
+             * Fallbackcountrycode
+             * @default US
+             */
+            fallbackCountryCode: string;
+        };
         /** ResolveCurrentAccessDeliveryChannelRequest */
         ResolveCurrentAccessDeliveryChannelRequest: {
             /**
@@ -25236,6 +25825,13 @@ export interface components {
              */
             updated_at: string;
         };
+        /** RollbackAdminPricebookRequest */
+        RollbackAdminPricebookRequest: {
+            /** Target Pricebook Id */
+            target_pricebook_id?: string | null;
+            /** Change Reason */
+            change_reason?: string | null;
+        };
         /** RotatePartnerBotTokenRequest */
         RotatePartnerBotTokenRequest: {
             /** Request Payload */
@@ -25262,6 +25858,16 @@ export interface components {
              * Format: date-time
              */
             issued_at: string;
+        };
+        /** ScheduleAdminPricebookRequest */
+        ScheduleAdminPricebookRequest: {
+            /**
+             * Scheduled For
+             * Format: date-time
+             */
+            scheduled_for: string;
+            /** Change Reason */
+            change_reason?: string | null;
         };
         /** SchedulePartnerWorkspaceReportExportRequest */
         SchedulePartnerWorkspaceReportExportRequest: {
@@ -27730,6 +28336,77 @@ export interface components {
             /** Change Reason */
             change_reason?: string | null;
         };
+        /** UpdateAdminPricebookRequest */
+        UpdateAdminPricebookRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Merchant Profile Id */
+            merchant_profile_id?: string | null;
+            /** Currency Code */
+            currency_code?: string | null;
+            /** Region Code */
+            region_code?: string | null;
+            /** Discount Rules */
+            discount_rules?: {
+                [key: string]: unknown;
+            } | null;
+            /** Renewal Pricing Policy */
+            renewal_pricing_policy?: {
+                [key: string]: unknown;
+            } | null;
+            /** Version Status */
+            version_status?: string | null;
+            /** Effective From */
+            effective_from?: string | null;
+            /** Effective To */
+            effective_to?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Entries */
+            entries?: components["schemas"]["PricebookEntryRequest"][] | null;
+            /** Change Reason */
+            change_reason?: string | null;
+        };
+        /** UpdateCommercialContextCountryOptionRequest */
+        UpdateCommercialContextCountryOptionRequest: {
+            /** Country Code */
+            country_code: string;
+            /** Default Currency Code */
+            default_currency_code: string;
+            /** Supported Currency Codes */
+            supported_currency_codes: string[];
+            /** Payment Country Code */
+            payment_country_code?: string | null;
+            /**
+             * Is Enabled
+             * @default true
+             */
+            is_enabled: boolean;
+        };
+        /** UpdateCommercialContextCurrencyOptionRequest */
+        UpdateCommercialContextCurrencyOptionRequest: {
+            /** Currency Code */
+            currency_code: string;
+            /**
+             * Minor Units
+             * @default 2
+             */
+            minor_units: number;
+            /**
+             * Is Enabled
+             * @default true
+             */
+            is_enabled: boolean;
+        };
+        /** UpdateCommercialContextOptionsRequest */
+        UpdateCommercialContextOptionsRequest: {
+            /** Countries */
+            countries: components["schemas"]["UpdateCommercialContextCountryOptionRequest"][];
+            /** Currencies */
+            currencies?: components["schemas"]["UpdateCommercialContextCurrencyOptionRequest"][];
+            /** Change Reason */
+            change_reason?: string | null;
+        };
         /**
          * UpdateHostRequest
          * @description Request schema for updating a VPN host.
@@ -29403,6 +30080,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description Telegram authentication temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -32982,6 +33666,42 @@ export interface operations {
             };
         };
     };
+    run_stage1_provisioning_retries_api_v1_subscriptions_internal_provisioning_retries_run_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+                worker_id?: string;
+            };
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_current_entitlements_api_v1_subscriptions_current_entitlements_get: {
         parameters: {
             query?: never;
@@ -33667,6 +34387,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddonResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_public_catalog_context_api_v1_catalog_context_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveCatalogContextRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicCatalogContextResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_public_catalog_api_v1_catalog__get: {
+        parameters: {
+            query?: {
+                channel?: string;
+                country?: string | null;
+                currency?: string | null;
+                uiLocale?: string | null;
+                urlLocale?: string | null;
+                storefrontKey?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicCommercialCatalogResponse"];
                 };
             };
             /** @description Validation Error */
@@ -46456,6 +47245,329 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPaymentAttemptListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+                storefront_id?: string | null;
+                storefront_key?: string | null;
+                currency_code?: string | null;
+                region_code?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookVersionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pricebook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminPricebookRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pricebook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishAdminPricebookRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pricebook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleAdminPricebookRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pricebook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RollbackAdminPricebookRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pricebook_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                pricebook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pricebook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPricebookValidationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommercialContextOptionsResponse"];
+                };
+            };
+        };
+    };
+    update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCommercialContextOptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommercialContextOptionsResponse"];
                 };
             };
             /** @description Validation Error */

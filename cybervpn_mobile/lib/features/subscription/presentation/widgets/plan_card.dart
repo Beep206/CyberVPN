@@ -244,6 +244,8 @@ class PlanCard extends StatelessWidget {
         return l10n.subscriptionPerMonth;
       case PlanDuration.quarterly:
         return l10n.subscriptionPer3Months;
+      case PlanDuration.semiannual:
+        return l10n.subscriptionDurationDays(180);
       case PlanDuration.yearly:
         return l10n.subscriptionPerYear;
       case PlanDuration.lifetime:

@@ -3,6 +3,10 @@
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { CountrySelector } from '@/features/country-selector';
+import { CurrencySelector } from '@/features/currency-selector';
+import { isSupportedCurrency } from '@/features/currency-selector/currency-config';
+import { useRouter } from '@/i18n/navigation';
 import { useEnhancementReady } from '@/shared/hooks/use-enhancement-ready';
 import { useVisualTier } from '@/shared/hooks/use-visual-tier';
 import { ResponsiveSplitShell } from '@/shared/ui/layout/responsive-split-shell';
@@ -94,6 +98,7 @@ function PricingVisualFallback({
 
 export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
   const t = useTranslations('Pricing');
+  const router = useRouter();
   const [hoveredTier, setHoveredTier] = useState<TierLevel>('plus');
   const [selectedPeriod, setSelectedPeriod] = useState<number>(() => getCatalogDefaultPeriod(catalog));
   const { tier: visualTier, isFull } = useVisualTier();
@@ -104,13 +109,19 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
   const hasPublicAddons = catalog.addons.length > 0;
   const dedicatedIpAddonAvailable = catalog.addons.some((addon) => addon.code === 'dedicated_ip');
   const showScene = visualTier === 'full' && isSceneReady;
-  const sourceLabel = catalog.source === 'api' ? 'LIVE' : 'CATALOG';
+  const sourceLabel = catalog.source === 'api' ? t('introPills.live') : t('introPills.unavailable');
+  const defaultCurrency = isSupportedCurrency(catalog.context.currency)
+    ? catalog.context.currency
+    : undefined;
   const headerPills = [
     { label: t('introPills.plans') },
     { label: t('introPills.periods') },
     ...(hasPublicAddons ? [{ label: t('introPills.addons') }] : []),
     { label: sourceLabel },
   ];
+  const refreshCatalog = () => {
+    router.refresh();
+  };
 
   const header = (
     <header className="mt-4 space-y-8 text-center">
@@ -133,6 +144,31 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
             {pill.label}
           </span>
         ))}
+      </div>
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-3 px-4">
+        <div className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-black/45">
+          <p className="mb-2 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+            {t('commercialContext.title')}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <CountrySelector
+              countries={catalog.context.selectableCountries}
+              defaultCountry={catalog.context.displayCountry}
+              onCountryChange={refreshCatalog}
+            />
+            <CurrencySelector
+              availableCurrencies={catalog.context.selectableCurrencies}
+              defaultCurrency={defaultCurrency}
+              onCurrencyChange={refreshCatalog}
+            />
+          </div>
+          <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            {t('commercialContext.resolved', {
+              country: catalog.context.pricingCountry,
+              currency: catalog.context.currency,
+            })}
+          </p>
+        </div>
       </div>
       <div className="mx-auto max-w-4xl rounded-[1.75rem] border border-border/70 bg-card/70 px-4 py-5 backdrop-blur-xl dark:border-white/10 dark:bg-black/45">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -178,19 +214,32 @@ export function PricingDashboard({ catalog }: { catalog: PricingCatalogData }) {
 
   const content = (
     <div className="space-y-20 pb-12 md:space-y-24 lg:pb-24">
-      <div className="relative z-20">
-        <TierCards
-          dedicatedIpAddonAvailable={dedicatedIpAddonAvailable}
-          hoveredTier={hoveredTier}
-          onHover={setHoveredTier}
-          plans={catalog.plans}
-          selectedPeriod={selectedPeriod}
-        />
-      </div>
+      {catalog.plans.length > 0 ? (
+        <div className="relative z-20">
+          <TierCards
+            dedicatedIpAddonAvailable={dedicatedIpAddonAvailable}
+            hoveredTier={hoveredTier}
+            onHover={setHoveredTier}
+            plans={catalog.plans}
+            selectedPeriod={selectedPeriod}
+          />
+        </div>
+      ) : (
+        <div className="relative z-20 mx-auto max-w-3xl rounded-[1.75rem] border border-amber-400/30 bg-amber-400/10 p-6 text-center">
+          <h2 className="font-display text-2xl uppercase tracking-[0.18em] text-amber-200">
+            {t('catalog.unavailableTitle')}
+          </h2>
+          <p className="mt-3 font-mono text-sm leading-relaxed text-amber-100/75">
+            {t('catalog.unavailableBody')}
+          </p>
+        </div>
+      )}
 
-      <div className="relative z-20 mx-auto max-w-5xl">
-        <FeatureMatrix plans={catalog.plans} addons={catalog.addons} selectedPeriod={selectedPeriod} />
-      </div>
+      {catalog.plans.length > 0 ? (
+        <div className="relative z-20 mx-auto max-w-5xl">
+          <FeatureMatrix plans={catalog.plans} addons={catalog.addons} selectedPeriod={selectedPeriod} />
+        </div>
+      ) : null}
 
       <div className="relative z-20 mx-auto max-w-4xl">
         <FAQAccordion showAddonFaq={hasPublicAddons} />

@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { connection } from 'next/server';
 import type { SoftwareApplication } from 'schema-dts';
 import { ProductIntelligenceProvider } from '@/app/providers/product-intelligence-provider';
-import { QueryProvider } from '@/app/providers/query-provider';
 import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { buildPartnerProductIntelligenceBootstrap } from '@/lib/product-intelligence/server';
 import { DASHBOARD_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
@@ -54,11 +53,9 @@ export default async function DashboardLayout({
 
   return (
     <ScopedIntlProvider locale={locale} namespaces={DASHBOARD_CLIENT_NAMESPACES}>
-      <QueryProvider>
-        <Suspense fallback={guardFallback}>
-          <DashboardRuntimeShell>{children}</DashboardRuntimeShell>
-        </Suspense>
-      </QueryProvider>
+      <Suspense fallback={guardFallback}>
+        <DashboardRuntimeShell>{children}</DashboardRuntimeShell>
+      </Suspense>
     </ScopedIntlProvider>
   );
 }

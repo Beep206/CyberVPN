@@ -359,6 +359,7 @@ pub fn run() {
             ipc::get_canonical_current_entitlements,
             ipc::get_canonical_current_service_state,
             ipc::get_canonical_orders,
+            ipc::get_public_commercial_catalog,
             ipc::resolve_helix_manifest,
             ipc::prepare_helix_runtime,
             ipc::run_transport_benchmark,

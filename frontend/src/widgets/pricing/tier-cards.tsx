@@ -4,12 +4,11 @@ import type { CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Crown, Orbit, ShieldCheck, Sparkles } from 'lucide-react';
-import { useCurrencyPreference } from '@/features/currency-selector';
 import { Link } from '@/i18n/navigation';
 import type { TierLevel } from './pricing-dashboard';
 import { cn } from '@/lib/utils';
 import type { PricingPlanFamily, PricingTierCode } from './types';
-import { formatMoney, getPlanPeriod, getPricePresentation } from './utils';
+import { formatCatalogMoney, formatMoney, getCatalogMoneyAmount, getPlanPeriod } from './utils';
 
 interface TierCardsProps {
   dedicatedIpAddonAvailable?: boolean;
@@ -73,7 +72,6 @@ export function TierCards({
 }: TierCardsProps) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
-  const { currency } = useCurrencyPreference(locale);
 
   return (
     <div className="grid max-w-7xl grid-cols-1 gap-6 px-4 md:grid-cols-2 xl:grid-cols-4">
@@ -82,9 +80,9 @@ export function TierCards({
         const Icon = config.icon;
         const isHovered = hoveredTier === plan.code;
         const activePeriod = getPlanPeriod(plan, selectedPeriod);
-        const pricePresentation = getPricePresentation(locale, activePeriod, currency);
         const monthlyEquivalent =
-          pricePresentation.billing.amount / Math.max(activePeriod.duration_days / 30, 1);
+          getCatalogMoneyAmount(activePeriod.display_price) /
+          Math.max(activePeriod.duration_days / 30, 1);
         const modeLabel = plan.connection_modes
           .map((mode) => t(`modeNames.${mode}`))
           .join(' · ');
@@ -177,11 +175,7 @@ export function TierCards({
               <div className="mb-6">
                 <div className="flex items-end gap-3">
                   <span className="font-display text-5xl font-black tracking-tight text-foreground dark:text-white">
-                    {formatMoney(
-                      locale,
-                      pricePresentation.billing.amount,
-                      pricePresentation.billing.currency,
-                    )}
+                    {formatCatalogMoney(locale, activePeriod.display_price)}
                   </span>
                   <span className="pb-2 font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground dark:text-white/45">
                     {t('labels.perSelectedTerm', { days: activePeriod.duration_days })}
@@ -192,13 +186,13 @@ export function TierCards({
                     price: formatMoney(
                       locale,
                       monthlyEquivalent,
-                      pricePresentation.billing.currency,
+                      activePeriod.display_price.currency,
                     ),
                   })}
                 </p>
                 <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground dark:text-white/45">
                   {t('labels.chargedInBillingCurrency', {
-                    currency: pricePresentation.billing.currency,
+                    currency: activePeriod.display_price.currency,
                   })}
                 </p>
                 <p className="mt-4 min-h-[4.25rem] text-sm font-mono leading-relaxed text-muted-foreground dark:text-white/72">

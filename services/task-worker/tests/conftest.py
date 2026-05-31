@@ -32,9 +32,7 @@ def mock_settings_for_imports():
     settings.backend_internal_secret.get_secret_value.return_value = "internal-secret"
     settings.helix_enabled = True
     settings.helix_adapter_url = "http://localhost:8090"
-    settings.helix_adapter_token.get_secret_value.return_value = (
-        "helix-token"
-    )
+    settings.helix_adapter_token.get_secret_value.return_value = "helix-token"
 
     # Bot Tokens
     settings.telegram_bot_token.get_secret_value.return_value = "123:test-bot"
@@ -47,6 +45,8 @@ def mock_settings_for_imports():
     # Worker Configuration
     settings.worker_concurrency = 2
     settings.result_ttl_seconds = 3600
+    settings.stage1_provisioning_retry_claiming_enabled = False
+    settings.stage1_provisioning_retry_batch_limit = 25
 
     # Notification Settings
     settings.notification_max_retries = 5
@@ -108,9 +108,7 @@ def mock_settings():
     settings.backend_internal_secret.get_secret_value.return_value = "internal-secret"
     settings.helix_enabled = True
     settings.helix_adapter_url = "http://localhost:8090"
-    settings.helix_adapter_token.get_secret_value.return_value = (
-        "helix-token"
-    )
+    settings.helix_adapter_token.get_secret_value.return_value = "helix-token"
 
     # Bot Tokens
     settings.telegram_bot_token.get_secret_value.return_value = "123:test-bot"
@@ -123,6 +121,8 @@ def mock_settings():
     # Worker Configuration
     settings.worker_concurrency = 2
     settings.result_ttl_seconds = 3600
+    settings.stage1_provisioning_retry_claiming_enabled = False
+    settings.stage1_provisioning_retry_batch_limit = 25
 
     # Notification Settings
     settings.notification_max_retries = 5

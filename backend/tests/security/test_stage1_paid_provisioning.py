@@ -50,6 +50,11 @@ class FakeRemnawaveUserGateway:
     def __init__(self) -> None:
         self.created_payloads: list[tuple[str, dict]] = []
         self.updated_payloads: list[tuple[UUID, dict]] = []
+        self.user_by_username: SimpleNamespace | None = None
+
+    async def get_by_username(self, username: str) -> SimpleNamespace | None:
+        _ = username
+        return self.user_by_username
 
     async def create(self, username: str, **kwargs) -> SimpleNamespace:
         self.created_payloads.append((username, kwargs))
@@ -306,6 +311,41 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypat
     assert user_gateway.updated_payloads[0][1]["traffic_limit_bytes"] is None
     assert user_gateway.updated_payloads[0][1]["hwid_device_limit"] == 5
     assert "external_squad_uuid" not in user_gateway.updated_payloads[0][1]
+
+
+@pytest.mark.asyncio
+async def test_remnawave_paid_gateway_updates_existing_username_before_create() -> None:
+    existing_uuid = uuid4()
+    user_gateway = FakeRemnawaveUserGateway()
+    user_gateway.user_by_username = SimpleNamespace(
+        uuid=existing_uuid,
+        status="ACTIVE",
+        expires_at=None,
+        subscription_url="https://subscription.example.local/sub/redacted-existing",
+    )
+    gateway = RemnawaveStage1PaidProvisioningGateway(user_gateway)  # type: ignore[arg-type]
+    requested_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
+    request = build_stage1_paid_provisioning_request(
+        customer_account_id=uuid4(),
+        order_id=uuid4(),
+        email="paid-user@example.test",
+        username=None,
+        telegram_id=None,
+        order_status=STAGE1_PAID_ORDER_STATUS,
+        settlement_status=STAGE1_PAID_SETTLEMENT_STATUS,
+        plan_duration_days=30,
+        paid_at=requested_at,
+        provisioning_requested_at=requested_at,
+        traffic_limit_bytes=200 * 1024 * 1024 * 1024,
+        device_limit=3,
+    )
+
+    result = await gateway.provision_paid_access(request)
+
+    assert result.created is False
+    assert result.remnawave_uuid == str(existing_uuid)
+    assert user_gateway.created_payloads == []
+    assert user_gateway.updated_payloads[0][0] == existing_uuid
 
 
 @pytest.mark.asyncio

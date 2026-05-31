@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { addonsApi } from '@/lib/api/addons';
 import { paymentsApi } from '@/lib/api/payments';
 import { plansApi } from '@/lib/api/plans';
+import { pricebooksApi } from '@/lib/api/pricebooks';
 import { subscriptionsApi } from '@/lib/api/subscriptions';
 import { adminWalletApi } from '@/lib/api/wallet';
 import { CommercePageShell } from '@/features/commerce/components/commerce-page-shell';
@@ -55,6 +56,16 @@ export function CommerceOverview() {
     queryKey: ['commerce', 'addons'],
     queryFn: async () => {
       const response = await addonsApi.listAdmin({ include_inactive: true });
+      return response.data;
+    },
+    staleTime: 60_000,
+  });
+  const pricebooksQuery = useQuery({
+    queryKey: ['commerce', 'pricebooks', 'admin'],
+    queryFn: async () => {
+      const response = await pricebooksApi.listCommercialAdmin({
+        include_inactive: true,
+      });
       return response.data;
     },
     staleTime: 60_000,
@@ -111,9 +122,9 @@ export function CommerceOverview() {
           tone: 'neutral',
         },
         {
-          label: t('overview.metrics.payments'),
-          value: formatCompactNumber(paymentsQuery.data?.length),
-          hint: t('overview.metrics.paymentsHint'),
+          label: t('overview.metrics.pricebooks'),
+          value: formatCompactNumber(pricebooksQuery.data?.length),
+          hint: t('overview.metrics.pricebooksHint'),
           tone: 'success',
         },
         {
@@ -143,6 +154,16 @@ export function CommerceOverview() {
                 href: '/commerce/addons',
                 title: t('nav.addons'),
                 description: t('overview.routes.addons'),
+              },
+              {
+                href: '/commerce/pricebooks',
+                title: t('nav.pricebooks'),
+                description: t('overview.routes.pricebooks'),
+              },
+              {
+                href: '/commerce/catalog-preview',
+                title: t('nav.catalogPreview'),
+                description: t('overview.routes.catalogPreview'),
               },
               {
                 href: '/commerce/subscription-templates',

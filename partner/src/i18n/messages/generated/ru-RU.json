@@ -4683,6 +4683,27 @@
         },
         "title": "Reseller capability posture"
       },
+      "commercialPreview": {
+        "boolean": {
+          "no": "Нет",
+          "yes": "Да"
+        },
+        "contractTitle": "Storefront contract",
+        "description": "Рассчитывайте выбранный storefront contract и effective catalog в read-only режиме до отправки live traffic партнёром.",
+        "empty": "Для этого reseller workspace пока не назначен storefront.",
+        "entryPath": "Entry path",
+        "error": "Не удалось загрузить reseller commercial preview.",
+        "metrics": {
+          "billingPeriods": "Billing periods",
+          "currency": "Валюта",
+          "sideEffects": "Checkout side effects",
+          "status": "Статус"
+        },
+        "partnerCode": "Partner code",
+        "routeHost": "Route host",
+        "selectLabel": "Preview storefront",
+        "title": "Commercial preview"
+      },
       "eyebrow": "PP6 RESELLER OPERATIONS CONSOLE",
       "links": {
         "conversions": "Открыть conversions / orders",
@@ -4726,14 +4747,18 @@
         "title": "Voucher batches"
       },
       "voucherRequest": {
+        "countLabel": "Количество vouchers",
         "countPlaceholder": "Количество voucher codes",
         "description": "Выпускайте reseller-scoped voucher batch прямо из partner surface. Raw codes показываются один раз сразу после issuance.",
         "error": "Не удалось выпустить reseller voucher batch.",
         "issuedCodesTitle": "Выпущенные коды",
+        "messageLabel": "Сообщение batch",
         "messagePlaceholder": "Необязательная заметка или сообщение для этого voucher pack.",
+        "planLabel": "Subscription plan",
         "planPlaceholder": "Выберите subscription plan",
         "planRequired": "Выберите subscription plan перед запросом vouchers.",
         "readOnly": "Эта роль может просматривать voucher posture, но новые reseller voucher requests заблокированы.",
+        "recipientHintLabel": "Получатель или кампания",
         "recipientHintPlaceholder": "Recipient hint или campaign label",
         "submit": "Выпустить voucher batch",
         "submitting": "Выпуск...",

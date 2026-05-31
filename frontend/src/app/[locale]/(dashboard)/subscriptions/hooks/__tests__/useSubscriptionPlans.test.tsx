@@ -16,6 +16,88 @@ import { server } from '@/test/mocks/server';
 
 const API_BASE = '*/api/v1';
 
+function createCatalog(plans = [
+  {
+    planCode: 'plus',
+    displayName: 'Plus',
+    version: 'v1',
+    billingPeriods: [
+      {
+        planId: '11111111-1111-1111-1111-111111111111',
+        catalogItemKey: 'plus_30',
+        durationDays: 30,
+        displayPrice: { amount: '9.99', currency: 'USD', minorUnits: 2 },
+        version: 'v1',
+        quote: {
+          planId: '11111111-1111-1111-1111-111111111111',
+          planCode: 'plus',
+          billingPeriodDays: 30,
+          currency: 'USD',
+          catalogItemKey: 'plus_30',
+          contextCacheKey: 'ctx-usd',
+        },
+        includedAddonCodes: [],
+        availability: ['web'],
+        metadata: {},
+      },
+    ],
+    devicesIncluded: 5,
+    trafficLimitBytes: null,
+    trafficPolicy: {
+      mode: 'fair_use',
+      display_label: 'Unlimited',
+      enforcement_profile: null,
+    },
+    connectionModes: ['standard', 'stealth'],
+    serverPool: ['shared_plus'],
+    supportSla: 'standard',
+    dedicatedIp: { included: 0, eligible: true },
+    inviteBundle: { count: 0, friend_days: 0, expiry_days: 0 },
+    trialEligible: false,
+    promoEligible: true,
+    metadata: {},
+  },
+]) {
+  return {
+    catalogVersion: 'v1',
+    cacheKey: 'catalog-usd',
+    context: {
+      uiLocale: 'en-EN',
+      displayCountry: 'US',
+      pricingCountry: 'US',
+      paymentCountry: 'US',
+      currency: 'USD',
+      confidence: 'explicit',
+      selectableCountries: ['US'],
+      selectableCurrencies: ['USD'],
+      paymentMethods: {
+        availableMethods: ['crypto'],
+        webCheckout: true,
+        cryptobot: true,
+        telegramStars: false,
+        manualInvoice: false,
+        autorenewal: false,
+      },
+      cacheKey: 'ctx-usd',
+      resolutionTrace: ['test'],
+    },
+    plans,
+    addons: [],
+    trialEligible: false,
+    promoEligible: true,
+    metadata: {
+      policyIds: [],
+      source: 'test',
+      channel: 'web',
+      storefrontKey: 'cybervpn-web',
+      addonsEnabled: false,
+      promoCodesEnabled: true,
+      checkoutCodeDiscountsEnabled: true,
+      invalidationEvents: [],
+    },
+  };
+}
+
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -34,34 +116,9 @@ describe('useSubscriptionPlans', () => {
   });
 
   it('test_fetches_subscription_plans_successfully', async () => {
-    const mockPlans = [
-      {
-        uuid: 'plan-1',
-        name: 'Basic',
-        price: 4.99,
-        currency: 'USD',
-        durationDays: 30,
-        dataLimitGb: 100,
-        maxDevices: 3,
-        features: ['Fast speeds', '50+ servers'],
-        isActive: true,
-      },
-      {
-        uuid: 'plan-2',
-        name: 'Premium',
-        price: 9.99,
-        currency: 'USD',
-        durationDays: 30,
-        dataLimitGb: null,
-        maxDevices: 10,
-        features: ['Unlimited bandwidth', 'All servers', 'Priority support'],
-        isActive: true,
-      },
-    ];
-
     server.use(
-      http.get(`${API_BASE}/plans`, () => {
-        return HttpResponse.json(mockPlans);
+      http.get(`${API_BASE}/catalog/`, () => {
+        return HttpResponse.json(createCatalog());
       })
     );
 
@@ -78,14 +135,24 @@ describe('useSubscriptionPlans', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data).toEqual(mockPlans);
+    expect(result.current.data).toMatchObject([
+      {
+        uuid: '11111111-1111-1111-1111-111111111111',
+        plan_code: 'plus',
+        display_name: 'Plus',
+        duration_days: 30,
+        public_catalog_quote: {
+          contextCacheKey: 'ctx-usd',
+        },
+      },
+    ]);
     expect(result.current.isLoading).toBe(false);
   });
 
   it('test_handles_empty_plans_list', async () => {
     server.use(
-      http.get(`${API_BASE}/plans`, () => {
-        return HttpResponse.json([]);
+      http.get(`${API_BASE}/catalog/`, () => {
+        return HttpResponse.json(createCatalog([]));
       })
     );
 
@@ -102,7 +169,7 @@ describe('useSubscriptionPlans', () => {
 
   it('test_handles_api_error', async () => {
     server.use(
-      http.get(`${API_BASE}/plans`, () => {
+      http.get(`${API_BASE}/catalog/`, () => {
         return HttpResponse.json(
           { detail: 'Internal server error' },
           { status: 500 }
@@ -124,8 +191,8 @@ describe('useSubscriptionPlans', () => {
 
   it('test_uses_correct_query_key', async () => {
     server.use(
-      http.get(`${API_BASE}/plans`, () => {
-        return HttpResponse.json([]);
+      http.get(`${API_BASE}/catalog/`, () => {
+        return HttpResponse.json(createCatalog([]));
       })
     );
 
@@ -165,8 +232,8 @@ describe('useSubscriptionPlans', () => {
     };
 
     server.use(
-      http.get(`${API_BASE}/plans`, () => {
-        return HttpResponse.json([]);
+      http.get(`${API_BASE}/catalog/`, () => {
+        return HttpResponse.json(createCatalog([]));
       })
     );
 

@@ -25,8 +25,11 @@ function persistCurrency(currency: SupportedCurrency) {
   window.dispatchEvent(new CustomEvent(CURRENCY_CHANGE_EVENT, { detail: { currency } }));
 }
 
-export function useCurrencyPreference(locale: string) {
-  const localeDefaultCurrency = getDefaultCurrencyForLocale(locale);
+export function useCurrencyPreference(
+  locale: string,
+  defaultCurrency?: SupportedCurrency,
+) {
+  const localeDefaultCurrency = defaultCurrency ?? getDefaultCurrencyForLocale(locale);
   const [storedCurrency, setStoredCurrency] = useState<SupportedCurrency | null>(() => readStoredCurrency());
   const currency = storedCurrency ?? localeDefaultCurrency;
 

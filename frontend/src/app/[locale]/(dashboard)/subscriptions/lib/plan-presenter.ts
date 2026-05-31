@@ -1,11 +1,21 @@
 import type { components } from '@/lib/api/generated/types';
+import type {
+  PublicCatalogMoneyResponse,
+  PublicCatalogPlanResponse,
+  PublicCatalogQuoteHandoffResponse,
+  PublicCommercialCatalogResponse,
+} from '@/lib/api/commercial-catalog';
 import {
   formatMoney,
   getPricePresentation,
   type LocalDisplayEstimate,
 } from '@/shared/lib/pricing-display';
 
-export type SubscriptionPlan = components['schemas']['PlanResponse'];
+export type SubscriptionPlan = components['schemas']['PlanResponse'] & {
+  public_catalog_price?: PublicCatalogMoneyResponse;
+  public_catalog_quote?: PublicCatalogQuoteHandoffResponse;
+  public_catalog_context_key?: string;
+};
 export type SubscriptionQuote = components['schemas']['CheckoutQuoteResponse'];
 
 export { formatMoney };
@@ -30,7 +40,109 @@ const SUPPORT_LABELS: Record<string, string> = {
   vip: 'VIP support',
 };
 
+const PUBLIC_PLAN_ORDER = ['basic', 'plus', 'pro', 'max'];
+
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function normalizeTrafficPolicy(value: Record<string, unknown>) {
+  return {
+    mode: typeof value.mode === 'string' ? value.mode : 'fair_use',
+    display_label:
+      typeof value.display_label === 'string'
+        ? value.display_label
+        : typeof value.displayLabel === 'string'
+          ? value.displayLabel
+          : 'Unlimited',
+    enforcement_profile:
+      typeof value.enforcement_profile === 'string'
+        ? value.enforcement_profile
+        : typeof value.enforcementProfile === 'string'
+          ? value.enforcementProfile
+          : null,
+  };
+}
+
+function normalizeDedicatedIp(value: Record<string, unknown>) {
+  return {
+    included: toNumber(value.included),
+    eligible: value.eligible === true,
+  };
+}
+
+function normalizeInviteBundle(value: Record<string, unknown>) {
+  return {
+    count: toNumber(value.count),
+    friend_days: toNumber(value.friend_days ?? value.friendDays),
+    expiry_days: toNumber(value.expiry_days ?? value.expiryDays),
+  };
+}
+
+function planSortOrder(plan: PublicCatalogPlanResponse, durationDays: number) {
+  const planIndex = PUBLIC_PLAN_ORDER.indexOf(plan.planCode);
+  const planOrder = planIndex === -1 ? PUBLIC_PLAN_ORDER.length : planIndex;
+  return planOrder * 1000 + durationDays;
+}
+
+export function mapPublicCatalogToSubscriptionPlans(
+  catalog: PublicCommercialCatalogResponse,
+): SubscriptionPlan[] {
+  return catalog.plans.flatMap((plan) => {
+    const metadata = toRecord(plan.metadata);
+
+    return plan.billingPeriods.map((period) => ({
+      uuid: period.planId,
+      name: period.catalogItemKey,
+      plan_code: plan.planCode,
+      display_name: plan.displayName,
+      catalog_visibility: 'public',
+      duration_days: period.durationDays,
+      traffic_limit_bytes: plan.trafficLimitBytes,
+      devices_included: plan.devicesIncluded,
+      price_usd: toNumber(period.displayPrice.amount),
+      price_rub: null,
+      traffic_policy: normalizeTrafficPolicy(plan.trafficPolicy),
+      connection_modes: plan.connectionModes,
+      server_pool: plan.serverPool,
+      support_sla: plan.supportSla,
+      dedicated_ip: normalizeDedicatedIp(plan.dedicatedIp),
+      sale_channels: [catalog.metadata.channel],
+      invite_bundle: normalizeInviteBundle(plan.inviteBundle),
+      trial_eligible: plan.trialEligible,
+      features: {
+        ...metadata,
+        catalog_version: catalog.catalogVersion,
+        pricing_country: catalog.context.pricingCountry,
+        payment_country: catalog.context.paymentCountry,
+      },
+      is_active: true,
+      sort_order: planSortOrder(plan, period.durationDays),
+      public_catalog_price: period.displayPrice,
+      public_catalog_quote: period.quote,
+      public_catalog_context_key: catalog.context.cacheKey,
+    }));
+  });
+}
+
 export function getPlanPrice(plan: SubscriptionPlan, locale: string) {
+  if (plan.public_catalog_price) {
+    const amount = toNumber(plan.public_catalog_price.amount);
+    return {
+      amount,
+      currency: plan.public_catalog_price.currency,
+      formatted: formatMoney(locale, amount, plan.public_catalog_price.currency),
+      localEstimate: null,
+    };
+  }
+
   const price = getPricePresentation(locale, plan);
   const localEstimate: (LocalDisplayEstimate & { formatted: string }) | null =
     price.localEstimate

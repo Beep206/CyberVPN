@@ -150,5 +150,15 @@
     "error": "Trial activation failed. Retry or contact support.",
     "eyebrow": "Trial access",
     "success": "Trial activated. Access state is refreshing."
+  },
+  "checkoutQuote": {
+    "chargedIn": "Charged in {currency}",
+    "expiredTitle": "Quote expired",
+    "expiredBody": "Refresh the quote before checkout so backend totals, country and currency are current.",
+    "gatewayAmount": "Gateway amount: {amount}. Charged in {currency}.",
+    "loadError": "Failed to load checkout quote",
+    "refreshCta": "Refresh quote",
+    "refreshing": "Refreshing quote...",
+    "refreshError": "Failed to refresh checkout quote"
   }
 }

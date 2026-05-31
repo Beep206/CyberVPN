@@ -4,7 +4,9 @@
   "introPills": {
     "plans": "4 плана",
     "periods": "4 периода",
-    "addons": "Опции"
+    "addons": "Опции",
+    "live": "Живой каталог",
+    "unavailable": "Каталог недоступен"
   },
   "periods": {
     "label": "Выберите срок подписки",
@@ -148,5 +150,20 @@
         "a": "Нет. Это premium option. Его можно докупить как add-on на paid-планах, а в Max один dedicated IP уже включён."
       }
     ]
+  },
+  "commercialContext": {
+    "title": "Коммерческий context",
+    "resolved": "Pricing country {country} · {currency}"
+  },
+  "countrySelector": {
+    "aria": "Выбрать страну",
+    "empty": "Страна не найдена",
+    "search": "ПОИСК_СТРАНЫ...",
+    "searchAria": "Поиск стран",
+    "title": "SELECT_COUNTRY"
+  },
+  "catalog": {
+    "unavailableTitle": "Каталог временно недоступен",
+    "unavailableBody": "Цены загружаются только из backend commercial catalog. Обновите страницу после восстановления сервиса каталога."
   }
 }
