@@ -19271,8 +19271,21 @@
           "payments"
         ],
         "summary": "Commit Checkout",
-        "description": "Create a local payment and optionally a CryptoBot invoice for the checkout basket.",
+        "description": "Fail closed instead of committing payment from client-supplied quote inputs.",
         "operationId": "commit_checkout_api_v1_payments_checkout_commit_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -19294,6 +19307,9 @@
               }
             }
           },
+          "410": {
+            "description": "Legacy checkout commit is disabled"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -19305,6 +19321,7 @@
             }
           }
         },
+        "deprecated": true,
         "security": [
           {
             "HTTPBearer": []
@@ -19365,8 +19382,21 @@
           "payments"
         ],
         "summary": "Checkout Alias",
-        "description": "Backward-compatible alias for commit checkout.",
+        "description": "Backward-compatible alias for the disabled legacy checkout commit.",
         "operationId": "checkout_alias_api_v1_payments_checkout_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -19387,6 +19417,9 @@
                 }
               }
             }
+          },
+          "410": {
+            "description": "Legacy checkout commit is disabled"
           },
           "422": {
             "description": "Validation Error",

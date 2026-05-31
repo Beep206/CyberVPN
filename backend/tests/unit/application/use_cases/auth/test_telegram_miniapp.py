@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from src.application.services.telegram_init_data_replay import TelegramInitDataReplayedError
 from src.application.use_cases.auth.telegram_miniapp import (
     TelegramMiniAppResult,
     TelegramMiniAppUseCase,
@@ -43,8 +44,17 @@ class TestTelegramMiniAppUseCase:
             "username": "testuser",
             "photo_url": None,
             "language_code": "en",
+            "auth_date": "1760000000",
+            "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":123456789}",
         }
+        provider.max_auth_age_seconds = 86400
         return provider
+
+    @pytest.fixture
+    def mock_replay_guard(self):
+        guard = AsyncMock()
+        guard.accept.return_value = None
+        return guard
 
     @pytest.fixture
     def make_user(self):
@@ -64,12 +74,13 @@ class TestTelegramMiniAppUseCase:
         return _make
 
     @pytest.fixture
-    def use_case(self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider):
+    def use_case(self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, mock_replay_guard):
         return TelegramMiniAppUseCase(
             user_repo=mock_user_repo,
             auth_service=mock_auth_service,
             session=mock_session,
             telegram_provider=mock_telegram_provider,
+            replay_guard=mock_replay_guard,
         )
 
     @pytest.mark.unit
@@ -86,6 +97,33 @@ class TestTelegramMiniAppUseCase:
         assert result.access_token == "access_tok"
         assert result.user == existing
         mock_user_repo.create.assert_not_called()
+
+    @pytest.mark.unit
+    async def test_valid_init_data_is_recorded_by_replay_guard(
+        self, use_case, mock_user_repo, mock_replay_guard, make_user
+    ):
+        mock_user_repo.get_by_telegram_id.return_value = make_user()
+
+        await use_case.execute("valid_init_data")
+
+        mock_replay_guard.accept.assert_awaited_once_with(
+            canonical_init_data="auth_date=1760000000\nuser={\"id\":123456789}",
+            telegram_id="123456789",
+            auth_date=1760000000,
+            max_age_seconds=86400,
+        )
+
+    @pytest.mark.unit
+    async def test_replayed_init_data_raises_invalid_init_data(
+        self, use_case, mock_user_repo, mock_replay_guard, make_user
+    ):
+        mock_user_repo.get_by_telegram_id.return_value = make_user()
+        mock_replay_guard.accept.side_effect = TelegramInitDataReplayedError("replay")
+
+        with pytest.raises(ValueError, match="Invalid or expired"):
+            await use_case.execute("valid_init_data")
+
+        mock_user_repo.get_by_telegram_id.assert_not_called()
 
     @pytest.mark.unit
     async def test_new_user_auto_register(self, use_case, mock_user_repo, make_user):
@@ -131,10 +169,24 @@ class TestTelegramMiniAppUseCase:
             "last_name": None,
             "photo_url": None,
             "language_code": None,
+            "auth_date": "1760000000",
+            "replay_canonical_init_data": "auth_date=1760000000\nuser={\"id\":\"\"}",
         }
 
         with pytest.raises(ValueError, match="user ID missing"):
             await use_case.execute("some_data")
+
+    @pytest.mark.unit
+    async def test_missing_canonical_replay_material_raises(self, use_case, mock_telegram_provider):
+        mock_telegram_provider.validate_init_data.return_value = {
+            "id": "123456789",
+            "first_name": "Test",
+            "username": "testuser",
+            "auth_date": "1760000000",
+        }
+
+        with pytest.raises(ValueError, match="Invalid or expired"):
+            await use_case.execute("valid_init_data")
 
     @pytest.mark.unit
     async def test_new_user_is_active_and_verified(self, use_case, mock_user_repo, make_user):
@@ -150,7 +202,7 @@ class TestTelegramMiniAppUseCase:
 
     @pytest.mark.unit
     async def test_remnawave_called_for_new_user(
-        self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, make_user
+        self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, mock_replay_guard, make_user
     ):
         mock_user_repo.get_by_telegram_id.return_value = None
         mock_user_repo.get_by_login.return_value = None
@@ -162,6 +214,7 @@ class TestTelegramMiniAppUseCase:
             auth_service=mock_auth_service,
             session=mock_session,
             telegram_provider=mock_telegram_provider,
+            replay_guard=mock_replay_guard,
             remnawave_gateway=remnawave,
         )
 
@@ -171,7 +224,7 @@ class TestTelegramMiniAppUseCase:
 
     @pytest.mark.unit
     async def test_remnawave_failure_non_fatal(
-        self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, make_user
+        self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, mock_replay_guard, make_user
     ):
         mock_user_repo.get_by_telegram_id.return_value = None
         mock_user_repo.get_by_login.return_value = None
@@ -184,6 +237,7 @@ class TestTelegramMiniAppUseCase:
             auth_service=mock_auth_service,
             session=mock_session,
             telegram_provider=mock_telegram_provider,
+            replay_guard=mock_replay_guard,
             remnawave_gateway=remnawave,
         )
 
@@ -193,7 +247,7 @@ class TestTelegramMiniAppUseCase:
 
     @pytest.mark.unit
     async def test_remnawave_not_called_for_existing_user(
-        self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, make_user
+        self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, mock_replay_guard, make_user
     ):
         mock_user_repo.get_by_telegram_id.return_value = make_user()
 
@@ -203,6 +257,7 @@ class TestTelegramMiniAppUseCase:
             auth_service=mock_auth_service,
             session=mock_session,
             telegram_provider=mock_telegram_provider,
+            replay_guard=mock_replay_guard,
             remnawave_gateway=remnawave,
         )
 

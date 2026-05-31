@@ -9,17 +9,36 @@ import json
 import secrets
 import time
 from unittest.mock import AsyncMock, patch
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, quote_plus, urlencode
 
 import pytest
+import redis.exceptions
+from fastapi import HTTPException
 
+from src.application.services.telegram_init_data_replay import TelegramInitDataReplayedError
 from src.infrastructure.cache.bot_link_tokens import (
     consume_bot_link_token,
     generate_bot_link_token,
 )
+from src.infrastructure.cache.telegram_init_data_replay import RedisTelegramInitDataReplayGuard
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
+from src.presentation.dependencies.telegram_rate_limit import _check_rate_limit
 
 BOT_TOKEN = "7654321:AAHfVcYK-test-security-token"
+
+
+class _FakeReplayRedis:
+    def __init__(self) -> None:
+        self._keys: set[str] = set()
+        self.ttls: list[int] = []
+
+    async def set(self, key: str, value: str, *, ex: int, nx: bool) -> bool | None:
+        _ = value
+        self.ttls.append(ex)
+        if nx and key in self._keys:
+            return None
+        self._keys.add(key)
+        return True
 
 
 def _build_init_data(
@@ -43,6 +62,37 @@ def _build_init_data(
     return urlencode(params, quote_via=quote)
 
 
+def _build_canonical_equivalent_init_data_pair(bot_token: str) -> tuple[str, str]:
+    auth_date = int(time.time())
+    user = {"id": 123456789, "first_name": "Test User", "username": "testuser"}
+    user_json = json.dumps(user, separators=(",", ":"))
+    params: dict[str, str] = {
+        "auth_date": str(auth_date),
+        "user": user_json,
+    }
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    hash_value = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
+    primary = urlencode(
+        [
+            ("auth_date", params["auth_date"]),
+            ("user", params["user"]),
+            ("hash", hash_value),
+        ],
+        quote_via=quote,
+    )
+    reordered_plus_encoded = urlencode(
+        [
+            ("hash", hash_value),
+            ("user", params["user"]),
+            ("auth_date", params["auth_date"]),
+        ],
+        quote_via=quote_plus,
+    )
+    return primary, reordered_plus_encoded
+
+
 class TestInitDataReplayAttack:
     """Replay: reuse same initData within freshness window."""
 
@@ -55,19 +105,61 @@ class TestInitDataReplayAttack:
             yield mock
 
     @pytest.mark.security
-    def test_initdata_replay_within_window_passes(self):
-        """initData is stateless — replay within auth_date freshness is valid."""
+    async def test_initdata_replay_within_window_is_rejected_by_guard(self):
+        """Same validated initData is accepted once, then rejected until freshness expiry."""
         provider = TelegramOAuthProvider()
         init_data = _build_init_data(BOT_TOKEN)
 
-        # First validation
-        result1 = provider.validate_init_data(init_data)
-        assert result1 is not None
+        result = provider.validate_init_data(init_data)
+        assert result is not None
+        guard = RedisTelegramInitDataReplayGuard(_FakeReplayRedis())  # type: ignore[arg-type]
 
-        # Second validation (replay) — still valid since within 24h window
-        result2 = provider.validate_init_data(init_data)
-        assert result2 is not None
-        assert result1["id"] == result2["id"]
+        await guard.accept(
+            canonical_init_data=result["replay_canonical_init_data"],
+            telegram_id=result["id"],
+            auth_date=int(result["auth_date"]),
+            max_age_seconds=86400,
+        )
+
+        with pytest.raises(TelegramInitDataReplayedError):
+            await guard.accept(
+                canonical_init_data=result["replay_canonical_init_data"],
+                telegram_id=result["id"],
+                auth_date=int(result["auth_date"]),
+                max_age_seconds=86400,
+            )
+
+    @pytest.mark.security
+    async def test_canonical_equivalent_initdata_replay_variants_are_rejected(self):
+        """Equivalent signed initData with different order/encoding replays the same Redis key."""
+        provider = TelegramOAuthProvider()
+        primary_init_data, equivalent_init_data = _build_canonical_equivalent_init_data_pair(BOT_TOKEN)
+        assert primary_init_data != equivalent_init_data
+
+        primary_result = provider.validate_init_data(primary_init_data)
+        equivalent_result = provider.validate_init_data(equivalent_init_data)
+        assert primary_result is not None
+        assert equivalent_result is not None
+        assert primary_result["id"] == equivalent_result["id"]
+        assert primary_result["auth_date"] == equivalent_result["auth_date"]
+        assert primary_result["replay_canonical_init_data"] == equivalent_result["replay_canonical_init_data"]
+
+        guard = RedisTelegramInitDataReplayGuard(_FakeReplayRedis())  # type: ignore[arg-type]
+
+        await guard.accept(
+            canonical_init_data=primary_result["replay_canonical_init_data"],
+            telegram_id=primary_result["id"],
+            auth_date=int(primary_result["auth_date"]),
+            max_age_seconds=86400,
+        )
+
+        with pytest.raises(TelegramInitDataReplayedError):
+            await guard.accept(
+                canonical_init_data=equivalent_result["replay_canonical_init_data"],
+                telegram_id=equivalent_result["id"],
+                auth_date=int(equivalent_result["auth_date"]),
+                max_age_seconds=86400,
+            )
 
     @pytest.mark.security
     def test_initdata_replay_after_expiry_fails(self):
@@ -203,3 +295,19 @@ class TestBruteForceProtection:
         assert TelegramMiniAppRateLimit is not None
         assert TelegramBotLinkRateLimit is not None
         assert GenerateLinkRateLimit is not None
+
+    @pytest.mark.security
+    async def test_telegram_rate_limit_redis_outage_fails_closed_in_production(self, monkeypatch):
+        """Fake Redis outage rejects Telegram auth attempts in production mode."""
+        from src.presentation.dependencies import telegram_rate_limit
+
+        monkeypatch.setattr(telegram_rate_limit.settings, "environment", "production")
+        with patch(
+            "src.presentation.dependencies.telegram_rate_limit.get_redis_pool",
+            side_effect=redis.exceptions.ConnectionError("fake redis outage"),
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await _check_rate_limit("cybervpn:tg_auth:miniapp:ip:test", 10)
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.headers == {"Retry-After": "30"}

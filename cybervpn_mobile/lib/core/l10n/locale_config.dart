@@ -1,12 +1,14 @@
 import 'dart:ui' show Locale;
 
-/// All 38 supported locales for the application.
+/// Locale policy for the application.
 ///
-/// Maps locale code strings (used in settings storage) to [Locale] objects.
-/// The string codes follow the pattern used by the admin dashboard, mapped
-/// to Flutter's [Locale] system:
+/// [supportedLocaleCodes] is the active ARB resource inventory. Locale codes
+/// not listed here are outside the mobile inventory even if stale generated
+/// files or old settings still reference them.
 ///
-/// - Simple language codes: `en`, `ru`, `de`, etc.
+/// [selectableLocaleCodes] is the reviewed language-picker inventory. Non-
+/// selectable resources are fallback-only until translation and RTL QA are
+/// approved.
 ///
 /// RTL locales: `ar`, `he`, `fa`, `ur`, `ku`.
 class LocaleConfig {
@@ -18,7 +20,10 @@ class LocaleConfig {
   /// RTL (right-to-left) locale codes.
   static const Set<String> rtlLocaleCodes = {'ar', 'he', 'fa', 'ur', 'ku'};
 
-  /// All supported locale codes in order.
+  /// Reviewed locales that can be selected by users.
+  static const Set<String> selectableLocaleCodes = {'en'};
+
+  /// Active ARB resource locale codes in order.
   ///
   /// These codes are used as the storage key in [AppSettings.locale].
   static const List<String> supportedLocaleCodes = [
@@ -69,8 +74,8 @@ class LocaleConfig {
 
   /// Converts a locale code string to a Flutter [Locale] object.
   ///
-  /// Handles script-based locales like `zh_Hant` by splitting on `_` and
-  /// using [Locale.fromSubtags].
+  /// Handles future script-based locales by splitting on `_` and using
+  /// [Locale.fromSubtags].
   static Locale localeFromCode(String code) {
     if (code.contains('_')) {
       final parts = code.split('_');
@@ -84,4 +89,12 @@ class LocaleConfig {
 
   /// Whether the given locale code represents an RTL language.
   static bool isRtl(String code) => rtlLocaleCodes.contains(code);
+
+  /// Whether the given locale code is reviewed and user-selectable.
+  static bool isSelectable(String code) => selectableLocaleCodes.contains(code);
+
+  /// Falls back to the default locale when a stored locale is not selectable.
+  static String normalizeSelectableLocaleCode(String code) {
+    return isSelectable(code) ? code : defaultLocaleCode;
+  }
 }

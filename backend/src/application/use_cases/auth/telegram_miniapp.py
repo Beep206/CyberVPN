@@ -12,6 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
+from src.application.services.telegram_init_data_replay import (
+    TelegramInitDataReplayedError,
+    TelegramInitDataReplayGuard,
+)
 from src.application.use_cases.auth.oauth_login import OAuthLoginUseCase
 from src.application.use_cases.auth.verify_otp import RemnawaveGateway
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -67,6 +71,7 @@ class TelegramMiniAppUseCase:
         auth_service: AuthService,
         session: AsyncSession,
         telegram_provider: TelegramOAuthProvider,
+        replay_guard: TelegramInitDataReplayGuard,
         remnawave_gateway: RemnawaveGateway | None = None,
         allow_new_users: bool = True,
         bootstrap_usernames: str | None = None,
@@ -75,6 +80,7 @@ class TelegramMiniAppUseCase:
         self._auth_service = auth_service
         self._session = session
         self._telegram = telegram_provider
+        self._replay_guard = replay_guard
         self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
         self._bootstrap_usernames = _normalize_bootstrap_usernames(bootstrap_usernames)
@@ -104,6 +110,25 @@ class TelegramMiniAppUseCase:
         telegram_id = user_info["id"]
         if not telegram_id:
             raise ValueError("Telegram user ID missing from initData")
+
+        replay_canonical_init_data = user_info.get("replay_canonical_init_data")
+        if not isinstance(replay_canonical_init_data, str) or not replay_canonical_init_data:
+            raise ValueError("Invalid or expired Telegram initData")
+
+        try:
+            auth_date = int(str(user_info["auth_date"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Invalid or expired Telegram initData") from exc
+
+        try:
+            await self._replay_guard.accept(
+                canonical_init_data=replay_canonical_init_data,
+                telegram_id=str(telegram_id),
+                auth_date=auth_date,
+                max_age_seconds=int(self._telegram.max_auth_age_seconds),
+            )
+        except TelegramInitDataReplayedError as exc:
+            raise ValueError("Invalid or expired Telegram initData") from exc
 
         username = user_info.get("username")
         first_name = user_info.get("first_name")

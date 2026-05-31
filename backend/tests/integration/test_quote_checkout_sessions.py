@@ -304,6 +304,154 @@ async def _seed_quote_context(sessionmaker, auth_service: AuthService) -> dict[s
 
 
 @pytest.mark.asyncio
+async def test_legacy_payment_commit_is_disabled_and_quote_uses_pricebook_amount(
+    async_client: AsyncClient,
+) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+            legacy_body = {
+                "plan_id": seeded["plan_id"],
+                "currency": "USD",
+                "channel": "web",
+                "use_wallet": 0,
+                "addons": [],
+            }
+
+            missing_key_response = await async_client.post(
+                "/api/v1/payments/checkout/commit",
+                headers=headers,
+                json=legacy_body,
+            )
+            assert missing_key_response.status_code == 422
+
+            legacy_response = await async_client.post(
+                "/api/v1/payments/checkout/commit",
+                headers={**headers, "Idempotency-Key": "legacy-disabled-1"},
+                json=legacy_body,
+            )
+            assert legacy_response.status_code == 410
+            assert "disabled" in legacy_response.json()["detail"]
+
+            alias_response = await async_client.post(
+                "/api/v1/payments/checkout",
+                headers={**headers, "Idempotency-Key": "legacy-disabled-alias-1"},
+                json=legacy_body,
+            )
+            assert alias_response.status_code == 410
+
+            quote_response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "USD",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert quote_response.status_code == 201
+            quote_payload = quote_response.json()
+            assert quote_payload["quote"]["base_price"] == 75.0
+            assert quote_payload["quote"]["displayed_price"] == 75.0
+            assert quote_payload["quote"]["gateway_amount"] == 75.0
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
+async def test_quote_session_rejects_pricebook_currency_mismatch(async_client: AsyncClient) -> None:
+    auth_service = AuthService()
+    fake_redis = FakeRedis()
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+
+    async def _override_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = _override_redis
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            seeded = await _seed_quote_context(sessionmaker, auth_service)
+            customer_realm = AuthRealmModel(
+                id=uuid.UUID(seeded["customer_realm_id"]),
+                realm_key=seeded["customer_realm_key"],
+                realm_type="customer",
+                display_name="Customer Realm",
+                audience=seeded["customer_realm_audience"],
+                cookie_namespace="customer",
+                status="active",
+                is_default=True,
+            )
+            access_token = _make_customer_access_token(
+                auth_service,
+                user_id=seeded["customer_user_id"],
+                customer_realm=customer_realm,
+            )
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "X-Auth-Realm": "customer",
+            }
+
+            response = await async_client.post(
+                "/api/v1/quotes/",
+                headers=headers,
+                json={
+                    "storefront_key": seeded["storefront_key"],
+                    "pricebook_key": seeded["pricebook_key"],
+                    "offer_key": seeded["offer_key"],
+                    "plan_id": seeded["plan_id"],
+                    "currency": "EUR",
+                    "channel": "web",
+                    "use_wallet": 0,
+                    "addons": [],
+                },
+            )
+            assert response.status_code == 400
+            assert "currency" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_redis, None)
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
+@pytest.mark.asyncio
 async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_client: AsyncClient) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()

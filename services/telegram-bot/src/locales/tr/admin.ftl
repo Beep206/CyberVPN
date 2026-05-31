@@ -128,3 +128,5 @@ admin-system-health = 🏥 <b>System Health</b>
     🟢 Redis: { $redis_status }
     🟢 Bot: { $bot_uptime }
     📊 Memory: { $memory_usage }
+
+admin-plan-open-offer = 🔗 Open Direct Offer

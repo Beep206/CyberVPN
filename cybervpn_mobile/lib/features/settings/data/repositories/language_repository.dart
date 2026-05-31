@@ -1,15 +1,17 @@
+import 'package:cybervpn_mobile/core/l10n/locale_config.dart';
 import 'package:cybervpn_mobile/features/settings/domain/models/language_item.dart';
 
 /// Repository providing the list of supported languages.
 ///
-/// All 39 locales matching `AppLocalizations.supportedLocales` are listed.
-/// The list is intentionally kept in a static constant so it can be extended
-/// without changing the API.
+/// The catalog tracks the active 38-locale resource inventory, while
+/// [getAvailableLanguages] exposes only reviewed/selectable locales. The
+/// non-selectable catalog entries remain fallback-only until translation and
+/// RTL QA are approved.
 class LanguageRepository {
   const LanguageRepository();
 
-  /// All supported languages, ordered alphabetically by English name.
-  static const List<LanguageItem> _supportedLanguages = [
+  /// Active mobile locale catalog, ordered alphabetically by English name.
+  static const List<LanguageItem> _languageCatalog = [
     LanguageItem(
       localeCode: 'am',
       nativeName: '\u12A0\u121B\u122D\u129B',
@@ -45,12 +47,6 @@ class LanguageRepository {
       nativeName: '\u4E2D\u6587\u7B80\u4F53',
       englishName: 'Chinese (Simplified)',
       flagEmoji: '\u{1F1E8}\u{1F1F3}', // CN flag
-    ),
-    LanguageItem(
-      localeCode: 'zh_Hant',
-      nativeName: '\u4E2D\u6587\u7E41\u9AD4',
-      englishName: 'Chinese (Traditional)',
-      flagEmoji: '\u{1F1F9}\u{1F1FC}', // TW flag
     ),
     LanguageItem(
       localeCode: 'cs',
@@ -246,15 +242,17 @@ class LanguageRepository {
     ),
   ];
 
-  /// Returns the list of all available languages.
+  /// Returns the reviewed languages currently available in the picker.
   List<LanguageItem> getAvailableLanguages() {
-    return _supportedLanguages;
+    return _languageCatalog
+        .where((lang) => LocaleConfig.isSelectable(lang.localeCode))
+        .toList(growable: false);
   }
 
   /// Returns the [LanguageItem] matching the given [localeCode], or `null`
-  /// if no match is found.
+  /// if no selectable match is found.
   LanguageItem? getByLocaleCode(String localeCode) {
-    for (final lang in _supportedLanguages) {
+    for (final lang in getAvailableLanguages()) {
       if (lang.localeCode == localeCode) return lang;
     }
     return null;
@@ -262,5 +260,5 @@ class LanguageRepository {
 
   /// Returns the set of supported locale codes for quick membership checks.
   Set<String> get supportedLocaleCodes =>
-      _supportedLanguages.map((l) => l.localeCode).toSet();
+      getAvailableLanguages().map((l) => l.localeCode).toSet();
 }

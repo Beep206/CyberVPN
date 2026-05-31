@@ -7,7 +7,7 @@ import secrets
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -615,7 +615,8 @@ async def _resolve_bot_customer_realm(
 ) -> RealmResolution:
     repo = AuthRealmRepository(db)
     default_realm_id = stable_auth_realm_id(str(DEFAULT_AUTH_REALMS["customer"]["realm_key"]))
-    realm = await repo.get_realm_by_id(mobile_user.auth_realm_id or default_realm_id)
+    auth_realm_id = getattr(mobile_user, "auth_realm_id", None)
+    realm = await repo.get_realm_by_id(auth_realm_id or default_realm_id)
     if realm is None:
         realm = await repo.get_or_create_default_realm("customer")
     return RealmResolution(auth_realm=realm, source="telegram_bot")
@@ -1065,7 +1066,7 @@ async def get_bot_user_orders(
 @router.get("/bot/user/{telegram_id}/service-state", response_model=TelegramBotCurrentServiceStateResponse)
 async def get_bot_user_service_state(
     telegram_id: int,
-    subscription_key: str | None = Query(None, min_length=1, max_length=220),
+    subscription_key: Annotated[str | None, Query(min_length=1, max_length=220)] = None,
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
@@ -1609,7 +1610,7 @@ async def get_bot_user_invite_codes(
 @router.get("/bot/user/{telegram_id}/config", response_model=ConfigResponse)
 async def get_bot_user_config(
     telegram_id: int,
-    subscription_key: str | None = Query(None, min_length=1, max_length=220),
+    subscription_key: Annotated[str | None, Query(min_length=1, max_length=220)] = None,
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),

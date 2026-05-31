@@ -453,7 +453,6 @@ class L10nFormatters {
   /// Handles various locale formats:
   /// - 'en' -> 'en_US'
   /// - 'en-US' -> 'en_US'
-  /// - 'zh_Hant' -> 'zh_TW'
   /// - 'ar-SA' -> 'ar_SA'
   /// - 'de' -> 'de_DE'
   static String _normalizeLocale(String locale) {

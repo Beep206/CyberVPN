@@ -34,6 +34,9 @@ SENSITIVE_FIELD_MARKERS = (
     "totp",
     "initdata",
     "init_data",
+    "tgwebappdata",
+    "telegram_hash",
+    "init_data_hash",
     "checkout",
     "invoice",
 )

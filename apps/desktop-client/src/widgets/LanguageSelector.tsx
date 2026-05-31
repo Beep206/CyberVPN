@@ -6,6 +6,8 @@ import { localeCatalog, localeMeta, Locale } from "../shared/i18n/config";
 import { desktopMotionEase, useDesktopMotionBudget } from "../shared/lib/motion";
 import { CountryFlag } from "../shared/ui/country-flag";
 
+export const languageSelectorLocales = localeCatalog;
+
 export function LanguageSelector() {
   const { i18n } = useTranslation();
   const { prefersReducedMotion, durations } = useDesktopMotionBudget();
@@ -13,7 +15,7 @@ export function LanguageSelector() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentLocale = (i18n.language || "en-EN") as Locale;
-  const currentLocaleEntry = localeMeta[currentLocale] ?? localeCatalog[0];
+  const currentLocaleEntry = localeMeta[currentLocale] ?? languageSelectorLocales[0];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -76,7 +78,7 @@ export function LanguageSelector() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 p-2">
-              {localeCatalog.map((entry) => {
+              {languageSelectorLocales.map((entry) => {
                 const code = entry.code;
                 const isSelected = code === currentLocale;
 

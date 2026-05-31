@@ -5,6 +5,11 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.wallet_service import WalletService
+from src.application.use_cases.webhooks.webhook_log_redaction import (
+    build_cryptobot_webhook_log_payload,
+    cryptobot_event_type,
+    signature_fingerprint,
+)
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
 from src.infrastructure.database.repositories.order_repo import OrderRepository
@@ -31,9 +36,13 @@ class ProcessPaymentWebhookUseCase:
 
         log = WebhookLog(
             source=provider,
-            event_type=payload.get("update_type"),
-            payload=payload,
-            signature=signature,
+            event_type=cryptobot_event_type(payload),
+            payload=build_cryptobot_webhook_log_payload(
+                payload,
+                signature=signature,
+                is_valid=is_valid,
+            ),
+            signature_fingerprint=signature_fingerprint(signature),
             is_valid=is_valid,
         )
         self._session.add(log)

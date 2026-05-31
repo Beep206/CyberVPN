@@ -1,4 +1,8 @@
-export const locales = [
+export const locales = ["en-EN", "ru-RU"] as const;
+
+export type Locale = typeof locales[number];
+
+export const tauriLocales = [
   "en-EN", "ru-RU", "zh-CN", "hi-IN", "id-ID", "vi-VN", "th-TH",
   "ja-JP", "ko-KR", "ar-SA", "fa-IR", "tr-TR", "ur-PK", "bn-BD",
   "ms-MY", "es-ES", "kk-KZ", "be-BY", "my-MM", "uz-UZ", "ha-NG",
@@ -7,20 +11,24 @@ export const locales = [
   "ro-RO", "hu-HU", "sv-SE",
 ] as const;
 
-export type Locale = typeof locales[number];
+export type TauriLocale = typeof tauriLocales[number];
 
 type LocaleSeed = {
-  code: Locale;
+  code: TauriLocale;
   name: string;
   nativeName: string;
   countryCode: string;
 };
 
-export type LocaleDescriptor = LocaleSeed & {
+export type TauriLocaleDescriptor = LocaleSeed & {
   flag: string;
   searchCode: string;
   searchName: string;
   searchNative: string;
+};
+
+export type LocaleDescriptor = Omit<TauriLocaleDescriptor, "code"> & {
+  code: Locale;
 };
 
 function toFlagEmoji(countryCode: string) {
@@ -34,6 +42,8 @@ function toFlagEmoji(countryCode: string) {
     ...normalized.split("").map((char) => 0x1f1e6 + char.charCodeAt(0) - 65)
   );
 }
+
+const reactLocaleSet = new Set<TauriLocale>(locales);
 
 const localeSeeds: readonly LocaleSeed[] = [
   { code: "en-EN", name: "English", nativeName: "English", countryCode: "US" },
@@ -76,7 +86,7 @@ const localeSeeds: readonly LocaleSeed[] = [
   { code: "sv-SE", name: "Swedish", nativeName: "Svenska", countryCode: "SE" },
 ];
 
-export const localeCatalog: LocaleDescriptor[] = localeSeeds.map((entry) => ({
+export const tauriLocaleCatalog: TauriLocaleDescriptor[] = localeSeeds.map((entry) => ({
   ...entry,
   flag: toFlagEmoji(entry.countryCode),
   searchCode: entry.code.toLowerCase(),
@@ -84,13 +94,26 @@ export const localeCatalog: LocaleDescriptor[] = localeSeeds.map((entry) => ({
   searchNative: entry.nativeName.toLowerCase(),
 }));
 
+export const localeCatalog: LocaleDescriptor[] = tauriLocaleCatalog.filter(
+  (entry): entry is LocaleDescriptor => reactLocaleSet.has(entry.code)
+);
+
 export const localeMeta = Object.fromEntries(
   localeCatalog.map((entry) => [entry.code, entry])
 ) as Record<Locale, LocaleDescriptor>;
+
+export const tauriLocaleMeta = Object.fromEntries(
+  tauriLocaleCatalog.map((entry) => [entry.code, entry])
+) as Record<TauriLocale, TauriLocaleDescriptor>;
 
 export const localeNames = Object.fromEntries(
   localeCatalog.map((entry) => [entry.code, entry.nativeName])
 ) as Record<Locale, string>;
 
-export const defaultLocale = "en-EN";
-export const rtlLocales = ["ar-SA", "he-IL", "fa-IR", "ur-PK", "ku-IQ"] as const;
+export const tauriLocaleNames = Object.fromEntries(
+  tauriLocaleCatalog.map((entry) => [entry.code, entry.nativeName])
+) as Record<TauriLocale, string>;
+
+export const defaultLocale = "en-EN" satisfies Locale;
+export const rtlLocales = [] as const satisfies readonly Locale[];
+export const tauriRtlLocales = ["ar-SA", "he-IL", "fa-IR", "ur-PK", "ku-IQ"] as const;

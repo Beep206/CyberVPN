@@ -66,6 +66,12 @@ def _make_user_model(
     return model
 
 
+def _make_replay_guard() -> AsyncMock:
+    guard = AsyncMock()
+    guard.accept.return_value = None
+    return guard
+
+
 class TestMiniAppAutoLoginFlow:
     """Integration: valid initData for existing user -> JWT tokens."""
 
@@ -100,6 +106,7 @@ class TestMiniAppAutoLoginFlow:
             auth_service=auth_service,
             session=session,
             telegram_provider=telegram_provider,
+            replay_guard=_make_replay_guard(),
         )
 
         init_data = _build_init_data(BOT_TOKEN)
@@ -139,6 +146,7 @@ class TestMiniAppAutoLoginFlow:
             auth_service=auth_service,
             session=session,
             telegram_provider=telegram_provider,
+            replay_guard=_make_replay_guard(),
         )
 
         init_data = _build_init_data(BOT_TOKEN)
@@ -164,6 +172,7 @@ class TestMiniAppAutoLoginFlow:
             auth_service=auth_service,
             session=session,
             telegram_provider=telegram_provider,
+            replay_guard=_make_replay_guard(),
         )
 
         # Build initData with wrong token
@@ -187,6 +196,7 @@ class TestMiniAppAutoLoginFlow:
             auth_service=auth_service,
             session=session,
             telegram_provider=telegram_provider,
+            replay_guard=_make_replay_guard(),
         )
 
         old_auth_date = int(time.time()) - 90000
@@ -223,6 +233,7 @@ class TestMiniAppAutoLoginFlow:
             auth_service=auth_service,
             session=session,
             telegram_provider=telegram_provider,
+            replay_guard=_make_replay_guard(),
             remnawave_gateway=remnawave,
         )
 
@@ -260,6 +271,7 @@ class TestMiniAppAutoLoginFlow:
             auth_service=auth_service,
             session=session,
             telegram_provider=telegram_provider,
+            replay_guard=_make_replay_guard(),
             remnawave_gateway=remnawave,
         )
 

@@ -10,6 +10,10 @@ void main() {
       expect(LocaleConfig.supportedLocaleCodes.length, equals(38));
     });
 
+    test('selectableLocaleCodes exposes reviewed locales only', () {
+      expect(LocaleConfig.selectableLocaleCodes, equals({'en'}));
+    });
+
     test('defaultLocaleCode is en', () {
       expect(LocaleConfig.defaultLocaleCode, equals('en'));
     });
@@ -45,6 +49,13 @@ void main() {
     test('da and zh_Hant are NOT present', () {
       expect(LocaleConfig.supportedLocaleCodes.contains('da'), isFalse);
       expect(LocaleConfig.supportedLocaleCodes.contains('zh_Hant'), isFalse);
+    });
+
+    test('normalizeSelectableLocaleCode falls back for fallback-only locales', () {
+      expect(LocaleConfig.normalizeSelectableLocaleCode('en'), equals('en'));
+      expect(LocaleConfig.normalizeSelectableLocaleCode('ru'), equals('en'));
+      expect(LocaleConfig.normalizeSelectableLocaleCode('zh_Hant'), equals('en'));
+      expect(LocaleConfig.normalizeSelectableLocaleCode('xx'), equals('en'));
     });
 
     test('all 38 expected locale codes are present', () {

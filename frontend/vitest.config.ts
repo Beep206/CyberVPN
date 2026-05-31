@@ -4,6 +4,15 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      react: resolve(__dirname, '../node_modules/react'),
+      'react-dom': resolve(__dirname, '../node_modules/react-dom'),
+      'react-dom/client': resolve(__dirname, '../node_modules/react-dom/client.js'),
+      'react/jsx-dev-runtime': resolve(__dirname, '../node_modules/react/jsx-dev-runtime.js'),
+      'react/jsx-runtime': resolve(__dirname, '../node_modules/react/jsx-runtime.js'),
+    },
+  },
   test: {
     // Vitest supports both jsdom and happy-dom for browser-like tests.
     // We use happy-dom here because the current jsdom/cssstyle stack crashes

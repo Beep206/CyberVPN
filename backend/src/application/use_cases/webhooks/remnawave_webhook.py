@@ -1,8 +1,33 @@
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.webhooks.webhook_log_redaction import (
+    build_invalid_body_webhook_log_payload,
+    build_remnawave_webhook_log_payload,
+    remnawave_event_type,
+    signature_fingerprint,
+)
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
 from src.infrastructure.messaging.websocket_manager import ws_manager
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
+
+_REMNAWAVE_WEBSOCKET_DATA_ALLOWLIST = frozenset(
+    {
+        "uuid",
+        "shortUuid",
+        "status",
+        "isDisabled",
+        "usedTrafficBytes",
+        "trafficLimitBytes",
+        "lifetimeUsedTrafficBytes",
+        "nodeUuid",
+        "nodeName",
+        "squadUuid",
+        "squadName",
+    }
+)
+_REMNAWAVE_WEBSOCKET_VALUE_TYPES = (str, int, float, bool, type(None))
 
 
 class ProcessRemnawaveWebhookUseCase:
@@ -15,8 +40,6 @@ class ProcessRemnawaveWebhookUseCase:
         body: bytes,
         signature: str | None,
         timestamp: str | None,
-        *,
-        allow_missing_timestamp: bool = False,
     ) -> dict:
         import json
 
@@ -24,18 +47,21 @@ class ProcessRemnawaveWebhookUseCase:
             body,
             signature,
             timestamp,
-            allow_missing_timestamp=allow_missing_timestamp,
         )
 
         try:
             payload = json.loads(body)
         except json.JSONDecodeError:
-            payload = {"raw_body": body.decode("utf-8", errors="replace")}
             log = WebhookLog(
                 source="remnawave",
                 event_type=None,
-                payload=payload,
-                signature=signature,
+                payload=build_invalid_body_webhook_log_payload(
+                    source="remnawave",
+                    body=body,
+                    signature=signature,
+                    validation_reason="invalid_payload",
+                ),
+                signature_fingerprint=signature_fingerprint(signature),
                 is_valid=False,
                 error_message="invalid_payload",
             )
@@ -44,9 +70,14 @@ class ProcessRemnawaveWebhookUseCase:
 
         log = WebhookLog(
             source="remnawave",
-            event_type=payload.get("event"),
-            payload=payload,
-            signature=signature,
+            event_type=remnawave_event_type(payload),
+            payload=build_remnawave_webhook_log_payload(
+                payload,
+                signature=signature,
+                is_valid=validation.is_valid,
+                validation_reason=validation.reason,
+            ),
+            signature_fingerprint=signature_fingerprint(signature),
             is_valid=validation.is_valid,
             error_message=validation.reason,
         )
@@ -60,6 +91,23 @@ class ProcessRemnawaveWebhookUseCase:
         event = payload.get("event", "")
         data = payload.get("data", {})
 
-        await ws_manager.broadcast("events", {"event": event, "data": data})
+        websocket_payload = _build_remnawave_websocket_payload(event, data)
+        await ws_manager.broadcast("events", websocket_payload)
 
-        return {"status": "processed", "event": event}
+        return {"status": "processed", "event": websocket_payload["event"]}
+
+
+def _build_remnawave_websocket_payload(event: object, data: object) -> dict[str, Any]:
+    safe_event = event if isinstance(event, str) else ""
+    safe_data: dict[str, Any] = {}
+
+    if isinstance(data, dict):
+        safe_data = {
+            key: value
+            for key, value in data.items()
+            if key in _REMNAWAVE_WEBSOCKET_DATA_ALLOWLIST
+            and isinstance(key, str)
+            and isinstance(value, _REMNAWAVE_WEBSOCKET_VALUE_TYPES)
+        }
+
+    return {"event": safe_event, "data": safe_data}
