@@ -36,7 +36,7 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
     const [heroT, featuresT, catalog] = await Promise.all([
         getTranslations({ locale, namespace: 'Landing.hero' }),
         getTranslations({ locale, namespace: 'Landing.features' }),
-        getPublicPricingCatalog(),
+        getPublicPricingCatalog({ locale }),
     ]);
     const softwareStructuredData = buildSoftwareApplicationStructuredData({
         locale,

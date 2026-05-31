@@ -43,6 +43,7 @@ from src.utils.constants import (
     SCHEDULE_REPORT_WEEKLY,
     SCHEDULE_SERVICES_HEALTH,
     SCHEDULE_STAGE1_PAYMENT_RECONCILIATION,
+    SCHEDULE_STAGE1_PROVISIONING_RETRY,
     SCHEDULE_SUBSCRIPTION_CHECK,
     SCHEDULE_SYNC_GEOLOCATIONS,
     SCHEDULE_SYNC_NODE_CONFIGS,
@@ -236,6 +237,12 @@ reconcile_stage1_payments = _schedule_task(
     reconcile_stage1_payments, [{"cron": SCHEDULE_STAGE1_PAYMENT_RECONCILIATION}]
 )
 
+from src.tasks.payments.provisioning_retries import process_stage1_provisioning_retries
+
+process_stage1_provisioning_retries = _schedule_task(
+    process_stage1_provisioning_retries, [{"cron": SCHEDULE_STAGE1_PROVISIONING_RETRY}]
+)
+
 from src.tasks.payments.reconcile_telegram_stars import (
     reconcile_telegram_stars_refunds,
 )
@@ -327,7 +334,7 @@ def register_schedules() -> None:
     """Log schedule registration. Tasks are auto-discovered via labels."""
     logger.info(
         "schedules_registered",
-        total=32,
+        total=33,
         categories=[
             "notifications",
             "monitoring",

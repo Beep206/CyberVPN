@@ -9,6 +9,7 @@ import { Modal } from '@/shared/ui/modal';
 import {
   CURRENCY_LABELS,
   SUPPORTED_CURRENCIES,
+  isSupportedCurrency,
   type SupportedCurrency,
 } from './currency-config';
 import { useCurrencyPreference } from './use-currency-preference';
@@ -35,20 +36,34 @@ function getCurrencySearchText(currency: SupportedCurrency) {
   return `${currency} ${CURRENCY_LABELS[currency]}`.toLowerCase();
 }
 
-export function CurrencySelector() {
+interface CurrencySelectorProps {
+  availableCurrencies?: readonly string[];
+  defaultCurrency?: SupportedCurrency;
+  onCurrencyChange?: (currency: SupportedCurrency) => void;
+}
+
+export function CurrencySelector({
+  availableCurrencies,
+  defaultCurrency,
+  onCurrencyChange,
+}: CurrencySelectorProps = {}) {
   const locale = useLocale();
   const copy = copyForLocale(locale);
-  const { currency, setCurrency } = useCurrencyPreference(locale);
+  const { currency, setCurrency } = useCurrencyPreference(locale, defaultCurrency);
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const supportedCurrencies = availableCurrencies
+    ? availableCurrencies.filter(isSupportedCurrency)
+    : SUPPORTED_CURRENCIES;
   const query = searchQuery.trim().toLowerCase();
-  const currencies = SUPPORTED_CURRENCIES.filter((code) =>
+  const currencies = supportedCurrencies.filter((code) =>
     getCurrencySearchText(code).includes(query),
   );
 
   function handleSelect(nextCurrency: SupportedCurrency) {
     setCurrency(nextCurrency);
     setIsOpen(false);
+    onCurrencyChange?.(nextCurrency);
   }
 
   return (

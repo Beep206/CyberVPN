@@ -150,5 +150,15 @@
     "error": "Не удалось активировать trial. Повторите или обратитесь в поддержку.",
     "eyebrow": "Trial-доступ",
     "success": "Trial активирован. Состояние доступа обновляется."
+  },
+  "checkoutQuote": {
+    "chargedIn": "Списание в {currency}",
+    "expiredTitle": "Quote истёк",
+    "expiredBody": "Обновите quote перед checkout, чтобы backend totals, страна и валюта были актуальны.",
+    "gatewayAmount": "Gateway amount: {amount}. Списание в {currency}.",
+    "loadError": "Не удалось загрузить checkout quote",
+    "refreshCta": "Обновить quote",
+    "refreshing": "Обновляем quote...",
+    "refreshError": "Не удалось обновить checkout quote"
   }
 }

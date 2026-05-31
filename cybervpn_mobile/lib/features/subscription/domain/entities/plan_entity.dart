@@ -2,7 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'plan_entity.freezed.dart';
 
-enum PlanDuration { monthly, quarterly, yearly, lifetime }
+enum PlanDuration { monthly, quarterly, semiannual, yearly, lifetime }
 
 @freezed
 sealed class PlanEntity with _$PlanEntity {

@@ -87,6 +87,33 @@ async def test_checkout_quote_applies_addons_to_entitlements(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
+async def test_checkout_quote_uses_effective_catalog_base_price() -> None:
+    session = SimpleNamespace(get=AsyncMock(return_value=None))
+    use_case = CheckoutUseCase(session)
+    plan = _build_plan(price_usd=Decimal("90.00"))
+
+    use_case._plan_repo = SimpleNamespace(get_by_id=AsyncMock(return_value=plan))
+    use_case._addon_repo = SimpleNamespace(get_by_codes=AsyncMock(return_value=[]))
+    use_case._promo_repo = SimpleNamespace(get_active_by_code=AsyncMock(return_value=None))
+    use_case._partner_repo = SimpleNamespace(get_codes_by_partner=AsyncMock(return_value=[]))
+    use_case._wallet = SimpleNamespace(
+        get_balance=AsyncMock(return_value=SimpleNamespace(balance=Decimal("0"), frozen=Decimal("0")))
+    )
+
+    result = await use_case.execute(
+        user_id=uuid4(),
+        plan_id=plan.id,
+        catalog_base_price=Decimal("75.00"),
+        sale_channel="web",
+    )
+
+    assert result.base_price == Decimal("75.00")
+    assert result.displayed_price == Decimal("75.00")
+    assert result.gateway_amount == Decimal("75.00")
+    assert result.commission_base_amount == Decimal("75.00")
+
+
+@pytest.mark.asyncio
 async def test_checkout_quote_rejects_hidden_plan_on_public_channel() -> None:
     session = SimpleNamespace(get=AsyncMock(return_value=None))
     use_case = CheckoutUseCase(session)

@@ -86,10 +86,13 @@ class _PlansBodyState extends State<_PlansBody> {
 
     // Duration filter options — built from l10n
     final durationFilters = <PlanDuration, String>{
-      PlanDuration.monthly: l10n.subscriptionDuration1Month,
-      PlanDuration.quarterly: l10n.subscriptionDuration3Months,
-      PlanDuration.yearly: l10n.subscriptionDuration1Year,
-      PlanDuration.lifetime: l10n.subscriptionLifetime,
+      PlanDuration.monthly: _durationFilterLabel(PlanDuration.monthly, l10n),
+      PlanDuration.quarterly:
+          _durationFilterLabel(PlanDuration.quarterly, l10n),
+      PlanDuration.semiannual:
+          _durationFilterLabel(PlanDuration.semiannual, l10n),
+      PlanDuration.yearly: _durationFilterLabel(PlanDuration.yearly, l10n),
+      PlanDuration.lifetime: _durationFilterLabel(PlanDuration.lifetime, l10n),
     };
 
     return Column(
@@ -189,6 +192,16 @@ class _PlansBodyState extends State<_PlansBody> {
         ),
       ),
     ));
+  }
+
+  String _durationFilterLabel(PlanDuration duration, AppLocalizations l10n) {
+    return switch (duration) {
+      PlanDuration.monthly => l10n.subscriptionDuration1Month,
+      PlanDuration.quarterly => l10n.subscriptionDuration3Months,
+      PlanDuration.semiannual => l10n.subscriptionDurationDays(180),
+      PlanDuration.yearly => l10n.subscriptionDuration1Year,
+      PlanDuration.lifetime => l10n.subscriptionLifetime,
+    };
   }
 }
 

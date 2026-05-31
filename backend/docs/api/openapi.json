@@ -620,6 +620,9 @@
           "401": {
             "description": "Invalid or expired initData"
           },
+          "503": {
+            "description": "Telegram authentication temporarily unavailable"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -5911,6 +5914,82 @@
         }
       }
     },
+    "/api/v1/subscriptions/internal/provisioning-retries/run": {
+      "post": {
+        "tags": [
+          "subscriptions"
+        ],
+        "summary": "Run Stage1 Provisioning Retries",
+        "description": "Run a bounded durable S1 provisioning retry pass for the task worker.",
+        "operationId": "run_stage1_provisioning_retries_api_v1_subscriptions_internal_provisioning_retries_run_post",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "worker_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "default": "task-worker",
+              "title": "Worker Id"
+            }
+          },
+          {
+            "name": "X-Telegram-Bot-Secret",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Telegram-Bot-Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Run Stage1 Provisioning Retries Api V1 Subscriptions Internal Provisioning Retries Run Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/subscriptions/current/entitlements": {
       "get": {
         "tags": [
@@ -6922,6 +7001,180 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AddonResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/context": {
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Resolve Public Catalog Context",
+        "operationId": "resolve_public_catalog_context_api_v1_catalog_context_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveCatalogContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCatalogContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Get Public Catalog",
+        "operationId": "get_public_catalog_api_v1_catalog__get",
+        "parameters": [
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "default": "web",
+              "title": "Channel"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 2
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          },
+          {
+            "name": "uiLocale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uilocale"
+            }
+          },
+          {
+            "name": "urlLocale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Urllocale"
+            }
+          },
+          {
+            "name": "storefrontKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Storefrontkey"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCommercialCatalogResponse"
                 }
               }
             }
@@ -19273,6 +19526,12 @@
         "summary": "Commit Checkout",
         "description": "Fail closed instead of committing payment from client-supplied quote inputs.",
         "operationId": "commit_checkout_api_v1_payments_checkout_commit_post",
+        "deprecated": true,
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -19280,21 +19539,21 @@
             "required": true,
             "schema": {
               "type": "string",
-              "maxLength": 120,
               "minLength": 1,
+              "maxLength": 120,
               "title": "Idempotency-Key"
             }
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CheckoutQuoteRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -19320,13 +19579,7 @@
               }
             }
           }
-        },
-        "deprecated": true,
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/payments/checkout/telegram-stars": {
@@ -19384,6 +19637,12 @@
         "summary": "Checkout Alias",
         "description": "Backward-compatible alias for the disabled legacy checkout commit.",
         "operationId": "checkout_alias_api_v1_payments_checkout_post",
+        "deprecated": true,
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -19391,21 +19650,21 @@
             "required": true,
             "schema": {
               "type": "string",
-              "maxLength": 120,
               "minLength": 1,
+              "maxLength": 120,
               "title": "Idempotency-Key"
             }
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CheckoutQuoteRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -19418,9 +19677,6 @@
               }
             }
           },
-          "410": {
-            "description": "Legacy checkout commit is disabled"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -19431,13 +19687,7 @@
               }
             }
           }
-        },
-        "deprecated": true,
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/payments/internal/reconciliation/run": {
@@ -29453,6 +29703,600 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/pricebooks": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "List Admin Commercial Pricebooks",
+        "operationId": "list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Inactive"
+            }
+          },
+          {
+            "name": "storefront_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Storefront Id"
+            }
+          },
+          {
+            "name": "storefront_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Storefront Key"
+            }
+          },
+          {
+            "name": "currency_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency Code"
+            }
+          },
+          {
+            "name": "region_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 16
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Region Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminPricebookVersionResponse"
+                  },
+                  "title": "Response List Admin Commercial Pricebooks Api V1 Admin Pricebooks Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}": {
+      "patch": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Update Admin Commercial Pricebook",
+        "operationId": "update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/publish": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Publish Admin Commercial Pricebook",
+        "operationId": "publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/schedule": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Schedule Admin Commercial Pricebook",
+        "operationId": "schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/rollback": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Rollback Admin Commercial Pricebook",
+        "operationId": "rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackAdminPricebookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_key}/history": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Get Admin Commercial Pricebook History",
+        "operationId": "get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pricebook Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/audit": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Get Admin Commercial Pricebook Audit",
+        "operationId": "get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogResponse"
+                  },
+                  "title": "Response Get Admin Commercial Pricebook Audit Api V1 Admin Pricebooks  Pricebook Id  Audit Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/pricebooks/{pricebook_id}/validate": {
+      "post": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Validate Admin Commercial Pricebook",
+        "operationId": "validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pricebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Pricebook Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPricebookValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/commercial-context/options": {
+      "get": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Get Admin Commercial Context Options",
+        "operationId": "get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialContextOptionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "admin",
+          "commercial-pricebooks"
+        ],
+        "summary": "Update Admin Commercial Context Options",
+        "operationId": "update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCommercialContextOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialContextOptionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/admin/mobile-users/{user_id}/notes": {
@@ -43170,6 +44014,275 @@
         "title": "AdminPaymentAttemptResponse",
         "description": "Admin-safe payment attempt row.\n\nProvider snapshots, request snapshots, idempotency keys, checkout URLs and\nraw external references are intentionally excluded."
       },
+      "AdminPricebookHistoryResponse": {
+        "properties": {
+          "pricebook_key": {
+            "type": "string",
+            "title": "Pricebook Key"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPricebookVersionResponse"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook_key",
+          "versions"
+        ],
+        "title": "AdminPricebookHistoryResponse"
+      },
+      "AdminPricebookLifecycleResponse": {
+        "properties": {
+          "pricebook": {
+            "$ref": "#/components/schemas/PricebookResponse"
+          },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          },
+          "audit_action": {
+            "type": "string",
+            "title": "Audit Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook",
+          "lifecycle_status",
+          "audit_action"
+        ],
+        "title": "AdminPricebookLifecycleResponse"
+      },
+      "AdminPricebookValidationIssueResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "missing_price",
+              "unsupported_currency",
+              "missing_provisioning_profile",
+              "incompatible_addon"
+            ],
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "offer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "AdminPricebookValidationIssueResponse"
+      },
+      "AdminPricebookValidationResponse": {
+        "properties": {
+          "pricebook_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pricebook Id"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPricebookValidationIssueResponse"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pricebook_id",
+          "valid",
+          "checked_at",
+          "issues"
+        ],
+        "title": "AdminPricebookValidationResponse"
+      },
+      "AdminPricebookVersionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "pricebook_key": {
+            "type": "string",
+            "title": "Pricebook Key"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "storefront_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Storefront Id"
+          },
+          "merchant_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Profile Id"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          },
+          "discount_rules": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Discount Rules"
+          },
+          "renewal_pricing_policy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Renewal Pricing Policy"
+          },
+          "version_status": {
+            "type": "string",
+            "title": "Version Status"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/PricebookEntryResponse"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "lifecycle_status": {
+            "type": "string",
+            "title": "Lifecycle Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "pricebook_key",
+          "display_name",
+          "storefront_id",
+          "merchant_profile_id",
+          "currency_code",
+          "region_code",
+          "discount_rules",
+          "renewal_pricing_policy",
+          "version_status",
+          "effective_from",
+          "effective_to",
+          "is_active",
+          "entries",
+          "lifecycle_status"
+        ],
+        "title": "AdminPricebookVersionResponse"
+      },
       "AdminProcessWithdrawalRequest": {
         "properties": {
           "admin_note": {
@@ -45808,6 +46921,100 @@
           "cloneFromUuid"
         ],
         "title": "CloneNodePluginRequest"
+      },
+      "CommercialContextCountryOptionResponse": {
+        "properties": {
+          "country_code": {
+            "type": "string",
+            "title": "Country Code"
+          },
+          "default_currency_code": {
+            "type": "string",
+            "title": "Default Currency Code"
+          },
+          "supported_currency_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Currency Codes"
+          },
+          "payment_country_code": {
+            "type": "string",
+            "title": "Payment Country Code"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "country_code",
+          "default_currency_code",
+          "supported_currency_codes",
+          "payment_country_code",
+          "is_enabled"
+        ],
+        "title": "CommercialContextCountryOptionResponse"
+      },
+      "CommercialContextCurrencyOptionResponse": {
+        "properties": {
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "minor_units": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Minor Units"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency_code",
+          "minor_units",
+          "is_enabled"
+        ],
+        "title": "CommercialContextCurrencyOptionResponse"
+      },
+      "CommercialContextOptionsResponse": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/CommercialContextCountryOptionResponse"
+            },
+            "type": "array",
+            "title": "Countries"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CommercialContextCurrencyOptionResponse"
+            },
+            "type": "array",
+            "title": "Currencies"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "default",
+              "system_config"
+            ],
+            "title": "Source",
+            "default": "default"
+          }
+        },
+        "type": "object",
+        "required": [
+          "countries",
+          "currencies"
+        ],
+        "title": "CommercialContextOptionsResponse"
       },
       "CommercialOwnerSource": {
         "type": "string",
@@ -64548,6 +65755,47 @@
         "title": "PaymentHistoryResponse",
         "description": "Response schema for payment history."
       },
+      "PaymentMethodAvailabilityResponse": {
+        "properties": {
+          "availableMethods": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availablemethods"
+          },
+          "webCheckout": {
+            "type": "boolean",
+            "title": "Webcheckout"
+          },
+          "cryptobot": {
+            "type": "boolean",
+            "title": "Cryptobot"
+          },
+          "telegramStars": {
+            "type": "boolean",
+            "title": "Telegramstars"
+          },
+          "manualInvoice": {
+            "type": "boolean",
+            "title": "Manualinvoice"
+          },
+          "autorenewal": {
+            "type": "boolean",
+            "title": "Autorenewal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "availableMethods",
+          "webCheckout",
+          "cryptobot",
+          "telegramStars",
+          "manualInvoice",
+          "autorenewal"
+        ],
+        "title": "PaymentMethodAvailabilityResponse"
+      },
       "PaymentProvider": {
         "type": "string",
         "enum": [
@@ -67155,6 +68403,487 @@
         ],
         "title": "ProvisioningProfileStatus"
       },
+      "PublicCatalogAddonResponse": {
+        "properties": {
+          "addonId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Addonid"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "durationMode": {
+            "type": "string",
+            "title": "Durationmode"
+          },
+          "isStackable": {
+            "type": "boolean",
+            "title": "Isstackable"
+          },
+          "quantityStep": {
+            "type": "integer",
+            "title": "Quantitystep"
+          },
+          "displayPrice": {
+            "$ref": "#/components/schemas/PublicCatalogMoneyResponse"
+          },
+          "maxQuantityByPlan": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Maxquantitybyplan"
+          },
+          "deltaEntitlements": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Deltaentitlements"
+          },
+          "requiresLocation": {
+            "type": "boolean",
+            "title": "Requireslocation"
+          },
+          "saleChannels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Salechannels"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "addonId",
+          "code",
+          "displayName",
+          "durationMode",
+          "isStackable",
+          "quantityStep",
+          "displayPrice",
+          "maxQuantityByPlan",
+          "deltaEntitlements",
+          "requiresLocation",
+          "saleChannels"
+        ],
+        "title": "PublicCatalogAddonResponse"
+      },
+      "PublicCatalogBillingPeriodResponse": {
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Planid"
+          },
+          "catalogItemKey": {
+            "type": "string",
+            "title": "Catalogitemkey"
+          },
+          "durationDays": {
+            "type": "integer",
+            "title": "Durationdays"
+          },
+          "displayPrice": {
+            "$ref": "#/components/schemas/PublicCatalogMoneyResponse"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/PublicCatalogQuoteHandoffResponse"
+          },
+          "includedAddonCodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Includedaddoncodes"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availability"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planId",
+          "catalogItemKey",
+          "durationDays",
+          "displayPrice",
+          "version",
+          "quote",
+          "includedAddonCodes",
+          "availability"
+        ],
+        "title": "PublicCatalogBillingPeriodResponse"
+      },
+      "PublicCatalogContextResponse": {
+        "properties": {
+          "uiLocale": {
+            "type": "string",
+            "title": "Uilocale"
+          },
+          "displayCountry": {
+            "type": "string",
+            "title": "Displaycountry"
+          },
+          "pricingCountry": {
+            "type": "string",
+            "title": "Pricingcountry"
+          },
+          "paymentCountry": {
+            "type": "string",
+            "title": "Paymentcountry"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence"
+          },
+          "selectableCountries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Selectablecountries"
+          },
+          "selectableCurrencies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Selectablecurrencies"
+          },
+          "paymentMethods": {
+            "$ref": "#/components/schemas/PaymentMethodAvailabilityResponse"
+          },
+          "cacheKey": {
+            "type": "string",
+            "title": "Cachekey"
+          },
+          "resolutionTrace": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resolutiontrace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uiLocale",
+          "displayCountry",
+          "pricingCountry",
+          "paymentCountry",
+          "currency",
+          "confidence",
+          "selectableCountries",
+          "selectableCurrencies",
+          "paymentMethods",
+          "cacheKey",
+          "resolutionTrace"
+        ],
+        "title": "PublicCatalogContextResponse"
+      },
+      "PublicCatalogMetadataResponse": {
+        "properties": {
+          "policyIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Policyids"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "storefrontKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storefrontkey"
+          },
+          "addonsEnabled": {
+            "type": "boolean",
+            "title": "Addonsenabled"
+          },
+          "promoCodesEnabled": {
+            "type": "boolean",
+            "title": "Promocodesenabled"
+          },
+          "checkoutCodeDiscountsEnabled": {
+            "type": "boolean",
+            "title": "Checkoutcodediscountsenabled"
+          },
+          "invalidationEvents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Invalidationevents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policyIds",
+          "source",
+          "channel",
+          "storefrontKey",
+          "addonsEnabled",
+          "promoCodesEnabled",
+          "checkoutCodeDiscountsEnabled",
+          "invalidationEvents"
+        ],
+        "title": "PublicCatalogMetadataResponse"
+      },
+      "PublicCatalogMoneyResponse": {
+        "properties": {
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "minorUnits": {
+            "type": "integer",
+            "title": "Minorunits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "currency",
+          "minorUnits"
+        ],
+        "title": "PublicCatalogMoneyResponse"
+      },
+      "PublicCatalogPlanResponse": {
+        "properties": {
+          "planCode": {
+            "type": "string",
+            "title": "Plancode"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "billingPeriods": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCatalogBillingPeriodResponse"
+            },
+            "type": "array",
+            "title": "Billingperiods"
+          },
+          "devicesIncluded": {
+            "type": "integer",
+            "title": "Devicesincluded"
+          },
+          "trafficLimitBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trafficlimitbytes"
+          },
+          "trafficPolicy": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trafficpolicy"
+          },
+          "connectionModes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Connectionmodes"
+          },
+          "serverPool": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Serverpool"
+          },
+          "supportSla": {
+            "type": "string",
+            "title": "Supportsla"
+          },
+          "dedicatedIp": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Dedicatedip"
+          },
+          "inviteBundle": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Invitebundle"
+          },
+          "trialEligible": {
+            "type": "boolean",
+            "title": "Trialeligible"
+          },
+          "promoEligible": {
+            "type": "boolean",
+            "title": "Promoeligible"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planCode",
+          "displayName",
+          "version",
+          "billingPeriods",
+          "devicesIncluded",
+          "trafficLimitBytes",
+          "trafficPolicy",
+          "connectionModes",
+          "serverPool",
+          "supportSla",
+          "dedicatedIp",
+          "inviteBundle",
+          "trialEligible",
+          "promoEligible"
+        ],
+        "title": "PublicCatalogPlanResponse"
+      },
+      "PublicCatalogQuoteHandoffResponse": {
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Planid"
+          },
+          "planCode": {
+            "type": "string",
+            "title": "Plancode"
+          },
+          "billingPeriodDays": {
+            "type": "integer",
+            "title": "Billingperioddays"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "catalogItemKey": {
+            "type": "string",
+            "title": "Catalogitemkey"
+          },
+          "contextCacheKey": {
+            "type": "string",
+            "title": "Contextcachekey"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planId",
+          "planCode",
+          "billingPeriodDays",
+          "currency",
+          "catalogItemKey",
+          "contextCacheKey"
+        ],
+        "title": "PublicCatalogQuoteHandoffResponse"
+      },
+      "PublicCommercialCatalogResponse": {
+        "properties": {
+          "catalogVersion": {
+            "type": "string",
+            "title": "Catalogversion"
+          },
+          "cacheKey": {
+            "type": "string",
+            "title": "Cachekey"
+          },
+          "context": {
+            "$ref": "#/components/schemas/PublicCatalogContextResponse"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCatalogPlanResponse"
+            },
+            "type": "array",
+            "title": "Plans"
+          },
+          "addons": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCatalogAddonResponse"
+            },
+            "type": "array",
+            "title": "Addons"
+          },
+          "trialEligible": {
+            "type": "boolean",
+            "title": "Trialeligible"
+          },
+          "promoEligible": {
+            "type": "boolean",
+            "title": "Promoeligible"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PublicCatalogMetadataResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "catalogVersion",
+          "cacheKey",
+          "context",
+          "plans",
+          "addons",
+          "trialEligible",
+          "promoEligible",
+          "metadata"
+        ],
+        "title": "PublicCommercialCatalogResponse"
+      },
       "PublicNetworkDpiCountryResponse": {
         "properties": {
           "countryCode": {
@@ -68519,6 +70248,36 @@
           "updated_at"
         ],
         "title": "PublicSupportTicketSummaryResponse"
+      },
+      "PublishAdminPricebookRequest": {
+        "properties": {
+          "effective_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "title": "PublishAdminPricebookRequest"
       },
       "PurchaseSubscriptionAddonsRequest": {
         "properties": {
@@ -71092,6 +72851,196 @@
         "title": "ResetPasswordResponse",
         "description": "Response for successful password reset."
       },
+      "ResolveCatalogContextRequest": {
+        "properties": {
+          "urlLocale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urllocale"
+          },
+          "browserLanguage": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browserlanguage"
+          },
+          "telegramLanguageCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegramlanguagecode"
+          },
+          "explicitUiLocale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicituilocale"
+          },
+          "explicitCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitcountrycode"
+          },
+          "explicitDisplayCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitdisplaycountrycode"
+          },
+          "explicitPricingCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitpricingcountrycode"
+          },
+          "explicitCurrencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicitcurrencycode"
+          },
+          "sessionCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessioncountrycode"
+          },
+          "sessionCurrencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessioncurrencycode"
+          },
+          "cookieCountryCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cookiecountrycode"
+          },
+          "cookieCurrencyCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cookiecurrencycode"
+          },
+          "channelKey": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channelkey"
+          },
+          "channelDefaultLocale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channeldefaultlocale"
+          },
+          "fallbackCountryCode": {
+            "type": "string",
+            "maxLength": 2,
+            "minLength": 2,
+            "title": "Fallbackcountrycode",
+            "default": "US"
+          }
+        },
+        "type": "object",
+        "title": "ResolveCatalogContextRequest"
+      },
       "ResolveCurrentAccessDeliveryChannelRequest": {
         "properties": {
           "provider_name": {
@@ -71967,6 +73916,36 @@
         ],
         "title": "RiskSubjectResponse"
       },
+      "RollbackAdminPricebookRequest": {
+        "properties": {
+          "target_pricebook_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Pricebook Id"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "title": "RollbackAdminPricebookRequest"
+      },
       "RotatePartnerBotTokenRequest": {
         "properties": {
           "request_payload": {
@@ -72023,6 +74002,32 @@
           "issued_at"
         ],
         "title": "RotatePartnerWorkspaceIntegrationCredentialResponse"
+      },
+      "ScheduleAdminPricebookRequest": {
+        "properties": {
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled For"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scheduled_for"
+        ],
+        "title": "ScheduleAdminPricebookRequest"
       },
       "SchedulePartnerWorkspaceReportExportRequest": {
         "properties": {
@@ -77715,6 +79720,274 @@
           "config_enabled"
         ],
         "title": "UpdateAdminMiniAppRuntimeConfigRequest"
+      },
+      "UpdateAdminPricebookRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "merchant_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Profile Id"
+          },
+          "currency_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Code"
+          },
+          "region_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Code"
+          },
+          "discount_rules": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Rules"
+          },
+          "renewal_pricing_policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renewal Pricing Policy"
+          },
+          "version_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Status"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "entries": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PricebookEntryRequest"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entries"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "title": "UpdateAdminPricebookRequest"
+      },
+      "UpdateCommercialContextCountryOptionRequest": {
+        "properties": {
+          "country_code": {
+            "type": "string",
+            "maxLength": 2,
+            "minLength": 2,
+            "title": "Country Code"
+          },
+          "default_currency_code": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Default Currency Code"
+          },
+          "supported_currency_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Supported Currency Codes"
+          },
+          "payment_country_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Country Code"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "country_code",
+          "default_currency_code",
+          "supported_currency_codes"
+        ],
+        "title": "UpdateCommercialContextCountryOptionRequest"
+      },
+      "UpdateCommercialContextCurrencyOptionRequest": {
+        "properties": {
+          "currency_code": {
+            "type": "string",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency Code"
+          },
+          "minor_units": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Minor Units",
+            "default": 2
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "title": "Is Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency_code"
+        ],
+        "title": "UpdateCommercialContextCurrencyOptionRequest"
+      },
+      "UpdateCommercialContextOptionsRequest": {
+        "properties": {
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/UpdateCommercialContextCountryOptionRequest"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Countries"
+          },
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/UpdateCommercialContextCurrencyOptionRequest"
+            },
+            "type": "array",
+            "title": "Currencies"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "countries"
+        ],
+        "title": "UpdateCommercialContextOptionsRequest"
       },
       "UpdateHostRequest": {
         "properties": {

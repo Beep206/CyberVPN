@@ -127,6 +127,7 @@ class CheckoutUseCase:
         plan_id: UUID,
         *,
         currency: str = "USD",
+        catalog_base_price: Decimal | None = None,
         base_price_override: Decimal | None = None,
         code_input: str | None = None,
         promo_code: str | None = None,
@@ -146,8 +147,14 @@ class CheckoutUseCase:
         )
 
         base_price = (
-            base_price_override if base_price_override is not None else _resolve_plan_price(plan, normalized_currency)
+            catalog_base_price
+            if catalog_base_price is not None
+            else base_price_override
+            if base_price_override is not None
+            else _resolve_plan_price(plan, normalized_currency)
         )
+        if base_price < 0:
+            raise ValueError("Catalog base price cannot be negative")
         addon_amount = sum((line.total_price for line in addon_lines), Decimal("0"))
 
         partner_markup = Decimal("0")

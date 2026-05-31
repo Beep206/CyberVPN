@@ -17,7 +17,9 @@
 /// | servers | /api/v1/servers | GET | JWT | ✅ Aligned |
 /// | serverById | /api/v1/servers/:id | GET | JWT | ✅ Aligned |
 /// | serverStatus | /api/v1/servers/:id/status | GET | JWT | ❌ Missing (backend has no status endpoint) |
-/// | plans | /api/v1/plans | GET | None | ✅ Aligned |
+/// | commercialCatalog | /api/v1/catalog/ | GET | None | ✅ Canonical parity |
+/// | commercialCatalogContext | /api/v1/catalog/context | POST | None | ✅ Canonical parity |
+/// | plans | /api/v1/plans | GET | None | ⚠️ Legacy fallback only |
 /// | subscriptions | /api/v1/subscriptions | POST | JWT | ✅ Aligned |
 /// | activeSubscription | /api/v1/entitlements/current + /api/v1/access-delivery-channels/current/service-state | GET+POST | JWT | ✅ Canonical parity |
 /// | cancelSubscription | /api/v1/subscriptions/cancel | POST | JWT | ❌ Missing (backend has no cancel endpoint) |
@@ -298,11 +300,31 @@ class ApiConstants {
 
   // ── Subscription Endpoints ────────────────────────────────────────────
 
+  /// **GET /api/v1/catalog/**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/catalog/routes.py` - `/catalog/`
+  /// Auth: None (public endpoint)
+  /// Status: ✅ Canonical parity (`CYBA-163 W4`)
+  ///
+  /// Returns backend-owned public commercial catalog for supported public
+  /// channels. Mobile uses the existing `web` channel for read-only catalog
+  /// display until a native-store channel is approved and exposed by backend.
+  static const String commercialCatalog = '$apiPrefix/catalog/';
+
+  /// **POST /api/v1/catalog/context**
+  ///
+  /// Backend: `backend/src/presentation/api/v1/catalog/routes.py` - `/catalog/context`
+  /// Auth: None (public endpoint)
+  /// Status: ✅ Canonical parity (`CYBA-163 W4`)
+  ///
+  /// Resolves locale, country, currency and payment availability context.
+  static const String commercialCatalogContext = '$apiPrefix/catalog/context';
+
   /// **GET /api/v1/plans**
   ///
   /// Backend: `backend/src/presentation/api/v1/plans/routes.py` - `/plans/`
   /// Auth: None (public endpoint)
-  /// Status: ✅ Aligned
+  /// Status: ⚠️ Legacy fallback; current mobile catalog path uses [commercialCatalog]
   ///
   /// Returns list of available subscription plans.
   /// Response: `[{ "uuid": string, "name": string, "price": float, ... }]`

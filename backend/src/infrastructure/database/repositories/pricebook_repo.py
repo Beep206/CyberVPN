@@ -25,6 +25,49 @@ class PricebookRepository:
         )
         return result.scalars().one()
 
+    async def get_by_id(self, pricebook_id: UUID) -> PricebookModel | None:
+        result = await self._session.execute(
+            select(PricebookModel)
+            .options(selectinload(PricebookModel.entries).selectinload(PricebookEntryModel.offer))
+            .where(PricebookModel.id == pricebook_id)
+        )
+        return result.scalars().first()
+
+    async def update(self, model: PricebookModel) -> PricebookModel:
+        await self._session.flush()
+        result = await self._session.execute(
+            select(PricebookModel)
+            .options(selectinload(PricebookModel.entries).selectinload(PricebookEntryModel.offer))
+            .where(PricebookModel.id == model.id)
+        )
+        return result.scalars().one()
+
+    async def list_versions_by_key(self, pricebook_key: str) -> list[PricebookModel]:
+        result = await self._session.execute(
+            select(PricebookModel)
+            .options(selectinload(PricebookModel.entries).selectinload(PricebookEntryModel.offer))
+            .where(PricebookModel.pricebook_key == pricebook_key)
+            .order_by(PricebookModel.effective_from.desc(), PricebookModel.created_at.desc())
+        )
+        return list(result.scalars().unique().all())
+
+    async def list_peer_versions(self, model: PricebookModel) -> list[PricebookModel]:
+        query = (
+            select(PricebookModel)
+            .options(selectinload(PricebookModel.entries).selectinload(PricebookEntryModel.offer))
+            .where(
+                PricebookModel.pricebook_key == model.pricebook_key,
+                PricebookModel.storefront_id == model.storefront_id,
+                PricebookModel.currency_code == model.currency_code,
+                PricebookModel.region_code.is_(None)
+                if model.region_code is None
+                else PricebookModel.region_code == model.region_code,
+            )
+            .order_by(PricebookModel.effective_from.desc(), PricebookModel.created_at.desc())
+        )
+        result = await self._session.execute(query)
+        return list(result.scalars().unique().all())
+
     async def list_active(
         self,
         *,

@@ -30,7 +30,7 @@ import {
   type AdminUpdateMobileUserRequest,
 } from '@/lib/api/customers';
 import { growthApi } from '@/lib/api/growth';
-import { paymentsApi } from '@/lib/api/payments';
+import { adminPaymentsApi } from '@/lib/api/payments';
 import { CustomersPageShell } from '@/features/customers/components/customers-page-shell';
 import { CustomerStatusChip } from '@/features/customers/components/customer-status-chip';
 import {
@@ -206,8 +206,17 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
   const paymentsQuery = useQuery({
     queryKey: ['customers', 'detail', userId, 'payments'],
     queryFn: async () => {
-      const response = await paymentsApi.getHistory({ user_uuid: userId, offset: 0, limit: 20 });
-      return response.data;
+      const response = await adminPaymentsApi.getCustomerPaymentAttempts(userId, { offset: 0, limit: 20 });
+      return {
+        payments: response.data.items.map((attempt) => ({
+          id: attempt.id,
+          amount: attempt.displayed_amount,
+          currency: attempt.currency_code,
+          provider: attempt.provider,
+          status: attempt.status,
+          created_at: attempt.created_at,
+        })),
+      };
     },
     staleTime: 15_000,
   });

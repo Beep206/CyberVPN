@@ -1184,6 +1184,21 @@
       "subtitle": "Keep the public line short. Extend it only where the user clearly understands the extra value.",
       "title": "Add-ons, Not Tariff Sprawl"
     },
+    "catalog": {
+      "unavailableBody": "Pricing is loaded only from the backend commercial catalog. Refresh after the catalog service is available.",
+      "unavailableTitle": "Catalog temporarily unavailable"
+    },
+    "commercialContext": {
+      "resolved": "Pricing country {country} · {currency}",
+      "title": "Commercial context"
+    },
+    "countrySelector": {
+      "aria": "Select country",
+      "empty": "No country found",
+      "search": "SEARCH_COUNTRY...",
+      "searchAria": "Search countries",
+      "title": "SELECT_COUNTRY"
+    },
     "faq": {
       "items": [
         {
@@ -1207,8 +1222,10 @@
     },
     "introPills": {
       "addons": "Options",
+      "live": "Live catalog",
       "periods": "4 periods",
-      "plans": "4 plans"
+      "plans": "4 plans",
+      "unavailable": "Catalog unavailable"
     },
     "labels": {
       "chargedInBillingCurrency": "Charged in {currency}",
