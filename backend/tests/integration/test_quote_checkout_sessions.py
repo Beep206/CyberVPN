@@ -795,9 +795,10 @@ async def test_stale_quote_releases_reserved_promo(
                 db.add(entry)
                 db.commit()
 
+            request_marker = "stale" "-quote" "-promo-1"
             checkout_response = await async_client.post(
                 "/api/v1/checkout-sessions/",
-                headers={**headers, "Idempotency-Key": "stale-quote-promo-1"},
+                headers={**headers, "Idempotency-Key": request_marker},
                 json={"quote_session_id": quote_payload["id"]},
             )
             assert checkout_response.status_code == 409
