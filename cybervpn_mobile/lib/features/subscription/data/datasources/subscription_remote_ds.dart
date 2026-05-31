@@ -4,6 +4,8 @@ import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entit
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 
+const String mobilePublicCatalogChannel = 'web';
+
 /// A payment history entry returned from the API.
 class PaymentHistoryEntry {
   final String id;
@@ -51,7 +53,114 @@ class PaginatedPaymentHistory {
   bool get hasMore => offset + items.length < total;
 }
 
+class CommercialCatalogRequest {
+  const CommercialCatalogRequest({
+    this.channel = mobilePublicCatalogChannel,
+    this.country,
+    this.currency,
+    this.uiLocale,
+    this.urlLocale,
+    this.storefrontKey,
+  });
+
+  final String channel;
+  final String? country;
+  final String? currency;
+  final String? uiLocale;
+  final String? urlLocale;
+  final String? storefrontKey;
+
+  Map<String, dynamic> toQueryParameters() {
+    return <String, dynamic>{
+      'channel': channel,
+      if (country != null) 'country': country,
+      if (currency != null) 'currency': currency,
+      if (uiLocale != null) 'uiLocale': uiLocale,
+      if (urlLocale != null) 'urlLocale': urlLocale,
+      if (storefrontKey != null) 'storefrontKey': storefrontKey,
+    };
+  }
+}
+
+class CommercialCatalogContext {
+  const CommercialCatalogContext({
+    required this.uiLocale,
+    required this.displayCountry,
+    required this.pricingCountry,
+    required this.paymentCountry,
+    required this.currency,
+    required this.confidence,
+    required this.selectableCountries,
+    required this.selectableCurrencies,
+    required this.paymentMethods,
+    required this.cacheKey,
+    required this.resolutionTrace,
+  });
+
+  final String uiLocale;
+  final String displayCountry;
+  final String pricingCountry;
+  final String paymentCountry;
+  final String currency;
+  final String confidence;
+  final List<String> selectableCountries;
+  final List<String> selectableCurrencies;
+  final Map<String, dynamic> paymentMethods;
+  final String cacheKey;
+  final List<String> resolutionTrace;
+
+  factory CommercialCatalogContext.fromJson(Map<String, dynamic> json) {
+    return CommercialCatalogContext(
+      uiLocale: json['uiLocale'] as String? ?? 'en-EN',
+      displayCountry: json['displayCountry'] as String? ?? 'US',
+      pricingCountry: json['pricingCountry'] as String? ?? 'US',
+      paymentCountry: json['paymentCountry'] as String? ?? 'US',
+      currency: json['currency'] as String? ?? 'USD',
+      confidence: json['confidence'] as String? ?? 'fallback',
+      selectableCountries:
+          (json['selectableCountries'] as List<dynamic>?)?.cast<String>() ??
+          const <String>[],
+      selectableCurrencies:
+          (json['selectableCurrencies'] as List<dynamic>?)?.cast<String>() ??
+          const <String>[],
+      paymentMethods:
+          (json['paymentMethods'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{},
+      cacheKey: json['cacheKey'] as String? ?? '',
+      resolutionTrace:
+          (json['resolutionTrace'] as List<dynamic>?)?.cast<String>() ??
+          const <String>[],
+    );
+  }
+}
+
+class CommercialCatalogSnapshot {
+  const CommercialCatalogSnapshot({
+    required this.catalogVersion,
+    required this.cacheKey,
+    required this.context,
+    required this.plans,
+    required this.sourceChannel,
+    required this.iapStorefrontActive,
+  });
+
+  final String catalogVersion;
+  final String cacheKey;
+  final CommercialCatalogContext context;
+  final List<PlanEntity> plans;
+  final String sourceChannel;
+
+  /// Native IAP is intentionally not activated by the public catalog read path.
+  ///
+  /// The app still contains RevenueCat restore plumbing, but this catalog
+  /// integration does not create store products or change purchase behavior.
+  final bool iapStorefrontActive;
+}
+
 abstract class SubscriptionRemoteDataSource {
+  Future<CommercialCatalogSnapshot> fetchCommercialCatalog({
+    CommercialCatalogRequest request = const CommercialCatalogRequest(),
+  });
   Future<List<PlanEntity>> fetchPlans();
   Future<SubscriptionEntity?> fetchActiveSubscription();
   Future<SubscriptionEntity> createSubscription(
@@ -75,40 +184,161 @@ class SubscriptionRemoteDataSourceImpl implements SubscriptionRemoteDataSource {
   SubscriptionRemoteDataSourceImpl(this._apiClient);
 
   @override
-  Future<List<PlanEntity>> fetchPlans() async {
+  Future<CommercialCatalogSnapshot> fetchCommercialCatalog({
+    CommercialCatalogRequest request = const CommercialCatalogRequest(),
+  }) async {
     final response = await _apiClient.get<Map<String, dynamic>>(
-      ApiConstants.plans,
+      ApiConstants.commercialCatalog,
+      queryParameters: request.toQueryParameters(),
     );
-    final data = response.data as List<dynamic>;
-    return data.map((json) {
-      final m = json as Map<String, dynamic>;
-      final duration = PlanDuration.values.firstWhere(
-        (e) => e.name == (m['duration'] as String?),
-        orElse: () => PlanDuration.monthly,
-      );
-      return PlanEntity(
-        id: m['id'] as String,
-        name: m['name'] as String,
-        description: m['description'] as String? ?? '',
-        price: (m['price'] as num).toDouble(),
-        currency: m['currency'] as String? ?? 'USD',
-        duration: duration,
-        durationDays:
-            (m['duration_days'] as num?)?.toInt() ?? _durationToDays(duration),
-        trafficLimitGb: (m['traffic_limit_gb'] as num?)?.toInt() ?? 0,
-        maxDevices: (m['max_devices'] as num?)?.toInt() ?? 1,
-        features: (m['features'] as List<dynamic>?)?.cast<String>() ?? [],
-      );
-    }).toList();
+    final data = response.data ?? <String, dynamic>{};
+    final context = CommercialCatalogContext.fromJson(
+      (data['context'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{},
+    );
+    final metadata =
+        (data['metadata'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
+    final sourceChannel =
+        metadata['channel'] as String? ?? request.channel;
+
+    return CommercialCatalogSnapshot(
+      catalogVersion: data['catalogVersion'] as String? ?? '',
+      cacheKey: data['cacheKey'] as String? ?? '',
+      context: context,
+      sourceChannel: sourceChannel,
+      iapStorefrontActive: false,
+      plans: _parseCommercialCatalogPlans(
+        (data['plans'] as List<dynamic>?) ?? const <dynamic>[],
+        fallbackCurrency: context.currency,
+      ),
+    );
   }
 
-  int _durationToDays(PlanDuration duration) {
-    return switch (duration) {
-      PlanDuration.monthly => 30,
-      PlanDuration.quarterly => 90,
-      PlanDuration.yearly => 365,
-      PlanDuration.lifetime => 36500,
+  @override
+  Future<List<PlanEntity>> fetchPlans() async {
+    final catalog = await fetchCommercialCatalog();
+    return catalog.plans;
+  }
+
+  List<PlanEntity> _parseCommercialCatalogPlans(
+    List<dynamic> plans, {
+    required String fallbackCurrency,
+  }) {
+    final mapped = <PlanEntity>[];
+    for (final planJson in plans) {
+      final plan = (planJson as Map).cast<String, dynamic>();
+      final billingPeriods =
+          (plan['billingPeriods'] as List<dynamic>?) ?? const <dynamic>[];
+      final planCode = plan['planCode'] as String? ?? '';
+      final metadata =
+          (plan['metadata'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      final marketingBadge = _readString(
+        (metadata['features'] as Map?)?['marketing_badge'],
+      );
+
+      for (final periodJson in billingPeriods) {
+        final period = (periodJson as Map).cast<String, dynamic>();
+        final quote =
+            (period['quote'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+        final displayPrice =
+            (period['displayPrice'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+        final durationDays =
+            (period['durationDays'] as num?)?.toInt() ??
+            (quote['billingPeriodDays'] as num?)?.toInt() ??
+            30;
+        final trafficLimitBytes = (plan['trafficLimitBytes'] as num?)?.toInt();
+
+        mapped.add(
+          PlanEntity(
+            id:
+                quote['planId'] as String? ??
+                period['planId'] as String? ??
+                period['catalogItemKey'] as String? ??
+                planCode,
+            name: _planDisplayName(
+              plan['displayName'] as String? ?? planCode,
+              durationDays,
+            ),
+            description: '',
+            price: _moneyAmount(displayPrice['amount']),
+            currency: displayPrice['currency'] as String? ?? fallbackCurrency,
+            duration: _durationFromDays(durationDays),
+            durationDays: durationDays,
+            trafficLimitGb: _bytesToGiB(trafficLimitBytes),
+            maxDevices: (plan['devicesIncluded'] as num?)?.toInt() ?? 1,
+            isPopular:
+                planCode == 'plus' ||
+                marketingBadge?.toLowerCase().contains('popular') == true,
+            isTrial: plan['trialEligible'] as bool? ?? false,
+            features: const <String>[],
+          ),
+        );
+      }
+    }
+
+    mapped.sort((left, right) {
+      final codeOrder = _planOrder(left.name).compareTo(_planOrder(right.name));
+      if (codeOrder != 0) {
+        return codeOrder;
+      }
+      return left.durationDays.compareTo(right.durationDays);
+    });
+    return mapped;
+  }
+
+  PlanDuration _durationFromDays(int days) {
+    return switch (days) {
+      30 => PlanDuration.monthly,
+      90 => PlanDuration.quarterly,
+      180 => PlanDuration.semiannual,
+      365 => PlanDuration.yearly,
+      _ when days >= 36500 => PlanDuration.lifetime,
+      _ => PlanDuration.monthly,
     };
+  }
+
+  String _planDisplayName(String familyName, int durationDays) {
+    if (durationDays == 30) {
+      return familyName;
+    }
+    return '$familyName ${durationDays}d';
+  }
+
+  double _moneyAmount(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
+  int _bytesToGiB(int? value) {
+    if (value == null || value <= 0) {
+      return 0;
+    }
+    return (value / (1024 * 1024 * 1024)).round();
+  }
+
+  String? _readString(Object? value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return null;
+  }
+
+  int _planOrder(String name) {
+    final normalized = name.toLowerCase();
+    if (normalized.startsWith('basic')) return 1;
+    if (normalized.startsWith('plus')) return 2;
+    if (normalized.startsWith('pro')) return 3;
+    if (normalized.startsWith('max')) return 4;
+    return 99;
   }
 
   @override

@@ -174,6 +174,48 @@ Rules:
 5. Treat subscription URL tokens and VPN config URLs as secrets in logs, analytics events, Sentry payloads and evidence.
 6. Use stable event names and bounded label cardinality.
 
+### Commerce operations
+
+Dashboard: `Stage 2 Commerce Operations`
+
+Use this when:
+
+- pricing or catalog pages are slow or inconsistent;
+- quote creation latency rises;
+- checkout starts fall while catalog traffic exists;
+- country/currency selector behavior looks wrong;
+- fallback or unknown-country usage spikes;
+- quote invalidation/expiration increases;
+- add-on attach rate changes unexpectedly;
+- PriceBook publish failures or validation errors appear;
+- provisioning retries, Remnawave dependency errors or Remnawave sync lag appear after payment.
+
+Primary signals:
+
+- `stage2:commerce_catalog_resolution_p95_seconds`
+- `stage2:commerce_quote_creation_p95_seconds`
+- `stage2:commerce_checkout_starts:1h`
+- `stage2:commerce_checkout_failures:1h`
+- `stage2:commerce_quote_invalidations:1h`
+- `stage2:commerce_catalog_context_fallbacks:1h`
+- `stage2:commerce_unknown_country_fallbacks:1h`
+- `stage2:commerce_selector_usage:1h`
+- `stage2:commerce_addon_attach_rate:1h`
+- `stage2:commerce_pricebook_publish_failures:1h`
+- `stage2:commerce_pricebook_validation_errors:current`
+- `stage2:provisioning_retry_backlog:current`
+- `stage2:remnawave_dependency_errors:1h`
+- `stage2:remnawave_sync_lag_seconds`
+
+Operator notes:
+
+1. Treat `PriceBook publish failures` as an admin safety signal. Do not retry publish in production until validation errors are understood and audit evidence is captured.
+2. Treat quote invalidation spikes as possible country/currency, add-on, PriceBook or context drift. Check recent PriceBook publish/rollback events first.
+3. Fallback spikes are not automatically customer impact, but they can hide unsupported country options or broken selector persistence.
+4. Web, Telegram, Mini App and partner sales must be compared by `channel`; do not infer one channel's health from another.
+5. Remnawave sync lag and provisioning retry backlog must be reviewed before broader rollout because paid-but-no-access impact can spread from one payment flow into all channels.
+6. Metrics and logs must not include user IDs, payment payloads, subscription URL tokens, raw VPN config URLs, Telegram init data or Remnawave secrets.
+
 ### Release quality gates
 
 Dashboard: `Stage 2 Release Quality Gates`
@@ -227,6 +269,11 @@ Treat as operator action required:
 - `Stage2HomeOpsEdgeProbeFailed`
 - `Stage2TlsCertificateExpiresSoon`
 - `Stage2AnalyticsIngestionDroppingEvents`
+- `Stage2CommerceQuoteLatencyHigh`
+- `Stage2CommerceQuoteInvalidationSpike`
+- `Stage2CommerceFallbackSpike`
+- `Stage2PricebookPublishFailures`
+- `Stage2ProvisioningRetryBacklog`
 - `Stage2RestoreDrillOverdue`
 - `Stage2SentryFrontendErrorsElevated`
 
@@ -237,6 +284,14 @@ Actions:
 3. Decide if customer impact exists.
 4. If impact exists, create incident evidence.
 5. If no impact exists, document why the alert was benign and tune thresholds only after a repeat pattern.
+
+Commerce-specific P1 triage:
+
+1. Open `Stage 2 Commerce Operations`.
+2. Split impact by `channel` before assigning owner: web/frontend, Telegram/Mini App, partner, backend pricing, admin PriceBook, or provisioning.
+3. For quote/checkout issues, compare quote latency, invalidations, checkout failures and payment success ratio in the same time window.
+4. For provisioning issues, compare retry backlog, Remnawave dependency errors and paid-but-no-access reconciliation.
+5. If a PriceBook publish failed, preserve validation output and do not perform production publish/rollback without the required Board/Orion/Security review path.
 
 ---
 

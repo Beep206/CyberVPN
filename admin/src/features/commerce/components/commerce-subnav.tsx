@@ -12,9 +12,9 @@ export function CommerceSubnav() {
   return (
     <nav
       aria-label={t('layout.subnavLabel')}
-      className="overflow-x-auto rounded-2xl border border-grid-line/20 bg-terminal-surface/40 p-2 backdrop-blur"
+      className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-grid-line/20 bg-terminal-surface/40 p-2 backdrop-blur"
     >
-      <div className="flex min-w-max gap-2">
+      <div className="flex w-max max-w-none gap-2">
         {COMMERCE_NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href ||

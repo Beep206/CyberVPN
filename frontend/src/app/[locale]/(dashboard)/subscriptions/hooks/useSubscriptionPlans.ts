@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { plansApi } from '@/lib/api/plans';
+import { commercialCatalogApi } from '@/lib/api/commercial-catalog';
+import { mapPublicCatalogToSubscriptionPlans } from '../lib/plan-presenter';
 
 /**
  * Hook to fetch available subscription plans
@@ -7,10 +8,10 @@ import { plansApi } from '@/lib/api/plans';
  */
 export function useSubscriptionPlans() {
   return useQuery({
-    queryKey: ['subscription-plans'],
+    queryKey: ['subscription-plans', 'commercial-catalog', 'web'],
     queryFn: async () => {
-      const response = await plansApi.list({ channel: 'web' });
-      return response.data;
+      const response = await commercialCatalogApi.getCatalog({ channel: 'web' });
+      return mapPublicCatalogToSubscriptionPlans(response.data);
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });

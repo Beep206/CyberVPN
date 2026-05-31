@@ -24,16 +24,20 @@ function exponentialRetryDelay(attemptIndex: number): number {
   return Math.min(1_000 * 2 ** attemptIndex, 10_000);
 }
 
+const isReactQueryDevtoolsEnabled =
+  process.env.NODE_ENV !== 'production'
+  && process.env.NEXT_PUBLIC_ENABLE_REACT_QUERY_DEVTOOLS === 'true';
+
 const ReactQueryDevtools =
-  process.env.NODE_ENV === 'production'
-    ? () => null
-    : dynamic(
+  isReactQueryDevtoolsEnabled
+    ? dynamic(
         () =>
           import('@tanstack/react-query-devtools').then(
             (mod) => mod.ReactQueryDevtools,
           ),
         { ssr: false },
-      );
+      )
+    : () => null;
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(

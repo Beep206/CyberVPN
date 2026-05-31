@@ -1971,6 +1971,17 @@ pub async fn get_canonical_orders(
 }
 
 #[tauri::command]
+pub async fn get_public_commercial_catalog(app: AppHandle) -> Result<serde_json::Value, AppError> {
+    let (base_url, access_token, _) = helix::get_authenticated_backend_context(&app)?;
+    client::fetch_authenticated_get(
+        &base_url,
+        &access_token,
+        "/api/v1/catalog/?channel=web",
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn resolve_helix_manifest(
     base_url: String,
     access_token: String,

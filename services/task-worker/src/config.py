@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     # Worker Configuration
     worker_concurrency: int = 2
     result_ttl_seconds: int = 3600
+    stage1_provisioning_retry_claiming_enabled: bool = False
+    stage1_provisioning_retry_batch_limit: int = 25
 
     # Notification Settings
     notification_max_retries: int = 5

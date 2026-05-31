@@ -6,7 +6,15 @@ from src.application.use_cases.commerce_sessions.context_resolution import Resol
 from src.application.use_cases.payments.checkout import CheckoutResult
 
 
-def serialize_checkout_result(result: CheckoutResult) -> dict[str, Any]:
+def serialize_checkout_result(
+    result: CheckoutResult,
+    *,
+    subscription_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    entitlements_snapshot = dict(result.entitlements_snapshot or {})
+    if subscription_snapshot is not None:
+        entitlements_snapshot["subscription_snapshot"] = subscription_snapshot
+
     return {
         "base_price": float(result.base_price),
         "addon_amount": float(result.addon_amount),
@@ -45,7 +53,69 @@ def serialize_checkout_result(result: CheckoutResult) -> dict[str, Any]:
             }
             for line in result.addons
         ],
-        "entitlements_snapshot": result.entitlements_snapshot,
+        "entitlements_snapshot": entitlements_snapshot,
+    }
+
+
+def build_subscription_snapshot(
+    *,
+    result: CheckoutResult,
+    context: ResolvedQuoteContext,
+) -> dict[str, Any]:
+    entitlements = dict((result.entitlements_snapshot or {}).get("effective_entitlements") or {})
+    return {
+        "snapshot_version": "commercial_subscription_snapshot.v1",
+        "plan": {
+            "plan_id": str(result.plan_id) if result.plan_id else None,
+            "plan_name": result.plan_name,
+            "duration_days": result.duration_days,
+            "offer_id": str(context.offer.id),
+            "offer_key": context.offer.offer_key,
+            "offer_version_status": context.offer.version_status,
+            "offer_effective_from": context.offer.effective_from.isoformat(),
+        },
+        "price": {
+            "base_price": str(result.base_price),
+            "addon_amount": str(result.addon_amount),
+            "displayed_price": str(result.displayed_price),
+            "discount_amount": str(result.discount_amount),
+            "wallet_amount": str(result.wallet_amount),
+            "gateway_amount": str(result.gateway_amount),
+            "partner_markup": str(result.partner_markup),
+            "commission_base_amount": str(result.commission_base_amount),
+            "currency": context.pricebook.currency_code.upper(),
+            "pricebook_id": str(context.pricebook.id),
+            "pricebook_key": context.pricebook.pricebook_key,
+            "pricebook_entry_id": str(context.pricebook_entry.id),
+            "pricebook_region_code": context.pricebook.region_code,
+        },
+        "country": {
+            "pricing_country": context.pricebook.region_code,
+            "payment_country": context.pricebook.region_code,
+        },
+        "addons": [
+            {
+                "addon_id": str(line.addon_id),
+                "code": line.code,
+                "qty": line.qty,
+                "unit_price": str(line.unit_price),
+                "total_price": str(line.total_price),
+                "location_code": line.location_code,
+                "delta_entitlements": dict(line.delta_entitlements or {}),
+            }
+            for line in result.addons
+        ],
+        "entitlements": entitlements,
+        "provisioning_profile": {
+            "source": "entitlements_snapshot",
+            "device_limit": entitlements.get("device_limit"),
+            "traffic_limit_bytes": entitlements.get("traffic_limit_bytes"),
+            "traffic_policy": entitlements.get("traffic_policy"),
+            "connection_modes": list(entitlements.get("connection_modes") or []),
+            "server_pool": list(entitlements.get("server_pool") or []),
+            "support_sla": entitlements.get("support_sla"),
+            "dedicated_ip_count": entitlements.get("dedicated_ip_count"),
+        },
     }
 
 

@@ -9,6 +9,7 @@ import { Footer } from '@/widgets/footer';
 import { PublicTerminalHeader } from '@/widgets/public-terminal-header';
 import { getPublicPricingCatalog } from '@/widgets/pricing/catalog';
 import { PricingDashboard } from '@/widgets/pricing/pricing-dashboard';
+import { getCatalogMoneyAmount } from '@/widgets/pricing/utils';
 import { withSiteMetadata } from '@/shared/lib/site-metadata';
 
 export async function generateMetadata({
@@ -32,7 +33,7 @@ export async function generateMetadata({
 export default async function PricingPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Pricing' });
-    const catalog = await getPublicPricingCatalog();
+    const catalog = await getPublicPricingCatalog({ locale });
     const pageTitle = t('title');
     const appStructuredData = buildSoftwareApplicationStructuredData({
         locale,
@@ -43,13 +44,18 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         operatingSystems: ['Telegram Bot', 'iOS', 'Android', 'Windows', 'macOS', 'Linux'],
         featureList: catalog.plans.map((plan) => t(`tiers.${plan.code}.description`)),
         offers: catalog.plans.map((plan) => {
-            const lowestPrice = Math.min(...plan.periods.map((period) => period.price_usd));
+            const lowestPeriod = plan.periods.reduce((best, period) => (
+                getCatalogMoneyAmount(period.display_price) <
+                getCatalogMoneyAmount(best.display_price)
+                    ? period
+                    : best
+            ), plan.periods[0]);
 
             return {
                 name: plan.display_name,
                 description: t(`tiers.${plan.code}.description`),
-                price: String(lowestPrice),
-                priceCurrency: 'USD',
+                price: lowestPeriod.display_price.amount,
+                priceCurrency: lowestPeriod.display_price.currency,
                 url: '/pricing',
             };
         }),

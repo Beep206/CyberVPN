@@ -76,6 +76,7 @@ const basicPlan: PricingPlanFamily = {
   code: 'basic',
   display_name: 'Basic',
   devices_included: 2,
+  traffic_limit_bytes: null,
   traffic_policy: {
     mode: 'fair_use',
     display_label: 'Fair use',
@@ -86,13 +87,26 @@ const basicPlan: PricingPlanFamily = {
   support_sla: 'standard',
   dedicated_ip: { included: 0, eligible: true },
   features: {},
+  version: 'v1',
+  promo_eligible: true,
   periods: [
     {
       uuid: 'basic-30',
       name: 'basic_30',
       duration_days: 30,
-      price_usd: 5.99,
-      price_rub: 599,
+      display_price: { amount: '599', currency: 'RUB', minorUnits: 0 },
+      quote: {
+        planId: 'basic-30',
+        planCode: 'basic',
+        billingPeriodDays: 30,
+        currency: 'RUB',
+        catalogItemKey: 'basic_30',
+        contextCacheKey: 'ctx-ru',
+      },
+      included_addon_codes: [],
+      availability: ['web'],
+      version: 'v1',
+      metadata: {},
       invite_bundle: { count: 0, friend_days: 0, expiry_days: 0 },
       trial_eligible: false,
       sort_order: 20,
@@ -109,8 +123,7 @@ const extraDeviceAddon: PricingAddon = {
   duration_mode: 'inherits_subscription',
   is_stackable: true,
   quantity_step: 1,
-  price_usd: 6,
-  price_rub: 600,
+  display_price: { amount: '600', currency: 'RUB', minorUnits: 0 },
   max_quantity_by_plan: {
     basic: 2,
   },
@@ -120,6 +133,7 @@ const extraDeviceAddon: PricingAddon = {
   requires_location: false,
   sale_channels: ['web'],
   is_active: true,
+  metadata: {},
 };
 
 describe('public pricing copy', () => {

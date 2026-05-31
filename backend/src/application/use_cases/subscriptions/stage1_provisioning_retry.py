@@ -416,6 +416,7 @@ def _safe_paid_request_payload(request: Stage1PaidProvisioningRequest) -> dict[s
         "device_limit": request.device_limit,
         "source_provider": request.source_provider,
         "has_existing_remnawave_uuid": request.existing_remnawave_uuid is not None,
+        "existing_remnawave_uuid": request.existing_remnawave_uuid,
     }
 
 
@@ -427,6 +428,7 @@ def _safe_trial_request_payload(request: Stage1TrialProvisioningRequest) -> dict
         "traffic_limit_bytes": request.traffic_limit_bytes,
         "device_limit": request.device_limit,
         "has_existing_remnawave_uuid": request.existing_remnawave_uuid is not None,
+        "existing_remnawave_uuid": request.existing_remnawave_uuid,
     }
 
 

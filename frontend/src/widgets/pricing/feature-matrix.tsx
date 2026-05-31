@@ -3,14 +3,12 @@
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Dot, Minus, PlugZap } from 'lucide-react';
-import { useCurrencyPreference } from '@/features/currency-selector';
 import { MobileDataList } from '@/shared/ui/mobile-data-list';
 import type { PricingAddon, PricingPlanFamily, PricingTierCode } from './types';
 import {
-  formatMoney,
+  formatCatalogMoney,
   formatPlanLimitSummary,
   getPlanPeriod,
-  getPricePresentation,
 } from './utils';
 
 const PLAN_ORDER: PricingTierCode[] = ['basic', 'plus', 'pro', 'max'];
@@ -91,7 +89,6 @@ export function FeatureMatrix({
 }) {
   const t = useTranslations('Pricing');
   const locale = useLocale();
-  const { currency } = useCurrencyPreference(locale);
   const extraDeviceAddon = addons.find((addon) => addon.code === 'extra_device');
   const dedicatedIpAddon = addons.find((addon) => addon.code === 'dedicated_ip');
   const trafficAddons = addons.filter((addon) => addon.code.startsWith('ru_traffic_'));
@@ -228,7 +225,6 @@ export function FeatureMatrix({
 
           <div className="grid gap-4 md:grid-cols-2">
             {addonCards.map((addon) => {
-              const pricePresentation = getPricePresentation(locale, addon, currency);
               const fallbackTitle = addon.display_name;
               const fallbackDescription = addon.code.startsWith('ru_traffic_')
                 ? 'Traffic package for Russia Start and Russia Basic.'
@@ -266,11 +262,7 @@ export function FeatureMatrix({
                     </div>
                     <div className="rounded-full border border-border/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground dark:border-white/10 dark:text-white/55">
                       {t('addons.priceLabel', {
-                        price: formatMoney(
-                          locale,
-                          pricePresentation.billing.amount,
-                          pricePresentation.billing.currency,
-                        ),
+                        price: formatCatalogMoney(locale, addon.display_price),
                       })}
                     </div>
                   </div>

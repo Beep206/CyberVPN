@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     remnawave_retry_backoff_seconds: float = 0.25
     stage1_trial_provisioning_enabled: bool = False
     stage1_paid_provisioning_enabled: bool = False
+    stage1_provisioning_retry_claiming_enabled: bool = False
+    stage1_provisioning_retry_batch_limit: int = 25
     stage1_addons_enabled: bool = False
     referral_enabled: bool = False
     promo_codes_enabled: bool = False
@@ -349,9 +351,7 @@ class Settings(BaseSettings):
                 raise ValueError("ADMIN_ALLOWED_HOSTS must include admin.cyber-vpn.net in S1 production.")
             invalid_hosts = set(normalized_hosts) & (S1_REDIRECT_ONLY_ADMIN_HOSTS | S1_PUBLIC_NON_ADMIN_HOSTS)
             if invalid_hosts:
-                raise ValueError(
-                    "ADMIN_ALLOWED_HOSTS must not include public or redirect-only hosts in S1 production."
-                )
+                raise ValueError("ADMIN_ALLOWED_HOSTS must not include public or redirect-only hosts in S1 production.")
             if set(normalized_hosts) - S1_PRODUCTION_ADMIN_ALLOWED_HOSTS:
                 raise ValueError("ADMIN_ALLOWED_HOSTS contains hostnames not approved for S1 production.")
 
@@ -453,9 +453,7 @@ class Settings(BaseSettings):
             return self
 
         if not self.oauth_web_base_url:
-            raise ValueError(
-                "OAUTH_WEB_BASE_URL is required in production when OAuth login providers are enabled."
-            )
+            raise ValueError("OAUTH_WEB_BASE_URL is required in production when OAuth login providers are enabled.")
         if "google" in enabled and (
             not self.google_client_id.strip() or not self.google_client_secret.get_secret_value().strip()
         ):

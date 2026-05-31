@@ -25,7 +25,7 @@ class SubscriptionLocalDataSourceImpl implements SubscriptionLocalDataSource {
   static const String _subscriptionCacheTimestampKey =
       'subscription_cache_timestamp';
   static const String _cacheVersionKey = 'subscription_cache_version';
-  static const int _cacheVersion = 2;
+  static const int _cacheVersion = 3;
 
   /// Cache validity in minutes, derived from [CacheConstants.subscriptionCacheTtl].
   static final int _cacheValidityMinutes =

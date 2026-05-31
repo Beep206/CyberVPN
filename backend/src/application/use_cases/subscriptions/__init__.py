@@ -40,6 +40,10 @@ from .stage1_provisioning_retry import (
     Stage1ProvisioningRetryReason,
     Stage1ProvisioningRetryService,
 )
+from .stage1_provisioning_retry_worker import (
+    Stage1ProvisioningRetryWorker,
+    Stage1ProvisioningRetryWorkerResult,
+)
 from .upgrade_subscription import UpgradeSubscriptionUseCase
 
 __all__ = [
@@ -71,6 +75,8 @@ __all__ = [
     "Stage1ProvisioningRetryQueue",
     "Stage1ProvisioningRetryReason",
     "Stage1ProvisioningRetryService",
+    "Stage1ProvisioningRetryWorker",
+    "Stage1ProvisioningRetryWorkerResult",
     "UpgradeSubscriptionUseCase",
     "build_stage1_manual_subscription_request",
     "build_stage1_paid_provisioning_request",

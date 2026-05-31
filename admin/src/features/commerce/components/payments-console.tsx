@@ -33,7 +33,7 @@ export function PaymentsConsole() {
   const deferredSearch = useDeferredValue(idSearch.trim().toLowerCase());
 
   const paymentsQuery = useQuery({
-    queryKey: ['commerce', 'payments'],
+    queryKey: ['commerce', 'payments', { limit: 100 }],
     queryFn: async () => {
       const response = await paymentsApi.getHistory({
         offset: 0,
@@ -171,11 +171,16 @@ export function PaymentsConsole() {
                   setStatusFilter('all');
                   setIdSearch('');
                 }}
+                aria-label={t('common.reset')}
               >
                 <X className="mr-2 h-4 w-4" />
                 {t('common.reset')}
               </Button>
             </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4 text-sm font-mono leading-6 text-muted-foreground">
+            {t('payments.serverFilterHint')}
           </div>
         </section>
 

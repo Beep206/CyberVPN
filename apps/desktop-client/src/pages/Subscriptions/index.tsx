@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Rss, Plus, RefreshCw, Layers, Shield, Monitor, ShoppingCart } from "lucide-react";
+import {
+  Rss,
+  Plus,
+  RefreshCw,
+  Layers,
+  Shield,
+  Monitor,
+  ShoppingCart,
+} from "lucide-react";
 import {
   addSubscription,
   CanonicalCurrentServiceState,
@@ -9,8 +17,10 @@ import {
   getCanonicalCurrentEntitlements,
   getCanonicalCurrentServiceState,
   getCanonicalOrders,
+  getPublicCommercialCatalog,
   getProfiles,
   getSubscriptions,
+  PublicCommercialCatalogResponse,
   ProxyNode,
   Subscription,
   updateSubscription,
@@ -28,8 +38,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
-import { desktopMotionEase, useDesktopMotionBudget } from "../../shared/lib/motion";
+import {
+  desktopMotionEase,
+  useDesktopMotionBudget,
+} from "../../shared/lib/motion";
 import { useTranslation } from "react-i18next";
+import {
+  flattenCommercialCatalogPlans,
+  formatCatalogPrice,
+} from "./commercial-catalog";
 
 export function SubscriptionsPage() {
   const { t } = useTranslation();
@@ -41,6 +58,8 @@ export function SubscriptionsPage() {
   const [canonicalServiceState, setCanonicalServiceState] =
     useState<CanonicalCurrentServiceState | null>(null);
   const [canonicalOrders, setCanonicalOrders] = useState<CanonicalOrder[]>([]);
+  const [commercialCatalog, setCommercialCatalog] =
+    useState<PublicCommercialCatalogResponse | null>(null);
   const [canonicalUnavailable, setCanonicalUnavailable] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState<Record<string, boolean>>({});
@@ -68,16 +87,24 @@ export function SubscriptionsPage() {
 
   const refreshData = async () => {
     try {
-      const [subsData, profilesData] = await Promise.all([getSubscriptions(), getProfiles()]);
+      const [subsData, profilesData] = await Promise.all([
+        getSubscriptions(),
+        getProfiles(),
+      ]);
       setSubscriptions(subsData);
       setProfiles(profilesData);
 
-      const [entitlementResult, serviceStateResult, ordersResult] =
-        await Promise.allSettled([
-          getCanonicalCurrentEntitlements(),
-          getCanonicalCurrentServiceState(),
-          getCanonicalOrders(5),
-        ]);
+      const [
+        entitlementResult,
+        serviceStateResult,
+        ordersResult,
+        catalogResult,
+      ] = await Promise.allSettled([
+        getCanonicalCurrentEntitlements(),
+        getCanonicalCurrentServiceState(),
+        getCanonicalOrders(5),
+        getPublicCommercialCatalog(),
+      ]);
 
       setCanonicalUnavailable(false);
 
@@ -101,6 +128,13 @@ export function SubscriptionsPage() {
         setCanonicalOrders([]);
         setCanonicalUnavailable(true);
       }
+
+      if (catalogResult.status === "fulfilled") {
+        setCommercialCatalog(catalogResult.value);
+      } else {
+        setCommercialCatalog(null);
+        setCanonicalUnavailable(true);
+      }
     } catch (e) {
       console.error("Failed to load data", e);
     }
@@ -112,10 +146,10 @@ export function SubscriptionsPage() {
 
   const handleCreateSubscription = async () => {
     if (!name || !url) {
-        toast.error(t('subscriptions.fillAllFields'));
-        return;
+      toast.error(t("subscriptions.fillAllFields"));
+      return;
     }
-    
+
     const newSubscription: Subscription = {
       id: crypto.randomUUID(),
       name,
@@ -128,31 +162,42 @@ export function SubscriptionsPage() {
       setIsDialogOpen(false);
       setName("");
       setUrl("");
-      
+
       await handleSync(newSubscription.id);
     } catch (e: any) {
       console.error("Failed to create subscription", e);
-      toast.error(t('subscriptions.createError', { error: e }));
+      toast.error(t("subscriptions.createError", { error: e }));
     }
   };
 
   const handleSync = async (subId: string) => {
-    setIsSyncing(prev => ({ ...prev, [subId]: true }));
+    setIsSyncing((prev) => ({ ...prev, [subId]: true }));
     try {
-        await updateSubscription(subId);
-        toast.success(t('subscriptions.syncSuccess'));
-        await refreshData();
+      await updateSubscription(subId);
+      toast.success(t("subscriptions.syncSuccess"));
+      await refreshData();
     } catch (e: any) {
-        toast.error(t('subscriptions.syncError', { error: e }));
+      toast.error(t("subscriptions.syncError", { error: e }));
     } finally {
-        setIsSyncing(prev => ({ ...prev, [subId]: false }));
+      setIsSyncing((prev) => ({ ...prev, [subId]: false }));
     }
   };
 
   const formatDate = (timestamp?: number) => {
-      if (!timestamp) return t('subscriptions.neverUpdated');
-      return new Date(timestamp * 1000).toLocaleString();
+    if (!timestamp) return t("subscriptions.neverUpdated");
+    return new Date(timestamp * 1000).toLocaleString();
   };
+
+  const commercialOptions = commercialCatalog
+    ? flattenCommercialCatalogPlans(commercialCatalog)
+    : [];
+  const highlightedCommercialOptions = commercialOptions
+    .filter((option) => option.durationDays === 365)
+    .slice(0, 4);
+  const visibleCommercialOptions =
+    highlightedCommercialOptions.length > 0
+      ? highlightedCommercialOptions
+      : commercialOptions.slice(0, 4);
 
   return (
     <motion.div
@@ -164,12 +209,14 @@ export function SubscriptionsPage() {
     >
       <header className="flex items-center justify-between">
         <div>
-           <h1 className="text-3xl font-bold tracking-tight text-[var(--color-neon-cyan)] drop-shadow-[0_0_8px_rgba(0,255,255,0.4)]">
-               {t('subscriptions.title')}
-           </h1>
-           <p className="text-muted-foreground mt-2">{t('subscriptions.description')}</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-neon-cyan)] drop-shadow-[0_0_8px_rgba(0,255,255,0.4)]">
+            {t("subscriptions.title")}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {t("subscriptions.description")}
+          </p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger
             render={
@@ -177,27 +224,50 @@ export function SubscriptionsPage() {
             }
           >
             <Plus size={16} />
-            {t('subscriptions.addUrl')}
+            {t("subscriptions.addUrl")}
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">{t('subscriptions.addSubscription')}</DialogTitle>
+              <DialogTitle className="text-[var(--color-matrix-green)] tracking-wide">
+                {t("subscriptions.addSubscription")}
+              </DialogTitle>
               <DialogDescription>
-                {t('subscriptions.addDesc')}
+                {t("subscriptions.addDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">{t('subscriptions.name')}</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" placeholder={t('subscriptions.namePlaceholder')} />
+                <Label htmlFor="name" className="text-right">
+                  {t("subscriptions.name")}
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="col-span-3"
+                  placeholder={t("subscriptions.namePlaceholder")}
+                />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="url" className="text-right">{t('subscriptions.urlLabel')}</Label>
-                <Input id="url" value={url} onChange={e => setUrl(e.target.value)} className="col-span-3" placeholder="https://..." />
+                <Label htmlFor="url" className="text-right">
+                  {t("subscriptions.urlLabel")}
+                </Label>
+                <Input
+                  id="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="col-span-3"
+                  placeholder="https://..."
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreateSubscription} className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80">{t('subscriptions.saveSync')}</Button>
+              <Button
+                onClick={handleCreateSubscription}
+                className="bg-[var(--color-neon-cyan)] text-black hover:bg-[var(--color-neon-cyan)]/80"
+              >
+                {t("subscriptions.saveSync")}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -267,12 +337,15 @@ export function SubscriptionsPage() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">Provider</span>
-                <span className="font-semibold">{canonicalServiceState.provider_name}</span>
+                <span className="font-semibold">
+                  {canonicalServiceState.provider_name}
+                </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">Channel</span>
                 <span className="text-right">
-                  {canonicalServiceState.access_delivery_channel?.channel_type ??
+                  {canonicalServiceState.access_delivery_channel
+                    ?.channel_type ??
                     canonicalServiceState.consumption_context.channel_type ??
                     "Not resolved"}
                 </span>
@@ -281,14 +354,16 @@ export function SubscriptionsPage() {
                 <span className="text-muted-foreground">Profile</span>
                 <span className="text-right">
                   {canonicalServiceState.provisioning_profile?.profile_key ??
-                    canonicalServiceState.consumption_context.provisioning_profile_key ??
+                    canonicalServiceState.consumption_context
+                      .provisioning_profile_key ??
                     "Pending"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">Source</span>
                 <span className="text-right">
-                  {canonicalServiceState.purchase_context.source_type ?? "Unspecified"}
+                  {canonicalServiceState.purchase_context.source_type ??
+                    "Unspecified"}
                 </span>
               </div>
             </div>
@@ -328,7 +403,9 @@ export function SubscriptionsPage() {
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span>{formatCanonicalDate(order.created_at)}</span>
-                    <span>{formatMoney(order.displayed_price, order.currency_code)}</span>
+                    <span>
+                      {formatMoney(order.displayed_price, order.currency_code)}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -343,65 +420,136 @@ export function SubscriptionsPage() {
 
       {canonicalUnavailable && (
         <div className="rounded-lg border border-dashed border-[var(--color-neon-cyan)]/25 px-4 py-3 text-sm text-muted-foreground">
-          Canonical desktop parity data is unavailable until this client has a live backend session
-          and resolved manifest context.
+          Canonical desktop parity data is unavailable until this client has a
+          live backend session and resolved manifest context.
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-         <AnimatePresence initial={false}>
-             {subscriptions.map((sub) => {
-                 const nodeCount = profiles.filter(p => p.subscriptionId === sub.id).length;
-                 const syncing = isSyncing[sub.id];
+      <section className="space-y-4">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <ShoppingCart
+              size={18}
+              className="text-[var(--color-matrix-green)]"
+            />
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-matrix-green)]">
+                Commercial Catalog
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Backend-owned upgrade and renewal options from the public
+                catalog.
+              </p>
+            </div>
+          </div>
+          {commercialCatalog ? (
+            <span className="rounded-full border border-border/50 px-3 py-1 text-xs font-mono uppercase text-muted-foreground">
+              {commercialCatalog.metadata.channel} ·{" "}
+              {commercialCatalog.context.currency}
+            </span>
+          ) : null}
+        </div>
+        {visibleCommercialOptions.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {visibleCommercialOptions.map((option) => (
+              <div
+                key={`${option.id}-${option.durationDays}`}
+                className="rounded-lg border border-border/40 bg-[color:var(--panel-surface)] p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">{option.displayName}</span>
+                  <span className="font-mono text-xs text-[var(--color-neon-cyan)]">
+                    {option.durationDays}d
+                  </span>
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-[var(--color-matrix-green)]">
+                  {formatCatalogPrice(option.amount, option.currency)}
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {option.devicesIncluded} devices · quote{" "}
+                  {option.quoteCatalogItemKey}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Commercial catalog is not available until the authenticated desktop
+            backend context is resolved.
+          </p>
+        )}
+      </section>
 
-                 return (
-                 <motion.div
-                     key={sub.id}
-                     layout
-                     initial={{ opacity: 0, y: offsets.list }}
-                     animate={{ opacity: 1, y: 0 }}
-                     exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
-                     transition={{ duration: durations.list, ease: desktopMotionEase }}
-                     className="group relative flex flex-col p-5 rounded-xl border border-border/40 bg-card/10 hover:bg-card/30 hover:border-[var(--color-neon-cyan)]/50 transition-all duration-300"
-                 >
-                     <div className="flex justify-between items-start mb-4">
-                         <div className="flex items-center gap-3">
-                             <div className="p-2 rounded-md bg-[var(--color-neon-cyan)]/10 text-[var(--color-neon-cyan)] group-hover:bg-[var(--color-neon-cyan)]/20 transition-colors">
-                                 <Rss size={20} />
-                             </div>
-                             <h3 className="font-semibold text-lg max-w-[150px] truncate">{sub.name}</h3>
-                         </div>
-                         <Button 
-                             disabled={syncing}
-                             variant="ghost" 
-                             onClick={() => handleSync(sub.id)}
-                             size="icon" 
-                             className="text-[var(--color-matrix-green)] opacity-50 hover:opacity-100 transition-opacity"
-                         >
-                             <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
-                         </Button>
-                     </div>
-                     
-                     <div className="space-y-3 text-sm text-muted-foreground/80 font-mono">
-                         <div className="flex items-center gap-2">
-                             <Layers size={14} className="text-muted-foreground" />
-                             <span>{t('subscriptions.nodesSynced', { count: nodeCount })}</span>
-                         </div>
-                         <div className="flex flex-col gap-1 text-xs opacity-70 border-t border-border/30 pt-3 mt-1">
-                             <span className="truncate">{sub.url}</span>
-                             <span>{t('subscriptions.lastSync')}: {formatDate(sub.lastUpdated)}</span>
-                         </div>
-                     </div>
-                 </motion.div>
-             )})}
-         </AnimatePresence>
-         
-         {subscriptions.length === 0 && (
-             <div className="col-span-full py-16 flex flex-col items-center justify-center text-muted-foreground/50 border border-dashed border-border/60 rounded-xl">
-                 <Rss className="w-12 h-12 mb-4 opacity-20" />
-                 <p className="font-mono text-sm">{t('subscriptions.empty')}</p>
-             </div>
-         )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
+        <AnimatePresence initial={false}>
+          {subscriptions.map((sub) => {
+            const nodeCount = profiles.filter(
+              (p) => p.subscriptionId === sub.id,
+            ).length;
+            const syncing = isSyncing[sub.id];
+
+            return (
+              <motion.div
+                key={sub.id}
+                layout
+                initial={{ opacity: 0, y: offsets.list }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -4 }}
+                transition={{
+                  duration: durations.list,
+                  ease: desktopMotionEase,
+                }}
+                className="group relative flex flex-col p-5 rounded-xl border border-border/40 bg-card/10 hover:bg-card/30 hover:border-[var(--color-neon-cyan)]/50 transition-all duration-300"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-md bg-[var(--color-neon-cyan)]/10 text-[var(--color-neon-cyan)] group-hover:bg-[var(--color-neon-cyan)]/20 transition-colors">
+                      <Rss size={20} />
+                    </div>
+                    <h3 className="font-semibold text-lg max-w-[150px] truncate">
+                      {sub.name}
+                    </h3>
+                  </div>
+                  <Button
+                    disabled={syncing}
+                    variant="ghost"
+                    onClick={() => handleSync(sub.id)}
+                    size="icon"
+                    className="text-[var(--color-matrix-green)] opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <RefreshCw
+                      size={16}
+                      className={syncing ? "animate-spin" : ""}
+                    />
+                  </Button>
+                </div>
+
+                <div className="space-y-3 text-sm text-muted-foreground/80 font-mono">
+                  <div className="flex items-center gap-2">
+                    <Layers size={14} className="text-muted-foreground" />
+                    <span>
+                      {t("subscriptions.nodesSynced", { count: nodeCount })}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 text-xs opacity-70 border-t border-border/30 pt-3 mt-1">
+                    <span className="truncate">{sub.url}</span>
+                    <span>
+                      {t("subscriptions.lastSync")}:{" "}
+                      {formatDate(sub.lastUpdated)}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+
+        {subscriptions.length === 0 && (
+          <div className="col-span-full py-16 flex flex-col items-center justify-center text-muted-foreground/50 border border-dashed border-border/60 rounded-xl">
+            <Rss className="w-12 h-12 mb-4 opacity-20" />
+            <p className="font-mono text-sm">{t("subscriptions.empty")}</p>
+          </div>
+        )}
       </div>
     </motion.div>
   );

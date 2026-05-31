@@ -3,9 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSelectionState = vi.fn();
+const useTranslationsMock = vi.hoisted(() =>
+  vi.fn((namespace?: string) => (key: string) => `${namespace ?? 'default'}:${key}`),
+);
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: useTranslationsMock,
 }));
 
 vi.mock('@/features/partner-portal-state/lib/use-partner-workspace-selection', () => ({
@@ -16,6 +19,10 @@ import { PartnerWorkspaceSwitcher } from './partner-workspace-switcher';
 
 describe('PartnerWorkspaceSwitcher', () => {
   beforeEach(() => {
+    useTranslationsMock.mockClear();
+    useTranslationsMock.mockImplementation(
+      (namespace?: string) => (key: string) => `${namespace ?? 'default'}:${key}`,
+    );
     mockSelectionState.mockReset();
     mockSelectionState.mockReturnValue({
       workspaces: [
@@ -49,14 +56,16 @@ describe('PartnerWorkspaceSwitcher', () => {
   it('renders the canonical workspace selector and current workspace posture', () => {
     render(<PartnerWorkspaceSwitcher />);
 
-    expect(screen.getByText('label')).toBeInTheDocument();
+    expect(useTranslationsMock).toHaveBeenCalledWith('Partner.workspaceSwitcher');
+    expect(useTranslationsMock).toHaveBeenCalledWith('Partner.portalState');
+    expect(screen.getByText('Partner.workspaceSwitcher:label')).toBeInTheDocument();
     expect(
       screen.getByRole('combobox', {
-        name: 'inputLabel',
+        name: 'Partner.workspaceSwitcher:inputLabel',
       }),
     ).toHaveValue('workspace_001');
     expect(screen.getByText('north-star')).toBeInTheDocument();
-    expect(screen.getByText('workspaceStatuses.active')).toBeInTheDocument();
+    expect(screen.getByText('Partner.portalState:workspaceStatuses.active')).toBeInTheDocument();
   });
 
   it('submits explicit workspace changes from the selector', async () => {
@@ -95,7 +104,7 @@ describe('PartnerWorkspaceSwitcher', () => {
 
     await user.selectOptions(
       screen.getByRole('combobox', {
-        name: 'inputLabel',
+        name: 'Partner.workspaceSwitcher:inputLabel',
       }),
       'workspace_002',
     );

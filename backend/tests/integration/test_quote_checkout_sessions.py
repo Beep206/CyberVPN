@@ -510,6 +510,9 @@ async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_
             assert quote_payload["offer_id"] == seeded["offer_id"]
             assert quote_payload["legal_document_set_id"] == seeded["legal_document_set_id"]
             assert quote_payload["program_eligibility_policy_id"] == seeded["program_eligibility_policy_id"]
+            assert quote_payload["quote"]["base_price"] == 75.0
+            assert quote_payload["quote"]["displayed_price"] == 75.0
+            assert quote_payload["quote"]["gateway_amount"] == 75.0
 
             checkout_response = await async_client.post(
                 "/api/v1/checkout-sessions/",
@@ -521,6 +524,8 @@ async def test_quote_and_checkout_sessions_follow_lineage_and_idempotency(async_
             assert checkout_payload["quote_session_id"] == quote_payload["id"]
             assert checkout_payload["storefront_key"] == seeded["storefront_key"]
             assert checkout_payload["idempotency_key"] == "quote-checkout-1"
+            assert checkout_payload["quote"]["base_price"] == 75.0
+            assert checkout_payload["quote"]["gateway_amount"] == 75.0
 
             repeated_response = await async_client.post(
                 "/api/v1/checkout-sessions/",
