@@ -19,6 +19,9 @@ import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WS_TICKET_SCOPE = "admin_ws"
+MESSAGING_REALTIME_TICKET_SCOPE = "messaging_realtime"
+
 
 @dataclass
 class TicketData:
@@ -29,6 +32,8 @@ class TicketData:
     login: str | None
     created_at: datetime
     ip_address: str | None = None
+    principal_type: str = "admin"
+    scope: str = DEFAULT_WS_TICKET_SCOPE
 
 
 class WebSocketTicketService:
@@ -49,6 +54,8 @@ class WebSocketTicketService:
         role: str,
         login: str | None = None,
         ip_address: str | None = None,
+        principal_type: str = "admin",
+        scope: str = DEFAULT_WS_TICKET_SCOPE,
     ) -> str:
         """Create a new WebSocket authentication ticket.
 
@@ -57,6 +64,8 @@ class WebSocketTicketService:
             role: The user's role
             login: The user's login (optional)
             ip_address: Client IP for validation (optional)
+            principal_type: Principal namespace for downstream channel authorization
+            scope: WebSocket surface this ticket is allowed to authenticate
 
         Returns:
             The ticket UUID string
@@ -71,6 +80,8 @@ class WebSocketTicketService:
             "login": login or "",
             "created_at": datetime.now(UTC).isoformat(),
             "ip_address": ip_address or "",
+            "principal_type": principal_type,
+            "scope": scope,
         }
 
         # Store with short TTL
@@ -151,6 +162,8 @@ class WebSocketTicketService:
             login=data.get("login") or None,
             created_at=datetime.fromisoformat(data.get("created_at", datetime.now(UTC).isoformat())),
             ip_address=data.get("ip_address") or None,
+            principal_type=data.get("principal_type") or "admin",
+            scope=data.get("scope") or DEFAULT_WS_TICKET_SCOPE,
         )
 
     async def revoke_ticket(self, ticket_id: str) -> bool:

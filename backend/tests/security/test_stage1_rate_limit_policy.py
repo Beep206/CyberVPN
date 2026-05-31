@@ -39,6 +39,10 @@ def _s1_middleware(**overrides: int) -> RateLimitMiddleware:
         trial_activate_requests_per_minute=overrides.get("trial", 10),
         growth_sensitive_requests_per_minute=overrides.get("growth", 60),
         support_write_requests_per_minute=overrides.get("support", 30),
+        messaging_write_requests_per_minute=overrides.get("messaging_write", 30),
+        messaging_realtime_requests_per_minute=overrides.get("messaging_realtime", 60),
+        messaging_admin_read_requests_per_minute=overrides.get("messaging_admin_read", 120),
+        messaging_broadcast_requests_per_minute=overrides.get("messaging_broadcast", 10),
     )
 
 
@@ -118,6 +122,18 @@ class _FakeRedisClient:
         ("/api/v1/gifts/redeem", "POST", "s1_growth_sensitive", 60),
         ("/api/v1/admin/mobile-users/user-id/notes", "POST", "s1_support_write", 30),
         ("/api/v1/admin/mobile-users/user-id/devices/device-id", "DELETE", "s1_support_write", 30),
+        ("/api/v1/me/conversations/conv_1/messages", "POST", "messaging_write", 30),
+        ("/api/v1/me/conversations/conv_1/read", "POST", "messaging_write", 30),
+        ("/api/v1/me/notifications/read", "POST", "messaging_write", 30),
+        ("/api/v1/admin/messaging/conversations", "POST", "messaging_write", 30),
+        ("/api/v1/admin/messaging/conversations/conv_1/internal-notes", "POST", "messaging_write", 30),
+        ("/api/v1/me/realtime/sync", "GET", "messaging_realtime", 60),
+        ("/api/v1/me/realtime/ticket", "POST", "messaging_realtime", 60),
+        ("/api/v1/admin/messaging/realtime/sse", "GET", "messaging_realtime", 60),
+        ("/api/v1/admin/messaging/conversations", "GET", "messaging_admin_read", 120),
+        ("/api/v1/admin/messaging/conversations/conv_1", "GET", "messaging_admin_read", 120),
+        ("/api/v1/admin/notifications/broadcasts", "POST", "messaging_broadcast", 10),
+        ("/api/v1/admin/notifications/broadcasts/bc_1/cancel", "POST", "messaging_broadcast", 10),
     ],
 )
 def test_stage1_critical_surfaces_have_category_budgets(

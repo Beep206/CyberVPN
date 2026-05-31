@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { MobileSidebar } from '@/widgets/mobile-sidebar';
 import { TerminalHeaderControls } from '@/widgets/terminal-header-controls';
 import { TerminalHeaderPerformance } from '@/widgets/terminal-header-performance';
+import { NotificationCenterDropdown } from '@/features/messaging/components/NotificationCenterDropdown';
 
 interface TerminalHeaderProps {
   performanceMode?: 'off' | 'idle' | 'always';
@@ -38,6 +39,8 @@ export async function TerminalHeader({
             <span className="hidden md:inline">{headerT('netUplink')}</span>
           </div>
         </div>
+
+        <NotificationCenterDropdown />
 
         <TerminalHeaderControls
           loginLabel={loginT('submitButton')}

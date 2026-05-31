@@ -197,6 +197,10 @@ class Settings(BaseSettings):
     rate_limit_trial_activate_requests: int = 10
     rate_limit_growth_sensitive_requests: int = 60
     rate_limit_support_write_requests: int = 30
+    rate_limit_messaging_write_requests: int = 30
+    rate_limit_messaging_realtime_requests: int = 60
+    rate_limit_messaging_admin_read_requests: int = 120
+    rate_limit_messaging_broadcast_requests: int = 10
     trust_proxy_headers: bool = False
 
     # OTP Configuration
@@ -258,9 +262,12 @@ class Settings(BaseSettings):
     partner_webhooks_enabled: bool = False
     partner_payouts_enabled: bool = False
     partner_event_backbone_enabled: bool = False
+    messaging_event_backbone_enabled: bool = False
     nats_url: str = "nats://localhost:4222"
     nats_partner_stream_name: str = "PARTNER_EVENTS"
     nats_partner_subject_prefix: str = "partner"
+    nats_messaging_stream_name: str = "MESSAGING_EVENTS"
+    nats_messaging_subject_prefix: str = "messaging"
     outbox_dispatch_batch_size: int = 100
     outbox_dispatch_interval_seconds: float = 1.0
     outbox_dispatch_lease_seconds: int = 30
@@ -269,6 +276,9 @@ class Settings(BaseSettings):
     nats_consumer_fetch_batch_size: int = 25
     nats_consumer_fetch_timeout_seconds: float = 1.0
     partner_realtime_backlog_limit: int = 100
+    messaging_presence_ttl_seconds: int = 45
+    messaging_realtime_heartbeat_seconds: float = 15.0
+    messaging_realtime_queue_size: int = 100
 
     # PostHog product intelligence
     posthog_enabled: bool = False

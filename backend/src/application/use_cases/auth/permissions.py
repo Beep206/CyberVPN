@@ -10,6 +10,15 @@ class Permission(StrEnum):
     USER_UPDATE = "user_update"
     USER_DELETE = "user_delete"
     SUPPORT_TICKET_READ = "support_ticket_read"
+    # Messaging and site notifications
+    MESSAGING_CONVERSATION_READ = "messaging:conversation:read"
+    MESSAGING_CONVERSATION_CREATE = "messaging:conversation:create"
+    MESSAGING_MESSAGE_WRITE = "messaging:message:write"
+    MESSAGING_INTERNAL_NOTE_WRITE = "messaging:internal_note:write"
+    MESSAGING_CONVERSATION_ASSIGN = "messaging:conversation:assign"
+    MESSAGING_CONVERSATION_CLOSE = "messaging:conversation:close"
+    MESSAGING_CONVERSATION_MANAGE = "messaging:conversation:manage"
+    NOTIFICATION_BROADCAST_CREATE = "notification:broadcast:create"
     # Server permissions
     SERVER_READ = "server_read"
     SERVER_CREATE = "server_create"
@@ -100,6 +109,14 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.USER_UPDATE,
         Permission.USER_DELETE,
         Permission.SUPPORT_TICKET_READ,
+        Permission.MESSAGING_CONVERSATION_READ,
+        Permission.MESSAGING_CONVERSATION_CREATE,
+        Permission.MESSAGING_MESSAGE_WRITE,
+        Permission.MESSAGING_INTERNAL_NOTE_WRITE,
+        Permission.MESSAGING_CONVERSATION_ASSIGN,
+        Permission.MESSAGING_CONVERSATION_CLOSE,
+        Permission.MESSAGING_CONVERSATION_MANAGE,
+        Permission.NOTIFICATION_BROADCAST_CREATE,
         Permission.SERVER_READ,
         Permission.SERVER_CREATE,
         Permission.SERVER_UPDATE,
@@ -134,6 +151,13 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.USER_READ,
         Permission.USER_UPDATE,
         Permission.SUPPORT_TICKET_READ,
+        Permission.MESSAGING_CONVERSATION_READ,
+        Permission.MESSAGING_CONVERSATION_CREATE,
+        Permission.MESSAGING_MESSAGE_WRITE,
+        Permission.MESSAGING_INTERNAL_NOTE_WRITE,
+        Permission.MESSAGING_CONVERSATION_ASSIGN,
+        Permission.MESSAGING_CONVERSATION_CLOSE,
+        Permission.MESSAGING_CONVERSATION_MANAGE,
         Permission.SERVER_READ,
         Permission.MONITORING_READ,
         Permission.VPN_CREDENTIAL_REGENERATE,

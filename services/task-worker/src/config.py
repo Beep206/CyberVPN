@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     # Notification Settings
     notification_max_retries: int = 5
     notification_batch_size: int = 50
+    messaging_outbox_batch_size: int = 50
+    messaging_outbox_lease_seconds: int = 30
+    messaging_outbox_retry_after_seconds: int = 30
+    messaging_outbox_dead_letter_after_attempts: int = 5
 
     # Health Check Configuration
     health_check_interval_seconds: int = 120

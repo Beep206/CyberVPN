@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import redis.asyncio as redis
 from fastapi import Depends, Query, WebSocket, WebSocketException, status
 
-from src.application.services.ws_ticket_service import WebSocketTicketService
+from src.application.services.ws_ticket_service import DEFAULT_WS_TICKET_SCOPE, WebSocketTicketService
 from src.domain.enums.enums import AdminRole
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.monitoring.metrics import websocket_auth_method_total
@@ -62,6 +62,15 @@ async def ws_authenticate_ticket(
     ticket_data = await ticket_service.validate_and_consume(ticket, client_ip)
 
     if not ticket_data:
+        return None
+    if ticket_data.principal_type != "admin" or ticket_data.scope != DEFAULT_WS_TICKET_SCOPE:
+        logger.warning(
+            "WebSocket ticket rejected for wrong surface",
+            extra={
+                "principal_type": ticket_data.principal_type,
+                "scope": ticket_data.scope,
+            },
+        )
         return None
 
     # Convert role string to AdminRole enum

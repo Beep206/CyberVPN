@@ -55,6 +55,12 @@ PUBLIC_PREFIXES = (
     "/api/v1/storefronts",
 )
 
+WEBSOCKET_AUTH_DEPENDENCIES = {
+    "ws_authenticate",
+    "customer_messaging_ws_authenticate",
+    "admin_messaging_ws_authenticate",
+}
+
 
 def _dependency_names(dependencies: Iterable[Dependant]) -> set[str]:
     names: set[str] = set()
@@ -136,7 +142,8 @@ def test_stage1_websocket_routes_depend_on_ws_authenticate():
     unauthenticated_websockets = [
         route.path
         for route in app.routes
-        if isinstance(route, APIWebSocketRoute) and "ws_authenticate" not in _websocket_dependency_names(route)
+        if isinstance(route, APIWebSocketRoute)
+        and not (_websocket_dependency_names(route) & WEBSOCKET_AUTH_DEPENDENCIES)
     ]
 
     assert unauthenticated_websockets == []

@@ -2,6 +2,7 @@ import {
   Activity,
   CreditCard,
   LifeBuoy,
+  MessageSquare,
   Receipt,
   Server,
   Settings,
@@ -44,6 +45,12 @@ const DASHBOARD_NAV_ITEM_CANDIDATES = [
     surface: 'support',
   },
   {
+    icon: MessageSquare,
+    labelKey: 'messages',
+    href: '/messages',
+    surface: 'support',
+  },
+  {
     icon: Settings,
     labelKey: 'settings',
     href: '/settings',
@@ -72,6 +79,7 @@ export const DASHBOARD_NAV_LABEL_FALLBACKS = {
   closeMenu: 'Close menu',
   dashboard: 'CABINET',
   mainNavigation: 'Main navigation',
+  messages: 'MESSAGES',
   openMenu: 'Open menu',
   paymentHistory: 'PAYMENTS',
   referral: 'REWARDS',

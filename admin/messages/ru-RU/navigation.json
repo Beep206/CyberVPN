@@ -3,6 +3,8 @@
   "dashboardHint": "Здоровье, очереди, инциденты",
   "customers": "КЛИЕНТЫ",
   "customersHint": "Жизненный цикл, поддержка, аккаунты",
+  "messaging": "СООБЩЕНИЯ",
+  "messagingHint": "Private dialogs, notes, presence",
   "support": "ПОДДЕРЖКА",
   "supportHint": "Инбокс, ответы, internal notes",
   "commerce": "КОММЕРЦИЯ",

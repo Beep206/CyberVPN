@@ -8,12 +8,14 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.enums import OutboxEventStatus, OutboxPublicationStatus
+from src.domain.events.messaging import MESSAGING_EVENT_FAMILIES
 from src.infrastructure.database.models.outbox_event_model import OutboxEventModel, OutboxPublicationModel
 from src.infrastructure.database.repositories.outbox_repo import OutboxRepository
 from src.infrastructure.monitoring.instrumentation.partner_runtime import (
     log_partner_runtime_event,
     observe_partner_outbox_event_created,
 )
+from src.infrastructure.monitoring.metrics import messaging_outbox_events_created_total
 
 from .partner_platform_events import PARTNER_PLATFORM_EVENT_FAMILIES
 
@@ -21,6 +23,10 @@ DEFAULT_OUTBOX_CONSUMERS = ("analytics_mart", "operational_replay")
 PARTNER_PLATFORM_EVENT_NAMES = frozenset(
     event_name for family_events in PARTNER_PLATFORM_EVENT_FAMILIES.values() for event_name in family_events
 )
+MESSAGING_EVENT_NAMES = frozenset(
+    event_name for family_events in MESSAGING_EVENT_FAMILIES.values() for event_name in family_events
+)
+CANONICAL_OUTBOX_EVENT_NAMES = PARTNER_PLATFORM_EVENT_NAMES | MESSAGING_EVENT_NAMES
 
 
 @dataclass(frozen=True)
@@ -47,18 +53,22 @@ class EventOutboxService:
         consumer_keys: tuple[str, ...] | None = None,
         occurred_at: datetime | None = None,
         schema_version: int = 1,
+        event_key: str | None = None,
     ) -> OutboxEventModel:
         normalized_name = event_name.strip()
-        if normalized_name not in PARTNER_PLATFORM_EVENT_NAMES:
-            raise ValueError(f"Unknown canonical partner-platform event: {normalized_name}")
+        if normalized_name not in CANONICAL_OUTBOX_EVENT_NAMES:
+            raise ValueError(f"Unknown canonical outbox event: {normalized_name}")
         event_family = normalized_name.split(".", 1)[0]
         normalized_partition_key = partition_key or aggregate_id
         normalized_consumers = consumer_keys or DEFAULT_OUTBOX_CONSUMERS
         occurred_at = _normalize_utc(occurred_at or datetime.now(UTC))
         now = datetime.now(UTC)
+        normalized_event_key = (event_key or f"evt_{uuid.uuid4().hex}").strip()
+        if not normalized_event_key:
+            raise ValueError("Outbox event_key must not be empty")
         event = OutboxEventModel(
             id=uuid.uuid4(),
-            event_key=f"evt_{uuid.uuid4().hex}",
+            event_key=normalized_event_key,
             event_name=normalized_name,
             event_family=event_family,
             aggregate_type=aggregate_type.strip(),
@@ -84,21 +94,28 @@ class EventOutboxService:
             for consumer_key in normalized_consumers
         ]
         created = await self._repo.create_event(event, publications)
-        observe_partner_outbox_event_created(
-            event_type=normalized_name,
-            aggregate_type=aggregate_type,
-            result="success",
-        )
-        log_partner_runtime_event(
-            "partner_outbox.event_created",
-            surface="partner_backend",
-            route_group="outbox",
-            event_type=normalized_name,
-            aggregate_type=aggregate_type,
-            aggregate_id=aggregate_id,
-            consumer_count=len(normalized_consumers),
-            result="success",
-        )
+        if normalized_name in PARTNER_PLATFORM_EVENT_NAMES:
+            observe_partner_outbox_event_created(
+                event_type=normalized_name,
+                aggregate_type=aggregate_type,
+                result="success",
+            )
+            log_partner_runtime_event(
+                "partner_outbox.event_created",
+                surface="partner_backend",
+                route_group="outbox",
+                event_type=normalized_name,
+                aggregate_type=aggregate_type,
+                aggregate_id=aggregate_id,
+                consumer_count=len(normalized_consumers),
+                result="success",
+            )
+        elif normalized_name in MESSAGING_EVENT_NAMES:
+            messaging_outbox_events_created_total.labels(
+                event_type=normalized_name,
+                aggregate_type=aggregate_type,
+                result="success",
+            ).inc()
         return created
 
 

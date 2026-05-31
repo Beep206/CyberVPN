@@ -454,3 +454,28 @@ GROWTH_REPORTING_CLEANUP_LAST_DELETED = Gauge(
     ["artifact_kind"],
     multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
 )
+
+MESSAGING_OUTBOX_PUBLICATIONS_TOTAL = Counter(
+    "cybervpn_messaging_outbox_publications_total",
+    "Task Worker messaging outbox publication outcomes.",
+    ["consumer_key", "status"],
+)
+
+MESSAGING_OUTBOX_PROCESS_DURATION = Histogram(
+    "cybervpn_messaging_outbox_process_duration_seconds",
+    "Duration of Task Worker messaging outbox processing runs.",
+    ["result"],
+    buckets=[0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60],
+)
+
+MESSAGING_FANOUT_RECIPIENTS_TOTAL = Counter(
+    "cybervpn_messaging_fanout_recipients_total",
+    "Messaging notification and broadcast fanout recipient outcomes.",
+    ["consumer_key", "status"],
+)
+
+MESSAGING_DELIVERY_ADAPTER_TOTAL = Counter(
+    "cybervpn_messaging_delivery_adapter_total",
+    "Future external delivery-channel adapter outcomes.",
+    ["channel", "status"],
+)

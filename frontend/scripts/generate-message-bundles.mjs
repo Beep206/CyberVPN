@@ -35,6 +35,7 @@ const MESSAGE_FILE_NAMESPACE_MAP = {
   'wallet.json': 'Wallet',
   'payment-history.json': 'PaymentHistory',
   'referral.json': 'Referral',
+  'messaging.json': 'Messaging',
   'partner.json': 'Partner',
   'devices.json': 'Devices',
   'HelpCenter.json': 'HelpCenter',

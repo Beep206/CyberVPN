@@ -31,6 +31,7 @@ from src.domain.exceptions.domain_errors import (
 from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
+from src.infrastructure.messaging.nats_messaging_runtime import NatsMessagingRuntime
 from src.infrastructure.messaging.nats_partner_runtime import NatsPartnerRuntime
 from src.infrastructure.monitoring.http_metrics import add_http_metrics_middleware, build_metrics_response
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
@@ -187,6 +188,12 @@ async def lifespan(app: FastAPI):
         logger.warning("Partner event backbone startup failed: %s", e, exc_info=True)
         raise
 
+    try:
+        await app.state.messaging_event_runtime.start()
+    except Exception as e:
+        logger.warning("Messaging event backbone startup failed: %s", e, exc_info=True)
+        raise
+
     yield
 
     # Shutdown
@@ -241,6 +248,11 @@ async def lifespan(app: FastAPI):
         await app.state.partner_event_runtime.stop()
     except Exception as e:
         logger.warning("Shutdown error in partner_event_runtime: %s", e, exc_info=True)
+
+    try:
+        await app.state.messaging_event_runtime.stop()
+    except Exception as e:
+        logger.warning("Shutdown error in messaging_event_runtime: %s", e, exc_info=True)
 
     from src.infrastructure.messaging.websocket_manager import ws_manager
 
@@ -316,6 +328,7 @@ app = FastAPI(
 )
 
 app.state.partner_event_runtime = NatsPartnerRuntime()
+app.state.messaging_event_runtime = NatsMessagingRuntime()
 
 # Auto-instrument with OpenTelemetry if enabled (must be done after app creation)
 if settings.otel_enabled:
@@ -375,6 +388,10 @@ if settings.rate_limit_enabled:
         trial_activate_requests_per_minute=settings.rate_limit_trial_activate_requests,
         growth_sensitive_requests_per_minute=settings.rate_limit_growth_sensitive_requests,
         support_write_requests_per_minute=settings.rate_limit_support_write_requests,
+        messaging_write_requests_per_minute=settings.rate_limit_messaging_write_requests,
+        messaging_realtime_requests_per_minute=settings.rate_limit_messaging_realtime_requests,
+        messaging_admin_read_requests_per_minute=settings.rate_limit_messaging_admin_read_requests,
+        messaging_broadcast_requests_per_minute=settings.rate_limit_messaging_broadcast_requests,
     )
 
 # Add CSRF guard for production-like cookie-auth browser flows.

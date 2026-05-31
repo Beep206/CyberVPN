@@ -5,6 +5,7 @@ import {
   ChartColumnIncreasing,
   Landmark,
   LifeBuoy,
+  MessageSquareText,
   ScrollText,
   Shield,
   Users,
@@ -24,11 +25,12 @@ export const ADMIN_SECTION_SLUGS = [
 export type AdminSectionSlug = (typeof ADMIN_SECTION_SLUGS)[number];
 
 export interface AdminNavItem {
-  href: '/dashboard' | `/${AdminSectionSlug}` | '/support';
+  href: '/dashboard' | `/${AdminSectionSlug}` | '/messaging' | '/support';
   icon: LucideIcon;
   labelKey:
     | 'dashboard'
     | 'customers'
+    | 'messaging'
     | 'support'
     | 'commerce'
     | 'growth'
@@ -39,6 +41,7 @@ export interface AdminNavItem {
   hintKey:
     | 'dashboardHint'
     | 'customersHint'
+    | 'messagingHint'
     | 'supportHint'
     | 'commerceHint'
     | 'growthHint'
@@ -66,6 +69,12 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     icon: LifeBuoy,
     labelKey: 'support',
     hintKey: 'supportHint',
+  },
+  {
+    href: '/messaging',
+    icon: MessageSquareText,
+    labelKey: 'messaging',
+    hintKey: 'messagingHint',
   },
   {
     href: '/commerce',

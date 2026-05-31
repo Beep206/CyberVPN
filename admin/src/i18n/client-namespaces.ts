@@ -16,6 +16,7 @@ export const DASHBOARD_CLIENT_NAMESPACES = [
   'Growth',
   'Integrations',
   'Infrastructure',
+  'Messaging',
   'Navigation',
   'ServerCard',
   'Support',

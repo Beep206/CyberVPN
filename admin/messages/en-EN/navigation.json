@@ -3,6 +3,8 @@
   "dashboardHint": "Health, queues, incidents",
   "customers": "CUSTOMERS",
   "customersHint": "Lifecycle, support, accounts",
+  "messaging": "MESSAGING",
+  "messagingHint": "Private dialogs, notes, presence",
   "support": "SUPPORT",
   "supportHint": "Inbox, replies, internal notes",
   "commerce": "COMMERCE",

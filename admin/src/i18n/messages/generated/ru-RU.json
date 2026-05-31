@@ -1324,6 +1324,7 @@
       "notesLoadError": "Не удалось загрузить заметки команды.",
       "notesTitle": "Заметки команды",
       "notFound": "Клиент не найден.",
+      "openMessaging": "Открыть messaging",
       "openSubscriptionUrl": "Открыть subscription URL",
       "operations": {
         "actions": {
@@ -3613,6 +3614,202 @@
     "searchPlaceholder": "SEARCH_LANGUAGE...",
     "title": "SELECT_LANGUAGE"
   },
+  "Messaging": {
+    "actions": {
+      "assignedAdmin": "Assigned admin id",
+      "assignedAdminPlaceholder": "Admin UUID или пусто для unassigned",
+      "category": "Conversation category",
+      "close": "Close",
+      "closedReadOnly": "Closed conversations работают как read-only. Reopen conversation перед изменением metadata или отправкой сообщений.",
+      "description": "Обновляйте assignment и triage metadata, не затрагивая billing, VPN provisioning, auth или entitlement state.",
+      "priority": "Conversation priority",
+      "readOnly": "Эта роль может просматривать messaging conversations, но не может назначать или менять metadata.",
+      "reopen": "Reopen",
+      "save": "Сохранить metadata",
+      "saving": "Сохранение",
+      "title": "Conversation controls"
+    },
+    "categories": {
+      "billing": "Биллинг",
+      "other": "Другое",
+      "security": "Безопасность",
+      "subscription": "Подписка",
+      "support": "Поддержка",
+      "system": "Система"
+    },
+    "common": {
+      "actionFailed": "Действие не выполнено. Повторите попытку.",
+      "actions": "Действия",
+      "refresh": "Обновить"
+    },
+    "create": {
+      "assignedAdmin": "Assigned admin id",
+      "assignedAdminPlaceholder": "Admin UUID или пусто для unassigned",
+      "category": "Conversation category",
+      "creating": "Создание",
+      "customer": "Customer account id",
+      "customerPlaceholder": "Customer account UUID",
+      "description": "Private messaging запускается админом. Клиенты могут отвечать после создания conversation.",
+      "initialMessage": "Initial public message",
+      "initialMessagePlaceholder": "Напишите первое customer-visible сообщение. Не добавляйте secrets, payment card numbers, private keys или VPN credential URLs.",
+      "priority": "Conversation priority",
+      "readOnly": "Эта роль не может создавать private messaging conversations.",
+      "relatedSupport": "Related support ticket id",
+      "relatedSupportPlaceholder": "Optional support ticket UUID",
+      "subject": "Conversation subject",
+      "subjectPlaceholder": "Короткая plain-text тема",
+      "submit": "Создать conversation",
+      "title": "Начать conversation"
+    },
+    "detail": {
+      "assignedAdmin": "Assigned admin",
+      "conversationDescription": "Public messages и admin-only internal notes отображаются как разные типы сообщений.",
+      "conversationTitle": "Conversation",
+      "customerRef": "Customer ref",
+      "empty": "Выберите conversation из inbox или начните новую.",
+      "loadError": "Не удалось загрузить выбранную conversation.",
+      "noMessages": "У этой conversation пока нет сообщений.",
+      "publicPreviewDescription": "Internal notes исключены: {count}",
+      "publicPreviewEmpty": "Public message пока не записан.",
+      "publicPreviewTitle": "Customer preview",
+      "relatedSupport": "Related support ticket",
+      "updatedAt": "Updated {value}"
+    },
+    "feedback": {
+      "conversationClosed": "Conversation закрыта.",
+      "conversationCreated": "Conversation создана.",
+      "conversationReopened": "Conversation reopened.",
+      "conversationUpdated": "Conversation metadata обновлена.",
+      "customerRequired": "Укажите customer account id перед созданием conversation.",
+      "customerTooLong": "Customer account id должен быть не длиннее {count} символов.",
+      "internalNoteSaved": "Internal note сохранён.",
+      "messageRequired": "Введите сообщение перед отправкой.",
+      "messageTooLong": "Сообщение должно быть не длиннее {count} символов.",
+      "publicReplySent": "Public reply отправлен.",
+      "selectConversation": "Сначала выберите conversation.",
+      "subjectRequired": "Укажите subject перед созданием conversation.",
+      "subjectTooLong": "Subject должен быть не длиннее {count} символов."
+    },
+    "filters": {
+      "allCategories": "Все categories",
+      "allPriorities": "Все priorities",
+      "allStatuses": "Все statuses",
+      "assignment": {
+        "all": "Все conversations",
+        "mine": "Назначены мне",
+        "unassigned": "Unassigned",
+        "unassignedScopeHint": "Unassigned фильтруется только внутри текущей страницы на {count} conversations, потому что admin API пока не поддерживает backend unassigned filter. Для точной triage сузьте queue через search или status."
+      },
+      "category": "Фильтр category",
+      "customer": "Фильтр customer account",
+      "customerPlaceholder": "Customer account UUID",
+      "priority": "Фильтр priority",
+      "search": "Поиск conversations",
+      "searchPlaceholder": "Public id, customer id, subject",
+      "status": "Фильтр status"
+    },
+    "inbox": {
+      "description": "Запускайте admin-initiated диалоги с клиентами, отделяйте public replies от internal notes и отслеживайте назначение, unread и realtime presence.",
+      "eyebrow": "PRIVATE MESSAGING",
+      "metaTitle": "Messaging - Ozoxy Admin",
+      "title": "Инбокс сообщений"
+    },
+    "internalNote": {
+      "description": "Admin-only context. Этот composer никогда не пишет в public message endpoint.",
+      "message": "Текст internal note",
+      "placeholder": "Зафиксируйте operator-only context, escalation notes или safe audit breadcrumbs.",
+      "saving": "Сохранение",
+      "submit": "Сохранить internal note",
+      "title": "Internal note"
+    },
+    "list": {
+      "customer": "Customer",
+      "empty": "Под текущие фильтры не подходит ни одна messaging conversation.",
+      "endOfQueue": "Конец текущей очереди: загружено conversations: {count}.",
+      "loadError": "Не удалось загрузить messaging conversations.",
+      "loadingMore": "Загрузка",
+      "loadMore": "Загрузить ещё",
+      "mobileListLabel": "Компактный admin private messaging inbox",
+      "nextPageAvailable": "После текущей страницы на {count} conversations есть ещё элементы.",
+      "open": "Открыть",
+      "openRoute": "Открыть route messaging conversation {publicId}",
+      "safeCustomerRef": "Safe ref #{id}",
+      "selectConversation": "Выбрать messaging conversation {publicId}",
+      "table": {
+        "conversation": "Conversation",
+        "customer": "Customer",
+        "state": "State",
+        "updated": "Updated"
+      },
+      "tableCaption": "Admin private messaging inbox"
+    },
+    "metrics": {
+      "open": "Open",
+      "openHint": "активные private conversations",
+      "presence": "Presence",
+      "presenceHint": "состояние admin realtime stream",
+      "visible": "Видимые",
+      "visibleHint": "conversations после фильтров",
+      "waitingAdmin": "Unread",
+      "waitingAdminHint": "open conversations ждут admin"
+    },
+    "permissionDenied": {
+      "description": "Этот аккаунт не может читать private messaging conversations. Используйте роль support, admin или owner с messaging read permission.",
+      "title": "Нужны права messaging"
+    },
+    "priorities": {
+      "high": "Высокий",
+      "low": "Низкий",
+      "normal": "Обычный",
+      "urgent": "Срочный"
+    },
+    "readStates": {
+      "description": "Participant high-water marks, возвращённые backend для unread diagnostics.",
+      "empty": "У этой conversation пока нет read states.",
+      "lastMessage": "Last message {id}",
+      "lastReadAt": "Last read {value}",
+      "title": "Read states"
+    },
+    "realtime": {
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "description": "SSE доставляет только event hints; REST остаётся source of truth для message bodies.",
+      "offline": "Offline",
+      "privacy": "Bodyless events",
+      "title": "Realtime presence"
+    },
+    "reply": {
+      "description": "Виден customer и может запустить notification workflow.",
+      "message": "Текст public reply",
+      "placeholder": "Напишите public message. Не добавляйте secrets, payment card numbers, private keys или VPN credential URLs.",
+      "sending": "Отправка",
+      "submit": "Отправить public reply",
+      "title": "Public reply"
+    },
+    "responseStates": {
+      "none": "Нет ожидания",
+      "waiting_admin": "Ждёт админа",
+      "waiting_customer": "Ждёт клиента"
+    },
+    "senders": {
+      "admin": "Админ",
+      "customer": "Клиент",
+      "system": "Система"
+    },
+    "states": {
+      "unread": "Непрочитано"
+    },
+    "statuses": {
+      "archived": "Архив",
+      "closed": "Закрыта",
+      "locked": "Заблокирована",
+      "open": "Открыта"
+    },
+    "visibilities": {
+      "internal": "Внутренне",
+      "public": "Публично"
+    }
+  },
   "MiniApp": {
     "home": {
       "activateTrial": "Activate Trial",
@@ -3868,6 +4065,8 @@
     "integrations": "ИНТЕГРАЦИИ",
     "integrationsHint": "Telegram, push, realtime",
     "mainNavigation": "Навигация админки",
+    "messaging": "СООБЩЕНИЯ",
+    "messagingHint": "Private dialogs, notes, presence",
     "openMenu": "Открыть меню админки",
     "secureSession": "ЗАЩИЩЁННАЯ СЕССИЯ",
     "security": "БЕЗОПАСНОСТЬ",

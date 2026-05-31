@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "title": "Messages and notifications",
+    "description": "Customer private messaging and notification center for CyberVPN account updates."
+  },
+  "eyebrow": "Private line",
+  "surface": "Customer inbox",
+  "title": "Messages",
+  "description": "Review admin-started account conversations, reply inside open threads, and keep unread updates synchronized after reconnects.",
+  "privacy": {
+    "title": "Scoped customer channel",
+    "description": "Only public messages from conversations assigned to this account are shown here. Internal notes and admin-only channels are never rendered in the customer surface."
+  },
+  "actions": {
+    "refreshList": "Refresh conversations"
+  },
+  "filters": {
+    "statusLabel": "Filter conversations by status",
+    "all": "All conversations"
+  },
+  "list": {
+    "title": "Conversation queue",
+    "emptyTitle": "No private messages",
+    "emptyDescription": "Admin-started account conversations will appear here when support opens one.",
+    "openConversation": "Open conversation about {subject}"
+  },
+  "detail": {
+    "emptyTitle": "Select a conversation",
+    "emptyDescription": "Choose an existing admin-started thread to read updates or reply.",
+    "threadTitle": "Thread",
+    "noMessages": "No public messages are available in this conversation."
+  },
+  "reply": {
+    "label": "Reply",
+    "placeholder": "Type your reply for the support team",
+    "counter": "{count}/4000 characters",
+    "submit": "Send reply",
+    "submitting": "Sending...",
+    "error": "Could not send this reply. Try again."
+  },
+  "errors": {
+    "list": "Could not load private conversations.",
+    "detail": "Could not load this conversation."
+  },
+  "status": {
+    "open": "Open",
+    "closed": "Closed",
+    "archived": "Archived",
+    "locked": "Locked"
+  },
+  "responseState": {
+    "none": "No response due",
+    "waiting_customer": "Waiting for you",
+    "waiting_admin": "Waiting for support"
+  },
+  "category": {
+    "support": "Support",
+    "billing": "Billing",
+    "subscription": "Subscription",
+    "security": "Security",
+    "system": "System",
+    "other": "Other"
+  },
+  "priority": {
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "sender": {
+    "customer": "You",
+    "admin": "Support",
+    "system": "System"
+  },
+  "readOnly": {
+    "closed": {
+      "title": "Conversation closed",
+      "description": "This thread is read-only. Support can reopen it if more action is needed."
+    },
+    "archived": {
+      "title": "Conversation archived",
+      "description": "Archived threads are preserved for reference and cannot accept replies."
+    },
+    "locked": {
+      "title": "Conversation locked",
+      "description": "This thread is locked while support reviews the account context."
+    }
+  },
+  "notifications": {
+    "triggerLabel": "Open notification center, {count} unread updates",
+    "panelLabel": "Notification center",
+    "eyebrow": "Signal center",
+    "title": "Notifications",
+    "markAllRead": "Mark all notifications read",
+    "markOneRead": "Mark notification read",
+    "error": "Could not load notifications.",
+    "emptyTitle": "No notifications",
+    "emptyDescription": "Account updates and message alerts will appear here.",
+    "openMessages": "Open messages",
+    "refresh": "Refresh notifications",
+    "severity": {
+      "info": "Info",
+      "success": "Success",
+      "warning": "Warning",
+      "critical": "Critical"
+    }
+  },
+  "realtime": {
+    "status": {
+      "connecting": "Connecting",
+      "connected": "Live",
+      "reconnecting": "Reconnecting",
+      "syncing": "Restoring",
+      "offline": "Offline",
+      "unavailable": "Sync only"
+    }
+  }
+}

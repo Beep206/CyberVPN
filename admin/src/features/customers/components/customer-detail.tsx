@@ -10,6 +10,7 @@ import {
   FileText,
   History,
   KeyRound,
+  MessageCirclePlus,
   PencilLine,
   RefreshCw,
   Shield,
@@ -771,6 +772,13 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
             <RefreshCw className="mr-2 h-4 w-4" />
             {t('common.refresh')}
           </Button>
+          <Link
+            href={`/messaging?customer=${encodeURIComponent(customer.id)}`}
+            className={buttonVariants({ variant: 'ghost' })}
+          >
+            <MessageCirclePlus className="mr-2 h-4 w-4" />
+            {t('detail.openMessaging')}
+          </Link>
           {customer.is_partner ? null : (
             <Button
               type="button"
