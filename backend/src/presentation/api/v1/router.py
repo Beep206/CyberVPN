@@ -42,6 +42,7 @@ from src.presentation.api.v1.invoice_profiles.routes import router as invoice_pr
 from src.presentation.api.v1.keygen.routes import router as keygen_router
 from src.presentation.api.v1.legal_documents.routes import router as legal_documents_router
 from src.presentation.api.v1.merchant_profiles.routes import router as merchant_profiles_router
+from src.presentation.api.v1.messaging.routes import router as messaging_router
 from src.presentation.api.v1.miniapp.routes import router as miniapp_router
 from src.presentation.api.v1.mobile_auth.routes import router as mobile_auth_router
 from src.presentation.api.v1.monitoring.routes import router as monitoring_router
@@ -205,6 +206,7 @@ api_router.include_router(gifts_router)
 api_router.include_router(renewal_orders_router)
 api_router.include_router(policy_evaluation_router)
 api_router.include_router(reporting_router)
+api_router.include_router(messaging_router)
 api_router.include_router(quotes_router)
 api_router.include_router(checkout_sessions_router)
 api_router.include_router(orders_router)

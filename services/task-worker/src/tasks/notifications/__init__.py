@@ -1,6 +1,7 @@
 """Notification task definitions."""
 
 from src.tasks.notifications.broadcast import broadcast_message
+from src.tasks.notifications.messaging_outbox import process_messaging_outbox
 from src.tasks.notifications.process_queue import process_notification_queue
 from src.tasks.notifications.send_notification import send_notification
 from src.tasks.notifications.stage1_contract import (
@@ -23,6 +24,7 @@ __all__ = [
     "broadcast_message",
     "build_stage1_telegram_notification",
     "build_support_ticket_telegram_notification",
+    "process_messaging_outbox",
     "process_notification_queue",
     "queue_support_ticket_notification",
     "send_notification",

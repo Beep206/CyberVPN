@@ -1435,6 +1435,124 @@
     "searchPlaceholder": "SEARCH_LANGUAGE...",
     "title": "SELECT_LANGUAGE"
   },
+  "Messaging": {
+    "actions": {
+      "refreshList": "Refresh conversations"
+    },
+    "category": {
+      "billing": "Billing",
+      "other": "Other",
+      "security": "Security",
+      "subscription": "Subscription",
+      "support": "Support",
+      "system": "System"
+    },
+    "description": "Review admin-started account conversations, reply inside open threads, and keep unread updates synchronized after reconnects.",
+    "detail": {
+      "emptyDescription": "Choose an existing admin-started thread to read updates or reply.",
+      "emptyTitle": "Select a conversation",
+      "noMessages": "No public messages are available in this conversation.",
+      "threadTitle": "Thread"
+    },
+    "errors": {
+      "detail": "Could not load this conversation.",
+      "list": "Could not load private conversations."
+    },
+    "eyebrow": "Private line",
+    "filters": {
+      "all": "All conversations",
+      "statusLabel": "Filter conversations by status"
+    },
+    "list": {
+      "emptyDescription": "Admin-started account conversations will appear here when support opens one.",
+      "emptyTitle": "No private messages",
+      "openConversation": "Open conversation about {subject}",
+      "title": "Conversation queue"
+    },
+    "meta": {
+      "description": "Customer private messaging and notification center for CyberVPN account updates.",
+      "title": "Messages and notifications"
+    },
+    "notifications": {
+      "emptyDescription": "Account updates and message alerts will appear here.",
+      "emptyTitle": "No notifications",
+      "error": "Could not load notifications.",
+      "eyebrow": "Signal center",
+      "markAllRead": "Mark all notifications read",
+      "markOneRead": "Mark notification read",
+      "openMessages": "Open messages",
+      "panelLabel": "Notification center",
+      "refresh": "Refresh notifications",
+      "severity": {
+        "critical": "Critical",
+        "info": "Info",
+        "success": "Success",
+        "warning": "Warning"
+      },
+      "title": "Notifications",
+      "triggerLabel": "Open notification center, {count} unread updates"
+    },
+    "priority": {
+      "high": "High",
+      "low": "Low",
+      "normal": "Normal",
+      "urgent": "Urgent"
+    },
+    "privacy": {
+      "description": "Only public messages from conversations assigned to this account are shown here. Internal notes and admin-only channels are never rendered in the customer surface.",
+      "title": "Scoped customer channel"
+    },
+    "readOnly": {
+      "archived": {
+        "description": "Archived threads are preserved for reference and cannot accept replies.",
+        "title": "Conversation archived"
+      },
+      "closed": {
+        "description": "This thread is read-only. Support can reopen it if more action is needed.",
+        "title": "Conversation closed"
+      },
+      "locked": {
+        "description": "This thread is locked while support reviews the account context.",
+        "title": "Conversation locked"
+      }
+    },
+    "realtime": {
+      "status": {
+        "connected": "Live",
+        "connecting": "Connecting",
+        "offline": "Offline",
+        "reconnecting": "Reconnecting",
+        "syncing": "Restoring",
+        "unavailable": "Sync only"
+      }
+    },
+    "reply": {
+      "counter": "{count}/4000 characters",
+      "error": "Could not send this reply. Try again.",
+      "label": "Reply",
+      "placeholder": "Type your reply for the support team",
+      "submit": "Send reply",
+      "submitting": "Sending..."
+    },
+    "responseState": {
+      "none": "No response due",
+      "waiting_admin": "Waiting for support",
+      "waiting_customer": "Waiting for you"
+    },
+    "sender": {
+      "admin": "Support",
+      "customer": "You",
+      "system": "System"
+    },
+    "status": {
+      "archived": "Archived",
+      "closed": "Closed",
+      "locked": "Locked",
+      "open": "Open"
+    },
+    "surface": "Customer inbox",
+    "title": "Messages"
+  },
   "MiniApp": {
     "home": {
       "activateTrial": "Activate Trial",
@@ -2008,6 +2126,7 @@
     "closeMenu": "Close menu",
     "dashboard": "CABINET",
     "mainNavigation": "Main navigation",
+    "messages": "MESSAGES",
     "openMenu": "Open menu",
     "partner": "PARTNER",
     "paymentHistory": "PAYMENTS",

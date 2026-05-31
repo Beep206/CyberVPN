@@ -68,6 +68,20 @@ from src.infrastructure.database.models.legal_document_set_model import (
     LegalDocumentSetModel,
 )
 from src.infrastructure.database.models.merchant_profile_model import MerchantProfileModel
+from src.infrastructure.database.models.messaging_broadcast_model import (
+    BroadcastCampaignModel,
+    BroadcastCampaignRecipientModel,
+)
+from src.infrastructure.database.models.messaging_conversation_model import (
+    MessagingConversationModel,
+    MessagingConversationParticipantModel,
+    MessagingMessageModel,
+    MessagingMessageReadStateModel,
+)
+from src.infrastructure.database.models.messaging_notification_model import (
+    SiteNotificationDeliveryModel,
+    SiteNotificationModel,
+)
 from src.infrastructure.database.models.mobile_device_model import MobileDeviceModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.notification_queue_model import NotificationQueue
@@ -206,7 +220,13 @@ __all__ = [
     "LegalDocumentSetItemModel",
     "LegalDocumentSetModel",
     "MerchantProfileModel",
+    "BroadcastCampaignModel",
+    "BroadcastCampaignRecipientModel",
     "InvoiceProfileModel",
+    "MessagingConversationModel",
+    "MessagingConversationParticipantModel",
+    "MessagingMessageModel",
+    "MessagingMessageReadStateModel",
     "MobileDeviceModel",
     "MobileUserModel",
     "NotificationQueue",
@@ -274,6 +294,8 @@ __all__ = [
     "SettlementPeriodModel",
     "ServerGeolocation",
     "ServiceIdentityModel",
+    "SiteNotificationDeliveryModel",
+    "SiteNotificationModel",
     "StatementAdjustmentModel",
     "Stage1ProvisioningRetryJobModel",
     "SubscriptionAddonModel",

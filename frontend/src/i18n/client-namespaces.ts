@@ -11,6 +11,7 @@ export const DASHBOARD_CLIENT_NAMESPACES = [
   'Auth',
   'Dashboard',
   'Devices',
+  'Messaging',
   'Monitoring',
   'Navigation',
   'Partner',

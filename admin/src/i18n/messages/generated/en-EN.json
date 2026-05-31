@@ -1327,6 +1327,7 @@
       "notesLoadError": "Staff notes failed to load.",
       "notesTitle": "Staff Notes",
       "notFound": "Customer not found.",
+      "openMessaging": "Open messaging",
       "openSubscriptionUrl": "Open subscription URL",
       "operations": {
         "actions": {
@@ -3652,6 +3653,202 @@
     "searchPlaceholder": "SEARCH_LANGUAGE...",
     "title": "SELECT_LANGUAGE"
   },
+  "Messaging": {
+    "actions": {
+      "assignedAdmin": "Assigned admin id",
+      "assignedAdminPlaceholder": "Admin UUID or blank for unassigned",
+      "category": "Conversation category",
+      "close": "Close",
+      "closedReadOnly": "Closed conversations are read-only. Reopen the conversation before changing metadata or sending messages.",
+      "description": "Update assignment and triage metadata without touching billing, VPN provisioning, auth, or entitlement state.",
+      "priority": "Conversation priority",
+      "readOnly": "This role can inspect messaging conversations but cannot assign or change metadata.",
+      "reopen": "Reopen",
+      "save": "Save metadata",
+      "saving": "Saving",
+      "title": "Conversation controls"
+    },
+    "categories": {
+      "billing": "Billing",
+      "other": "Other",
+      "security": "Security",
+      "subscription": "Subscription",
+      "support": "Support",
+      "system": "System"
+    },
+    "common": {
+      "actionFailed": "Action failed. Try again.",
+      "actions": "Actions",
+      "refresh": "Refresh"
+    },
+    "create": {
+      "assignedAdmin": "Assigned admin id",
+      "assignedAdminPlaceholder": "Admin UUID or blank for unassigned",
+      "category": "Conversation category",
+      "creating": "Creating",
+      "customer": "Customer account id",
+      "customerPlaceholder": "Customer account UUID",
+      "description": "Private messaging is admin-initiated. Customers can reply after the conversation exists.",
+      "initialMessage": "Initial public message",
+      "initialMessagePlaceholder": "Write the first customer-visible message. Do not include secrets, payment card numbers, private keys, or VPN credential URLs.",
+      "priority": "Conversation priority",
+      "readOnly": "This role cannot create private messaging conversations.",
+      "relatedSupport": "Related support ticket id",
+      "relatedSupportPlaceholder": "Optional support ticket UUID",
+      "subject": "Conversation subject",
+      "subjectPlaceholder": "Short plain-text subject",
+      "submit": "Create conversation",
+      "title": "Start conversation"
+    },
+    "detail": {
+      "assignedAdmin": "Assigned admin",
+      "conversationDescription": "Public messages and admin-only internal notes are rendered as separate message types.",
+      "conversationTitle": "Conversation",
+      "customerRef": "Customer ref",
+      "empty": "Select a conversation from the inbox or start a new one.",
+      "loadError": "Selected conversation failed to load.",
+      "noMessages": "No messages are attached to this conversation yet.",
+      "publicPreviewDescription": "Internal notes excluded: {count}",
+      "publicPreviewEmpty": "No public message has been recorded yet.",
+      "publicPreviewTitle": "Customer preview",
+      "relatedSupport": "Related support ticket",
+      "updatedAt": "Updated {value}"
+    },
+    "feedback": {
+      "conversationClosed": "Conversation closed.",
+      "conversationCreated": "Conversation created.",
+      "conversationReopened": "Conversation reopened.",
+      "conversationUpdated": "Conversation metadata updated.",
+      "customerRequired": "Enter a customer account id before creating a conversation.",
+      "customerTooLong": "Customer account id must be {count} characters or fewer.",
+      "internalNoteSaved": "Internal note saved.",
+      "messageRequired": "Enter a message before submitting.",
+      "messageTooLong": "Message must be {count} characters or fewer.",
+      "publicReplySent": "Public reply sent.",
+      "selectConversation": "Select a conversation first.",
+      "subjectRequired": "Enter a subject before creating a conversation.",
+      "subjectTooLong": "Subject must be {count} characters or fewer."
+    },
+    "filters": {
+      "allCategories": "All categories",
+      "allPriorities": "All priorities",
+      "allStatuses": "All statuses",
+      "assignment": {
+        "all": "All conversations",
+        "mine": "Assigned to me",
+        "unassigned": "Unassigned",
+        "unassignedScopeHint": "Unassigned is filtered on the current {count}-conversation page because the admin API has no backend unassigned filter yet. Narrow the queue with search or status for exact triage."
+      },
+      "category": "Category filter",
+      "customer": "Customer account filter",
+      "customerPlaceholder": "Customer account UUID",
+      "priority": "Priority filter",
+      "search": "Search conversations",
+      "searchPlaceholder": "Public id, customer id, subject",
+      "status": "Status filter"
+    },
+    "inbox": {
+      "description": "Start admin-initiated customer conversations, keep public replies separate from internal notes, and monitor assignment, unread, and realtime presence states.",
+      "eyebrow": "PRIVATE MESSAGING",
+      "metaTitle": "Messaging - Ozoxy Admin",
+      "title": "Messaging inbox"
+    },
+    "internalNote": {
+      "description": "Admin-only context. This composer never writes to the public message endpoint.",
+      "message": "Internal note message",
+      "placeholder": "Record operator-only context, escalation notes, or safe audit breadcrumbs.",
+      "saving": "Saving",
+      "submit": "Save internal note",
+      "title": "Internal note"
+    },
+    "list": {
+      "customer": "Customer",
+      "empty": "No messaging conversations match the current filters.",
+      "endOfQueue": "End of the current queue: {count} conversations loaded.",
+      "loadError": "Messaging conversations failed to load.",
+      "loadingMore": "Loading",
+      "loadMore": "Load more",
+      "mobileListLabel": "Compact admin private messaging inbox",
+      "nextPageAvailable": "More conversations are available after this {count}-conversation page.",
+      "open": "Open",
+      "openRoute": "Open messaging conversation route {publicId}",
+      "safeCustomerRef": "Safe ref #{id}",
+      "selectConversation": "Select messaging conversation {publicId}",
+      "table": {
+        "conversation": "Conversation",
+        "customer": "Customer",
+        "state": "State",
+        "updated": "Updated"
+      },
+      "tableCaption": "Admin private messaging inbox"
+    },
+    "metrics": {
+      "open": "Open",
+      "openHint": "active private conversations",
+      "presence": "Presence",
+      "presenceHint": "admin realtime stream state",
+      "visible": "Visible",
+      "visibleHint": "conversations after filters",
+      "waitingAdmin": "Unread",
+      "waitingAdminHint": "open conversations waiting for admin"
+    },
+    "permissionDenied": {
+      "description": "This account cannot read private messaging conversations. Use a support, admin, or owner role with messaging read permission.",
+      "title": "Messaging permission required"
+    },
+    "priorities": {
+      "high": "High",
+      "low": "Low",
+      "normal": "Normal",
+      "urgent": "Urgent"
+    },
+    "readStates": {
+      "description": "Participant high-water marks returned by the backend for unread diagnostics.",
+      "empty": "No read states are attached to this conversation yet.",
+      "lastMessage": "Last message {id}",
+      "lastReadAt": "Last read {value}",
+      "title": "Read states"
+    },
+    "realtime": {
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "description": "SSE delivers event hints only; REST remains the source of truth for message bodies.",
+      "offline": "Offline",
+      "privacy": "Bodyless events",
+      "title": "Realtime presence"
+    },
+    "reply": {
+      "description": "Visible to the customer and may trigger notification workflows.",
+      "message": "Public reply message",
+      "placeholder": "Write a public message. Do not include secrets, payment card numbers, private keys, or VPN credential URLs.",
+      "sending": "Sending",
+      "submit": "Send public reply",
+      "title": "Public reply"
+    },
+    "responseStates": {
+      "none": "None",
+      "waiting_admin": "Waiting admin",
+      "waiting_customer": "Waiting customer"
+    },
+    "senders": {
+      "admin": "Admin",
+      "customer": "Customer",
+      "system": "System"
+    },
+    "states": {
+      "unread": "Unread"
+    },
+    "statuses": {
+      "archived": "Archived",
+      "closed": "Closed",
+      "locked": "Locked",
+      "open": "Open"
+    },
+    "visibilities": {
+      "internal": "Internal",
+      "public": "Public"
+    }
+  },
   "MiniApp": {
     "home": {
       "activateTrial": "Activate Trial",
@@ -3923,6 +4120,8 @@
     "integrations": "INTEGRATIONS",
     "integrationsHint": "Telegram, push, realtime",
     "mainNavigation": "Admin navigation",
+    "messaging": "MESSAGING",
+    "messagingHint": "Private dialogs, notes, presence",
     "openMenu": "Open admin menu",
     "secureSession": "SECURE SESSION",
     "security": "SECURITY",

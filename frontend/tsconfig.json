@@ -54,7 +54,8 @@
     ".next-p1-structured-webpack/types/**/*.ts",
     ".next-p1-structured-webpack/dev/types/**/*.ts",
     ".next-s1-tg-004/types/**/*.ts",
-    ".next-s1-tg-004/dev/types/**/*.ts"
+    ".next-s1-tg-004/dev/types/**/*.ts",
+    ".next/dev/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

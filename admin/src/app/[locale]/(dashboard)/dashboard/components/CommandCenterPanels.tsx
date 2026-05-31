@@ -77,9 +77,18 @@ const SUPPORT_SECTION_CARD_OVERVIEW = {
   readinessTone: 'partial',
 } as const;
 
+const MESSAGING_SECTION_CARD_OVERVIEW = {
+  availableNow: ['privateInbox', 'assignment', 'internalNotes', 'presence'],
+  nextModules: ['securityReview', 'playwrightEvidence', 'notificationBadges'],
+  readinessTone: 'partial',
+} as const;
+
 function getSectionCardOverview(item: AdminNavItem) {
   if (item.href === '/support') {
     return SUPPORT_SECTION_CARD_OVERVIEW;
+  }
+  if (item.href === '/messaging') {
+    return MESSAGING_SECTION_CARD_OVERVIEW;
   }
 
   const slug = item.href.slice(1) as AdminSectionSlug;

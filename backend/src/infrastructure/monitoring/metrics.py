@@ -393,6 +393,37 @@ websocket_auth_method_total = Counter(
     ["method"],  # "ticket" only (token auth removed in v2.0)
 )
 
+messaging_outbox_events_created_total = Counter(
+    "messaging_outbox_events_created_total",
+    "Messaging bounded-context outbox events created.",
+    ["event_type", "aggregate_type", "result"],
+)
+
+messaging_outbox_events_published_total = Counter(
+    "messaging_outbox_events_published_total",
+    "Messaging bounded-context outbox publications published to JetStream.",
+    ["event_type", "consumer_name", "result"],
+)
+
+messaging_outbox_publish_failures_total = Counter(
+    "messaging_outbox_publish_failures_total",
+    "Messaging bounded-context outbox publication failures.",
+    ["event_type", "consumer_name", "result"],
+)
+
+messaging_outbox_lag_seconds = Histogram(
+    "messaging_outbox_lag_seconds",
+    "Messaging bounded-context outbox publication lag in seconds.",
+    ["event_type", "consumer_name", "result"],
+    buckets=(0.1, 0.5, 1.0, 2.5, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0),
+)
+
+messaging_realtime_dispatch_total = Counter(
+    "messaging_realtime_dispatch_total",
+    "Messaging realtime dispatcher handoffs to transient delivery adapters.",
+    ["event_type", "channel_type", "result"],
+)
+
 # Wallet operations metrics
 wallet_operations_total = Counter(
     "wallet_operations_total",

@@ -22,6 +22,7 @@ const MESSAGE_FILE_NAMESPACE_MAP = {
   'infrastructure.json': 'Infrastructure',
   'security-admin.json': 'AdminSecurity',
   'support.json': 'Support',
+  'messaging.json': 'Messaging',
   'sections.json': 'Sections',
   'users.json': 'Users',
   'servers.json': 'Servers',

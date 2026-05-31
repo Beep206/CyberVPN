@@ -62,7 +62,7 @@ async def _subscribe_with_auth(
         await _send_error(websocket, error or "Unauthorized", topic)
         return False
 
-    await ws_manager.connect(websocket, f"monitoring:{topic}")
+    await ws_manager.connect(websocket, f"monitoring:{topic}", accept=False)
 
     # Send subscription confirmation
     await websocket.send_json(
@@ -152,7 +152,7 @@ async def monitoring_ws(
                     await _send_error(websocket, "Invalid JSON message")
 
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket, "monitoring")
+        ws_manager.disconnect_all(websocket)
         logger.info(
             "WebSocket disconnected",
             extra={"user_id": user_ctx.user_id},

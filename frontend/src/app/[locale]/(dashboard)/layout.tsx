@@ -41,7 +41,7 @@ export default async function DashboardLayout({
 
   return (
     <ScopedIntlProvider locale={locale} namespaces={DASHBOARD_CLIENT_NAMESPACES}>
-      <QueryProvider>
+      <QueryProvider showDevtools={false}>
         <AuthGuard>
           <CustomerSubscriptionProvider>
             <JsonLd<SoftwareApplication>

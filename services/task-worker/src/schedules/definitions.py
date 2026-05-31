@@ -87,6 +87,15 @@ process_notification_queue = _schedule_task(
     process_notification_queue, [{"interval": INTERVAL_NOTIFICATION_QUEUE_SECONDS}]
 )
 
+from src.tasks.notifications.messaging_outbox import (
+    process_messaging_outbox,
+)
+
+process_messaging_outbox = _schedule_task(
+    process_messaging_outbox,
+    [{"interval": INTERVAL_NOTIFICATION_QUEUE_SECONDS}],
+)
+
 from src.tasks.email.process_growth_notification_deliveries import (
     process_growth_notification_deliveries,
 )

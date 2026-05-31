@@ -11,6 +11,8 @@ export const DASHBOARD_NAV_LABEL_FALLBACKS = {
   commerceHint: 'Plans, payments, wallets',
   customers: 'CUSTOMERS',
   customersHint: 'Lifecycle, support, accounts',
+  messaging: 'MESSAGING',
+  messagingHint: 'Private dialogs, notes, presence',
   support: 'SUPPORT',
   supportHint: 'Inbox, replies, internal notes',
   dashboard: 'DASHBOARD',

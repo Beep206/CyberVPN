@@ -6,6 +6,7 @@ Tests that:
 3. Ticket format is secure (cryptographically random)
 """
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -147,3 +148,35 @@ class TestSecurityProperties:
         # 30 seconds is short enough to limit replay window
         assert WebSocketTicketService.TTL_SECONDS == 30
         assert WebSocketTicketService.TTL_SECONDS <= 60  # Should never be more than 1 minute
+
+    @pytest.mark.asyncio
+    async def test_generic_ws_auth_rejects_messaging_surface_ticket(self, monkeypatch):
+        """Generic admin WebSockets reject tickets minted for messaging realtime."""
+        from datetime import UTC, datetime
+
+        from src.application.services.ws_ticket_service import MESSAGING_REALTIME_TICKET_SCOPE, TicketData
+        from src.presentation.api.v1.ws import auth as ws_auth
+
+        class _TicketService:
+            def __init__(self, _redis):
+                pass
+
+            async def validate_and_consume(self, _ticket, _client_ip):
+                return TicketData(
+                    user_id="admin-1",
+                    role="admin",
+                    login="admin",
+                    created_at=datetime.now(UTC),
+                    principal_type="admin",
+                    scope=MESSAGING_REALTIME_TICKET_SCOPE,
+                )
+
+        monkeypatch.setattr(ws_auth, "WebSocketTicketService", _TicketService)
+
+        result = await ws_auth.ws_authenticate_ticket(
+            websocket=SimpleNamespace(client=SimpleNamespace(host="127.0.0.1")),
+            ticket="messaging-ticket",
+            redis_client=AsyncMock(),
+        )
+
+        assert result is None

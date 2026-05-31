@@ -12,6 +12,7 @@ describe('dashboard navigation', () => {
       '/wallet',
       '/payment-history',
       '/support',
+      '/messages',
       '/settings',
     ]);
   });

@@ -42,6 +42,14 @@ vi.mock('@/widgets/terminal-header-controls', () => ({
   ),
 }));
 
+vi.mock('@/features/messaging/components/NotificationCenterDropdown', () => ({
+  NotificationCenterDropdown: () => (
+    <button type="button" aria-label="notifications">
+      notifications
+    </button>
+  ),
+}));
+
 describe('TerminalHeader', () => {
   async function renderHeader() {
     render(

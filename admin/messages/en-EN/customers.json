@@ -85,6 +85,7 @@
     "title": "Customer Card",
     "description": "Operate identity, lifecycle, wallet, payments, referral, and partner context from a single customer card.",
     "backToDirectory": "Back to directory",
+    "openMessaging": "Open messaging",
     "loadError": "Customer card failed to load.",
     "notFound": "Customer not found.",
     "stateTitle": "Access State",

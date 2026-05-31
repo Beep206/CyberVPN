@@ -151,6 +151,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         trial_activate_requests_per_minute: int | None = None,
         growth_sensitive_requests_per_minute: int | None = None,
         support_write_requests_per_minute: int | None = None,
+        messaging_write_requests_per_minute: int | None = None,
+        messaging_realtime_requests_per_minute: int | None = None,
+        messaging_admin_read_requests_per_minute: int | None = None,
+        messaging_broadcast_requests_per_minute: int | None = None,
     ) -> None:
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
@@ -173,6 +177,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             trial_activate_requests_per_minute=trial_activate_requests_per_minute,
             growth_sensitive_requests_per_minute=growth_sensitive_requests_per_minute,
             support_write_requests_per_minute=support_write_requests_per_minute,
+            messaging_write_requests_per_minute=messaging_write_requests_per_minute,
+            messaging_realtime_requests_per_minute=messaging_realtime_requests_per_minute,
+            messaging_admin_read_requests_per_minute=messaging_admin_read_requests_per_minute,
+            messaging_broadcast_requests_per_minute=messaging_broadcast_requests_per_minute,
         )
         # Default to fail-closed in production, configurable via settings
         if fail_open is None:
@@ -324,6 +332,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         trial_activate_requests_per_minute: int | None,
         growth_sensitive_requests_per_minute: int | None,
         support_write_requests_per_minute: int | None,
+        messaging_write_requests_per_minute: int | None,
+        messaging_realtime_requests_per_minute: int | None,
+        messaging_admin_read_requests_per_minute: int | None,
+        messaging_broadcast_requests_per_minute: int | None,
     ) -> tuple[RateLimitRule, ...]:
         auth_limit = self._configured_limit(
             explicit=auth_sensitive_requests_per_minute,
@@ -349,6 +361,26 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             explicit=support_write_requests_per_minute,
             setting_name="rate_limit_support_write_requests",
             default=30,
+        )
+        messaging_write_limit = self._configured_limit(
+            explicit=messaging_write_requests_per_minute,
+            setting_name="rate_limit_messaging_write_requests",
+            default=30,
+        )
+        messaging_realtime_limit = self._configured_limit(
+            explicit=messaging_realtime_requests_per_minute,
+            setting_name="rate_limit_messaging_realtime_requests",
+            default=60,
+        )
+        messaging_admin_read_limit = self._configured_limit(
+            explicit=messaging_admin_read_requests_per_minute,
+            setting_name="rate_limit_messaging_admin_read_requests",
+            default=120,
+        )
+        messaging_broadcast_limit = self._configured_limit(
+            explicit=messaging_broadcast_requests_per_minute,
+            setting_name="rate_limit_messaging_broadcast_requests",
+            default=10,
         )
 
         return (
@@ -449,6 +481,39 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     "/api/v1/admin/support/tickets",
                 ),
                 path_contains=("/support/tickets",),
+            ),
+            RateLimitRule(
+                name="messaging_write",
+                limit=messaging_write_limit,
+                methods=frozenset({"POST", "PATCH"}),
+                exact_paths=frozenset({"/api/v1/admin/messaging/conversations"}),
+                path_prefixes=(
+                    "/api/v1/me/conversations/",
+                    "/api/v1/me/notifications/read",
+                    "/api/v1/admin/messaging/conversations/",
+                ),
+            ),
+            RateLimitRule(
+                name="messaging_realtime",
+                limit=messaging_realtime_limit,
+                methods=frozenset({"GET", "POST"}),
+                path_prefixes=(
+                    "/api/v1/me/realtime/",
+                    "/api/v1/admin/messaging/realtime/",
+                ),
+            ),
+            RateLimitRule(
+                name="messaging_admin_read",
+                limit=messaging_admin_read_limit,
+                methods=frozenset({"GET"}),
+                exact_paths=frozenset({"/api/v1/admin/messaging/conversations"}),
+                path_prefixes=("/api/v1/admin/messaging/conversations/",),
+            ),
+            RateLimitRule(
+                name="messaging_broadcast",
+                limit=messaging_broadcast_limit,
+                methods=frozenset({"POST"}),
+                path_prefixes=("/api/v1/admin/notifications/broadcasts",),
             ),
         )
 
