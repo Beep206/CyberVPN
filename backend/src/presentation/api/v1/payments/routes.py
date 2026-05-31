@@ -337,7 +337,12 @@ async def commit_telegram_stars_checkout(
     )
 
 
-@router.post("/checkout", response_model=CheckoutCommitResponse, deprecated=True)
+@router.post(
+    "/checkout",
+    response_model=CheckoutCommitResponse,
+    deprecated=True,
+    responses={410: {"description": "Legacy checkout commit is disabled"}},
+)
 async def checkout_alias(
     body: CheckoutQuoteRequest,
     idempotency_key: str = Header(..., alias="Idempotency-Key", min_length=1, max_length=120),

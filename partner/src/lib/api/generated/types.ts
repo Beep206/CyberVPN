@@ -2065,6 +2065,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/internal/provisioning-retries/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Stage1 Provisioning Retries
+         * @description Run a bounded durable S1 provisioning retry pass for the task worker.
+         */
+        post: operations["run_stage1_provisioning_retries_api_v1_subscriptions_internal_provisioning_retries_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subscriptions/current/entitlements": {
         parameters: {
             query?: never;
@@ -5067,6 +5087,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Customer Support Tickets */
+        get: operations["list_customer_support_tickets_api_v1_support_tickets_get"];
+        put?: never;
+        /** Create Customer Support Ticket */
+        post: operations["create_customer_support_ticket_api_v1_support_tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{ticket_ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Support Ticket */
+        get: operations["get_customer_support_ticket_api_v1_support_tickets__ticket_ref__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{ticket_ref}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Customer Support Reply */
+        post: operations["add_customer_support_reply_api_v1_support_tickets__ticket_ref__replies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{ticket_ref}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Customer Support Ticket */
+        post: operations["close_customer_support_ticket_api_v1_support_tickets__ticket_ref__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support/tickets/{ticket_ref}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Customer Support Ticket */
+        post: operations["reopen_customer_support_ticket_api_v1_support_tickets__ticket_ref__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Partner Support Tickets */
+        get: operations["list_partner_support_tickets_api_v1_partner_workspaces__workspace_id__support_tickets_get"];
+        put?: never;
+        /** Create Partner Support Ticket */
+        post: operations["create_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/support/tickets/{ticket_ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Support Ticket */
+        get: operations["get_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/support/tickets/{ticket_ref}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Partner Support Reply */
+        post: operations["add_partner_support_reply_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__replies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/support/tickets/{ticket_ref}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Partner Support Ticket */
+        post: operations["close_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/support/tickets/{ticket_ref}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Partner Support Ticket */
+        post: operations["reopen_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Support Tickets */
+        get: operations["list_admin_support_tickets_api_v1_admin_support_tickets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/tickets/{ticket_ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Support Ticket */
+        get: operations["get_admin_support_ticket_api_v1_admin_support_tickets__ticket_ref__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Support Ticket */
+        patch: operations["update_admin_support_ticket_api_v1_admin_support_tickets__ticket_ref__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/support/tickets/{ticket_ref}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Admin Support Reply */
+        post: operations["add_admin_support_reply_api_v1_admin_support_tickets__ticket_ref__replies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/support/tickets/{ticket_ref}/internal-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Admin Support Internal Note */
+        post: operations["add_admin_support_internal_note_api_v1_admin_support_tickets__ticket_ref__internal_notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/crypto/invoice": {
         parameters: {
             query?: never;
@@ -5158,7 +5419,8 @@ export interface paths {
         put?: never;
         /**
          * Commit Checkout
-         * @description Create a local payment and optionally a CryptoBot invoice for the checkout basket.
+         * @deprecated
+         * @description Fail closed instead of committing payment from client-supplied quote inputs.
          */
         post: operations["commit_checkout_api_v1_payments_checkout_commit_post"];
         delete?: never;
@@ -5199,7 +5461,7 @@ export interface paths {
         /**
          * Checkout Alias
          * @deprecated
-         * @description Backward-compatible alias for commit checkout.
+         * @description Backward-compatible alias for the disabled legacy checkout commit.
          */
         post: operations["checkout_alias_api_v1_payments_checkout_post"];
         delete?: never;
@@ -13406,6 +13668,14 @@ export interface components {
             /** Display Name */
             display_name?: string | null;
         };
+        /** AdminSupportTicketUpdateRequest */
+        AdminSupportTicketUpdateRequest: {
+            status?: components["schemas"]["SupportTicketStatus"] | null;
+            category?: components["schemas"]["SupportTicketCategory"] | null;
+            priority?: components["schemas"]["SupportTicketPriority"] | null;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+        };
         /** AdminTopupRequest */
         AdminTopupRequest: {
             /** Amount */
@@ -21035,6 +21305,16 @@ export interface components {
          * @enum {string}
          */
         PartnerStatementStatus: "open" | "closed";
+        /** PartnerSupportTicketCreateRequest */
+        PartnerSupportTicketCreateRequest: {
+            category: components["schemas"]["SupportTicketCategory"];
+            /** Subject */
+            subject: string;
+            /** Message */
+            message: string;
+            /** @default normal */
+            priority: components["schemas"]["SupportTicketPriority"];
+        };
         /** PartnerWorkspaceAnalyticsMetricResponse */
         PartnerWorkspaceAnalyticsMetricResponse: {
             /** Id */
@@ -23834,6 +24114,106 @@ export interface components {
             /** Incidentscount */
             incidentsCount: number;
         };
+        /** PublicSupportTicketDetailResponse */
+        PublicSupportTicketDetailResponse: {
+            /** Public Id */
+            public_id: string;
+            status: components["schemas"]["SupportTicketStatus"];
+            category: components["schemas"]["SupportTicketCategory"];
+            priority: components["schemas"]["SupportTicketPriority"];
+            /** Subject */
+            subject: string;
+            /** Last Message Preview */
+            last_message_preview: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Customer Message At */
+            last_customer_message_at?: string | null;
+            /** Last Support Message At */
+            last_support_message_at?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Messages */
+            messages?: components["schemas"]["PublicSupportTicketMessageResponse"][];
+            /** Events */
+            events?: components["schemas"]["PublicSupportTicketEventResponse"][];
+        };
+        /** PublicSupportTicketEventResponse */
+        PublicSupportTicketEventResponse: {
+            /** Actor Label */
+            actor_label: string;
+            event_type: components["schemas"]["SupportTicketEventType"];
+            /** From Value */
+            from_value?: string | null;
+            /** To Value */
+            to_value?: string | null;
+            /** Audit Summary */
+            audit_summary: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PublicSupportTicketListResponse */
+        PublicSupportTicketListResponse: {
+            /** Tickets */
+            tickets: components["schemas"]["PublicSupportTicketSummaryResponse"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** PublicSupportTicketMessageResponse */
+        PublicSupportTicketMessageResponse: {
+            /** Author Label */
+            author_label: string;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PublicSupportTicketSummaryResponse */
+        PublicSupportTicketSummaryResponse: {
+            /** Public Id */
+            public_id: string;
+            status: components["schemas"]["SupportTicketStatus"];
+            category: components["schemas"]["SupportTicketCategory"];
+            priority: components["schemas"]["SupportTicketPriority"];
+            /** Subject */
+            subject: string;
+            /** Last Message Preview */
+            last_message_preview: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Customer Message At */
+            last_customer_message_at?: string | null;
+            /** Last Support Message At */
+            last_support_message_at?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+        };
         /** PublishAdminPricebookRequest */
         PublishAdminPricebookRequest: {
             /** Effective From */
@@ -26304,6 +26684,210 @@ export interface components {
              */
             templates?: components["schemas"]["RemnawaveSubscriptionResponse"][];
         };
+        /**
+         * SupportActorType
+         * @enum {string}
+         */
+        SupportActorType: "customer" | "partner" | "admin" | "system";
+        /**
+         * SupportMessageVisibility
+         * @enum {string}
+         */
+        SupportMessageVisibility: "public" | "internal";
+        /**
+         * SupportTicketCategory
+         * @enum {string}
+         */
+        SupportTicketCategory: "account" | "billing" | "setup" | "vpn_access" | "status" | "privacy" | "other" | "abuse_review" | "duplicate";
+        /** SupportTicketCreateRequest */
+        SupportTicketCreateRequest: {
+            category: components["schemas"]["SupportTicketCategory"];
+            /** Subject */
+            subject: string;
+            /** Message */
+            message: string;
+            /** @default normal */
+            priority: components["schemas"]["SupportTicketPriority"];
+        };
+        /** SupportTicketDetailResponse */
+        SupportTicketDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            owner_type: components["schemas"]["SupportTicketOwnerType"];
+            /** Customer Account Id */
+            customer_account_id?: string | null;
+            /** Partner Workspace Id */
+            partner_workspace_id?: string | null;
+            source: components["schemas"]["SupportTicketSource"];
+            status: components["schemas"]["SupportTicketStatus"];
+            category: components["schemas"]["SupportTicketCategory"];
+            priority: components["schemas"]["SupportTicketPriority"];
+            /** Subject */
+            subject: string;
+            /** Last Message Preview */
+            last_message_preview: string;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Customer Message At */
+            last_customer_message_at?: string | null;
+            /** Last Support Message At */
+            last_support_message_at?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Messages */
+            messages?: components["schemas"]["SupportTicketMessageResponse"][];
+            /** Events */
+            events?: components["schemas"]["SupportTicketEventResponse"][];
+        };
+        /** SupportTicketEventResponse */
+        SupportTicketEventResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ticket Id
+             * Format: uuid
+             */
+            ticket_id: string;
+            actor_type: components["schemas"]["SupportActorType"];
+            /** Actor Id */
+            actor_id?: string | null;
+            event_type: components["schemas"]["SupportTicketEventType"];
+            /** From Value */
+            from_value?: string | null;
+            /** To Value */
+            to_value?: string | null;
+            /** Audit Summary */
+            audit_summary: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * SupportTicketEventType
+         * @enum {string}
+         */
+        SupportTicketEventType: "ticket_created" | "public_reply_added" | "internal_note_added" | "status_changed" | "priority_changed" | "category_changed" | "assigned" | "closed" | "reopened" | "notification_queued" | "notification_failed";
+        /** SupportTicketListResponse */
+        SupportTicketListResponse: {
+            /** Tickets */
+            tickets: components["schemas"]["SupportTicketSummaryResponse"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** SupportTicketMessageResponse */
+        SupportTicketMessageResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ticket Id
+             * Format: uuid
+             */
+            ticket_id: string;
+            author_type: components["schemas"]["SupportActorType"];
+            /** Author Id */
+            author_id?: string | null;
+            visibility: components["schemas"]["SupportMessageVisibility"];
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * SupportTicketOwnerType
+         * @enum {string}
+         */
+        SupportTicketOwnerType: "customer" | "partner";
+        /**
+         * SupportTicketPriority
+         * @enum {string}
+         */
+        SupportTicketPriority: "low" | "normal" | "high" | "urgent";
+        /** SupportTicketReplyRequest */
+        SupportTicketReplyRequest: {
+            /** Message */
+            message: string;
+        };
+        /**
+         * SupportTicketSource
+         * @enum {string}
+         */
+        SupportTicketSource: "customer_web" | "telegram_mini_app" | "partner_portal" | "admin_manual" | "telegram_bot";
+        /**
+         * SupportTicketStatus
+         * @enum {string}
+         */
+        SupportTicketStatus: "open" | "pending_support" | "pending_customer" | "resolved" | "closed";
+        /** SupportTicketSummaryResponse */
+        SupportTicketSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            owner_type: components["schemas"]["SupportTicketOwnerType"];
+            /** Customer Account Id */
+            customer_account_id?: string | null;
+            /** Partner Workspace Id */
+            partner_workspace_id?: string | null;
+            source: components["schemas"]["SupportTicketSource"];
+            status: components["schemas"]["SupportTicketStatus"];
+            category: components["schemas"]["SupportTicketCategory"];
+            priority: components["schemas"]["SupportTicketPriority"];
+            /** Subject */
+            subject: string;
+            /** Last Message Preview */
+            last_message_preview: string;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Customer Message At */
+            last_customer_message_at?: string | null;
+            /** Last Support Message At */
+            last_support_message_at?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+        };
         /** SuspendPartnerBotRequest */
         SuspendPartnerBotRequest: {
             /** Reason Code */
@@ -27522,6 +28106,13 @@ export interface components {
              * @default true
              */
             one_trial_per_account: boolean;
+            /**
+             * Policy Context
+             * @description Smallest compatible S1 policy context; Stage 1 does not vary trial by country/channel/segment.
+             */
+            policy_context?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * TrialStatusResponse
@@ -27578,6 +28169,13 @@ export interface components {
              * @default true
              */
             one_trial_per_account: boolean;
+            /**
+             * Policy Context
+             * @description Smallest compatible S1 policy context; Stage 1 does not vary trial by country/channel/segment.
+             */
+            policy_context?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * TwoFactorDisableRequest
@@ -29482,6 +30080,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description Telegram authentication temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -32650,7 +33255,9 @@ export interface operations {
     commit_customer_subscription_upgrade_api_v1_customer_subscriptions__subscription_key__upgrade_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 subscription_key: string;
             };
@@ -32720,7 +33327,9 @@ export interface operations {
     purchase_customer_subscription_addons_api_v1_customer_subscriptions__subscription_key__addons_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 subscription_key: string;
             };
@@ -33057,6 +33666,42 @@ export interface operations {
             };
         };
     };
+    run_stage1_provisioning_retries_api_v1_subscriptions_internal_provisioning_retries_run_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+                worker_id?: string;
+            };
+            header?: {
+                "X-Telegram-Bot-Secret"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_current_entitlements_api_v1_subscriptions_current_entitlements_get: {
         parameters: {
             query?: never;
@@ -33113,7 +33758,9 @@ export interface operations {
     commit_subscription_upgrade_api_v1_subscriptions_current_upgrade_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -33179,7 +33826,9 @@ export interface operations {
     purchase_subscription_addons_api_v1_subscriptions_current_addons_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -39820,6 +40469,579 @@ export interface operations {
             };
         };
     };
+    list_customer_support_tickets_api_v1_support_tickets_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SupportTicketStatus"] | null;
+                category?: components["schemas"]["SupportTicketCategory"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_customer_support_ticket_api_v1_support_tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_support_ticket_api_v1_support_tickets__ticket_ref__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_customer_support_reply_api_v1_support_tickets__ticket_ref__replies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_customer_support_ticket_api_v1_support_tickets__ticket_ref__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_customer_support_ticket_api_v1_support_tickets__ticket_ref__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_partner_support_tickets_api_v1_partner_workspaces__workspace_id__support_tickets_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SupportTicketStatus"] | null;
+                category?: components["schemas"]["SupportTicketCategory"] | null;
+                priority?: components["schemas"]["SupportTicketPriority"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerSupportTicketCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_partner_support_reply_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__replies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_partner_support_ticket_api_v1_partner_workspaces__workspace_id__support_tickets__ticket_ref__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_support_tickets_api_v1_admin_support_tickets_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SupportTicketStatus"] | null;
+                category?: components["schemas"]["SupportTicketCategory"] | null;
+                priority?: components["schemas"]["SupportTicketPriority"] | null;
+                assigned_admin_id?: string | null;
+                source?: components["schemas"]["SupportTicketSource"] | null;
+                query?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_support_ticket_api_v1_admin_support_tickets__ticket_ref__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_admin_support_ticket_api_v1_admin_support_tickets__ticket_ref__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSupportTicketUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_admin_support_reply_api_v1_admin_support_tickets__ticket_ref__replies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_admin_support_internal_note_api_v1_admin_support_tickets__ticket_ref__internal_notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportTicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_crypto_invoice_api_v1_payments_crypto_invoice_post: {
         parameters: {
             query?: never;
@@ -39966,7 +41188,9 @@ export interface operations {
     commit_checkout_api_v1_payments_checkout_commit_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -39984,6 +41208,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CheckoutCommitResponse"];
                 };
+            };
+            /** @description Legacy checkout commit is disabled */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -40032,7 +41263,9 @@ export interface operations {
     checkout_alias_api_v1_payments_checkout_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -40050,6 +41283,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CheckoutCommitResponse"];
                 };
+            };
+            /** @description Legacy checkout commit is disabled */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -43775,7 +45015,9 @@ export interface operations {
     commit_miniapp_checkout_api_v1_miniapp_checkout_commit_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };

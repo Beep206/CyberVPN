@@ -19677,6 +19677,9 @@
               }
             }
           },
+          "410": {
+            "description": "Legacy checkout commit is disabled"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
