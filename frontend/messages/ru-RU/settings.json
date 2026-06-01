@@ -3,8 +3,8 @@
     "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ",
     "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
     "hero": {
-      "eyebrow": "Identity / Security / Notifications",
-      "securityPosture": "Security posture",
+      "eyebrow": "Личность / Безопасность / Уведомления",
+      "securityPosture": "Уровень защиты",
       "securityScore": "{score}% уровень защиты аккаунта"
     },
     "posture": {
@@ -18,26 +18,26 @@
     },
     "summary": {
       "ariaLabel": "Сводные метрики настроек",
-      "twoFactor": "2FA",
-      "antiphishing": "Anti-phishing",
+      "twoFactor": "2FA-защита",
+      "antiphishing": "Антифишинг",
       "notifications": "Каналов включено",
       "devices": "Сессии"
     },
     "profile": {
-      "eyebrow": "Profile nucleus",
+      "eyebrow": "Ядро профиля",
       "title": "Профиль аккаунта",
       "description": "Редактируемые поля синхронизируются с backend profile record. Email и account ID здесь неизменяемые.",
-      "email": "Email",
-      "displayName": "Display name",
+      "email": "Эл. почта",
+      "displayName": "Отображаемое имя",
       "displayNamePlaceholder": "Имя оператора",
       "language": "Язык",
       "timezone": "Часовой пояс",
-      "accountId": "Account ID",
+      "accountId": "ID аккаунта",
       "updatedAt": "Обновлено {date}"
     },
     "security": {
-      "eyebrow": "Sensitive controls",
-      "title": "Security console",
+      "eyebrow": "Чувствительные настройки",
+      "title": "Консоль безопасности",
       "description": "Password, TOTP и anti-phishing flows остаются backend-owned и rate-limited.",
       "twoFactor": {
         "title": "Двухфакторная аутентификация",
@@ -54,64 +54,64 @@
         "description": "Смена пароля требует текущий пароль."
       },
       "antiphishing": {
-        "title": "Anti-phishing code",
+        "title": "Антифишинговый код",
         "enabled": "Код подлинности email установлен: {code}",
         "disabled": "Установите приватный код для легитимных писем."
       }
     },
     "notifications": {
-      "eyebrow": "Routing matrix",
+      "eyebrow": "Матрица доставки",
       "title": "Настройки уведомлений",
       "description": "Core account notifications и growth notifications разделены на разные backend preference sets.",
       "core": {
-        "title": "Core account",
+        "title": "Основной аккаунт",
         "emailSecurity": {
-          "title": "Email security alerts",
+          "title": "Email-алерты безопасности",
           "description": "Login, password и account risk alerts."
         },
         "emailMarketing": {
-          "title": "Email marketing",
+          "title": "Маркетинговые email",
           "description": "Опциональные продуктовые и промо сообщения."
         },
         "pushConnection": {
-          "title": "VPN connection push",
+          "title": "Push о VPN-подключении",
           "description": "Connection, disconnect и service state notices."
         },
         "pushPayment": {
-          "title": "Payment push",
+          "title": "Push об оплате",
           "description": "Payment lifecycle и подтверждения invoice."
         },
         "pushSubscription": {
-          "title": "Subscription push",
+          "title": "Push о подписке",
           "description": "Renewal, expiry и entitlement reminders."
         }
       },
       "growth": {
-        "title": "Growth events",
+        "title": "Growth-события",
         "inAppInvites": {
-          "title": "Invite in-app feed",
+          "title": "Лента invite в приложении",
           "description": "Invite и code events внутри кабинета."
         },
         "emailRewards": {
-          "title": "Referral reward email",
+          "title": "Email о реферальной награде",
           "description": "Изменения lifecycle наград по email."
         },
         "telegramRewards": {
-          "title": "Referral reward Telegram",
+          "title": "Telegram о реферальной награде",
           "description": "Изменения lifecycle наград в Telegram."
         },
         "emailGifts": {
-          "title": "Gift code email",
+          "title": "Email о подарочном коде",
           "description": "Gift redemption и delivery status по email."
         },
         "adminUpdates": {
-          "title": "Telegram admin updates",
+          "title": "Админские обновления в Telegram",
           "description": "Операционные growth announcements в Telegram."
         }
       }
     },
     "devices": {
-      "eyebrow": "Session perimeter",
+      "eyebrow": "Периметр сессий",
       "title": "Активные устройства",
       "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
       "limitTitle": "Лимит устройств тарифа",
@@ -145,14 +145,14 @@
       "revokeOthers": "Отозвать остальные"
     },
     "identity": {
-      "eyebrow": "Linked identity",
+      "eyebrow": "Связанная идентичность",
       "title": "Внешние аккаунты",
       "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
       "telegramLinked": "Telegram привязан: {id}",
       "telegramMissing": "Telegram не привязан к этому аккаунту."
     },
     "privacy": {
-      "eyebrow": "Privacy guardrails",
+      "eyebrow": "Ограничения приватности",
       "title": "Правила обработки данных",
       "items": {
         "serverTruth": {
@@ -164,11 +164,11 @@
           "description": "Метрики отмечают только действия, не пароли, TOTP codes, IP или anti-phishing values."
         },
         "sessionRevocation": {
-          "title": "Session revocation",
+          "title": "Отзыв сессий",
           "description": "Удаление устройств вызывает authenticated backend session revoke endpoints."
         },
         "accountDeletion": {
-          "title": "Deletion path",
+          "title": "Путь удаления",
           "description": "Удаление аккаунта остаётся в отдельном privacy flow."
         }
       }
@@ -177,7 +177,7 @@
       "copied": "Скопировано",
       "copyId": "Копировать ID",
       "manage": "Управлять",
-      "privacy": "Privacy flow",
+      "privacy": "Сценарий приватности",
       "refresh": "Обновить",
       "revoking": "Отзываю...",
       "saveProfile": "Сохранить профиль",
@@ -203,5 +203,29 @@
       "notSet": "Не задан",
       "synced": "Синхронизировано"
     }
-  }
+  },
+  "title": "НАСТРОЙКИ",
+  "subtitle": "Управляйте предпочтениями аккаунта и безопасностью",
+  "linkedAccounts": "Связанные аккаунты",
+  "profile": "Профиль",
+  "email": "Эл. почта",
+  "displayName": "Отображаемое имя",
+  "save": "Сохранить",
+  "cancel": "Отмена",
+  "edit": "Изменить",
+  "language": "Язык",
+  "timezone": "Часовой пояс",
+  "security": "Безопасность",
+  "twoFactor": "Двухфакторная аутентификация",
+  "tfaEnabled": "Аккаунт защищён с помощью 2FA",
+  "tfaDisabled": "Добавьте дополнительный уровень защиты",
+  "enable": "Включить",
+  "disable": "Отключить",
+  "password": "Пароль",
+  "passwordDesc": "Изменить пароль аккаунта",
+  "change": "Изменить",
+  "antiphishing": "Антифишинговый код",
+  "antiphishingDesc": "Защититесь от фишинговых писем",
+  "manage": "Управлять",
+  "devices": "Активные устройства"
 }

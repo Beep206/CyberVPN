@@ -34,6 +34,11 @@ state. Clients must call the REST sync endpoint after connect, reconnect, `sync_
 The `connected`, `pong`, and `sync_required` transport messages include a `sync_cursor`. The cursor is an opaque marker
 for clients to store with their last successful REST sync; the backend may change the format without client parsing.
 
+Customer SSE clients must subscribe to named backend events, not only the generic `message` event. The backend emits
+custom SSE event names such as `messaging.message.created`, `notification.created`, `notification.read`, and
+`sync_required`; `sync_required` means the client must call REST sync and refetch active conversation and notification
+queries because realtime event hints do not include message bodies.
+
 ## Presence
 
 Presence is advisory and stored in Redis/Valkey with a TTL:
@@ -44,6 +49,18 @@ Presence is advisory and stored in Redis/Valkey with a TTL:
 WebSocket `ping` messages refresh the TTL. SSE streams emit periodic `ping` events. If Redis is unavailable, the
 connection remains open and REST sync remains the source of truth; the presence write fails closed to no presence
 projection rather than rejecting the user.
+
+## NATS Subject Taxonomy Exception
+
+The logical event taxonomy for messaging remains `messaging.message.created.v1`, `notification.created.v1`, and related
+event names. The current backend JetStream runtime intentionally publishes consumer-scoped physical subjects in the
+shape `messaging.{consumer_key}.{event_type}.v{schema_version}`. Example:
+`messaging.messaging_realtime_projection.messaging.message.created.v1`.
+
+This CYBA-276 exception preserves the existing transactional outbox model where each `outbox_publications` row belongs
+to one consumer and each durable consumer filters a dedicated subject branch. Delivery is at-least-once: JetStream
+publication uses `Nats-Msg-Id` for broker dedupe, and consumers record outbox consumer receipts for idempotency. Ordering
+is best-effort per durable consumer subject branch; clients recover authoritative state through REST sync/refetch.
 
 ## Payload Privacy
 

@@ -479,6 +479,7 @@
     "title": "Cookie Policy"
   },
   "Dashboard": {
+    "activeConnections": "Активные подключения",
     "activeSessions": "АКТИВНЫЕ СЕССИИ",
     "aggregateThroughput": "Суммарная пропускная способность",
     "cabinet": {
@@ -574,7 +575,7 @@
       },
       "readiness": {
         "channel": "Канал доступа",
-        "credential": "Credential",
+        "credential": "Учётные данные",
         "degraded": "ДЕГРАДАЦИЯ",
         "description": "Панель проверяет, согласованы ли подписка, профиль подготовки, credential устройства и канал доступа с backend.",
         "eyebrow": "Готовность VPN",
@@ -600,7 +601,7 @@
           "label": "Промо и подарки"
         },
         "description": "Действия публичного релиза собраны в одном месте: trial, продление, история оплат и growth-коды появляются здесь только когда это разрешено backend/runtime flags.",
-        "eyebrow": "S2 COMMERCE",
+        "eyebrow": "S2 КОММЕРЦИЯ",
         "growthHub": {
           "description": "Скопировать реферальные ссылки и проверить invite rewards.",
           "label": "Рефералы"
@@ -707,7 +708,7 @@
             "description": "Dashboard загружает сигналы VPN delivery перед показом финального состояния provisioning.",
             "title": "Проверяем provisioning"
           },
-          "eyebrow": "Provisioning",
+          "eyebrow": "Подготовка",
           "failed": {
             "description": "Выдача VPN завершилась ошибкой. Поддержка должна повторить provisioning или выполнить ручное исправление.",
             "title": "Provisioning не прошёл"
@@ -761,7 +762,7 @@
         "retryAll": "Повторить всё",
         "status": {
           "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ",
-          "live": "LIVE SYNC",
+          "live": "ЖИВАЯ СИНХРОНИЗАЦИЯ",
           "loading": "СИНХРОНИЗАЦИЯ"
         },
         "title": "Состояние синхронизации backend"
@@ -775,11 +776,17 @@
     "countries": "Страны",
     "currentConnections": "Текущие подключения",
     "encryptionStatus": "ШИФРОВАНИЕ: КВАНТОВО-УСТОЙЧИВОЕ",
+    "errorLoadingServers": "Ошибка загрузки серверов",
     "lifetimeTraffic": "Трафик за всё время",
+    "meta": {
+      "description": "Защищённая панель управления VPN с мониторингом в реальном времени, аналитикой и управлением сетью",
+      "title": "Панель управления - VPN Command Center"
+    },
     "monthlyRecapUnavailable": "Сводка за месяц недоступна",
     "networkLoad": "НАГРУЗКА СЕТИ",
     "networkRecap": "СВОДКА REMNAWAVE",
     "nodesOnline": "УЗЛОВ В СЕТИ",
+    "noServers": "Нет доступных серверов",
     "opsBaseline": "Пользователи, узлы, трафик и географическое покрытие",
     "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
     "serverStatus": "СТАТУС СЕРВЕРОВ",
@@ -793,9 +800,9 @@
       },
       "categories": {
         "account": "Аккаунт",
-        "billing": "Billing",
+        "billing": "Оплата",
         "other": "Другое",
-        "privacy": "Privacy",
+        "privacy": "Приватность",
         "setup": "Настройка",
         "status": "Статус сервиса",
         "vpn_access": "VPN-доступ"
@@ -819,7 +826,7 @@
         "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз.",
         "reply": "Не удалось отправить ответ. Попробуйте ещё раз."
       },
-      "eyebrow": "SUPPORT LINK",
+      "eyebrow": "СВЯЗЬ С ПОДДЕРЖКОЙ",
       "filters": {
         "all": "Все обращения",
         "statusLabel": "Фильтр обращений по статусу"
@@ -863,8 +870,8 @@
         "resolved": "Решено"
       },
       "surface": {
-        "dashboard": "Customer cabinet",
-        "miniapp": "Telegram Mini App"
+        "dashboard": "Личный кабинет",
+        "miniapp": "Мини-приложение Telegram"
       },
       "title": "Обращения в поддержку"
     },
@@ -872,7 +879,8 @@
     "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
     "totalNodes": "Всего узлов",
     "totalUsers": "Всего пользователей",
-    "trafficToday": "Переданный трафик за сегодня"
+    "trafficToday": "Переданный трафик за сегодня",
+    "vpnUsage": "ИСПОЛЬЗОВАНИЕ VPN"
   },
   "DeleteAccount": {
     "contact": {
@@ -1378,121 +1386,121 @@
   },
   "Messaging": {
     "actions": {
-      "refreshList": "Refresh conversations"
+      "refreshList": "Обновить диалоги"
     },
     "category": {
-      "billing": "Billing",
-      "other": "Other",
-      "security": "Security",
-      "subscription": "Subscription",
-      "support": "Support",
-      "system": "System"
+      "billing": "Оплата",
+      "other": "Другое",
+      "security": "Безопасность",
+      "subscription": "Подписка",
+      "support": "Поддержка",
+      "system": "Система"
     },
-    "description": "Review admin-started account conversations, reply inside open threads, and keep unread updates synchronized after reconnects.",
+    "description": "Просматривайте диалоги по аккаунту, начатые администратором, отвечайте в открытых ветках и синхронизируйте непрочитанные обновления после повторного подключения.",
     "detail": {
-      "emptyDescription": "Choose an existing admin-started thread to read updates or reply.",
-      "emptyTitle": "Select a conversation",
-      "noMessages": "No public messages are available in this conversation.",
-      "threadTitle": "Thread"
+      "emptyDescription": "Выберите существующую ветку, начатую администратором, чтобы читать обновления или ответить.",
+      "emptyTitle": "Выберите диалог",
+      "noMessages": "В этом диалоге нет публичных сообщений.",
+      "threadTitle": "Ветка"
     },
     "errors": {
-      "detail": "Could not load this conversation.",
-      "list": "Could not load private conversations."
+      "detail": "Не удалось загрузить этот диалог.",
+      "list": "Не удалось загрузить личные диалоги."
     },
-    "eyebrow": "Private line",
+    "eyebrow": "Личная линия",
     "filters": {
-      "all": "All conversations",
-      "statusLabel": "Filter conversations by status"
+      "all": "Все диалоги",
+      "statusLabel": "Фильтр диалогов по статусу"
     },
     "list": {
-      "emptyDescription": "Admin-started account conversations will appear here when support opens one.",
-      "emptyTitle": "No private messages",
-      "openConversation": "Open conversation about {subject}",
-      "title": "Conversation queue"
+      "emptyDescription": "Диалоги по аккаунту появятся здесь после того, как поддержка откроет обращение.",
+      "emptyTitle": "Личных сообщений нет",
+      "openConversation": "Открыть диалог по теме {subject}",
+      "title": "Очередь диалогов"
     },
     "meta": {
-      "description": "Customer private messaging and notification center for CyberVPN account updates.",
-      "title": "Messages and notifications"
+      "description": "Центр личных сообщений и уведомлений клиента для обновлений аккаунта CyberVPN.",
+      "title": "Сообщения и уведомления"
     },
     "notifications": {
-      "emptyDescription": "Account updates and message alerts will appear here.",
-      "emptyTitle": "No notifications",
-      "error": "Could not load notifications.",
-      "eyebrow": "Signal center",
-      "markAllRead": "Mark all notifications read",
-      "markOneRead": "Mark notification read",
-      "openMessages": "Open messages",
-      "panelLabel": "Notification center",
-      "refresh": "Refresh notifications",
+      "emptyDescription": "Здесь появятся обновления аккаунта и алерты по сообщениям.",
+      "emptyTitle": "Уведомлений нет",
+      "error": "Не удалось загрузить уведомления.",
+      "eyebrow": "Центр сигналов",
+      "markAllRead": "Отметить все уведомления прочитанными",
+      "markOneRead": "Отметить уведомление прочитанным",
+      "openMessages": "Открыть сообщения",
+      "panelLabel": "Центр уведомлений",
+      "refresh": "Обновить уведомления",
       "severity": {
-        "critical": "Critical",
-        "info": "Info",
-        "success": "Success",
-        "warning": "Warning"
+        "critical": "Критично",
+        "info": "Информация",
+        "success": "Успех",
+        "warning": "Предупреждение"
       },
-      "title": "Notifications",
-      "triggerLabel": "Open notification center, {count} unread updates"
+      "title": "Уведомления",
+      "triggerLabel": "Открыть центр уведомлений: {count} непрочитанных обновлений"
     },
     "priority": {
-      "high": "High",
-      "low": "Low",
-      "normal": "Normal",
-      "urgent": "Urgent"
+      "high": "Высокий",
+      "low": "Низкий",
+      "normal": "Обычный",
+      "urgent": "Срочный"
     },
     "privacy": {
-      "description": "Only public messages from conversations assigned to this account are shown here. Internal notes and admin-only channels are never rendered in the customer surface.",
-      "title": "Scoped customer channel"
+      "description": "Здесь показываются только публичные сообщения из диалогов, назначенных этому аккаунту. Внутренние заметки и каналы только для администраторов не отображаются в клиентском интерфейсе.",
+      "title": "Клиентский канал с ограниченным доступом"
     },
     "readOnly": {
       "archived": {
-        "description": "Archived threads are preserved for reference and cannot accept replies.",
-        "title": "Conversation archived"
+        "description": "Архивные ветки сохранены для справки и не принимают ответы.",
+        "title": "Диалог в архиве"
       },
       "closed": {
-        "description": "This thread is read-only. Support can reopen it if more action is needed.",
-        "title": "Conversation closed"
+        "description": "Эта ветка доступна только для чтения. Поддержка может открыть её снова, если потребуются дополнительные действия.",
+        "title": "Диалог закрыт"
       },
       "locked": {
-        "description": "This thread is locked while support reviews the account context.",
-        "title": "Conversation locked"
+        "description": "Эта ветка заблокирована, пока поддержка проверяет контекст аккаунта.",
+        "title": "Диалог заблокирован"
       }
     },
     "realtime": {
       "status": {
-        "connected": "Live",
-        "connecting": "Connecting",
-        "offline": "Offline",
-        "reconnecting": "Reconnecting",
-        "syncing": "Restoring",
-        "unavailable": "Sync only"
+        "connected": "В сети",
+        "connecting": "Подключение",
+        "offline": "Офлайн",
+        "reconnecting": "Переподключение",
+        "syncing": "Восстановление",
+        "unavailable": "Только синхронизация"
       }
     },
     "reply": {
-      "counter": "{count}/4000 characters",
-      "error": "Could not send this reply. Try again.",
-      "label": "Reply",
-      "placeholder": "Type your reply for the support team",
-      "submit": "Send reply",
-      "submitting": "Sending..."
+      "counter": "{count}/4000 символов",
+      "error": "Не удалось отправить ответ. Попробуйте ещё раз.",
+      "label": "Ответ",
+      "placeholder": "Напишите ответ для команды поддержки",
+      "submit": "Отправить ответ",
+      "submitting": "Отправка..."
     },
     "responseState": {
-      "none": "No response due",
-      "waiting_admin": "Waiting for support",
-      "waiting_customer": "Waiting for you"
+      "none": "Ответ не ожидается",
+      "waiting_admin": "Ожидает поддержку",
+      "waiting_customer": "Ожидает вас"
     },
     "sender": {
-      "admin": "Support",
-      "customer": "You",
-      "system": "System"
+      "admin": "Поддержка",
+      "customer": "Вы",
+      "system": "Система"
     },
     "status": {
-      "archived": "Archived",
-      "closed": "Closed",
-      "locked": "Locked",
-      "open": "Open"
+      "archived": "Архивирован",
+      "closed": "Закрыт",
+      "locked": "Заблокирован",
+      "open": "Открыт"
     },
-    "surface": "Customer inbox",
-    "title": "Messages"
+    "surface": "Входящие клиента",
+    "title": "Сообщения"
   },
   "MiniApp": {
     "home": {
@@ -2064,6 +2072,7 @@
     "closeMenu": "Закрыть меню",
     "dashboard": "КАБИНЕТ",
     "mainNavigation": "Главная навигация",
+    "messages": "СООБЩЕНИЯ",
     "openMenu": "Открыть меню",
     "partner": "ПАРТНЁР",
     "paymentHistory": "ПЛАТЕЖИ",
@@ -2585,11 +2594,11 @@
         "refresh": "Обновить"
       },
       "activity": {
-        "commission": "Referral commission",
+        "commission": "Реферальная комиссия",
         "empty": "Реферальной активности пока нет.",
         "eyebrow": "Недавняя активность",
         "holdUntil": "Hold до {date}",
-        "reward": "Reward allocation",
+        "reward": "Начисление награды",
         "title": "Хронология наград"
       },
       "caps": {
@@ -2607,12 +2616,12 @@
         "active": "Готово к шерингу",
         "disabled": "Пауза",
         "earning": "Награды активны",
-        "review": "Hold review"
+        "review": "Проверка удержания"
       },
       "hero": {
         "disabledHint": "Программа приостановлена backend-политикой. Существующие награды остаются видимыми для трассируемости.",
         "enabledHint": "Текущая ставка backend: {rate}. Eligibility и stacking наград всегда решаются на сервере.",
-        "eyebrow": "Customer growth cockpit",
+        "eyebrow": "Пульт роста клиента",
         "health": "Состояние программы",
         "payments": "История платежей",
         "wallet": "Открыть кошелек"
@@ -2631,20 +2640,20 @@
           "pending": "Ожидает",
           "reversed": "Отменено"
         },
-        "title": "Canonical reward states"
+        "title": "Канонические состояния наград"
       },
       "notifications": {
         "actionRequired": "{count} требуют действия",
         "description": "Реферальные награды и invite updates отображаются через durable growth notifications.",
         "empty": "Реферальных уведомлений сейчас нет.",
-        "eyebrow": "Delivery health",
+        "eyebrow": "Статус доставки",
         "read": "Прочитано",
         "required": "Действие",
-        "title": "Growth notifications",
+        "title": "Growth-уведомления",
         "unread": "Новое"
       },
       "rules": {
-        "eyebrow": "Policy guardrails",
+        "eyebrow": "Ограничения политики",
         "items": {
           "backendTruth": {
             "description": "UI показывает решения из backend contracts и не рассчитывает eligibility или stacking наград локально.",
@@ -2736,6 +2745,45 @@
     "noActivity": "Реферальной активности пока нет.",
     "noGifts": "Подарочных кодов пока нет.",
     "noInvites": "Инвайт-кодов пока нет.",
+    "notifications": {
+      "actionRequired": "Требуется действие",
+      "archive": "Архивировать",
+      "archived": "Архивные",
+      "copySupportSummary": "Копировать сводку для поддержки",
+      "counters": {
+        "actionRequired": "Действий {count}",
+        "total": "Всего {count}",
+        "unread": "Непрочитано {count}"
+      },
+      "deliveryCompletedAt": "Выполнено {date}",
+      "deliveryHistoryTitle": "История доставки",
+      "deliveryPlannedAt": "Запланировано {date}",
+      "detailsButton": "Детали",
+      "detailsEmpty": "Выберите уведомление, чтобы проверить детали доставки.",
+      "detailsLoading": "Загрузка деталей доставки...",
+      "detailsTitle": "Детали доставки",
+      "emailSupport": "Написать в поддержку",
+      "empty": "Сейчас нет видимых growth-уведомлений.",
+      "loading": "Загрузка growth-уведомлений...",
+      "markRead": "Отметить прочитанным",
+      "noDeliveryHistory": "К этому уведомлению не прикреплена история доставки.",
+      "openHelpCenter": "Открыть центр помощи",
+      "openingSupport": "Открываем поддержку...",
+      "openPreferences": "Открыть настройки",
+      "openSupportTicket": "Открыть обращение в поддержку",
+      "openTelegramLinking": "Привязать Telegram",
+      "openTelegramSupport": "Открыть поддержку в Telegram",
+      "requestRetry": "Запросить повторную отправку",
+      "retrying": "Запрос...",
+      "reviewProfile": "Проверить профиль",
+      "showActive": "Показать активные",
+      "showArchived": "Показать архивные",
+      "subtitle": "Надёжные обновления по инвайтам, реферальным наградам и подарочным кодам.",
+      "supportActionHint": "Если автоматическое восстановление заблокировано, используйте управляемое исправление или сценарий поддержки ниже.",
+      "supportTitle": "Передача в поддержку",
+      "title": "Growth-уведомления",
+      "unread": "Непрочитанные"
+    },
     "overview": {
       "activeInvites": "Активные инвайты",
       "activeInvitesHint": "Неиспользованные инвайт-коды, готовые к отправке.",
@@ -2746,7 +2794,24 @@
       "totalRewards": "Получено наград",
       "totalRewardsHint": "Текущая сумма наград по backend-контракту."
     },
-    "pageEyebrow": "CUSTOMER GROWTH",
+    "pageEyebrow": "РОСТ КЛИЕНТОВ",
+    "preferences": {
+      "categories": {
+        "adminUpdates": "Админские обновления",
+        "gifts": "Подарочные коды",
+        "invites": "Инвайты",
+        "referralRewards": "Реферальные награды"
+      },
+      "channels": {
+        "email": "Эл. почта",
+        "inApp": "В приложении",
+        "telegram": "Telegram"
+      },
+      "note": "Настройки in-app управляют этим инбоксом наград. Email и Telegram планируют внешнюю доставку без создания второго источника истины.",
+      "saving": "Сохранение...",
+      "subtitle": "Выберите, какие growth-события остаются в приложении, email или Telegram.",
+      "title": "Настройки доставки"
+    },
     "programUnavailable": "Реферальная программа временно недоступна. Существующие инвайты остаются видимыми, но новые действия могут быть приостановлены.",
     "promoNoteBody": "Промо- и реферальные скидки применяются при оплате. Этот раздел отвечает за инвайты, подарки и отслеживание кодов.",
     "promoNoteTitle": "Правила оплаты",
@@ -3091,12 +3156,14 @@
     "title": "АКТИВНАЯ ИНФРАСТРУКТУРА"
   },
   "Settings": {
+    "antiphishing": "Антифишинговый код",
+    "antiphishingDesc": "Защититесь от фишинговых писем",
     "cabinet": {
       "actions": {
         "copied": "Скопировано",
         "copyId": "Копировать ID",
         "manage": "Управлять",
-        "privacy": "Privacy flow",
+        "privacy": "Сценарий приватности",
         "refresh": "Обновить",
         "revoking": "Отзываю...",
         "saveProfile": "Сохранить профиль",
@@ -3109,7 +3176,7 @@
         "currentHint": "Эта сессия защищена от remote revoke controls.",
         "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
         "empty": "Активные устройства не найдены.",
-        "eyebrow": "Session perimeter",
+        "eyebrow": "Периметр сессий",
         "limitDescription": "Лимит берётся из текущего entitlement snapshot. Перед подключением нового устройства отзывайте устаревшие сессии.",
         "limitHelp": {
           "at_limit": "Лимит тарифа полностью использован. Отзовите устаревшие устройства или измените тариф перед добавлением нового устройства.",
@@ -3153,13 +3220,13 @@
         "telegramLinkFailed": "Не удалось начать привязку Telegram. Попробуйте ещё раз из этой browser session."
       },
       "hero": {
-        "eyebrow": "Identity / Security / Notifications",
-        "securityPosture": "Security posture",
+        "eyebrow": "Личность / Безопасность / Уведомления",
+        "securityPosture": "Уровень защиты",
         "securityScore": "{score}% уровень защиты аккаунта"
       },
       "identity": {
         "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
-        "eyebrow": "Linked identity",
+        "eyebrow": "Связанная идентичность",
         "telegramLinked": "Telegram привязан: {id}",
         "telegramMissing": "Telegram не привязан к этому аккаунту.",
         "title": "Внешние аккаунты"
@@ -3176,50 +3243,50 @@
         "core": {
           "emailMarketing": {
             "description": "Опциональные продуктовые и промо сообщения.",
-            "title": "Email marketing"
+            "title": "Маркетинговые email"
           },
           "emailSecurity": {
             "description": "Login, password и account risk alerts.",
-            "title": "Email security alerts"
+            "title": "Email-алерты безопасности"
           },
           "pushConnection": {
             "description": "Connection, disconnect и service state notices.",
-            "title": "VPN connection push"
+            "title": "Push о VPN-подключении"
           },
           "pushPayment": {
             "description": "Payment lifecycle и подтверждения invoice.",
-            "title": "Payment push"
+            "title": "Push об оплате"
           },
           "pushSubscription": {
             "description": "Renewal, expiry и entitlement reminders.",
-            "title": "Subscription push"
+            "title": "Push о подписке"
           },
-          "title": "Core account"
+          "title": "Основной аккаунт"
         },
         "description": "Core account notifications и growth notifications разделены на разные backend preference sets.",
-        "eyebrow": "Routing matrix",
+        "eyebrow": "Матрица доставки",
         "growth": {
           "adminUpdates": {
             "description": "Операционные growth announcements в Telegram.",
-            "title": "Telegram admin updates"
+            "title": "Админские обновления в Telegram"
           },
           "emailGifts": {
             "description": "Gift redemption и delivery status по email.",
-            "title": "Gift code email"
+            "title": "Email о подарочном коде"
           },
           "emailRewards": {
             "description": "Изменения lifecycle наград по email.",
-            "title": "Referral reward email"
+            "title": "Email о реферальной награде"
           },
           "inAppInvites": {
             "description": "Invite и code events внутри кабинета.",
-            "title": "Invite in-app feed"
+            "title": "Лента invite в приложении"
           },
           "telegramRewards": {
             "description": "Изменения lifecycle наград в Telegram.",
-            "title": "Referral reward Telegram"
+            "title": "Telegram о реферальной награде"
           },
-          "title": "Growth events"
+          "title": "Growth-события"
         },
         "title": "Настройки уведомлений"
       },
@@ -3229,11 +3296,11 @@
         "hardened": "Усилен"
       },
       "privacy": {
-        "eyebrow": "Privacy guardrails",
+        "eyebrow": "Ограничения приватности",
         "items": {
           "accountDeletion": {
             "description": "Удаление аккаунта остаётся в отдельном privacy flow.",
-            "title": "Deletion path"
+            "title": "Путь удаления"
           },
           "noSecretTelemetry": {
             "description": "Метрики отмечают только действия, не пароли, TOTP codes, IP или anti-phishing values.",
@@ -3245,18 +3312,18 @@
           },
           "sessionRevocation": {
             "description": "Удаление устройств вызывает authenticated backend session revoke endpoints.",
-            "title": "Session revocation"
+            "title": "Отзыв сессий"
           }
         },
         "title": "Правила обработки данных"
       },
       "profile": {
-        "accountId": "Account ID",
+        "accountId": "ID аккаунта",
         "description": "Редактируемые поля синхронизируются с backend profile record. Email и account ID здесь неизменяемые.",
-        "displayName": "Display name",
+        "displayName": "Отображаемое имя",
         "displayNamePlaceholder": "Имя оператора",
-        "email": "Email",
-        "eyebrow": "Profile nucleus",
+        "email": "Эл. почта",
+        "eyebrow": "Ядро профиля",
         "language": "Язык",
         "timezone": "Часовой пояс",
         "title": "Профиль аккаунта",
@@ -3266,10 +3333,10 @@
         "antiphishing": {
           "disabled": "Установите приватный код для легитимных писем.",
           "enabled": "Код подлинности email установлен: {code}",
-          "title": "Anti-phishing code"
+          "title": "Антифишинговый код"
         },
         "description": "Password, TOTP и anti-phishing flows остаются backend-owned и rate-limited.",
-        "eyebrow": "Sensitive controls",
+        "eyebrow": "Чувствительные настройки",
         "password": {
           "description": "Смена пароля требует текущий пароль.",
           "title": "Пароль"
@@ -3279,7 +3346,7 @@
           "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Support обязан проверить личность и оставить audit trail до любого сброса 2FA.",
           "title": "Восстановление при потере 2FA"
         },
-        "title": "Security console",
+        "title": "Консоль безопасности",
         "twoFactor": {
           "disabled": "Включите TOTP перед повышением trust для платежей и устройств.",
           "enabled": "TOTP активен для этого аккаунта.",
@@ -3288,14 +3355,36 @@
       },
       "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
       "summary": {
-        "antiphishing": "Anti-phishing",
+        "antiphishing": "Антифишинг",
         "ariaLabel": "Сводные метрики настроек",
         "devices": "Сессии",
         "notifications": "Каналов включено",
-        "twoFactor": "2FA"
+        "twoFactor": "2FA-защита"
       },
       "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ"
-    }
+    },
+    "cancel": "Отмена",
+    "change": "Изменить",
+    "devices": "Активные устройства",
+    "disable": "Отключить",
+    "displayName": "Отображаемое имя",
+    "edit": "Изменить",
+    "email": "Эл. почта",
+    "enable": "Включить",
+    "language": "Язык",
+    "linkedAccounts": "Связанные аккаунты",
+    "manage": "Управлять",
+    "password": "Пароль",
+    "passwordDesc": "Изменить пароль аккаунта",
+    "profile": "Профиль",
+    "save": "Сохранить",
+    "security": "Безопасность",
+    "subtitle": "Управляйте предпочтениями аккаунта и безопасностью",
+    "tfaDisabled": "Добавьте дополнительный уровень защиты",
+    "tfaEnabled": "Аккаунт защищён с помощью 2FA",
+    "timezone": "Часовой пояс",
+    "title": "НАСТРОЙКИ",
+    "twoFactor": "Двухфакторная аутентификация"
   },
   "Status": {
     "history": {
