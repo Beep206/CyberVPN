@@ -440,3 +440,35 @@ support-escalation-fallback = ⚠️ I could not create the support record autom
 config-select-subscription = 📦 <b>Choose subscription</b>
 
     You have multiple active subscriptions. Choose which VPN config to send.
+
+# -- English fallback parity additions for CYBA-284 growth navigation --
+growth-menu-title = 🎁 <b>Rewards</b>
+
+    Quick actions are available in the bot. Open the Mini App for gifts, full notification lists, and complex flows.
+
+growth-disabled = 🎁 <b>Rewards are temporarily unavailable</b>
+
+    The backend is not exposing active reward capabilities for this channel right now.
+
+finance-menu-title = 💰 <b>Finance</b>
+
+    Wallet, payment history, and payment details are available in the Mini App. The bot does not start payments from here.
+
+miniapp-unavailable = Mini App URL is not configured for this bot.
+
+referral-info-with-code =
+    <blockquote>
+    👥 Invited: { $count }
+    🎁 Days earned: { $bonus_days }
+    🎟 Your code: <code>{ $code }</code>
+    🔗 Your link:
+    <code>{ $link }</code>
+    </blockquote>
+
+code-enter-prompt = 🎟 Enter a code. The backend will determine the code type and available action.
+code-activated = ✅ Code <b>{ $code }</b> activated! Result: <b>{ $discount }</b>
+code-not-found = ❌ Code not found.
+code-expired = ❌ This code has expired.
+code-already-used = ℹ️ This code has already been used.
+code-usage-limit = ⚠️ Code usage limit reached.
+code-cancelled = ✅ Code entry cancelled.

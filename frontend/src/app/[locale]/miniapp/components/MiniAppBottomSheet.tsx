@@ -9,6 +9,7 @@ interface MiniAppBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  closeLabel?: string;
   children: React.ReactNode;
   colorScheme?: 'light' | 'dark';
 }
@@ -21,6 +22,7 @@ export function MiniAppBottomSheet({
   isOpen,
   onClose,
   title,
+  closeLabel = 'Close',
   children,
 }: MiniAppBottomSheetProps) {
   const sheetBg = 'miniapp-sheet';
@@ -62,7 +64,7 @@ export function MiniAppBottomSheet({
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-muted rounded-lg transition-colors touch-manipulation"
-                aria-label="Close"
+                aria-label={closeLabel}
               >
                 <X className="h-5 w-5" />
               </button>

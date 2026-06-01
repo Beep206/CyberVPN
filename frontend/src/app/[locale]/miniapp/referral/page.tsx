@@ -79,9 +79,13 @@ function isInviteExpired(expiresAt?: string | null): boolean {
   return Boolean(expiresAt && new Date(expiresAt).getTime() <= Date.now());
 }
 
-function formatDate(locale: string, value?: string | null): string {
+function formatDate(
+  locale: string,
+  value: string | null | undefined,
+  unavailableLabel: string,
+): string {
   if (!value) {
-    return 'N/A';
+    return unavailableLabel;
   }
 
   return new Intl.DateTimeFormat(locale, {
@@ -115,6 +119,7 @@ function formatGiftStatus(
 }
 
 function MiniAppReferralPaused() {
+  const t = useTranslations('MiniApp.referral');
   const cardBg = 'miniapp-card';
   const borderColor = 'border';
 
@@ -130,14 +135,13 @@ function MiniAppReferralPaused() {
           </div>
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-neon-cyan">
-              S1 beta
+              {t('pausedEyebrow')}
             </p>
             <h1 className="mt-2 font-display text-lg uppercase tracking-[0.12em]">
-              Rewards hub is paused
+              {t('pausedTitle')}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground font-mono">
-              Referral, gift, and promo-code screens are not available during
-              the controlled beta.
+              {t('pausedDescription')}
             </p>
           </div>
         </div>
@@ -147,6 +151,7 @@ function MiniAppReferralPaused() {
 }
 
 function MiniAppReferralLoading() {
+  const t = useTranslations('MiniApp.referral');
   const cardBg = 'miniapp-card';
   const borderColor = 'border';
 
@@ -162,14 +167,13 @@ function MiniAppReferralLoading() {
           </div>
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-neon-cyan">
-              Growth controls
+              {t('loadingEyebrow')}
             </p>
             <h1 className="mt-2 font-display text-lg uppercase tracking-[0.12em]">
-              Checking rewards availability
+              {t('loadingTitle')}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground font-mono">
-              Referral, gift, promo, and invite actions will open after the
-              runtime policy is confirmed.
+              {t('loadingDescription')}
             </p>
           </div>
         </div>
@@ -957,12 +961,20 @@ function MiniAppReferralExperience() {
                           </div>
                           <div>
                             {t('inviteExpires', {
-                              date: formatDate(locale, invite.expires_at),
+                              date: formatDate(
+                                locale,
+                                invite.expires_at,
+                                t('dateUnavailable'),
+                              ),
                             })}
                           </div>
                           <div>
                             {t('inviteCreated', {
-                              date: formatDate(locale, invite.created_at),
+                              date: formatDate(
+                                locale,
+                                invite.created_at,
+                                t('dateUnavailable'),
+                              ),
                             })}
                           </div>
                         </div>
@@ -1044,13 +1056,17 @@ function MiniAppReferralExperience() {
                         <div className="mt-2 space-y-1 text-xs text-muted-foreground font-mono">
                           <div>
                             {t('giftPlan', {
-                              plan: gift.plan_family ?? 'N/A',
+                              plan: gift.plan_family ?? t('valueUnavailable'),
                               days: gift.duration_days ?? 0,
                             })}
                           </div>
                           <div>
                             {t('giftCreated', {
-                              date: formatDate(locale, gift.created_at),
+                              date: formatDate(
+                                locale,
+                                gift.created_at,
+                                t('dateUnavailable'),
+                              ),
                             })}
                           </div>
                           <div>
@@ -1124,7 +1140,7 @@ function MiniAppReferralExperience() {
                     })}
                   </p>
                   <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-mono">
-                    {formatDate(locale, entry.created_at)}
+                    {formatDate(locale, entry.created_at, t('dateUnavailable'))}
                   </p>
                 </div>
               ))}

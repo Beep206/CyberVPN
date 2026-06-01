@@ -128,6 +128,7 @@ function formatInviteDate(locale: string, value?: string | null): string {
  */
 export default function MiniAppProfilePage() {
   const t = useTranslations('MiniApp.profile');
+  const commonT = useTranslations('MiniApp.common');
   const locale = useLocale();
   const { haptic, colorScheme, webApp } = useTelegramWebApp();
   const router = useRouter();
@@ -991,6 +992,7 @@ export default function MiniAppProfilePage() {
           });
         }}
         title={t('passwordChange.title')}
+        closeLabel={commonT('close')}
         colorScheme={colorScheme}
       >
         <div className="space-y-4">
@@ -1073,6 +1075,7 @@ export default function MiniAppProfilePage() {
           setAntiphishingCode('');
         }}
         title={t('antiphishing.title')}
+        closeLabel={commonT('close')}
         colorScheme={colorScheme}
       >
         <div className="space-y-4">

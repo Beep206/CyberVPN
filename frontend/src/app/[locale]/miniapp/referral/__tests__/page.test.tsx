@@ -10,6 +10,16 @@ const messages = vi.hoisted(
   () =>
     ({
       title: 'Rewards Hub',
+      pausedEyebrow: 'S1 beta',
+      pausedTitle: 'Rewards hub is paused',
+      pausedDescription:
+        'Referral, gift, and promo-code screens are not available during the controlled beta.',
+      loadingEyebrow: 'Growth controls',
+      loadingTitle: 'Checking rewards availability',
+      loadingDescription:
+        'Referral, gift, promo, and invite actions will open after the runtime policy is confirmed.',
+      dateUnavailable: 'Not available',
+      valueUnavailable: 'not specified',
       hubEyebrow: 'SHARE & TRACK',
       shareTitle: 'Share your referral code',
       shareDescription:

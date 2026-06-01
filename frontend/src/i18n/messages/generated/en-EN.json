@@ -1554,6 +1554,9 @@
     "title": "Messages"
   },
   "MiniApp": {
+    "common": {
+      "close": "Close"
+    },
     "home": {
       "activateTrial": "Activate Trial",
       "channel": "Channel",
@@ -1865,6 +1868,7 @@
       "copied": "Copied",
       "copyCode": "Copy code",
       "copyFailed": "Failed to copy code.",
+      "dateUnavailable": "Not available",
       "giftCreated": "Created {date}",
       "giftPlan": "{plan} · {days} days",
       "giftPurchase": {
@@ -1908,6 +1912,9 @@
         "used": "Used"
       },
       "invitesTitle": "My invites",
+      "loadingDescription": "Referral, gift, promo, and invite actions will open after the runtime policy is confirmed.",
+      "loadingEyebrow": "Growth controls",
+      "loadingTitle": "Checking rewards availability",
       "noActivity": "No referral activity yet.",
       "noGifts": "No gift codes available yet.",
       "noInvites": "No invite codes available yet.",
@@ -1960,6 +1967,9 @@
         "totalRewards": "Rewards earned",
         "totalRewardsHint": "Current backend reward total for this account."
       },
+      "pausedDescription": "Referral, gift, and promo-code screens are not available during the controlled beta.",
+      "pausedEyebrow": "S1 beta",
+      "pausedTitle": "Rewards hub is paused",
       "preferences": {
         "categories": {
           "adminUpdates": "Admin updates",
@@ -1998,6 +2008,7 @@
       "shareText": "Join CyberVPN with my referral code: {code}",
       "shareTitle": "Share your referral code",
       "title": "Rewards Hub",
+      "valueUnavailable": "not specified",
       "yourCode": "Your referral code"
     },
     "support": {

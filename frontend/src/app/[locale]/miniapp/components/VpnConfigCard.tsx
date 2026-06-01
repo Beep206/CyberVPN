@@ -33,6 +33,7 @@ interface VpnConfigCardProps {
  */
 export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfigCardProps) {
   const t = useTranslations('MiniApp.home');
+  const commonT = useTranslations('MiniApp.common');
   const locale = useLocale();
   const { haptic, webApp } = useTelegramWebApp();
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
@@ -207,6 +208,7 @@ export function VpnConfigCard({ colorScheme = 'dark', page = 'home' }: VpnConfig
         isOpen={qrSheetOpen}
         onClose={() => setQrSheetOpen(false)}
         title={t('configQRTitle')}
+        closeLabel={commonT('close')}
         colorScheme={colorScheme}
       >
         <div className="space-y-4">
