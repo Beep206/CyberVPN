@@ -7,11 +7,13 @@ import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
 
 const {
   mockPush,
+  mockReplace,
   mockUsePathname,
   mockStagePendingTwoFactorSession,
   mockTelegramMiniAppAuth,
 } = vi.hoisted(() => ({
   mockPush: vi.fn(),
+  mockReplace: vi.fn(),
   mockUsePathname: vi.fn(),
   mockStagePendingTwoFactorSession: vi.fn(),
   mockTelegramMiniAppAuth: vi.fn(),
@@ -25,7 +27,7 @@ let currentAuthState = {
 };
 
 vi.mock('@/i18n/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   usePathname: () => mockUsePathname(),
 }));
 
@@ -82,7 +84,7 @@ describe('TelegramMiniAppAuthProvider', () => {
     mockUsePathname.mockReturnValue('/miniapp/home');
   });
 
-  it('keeps successful mini app auth inside the mini app namespace', async () => {
+  it('keeps successful mini app auth inside the current mini app namespace', async () => {
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: false,
       is_new_user: false,
@@ -91,11 +93,41 @@ describe('TelegramMiniAppAuthProvider', () => {
     renderProvider(<div>Mini App Child</div>);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/miniapp/home');
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/home');
+    });
+  });
+
+  it('preserves a direct VPN route after successful mini app auth', async () => {
+    mockUsePathname.mockReturnValue('/miniapp/vpn');
+    mockTelegramMiniAppAuth.mockResolvedValue({
+      requires_2fa: false,
+      is_new_user: false,
+    });
+
+    renderProvider(<div>Mini App VPN Child</div>);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/vpn');
+    });
+    expect(mockReplace).not.toHaveBeenCalledWith('/miniapp/home');
+  });
+
+  it('preserves nested rewards routes after successful mini app auth', async () => {
+    mockUsePathname.mockReturnValue('/miniapp/rewards/gifts');
+    mockTelegramMiniAppAuth.mockResolvedValue({
+      requires_2fa: false,
+      is_new_user: false,
+    });
+
+    renderProvider(<div>Mini App Rewards Child</div>);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/rewards/gifts');
     });
   });
 
   it('stages two-factor flow with a mini app return path', async () => {
+    mockUsePathname.mockReturnValue('/miniapp/rewards/referral');
     mockTelegramMiniAppAuth.mockResolvedValue({
       requires_2fa: true,
       tfa_token: 'pending_2fa_token',
@@ -108,12 +140,12 @@ describe('TelegramMiniAppAuthProvider', () => {
       expect(mockStagePendingTwoFactorSession).toHaveBeenCalledWith({
         token: 'pending_2fa_token',
         locale: 'ru-RU',
-        returnTo: '/ru-RU/miniapp/home',
+        returnTo: '/ru-RU/miniapp/rewards/referral',
         isNewUser: true,
       });
     });
 
-    expect(mockPush).toHaveBeenCalledWith('/login?2fa=true&redirect=%2Fru-RU%2Fminiapp%2Fhome');
+    expect(mockPush).toHaveBeenCalledWith('/login?2fa=true&redirect=%2Fru-RU%2Fminiapp%2Frewards%2Freferral');
   });
 
   it('renders children when mini app auto-auth is not active', () => {
@@ -163,7 +195,7 @@ describe('TelegramMiniAppAuthProvider', () => {
 
     await waitFor(() => {
       expect(mockTelegramMiniAppAuth).toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/miniapp/home');
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/home');
     });
   });
 
@@ -193,6 +225,7 @@ describe('TelegramMiniAppAuthProvider', () => {
       isAuthenticated: true,
       isMiniApp: true,
     };
+    mockUsePathname.mockReturnValue('/miniapp/vpn');
     (window as typeof window & { Telegram?: { WebApp: { initData: string } } }).Telegram = {
       WebApp: { initData: 'query_id=restore&user=owner&hash=signature' },
     };
@@ -207,7 +240,7 @@ describe('TelegramMiniAppAuthProvider', () => {
 
     await waitFor(() => {
       expect(mockTelegramMiniAppAuth).toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/miniapp/home');
+      expect(mockReplace).toHaveBeenCalledWith('/miniapp/vpn');
     });
   });
 });

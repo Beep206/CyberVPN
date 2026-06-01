@@ -361,7 +361,7 @@ describe('MiniAppHomePage', () => {
     expect(screen.getByText('viewPlans').closest('a')).toHaveAttribute('href', '/miniapp/plans');
     expect(screen.getByText('wallet').closest('a')).toHaveAttribute('href', '/miniapp/wallet');
     expect(screen.getByText('settings').closest('a')).toHaveAttribute('href', '/miniapp/profile');
-    expect(screen.getByText('vpnConfig').closest('a')).toHaveAttribute('href', '/miniapp/profile#vpn-config');
+    expect(screen.getByText('vpnConfig').closest('a')).toHaveAttribute('href', '/miniapp/vpn');
   });
 
   it('triggers haptic feedback when tapping quick actions', async () => {

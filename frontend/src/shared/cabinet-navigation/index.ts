@@ -116,7 +116,7 @@ export interface DashboardNavigationItem {
   icon: LucideIcon;
   labelKey: DashboardNavigationLabelKey;
   match: (pathname: string | null | undefined) => boolean;
-  surface: Stage1CustomerDashboardSurface;
+  surface: DashboardCompatibilitySurface;
 }
 
 export interface CabinetNavigationResolveOptions {

@@ -8,11 +8,18 @@
   },
   "nav": {
     "home": "Home",
+    "vpn": "VPN",
     "plans": "Plans",
     "wallet": "Wallet",
     "referral": "Rewards",
+    "rewards": "Rewards",
     "profile": "Profile",
     "bottomNav": "Main navigation"
+  },
+  "vpn": {
+    "eyebrow": "VPN ACCESS",
+    "title": "VPN connection",
+    "description": "Copy your subscription URL, open it in a compatible client, or scan the QR code from one dedicated Mini App screen."
   },
   "home": {
     "subscriptionActive": "Subscription Active",
@@ -39,7 +46,6 @@
     "quickActions": "Quick Actions",
     "viewPlans": "View Plans",
     "wallet": "Wallet",
-    "support": "Support",
     "settings": "Settings",
     "vpnConfig": "VPN Config",
     "vpnConfigTitle": "VPN Configuration",
@@ -222,6 +228,17 @@
   "profile": {
     "guest": "Guest User",
     "noEmail": "No email set",
+    "links": {
+      "title": "Cabinet links",
+      "rewards": "Rewards",
+      "rewardsDescription": "Open referrals, invites, gifts, codes, and notifications.",
+      "payments": "Payments",
+      "paymentsDescription": "Review Mini App payment history.",
+      "devices": "Devices",
+      "devicesDescription": "Check active devices and sessions.",
+      "support": "Support",
+      "supportDescription": "Open the official Telegram support channel."
+    },
     "referral": "Referral Program",
     "yourReferralCode": "Your Referral Code",
     "copy": "Copy",
@@ -348,6 +365,15 @@
     "dateUnavailable": "Not available",
     "valueUnavailable": "not specified",
     "hubEyebrow": "SHARE & TRACK",
+    "rewards": {
+      "navigationLabel": "Rewards sections",
+      "overview": "Overview",
+      "referral": "Referral",
+      "gifts": "Gifts",
+      "invites": "Invites",
+      "codes": "Codes",
+      "notifications": "Notifications"
+    },
     "shareTitle": "Share your referral code",
     "shareDescription": "Keep referral sharing, invite and gift redemption, and issued code tracking in one place. Promo discounts still belong in checkout.",
     "yourCode": "Your referral code",
@@ -359,6 +385,16 @@
     "copyFailed": "Failed to copy code.",
     "shareText": "Join CyberVPN with my referral code: {code}",
     "programUnavailable": "The referral program is temporarily unavailable. Existing invites remain visible here, but new referral actions may be paused until the program is restored.",
+    "paused": {
+      "eyebrow": "S1 beta",
+      "title": "Rewards hub is paused",
+      "description": "Referral, gift, and promo-code screens are not available during the controlled beta."
+    },
+    "loading": {
+      "eyebrow": "Growth controls",
+      "title": "Checking rewards availability",
+      "description": "Referral, gift, promo, and invite actions will open after the runtime policy is confirmed."
+    },
     "redeemTitle": "Redeem a code",
     "redeemSubtitle": "Invite and gift codes redeem here. Promo discounts and referral friend discounts apply later in checkout.",
     "redeemInputLabel": "Invite or gift code",
@@ -490,85 +526,8 @@
   },
   "support": {
     "meta": {
-      "title": "Support tickets - CyberVPN Mini App",
-      "description": "Create and track CyberVPN support tickets in Telegram."
-    },
-    "eyebrow": "SUPPORT LINK",
-    "title": "Support tickets",
-    "description": "Create a support ticket, follow replies, and close or reopen your own case from Telegram.",
-    "surface": {
-      "dashboard": "Customer cabinet",
-      "miniapp": "Telegram Mini App"
-    },
-    "sensitiveWarning": {
-      "title": "Do not send secrets",
-      "description": "Never include passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs, or raw VPN config files."
-    },
-    "form": {
-      "title": "Create ticket",
-      "categoryLabel": "Category",
-      "subjectLabel": "Subject",
-      "subjectPlaceholder": "Short summary of the issue",
-      "messageLabel": "Message",
-      "messagePlaceholder": "Describe what happened and include only safe error text.",
-      "messageHelp": "{count}/4000 characters. Redact private values before sending.",
-      "submit": "Create ticket",
-      "submitting": "Creating..."
-    },
-    "categories": {
-      "account": "Account",
-      "billing": "Billing",
-      "setup": "Setup",
-      "vpn_access": "VPN access",
-      "status": "Service status",
-      "privacy": "Privacy",
-      "other": "Other"
-    },
-    "status": {
-      "open": "Open",
-      "pending_support": "Support reply due",
-      "pending_customer": "Customer reply due",
-      "resolved": "Resolved",
-      "closed": "Closed"
-    },
-    "filters": {
-      "statusLabel": "Filter tickets by status",
-      "all": "All tickets"
-    },
-    "list": {
-      "title": "My tickets",
-      "emptyTitle": "No tickets yet",
-      "emptyDescription": "Create a ticket when payment, access, setup, or account recovery needs help.",
-      "openTicket": "Open ticket {id}"
-    },
-    "detail": {
-      "emptyTitle": "Select a ticket",
-      "emptyDescription": "Ticket details and replies appear here.",
-      "conversationTitle": "Conversation",
-      "noMessages": "No public messages are attached to this ticket yet.",
-      "customerAuthor": "You",
-      "supportAuthor": "Support",
-      "closedTitle": "Ticket is closed",
-      "closedDescription": "Reopen the ticket if the issue returned or you need to add more information."
-    },
-    "reply": {
-      "label": "Reply",
-      "placeholder": "Add a safe update for support.",
-      "submit": "Send reply",
-      "submitting": "Sending..."
-    },
-    "actions": {
-      "refreshList": "Refresh ticket list",
-      "close": "Close ticket",
-      "reopen": "Reopen ticket"
-    },
-    "errors": {
-      "list": "Support tickets are temporarily unavailable.",
-      "detail": "This support ticket could not be loaded.",
-      "create": "Ticket creation failed. Please try again.",
-      "reply": "Reply failed. Please try again.",
-      "close": "Ticket close failed. Please try again.",
-      "reopen": "Ticket reopen failed. Please try again."
+      "title": "CyberVPN Mini App Support",
+      "description": "Manage CyberVPN support tickets inside Telegram."
     }
   }
 }

@@ -24,7 +24,7 @@ const QRCodeComponent = dynamic(() => import('react-qr-code'), { ssr: false });
 
 interface VpnConfigCardProps {
   colorScheme?: 'light' | 'dark';
-  page?: 'home' | 'profile';
+  page?: 'home' | 'profile' | 'vpn';
 }
 
 /**

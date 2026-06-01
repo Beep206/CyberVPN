@@ -1234,6 +1234,12 @@
       "totalReferrals": "Total Referrals",
       "yourCode": "Your Referral Code"
     },
+    "support": {
+      "meta": {
+        "description": "Manage CyberVPN support tickets inside Telegram.",
+        "title": "CyberVPN Mini App Support"
+      }
+    },
     "wallet": {
       "amount": "Amount",
       "available": "Available",

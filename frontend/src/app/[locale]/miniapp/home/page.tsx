@@ -17,7 +17,6 @@ import {
   Server,
   Gift,
   ExternalLink,
-  LifeBuoy,
   Loader2,
   Users,
 } from 'lucide-react';
@@ -462,12 +461,6 @@ export default function MiniAppHomePage() {
             onPress={() => haptic('medium')}
           />
           <QuickActionCard
-            href="/miniapp/support"
-            icon={LifeBuoy}
-            label={t('support')}
-            onPress={() => haptic('medium')}
-          />
-          <QuickActionCard
             href="/miniapp/profile"
             icon={Settings}
             label={t('settings')}
@@ -475,7 +468,7 @@ export default function MiniAppHomePage() {
           />
           {(hasActiveSubscription || isOnTrial) && (
             <QuickActionCard
-              href="/miniapp/profile#vpn-config"
+              href="/miniapp/vpn"
               icon={Shield}
               label={t('vpnConfig')}
               onPress={() => haptic('medium')}
