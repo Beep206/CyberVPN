@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from aiogram.fsm.context import FSMContext
@@ -45,6 +46,11 @@ def _web_app_urls(reply_markup: object) -> list[str]:
             if web_app is not None:
                 urls.append(str(web_app.url))
     return urls
+
+
+def _first_button_url(reply_markup: object) -> str:
+    keyboard = getattr(reply_markup, "inline_keyboard", [])
+    return str(keyboard[0][0].url)
 
 
 def _clone_settings(settings, **overrides: object):
@@ -169,8 +175,52 @@ async def test_referral_share_uses_backend_issued_link(mock_settings) -> None:
 
     callback.message.edit_text.assert_awaited_once()
     keyboard = callback.message.edit_text.await_args.kwargs["reply_markup"]
-    share_button = keyboard.inline_keyboard[0][0]
-    assert "start=CANON" in share_button.url
+    share_button_url = _first_button_url(keyboard)
+    assert parse_qs(urlparse(share_button_url).query) == {"url": ["https://t.me/CyberVPNBot?start=CANON"]}
+
+
+@pytest.mark.asyncio
+async def test_referral_share_url_encodes_backend_link_query_separators(mock_settings) -> None:
+    settings = _clone_settings(mock_settings, bot_username="CyberVPNBot")
+    backend_link = "https://t.me/CyberVPNBot?start=CANON&text=override%0aextra"
+    callback = MagicMock(spec=CallbackQuery)
+    callback.from_user = User(id=123456, is_bot=False, first_name="Test")
+    callback.message = MagicMock()
+    callback.message.edit_text = AsyncMock()
+    callback.answer = AsyncMock()
+    api_client = MagicMock()
+    api_client.get_referral_stats = AsyncMock(return_value={"referral_link": backend_link, "referral_code": "CANON"})
+
+    await share_referral_link_handler(callback, _I18nStub(), api_client, settings)
+
+    keyboard = callback.message.edit_text.await_args.kwargs["reply_markup"]
+    share_button_url = _first_button_url(keyboard)
+    parsed_share_url = urlparse(share_button_url)
+    query = parse_qs(parsed_share_url.query)
+    assert parsed_share_url.scheme == "https"
+    assert parsed_share_url.netloc == "t.me"
+    assert parsed_share_url.path == "/share/url"
+    assert query == {"url": [backend_link]}
+    assert "text" not in query
+
+
+@pytest.mark.asyncio
+async def test_referral_share_url_encodes_generated_referral_code_fallback(mock_settings) -> None:
+    settings = _clone_settings(mock_settings, bot_username="CyberVPNBot")
+    callback = MagicMock(spec=CallbackQuery)
+    callback.from_user = User(id=123456, is_bot=False, first_name="Test")
+    callback.message = MagicMock()
+    callback.message.edit_text = AsyncMock()
+    callback.answer = AsyncMock()
+    api_client = MagicMock()
+    api_client.get_referral_stats = AsyncMock(return_value={"referral_code": "CANON&next=evil?line=%0a"})
+
+    await share_referral_link_handler(callback, _I18nStub(), api_client, settings)
+
+    keyboard = callback.message.edit_text.await_args.kwargs["reply_markup"]
+    share_button_url = _first_button_url(keyboard)
+    query = parse_qs(urlparse(share_button_url).query)
+    assert query == {"url": ["https://t.me/CyberVPNBot?start=CANON%26next%3Devil%3Fline%3D%250a"]}
 
 
 @pytest.mark.asyncio
