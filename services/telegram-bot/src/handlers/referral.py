@@ -138,7 +138,7 @@ async def share_referral_link_handler(
     builder.row(
         InlineKeyboardButton(
             text=i18n.get("referral-share-button"),
-            url=f"https://t.me/share/url?url={referral_link}",
+            url=f"https://t.me/share/url?url={quote(referral_link, safe='')}",
         )
     )
     builder.row(
