@@ -44,11 +44,12 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@/i18n/navigation', () => ({
+  Link: ({ href, onClick, children, className }: React.ComponentProps<'a'>) => (
+    <a href={href} onClick={onClick} className={className}>
+      {children}
+    </a>
+  ),
   useRouter: () => ({ push: mocks.routerPush, replace: mocks.routerReplace }),
-}));
-
-vi.mock('../../components/VpnConfigCard', () => ({
-  VpnConfigCard: () => <div data-testid="vpn-config-card">VPN Config</div>,
 }));
 
 vi.mock('@/stores/auth-store', () => ({
@@ -154,14 +155,19 @@ describe('MiniAppProfilePage', () => {
     });
   });
 
-  it('test_hides_referral_section_during_s1_beta', async () => {
+  it('test_renders_profile_cabinet_links_without_mixed_hub_widgets', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(
-        screen.queryByRole('button', { name: /referral/i }),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('links.rewards')).toBeInTheDocument();
+      expect(screen.getByText('links.payments')).toBeInTheDocument();
+      expect(screen.getByText('links.devices')).toBeInTheDocument();
+      expect(screen.getByText('links.support')).toBeInTheDocument();
     });
+
+    expect(screen.queryByText('VPN Config')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /myInvites/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /paymentHistory/i })).not.toBeInTheDocument();
   });
 
   it('test_hides_partner_section_during_s3_disabled_boundary', async () => {
@@ -189,19 +195,30 @@ describe('MiniAppProfilePage', () => {
     });
   });
 
-  it('test_shows_my_invites_section_with_issued_codes', async () => {
+  it('test_links_active_devices_to_the_miniapp_devices_route', async () => {
     render(<ProfilePage />, { wrapper: createWrapper() });
 
-    const invitesSection = await screen.findByRole('button', {
-      name: /myInvites/i,
+    const securitySection = await screen.findByRole('button', {
+      name: /security/i,
     });
-    fireEvent.click(invitesSection);
+    fireEvent.click(securitySection);
+    fireEvent.click(await screen.findByRole('button', { name: /activeDevices/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('OWNER123')).toBeInTheDocument();
-      expect(screen.getByText('inviteDays')).toBeInTheDocument();
-      expect(screen.getByText('inviteStatus.active')).toBeInTheDocument();
+      expect(mocks.routerPush).toHaveBeenCalledWith('/miniapp/devices');
     });
+  });
+
+  it('test_opens_official_telegram_support_from_profile_link', async () => {
+    const telegramWebApp = setupTelegramWebAppMock();
+
+    render(<ProfilePage />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole('button', { name: /links.support/i }));
+
+    expect(telegramWebApp.openTelegramLink).toHaveBeenCalledWith(
+      'https://t.me/C_y_b_e_r_VPN_Bot',
+    );
   });
 
   it('test_shows_logout_button', async () => {

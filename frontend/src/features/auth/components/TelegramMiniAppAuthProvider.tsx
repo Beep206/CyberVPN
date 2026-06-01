@@ -6,11 +6,19 @@ import { usePathname, useRouter } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/auth-store';
 import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
-import { getDefaultMiniAppPath } from '@/features/auth/lib/redirect-path';
+import { getDefaultMiniAppPath, localizePathname } from '@/features/auth/lib/redirect-path';
 import { isMiniAppRoute } from '@/features/auth/lib/session';
 import { MINIAPP_AUTH_RESTORE_REQUIRED_EVENT } from '@/lib/api/client';
 import { Loader2, AlertCircle, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
+
+function getMiniAppReturnPath(pathname: string | null | undefined) {
+    if (!pathname || pathname === '/miniapp' || pathname === '/miniapp/') {
+        return '/miniapp/home';
+    }
+
+    return isMiniAppRoute(pathname) ? pathname : '/miniapp/home';
+}
 
 /**
  * TelegramMiniAppAuthProvider detects if running inside a Telegram Mini App
@@ -82,7 +90,10 @@ export function TelegramMiniAppAuthProvider({
     }, [queryClient]);
 
     const authenticateMiniApp = useCallback(async () => {
-        const miniAppHomePath = getDefaultMiniAppPath(locale);
+        const miniAppReturnPath = getMiniAppReturnPath(pathname);
+        const localizedMiniAppReturnPath = isMiniAppRoute(miniAppReturnPath)
+            ? localizePathname(miniAppReturnPath, locale)
+            : getDefaultMiniAppPath(locale);
         setAuthError(null);
         try {
             const result = await telegramMiniAppAuth();
@@ -90,18 +101,18 @@ export function TelegramMiniAppAuthProvider({
                 await stagePendingTwoFactorSession({
                     token: result.tfa_token,
                     locale,
-                    returnTo: miniAppHomePath,
+                    returnTo: localizedMiniAppReturnPath,
                     isNewUser: result.is_new_user,
                 });
-                router.push(`/login?2fa=true&redirect=${encodeURIComponent(miniAppHomePath)}`);
+                router.push(`/login?2fa=true&redirect=${encodeURIComponent(localizedMiniAppReturnPath)}`);
                 return;
             }
             invalidateMiniAppQueries();
-            router.push('/miniapp/home');
+            router.replace(miniAppReturnPath);
         } catch {
             setAuthError(t('miniAppAutoAuth'));
         }
-    }, [invalidateMiniAppQueries, locale, router, telegramMiniAppAuth, t]);
+    }, [invalidateMiniAppQueries, locale, pathname, router, telegramMiniAppAuth, t]);
 
     useEffect(() => {
         if (!effectiveIsMiniApp || isAuthenticated || hasAttempted.current) return;

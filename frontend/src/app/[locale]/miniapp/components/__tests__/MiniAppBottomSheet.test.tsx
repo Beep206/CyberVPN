@@ -1,10 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { resetScrollLockForTests } from '@/shared/lib/scroll-lock';
 import { Modal } from '@/shared/ui/modal';
 import { MiniAppBottomSheet } from '../MiniAppBottomSheet';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
 
 function OverlayHarness() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,6 +39,25 @@ function OverlayHarness() {
         title="Test sheet"
       >
         Sheet content
+      </MiniAppBottomSheet>
+    </>
+  );
+}
+
+function FocusHarness() {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  return (
+    <>
+      <button type="button" onClick={() => setIsSheetOpen(true)}>
+        Open focus sheet
+      </button>
+      <MiniAppBottomSheet
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        title="Focus sheet"
+      >
+        <button type="button">Sheet action</button>
       </MiniAppBottomSheet>
     </>
   );
@@ -79,5 +102,41 @@ describe('MiniAppBottomSheet scroll lock', () => {
 
     expect(document.body.style.overflow).toBe('clip');
     expect(document.documentElement.style.overflow).toBe('clip');
+  });
+
+  it('exposes dialog semantics and closes on Escape with focus returned', async () => {
+    const user = userEvent.setup();
+
+    render(<FocusHarness />);
+
+    const trigger = screen.getByRole('button', { name: 'Open focus sheet' });
+    await user.click(trigger);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Focus sheet' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(screen.getByRole('button', { name: /close/i })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('traps keyboard focus inside the sheet', async () => {
+    const user = userEvent.setup();
+
+    render(<FocusHarness />);
+    await user.click(screen.getByRole('button', { name: 'Open focus sheet' }));
+
+    const closeButton = await screen.findByRole('button', { name: /close/i });
+    const actionButton = screen.getByRole('button', { name: 'Sheet action' });
+
+    expect(closeButton).toHaveFocus();
+    await user.tab();
+    expect(actionButton).toHaveFocus();
+    await user.tab();
+    expect(closeButton).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(actionButton).toHaveFocus();
   });
 });

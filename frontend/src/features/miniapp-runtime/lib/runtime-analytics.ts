@@ -13,7 +13,7 @@ export type MiniAppRuntimeEventName =
 
 type MiniAppRuntimePayload = {
   event: MiniAppRuntimeEventName;
-  page: 'home' | 'plans' | 'profile';
+  page: 'home' | 'plans' | 'profile' | 'vpn';
   locale: string;
   path: string;
   errorCode?: string;

@@ -1537,7 +1537,6 @@
       "sessionRestoringTitle": "Восстанавливаем вход через Telegram",
       "settings": "Настройки",
       "subscriptionActive": "Подписка активна",
-      "support": "Поддержка",
       "trafficLimit": "Трафик",
       "trial": "ПРОБНЫЙ ДОСТУП",
       "trialAvailable": "Доступен бесплатный пробный период",
@@ -1563,6 +1562,8 @@
       "plans": "Тарифы",
       "profile": "Профиль",
       "referral": "Награды",
+      "rewards": "Награды",
+      "vpn": "VPN",
       "wallet": "Кошелёк"
     },
     "payments": {
@@ -1748,6 +1749,17 @@
       },
       "language": "Язык",
       "languageNote": "Язык берётся из настроек Telegram.",
+      "links": {
+        "devices": "Устройства",
+        "devicesDescription": "Проверьте активные устройства и сессии.",
+        "payments": "Платежи",
+        "paymentsDescription": "Откройте историю платежей Mini App.",
+        "rewards": "Награды",
+        "rewardsDescription": "Рефералы, инвайты, подарки, коды и уведомления.",
+        "support": "Поддержка",
+        "supportDescription": "Откройте официальный канал поддержки в Telegram.",
+        "title": "Разделы кабинета"
+      },
       "logout": "Выйти",
       "logoutConfirm": "Выйти из аккаунта?",
       "myInvites": "Мои инвайты",
@@ -1861,6 +1873,11 @@
         "used": "Использован"
       },
       "invitesTitle": "Мои инвайты",
+      "loading": {
+        "description": "Реферальные, подарочные, промо- и инвайт-действия откроются после подтверждения runtime policy.",
+        "eyebrow": "Контроль роста",
+        "title": "Проверяем доступность наград"
+      },
       "loadingDescription": "Реферальные, подарочные, промо- и инвайт-действия откроются после подтверждения runtime-политики.",
       "loadingEyebrow": "Управление наградами",
       "loadingTitle": "Проверяем доступность наград",
@@ -1916,6 +1933,11 @@
         "totalRewards": "Получено наград",
         "totalRewardsHint": "Текущая сумма наград по backend-контракту."
       },
+      "paused": {
+        "description": "Экраны рефералов, подарков и промокодов недоступны во время controlled beta.",
+        "eyebrow": "S1 beta",
+        "title": "Центр наград приостановлен"
+      },
       "pausedDescription": "Реферальные, подарочные и промокодовые экраны недоступны во время закрытой беты.",
       "pausedEyebrow": "S1 beta",
       "pausedTitle": "Центр наград приостановлен",
@@ -1952,6 +1974,15 @@
       "redeemSuccessGift": "Подарок активирован. Добавлен тариф {plan} на {days} дней.",
       "redeemSuccessInvite": "Инвайт активирован. Добавлено {days} бесплатных дней.",
       "redeemTitle": "Активировать код",
+      "rewards": {
+        "codes": "Коды",
+        "gifts": "Подарки",
+        "invites": "Инвайты",
+        "navigationLabel": "Разделы наград",
+        "notifications": "Уведомления",
+        "overview": "Обзор",
+        "referral": "Рефералы"
+      },
       "shareCode": "Поделиться ссылкой",
       "shareDescription": "Реферальные ссылки, инвайты, подарочные коды и отслеживание выданных кодов собраны в одном месте. Промоскидки остаются в оформлении оплаты.",
       "shareText": "Присоединяйтесь к CyberVPN по моему реферальному коду: {code}",
@@ -1961,87 +1992,15 @@
       "yourCode": "Ваш реферальный код"
     },
     "support": {
-      "actions": {
-        "close": "Закрыть обращение",
-        "refreshList": "Обновить список обращений",
-        "reopen": "Переоткрыть обращение"
-      },
-      "categories": {
-        "account": "Аккаунт",
-        "billing": "Billing",
-        "other": "Другое",
-        "privacy": "Privacy",
-        "setup": "Настройка",
-        "status": "Статус сервиса",
-        "vpn_access": "VPN-доступ"
-      },
-      "description": "Создайте обращение, следите за ответами, закрывайте и переоткрывайте свои обращения из Telegram.",
-      "detail": {
-        "closedDescription": "Переоткройте обращение, если проблема вернулась или нужно добавить информацию.",
-        "closedTitle": "Обращение закрыто",
-        "conversationTitle": "Переписка",
-        "customerAuthor": "Вы",
-        "emptyDescription": "Здесь появятся детали обращения и ответы.",
-        "emptyTitle": "Выберите обращение",
-        "noMessages": "К этому обращению пока не прикреплены публичные сообщения.",
-        "supportAuthor": "Поддержка"
-      },
-      "errors": {
-        "close": "Не удалось закрыть обращение. Попробуйте ещё раз.",
-        "create": "Не удалось создать обращение. Попробуйте ещё раз.",
-        "detail": "Не удалось загрузить это обращение.",
-        "list": "Обращения временно недоступны.",
-        "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз.",
-        "reply": "Не удалось отправить ответ. Попробуйте ещё раз."
-      },
-      "eyebrow": "SUPPORT LINK",
-      "filters": {
-        "all": "Все обращения",
-        "statusLabel": "Фильтр обращений по статусу"
-      },
-      "form": {
-        "categoryLabel": "Категория",
-        "messageHelp": "{count}/4000 символов. Редактируйте приватные значения перед отправкой.",
-        "messageLabel": "Сообщение",
-        "messagePlaceholder": "Опишите, что произошло, и добавьте только безопасный текст ошибки.",
-        "subjectLabel": "Тема",
-        "subjectPlaceholder": "Коротко опишите проблему",
-        "submit": "Создать обращение",
-        "submitting": "Создание...",
-        "title": "Создать обращение"
-      },
-      "list": {
-        "emptyDescription": "Создайте обращение, если нужна помощь с оплатой, доступом, настройкой или восстановлением аккаунта.",
-        "emptyTitle": "Обращений пока нет",
-        "openTicket": "Открыть обращение {id}",
-        "title": "Мои обращения"
-      },
       "meta": {
-        "description": "Создавайте и отслеживайте обращения CyberVPN в Telegram.",
-        "title": "Обращения в поддержку - CyberVPN Mini App"
-      },
-      "reply": {
-        "label": "Ответ",
-        "placeholder": "Добавьте безопасное обновление для поддержки.",
-        "submit": "Отправить ответ",
-        "submitting": "Отправка..."
-      },
-      "sensitiveWarning": {
-        "description": "Не добавляйте пароли, 2FA codes, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files.",
-        "title": "Не отправляйте секреты"
-      },
-      "status": {
-        "closed": "Закрыто",
-        "open": "Открыто",
-        "pending_customer": "Ожидает клиента",
-        "pending_support": "Ожидает поддержку",
-        "resolved": "Решено"
-      },
-      "surface": {
-        "dashboard": "Customer cabinet",
-        "miniapp": "Telegram Mini App"
-      },
-      "title": "Обращения в поддержку"
+        "description": "Управляйте обращениями в поддержку CyberVPN внутри Telegram.",
+        "title": "Поддержка CyberVPN Mini App"
+      }
+    },
+    "vpn": {
+      "description": "Скопируйте ссылку подписки, откройте её в совместимом клиенте или отсканируйте QR-код на отдельном экране Mini App.",
+      "eyebrow": "VPN-ДОСТУП",
+      "title": "VPN-подключение"
     },
     "wallet": {
       "amount": "Сумма",

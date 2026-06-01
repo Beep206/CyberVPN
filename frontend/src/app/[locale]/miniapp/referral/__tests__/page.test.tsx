@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import MiniAppReferralPage from '../page';
 import {
   cleanupTelegramWebAppMock,
@@ -35,6 +36,14 @@ const messages = vi.hoisted(
       shareText: 'Join CyberVPN with my referral code: {code}',
       programUnavailable:
         'The referral program is temporarily unavailable. Existing invites remain visible here, but new referral actions may be paused until the program is restored.',
+      'paused.eyebrow': 'S1 beta',
+      'paused.title': 'Rewards hub is paused',
+      'paused.description':
+        'Referral, gift, and promo-code screens are not available during the controlled beta.',
+      'loading.eyebrow': 'Growth controls',
+      'loading.title': 'Checking rewards availability',
+      'loading.description':
+        'Referral, gift, promo, and invite actions will open after the runtime policy is confirmed.',
       redeemTitle: 'Redeem a code',
       redeemSubtitle:
         'Invite and gift codes redeem here. Promo discounts and referral friend discounts apply later in checkout.',
@@ -252,6 +261,7 @@ vi.mock(
 );
 
 describe('MiniAppReferralPage', () => {
+  let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
   const redeemMutateAsync = vi.fn();
   const purchaseMutateAsync = vi.fn();
   const markReadMutate = vi.fn();
@@ -261,7 +271,7 @@ describe('MiniAppReferralPage', () => {
   const updatePreferencesMutate = vi.fn();
 
   beforeEach(() => {
-    setupTelegramWebAppMock();
+    telegramMock = setupTelegramWebAppMock();
     vi.clearAllMocks();
     clipboardWriteTextMock.mockClear();
     capabilitiesMock.data.growth.checkout_code_discounts = false;
@@ -520,5 +530,32 @@ describe('MiniAppReferralPage', () => {
     expect(screen.getByText('Buy Gift VPN')).toBeInTheDocument();
     expect(screen.getByText('My invites')).toBeInTheDocument();
     expect(screen.getByText('My gifts')).toBeInTheDocument();
+  });
+
+  it('encodes referral codes inside Telegram start and share URLs', async () => {
+    const user = userEvent.setup();
+    const referralCode = 'CYBER REF/+%';
+    const encodedReferralCode = encodeURIComponent(referralCode);
+    const referralLink = `https://t.me/C_y_b_e_r_VPN_Bot?start=${encodedReferralCode}`;
+    const shareText = `Join CyberVPN with my referral code: ${referralCode}`;
+
+    capabilitiesMock.data.growth.referral = true;
+    growthHooks.useReferralCode.mockReturnValue({
+      data: { referral_code: referralCode },
+      isLoading: false,
+    });
+
+    render(<MiniAppReferralPage />);
+
+    expect(screen.getByTestId('qr-code')).toHaveAttribute(
+      'data-value',
+      referralLink,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Share link' }));
+
+    expect(telegramMock.openTelegramLink).toHaveBeenCalledWith(
+      `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`,
+    );
   });
 });

@@ -94,6 +94,7 @@ describe('MiniAppBottomNav', () => {
     capabilitiesMock.data.growth.invites = false;
     capabilitiesMock.data.growth.promo_codes = false;
     capabilitiesMock.data.growth.referral = false;
+    vi.mocked(usePathname).mockReturnValue('/miniapp/home');
     telegramMock = setupTelegramWebAppMock();
   });
 
@@ -106,11 +107,12 @@ describe('MiniAppBottomNav', () => {
     it('test_renders_all_navigation_items', () => {
       render(<MiniAppBottomNav />);
 
-      expect(screen.getByLabelText('home')).toBeInTheDocument();
-      expect(screen.getByLabelText('plans')).toBeInTheDocument();
-      expect(screen.getByLabelText('wallet')).toBeInTheDocument();
-      expect(screen.getByLabelText('profile')).toBeInTheDocument();
-      expect(screen.queryByLabelText('referral')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('nav.home')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.vpn')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.plans')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.wallet')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.profile')).toBeInTheDocument();
+      expect(screen.queryByLabelText('nav.rewards')).not.toBeInTheDocument();
     });
 
     it('test_renders_referral_navigation_when_growth_surface_is_enabled', () => {
@@ -118,7 +120,8 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      expect(screen.getByLabelText('referral')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.rewards')).toBeInTheDocument();
+      expect(screen.queryByLabelText('nav.wallet')).not.toBeInTheDocument();
     });
 
     it('test_renders_navigation_role', () => {
@@ -126,7 +129,7 @@ describe('MiniAppBottomNav', () => {
 
       const nav = container.querySelector('nav');
       expect(nav).toHaveAttribute('role', 'navigation');
-      expect(nav).toHaveAttribute('aria-label', 'bottomNav');
+      expect(nav).toHaveAttribute('aria-label', 'nav.bottomNav');
     });
 
     it('test_renders_all_tab_icons', () => {
@@ -140,10 +143,11 @@ describe('MiniAppBottomNav', () => {
     it('test_renders_all_tab_labels', () => {
       render(<MiniAppBottomNav />);
 
-      expect(screen.getByText('home')).toBeInTheDocument();
-      expect(screen.getByText('plans')).toBeInTheDocument();
-      expect(screen.getByText('wallet')).toBeInTheDocument();
-      expect(screen.getByText('profile')).toBeInTheDocument();
+      expect(screen.getByText('nav.home')).toBeInTheDocument();
+      expect(screen.getByText('nav.vpn')).toBeInTheDocument();
+      expect(screen.getByText('nav.plans')).toBeInTheDocument();
+      expect(screen.getByText('nav.wallet')).toBeInTheDocument();
+      expect(screen.getByText('nav.profile')).toBeInTheDocument();
     });
   });
 
@@ -153,7 +157,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const homeLink = screen.getByLabelText('home');
+      const homeLink = screen.getByLabelText('nav.home');
       expect(homeLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -162,7 +166,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const homeLink = screen.getByLabelText('home');
+      const homeLink = screen.getByLabelText('nav.home');
       expect(homeLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -171,11 +175,20 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const plansLink = screen.getByLabelText('plans');
+      const plansLink = screen.getByLabelText('nav.plans');
       expect(plansLink).toHaveAttribute('aria-current', 'page');
 
-      const homeLink = screen.getByLabelText('home');
+      const homeLink = screen.getByLabelText('nav.home');
       expect(homeLink).not.toHaveAttribute('aria-current');
+    });
+
+    it('test_marks_vpn_as_active_when_on_vpn_route', () => {
+      vi.mocked(usePathname).mockReturnValue('/miniapp/vpn');
+
+      render(<MiniAppBottomNav />);
+
+      const vpnLink = screen.getByLabelText('nav.vpn');
+      expect(vpnLink).toHaveAttribute('aria-current', 'page');
     });
 
     it('test_marks_wallet_as_active_when_on_wallet_route', () => {
@@ -183,7 +196,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const walletLink = screen.getByLabelText('wallet');
+      const walletLink = screen.getByLabelText('nav.wallet');
       expect(walletLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -192,7 +205,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const profileLink = screen.getByLabelText('profile');
+      const profileLink = screen.getByLabelText('nav.profile');
       expect(profileLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -201,8 +214,25 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const plansLink = screen.getByLabelText('plans');
+      const plansLink = screen.getByLabelText('nav.plans');
       expect(plansLink).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('test_matches_nested_rewards_routes_and_legacy_referral_alias', () => {
+      capabilitiesMock.data.growth.referral = true;
+      vi.mocked(usePathname).mockReturnValue('/miniapp/rewards/gifts');
+
+      render(<MiniAppBottomNav />);
+
+      const rewardsLink = screen.getByLabelText('nav.rewards');
+      expect(rewardsLink).toHaveAttribute('aria-current', 'page');
+
+      vi.mocked(usePathname).mockReturnValue('/miniapp/referral');
+      render(<MiniAppBottomNav />);
+      expect(screen.getAllByLabelText('nav.rewards').at(-1)).toHaveAttribute(
+        'aria-current',
+        'page',
+      );
     });
 
     it('test_matches_subroutes_for_wallet', () => {
@@ -210,7 +240,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const walletLink = screen.getByLabelText('wallet');
+      const walletLink = screen.getByLabelText('nav.wallet');
       expect(walletLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -219,7 +249,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const profileLink = screen.getByLabelText('profile');
+      const profileLink = screen.getByLabelText('nav.profile');
       expect(profileLink).toHaveAttribute('aria-current', 'page');
     });
   });
@@ -230,7 +260,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const homeLink = screen.getByLabelText('home');
+      const homeLink = screen.getByLabelText('nav.home');
       await user.click(homeLink);
 
       expect(telegramMock.HapticFeedback.selectionChanged).toHaveBeenCalled();
@@ -241,14 +271,14 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const plansLink = screen.getByLabelText('plans');
+      const plansLink = screen.getByLabelText('nav.plans');
       await user.click(plansLink);
 
       expect(
         telegramMock.HapticFeedback.selectionChanged,
       ).toHaveBeenCalledTimes(1);
 
-      const walletLink = screen.getByLabelText('wallet');
+      const walletLink = screen.getByLabelText('nav.wallet');
       await user.click(walletLink);
 
       expect(
@@ -297,29 +327,45 @@ describe('MiniAppBottomNav', () => {
     it('test_home_link_points_to_home_route', () => {
       render(<MiniAppBottomNav />);
 
-      const homeLink = screen.getByLabelText('home');
+      const homeLink = screen.getByLabelText('nav.home');
       expect(homeLink).toHaveAttribute('href', '/miniapp/home');
     });
 
     it('test_plans_link_points_to_plans_route', () => {
       render(<MiniAppBottomNav />);
 
-      const plansLink = screen.getByLabelText('plans');
+      const plansLink = screen.getByLabelText('nav.plans');
       expect(plansLink).toHaveAttribute('href', '/miniapp/plans');
+    });
+
+    it('test_vpn_link_points_to_vpn_route', () => {
+      render(<MiniAppBottomNav />);
+
+      const vpnLink = screen.getByLabelText('nav.vpn');
+      expect(vpnLink).toHaveAttribute('href', '/miniapp/vpn');
     });
 
     it('test_wallet_link_points_to_wallet_route', () => {
       render(<MiniAppBottomNav />);
 
-      const walletLink = screen.getByLabelText('wallet');
+      const walletLink = screen.getByLabelText('nav.wallet');
       expect(walletLink).toHaveAttribute('href', '/miniapp/wallet');
     });
 
     it('test_profile_link_points_to_profile_route', () => {
       render(<MiniAppBottomNav />);
 
-      const profileLink = screen.getByLabelText('profile');
+      const profileLink = screen.getByLabelText('nav.profile');
       expect(profileLink).toHaveAttribute('href', '/miniapp/profile');
+    });
+
+    it('test_rewards_link_points_to_rewards_route_when_growth_is_enabled', () => {
+      capabilitiesMock.data.growth.referral = true;
+
+      render(<MiniAppBottomNav />);
+
+      const rewardsLink = screen.getByLabelText('nav.rewards');
+      expect(rewardsLink).toHaveAttribute('href', '/miniapp/rewards');
     });
   });
 
@@ -329,16 +375,17 @@ describe('MiniAppBottomNav', () => {
 
       const nav = container.querySelector('nav');
       expect(nav).toHaveAttribute('role', 'navigation');
-      expect(nav).toHaveAttribute('aria-label', 'bottomNav');
+      expect(nav).toHaveAttribute('aria-label', 'nav.bottomNav');
     });
 
     it('test_all_links_have_aria_labels', () => {
       render(<MiniAppBottomNav />);
 
-      expect(screen.getByLabelText('home')).toBeInTheDocument();
-      expect(screen.getByLabelText('plans')).toBeInTheDocument();
-      expect(screen.getByLabelText('wallet')).toBeInTheDocument();
-      expect(screen.getByLabelText('profile')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.home')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.vpn')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.plans')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.wallet')).toBeInTheDocument();
+      expect(screen.getByLabelText('nav.profile')).toBeInTheDocument();
     });
 
     it('test_active_link_has_aria_current_page', () => {
@@ -346,7 +393,7 @@ describe('MiniAppBottomNav', () => {
 
       render(<MiniAppBottomNav />);
 
-      const walletLink = screen.getByLabelText('wallet');
+      const walletLink = screen.getByLabelText('nav.wallet');
       expect(walletLink).toHaveAttribute('aria-current', 'page');
     });
 
@@ -362,7 +409,7 @@ describe('MiniAppBottomNav', () => {
     it('test_has_touch_manipulation_class', () => {
       render(<MiniAppBottomNav />);
 
-      const homeLink = screen.getByLabelText('home');
+      const homeLink = screen.getByLabelText('nav.home');
       expect(homeLink.className).toContain('touch-manipulation');
     });
   });

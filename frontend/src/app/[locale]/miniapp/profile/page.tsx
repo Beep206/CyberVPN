@@ -3,12 +3,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import {
-  commerceApi,
-  invitesApi,
   partnerApi,
-  referralApi,
   securityApi,
   twofaApi,
 } from '@/lib/api';
@@ -25,36 +22,25 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
-  Copy,
-  Share2,
   Lock,
   Check,
   Key,
   AlertTriangle,
   Loader2,
   Smartphone,
-  Ticket,
+  LifeBuoy,
+  ExternalLink,
 } from 'lucide-react';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import { MiniAppBottomSheet } from '../components/MiniAppBottomSheet';
-import { VpnConfigCard } from '../components/VpnConfigCard';
 import {
-  areInviteCodesEnabled,
-  isReferralProgramEnabled,
+  isAnyGrowthSurfaceEnabled,
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
 import { STAGE3_PARTNER_PORTAL_UI_ENABLED } from '@/shared/lib/stage3-partner-flags';
+import { getOfficialSupportProfile } from '@/shared/lib/official-support-routing';
 
 const TECHNICAL_TELEGRAM_EMAIL_SUFFIX = '@telegram.local';
-
-type InviteCode = {
-  id: string;
-  code: string;
-  free_days: number;
-  is_used: boolean;
-  expires_at: string | null;
-  created_at: string;
-};
 
 type TelegramConfirmWebApp = {
   showConfirm?: (
@@ -106,25 +92,9 @@ function getDisplayEmail(email?: string | null) {
   return email;
 }
 
-function isInviteExpired(expiresAt?: string | null): boolean {
-  return Boolean(expiresAt && new Date(expiresAt).getTime() <= Date.now());
-}
-
-function formatInviteDate(locale: string, value?: string | null): string {
-  if (!value) {
-    return 'N/A';
-  }
-
-  return new Intl.DateTimeFormat(locale, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(value));
-}
-
 /**
  * Mini App Profile page
- * User info, referral, security, payment history, settings, partner, account management
+ * User identity, cabinet links, security settings, partner, account management
  */
 export default function MiniAppProfilePage() {
   const t = useTranslations('MiniApp.profile');
@@ -137,8 +107,8 @@ export default function MiniAppProfilePage() {
   const logout = useAuthStore((s) => s.logout);
   const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const { data: capabilities } = useClientCapabilities();
-  const invitesEnabled = areInviteCodesEnabled(capabilities);
-  const referralEnabled = isReferralProgramEnabled(capabilities);
+  const growthVisible = isAnyGrowthSurfaceEnabled(capabilities);
+  const supportProfile = getOfficialSupportProfile();
 
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
@@ -160,25 +130,6 @@ export default function MiniAppProfilePage() {
   // Partner bind form state
   const [partnerCode, setPartnerCode] = useState('');
 
-  // Fetch referral data
-  const { data: referralCode } = useQuery({
-    queryKey: ['referral-code'],
-    queryFn: async () => {
-      const { data } = await referralApi.getCode();
-      return data;
-    },
-    enabled: referralEnabled,
-  });
-
-  const { data: referralStats } = useQuery({
-    queryKey: ['referral-stats'],
-    queryFn: async () => {
-      const { data } = await referralApi.getStats();
-      return data;
-    },
-    enabled: referralEnabled,
-  });
-
   // Fetch 2FA status
   const { data: twofaStatus } = useQuery({
     queryKey: ['twofa-status'],
@@ -186,28 +137,6 @@ export default function MiniAppProfilePage() {
       const { data } = await twofaApi.getStatus();
       return data;
     },
-  });
-
-  const { data: orderHistoryPreview } = useQuery({
-    queryKey: ['order-history-preview'],
-    queryFn: async () => {
-      const { data } = await commerceApi.listOrders({ limit: 3, offset: 0 });
-      return data;
-    },
-  });
-
-  const {
-    data: inviteCodes,
-    isLoading: invitesLoading,
-    isError: invitesError,
-  } = useQuery({
-    queryKey: ['miniapp-profile-invites'],
-    queryFn: async () => {
-      const { data } = await invitesApi.getMyInvites();
-      return data as InviteCode[];
-    },
-    enabled: invitesEnabled,
-    staleTime: 2 * 60 * 1000,
   });
 
   // Fetch antiphishing code
@@ -349,26 +278,14 @@ export default function MiniAppProfilePage() {
     }
   };
 
-  const copyToClipboard = async (text: string, successMessage: string) => {
+  const openSupport = () => {
     haptic('medium');
-    try {
-      await navigator.clipboard.writeText(text);
-      webApp?.showAlert(successMessage);
-    } catch {
-      webApp?.showAlert(t('copyError'));
+    if (webApp?.openTelegramLink) {
+      webApp.openTelegramLink(supportProfile.telegramBotUrl);
+      return;
     }
-  };
 
-  const shareReferralCode = () => {
-    haptic('medium');
-    if (referralCode?.referral_code) {
-      const shareText = t('referralShareText', {
-        code: referralCode.referral_code,
-      });
-      webApp?.openTelegramLink(
-        `https://t.me/share/url?url=${encodeURIComponent(shareText)}`,
-      );
-    }
+    window.location.assign(supportProfile.telegramBotUrl);
   };
 
   const handlePasswordChange = () => {
@@ -493,164 +410,51 @@ export default function MiniAppProfilePage() {
         </div>
       </motion.div>
 
-      {/* VPN Config Card */}
-      <VpnConfigCard colorScheme={colorScheme} page="profile" />
-
-      {invitesEnabled ? (
-        <CollapsibleSection
-          title={t('myInvites')}
-          icon={Ticket}
-          isExpanded={expandedSections['invites']}
-          onToggle={() => toggleSection('invites')}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="grid grid-cols-2 gap-3"
+        aria-label={t('links.title')}
+      >
+        {growthVisible ? (
+          <ProfileLinkCard
+            href="/miniapp/rewards"
+            icon={Gift}
+            title={t('links.rewards')}
+            description={t('links.rewardsDescription')}
+            onPress={() => haptic('medium')}
+          />
+        ) : null}
+        <ProfileLinkCard
+          href="/miniapp/payments"
+          icon={Receipt}
+          title={t('links.payments')}
+          description={t('links.paymentsDescription')}
+          onPress={() => haptic('medium')}
+        />
+        <ProfileLinkCard
+          href="/miniapp/devices"
+          icon={Smartphone}
+          title={t('links.devices')}
+          description={t('links.devicesDescription')}
+          onPress={() => haptic('medium')}
+        />
+        <button
+          type="button"
+          onClick={openSupport}
+          className={`${cardBg} ${borderColor} min-h-[116px] rounded-lg border p-4 text-left transition-colors hover:border-neon-cyan/50 touch-manipulation`}
         >
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground font-mono">
-              {t('myInvitesSubtitle')}
-            </p>
-
-            {invitesLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-neon-cyan" />
-              </div>
-            ) : invitesError ? (
-              <p className="text-sm text-amber-300 font-mono text-center py-4">
-                {t('myInvitesError')}
-              </p>
-            ) : !inviteCodes || inviteCodes.length === 0 ? (
-              <p className="text-sm text-muted-foreground font-mono text-center py-4">
-                {t('noInvites')}
-              </p>
-            ) : (
-              inviteCodes.map((invite) => {
-                const expired = isInviteExpired(invite.expires_at);
-                const status = invite.is_used
-                  ? 'used'
-                  : expired
-                    ? 'expired'
-                    : 'active';
-
-                return (
-                  <div
-                    key={invite.id}
-                    className="rounded-lg border border-border/60 bg-muted/40 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <code className="break-all font-mono text-sm text-neon-cyan">
-                            {invite.code}
-                          </code>
-                          <span
-                            className={`rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-[0.16em] ${
-                              status === 'active'
-                                ? 'bg-matrix-green/15 text-matrix-green'
-                                : status === 'used'
-                                  ? 'bg-neon-purple/15 text-neon-purple'
-                                  : 'bg-amber-400/15 text-amber-300'
-                            }`}
-                          >
-                            {t(`inviteStatus.${status}`)}
-                          </span>
-                        </div>
-                        <div className="mt-2 space-y-1 text-xs text-muted-foreground font-mono">
-                          <div>
-                            {t('inviteDays', { days: invite.free_days })}
-                          </div>
-                          <div>
-                            {t('inviteExpires', {
-                              date: formatInviteDate(locale, invite.expires_at),
-                            })}
-                          </div>
-                          <div>
-                            {t('inviteCreated', {
-                              date: formatInviteDate(locale, invite.created_at),
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          copyToClipboard(invite.code, t('inviteCopied'))
-                        }
-                        className="shrink-0 rounded-lg bg-neon-cyan/10 p-2 text-neon-cyan transition-colors hover:bg-neon-cyan/20 touch-manipulation"
-                        aria-label={t('copyInvite')}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <LifeBuoy className="h-5 w-5 text-neon-cyan" aria-hidden="true" />
+            <ExternalLink className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </div>
-        </CollapsibleSection>
-      ) : null}
-
-      {referralEnabled ? (
-        <CollapsibleSection
-          title={t('referral')}
-          icon={Gift}
-          isExpanded={expandedSections['referral']}
-          onToggle={() => toggleSection('referral')}
-        >
-          <div className="space-y-4">
-            {referralCode && (
-              <div>
-                <label className="text-xs text-muted-foreground font-mono block mb-2">
-                  {t('yourReferralCode')}
-                </label>
-                <div className="flex gap-2">
-                  <div className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg font-mono text-lg">
-                    {referralCode.referral_code}
-                  </div>
-                  <button
-                    onClick={() =>
-                      copyToClipboard(
-                        referralCode.referral_code,
-                        t('codeCopied'),
-                      )
-                    }
-                    className="p-2 bg-neon-cyan text-black rounded-lg hover:bg-neon-cyan/90 transition-colors touch-manipulation"
-                    aria-label={t('copy')}
-                  >
-                    <Copy className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={shareReferralCode}
-                    className="p-2 bg-neon-purple text-white rounded-lg hover:bg-neon-purple/90 transition-colors touch-manipulation"
-                    aria-label={t('share')}
-                  >
-                    <Share2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {referralStats && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-2xl font-display text-neon-cyan">
-                    {referralStats.total_referrals || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-mono">
-                    {t('totalReferrals')}
-                  </div>
-                </div>
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-2xl font-display text-neon-cyan">
-                    ${(referralStats.total_earned || 0).toFixed(2)}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-mono">
-                    {t('totalEarnings')}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      ) : null}
+          <div className="font-display text-sm">{t('links.support')}</div>
+          <p className="mt-1 text-xs font-mono text-muted-foreground">
+            {t('links.supportDescription')}
+          </p>
+        </button>
+      </motion.div>
 
       {/* Security Section */}
       <CollapsibleSection
@@ -717,7 +521,7 @@ export default function MiniAppProfilePage() {
           <button
             onClick={() => {
               haptic('medium');
-              router.push('/devices');
+              router.push('/miniapp/devices');
             }}
             className="w-full flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/70 transition-colors touch-manipulation"
           >
@@ -730,77 +534,6 @@ export default function MiniAppProfilePage() {
           <p className="text-xs text-muted-foreground font-mono">
             {t('securityNote')}
           </p>
-        </div>
-      </CollapsibleSection>
-
-      {/* Payment History Section */}
-      <CollapsibleSection
-        title={t('paymentHistory')}
-        icon={Receipt}
-        isExpanded={expandedSections['payments']}
-        onToggle={() => toggleSection('payments')}
-      >
-        <div className="space-y-2">
-          {orderHistoryPreview && orderHistoryPreview.length > 0 ? (
-            <>
-              {orderHistoryPreview.slice(0, 3).map(
-                (
-                  order: {
-                    id?: string;
-                    displayed_price?: number;
-                    currency_code?: string;
-                    settlement_status?: string;
-                    order_status?: string;
-                    created_at?: string;
-                    items?: Array<{ display_name?: string | null }>;
-                  },
-                  index: number,
-                ) => (
-                  <div
-                    key={order.id || index}
-                    className="p-3 bg-muted rounded-lg"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-sm font-mono">
-                        {(
-                          order.items?.[0]?.display_name ||
-                          order.id ||
-                          t('orderFallback')
-                        ).toString()}
-                      </span>
-                      <span
-                        className={`text-xs font-mono ${(order.settlement_status || order.order_status) === 'paid' ? 'text-neon-cyan' : 'text-yellow-400'}`}
-                      >
-                        {order.settlement_status || order.order_status}
-                      </span>
-                    </div>
-                    <div className="text-sm font-mono mb-1">
-                      ${(order.displayed_price || 0).toFixed(2)}{' '}
-                      {order.currency_code || 'USD'}
-                    </div>
-                    {order.created_at && (
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                ),
-              )}
-              <button
-                onClick={() => {
-                  haptic('medium');
-                  router.push('/payments');
-                }}
-                className="w-full py-2 text-sm font-mono text-neon-cyan hover:text-neon-cyan/80 transition-colors"
-              >
-                {t('viewAll')} →
-              </button>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground font-mono text-center py-4">
-              {t('noPayments')}
-            </p>
-          )}
         </div>
       </CollapsibleSection>
 
@@ -1155,6 +888,37 @@ export default function MiniAppProfilePage() {
         </div>
       </MiniAppBottomSheet>
     </div>
+  );
+}
+
+function ProfileLinkCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+  onPress,
+}: {
+  href: string;
+  icon: typeof Gift;
+  title: string;
+  description: string;
+  onPress: () => void;
+}) {
+  const cardBg = 'miniapp-card';
+  const borderColor = 'border';
+
+  return (
+    <Link
+      href={href}
+      onClick={onPress}
+      className={`${cardBg} ${borderColor} min-h-[116px] rounded-lg border p-4 transition-colors hover:border-neon-cyan/50 touch-manipulation`}
+    >
+      <Icon className="mb-3 h-5 w-5 text-neon-cyan" aria-hidden="true" />
+      <div className="font-display text-sm">{title}</div>
+      <p className="mt-1 text-xs font-mono text-muted-foreground">
+        {description}
+      </p>
+    </Link>
   );
 }
 

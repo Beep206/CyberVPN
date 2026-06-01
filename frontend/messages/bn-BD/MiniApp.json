@@ -266,5 +266,11 @@
         "telegram": "Telegram"
       }
     }
+  },
+  "support": {
+    "meta": {
+      "title": "CyberVPN Mini App Support",
+      "description": "Manage CyberVPN support tickets inside Telegram."
+    }
   }
 }

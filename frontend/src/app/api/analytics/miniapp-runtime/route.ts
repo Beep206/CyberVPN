@@ -13,7 +13,7 @@ type MiniAppRuntimeRoutePayload = {
     | 'miniapp_payment_status_resolved'
     | 'miniapp_config_loaded'
     | 'miniapp_config_failed';
-  page: 'home' | 'plans' | 'profile';
+  page: 'home' | 'plans' | 'profile' | 'vpn';
   locale?: string;
   path: string;
   connectionType: string;
@@ -61,7 +61,13 @@ export async function POST(request: NextRequest) {
 
     const sanitized = {
       event: payload.event,
-      page: payload.page === 'plans' ? 'plans' : payload.page === 'profile' ? 'profile' : 'home',
+      page: payload.page === 'plans'
+        ? 'plans'
+        : payload.page === 'profile'
+          ? 'profile'
+          : payload.page === 'vpn'
+            ? 'vpn'
+            : 'home',
       locale: sanitizeToken(payload.locale, 'unknown', 16),
       path: sanitizeToken(payload.path, '/', 256),
       checkoutFlow: sanitizeToken(payload.checkoutFlow, 'none', 32),
