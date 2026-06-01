@@ -74,7 +74,7 @@ async def test_start_command_registers_user_and_shows_s1_onboarding_menu() -> No
     message.answer.assert_awaited_once()
     assert message.answer.await_args.kwargs["text"].startswith("welcome-message")
     callbacks = _callback_data(message.answer.await_args.kwargs["reply_markup"])
-    assert {"trial:activate", "subscription:buy", "menu:support"}.issubset(callbacks)
+    assert {"trial:activate", "menu:vpn", "menu:subscription", "menu:growth", "menu:support"}.issubset(callbacks)
 
 
 @pytest.mark.asyncio
@@ -196,6 +196,7 @@ async def test_config_link_handler_sends_subscription_url_not_direct_proxy_uri()
     callback.message.answer = AsyncMock()
     callback.answer = AsyncMock()
     api_client = SimpleNamespace(
+        get_user_subscriptions=AsyncMock(return_value=[]),
         get_user_config=AsyncMock(
             return_value={
                 "config_string": "vless://direct-proxy-uri",
@@ -223,6 +224,7 @@ async def test_config_link_handler_rejects_direct_proxy_uri_without_subscription
     callback.message.answer = AsyncMock()
     callback.answer = AsyncMock()
     api_client = SimpleNamespace(
+        get_user_subscriptions=AsyncMock(return_value=[]),
         get_user_config=AsyncMock(
             return_value={
                 "config_string": "vless://direct-proxy-uri",

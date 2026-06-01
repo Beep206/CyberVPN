@@ -4,14 +4,15 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
 
 from src.keyboards.menu import main_menu_keyboard
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery
     from aiogram_i18n import I18nContext
 
+    from src.config import BotSettings
     from src.services.api_client import CyberVPNAPIClient
 
 logger = structlog.get_logger(__name__)
@@ -27,6 +28,7 @@ async def navigation_handler(
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
     state: FSMContext,
+    settings: BotSettings | None = None,
 ) -> None:
     """Handle generic navigation callbacks."""
     if callback.message is None:
@@ -43,6 +45,6 @@ async def navigation_handler(
 
     await callback.message.edit_text(
         text=i18n.get("menu-main-title"),
-        reply_markup=main_menu_keyboard(i18n, user),
+        reply_markup=main_menu_keyboard(i18n, user, settings=settings),
     )
     await callback.answer()

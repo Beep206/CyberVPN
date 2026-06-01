@@ -33,6 +33,19 @@ promo-activated = ✅ Promo code <b>{ $code }</b> applied.
 
 # ── Menu ─────────────────────────────────────────────────────────────────
 menu-main-title = 🏠 <b>Main menu</b>
+growth-menu-title = 🎁 <b>Rewards</b>
+
+    Quick actions are available in the bot. Open the Mini App for gifts, full notification lists, and complex flows.
+
+growth-disabled = 🎁 <b>Rewards are temporarily unavailable</b>
+
+    The backend is not exposing active reward capabilities for this channel right now.
+
+finance-menu-title = 💰 <b>Finance</b>
+
+    Wallet, payment history, and payment details are available in the Mini App. The bot does not start payments from here.
+
+miniapp-unavailable = Mini App URL is not configured for this bot.
 
 # ── Profile ──────────────────────────────────────────────────────────────
 profile-title = 👤 <b>Your Profile</b>
@@ -219,6 +232,15 @@ referral-info =
     <code>{ $link }</code>
     </blockquote>
 
+referral-info-with-code =
+    <blockquote>
+    👥 Invited: { $count }
+    🎁 Days earned: { $bonus_days }
+    🎟 Your code: <code>{ $code }</code>
+    🔗 Your link:
+    <code>{ $link }</code>
+    </blockquote>
+
 referral-share = 📨 Share your link and earn bonus days:
 
     { $link }
@@ -280,6 +302,13 @@ promocode-expired = ❌ Promo code has expired.
 promocode-already-used = ℹ️ You've already used this promo code.
 promocode-usage-limit = ⚠️ Promo code usage limit reached.
 promocode-cancelled = ✅ Promo code entry cancelled.
+code-enter-prompt = 🎟 Enter a code. The backend will determine the code type and available action.
+code-activated = ✅ Code <b>{ $code }</b> activated! Result: <b>{ $discount }</b>
+code-not-found = ❌ Code not found.
+code-expired = ❌ This code has expired.
+code-already-used = ℹ️ This code has already been used.
+code-usage-limit = ⚠️ Code usage limit reached.
+code-cancelled = ✅ Code entry cancelled.
 
 # ── Support ──────────────────────────────────────────────────────────────
 support-message = 🆘 <b>Support</b>

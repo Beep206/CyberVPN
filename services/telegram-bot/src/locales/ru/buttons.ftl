@@ -2,8 +2,13 @@
 
 # ── Главное меню ─────────────────────────────────────────────────────────
 btn-connect = 🚀 Подключиться
+btn-vpn = 🔐 VPN
 btn-devices = 📱 Мои устройства
 btn-subscription = 💳 Подписка
+btn-finance = 💰 Финансы
+btn-rewards = 🎁 Бонусы
+btn-miniapp = 📲 Mini App
+btn-miniapp-open = 📲 Открыть Mini App
 btn-invite = 👥 Пригласить
 btn-my-invites = 🎟 Мои инвайты
 btn-support = 🆘 Поддержка
@@ -44,6 +49,11 @@ btn-get-config = 🔗 Получить конфиг
 btn-referral-link = 🔗 Моя ссылка
 btn-referral-stats = 📊 Статистика
 btn-referral-share = 📨 Поделиться
+btn-growth-referral = 👥 Реферальная система
+btn-growth-gifts = 🎁 Подарки
+btn-growth-invites = 🎟 Инвайты
+btn-growth-notifications = 🔔 Бонусные уведомления
+btn-finance-open = 💰 Открыть финансы
 
 # ── Доступ ───────────────────────────────────────────────────────────────
 btn-accept-rules = ✅ Принимаю правила
@@ -52,6 +62,7 @@ btn-check-subscription = 🔍 Проверить подписку
 
 # ── Промокод ─────────────────────────────────────────────────────────────
 btn-enter-promo = 🎟 Ввести промокод
+btn-enter-code = 🎟 Активировать код
 
 # ── Пагинация ────────────────────────────────────────────────────────────
 btn-page-info = 📄 { $current } / { $total }

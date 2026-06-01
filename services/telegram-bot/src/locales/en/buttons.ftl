@@ -2,8 +2,13 @@
 
 # ── Main Menu ────────────────────────────────────────────────────────────
 btn-connect = 🚀 Connect
+btn-vpn = 🔐 VPN
 btn-devices = 📱 My Devices
 btn-subscription = 💳 Subscription
+btn-finance = 💰 Finance
+btn-rewards = 🎁 Rewards
+btn-miniapp = 📲 Mini App
+btn-miniapp-open = 📲 Open Mini App
 btn-invite = 👥 Invite
 btn-my-invites = 🎟 My invites
 btn-support = 🆘 Support
@@ -44,6 +49,11 @@ btn-get-config = 🔗 Get Config
 btn-referral-link = 🔗 My Link
 btn-referral-stats = 📊 Statistics
 btn-referral-share = 📨 Share
+btn-growth-referral = 👥 Referral program
+btn-growth-gifts = 🎁 Gifts
+btn-growth-invites = 🎟 Invites
+btn-growth-notifications = 🔔 Reward notifications
+btn-finance-open = 💰 Open finance
 
 # ── Access ───────────────────────────────────────────────────────────────
 btn-accept-rules = ✅ Accept Rules
@@ -52,6 +62,7 @@ btn-check-subscription = 🔍 Check Subscription
 
 # ── Promo Code ───────────────────────────────────────────────────────────
 btn-enter-promo = 🎟 Enter Promo Code
+btn-enter-code = 🎟 Activate Code
 
 # ── Pagination ───────────────────────────────────────────────────────────
 btn-page-info = 📄 { $current } / { $total }

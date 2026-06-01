@@ -11,8 +11,12 @@ from typing import TYPE_CHECKING
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from src.keyboards.miniapp import miniapp_button
+
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from src.config import BotSettings
 
 
 def back_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
@@ -64,10 +68,12 @@ def confirm_button(i18n: Callable[[str], str]) -> InlineKeyboardButton:
 
 
 def main_menu_keyboard(
-    i18n: Callable[[str], str],
+    i18n: Callable[..., str],
     is_admin: bool = False,
     has_subscription: bool = False,
     trial_available: bool = True,
+    *,
+    settings: BotSettings | None = None,
 ) -> InlineKeyboardMarkup:
     """Build the main menu keyboard with dynamic options.
 
@@ -82,46 +88,16 @@ def main_menu_keyboard(
     """
     builder = InlineKeyboardBuilder()
 
-    # Subscription/Connection section
-    if has_subscription:
-        builder.button(
-            text=i18n("btn-connect"),
-            callback_data="menu:connect",
-            style="primary",
-        )
-        builder.button(
-            text=i18n("btn-extend"),
-            callback_data="subscription:buy",
-            style="primary",
-        )
-    else:
-        if trial_available:
-            builder.button(
-                text=i18n("btn-trial"),
-                callback_data="trial:activate",
-                style="success",
-            )
-        builder.button(
-            text=i18n("btn-buy"),
-            callback_data="subscription:buy",
-            style="primary",
-        )
+    builder.button(text=i18n("btn-vpn"), callback_data="menu:vpn", style="primary")
+    builder.button(text=i18n("btn-subscription"), callback_data="menu:subscription", style="primary")
+    builder.button(text=i18n("btn-finance"), callback_data="menu:finance", style="primary")
+    builder.button(text=i18n("btn-rewards"), callback_data="menu:growth", style="primary")
+    builder.button(text=i18n("btn-profile"), callback_data="account:profile", style="primary")
+    builder.button(text=i18n("btn-support"), callback_data="menu:support", style="primary")
+    builder.row(miniapp_button(i18n, settings))
 
-    # Account section
-    builder.button(
-        text=i18n("btn-profile"),
-        callback_data="account:profile",
-    )
-    builder.button(
-        text=i18n("btn-invite"),
-        callback_data="menu:invite",
-    )
-
-    # Support
-    builder.button(
-        text=i18n("btn-support"),
-        callback_data="menu:support",
-    )
+    if not has_subscription and trial_available:
+        builder.button(text=i18n("btn-trial"), callback_data="trial:activate", style="success")
 
     # Admin section
     if is_admin:
@@ -130,7 +106,6 @@ def main_menu_keyboard(
             callback_data="admin:menu",
         )
 
-    # Adjust layout: 2 buttons per row
-    builder.adjust(2)
+    builder.adjust(2, 2, 2, 1, 1)
 
     return builder.as_markup()

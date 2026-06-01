@@ -206,6 +206,31 @@ class TestTelegramChannelParityReads:
 
         await client.close()
 
+    async def test_get_client_capabilities_success(self, mock_settings: BotSettings) -> None:
+        client = CyberVPNAPIClient(settings=mock_settings.backend)
+        capabilities = {
+            "growth": {
+                "invites": True,
+                "referral": True,
+                "promo_codes": False,
+                "gift_codes": True,
+                "checkout_code_discounts": False,
+                "growth_hub": True,
+            }
+        }
+
+        with respx.mock:
+            route = respx.get("https://api.test.cybervpn.local/client/capabilities").mock(
+                return_value=httpx.Response(200, json=capabilities)
+            )
+
+            result = await client.get_client_capabilities()
+
+            assert result == capabilities
+            assert route.called
+
+        await client.close()
+
 
 @pytest.mark.asyncio
 class TestTelegramStarsAPIClient:
