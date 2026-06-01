@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import ReferralPage from '../page';
 
 vi.mock('@/widgets/referral-cabinet/referral-cabinet-dashboard', () => ({
-  ReferralCabinetDashboard: () => <div>live referral cabinet</div>,
+  ReferralCabinetDashboard: ({ view }: { view: string }) => (
+    <div data-testid="legacy-referral-wrapper" data-view={view}>
+      live referral cabinet
+    </div>
+  ),
 }));
 
 describe('ReferralPage', () => {
@@ -11,5 +15,9 @@ describe('ReferralPage', () => {
     render(<ReferralPage />);
 
     expect(screen.getByText('live referral cabinet')).toBeInTheDocument();
+    expect(screen.getByTestId('legacy-referral-wrapper')).toHaveAttribute(
+      'data-view',
+      'referral',
+    );
   });
 });

@@ -15,5 +15,29 @@
     "mainNavigation": "Главная навигация",
     "sidebar": "Боковая панель",
     "openMenu": "Открыть меню",
-    "closeMenu": "Закрыть меню"
+    "closeMenu": "Закрыть меню",
+    "sections": {
+        "main": "ОСНОВНОЕ",
+        "vpn": "VPN",
+        "billing": "БИЛЛИНГ",
+        "growth": "НАГРАДЫ",
+        "communication": "ПОДДЕРЖКА",
+        "account": "АККАУНТ"
+    },
+    "items": {
+        "overview": "КАБИНЕТ",
+        "vpnAccess": "СЕТЬ",
+        "subscription": "ПОДПИСКА",
+        "wallet": "КОШЕЛЁК",
+        "paymentHistory": "ПЛАТЕЖИ",
+        "rewards": "ЦЕНТР НАГРАД",
+        "referral": "РЕФЕРАЛЫ",
+        "gifts": "ПОДАРКИ",
+        "invites": "ИНВАЙТЫ",
+        "codes": "КОДЫ",
+        "rewardNotifications": "АЛЕРТЫ",
+        "support": "ПОДДЕРЖКА",
+        "messages": "СООБЩЕНИЯ",
+        "profileSecurity": "НАСТРОЙКИ"
+    }
 }

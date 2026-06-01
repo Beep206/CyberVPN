@@ -14,8 +14,8 @@ import {
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
 import {
-  DASHBOARD_NAV_LABEL_FALLBACKS,
-  getDashboardNavItems,
+  getCabinetNavigationLabelFallback,
+  getWebCabinetNavigationSections,
 } from '@/widgets/dashboard-navigation';
 
 const FOCUSABLE_SELECTOR =
@@ -28,14 +28,15 @@ export function MobileSidebar() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { data: capabilities } = useClientCapabilities();
-  const navItems = getDashboardNavItems({
+  const navSections = getWebCabinetNavigationSections({
+    capabilities,
     growthVisible: isAnyGrowthSurfaceEnabled(capabilities),
   });
-  const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
+  const labelFor = (key: string) => {
     try {
       return t(key);
     } catch {
-      return DASHBOARD_NAV_LABEL_FALLBACKS[key];
+      return getCabinetNavigationLabelFallback(key);
     }
   };
 
@@ -154,54 +155,63 @@ export function MobileSidebar() {
               <div className="flex-1 overflow-y-auto py-6 px-4">
                 <nav
                   aria-label={labelFor('mainNavigation')}
-                  className="grid gap-2"
+                  className="grid gap-5"
                 >
-                  {navItems.map((item) => {
-                    const isActive = pathname?.includes(item.href);
-                    const Icon = item.icon;
-                    const label = labelFor(item.labelKey);
+                  {navSections.map((section) => (
+                    <div key={section.id}>
+                      <p className="px-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70">
+                        {labelFor(section.labelKey)}
+                      </p>
+                      <div className="mt-2 grid gap-1">
+                        {section.items.map((item) => {
+                          const isActive = item.match(pathname);
+                          const Icon = item.icon;
+                          const label = labelFor(item.labelKey);
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        aria-label={label}
-                        aria-current={isActive ? 'page' : undefined}
-                        className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
-                      >
-                        {isActive && (
-                          <div className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan" />
-                        )}
+                          return (
+                            <Link
+                              key={item.id}
+                              href={item.href}
+                              onClick={() => setIsOpen(false)}
+                              aria-label={label}
+                              aria-current={isActive ? 'page' : undefined}
+                              className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+                            >
+                              {isActive && (
+                                <div className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan" />
+                              )}
 
-                        <div
-                          className={cn(
-                            'relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300',
-                            isActive
-                              ? 'text-neon-cyan translate-x-1'
-                              : 'text-muted-foreground group-hover:text-foreground group-hover:translate-x-1',
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              'h-4 w-4 transition-transform duration-300',
-                              isActive
-                                ? 'drop-shadow-[0_0_8px_cyan]'
-                                : 'group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]',
-                            )}
-                          />
+                              <div
+                                className={cn(
+                                  'relative flex items-center gap-3 px-4 py-3 text-sm font-mono transition-all duration-300',
+                                  isActive
+                                    ? 'text-neon-cyan translate-x-1'
+                                    : 'text-muted-foreground group-hover:text-foreground group-hover:translate-x-1',
+                                )}
+                              >
+                                <Icon
+                                  className={cn(
+                                    'h-4 w-4 transition-transform duration-300',
+                                    isActive
+                                      ? 'drop-shadow-[0_0_8px_cyan]'
+                                      : 'group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]',
+                                  )}
+                                />
 
-                          <span className="relative tracking-wide">
-                            <CypherText
-                              text={label}
-                              className="group-hover:text-neon-cyan transition-colors duration-300"
-                              speed={30}
-                            />
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                                <span className="relative tracking-wide">
+                                  <CypherText
+                                    text={label}
+                                    className="group-hover:text-neon-cyan transition-colors duration-300"
+                                    speed={30}
+                                  />
+                                </span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </nav>
               </div>
 

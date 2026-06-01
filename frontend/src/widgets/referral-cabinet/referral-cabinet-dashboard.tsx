@@ -79,6 +79,36 @@ type InviteCode = {
   is_used: boolean;
 };
 
+export type ReferralCabinetDashboardView =
+  | 'codes'
+  | 'gifts'
+  | 'invites'
+  | 'notifications'
+  | 'overview'
+  | 'referral';
+
+type ReferralCabinetViewFlags = {
+  codes: boolean;
+  gifts: boolean;
+  invites: boolean;
+  notifications: boolean;
+  referral: boolean;
+};
+
+function getReferralCabinetViewFlags(
+  view: ReferralCabinetDashboardView,
+): ReferralCabinetViewFlags {
+  const overview = view === 'overview';
+
+  return {
+    codes: overview || view === 'codes',
+    gifts: overview || view === 'gifts',
+    invites: overview || view === 'invites',
+    notifications: overview || view === 'notifications',
+    referral: overview || view === 'referral',
+  };
+}
+
 const toneClasses: Record<
   StatusTone,
   { border: string; fill: string; text: string }
@@ -312,7 +342,11 @@ function getGiftStatus(
   return 'active';
 }
 
-export function ReferralCabinetDashboard() {
+export function ReferralCabinetDashboard({
+  view = 'overview',
+}: {
+  view?: ReferralCabinetDashboardView;
+}) {
   const t = useTranslations('Referral.cabinet');
   const growthT = useTranslations('Referral');
   const locale = useLocale();
@@ -332,6 +366,7 @@ export function ReferralCabinetDashboard() {
   const capabilitiesReady = isClientCapabilitiesReady(capabilitiesQuery);
   const capabilities = capabilitiesReady ? capabilitiesQuery.data : undefined;
   const growthVisibility = getGrowthVisibility(capabilities);
+  const viewFlags = getReferralCabinetViewFlags(view);
 
   const statusQuery = useQuery({
     queryKey: ['growth', 'referral', 'status'],
@@ -436,7 +471,10 @@ export function ReferralCabinetDashboard() {
   const rewardSummary = summarizeRewardTimeline(rewardTimeline);
   const health = getReferralProgramHealth({ stats, status });
   const healthTone = getHealthTone(health);
-  const notifications = (notificationsQuery.data ?? []).slice(0, 4);
+  const notifications = (notificationsQuery.data ?? []).slice(
+    0,
+    view === 'notifications' ? 12 : 4,
+  );
   const inviteCodes = useMemo(
     () => (inviteCodesQuery.data ?? []) as InviteCode[],
     [inviteCodesQuery.data],
@@ -469,13 +507,15 @@ export function ReferralCabinetDashboard() {
     commissionsQuery.data?.[0]?.currency ??
     'USD';
   const hasAnyError =
-    (growthVisibility.referral &&
+    (viewFlags.referral &&
+      growthVisibility.referral &&
       (statusQuery.isError ||
         codeQuery.isError ||
         statsQuery.isError ||
         rewardsQuery.isError ||
         commissionsQuery.isError)) ||
-    (growthVisibility.surface &&
+    (viewFlags.notifications &&
+      growthVisibility.surface &&
       (notificationsQuery.isError || notificationCountersQuery.isError));
 
   const copyValue = async (value: string, kind: 'code' | 'link' | 'share') => {
@@ -696,7 +736,7 @@ export function ReferralCabinetDashboard() {
         </section>
       )}
 
-      {growthVisibility.referral && (
+      {viewFlags.referral && growthVisibility.referral && (
         <>
           <section
             className="grid gap-4 md:grid-cols-4"
@@ -873,9 +913,11 @@ export function ReferralCabinetDashboard() {
         </>
       )}
 
-      {(growthVisibility.invites || growthVisibility.giftCodes) && (
+      {(viewFlags.codes || viewFlags.gifts) &&
+        (growthVisibility.invites || growthVisibility.giftCodes) && (
         <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          {(growthVisibility.invites || growthVisibility.giftCodes) && (
+          {viewFlags.codes &&
+            (growthVisibility.invites || growthVisibility.giftCodes) && (
             <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
               <div className="flex items-start gap-4">
                 <div className="rounded-2xl border border-neon-purple/30 bg-neon-purple/10 p-3">
@@ -960,7 +1002,7 @@ export function ReferralCabinetDashboard() {
             </article>
           )}
 
-          {growthVisibility.giftCodes && (
+          {viewFlags.gifts && growthVisibility.giftCodes && (
             <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
               <div className="flex items-start gap-4">
                 <div className="rounded-2xl border border-neon-cyan/30 bg-neon-cyan/10 p-3">
@@ -1072,9 +1114,10 @@ export function ReferralCabinetDashboard() {
         </section>
       )}
 
-      {(growthVisibility.invites || growthVisibility.giftCodes) && (
+      {((viewFlags.invites && growthVisibility.invites) ||
+        (viewFlags.gifts && growthVisibility.giftCodes)) && (
         <section className="grid gap-6 xl:grid-cols-2">
-          {growthVisibility.invites && (
+          {viewFlags.invites && growthVisibility.invites && (
             <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 backdrop-blur">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
@@ -1176,7 +1219,7 @@ export function ReferralCabinetDashboard() {
             </article>
           )}
 
-          {growthVisibility.giftCodes && (
+          {viewFlags.gifts && growthVisibility.giftCodes && (
             <article className="rounded-[2rem] border border-neon-pink/25 bg-terminal-surface/55 p-6 backdrop-blur">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-pink">
@@ -1283,7 +1326,7 @@ export function ReferralCabinetDashboard() {
         </section>
       )}
 
-      {growthVisibility.referral && (
+      {viewFlags.referral && growthVisibility.referral && (
         <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <article className="rounded-[2rem] border border-neon-purple/25 bg-terminal-surface/55 p-6 backdrop-blur">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-purple">
@@ -1404,9 +1447,11 @@ export function ReferralCabinetDashboard() {
         </section>
       )}
 
-      {growthVisibility.referral && (
+      {((viewFlags.referral && growthVisibility.referral) ||
+        (viewFlags.notifications && growthVisibility.surface)) && (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
+          {viewFlags.referral && growthVisibility.referral && (
+            <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-matrix-green">
               {t('activity.eyebrow')}
             </p>
@@ -1481,8 +1526,10 @@ export function ReferralCabinetDashboard() {
               </div>
             )}
           </article>
+          )}
 
-          <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
+          {viewFlags.notifications && growthVisibility.surface && (
+            <article className="rounded-[2rem] border border-grid-line/30 bg-terminal-surface/55 p-6 backdrop-blur">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.28em] text-neon-pink">
@@ -1558,6 +1605,7 @@ export function ReferralCabinetDashboard() {
               </div>
             )}
           </article>
+          )}
         </section>
       )}
     </div>

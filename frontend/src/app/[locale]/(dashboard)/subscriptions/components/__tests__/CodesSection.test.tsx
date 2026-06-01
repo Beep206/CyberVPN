@@ -87,5 +87,9 @@ describe('CodesSection', () => {
 
     expect(screen.getByText('Rewards Hub')).toBeInTheDocument();
     expect(screen.getByText('Checkout codes')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open rewards hub/i })).toHaveAttribute(
+      'href',
+      '/rewards',
+    );
   });
 });

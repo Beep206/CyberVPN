@@ -1,6 +1,6 @@
 import { ReferralCabinetDashboard } from '@/widgets/referral-cabinet/referral-cabinet-dashboard';
 
-export default function ReferralPage() {
+export default function RewardsReferralPage() {
   return (
     <div className="mx-auto w-full max-w-7xl">
       <ReferralCabinetDashboard view="referral" />
