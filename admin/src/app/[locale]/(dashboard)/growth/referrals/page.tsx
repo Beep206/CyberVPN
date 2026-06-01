@@ -1,4 +1,5 @@
-import { ReferralSignalsConsole } from '@/features/growth/components/referral-signals-console';
+import { redirect } from '@/i18n/navigation';
+import { defaultLocale, locales } from '@/i18n/config';
 import { getGrowthPageMetadata } from '@/features/growth/lib/page-metadata';
 
 export async function generateMetadata({
@@ -7,9 +8,17 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  return getGrowthPageMetadata(locale, 'referrals');
+  return getGrowthPageMetadata(locale, 'risk');
 }
 
-export default function GrowthReferralsPage() {
-  return <ReferralSignalsConsole />;
+export default async function GrowthReferralsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const safeLocale = locales.includes(locale as (typeof locales)[number])
+    ? (locale as (typeof locales)[number])
+    : defaultLocale;
+  redirect({ href: '/growth/risk', locale: safeLocale });
 }

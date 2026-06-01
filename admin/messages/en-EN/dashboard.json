@@ -32,6 +32,60 @@
   "auditDescription": "Recent privileged actions captured by the backend audit log.",
   "webhooksTitle": "WEBHOOK STREAM",
   "webhooksDescription": "Last processed integration callbacks and failures.",
+  "actionQueuesTitle": "ACTION QUEUES",
+  "actionQueuesDescription": "Live operator workload from existing admin APIs only, with role and error fallbacks.",
+  "myWorkspaceTitle": "MY WORKSPACE",
+  "myWorkspaceDescription": "Role-specific actions available to the current admin session.",
+  "myWorkspaceBadge": "ROLE AWARE",
+  "workspaceRoleLabel": "Role",
+  "workspaceEnabledActions": "Available routes",
+  "workspaceRestrictedActions": "Restricted routes",
+  "workspacePermissionCount": "Permissions",
+  "workspaceAvailableNow": "Available now",
+  "workspaceReadActions": "read",
+  "workspaceWriteActions": "write",
+  "workspaceNoActions": "No dashboard actions are available for this role.",
+  "workspaceRisk": {
+    "danger": "Sensitive action",
+    "read": "Read surface",
+    "write": "Operator action"
+  },
+  "openQueue": "Open",
+  "queueUnavailableForRole": "Role gated",
+  "queueStates": {
+    "active": "Needs action",
+    "empty": "Clear",
+    "error": "Unavailable",
+    "loading": "Syncing",
+    "unavailable": "Role gated"
+  },
+  "actionQueues": {
+    "withdrawals": {
+      "title": "Withdrawal approvals",
+      "description": "Pending wallet withdrawals waiting for finance or admin approval.",
+      "metric": "pending withdrawals"
+    },
+    "support": {
+      "title": "Support handoffs",
+      "description": "Tickets currently waiting for support-side response.",
+      "metric": "pending support tickets"
+    },
+    "securityReviews": {
+      "title": "Risk reviews",
+      "description": "Canonical risk review records surfaced by the security queue.",
+      "metric": "open reviews"
+    },
+    "growthAbuse": {
+      "title": "Growth abuse signals",
+      "description": "Referral and reward abuse signals visible to growth operators.",
+      "metric": "open signal groups"
+    },
+    "webhookFailures": {
+      "title": "Webhook failures",
+      "description": "Invalid webhook callbacks in the latest governance log page.",
+      "metric": "invalid callbacks"
+    }
+  },
   "cards": {
     "health": {
       "title": "PLATFORM HEALTH",

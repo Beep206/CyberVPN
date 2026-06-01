@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, Shield, X } from 'lucide-react';
+import { ChevronDown, Menu, Shield, X } from 'lucide-react';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
 import { Link, usePathname } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
@@ -11,11 +12,24 @@ import { Button } from '@/components/ui/button';
 import { lockDocumentScroll } from '@/shared/lib/scroll-lock';
 import { useAuthStore } from '@/stores/auth-store';
 import {
-    DASHBOARD_NAV_ITEMS,
+    getAdminActiveNavItem,
+    isAdminNavGroupActive,
+    resolveAdminNavigationGroups,
+} from '@/features/admin-shell/config/admin-navigation';
+import {
+    formatAdminQueueBadge,
+    useAdminActionQueues,
+} from '@/features/admin-shell/hooks/use-admin-action-queues';
+import type {
+    AdminNavGroupId,
+    ResolvedAdminNavItem,
+} from '@/features/admin-shell/config/admin-navigation';
+import {
     DASHBOARD_NAV_LABEL_FALLBACKS,
 } from '@/widgets/dashboard-navigation';
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const DEFAULT_EXPANDED_GROUP_IDS: readonly AdminNavGroupId[] = ['operations'];
 
 export function MobileSidebar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -35,6 +49,125 @@ export function MobileSidebar() {
     const accessLabel = user?.role
         ? user.role.replace(/_/g, ' ').toUpperCase()
         : labelFor('secureSession');
+    const navigationGroups = resolveAdminNavigationGroups(user?.role);
+    const activeItem = getAdminActiveNavItem(pathname, navigationGroups);
+    const activeItemId = activeItem?.id ?? null;
+    const { badges: queueBadges } = useAdminActionQueues(user?.role);
+    const [expandedGroupIds, setExpandedGroupIds] = useState<
+        AdminNavGroupId[]
+    >(() => [...DEFAULT_EXPANDED_GROUP_IDS]);
+    const portalContainer =
+        typeof document === 'undefined' ? null : document.body;
+
+    const toggleGroup = (groupId: AdminNavGroupId) => {
+        setExpandedGroupIds((currentGroupIds) =>
+            currentGroupIds.includes(groupId)
+                ? currentGroupIds.filter((currentGroupId) => currentGroupId !== groupId)
+                : [...currentGroupIds, groupId],
+        );
+    };
+
+    const renderNavItem = (item: ResolvedAdminNavItem) => {
+        const isActive = item.id === activeItemId;
+        const isDisabled = item.accessState === 'disabled';
+        const Icon = item.icon;
+        const label = labelFor(item.labelKey);
+        const hint = labelFor(item.hintKey);
+        const unavailableLabel = labelFor('unavailableForRole');
+        const badgeCount = queueBadges[item.id];
+        const badgeLabel = badgeCount ? formatAdminQueueBadge(badgeCount) : null;
+        const content = (
+            <div
+                className={cn(
+                    'relative flex min-h-12 items-start gap-3 px-3 py-2.5 text-sm font-mono transition-all duration-300',
+                    isActive
+                        ? 'translate-x-1 text-neon-cyan'
+                        : 'text-muted-foreground group-hover:translate-x-1 group-hover:text-foreground',
+                    isDisabled
+                        ? 'cursor-not-allowed opacity-50 group-hover:translate-x-0 group-hover:text-muted-foreground'
+                        : '',
+                )}
+            >
+                <Icon
+                    className={cn(
+                        'mt-0.5 h-4 w-4 shrink-0 transition-transform duration-300',
+                        isActive
+                            ? 'drop-shadow-[0_0_8px_cyan]'
+                            : 'group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]',
+                        isDisabled ? 'group-hover:scale-100 group-hover:drop-shadow-none' : '',
+                    )}
+                />
+
+                <span className="relative min-w-0 flex-1">
+                    <CypherText
+                        text={label}
+                        className="block transition-colors duration-300 group-hover:text-neon-cyan"
+                        speed={30}
+                    />
+                    <span
+                        className={cn(
+                            'mt-1 block text-[10px] uppercase tracking-[0.18em]',
+                            isActive
+                                ? 'text-neon-cyan/70'
+                                : 'text-muted-foreground/70 group-hover:text-foreground/70',
+                            isDisabled ? 'group-hover:text-muted-foreground/70' : '',
+                        )}
+                    >
+                        {hint}
+                    </span>
+                </span>
+
+                {badgeLabel ? (
+                    <span
+                        aria-label={`${label}: ${badgeLabel}`}
+                        className={cn(
+                            'mt-0.5 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border px-1.5 text-[10px] font-mono font-semibold leading-none',
+                            isActive
+                                ? 'border-neon-cyan/50 bg-neon-cyan/20 text-neon-cyan'
+                                : 'border-amber-300/40 bg-amber-300/15 text-amber-200',
+                        )}
+                    >
+                        {badgeLabel}
+                    </span>
+                ) : null}
+            </div>
+        );
+
+        if (isDisabled) {
+            return (
+                <span
+                    key={item.id}
+                    role="link"
+                    aria-label={label}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-disabled="true"
+                    title={unavailableLabel}
+                    className="group relative block overflow-hidden rounded-md"
+                >
+                    {isActive ? (
+                        <div className="absolute inset-0 border-l-2 border-neon-cyan bg-neon-cyan/10" />
+                    ) : null}
+                    {content}
+                </span>
+            );
+        }
+
+        return (
+            <Link
+                key={item.id}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                aria-label={label}
+                aria-current={isActive ? 'page' : undefined}
+                className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
+            >
+                {isActive ? (
+                    <div className="absolute inset-0 border-l-2 border-neon-cyan bg-neon-cyan/10" />
+                ) : null}
+                {content}
+            </Link>
+        );
+    };
 
     // Focus trap and keyboard handling for mobile sidebar
     useEffect(() => {
@@ -106,29 +239,31 @@ export function MobileSidebar() {
                 <Menu className="h-5 w-5" />
             </Button>
 
-            <AnimatePresence>
-                {isOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsOpen(false)}
-                            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-                            aria-hidden="true"
-                        />
-                        <motion.aside
-                            ref={sidebarRef}
-                            id="mobile-sidebar-panel"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label={labelFor('sidebar')}
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                            className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
-                        >
+            {portalContainer
+                ? createPortal(
+                      <AnimatePresence>
+                          {isOpen && (
+                              <>
+                                  <motion.div
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      onClick={() => setIsOpen(false)}
+                                      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
+                                      aria-hidden="true"
+                                  />
+                                  <motion.aside
+                                      ref={sidebarRef}
+                                      id="mobile-sidebar-panel"
+                                      role="dialog"
+                                      aria-modal="true"
+                                      aria-label={labelFor('sidebar')}
+                                      initial={{ x: '-100%' }}
+                                      animate={{ x: 0 }}
+                                      exit={{ x: '-100%' }}
+                                      transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                                      className="fixed inset-y-0 left-0 z-[80] flex h-dvh w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
+                                  >
                             <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan shadow-[0_0_18px_rgba(0,255,255,0.18)]">
@@ -157,50 +292,67 @@ export function MobileSidebar() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto py-6 px-4">
-                                <nav aria-label={labelFor('mainNavigation')} className="grid gap-2">
-                                    {DASHBOARD_NAV_ITEMS.map((item) => {
-                                        const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
-                                        const Icon = item.icon;
-                                        const label = labelFor(item.labelKey);
-                                        const hint = labelFor(item.hintKey);
+                                <nav aria-label={labelFor('mainNavigation')} className="grid gap-3">
+                                    {navigationGroups.map((group) => {
+                                        const isActiveGroup = isAdminNavGroupActive(pathname, group);
+                                        const isExpanded =
+                                            isActiveGroup || expandedGroupIds.includes(group.id);
+                                        const groupLabel = labelFor(group.labelKey);
+                                        const groupHint = labelFor(group.hintKey);
+                                        const contentId = `mobile-nav-group-${group.id}`;
+                                        const groupBadgeCount = group.items.reduce(
+                                            (sum, item) => sum + (queueBadges[item.id] ?? 0),
+                                            0,
+                                        );
+                                        const groupBadgeLabel = groupBadgeCount
+                                            ? formatAdminQueueBadge(groupBadgeCount)
+                                            : null;
 
                                         return (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                onClick={() => setIsOpen(false)}
-                                                aria-label={label}
-                                                aria-current={isActive ? 'page' : undefined}
-                                                className="group relative block overflow-hidden rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-surface focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]"
-                                            >
-                                                {isActive && (
-                                                    <div className="absolute inset-0 bg-neon-cyan/10 border-l-2 border-neon-cyan" />
-                                                )}
-
-                                                <div className={cn(
-                                                    "relative flex items-start gap-3 px-4 py-3 text-sm font-mono transition-all duration-300",
-                                                    isActive ? "text-neon-cyan translate-x-1" : "text-muted-foreground group-hover:text-foreground group-hover:translate-x-1"
-                                                )}>
-                                                    <Icon className={cn(
-                                                        "mt-0.5 h-4 w-4 shrink-0 transition-transform duration-300",
-                                                        isActive ? "drop-shadow-[0_0_8px_cyan]" : "group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]"
-                                                    )} />
-
-                                                    <span className="relative min-w-0 flex-1">
-                                                        <CypherText
-                                                            text={label}
-                                                            className="block group-hover:text-neon-cyan transition-colors duration-300"
-                                                            speed={30}
-                                                        />
-                                                        <span className={cn(
-                                                            'mt-1 block text-[10px] uppercase tracking-[0.18em]',
-                                                            isActive ? 'text-neon-cyan/70' : 'text-muted-foreground/70 group-hover:text-foreground/70',
-                                                        )}>
-                                                            {hint}
+                                            <section key={group.id} className="grid gap-1">
+                                                <button
+                                                    type="button"
+                                                    aria-expanded={isExpanded}
+                                                    aria-controls={contentId}
+                                                    onClick={() => toggleGroup(group.id)}
+                                                    className={cn(
+                                                        'flex min-h-12 w-full items-center justify-between rounded-md border border-transparent px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.18em] transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan',
+                                                        isActiveGroup
+                                                            ? 'border-neon-cyan/30 bg-neon-cyan/10 text-neon-cyan'
+                                                            : 'text-muted-foreground hover:border-grid-line/30 hover:bg-sidebar-accent/40 hover:text-foreground',
+                                                    )}
+                                                >
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate">{groupLabel}</span>
+                                                        <span className="mt-0.5 block truncate text-[9px] normal-case tracking-[0.08em] opacity-70">
+                                                            {groupHint}
                                                         </span>
                                                     </span>
-                                                </div>
-                                            </Link>
+                                                    <span className="ml-2 flex shrink-0 items-center gap-2">
+                                                        {groupBadgeLabel ? (
+                                                            <span
+                                                                aria-label={`${groupLabel}: ${groupBadgeLabel}`}
+                                                                className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-amber-300/40 bg-amber-300/15 px-1.5 text-[10px] font-semibold leading-none text-amber-200"
+                                                            >
+                                                                {groupBadgeLabel}
+                                                            </span>
+                                                        ) : null}
+                                                        <ChevronDown
+                                                            aria-hidden="true"
+                                                            className={cn(
+                                                                'h-3.5 w-3.5 transition-transform duration-200',
+                                                                isExpanded ? 'rotate-180' : '',
+                                                            )}
+                                                        />
+                                                    </span>
+                                                </button>
+
+                                                {isExpanded ? (
+                                                    <div id={contentId} className="grid gap-1 pl-2">
+                                                        {group.items.map((item) => renderNavItem(item))}
+                                                    </div>
+                                                ) : null}
+                                            </section>
                                         );
                                     })}
                                 </nav>
@@ -228,10 +380,13 @@ export function MobileSidebar() {
                                     </div>
                                 </div>
                             </div>
-                        </motion.aside>
-                    </>
-                )}
-            </AnimatePresence>
+                                </motion.aside>
+                            </>
+                        )}
+                    </AnimatePresence>,
+                    portalContainer,
+                )
+                : null}
         </div>
     );
 }

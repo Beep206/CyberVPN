@@ -8,22 +8,34 @@ import { CustomerDetail } from '../customer-detail';
 const {
   mockGetMobileUser,
   mockGetWallet,
-  mockGetHistory,
+  mockGetCustomerPaymentAttempts,
   mockGetReferralUserDetail,
+  mockGetPartnerDetail,
   mockListSupportNotes,
+  mockListCustomerSubscriptions,
   mockGetVpnUser,
+  mockEnableVpnUser,
+  mockDisableVpnUser,
   mockGetSubscriptionSnapshot,
   mockGetTimeline,
+  mockRevokeAllDevices,
+  mockResetPassword,
   mockRegenerateVpnCredentials,
 } = vi.hoisted(() => ({
   mockGetMobileUser: vi.fn(),
   mockGetWallet: vi.fn(),
-  mockGetHistory: vi.fn(),
+  mockGetCustomerPaymentAttempts: vi.fn(),
   mockGetReferralUserDetail: vi.fn(),
+  mockGetPartnerDetail: vi.fn(),
   mockListSupportNotes: vi.fn(),
+  mockListCustomerSubscriptions: vi.fn(),
   mockGetVpnUser: vi.fn(),
+  mockEnableVpnUser: vi.fn(),
+  mockDisableVpnUser: vi.fn(),
   mockGetSubscriptionSnapshot: vi.fn(),
   mockGetTimeline: vi.fn(),
+  mockRevokeAllDevices: vi.fn(),
+  mockResetPassword: vi.fn(),
   mockRegenerateVpnCredentials: vi.fn(),
 }));
 
@@ -112,9 +124,14 @@ vi.mock('@/lib/api/customers', async () => {
       ...actual.customersApi,
       getMobileUser: (...args: unknown[]) => mockGetMobileUser(...args),
       listSupportNotes: (...args: unknown[]) => mockListSupportNotes(...args),
+      listCustomerSubscriptions: (...args: unknown[]) => mockListCustomerSubscriptions(...args),
       getVpnUser: (...args: unknown[]) => mockGetVpnUser(...args),
+      enableVpnUser: (...args: unknown[]) => mockEnableVpnUser(...args),
+      disableVpnUser: (...args: unknown[]) => mockDisableVpnUser(...args),
       getSubscriptionSnapshot: (...args: unknown[]) => mockGetSubscriptionSnapshot(...args),
       getTimeline: (...args: unknown[]) => mockGetTimeline(...args),
+      revokeAllDevices: (...args: unknown[]) => mockRevokeAllDevices(...args),
+      resetPassword: (...args: unknown[]) => mockResetPassword(...args),
       regenerateVpnCredentials: (...args: unknown[]) => mockRegenerateVpnCredentials(...args),
     },
   };
@@ -135,9 +152,9 @@ vi.mock('@/lib/api/payments', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api/payments')>('@/lib/api/payments');
   return {
     ...actual,
-    paymentsApi: {
-      ...actual.paymentsApi,
-      getHistory: (...args: unknown[]) => mockGetHistory(...args),
+    adminPaymentsApi: {
+      ...actual.adminPaymentsApi,
+      getCustomerPaymentAttempts: (...args: unknown[]) => mockGetCustomerPaymentAttempts(...args),
     },
   };
 });
@@ -149,6 +166,7 @@ vi.mock('@/lib/api/growth', async () => {
     growthApi: {
       ...actual.growthApi,
       getReferralUserDetail: (...args: unknown[]) => mockGetReferralUserDetail(...args),
+      getPartnerDetail: (...args: unknown[]) => mockGetPartnerDetail(...args),
     },
   };
 });
@@ -187,10 +205,23 @@ function arrangeCustomerDetailQueries() {
       partner_promoted_at: null,
       created_at: '2026-04-10T11:00:00Z',
       last_login_at: '2026-04-10T12:00:00Z',
-      device_count: 0,
+      device_count: 1,
       subscription_url: null,
       updated_at: '2026-04-10T14:00:00Z',
-      devices: [],
+      devices: [
+        {
+          id: 'ae37a6f7-6eb5-411c-b02e-0b57c5b1f034',
+          device_id: 'device_001',
+          platform: 'ios',
+          platform_id: 'apple',
+          os_version: '18.1',
+          app_version: '1.4.0',
+          device_model: 'iPhone 16',
+          push_token: null,
+          registered_at: '2026-04-10T11:00:00Z',
+          last_active_at: '2026-04-10T13:30:00Z',
+        },
+      ],
     },
   });
   mockGetWallet.mockResolvedValue({
@@ -201,7 +232,7 @@ function arrangeCustomerDetailQueries() {
       currency: 'USD',
     },
   });
-  mockGetHistory.mockResolvedValue({ data: { payments: [] } });
+  mockGetCustomerPaymentAttempts.mockResolvedValue({ data: { items: [] } });
   mockGetReferralUserDetail.mockResolvedValue({
     data: {
       user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
@@ -212,7 +243,28 @@ function arrangeCustomerDetailQueries() {
       recent_commissions: [],
     },
   });
+  mockGetPartnerDetail.mockResolvedValue({
+    data: {
+      user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
+      total_earned: 0,
+      code_count: 0,
+      active_code_count: 0,
+      total_clients: 0,
+      last_activity_at: null,
+      codes: [],
+    },
+  });
   mockListSupportNotes.mockResolvedValue({ data: [] });
+  mockListCustomerSubscriptions.mockResolvedValue({
+    data: {
+      customer_account_id: 'customer-account-001',
+      auth_realm_id: 'auth-realm-001',
+      selected_subscription_key: null,
+      default_subscription_key: null,
+      items: [],
+      limitations: [],
+    },
+  });
   mockGetVpnUser.mockResolvedValue({
     data: {
       exists: true,
@@ -230,6 +282,8 @@ function arrangeCustomerDetailQueries() {
       telegram_id: 123456,
     },
   });
+  mockEnableVpnUser.mockResolvedValue({ data: { exists: true, status: 'active' } });
+  mockDisableVpnUser.mockResolvedValue({ data: { exists: true, status: 'disabled' } });
   mockGetSubscriptionSnapshot.mockResolvedValue({
     data: {
       exists: true,
@@ -259,6 +313,19 @@ function arrangeCustomerDetailQueries() {
     },
   });
   mockGetTimeline.mockResolvedValue({ data: { items: [] } });
+  mockRevokeAllDevices.mockResolvedValue({
+    data: {
+      revoked_count: 1,
+    },
+  });
+  mockResetPassword.mockResolvedValue({
+    data: {
+      password_mode: 'generated',
+      device_sessions_cleared: true,
+      devices_revoked: 1,
+      generated_password: 'TempPassword-123!',
+    },
+  });
   mockRegenerateVpnCredentials.mockResolvedValue({
     data: {
       user_id: '9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0',
@@ -288,7 +355,15 @@ describe('CustomerDetail VPN credential regeneration', () => {
 
     renderWithQueryClient(<CustomerDetail userId="9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0" />);
 
-    await user.click(await screen.findByRole('button', { name: 'detail.regenerateVpnCredentials' }));
+    const dangerGroup = await screen.findByRole('group', { name: 'detail.dangerZoneTitle' });
+    const regenerateCredentialsButton = within(dangerGroup).getByRole('button', {
+      name: 'detail.regenerateVpnCredentials',
+    });
+
+    await waitFor(() => {
+      expect(regenerateCredentialsButton).not.toBeDisabled();
+    });
+    await user.click(regenerateCredentialsButton);
 
     const dialog = await screen.findByRole('dialog', {
       name: 'detail.regenerateVpnCredentialsTitle',
@@ -318,5 +393,60 @@ describe('CustomerDetail VPN credential regeneration', () => {
     expect(screen.getByText('customer_vpn_credentials_regenerated')).toBeVisible();
     expect(document.body.textContent).not.toContain('raw-short-secret');
     expect(document.body.textContent).not.toContain('raw-subscription-secret');
+  });
+
+  it('renders local navigation links for all customer detail sections', async () => {
+    renderWithQueryClient(<CustomerDetail userId="9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0" />);
+
+    const localNavigation = await screen.findByRole('navigation', {
+      name: 'detail.localNavigationAriaLabel',
+    });
+
+    [
+      ['detail.actionGroupsTitle', '#customer-actions-section'],
+      ['detail.identityTitle', '#customer-identity-section'],
+      ['detail.stateTitle', '#customer-access-state-section'],
+      ['detail.walletTitle', '#customer-wallet-section'],
+      ['detail.profileTitle', '#customer-profile-section'],
+      ['detail.subscriptionTitle', '#customer-subscription-section'],
+      ['detail.playbooksTitle', '#customer-playbooks-section'],
+      ['detail.recoveryTitle', '#customer-recovery-section'],
+      ['detail.operations.title', '#customer-operations-section'],
+      ['detail.devicesTitle', '#customer-devices-section'],
+      ['detail.vpnTitle', '#customer-vpn-section'],
+      ['detail.notesTitle', '#customer-notes-section'],
+      ['detail.paymentsTitle', '#customer-payments-section'],
+      ['detail.timelineTitle', '#customer-timeline-section'],
+      ['detail.referralTitle', '#customer-referral-section'],
+      ['detail.partnerTitle', '#customer-partner-section'],
+    ].forEach(([name, href]) => {
+      expect(within(localNavigation).getByRole('link', { name })).toHaveAttribute('href', href);
+      expect(document.querySelector(href)).not.toBeNull();
+    });
+  });
+
+  it('requires reasons before running recovery and grouped sensitive actions', async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<CustomerDetail userId="9ea92e5e-8267-4d46-9a83-f2ed9f55c7f0" />);
+
+    const dangerGroup = await screen.findByRole('group', { name: 'detail.dangerZoneTitle' });
+    await user.click(within(dangerGroup).getByRole('button', { name: 'detail.revokeAllDevices' }));
+
+    const revokeAllDialog = await screen.findByRole('dialog', {
+      name: 'detail.revokeAllDevicesTitle',
+    });
+    await user.click(within(revokeAllDialog).getByRole('button', { name: 'detail.revokeAllDevices' }));
+
+    expect(within(revokeAllDialog).getByText('detail.dialogs.reasonValidation')).toBeVisible();
+    expect(mockRevokeAllDevices).not.toHaveBeenCalled();
+
+    await user.click(within(revokeAllDialog).getByRole('button', { name: 'common.cancel' }));
+    await user.click(screen.getByRole('button', { name: 'detail.generateTemporaryPassword' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('detail.recoveryReasonRequired')).toHaveLength(2);
+    });
+    expect(mockResetPassword).not.toHaveBeenCalled();
   });
 });

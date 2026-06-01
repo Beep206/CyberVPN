@@ -8,6 +8,9 @@
     "inviteCodes": "Invite-коды",
     "giftCodes": "Gift-коды",
     "partners": "Партнёры",
+    "reporting": "Отчётность",
+    "notifications": "Уведомления",
+    "risk": "Risk-сигналы",
     "referrals": "Рефералы"
   },
   "common": {
@@ -51,6 +54,9 @@
       "inviteCodes": "Генерация batch invite-кодов для конкретного пользователя с optional plan-targeting.",
       "giftCodes": "Выдача одиночных или batch gift-кодов, просмотр live-инвентаря и контроль redemption-состояния.",
       "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
+      "reporting": "Просмотр persisted rollups, reporting-подписок, governance coverage и exportable delivery artifacts.",
+      "notifications": "Отправка операторских growth-notice и проверка per-channel delivery forensics.",
+      "risk": "Triage referral abuse-pressure, blocked rewards и lifecycle risk signals из growth queue.",
       "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям."
     },
     "liveSignalsTitle": "Живой Lifecycle-Поток",
@@ -266,6 +272,29 @@
     "createPanelTitle": "Создание Промокода",
     "createPanelDescription": "Здесь раскрыт весь admin create-surface, включая advanced targeting fields, которые пока остаются write-only в API-контракте.",
     "editPanelTitle": "Обновление Промо",
+    "lookup": {
+      "title": "Проверка кода кампании",
+      "description": "Проверяет любой код кампании с контекстом, заданным оператором, до обращения к текущему состоянию оформления оплаты.",
+      "action": "Запустить проверку",
+      "empty": "Введите код, чтобы проверить его текущий жизненный цикл и доступность к применению.",
+      "fields": {
+        "code": "Код",
+        "context": "Контекст действия",
+        "channel": "Канал",
+        "userId": "UUID пользователя для проверки",
+        "storefront": "Ключ витрины",
+        "planId": "UUID плана",
+        "amount": "Сумма"
+      },
+      "resultType": "Определённый тип",
+      "resultStatus": "Результат",
+      "resultReason": "Причина отказа",
+      "resultConflict": "Код конфликта",
+      "resultTarget": "Цель неверного контекста",
+      "resultIssuer": "Тип издателя",
+      "resultOwner": "Тип владельца",
+      "resultMessageKey": "Ключ сообщения"
+    },
     "inspectPanelTitle": "Деталь Промо",
     "inspectPanelDescription": "Detail-маршрут привязан к отдельному promo endpoint, а не только к данным списка.",
     "inspectEmpty": "Выберите промо в таблице, чтобы посмотреть детали.",
