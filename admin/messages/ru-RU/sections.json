@@ -59,7 +59,10 @@
       "promoCodes": "Инвентарь промокодов и примитивы их валидации.",
       "inviteCodes": "Генерация invite-кодов и видимость их погашения.",
       "partnerPromotion": "Повышение до партнёра плюс live-directory и drill-down контекст.",
-      "referralSignals": "Referral overview, top referrer'ы и аналитика последних commission."
+      "referralSignals": "Referral overview, top referrer'ы и аналитика последних commission.",
+      "growthReporting": "Отдельная reporting-консоль для rollups, подписок, governance coverage и export artifacts.",
+      "growthNotifications": "Отдельная notification-консоль для manual notices, delivery feed и forensics.",
+      "growthRiskQueue": "Отдельная risk-консоль для abuse-сигналов и blocked reward posture."
     },
     "nextModules": {
       "growthSettings": "Единые настройки роста для промо- и referral-правил.",

@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { DASHBOARD_NAV_ITEMS } from '@/widgets/dashboard-navigation';
+import {
+  DASHBOARD_NAV_GROUPS,
+  DASHBOARD_NAV_ITEMS,
+} from '@/widgets/dashboard-navigation';
+import { useAuthStore } from '@/stores/auth-store';
 
 vi.mock('@/shared/ui/atoms/cypher-text', () => ({
   CypherText: ({ text, className }: { text: string; className?: string }) => (
@@ -18,6 +22,17 @@ vi.mock('@/lib/utils', () => ({
       .map((value) => (typeof value === 'string' ? value : ''))
       .join(' ')
       .trim(),
+}));
+
+vi.mock('@/features/admin-shell/hooks/use-admin-action-queues', () => ({
+  formatAdminQueueBadge: (count: number) => String(count),
+  useAdminActionQueues: () => ({
+    badges: {
+      support: 4,
+      'commerce-withdrawals': 8,
+    },
+    queues: [],
+  }),
 }));
 
 const mockUsePathname = vi.fn(() => '/');
@@ -51,34 +66,68 @@ describe('CyberSidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePathname.mockReturnValue('/');
+    useAuthStore.setState({
+      user: {
+        id: 'admin-1',
+        email: 'admin@example.test',
+        role: 'admin',
+        is_active: true,
+        is_email_verified: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+      isAuthenticated: true,
+    });
   });
 
-  it('renders the current dashboard navigation inventory', () => {
+  it('renders grouped navigation and expands the default operations group', () => {
     render(<CyberSidebar />);
 
-    const links = screen.getAllByRole('link');
-    const cypherTexts = screen.getAllByTestId('cypher-text');
-
-    expect(links).toHaveLength(DASHBOARD_NAV_ITEMS.length);
-    expect(cypherTexts).toHaveLength(DASHBOARD_NAV_ITEMS.length);
-
-    for (const item of DASHBOARD_NAV_ITEMS) {
-      expect(screen.getByRole('link', { name: item.labelKey })).toHaveAttribute(
-        'href',
-        item.href,
-      );
-    }
+    expect(screen.getAllByRole('button')).toHaveLength(
+      DASHBOARD_NAV_GROUPS.length,
+    );
+    expect(screen.getByRole('button', { name: /group\.operations/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('link', { name: 'item.dashboard' })).toHaveAttribute(
+      'href',
+      '/dashboard',
+    );
+    expect(screen.getAllByTestId('cypher-text').length).toBeGreaterThan(0);
   });
 
-  it('marks the active route with aria-current', () => {
-    mockUsePathname.mockReturnValue('/dashboard');
+  it('keeps the flat dashboard navigation export available for registry consumers', () => {
+    expect(DASHBOARD_NAV_ITEMS.map((item) => item.href)).toContain('/commerce/payments');
+  });
+
+  it('marks the most specific active route with aria-current', () => {
+    mockUsePathname.mockReturnValue('/commerce/payments');
 
     render(<CyberSidebar />);
 
-    expect(screen.getByRole('link', { name: 'dashboard' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /group\.commerce/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('link', { name: 'item.payments' })).toHaveAttribute(
       'aria-current',
       'page',
     );
+    expect(screen.getByRole('link', { name: 'item.commerceOverview' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
+  it('renders queue badges for expanded groups with live counts', () => {
+    mockUsePathname.mockReturnValue('/support');
+
+    render(<CyberSidebar />);
+
+    expect(screen.getByRole('button', { name: /group\.customers/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByLabelText('item.support: 4')).toHaveTextContent('4');
   });
 
   it('stays hidden on mobile and fixed on desktop', () => {

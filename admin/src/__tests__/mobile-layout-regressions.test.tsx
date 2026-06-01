@@ -1,5 +1,7 @@
-import fs from 'fs/promises';
-import path from 'path';
+// @vitest-environment node
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MOBILE_ROUTE_CHECKLIST } from '@/test/mobile-route-checklist';
 import { MOBILE_VIEWPORTS } from '@/test/mobile-viewport';

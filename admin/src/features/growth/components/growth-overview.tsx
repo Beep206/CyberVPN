@@ -1,7 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Gift, RefreshCw, ShieldAlert, TicketPlus, TrendingUp, UserRoundPlus } from 'lucide-react';
+import {
+  BellRing,
+  ChartColumnIncreasing,
+  Download,
+  Gift,
+  RefreshCw,
+  ShieldAlert,
+  TicketPlus,
+  TrendingUp,
+  UserRoundPlus,
+} from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
@@ -210,11 +220,28 @@ function reportingSubscriptionFormFromItem(subscription: AdminGrowthReportingSub
   };
 }
 
-export function GrowthOverview() {
+type GrowthConsoleMode = 'overview' | 'reporting' | 'notifications';
+
+export function GrowthReportingConsole() {
+  return <GrowthOverview mode="reporting" />;
+}
+
+export function GrowthNotificationsConsole() {
+  return <GrowthOverview mode="notifications" />;
+}
+
+export function GrowthOverview({
+  mode = 'overview',
+}: {
+  mode?: GrowthConsoleMode;
+}) {
   const t = useTranslations('Growth');
   const locale = useLocale();
   const queryClient = useQueryClient();
   const reportingWindowDays = 14;
+  const showOverview = mode === 'overview';
+  const showReporting = mode === 'reporting';
+  const showNotifications = mode === 'notifications';
   const [deliveryFilterUserId, setDeliveryFilterUserId] = useState('');
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
   const [editingReportingSubscriptionId, setEditingReportingSubscriptionId] = useState<string | null>(null);
@@ -239,6 +266,7 @@ export function GrowthOverview() {
       const response = await growthApi.getGrowthSignalsOverview();
       return response.data;
     },
+    enabled: showOverview,
     staleTime: 15_000,
   });
 
@@ -251,6 +279,7 @@ export function GrowthOverview() {
       });
       return response.data;
     },
+    enabled: showNotifications,
     staleTime: 15_000,
   });
 
@@ -263,7 +292,7 @@ export function GrowthOverview() {
       const response = await growthApi.getGrowthNotificationDeliveryDetail(selectedDeliveryId);
       return response.data;
     },
-    enabled: Boolean(selectedDeliveryId),
+    enabled: showNotifications && Boolean(selectedDeliveryId),
     staleTime: 15_000,
   });
 
@@ -275,6 +304,7 @@ export function GrowthOverview() {
       });
       return response.data;
     },
+    enabled: showReporting,
     staleTime: 60_000,
   });
 
@@ -284,6 +314,7 @@ export function GrowthOverview() {
       const response = await growthApi.getGrowthReportingGovernanceOverview();
       return response.data;
     },
+    enabled: showReporting,
     staleTime: 30_000,
   });
 
@@ -293,6 +324,7 @@ export function GrowthOverview() {
       const response = await growthApi.listGrowthReportingSubscriptions();
       return response.data;
     },
+    enabled: showReporting,
     staleTime: 30_000,
   });
 
@@ -302,6 +334,7 @@ export function GrowthOverview() {
       const response = await growthApi.listGrowthReportingDeliveries({ limit: 8 });
       return response.data;
     },
+    enabled: showReporting,
     staleTime: 30_000,
   });
 
@@ -540,41 +573,122 @@ export function GrowthOverview() {
   const recentEvents = overview?.recent_lifecycle_events ?? [];
   const deliveries = deliveriesQuery.data?.items ?? [];
   const reportingTrendRows = buildReportingTrendRows(reporting);
+  const failedNotificationDeliveryCount = deliveries.filter(
+    (delivery) => delivery.delivery_status === 'failed',
+  ).length;
+  const queuedNotificationDeliveryCount = deliveries.filter(
+    (delivery) => delivery.delivery_status === 'queued',
+  ).length;
+  const pageShell = showReporting
+    ? {
+        eyebrow: t('overview.eyebrow'),
+        title: t('overview.reporting.title'),
+        description: t('overview.reporting.description'),
+        icon: ChartColumnIncreasing,
+        metrics: [
+          {
+            label: t('overview.reporting.executive.issued'),
+            value: formatCompactNumber(reporting?.executive_summary.total_issued ?? 0, locale),
+            hint: t('overview.reporting.window', { days: reportingWindowDays }),
+            tone: 'info' as const,
+          },
+          {
+            label: t('overview.reporting.executive.redemptions'),
+            value: formatCompactNumber(reporting?.executive_summary.total_redemptions ?? 0, locale),
+            hint: reporting?.refreshed_at
+              ? t('overview.reporting.refreshedAt', {
+                  value: formatDateTime(reporting.refreshed_at, locale),
+                })
+              : t('overview.reporting.notRefreshed'),
+            tone: 'success' as const,
+          },
+          {
+            label: t('overview.reporting.executive.acceptanceRate'),
+            value: `${(reporting?.executive_summary.resolution_acceptance_rate_pct ?? 0).toFixed(1)}%`,
+            tone: 'warning' as const,
+          },
+          {
+            label: t('overview.reporting.executive.dominantFamily'),
+            value: reporting?.executive_summary.dominant_family
+              ? humanizeToken(reporting.executive_summary.dominant_family)
+              : t('overview.reporting.health.unavailable'),
+            tone: 'neutral' as const,
+          },
+        ],
+      }
+    : showNotifications
+      ? {
+          eyebrow: t('overview.eyebrow'),
+          title: t('overview.deliveryOpsTitle'),
+          description: t('overview.deliveryOpsDescription'),
+          icon: BellRing,
+          metrics: [
+            {
+              label: t('overview.deliveryFeedTitle'),
+              value: formatCompactNumber(deliveriesQuery.data?.total ?? 0, locale),
+              hint: t('overview.deliveryFeedDescription'),
+              tone: 'info' as const,
+            },
+            {
+              label: t('overview.deliveryOps.queueStatus'),
+              value: formatCompactNumber(queuedNotificationDeliveryCount, locale),
+              hint: t('overview.deliveryOpsLive'),
+              tone: queuedNotificationDeliveryCount > 0 ? 'warning' as const : 'neutral' as const,
+            },
+            {
+              label: t('common.actionFailed'),
+              value: formatCompactNumber(failedNotificationDeliveryCount, locale),
+              hint: t('overview.deliveryOps.manualFailed'),
+              tone: failedNotificationDeliveryCount > 0 ? 'danger' as const : 'success' as const,
+            },
+            {
+              label: t('overview.deliveryOps.channels.email'),
+              value: formatCompactNumber(
+                deliveries.filter((delivery) => delivery.delivery_channel === 'email').length,
+                locale,
+              ),
+              tone: 'neutral' as const,
+            },
+          ],
+        }
+      : {
+          eyebrow: t('overview.eyebrow'),
+          title: t('overview.title'),
+          description: t('overview.description'),
+          icon: TrendingUp,
+          metrics: [
+            {
+              label: t('overview.metrics.totalCodes'),
+              value: formatCompactNumber(overview?.total_codes ?? 0, locale),
+              hint: t('overview.metrics.totalCodesHint'),
+              tone: 'info' as const,
+            },
+            {
+              label: t('overview.metrics.redemptions'),
+              value: formatCompactNumber(overview?.total_redemptions ?? 0, locale),
+              hint: t('overview.metrics.redemptionsHint'),
+              tone: 'success' as const,
+            },
+            {
+              label: t('overview.metrics.blockedSignals'),
+              value: formatCompactNumber(overview?.blocked_reward_count ?? 0, locale),
+              hint: t('overview.metrics.blockedSignalsHint'),
+              tone: (overview?.blocked_reward_count ?? 0) > 0 ? 'danger' as const : 'neutral' as const,
+            },
+            {
+              label: t('overview.metrics.availableCredit'),
+              value: formatCurrencyAmount(overview?.available_referral_credit_usd, 'USD', locale),
+              hint: t('overview.metrics.availableCreditHint'),
+              tone: 'warning' as const,
+            },
+          ],
+        };
 
   return (
-    <GrowthPageShell
-      eyebrow={t('overview.eyebrow')}
-      title={t('overview.title')}
-      description={t('overview.description')}
-      icon={TrendingUp}
-      metrics={[
-        {
-          label: t('overview.metrics.totalCodes'),
-          value: formatCompactNumber(overview?.total_codes ?? 0, locale),
-          hint: t('overview.metrics.totalCodesHint'),
-          tone: 'info',
-        },
-        {
-          label: t('overview.metrics.redemptions'),
-          value: formatCompactNumber(overview?.total_redemptions ?? 0, locale),
-          hint: t('overview.metrics.redemptionsHint'),
-          tone: 'success',
-        },
-        {
-          label: t('overview.metrics.blockedSignals'),
-          value: formatCompactNumber(overview?.blocked_reward_count ?? 0, locale),
-          hint: t('overview.metrics.blockedSignalsHint'),
-          tone: (overview?.blocked_reward_count ?? 0) > 0 ? 'danger' : 'neutral',
-        },
-        {
-          label: t('overview.metrics.availableCredit'),
-          value: formatCurrencyAmount(overview?.available_referral_credit_usd, 'USD', locale),
-          hint: t('overview.metrics.availableCreditHint'),
-          tone: 'warning',
-        },
-      ]}
-    >
+    <GrowthPageShell {...pageShell}>
       <div className="grid gap-6 xl:grid-cols-12">
+        {showOverview ? (
+          <>
         <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-5">
           <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
             {t('overview.routesTitle')}
@@ -609,9 +723,21 @@ export function GrowthOverview() {
                 icon: UserRoundPlus,
               },
               {
-                href: '/growth/referrals',
-                title: t('nav.referrals'),
-                description: t('overview.routes.referrals'),
+                href: '/growth/reporting',
+                title: t('nav.reporting'),
+                description: t('overview.routes.reporting'),
+                icon: ChartColumnIncreasing,
+              },
+              {
+                href: '/growth/notifications',
+                title: t('nav.notifications'),
+                description: t('overview.routes.notifications'),
+                icon: BellRing,
+              },
+              {
+                href: '/growth/risk',
+                title: t('nav.risk'),
+                description: t('overview.routes.risk'),
                 icon: ShieldAlert,
               },
             ].map((item) => (
@@ -737,6 +863,10 @@ export function GrowthOverview() {
           </div>
         </article>
 
+          </>
+        ) : null}
+
+        {showReporting ? (
         <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-12">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -1818,6 +1948,10 @@ export function GrowthOverview() {
           )}
         </article>
 
+        ) : null}
+
+        {showNotifications ? (
+          <>
         <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -2122,37 +2256,41 @@ export function GrowthOverview() {
             )}
           </div>
         </article>
+          </>
+        ) : null}
       </div>
 
-      <Modal
-        isOpen={selectedDeliveryId !== null}
-        onClose={() => setSelectedDeliveryId(null)}
-        title={t('overview.deliveryForensics.title')}
-      >
-        {deliveryDetailQuery.isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-20 animate-pulse rounded-2xl border border-grid-line/20 bg-terminal-bg/45"
-              />
-            ))}
-          </div>
-        ) : deliveryDetailQuery.data ? (
-          <GrowthDeliveryForensicsContent
-            detail={deliveryDetailQuery.data}
-            locale={locale}
-            onExport={() => {
-              if (selectedDeliveryId) {
-                exportDeliveryMutation.mutate(selectedDeliveryId);
-              }
-            }}
-            isExporting={exportDeliveryMutation.isPending}
-          />
-        ) : (
-          <GrowthEmptyState label={t('overview.deliveryForensics.empty')} />
-        )}
-      </Modal>
+      {showNotifications ? (
+        <Modal
+          isOpen={selectedDeliveryId !== null}
+          onClose={() => setSelectedDeliveryId(null)}
+          title={t('overview.deliveryForensics.title')}
+        >
+          {deliveryDetailQuery.isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-20 animate-pulse rounded-2xl border border-grid-line/20 bg-terminal-bg/45"
+                />
+              ))}
+            </div>
+          ) : deliveryDetailQuery.data ? (
+            <GrowthDeliveryForensicsContent
+              detail={deliveryDetailQuery.data}
+              locale={locale}
+              onExport={() => {
+                if (selectedDeliveryId) {
+                  exportDeliveryMutation.mutate(selectedDeliveryId);
+                }
+              }}
+              isExporting={exportDeliveryMutation.isPending}
+            />
+          ) : (
+            <GrowthEmptyState label={t('overview.deliveryForensics.empty')} />
+          )}
+        </Modal>
+      ) : null}
     </GrowthPageShell>
   );
 }

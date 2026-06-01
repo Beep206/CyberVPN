@@ -59,7 +59,10 @@
       "promoCodes": "Promo code inventory and validation primitives.",
       "inviteCodes": "Invite code generation and redemption visibility.",
       "partnerPromotion": "Partner promotion plus live partner directory and drill-down context.",
-      "referralSignals": "Referral overview, top referrers, and recent commission analytics."
+      "referralSignals": "Referral overview, top referrers, and recent commission analytics.",
+      "growthReporting": "Dedicated reporting console for rollups, subscriptions, governance coverage, and export artifacts.",
+      "growthNotifications": "Dedicated notification console for manual notices, delivery feed, and forensics.",
+      "growthRiskQueue": "Dedicated risk console for abuse signals and blocked reward posture."
     },
     "nextModules": {
       "growthSettings": "Unified growth settings across promotions and referral rules.",

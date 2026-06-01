@@ -166,6 +166,9 @@ export const ADMIN_SECTION_OVERVIEWS: Record<
       'inviteCodes',
       'partnerPromotion',
       'referralSignals',
+      'growthReporting',
+      'growthNotifications',
+      'growthRiskQueue',
     ],
     nextModules: [
       'growthSettings',

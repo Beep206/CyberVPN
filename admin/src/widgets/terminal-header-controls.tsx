@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminCommandPalette } from '@/features/admin-shell/components/admin-command-palette';
 import { LanguageSelector } from '@/features/language-selector';
 import { UserMenu } from '@/features/header/user-menu';
 import { ThemeToggle } from '@/features/theme-toggle';
@@ -10,6 +11,8 @@ export function TerminalHeaderControls() {
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+      {isAuthenticated ? <AdminCommandPalette /> : null}
+
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <LanguageSelector />

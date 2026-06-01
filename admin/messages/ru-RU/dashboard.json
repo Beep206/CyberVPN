@@ -32,6 +32,60 @@
   "auditDescription": "Последние привилегированные действия, зафиксированные backend audit log.",
   "webhooksTitle": "ПОТОК ВЕБХУКОВ",
   "webhooksDescription": "Последние callback-события интеграций и ошибки обработки.",
+  "actionQueuesTitle": "ОЧЕРЕДИ ДЕЙСТВИЙ",
+  "actionQueuesDescription": "Живая операторская нагрузка только из существующих admin API, с fallback для ролей и ошибок.",
+  "myWorkspaceTitle": "МОЙ WORKSPACE",
+  "myWorkspaceDescription": "Доступные действия для текущей роли и admin session.",
+  "myWorkspaceBadge": "ROLE AWARE",
+  "workspaceRoleLabel": "Роль",
+  "workspaceEnabledActions": "Доступные маршруты",
+  "workspaceRestrictedActions": "Закрытые маршруты",
+  "workspacePermissionCount": "Permissions",
+  "workspaceAvailableNow": "Доступно сейчас",
+  "workspaceReadActions": "read",
+  "workspaceWriteActions": "write",
+  "workspaceNoActions": "Для этой роли нет доступных dashboard-действий.",
+  "workspaceRisk": {
+    "danger": "Sensitive action",
+    "read": "Read surface",
+    "write": "Operator action"
+  },
+  "openQueue": "Открыть",
+  "queueUnavailableForRole": "Закрыто ролью",
+  "queueStates": {
+    "active": "Нужно действие",
+    "empty": "Чисто",
+    "error": "Недоступно",
+    "loading": "Синхронизация",
+    "unavailable": "Закрыто ролью"
+  },
+  "actionQueues": {
+    "withdrawals": {
+      "title": "Согласование выводов",
+      "description": "Ожидающие wallet withdrawals для finance или admin approval.",
+      "metric": "выводов ожидают"
+    },
+    "support": {
+      "title": "Support handoff",
+      "description": "Tickets, которые сейчас ждут ответа со стороны support.",
+      "metric": "support tickets"
+    },
+    "securityReviews": {
+      "title": "Risk reviews",
+      "description": "Канонические risk review записи из security queue.",
+      "metric": "открытых reviews"
+    },
+    "growthAbuse": {
+      "title": "Growth abuse signals",
+      "description": "Referral и reward abuse signals, видимые growth-операторам.",
+      "metric": "групп сигналов"
+    },
+    "webhookFailures": {
+      "title": "Ошибки вебхуков",
+      "description": "Невалидные webhook callbacks на последней странице governance log.",
+      "metric": "callback errors"
+    }
+  },
   "cards": {
     "health": {
       "title": "ЗДОРОВЬЕ ПЛАТФОРМЫ",

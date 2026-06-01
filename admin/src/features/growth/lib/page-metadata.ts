@@ -27,6 +27,21 @@ const GROWTH_PAGE_CONFIG = {
     titleKey: 'partners.metaTitle',
     descriptionKey: 'partners.description',
   },
+  reporting: {
+    canonicalPath: '/growth/reporting',
+    titleKey: 'overview.reporting.title',
+    descriptionKey: 'overview.reporting.description',
+  },
+  notifications: {
+    canonicalPath: '/growth/notifications',
+    titleKey: 'overview.deliveryOpsTitle',
+    descriptionKey: 'overview.deliveryOpsDescription',
+  },
+  risk: {
+    canonicalPath: '/growth/risk',
+    titleKey: 'referrals.metaTitle',
+    descriptionKey: 'referrals.description',
+  },
   referrals: {
     canonicalPath: '/growth/referrals',
     titleKey: 'referrals.metaTitle',

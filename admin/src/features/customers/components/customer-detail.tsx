@@ -594,12 +594,46 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
     || normalizedTelegramUsername !== customer.telegram_username
     || normalizedReferralCode !== customer.referral_code
   );
+  const hasRecoveryReason = recoveryReasonDraft.trim().length >= 3;
+  const nextVpnActionMode: VpnActionMode = vpnUser?.status === 'active' ? 'disable' : 'enable';
+  const localNavigationItems = [
+    { id: 'customer-actions-section', label: t('detail.actionGroupsTitle') },
+    { id: 'customer-identity-section', label: t('detail.identityTitle') },
+    { id: 'customer-access-state-section', label: t('detail.stateTitle') },
+    { id: 'customer-wallet-section', label: t('detail.walletTitle') },
+    { id: 'customer-profile-section', label: t('detail.profileTitle') },
+    { id: 'customer-subscription-section', label: t('detail.subscriptionTitle') },
+    { id: 'customer-playbooks-section', label: t('detail.playbooksTitle') },
+    { id: 'customer-recovery-section', label: t('detail.recoveryTitle') },
+    { id: 'customer-operations-section', label: t('detail.operations.title') },
+    { id: 'customer-devices-section', label: t('detail.devicesTitle') },
+    { id: 'customer-vpn-section', label: t('detail.vpnTitle') },
+    { id: 'customer-notes-section', label: t('detail.notesTitle') },
+    { id: 'customer-payments-section', label: t('detail.paymentsTitle') },
+    { id: 'customer-timeline-section', label: t('detail.timelineTitle') },
+    { id: 'customer-referral-section', label: t('detail.referralTitle') },
+    { id: 'customer-partner-section', label: t('detail.partnerTitle') },
+  ];
 
   function scrollToSection(sectionId: string) {
     document.getElementById(sectionId)?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     });
+  }
+
+  function refreshCustomerDetail() {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'wallet'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'payments'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'notes'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'vpn'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'subscription'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'customer-subscriptions'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'timeline'] }),
+      queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'operations-insight'] }),
+    ]);
   }
 
   async function handleProfileSave() {
@@ -623,6 +657,13 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
   }
 
   async function handlePasswordReset(mode: 'provided' | 'generated') {
+    const normalizedRecoveryReason = recoveryReasonDraft.trim();
+
+    if (normalizedRecoveryReason.length < 3) {
+      setFeedback(t('detail.recoveryReasonRequired'));
+      return;
+    }
+
     if (mode === 'provided') {
       if (passwordDraft.trim().length === 0) {
         setFeedback(t('detail.passwordRequired'));
@@ -633,7 +674,7 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         new_password: passwordDraft.trim(),
         generate_temporary_password: false,
         revoke_all_devices: revokeDevicesOnPasswordReset,
-        reason: recoveryReasonDraft.trim() || null,
+        reason: normalizedRecoveryReason,
       });
       return;
     }
@@ -641,7 +682,7 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
     await resetPasswordMutation.mutateAsync({
       generate_temporary_password: true,
       revoke_all_devices: revokeDevicesOnPasswordReset,
-      reason: recoveryReasonDraft.trim() || null,
+      reason: normalizedRecoveryReason,
     });
   }
 
@@ -743,77 +784,15 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
       title={customer.email}
       description={t('detail.description')}
       icon={Users}
-      actions={
-        <>
-          <Link
-            href="/customers"
-            className={buttonVariants({ variant: 'ghost' })}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('detail.backToDirectory')}
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            magnetic={false}
-            onClick={() => {
-              void Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'wallet'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'payments'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'notes'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'vpn'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'subscription'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'timeline'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'operations-insight'] }),
-              ]);
-            }}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
-          </Button>
-          <Link
-            href={`/messaging?customer=${encodeURIComponent(customer.id)}`}
-            className={buttonVariants({ variant: 'ghost' })}
-          >
-            <MessageCirclePlus className="mr-2 h-4 w-4" />
-            {t('detail.openMessaging')}
-          </Link>
-          {customer.is_partner ? null : (
-            <Button
-              type="button"
-              magnetic={false}
-              disabled={promotePartnerMutation.isPending}
-              onClick={() => promotePartnerMutation.mutate()}
-            >
-              <UserRoundPlus className="mr-2 h-4 w-4" />
-              {t('detail.promotePartner')}
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            magnetic={false}
-            disabled={updateMutation.isPending || !hasStateChanges}
-            onClick={() => {
-              void updateMutation.mutateAsync({
-                status: currentStatus,
-                is_active: currentActive,
-              });
-            }}
-          >
-            {t('detail.saveState')}
-          </Button>
-          <Button
-            type="button"
-            magnetic={false}
-            variant={currentActive ? 'destructive' : 'default'}
-            onClick={() => setActivationDialogOpen(true)}
-          >
-            {currentActive ? t('common.deactivate') : t('common.reactivate')}
-          </Button>
-        </>
-      }
+      actions={(
+        <Link
+          href="/customers"
+          className={buttonVariants({ variant: 'ghost' })}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          {t('detail.backToDirectory')}
+        </Link>
+      )}
       metrics={[
         {
           label: t('detail.metrics.devices'),
@@ -848,11 +827,247 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
       ]}
     >
       <div className="grid gap-6">
+        <nav
+          aria-label={t('detail.localNavigationAriaLabel')}
+          className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-4 backdrop-blur"
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-display uppercase tracking-[0.22em] text-neon-cyan">
+                {t('detail.localNavigationTitle')}
+              </p>
+              <p className="mt-1 text-xs font-mono leading-5 text-muted-foreground">
+                {t('detail.localNavigationDescription')}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {localNavigationItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </nav>
+
         {feedback ? (
           <div className="rounded-xl border border-grid-line/20 bg-terminal-bg/45 px-4 py-3 text-sm font-mono text-foreground">
             {feedback}
           </div>
         ) : null}
+
+        <section
+          id="customer-actions-section"
+          className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
+                {t('detail.actionGroupsTitle')}
+              </h2>
+              <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+                {t('detail.actionGroupsDescription')}
+              </p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-grid-line/20 bg-terminal-bg/45 text-neon-cyan">
+              <Shield className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 xl:grid-cols-3">
+            <div
+              role="group"
+              aria-labelledby="customer-safe-actions-title"
+              className="rounded-2xl border border-matrix-green/25 bg-matrix-green/10 p-4"
+            >
+              <h3
+                id="customer-safe-actions-title"
+                className="text-sm font-display uppercase tracking-[0.16em] text-white"
+              >
+                {t('detail.safeActionsTitle')}
+              </h3>
+              <p className="mt-2 text-sm font-mono leading-6 text-matrix-green">
+                {t('detail.safeActionsDescription')}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  magnetic={false}
+                  onClick={refreshCustomerDetail}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {t('common.refresh')}
+                </Button>
+                <Link
+                  href={`/messaging?customer=${encodeURIComponent(customer.id)}`}
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
+                  <MessageCirclePlus className="mr-2 h-4 w-4" />
+                  {t('detail.openMessaging')}
+                </Link>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  magnetic={false}
+                  disabled={updateMutation.isPending || !hasStateChanges}
+                  onClick={() => {
+                    void updateMutation.mutateAsync({
+                      status: currentStatus,
+                      is_active: currentActive,
+                    });
+                  }}
+                >
+                  {t('detail.saveState')}
+                </Button>
+                {!currentActive ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    magnetic={false}
+                    disabled={updateMutation.isPending}
+                    onClick={() => setActivationDialogOpen(true)}
+                  >
+                    {t('common.reactivate')}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              role="group"
+              aria-labelledby="customer-support-actions-title"
+              className="rounded-2xl border border-neon-cyan/25 bg-neon-cyan/10 p-4"
+            >
+              <h3
+                id="customer-support-actions-title"
+                className="text-sm font-display uppercase tracking-[0.16em] text-white"
+              >
+                {t('detail.supportActionsTitle')}
+              </h3>
+              <p className="mt-2 text-sm font-mono leading-6 text-neon-cyan">
+                {t('detail.supportActionsDescription')}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href="#customer-wallet-section"
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  {t('detail.walletTitle')}
+                </a>
+                <a
+                  href="#customer-subscription-section"
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
+                  <Cable className="mr-2 h-4 w-4" />
+                  {t('detail.subscriptionTitle')}
+                </a>
+                <a
+                  href="#customer-recovery-section"
+                  className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  {t('detail.recoveryTitle')}
+                </a>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  magnetic={false}
+                  disabled={resyncSubscriptionMutation.isPending || !canResyncSubscription}
+                  onClick={() => setSubscriptionResyncDialogOpen(true)}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {t('detail.resyncSubscription')}
+                </Button>
+                {customer.is_partner ? null : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    magnetic={false}
+                    disabled={promotePartnerMutation.isPending}
+                    onClick={() => promotePartnerMutation.mutate()}
+                  >
+                    <UserRoundPlus className="mr-2 h-4 w-4" />
+                    {t('detail.promotePartner')}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div
+              role="group"
+              aria-labelledby="customer-danger-zone-title"
+              className="rounded-2xl border border-neon-pink/30 bg-neon-pink/10 p-4"
+            >
+              <h3
+                id="customer-danger-zone-title"
+                className="text-sm font-display uppercase tracking-[0.16em] text-white"
+              >
+                {t('detail.dangerZoneTitle')}
+              </h3>
+              <p className="mt-2 text-sm font-mono leading-6 text-neon-pink">
+                {t('detail.dangerZoneDescription')}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {currentActive ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    magnetic={false}
+                    variant="destructive"
+                    disabled={updateMutation.isPending}
+                    onClick={() => setActivationDialogOpen(true)}
+                  >
+                    {t('common.deactivate')}
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  magnetic={false}
+                  disabled={revokeAllDevicesMutation.isPending || customer.devices.length === 0}
+                  onClick={() => setRevokeAllDevicesDialogOpen(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t('detail.revokeAllDevices')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  magnetic={false}
+                  disabled={vpnActionMutation.isPending || !vpnUser?.exists}
+                  onClick={() => setVpnActionDialog(nextVpnActionMode)}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  {nextVpnActionMode === 'disable'
+                    ? t('detail.vpnDisableTitle')
+                    : t('detail.vpnEnableTitle')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  magnetic={false}
+                  disabled={regenerateVpnCredentialsMutation.isPending || !vpnUser?.exists}
+                  onClick={() => setCredentialRegenerationDialogOpen(true)}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  {t('detail.regenerateVpnCredentials')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div className="grid gap-6 xl:grid-cols-12">
           <section
@@ -892,7 +1107,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
           </section>
 
           <section className="space-y-6 xl:col-span-5">
-            <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+            <article
+              id="customer-access-state-section"
+              className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur"
+            >
               <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
                 {t('detail.stateTitle')}
               </h2>
@@ -939,7 +1157,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+            <article
+              id="customer-wallet-section"
+              className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur"
+            >
               <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
                 {t('detail.walletTitle')}
               </h2>
@@ -1009,7 +1230,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-12">
-          <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6">
+          <section
+            id="customer-profile-section"
+            className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
@@ -1414,7 +1638,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
           </section>
         </div>
 
-        <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+        <section
+          id="customer-playbooks-section"
+          className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur"
+        >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
@@ -1516,8 +1743,16 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
                   value={recoveryReasonDraft}
                   onChange={(event) => setRecoveryReasonDraft(event.target.value)}
                   placeholder={t('detail.recoveryReasonPlaceholder')}
+                  aria-invalid={recoveryReasonDraft.length > 0 && !hasRecoveryReason}
+                  aria-describedby="customer-recovery-reason-requirement"
                   className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
+                <span
+                  id="customer-recovery-reason-requirement"
+                  className="block text-xs font-mono leading-5 text-muted-foreground"
+                >
+                  {t('detail.recoveryReasonRequired')}
+                </span>
               </label>
 
               <label className="flex items-start gap-3 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 px-4 py-3">
@@ -1629,7 +1864,9 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
           </div>
         </section>
 
-        <CustomerOperationsInsight userId={userId} />
+        <div id="customer-operations-section">
+          <CustomerOperationsInsight userId={userId} />
+        </div>
 
         <div className="grid gap-6 xl:grid-cols-12">
           <section
@@ -1730,7 +1967,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6">
+          <section
+            id="customer-vpn-section"
+            className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
@@ -2018,7 +2258,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-7">
+          <section
+            id="customer-payments-section"
+            className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-7"
+          >
             <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
               {t('detail.paymentsTitle')}
             </h2>
@@ -2056,7 +2299,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
           </section>
         </div>
 
-        <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur">
+        <section
+          id="customer-timeline-section"
+          className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur"
+        >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
@@ -2163,7 +2409,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         </section>
 
         <div className="grid gap-6 xl:grid-cols-12">
-          <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6">
+          <section
+            id="customer-referral-section"
+            className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6"
+          >
             <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
               {t('detail.referralTitle')}
             </h2>
@@ -2216,7 +2465,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6">
+          <section
+            id="customer-partner-section"
+            className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-6"
+          >
             <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
               {t('detail.partnerTitle')}
             </h2>
@@ -2283,6 +2535,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         description={currentActive ? t('detail.deactivateDescription') : t('detail.activateDescription')}
         confirmLabel={currentActive ? t('common.deactivate') : t('common.reactivate')}
         cancelLabel={t('common.cancel')}
+        reasonLabel={t('detail.dialogs.reasonLabel')}
+        reasonPlaceholder={t('detail.dialogs.reasonPlaceholder')}
+        reasonRequired
+        reasonValidationMessage={t('detail.dialogs.reasonValidation')}
         onClose={() => setActivationDialogOpen(false)}
         onConfirm={async () => {
           await updateMutation.mutateAsync({
@@ -2302,6 +2558,8 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         cancelLabel={t('common.cancel')}
         reasonLabel={t('detail.dialogs.reasonLabel')}
         reasonPlaceholder={t('detail.dialogs.reasonPlaceholder')}
+        reasonRequired
+        reasonValidationMessage={t('detail.dialogs.reasonValidation')}
         subjectLabel={t('common.remnawaveUuid')}
         subject={vpnUser?.remnawave_uuid ?? customer.remnawave_uuid ?? '--'}
         onClose={() => setVpnActionDialog(null)}
@@ -2326,6 +2584,10 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         cancelLabel={t('common.cancel')}
         subjectLabel={t('detail.labels.deviceModel')}
         subject={deviceToRevoke ? `${deviceToRevoke.label} / ${deviceToRevoke.platform} / ${deviceToRevoke.appVersion}` : '--'}
+        reasonLabel={t('detail.dialogs.reasonLabel')}
+        reasonPlaceholder={t('detail.dialogs.reasonPlaceholder')}
+        reasonRequired
+        reasonValidationMessage={t('detail.dialogs.reasonValidation')}
         onClose={() => setDeviceToRevoke(null)}
         onConfirm={async () => {
           if (!deviceToRevoke) {
@@ -2347,6 +2609,8 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         subject={t('detail.revokeAllDevicesSubject', { count: customer.devices.length })}
         reasonLabel={t('detail.dialogs.reasonLabel')}
         reasonPlaceholder={t('detail.dialogs.reasonPlaceholder')}
+        reasonRequired
+        reasonValidationMessage={t('detail.dialogs.reasonValidation')}
         onClose={() => setRevokeAllDevicesDialogOpen(false)}
         onConfirm={async (reason) => {
           await revokeAllDevicesMutation.mutateAsync(reason);
@@ -2366,6 +2630,8 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         subject={upstreamSubscriptionUrl ?? '--'}
         reasonLabel={t('detail.dialogs.reasonLabel')}
         reasonPlaceholder={t('detail.dialogs.reasonPlaceholder')}
+        reasonRequired
+        reasonValidationMessage={t('detail.dialogs.reasonValidation')}
         onClose={() => setSubscriptionResyncDialogOpen(false)}
         onConfirm={async (reason) => {
           await resyncSubscriptionMutation.mutateAsync(reason);

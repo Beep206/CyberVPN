@@ -1,0 +1,122 @@
+[
+  {
+    "role": "viewer",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "screenshotName": "desktop-viewer-section-cards-fixed.png",
+    "disabledCount": 4,
+    "result": [
+      {
+        "heading": "SUPPORT",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 188.921875,
+        "footerClientWidth": 155,
+        "footerScrollWidth": 155,
+        "labelClientWidth": 153,
+        "labelScrollWidth": 153,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      },
+      {
+        "heading": "MESSAGING",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 188.90625,
+        "footerClientWidth": 155,
+        "footerScrollWidth": 155,
+        "labelClientWidth": 153,
+        "labelScrollWidth": 153,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      },
+      {
+        "heading": "COMMERCE",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 188.921875,
+        "footerClientWidth": 155,
+        "footerScrollWidth": 155,
+        "labelClientWidth": 153,
+        "labelScrollWidth": 153,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      },
+      {
+        "heading": "GOVERNANCE",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 188.921875,
+        "footerClientWidth": 155,
+        "footerScrollWidth": 155,
+        "labelClientWidth": 153,
+        "labelScrollWidth": 153,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      }
+    ],
+    "failures": []
+  },
+  {
+    "role": "finance",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "screenshotName": "mobile-finance-section-cards-fixed.png",
+    "disabledCount": 4,
+    "result": [
+      {
+        "heading": "SUPPORT",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 282,
+        "footerClientWidth": 248,
+        "footerScrollWidth": 248,
+        "labelClientWidth": 246,
+        "labelScrollWidth": 246,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      },
+      {
+        "heading": "MESSAGING",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 282,
+        "footerClientWidth": 248,
+        "footerScrollWidth": 248,
+        "labelClientWidth": 246,
+        "labelScrollWidth": 246,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      },
+      {
+        "heading": "GROWTH",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 282,
+        "footerClientWidth": 248,
+        "footerScrollWidth": 248,
+        "labelClientWidth": 246,
+        "labelScrollWidth": 246,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      },
+      {
+        "heading": "INFRASTRUCTURE",
+        "cardTag": "article",
+        "closestAnchor": false,
+        "cardWidth": 282,
+        "footerClientWidth": 248,
+        "footerScrollWidth": 248,
+        "labelClientWidth": 246,
+        "labelScrollWidth": 246,
+        "labelText": "Unavailable for the current role",
+        "labelClassName": "mt-2 block w-full max-w-full wrap-normal rounded-xl border border-grid-line/20 bg-terminal-surface/40 px-2 py-1.5 text-left text-[10px] leading-5 text-muted-foreground"
+      }
+    ],
+    "failures": []
+  }
+]

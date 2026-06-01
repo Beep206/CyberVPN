@@ -8,6 +8,9 @@
     "inviteCodes": "Invite Codes",
     "giftCodes": "Gift Codes",
     "partners": "Partners",
+    "reporting": "Reporting",
+    "notifications": "Notifications",
+    "risk": "Risk Signals",
     "referrals": "Referrals"
   },
   "common": {
@@ -51,6 +54,9 @@
       "inviteCodes": "Generate invite batches for a specific user with optional plan targeting.",
       "giftCodes": "Issue single or batch customer gift codes, inspect live inventory, and track redemption posture.",
       "partners": "Promote users, review the live partner directory, and jump into customer operations.",
+      "reporting": "Review persisted rollups, reporting subscriptions, governance coverage, and exportable delivery artifacts.",
+      "notifications": "Send operator-authored growth notices and inspect per-channel delivery forensics.",
+      "risk": "Triage referral abuse pressure, blocked rewards, and lifecycle risk signals from the growth queue.",
       "referrals": "Monitor referral commissions, top referrers, and recent conversion-linked earnings."
     },
     "liveSignalsTitle": "Live Lifecycle Stream",
