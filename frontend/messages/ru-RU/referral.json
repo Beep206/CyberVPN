@@ -3,7 +3,7 @@
     "title": "РЕФЕРАЛЬНЫЕ НАГРАДЫ",
     "subtitle": "Делитесь кодом, отслеживайте canonical lifecycle наград и отделяйте customer growth от partner-механик.",
     "hero": {
-      "eyebrow": "Customer growth cockpit",
+      "eyebrow": "Пульт роста клиента",
       "wallet": "Открыть кошелек",
       "payments": "История платежей",
       "health": "Состояние программы",
@@ -14,7 +14,7 @@
       "active": "Готово к шерингу",
       "disabled": "Пауза",
       "earning": "Награды активны",
-      "review": "Hold review"
+      "review": "Проверка удержания"
     },
     "errors": {
       "partialTitle": "Реферальные данные частично недоступны",
@@ -41,7 +41,7 @@
       "message": "Подключайся к CyberVPN с моим реферальным кодом {code}: {link}"
     },
     "rules": {
-      "eyebrow": "Policy guardrails",
+      "eyebrow": "Ограничения политики",
       "title": "Что эта страница не угадывает",
       "items": {
         "backendTruth": {
@@ -71,7 +71,7 @@
     },
     "lifecycle": {
       "eyebrow": "Lifecycle наград",
-      "title": "Canonical reward states",
+      "title": "Канонические состояния наград",
       "description": "Награды проходят backend-owned states. Pending rewards находятся на hold; available rewards доступны согласно account policy.",
       "blocked": "{count} заблокировано",
       "status": {
@@ -86,13 +86,13 @@
       "eyebrow": "Недавняя активность",
       "title": "Хронология наград",
       "empty": "Реферальной активности пока нет.",
-      "reward": "Reward allocation",
-      "commission": "Referral commission",
+      "reward": "Начисление награды",
+      "commission": "Реферальная комиссия",
       "holdUntil": "Hold до {date}"
     },
     "notifications": {
-      "eyebrow": "Delivery health",
-      "title": "Growth notifications",
+      "eyebrow": "Статус доставки",
+      "title": "Growth-уведомления",
       "description": "Реферальные награды и invite updates отображаются через durable growth notifications.",
       "actionRequired": "{count} требуют действия",
       "empty": "Реферальных уведомлений сейчас нет.",
@@ -107,7 +107,7 @@
       "notAvailable": "Недоступно"
     }
   },
-  "pageEyebrow": "CUSTOMER GROWTH",
+  "pageEyebrow": "РОСТ КЛИЕНТОВ",
   "title": "ЦЕНТР НАГРАД",
   "subtitle": "Управляйте инвайтами, подарочными кодами, реферальным шарингом и активностью наград в одном месте.",
   "hubEyebrow": "ПОДЕЛИТЬСЯ И ОТСЛЕЖИВАТЬ",
@@ -139,6 +139,62 @@
   "redeemSuccessGift": "Подарок активирован. Добавлен тариф {plan} на {days} дней.",
   "redeemErrors": {
     "empty": "Сначала введите код."
+  },
+  "notifications": {
+    "title": "Growth-уведомления",
+    "subtitle": "Надёжные обновления по инвайтам, реферальным наградам и подарочным кодам.",
+    "loading": "Загрузка growth-уведомлений...",
+    "empty": "Сейчас нет видимых growth-уведомлений.",
+    "archived": "Архивные",
+    "unread": "Непрочитанные",
+    "actionRequired": "Требуется действие",
+    "markRead": "Отметить прочитанным",
+    "archive": "Архивировать",
+    "showArchived": "Показать архивные",
+    "showActive": "Показать активные",
+    "detailsButton": "Детали",
+    "detailsTitle": "Детали доставки",
+    "detailsLoading": "Загрузка деталей доставки...",
+    "detailsEmpty": "Выберите уведомление, чтобы проверить детали доставки.",
+    "supportTitle": "Передача в поддержку",
+    "supportActionHint": "Если автоматическое восстановление заблокировано, используйте управляемое исправление или сценарий поддержки ниже.",
+    "copySupportSummary": "Копировать сводку для поддержки",
+    "openPreferences": "Открыть настройки",
+    "openTelegramLinking": "Привязать Telegram",
+    "reviewProfile": "Проверить профиль",
+    "openSupportTicket": "Открыть обращение в поддержку",
+    "emailSupport": "Написать в поддержку",
+    "openTelegramSupport": "Открыть поддержку в Telegram",
+    "openHelpCenter": "Открыть центр помощи",
+    "openingSupport": "Открываем поддержку...",
+    "deliveryHistoryTitle": "История доставки",
+    "noDeliveryHistory": "К этому уведомлению не прикреплена история доставки.",
+    "requestRetry": "Запросить повторную отправку",
+    "retrying": "Запрос...",
+    "deliveryPlannedAt": "Запланировано {date}",
+    "deliveryCompletedAt": "Выполнено {date}",
+    "counters": {
+      "total": "Всего {count}",
+      "unread": "Непрочитано {count}",
+      "actionRequired": "Действий {count}"
+    }
+  },
+  "preferences": {
+    "title": "Настройки доставки",
+    "subtitle": "Выберите, какие growth-события остаются в приложении, email или Telegram.",
+    "saving": "Сохранение...",
+    "note": "Настройки in-app управляют этим инбоксом наград. Email и Telegram планируют внешнюю доставку без создания второго источника истины.",
+    "categories": {
+      "invites": "Инвайты",
+      "referralRewards": "Реферальные награды",
+      "gifts": "Подарочные коды",
+      "adminUpdates": "Админские обновления"
+    },
+    "channels": {
+      "inApp": "В приложении",
+      "email": "Эл. почта",
+      "telegram": "Telegram"
+    }
   },
   "promoNoteTitle": "Правила оплаты",
   "promoNoteBody": "Промо- и реферальные скидки применяются при оплате. Этот раздел отвечает за инвайты, подарки и отслеживание кодов.",

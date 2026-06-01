@@ -358,6 +358,7 @@ class NatsMessagingRuntime:
 
 
 def _build_subject(*, consumer_key: str, event_name: str, schema_version: int) -> str:
+    """Build the documented consumer-scoped subject used by outbox publications."""
     return f"{settings.nats_messaging_subject_prefix}.{consumer_key}.{event_name}.v{schema_version}"
 
 

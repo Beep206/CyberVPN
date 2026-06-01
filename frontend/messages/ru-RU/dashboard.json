@@ -1,4 +1,8 @@
 {
+  "meta": {
+    "title": "Панель управления - VPN Command Center",
+    "description": "Защищённая панель управления VPN с мониторингом в реальном времени, аналитикой и управлением сетью"
+  },
   "title": "ЦЕНТР УПРАВЛЕНИЯ VPN",
   "statusLabel": "СОСТОЯНИЕ СИСТЕМЫ:",
   "statusValue": "ОПТИМАЛЬНО",
@@ -12,6 +16,10 @@
   "aggregateThroughput": "Суммарная пропускная способность",
   "trafficToday": "Переданный трафик за сегодня",
   "serverMatrix": "МАТРИЦА СЕРВЕРОВ",
+  "vpnUsage": "ИСПОЛЬЗОВАНИЕ VPN",
+  "activeConnections": "Активные подключения",
+  "errorLoadingServers": "Ошибка загрузки серверов",
+  "noServers": "Нет доступных серверов",
   "networkRecap": "СВОДКА REMNAWAVE",
   "opsBaseline": "Пользователи, узлы, трафик и географическое покрытие",
   "thisMonth": "Этот месяц",
@@ -39,7 +47,7 @@
     "sync": {
       "title": "Состояние синхронизации backend",
       "status": {
-        "live": "LIVE SYNC",
+        "live": "ЖИВАЯ СИНХРОНИЗАЦИЯ",
         "loading": "СИНХРОНИЗАЦИЯ",
         "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ"
       },
@@ -62,7 +70,7 @@
       "retryAll": "Повторить всё"
     },
     "s2Actions": {
-      "eyebrow": "S2 COMMERCE",
+      "eyebrow": "S2 КОММЕРЦИЯ",
       "title": "Тариф, оплата и growth-действия",
       "description": "Действия публичного релиза собраны в одном месте: trial, продление, история оплат и growth-коды появляются здесь только когда это разрешено backend/runtime flags.",
       "trialPlans": {
@@ -151,7 +159,7 @@
       "degraded": "ДЕГРАДАЦИЯ",
       "channel": "Канал доступа",
       "profile": "Профиль подготовки",
-      "credential": "Credential",
+      "credential": "Учётные данные",
       "lastConnection": "Последнее подключение",
       "noConnectionYet": "Подключений ещё не было"
     },
@@ -274,7 +282,7 @@
         }
       },
       "provisioning": {
-        "eyebrow": "Provisioning",
+        "eyebrow": "Подготовка",
         "ready": {
           "title": "VPN готов",
           "description": "В Remnawave delivery есть service identity, credential, profile и access channel."
@@ -315,12 +323,12 @@
       "title": "Обращения в поддержку - CyberVPN",
       "description": "Создавайте и отслеживайте обращения CyberVPN из customer cabinet."
     },
-    "eyebrow": "SUPPORT LINK",
+    "eyebrow": "СВЯЗЬ С ПОДДЕРЖКОЙ",
     "title": "Обращения в поддержку",
     "description": "Создайте обращение, следите за перепиской, отвечайте поддержке, закрывайте и переоткрывайте свои обращения без выхода из cabinet.",
     "surface": {
-      "dashboard": "Customer cabinet",
-      "miniapp": "Telegram Mini App"
+      "dashboard": "Личный кабинет",
+      "miniapp": "Мини-приложение Telegram"
     },
     "sensitiveWarning": {
       "title": "Не отправляйте секреты",
@@ -339,11 +347,11 @@
     },
     "categories": {
       "account": "Аккаунт",
-      "billing": "Billing",
+      "billing": "Оплата",
       "setup": "Настройка",
       "vpn_access": "VPN-доступ",
       "status": "Статус сервиса",
-      "privacy": "Privacy",
+      "privacy": "Приватность",
       "other": "Другое"
     },
     "status": {

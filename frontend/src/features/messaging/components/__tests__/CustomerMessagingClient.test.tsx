@@ -310,7 +310,10 @@ describe('NotificationCenterDropdown', () => {
     });
   });
 
-  it('shows unread badge, notification dropdown, and restores missed messages via REST sync after reconnect', async () => {
+  it('restores missed messages by refetching active details after custom SSE sync_required', async () => {
+    let includeMissedDetailMessage = false;
+    let syncRequestCursor: string | null = null;
+
     server.use(
       http.get(`${API_BASE}/me/conversations`, () =>
         HttpResponse.json({
@@ -371,11 +374,26 @@ describe('NotificationCenterDropdown', () => {
           updated_at: '2026-05-31T10:00:00Z',
           last_message_at: null,
           closed_at: null,
-          messages: [],
+          messages: includeMissedDetailMessage
+            ? [
+                {
+                  id: 'message-missed',
+                  public_id: 'msg_public_missed',
+                  conversation_id: 'conversation-1',
+                  sender_type: 'admin',
+                  visibility: 'public',
+                  body: 'Missed admin reply',
+                  created_at: '2026-05-31T10:09:00Z',
+                },
+              ]
+            : [],
         }),
       ),
-      http.get(`${API_BASE}/me/realtime/sync`, () =>
-        HttpResponse.json({
+      http.get(`${API_BASE}/me/realtime/sync`, ({ request }) => {
+        syncRequestCursor = new URL(request.url).searchParams.get('cursor');
+        includeMissedDetailMessage = true;
+
+        return HttpResponse.json({
           cursor: 'cursor-2',
           conversations: [
             {
@@ -393,24 +411,14 @@ describe('NotificationCenterDropdown', () => {
               closed_at: null,
             },
           ],
-          messages: [
-            {
-              id: 'message-missed',
-              public_id: 'msg_public_missed',
-              conversation_id: 'conversation-1',
-              sender_type: 'admin',
-              visibility: 'public',
-              body: 'Missed admin reply',
-              created_at: '2026-05-31T10:09:00Z',
-            },
-          ],
+          messages: [],
           notifications: [],
           unread_counts: {
             conversations: 1,
             notifications: 1,
           },
-        }),
-      ),
+        });
+      }),
       http.post(`${API_BASE}/me/conversations/msg_001/read`, () =>
         HttpResponse.json({
           id: 'read-state-1',
@@ -436,9 +444,17 @@ describe('NotificationCenterDropdown', () => {
     expect(await screen.findByText('Support replied')).toBeInTheDocument();
 
     await waitFor(() => expect(MockEventSource.instances[0]).toBeDefined());
-    MockEventSource.instances[0]?.emit('error');
+    MockEventSource.instances[0]?.emit('connected', {
+      sync_cursor: 'cursor-1',
+      type: 'connected',
+    });
+    MockEventSource.instances[0]?.emit('sync_required', {
+      type: 'sync_required',
+      sync_cursor: 'cursor-newer-than-last-rest-sync',
+    });
 
     expect(await screen.findByText('Missed admin reply')).toBeInTheDocument();
+    expect(syncRequestCursor).toBe('cursor-1');
     expect(queryClient.getQueryData(['customer-messaging', 'unread-counts'])).toEqual({
       conversations: 1,
       notifications: 1,
