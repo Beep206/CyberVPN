@@ -30,6 +30,19 @@ export type CustomerMessagingRealtimeStatus =
   | 'offline'
   | 'unavailable';
 
+const CUSTOMER_MESSAGING_SSE_EVENTS = [
+  'messaging.conversation.created',
+  'messaging.message.created',
+  'messaging.message.read',
+  'messaging.conversation.assigned',
+  'messaging.conversation.closed',
+  'messaging.conversation.reopened',
+  'notification.created',
+  'notification.read',
+  'notification.dismissed',
+  'sync_required',
+] as const;
+
 export const customerMessagingKeys = {
   all: ['customer-messaging'] as const,
   conversationDetails: () =>
@@ -382,6 +395,23 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
 
     let cancelled = false;
 
+    const invalidateRealtimeQueries = async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: customerMessagingKeys.conversationLists(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: customerMessagingKeys.conversationDetails(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: customerMessagingKeys.notificationLists(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: customerMessagingKeys.unreadCounts(),
+        }),
+      ]);
+    };
+
     const recoverFromRest = async () => {
       if (recoveryInFlightRef.current) {
         return;
@@ -402,6 +432,7 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
 
         cursorRef.current = data.cursor;
         updateMessagingCachesFromSync(queryClient, data);
+        await invalidateRealtimeQueries();
         setLastSyncedAt(new Date().toISOString());
         setStatus('connected');
       } catch {
@@ -413,25 +444,15 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
       }
     };
 
-    const invalidateRealtimeQueries = () => {
-      void queryClient.invalidateQueries({
-        queryKey: customerMessagingKeys.conversationLists(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: customerMessagingKeys.conversationDetails(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: customerMessagingKeys.notificationLists(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: customerMessagingKeys.unreadCounts(),
-      });
-    };
-
     const handleRealtimeMessage = (event: MessageEvent<string>) => {
       const realtimeEvent = parseRealtimeEvent(event.data);
 
       if (!realtimeEvent) {
+        return;
+      }
+
+      if (realtimeEvent.type === 'sync_required' || event.type === 'sync_required') {
+        void recoverFromRest();
         return;
       }
 
@@ -441,7 +462,7 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
       }
 
       if (shouldRefreshForRealtimeEvent(realtimeEvent)) {
-        invalidateRealtimeQueries();
+        void invalidateRealtimeQueries();
       }
     };
 
@@ -482,6 +503,9 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
 
     eventSource.addEventListener('connected', handleConnection);
     eventSource.addEventListener('message', handleRealtimeMessage);
+    for (const eventName of CUSTOMER_MESSAGING_SSE_EVENTS) {
+      eventSource.addEventListener(eventName, handleRealtimeMessage);
+    }
     eventSource.addEventListener('error', () => {
       setStatus(navigator.onLine === false ? 'offline' : 'reconnecting');
       void recoverFromRest();
@@ -489,6 +513,9 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
 
     return () => {
       cancelled = true;
+      for (const eventName of CUSTOMER_MESSAGING_SSE_EVENTS) {
+        eventSource.removeEventListener(eventName, handleRealtimeMessage);
+      }
       eventSource.close();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -502,6 +529,20 @@ export function useCustomerMessagingRealtimeSession({ enabled = true } = {}) {
     });
     cursorRef.current = data.cursor;
     updateMessagingCachesFromSync(queryClient, data);
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: customerMessagingKeys.conversationLists(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: customerMessagingKeys.conversationDetails(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: customerMessagingKeys.notificationLists(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: customerMessagingKeys.unreadCounts(),
+      }),
+    ]);
     setLastSyncedAt(new Date().toISOString());
     setStatus('connected');
   };

@@ -526,7 +526,9 @@ Canonical envelope follows `docs/api/platform-foundation-event-taxonomy.md`:
 }
 ```
 
-Important naming note: this RFC uses the task notation `messaging.message.created.v1` for the transport subject. In the canonical envelope, `event_type` is `messaging.message.created` and `subject` is `messaging.message.created.v1`.
+Important naming note: this RFC uses the task notation `messaging.message.created.v1` for the logical event subject. In the canonical envelope, `event_type` is `messaging.message.created`.
+
+CYBA-276 implementation exception: the current backend JetStream publication subject is consumer-scoped as `messaging.{consumer_key}.{event_type}.v{schema_version}`, for example `messaging.messaging_realtime_projection.messaging.message.created.v1`. This keeps the existing outbox-publication model one durable publication per consumer and lets each durable consumer filter its own subject branch. The logical event contract remains `event_type=messaging.message.created` with schema version `1`; browser and REST clients must not depend on the JetStream consumer segment.
 
 ### 7.1 Subjects
 

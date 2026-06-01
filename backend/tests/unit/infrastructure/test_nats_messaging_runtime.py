@@ -14,7 +14,7 @@ from src.infrastructure.messaging.nats_messaging_runtime import (
 )
 
 
-def test_build_subject_uses_messaging_prefix_consumer_and_version() -> None:
+def test_build_subject_uses_documented_consumer_scoped_subject_exception() -> None:
     subject = _build_subject(
         consumer_key="messaging_realtime_projection",
         event_name="messaging.message.created",

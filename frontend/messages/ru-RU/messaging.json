@@ -1,118 +1,118 @@
 {
   "meta": {
-    "title": "Messages and notifications",
-    "description": "Customer private messaging and notification center for CyberVPN account updates."
+    "title": "Сообщения и уведомления",
+    "description": "Центр личных сообщений и уведомлений клиента для обновлений аккаунта CyberVPN."
   },
-  "eyebrow": "Private line",
-  "surface": "Customer inbox",
-  "title": "Messages",
-  "description": "Review admin-started account conversations, reply inside open threads, and keep unread updates synchronized after reconnects.",
+  "eyebrow": "Личная линия",
+  "surface": "Входящие клиента",
+  "title": "Сообщения",
+  "description": "Просматривайте диалоги по аккаунту, начатые администратором, отвечайте в открытых ветках и синхронизируйте непрочитанные обновления после повторного подключения.",
   "privacy": {
-    "title": "Scoped customer channel",
-    "description": "Only public messages from conversations assigned to this account are shown here. Internal notes and admin-only channels are never rendered in the customer surface."
+    "title": "Клиентский канал с ограниченным доступом",
+    "description": "Здесь показываются только публичные сообщения из диалогов, назначенных этому аккаунту. Внутренние заметки и каналы только для администраторов не отображаются в клиентском интерфейсе."
   },
   "actions": {
-    "refreshList": "Refresh conversations"
+    "refreshList": "Обновить диалоги"
   },
   "filters": {
-    "statusLabel": "Filter conversations by status",
-    "all": "All conversations"
+    "statusLabel": "Фильтр диалогов по статусу",
+    "all": "Все диалоги"
   },
   "list": {
-    "title": "Conversation queue",
-    "emptyTitle": "No private messages",
-    "emptyDescription": "Admin-started account conversations will appear here when support opens one.",
-    "openConversation": "Open conversation about {subject}"
+    "title": "Очередь диалогов",
+    "emptyTitle": "Личных сообщений нет",
+    "emptyDescription": "Диалоги по аккаунту появятся здесь после того, как поддержка откроет обращение.",
+    "openConversation": "Открыть диалог по теме {subject}"
   },
   "detail": {
-    "emptyTitle": "Select a conversation",
-    "emptyDescription": "Choose an existing admin-started thread to read updates or reply.",
-    "threadTitle": "Thread",
-    "noMessages": "No public messages are available in this conversation."
+    "emptyTitle": "Выберите диалог",
+    "emptyDescription": "Выберите существующую ветку, начатую администратором, чтобы читать обновления или ответить.",
+    "threadTitle": "Ветка",
+    "noMessages": "В этом диалоге нет публичных сообщений."
   },
   "reply": {
-    "label": "Reply",
-    "placeholder": "Type your reply for the support team",
-    "counter": "{count}/4000 characters",
-    "submit": "Send reply",
-    "submitting": "Sending...",
-    "error": "Could not send this reply. Try again."
+    "label": "Ответ",
+    "placeholder": "Напишите ответ для команды поддержки",
+    "counter": "{count}/4000 символов",
+    "submit": "Отправить ответ",
+    "submitting": "Отправка...",
+    "error": "Не удалось отправить ответ. Попробуйте ещё раз."
   },
   "errors": {
-    "list": "Could not load private conversations.",
-    "detail": "Could not load this conversation."
+    "list": "Не удалось загрузить личные диалоги.",
+    "detail": "Не удалось загрузить этот диалог."
   },
   "status": {
-    "open": "Open",
-    "closed": "Closed",
-    "archived": "Archived",
-    "locked": "Locked"
+    "open": "Открыт",
+    "closed": "Закрыт",
+    "archived": "Архивирован",
+    "locked": "Заблокирован"
   },
   "responseState": {
-    "none": "No response due",
-    "waiting_customer": "Waiting for you",
-    "waiting_admin": "Waiting for support"
+    "none": "Ответ не ожидается",
+    "waiting_customer": "Ожидает вас",
+    "waiting_admin": "Ожидает поддержку"
   },
   "category": {
-    "support": "Support",
-    "billing": "Billing",
-    "subscription": "Subscription",
-    "security": "Security",
-    "system": "System",
-    "other": "Other"
+    "support": "Поддержка",
+    "billing": "Оплата",
+    "subscription": "Подписка",
+    "security": "Безопасность",
+    "system": "Система",
+    "other": "Другое"
   },
   "priority": {
-    "low": "Low",
-    "normal": "Normal",
-    "high": "High",
-    "urgent": "Urgent"
+    "low": "Низкий",
+    "normal": "Обычный",
+    "high": "Высокий",
+    "urgent": "Срочный"
   },
   "sender": {
-    "customer": "You",
-    "admin": "Support",
-    "system": "System"
+    "customer": "Вы",
+    "admin": "Поддержка",
+    "system": "Система"
   },
   "readOnly": {
     "closed": {
-      "title": "Conversation closed",
-      "description": "This thread is read-only. Support can reopen it if more action is needed."
+      "title": "Диалог закрыт",
+      "description": "Эта ветка доступна только для чтения. Поддержка может открыть её снова, если потребуются дополнительные действия."
     },
     "archived": {
-      "title": "Conversation archived",
-      "description": "Archived threads are preserved for reference and cannot accept replies."
+      "title": "Диалог в архиве",
+      "description": "Архивные ветки сохранены для справки и не принимают ответы."
     },
     "locked": {
-      "title": "Conversation locked",
-      "description": "This thread is locked while support reviews the account context."
+      "title": "Диалог заблокирован",
+      "description": "Эта ветка заблокирована, пока поддержка проверяет контекст аккаунта."
     }
   },
   "notifications": {
-    "triggerLabel": "Open notification center, {count} unread updates",
-    "panelLabel": "Notification center",
-    "eyebrow": "Signal center",
-    "title": "Notifications",
-    "markAllRead": "Mark all notifications read",
-    "markOneRead": "Mark notification read",
-    "error": "Could not load notifications.",
-    "emptyTitle": "No notifications",
-    "emptyDescription": "Account updates and message alerts will appear here.",
-    "openMessages": "Open messages",
-    "refresh": "Refresh notifications",
+    "triggerLabel": "Открыть центр уведомлений: {count} непрочитанных обновлений",
+    "panelLabel": "Центр уведомлений",
+    "eyebrow": "Центр сигналов",
+    "title": "Уведомления",
+    "markAllRead": "Отметить все уведомления прочитанными",
+    "markOneRead": "Отметить уведомление прочитанным",
+    "error": "Не удалось загрузить уведомления.",
+    "emptyTitle": "Уведомлений нет",
+    "emptyDescription": "Здесь появятся обновления аккаунта и алерты по сообщениям.",
+    "openMessages": "Открыть сообщения",
+    "refresh": "Обновить уведомления",
     "severity": {
-      "info": "Info",
-      "success": "Success",
-      "warning": "Warning",
-      "critical": "Critical"
+      "info": "Информация",
+      "success": "Успех",
+      "warning": "Предупреждение",
+      "critical": "Критично"
     }
   },
   "realtime": {
     "status": {
-      "connecting": "Connecting",
-      "connected": "Live",
-      "reconnecting": "Reconnecting",
-      "syncing": "Restoring",
-      "offline": "Offline",
-      "unavailable": "Sync only"
+      "connecting": "Подключение",
+      "connected": "В сети",
+      "reconnecting": "Переподключение",
+      "syncing": "Восстановление",
+      "offline": "Офлайн",
+      "unavailable": "Только синхронизация"
     }
   }
 }
