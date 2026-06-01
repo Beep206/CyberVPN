@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { DASHBOARD_NAV_ITEMS } from '@/widgets/dashboard-navigation';
+import { getWebCabinetNavigationSections } from '@/widgets/dashboard-navigation';
 
 vi.mock('@/shared/ui/atoms/cypher-text', () => ({
   CypherText: ({ text, className }: { text: string; className?: string }) => (
@@ -77,18 +77,27 @@ describe('CyberSidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePathname.mockReturnValue('/');
+    clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
+    clientCapabilitiesMock.data.growth.gift_codes = false;
+    clientCapabilitiesMock.data.growth.growth_hub = false;
+    clientCapabilitiesMock.data.growth.invites = false;
+    clientCapabilitiesMock.data.growth.promo_codes = false;
+    clientCapabilitiesMock.data.growth.referral = false;
   });
 
   it('renders the current dashboard navigation inventory', () => {
     render(<CyberSidebar />);
 
+    const navItems = getWebCabinetNavigationSections({
+      capabilities: clientCapabilitiesMock.data,
+    }).flatMap((section) => section.items);
     const links = screen.getAllByRole('link');
     const cypherTexts = screen.getAllByTestId('cypher-text');
 
-    expect(links).toHaveLength(DASHBOARD_NAV_ITEMS.length);
-    expect(cypherTexts).toHaveLength(DASHBOARD_NAV_ITEMS.length);
+    expect(links).toHaveLength(navItems.length);
+    expect(cypherTexts).toHaveLength(navItems.length);
 
-    for (const item of DASHBOARD_NAV_ITEMS) {
+    for (const item of navItems) {
       expect(screen.getByRole('link', { name: item.labelKey })).toHaveAttribute(
         'href',
         item.href,
@@ -101,12 +110,35 @@ describe('CyberSidebar', () => {
 
     render(<CyberSidebar />);
 
-    expect(screen.getByRole('link', { name: 'wallet' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'items.wallet' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    expect(screen.getByRole('link', { name: 'servers' })).not.toHaveAttribute(
-      'aria-current',
+    expect(
+      screen.getByRole('link', { name: 'items.vpnAccess' }),
+    ).not.toHaveAttribute('aria-current');
+  });
+
+  it('renders rewards as a section with split child routes when growth capabilities are enabled', () => {
+    clientCapabilitiesMock.data.growth.growth_hub = true;
+    clientCapabilitiesMock.data.growth.gift_codes = true;
+    clientCapabilitiesMock.data.growth.invites = true;
+    clientCapabilitiesMock.data.growth.referral = true;
+
+    render(<CyberSidebar />);
+
+    expect(screen.getByText('sections.growth')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'items.rewards' })).toHaveAttribute(
+      'href',
+      '/rewards',
+    );
+    expect(screen.getByRole('link', { name: 'items.referral' })).toHaveAttribute(
+      'href',
+      '/rewards/referral',
+    );
+    expect(screen.getByRole('link', { name: 'items.gifts' })).toHaveAttribute(
+      'href',
+      '/rewards/gifts',
     );
   });
 

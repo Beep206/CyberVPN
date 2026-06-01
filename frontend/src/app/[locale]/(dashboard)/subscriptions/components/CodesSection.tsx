@@ -49,7 +49,7 @@ export function CodesSection() {
 
           <div className="mt-6">
             <Link
-              href="/referral"
+              href="/rewards"
               className="inline-flex items-center gap-2 rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 px-4 py-3 text-sm font-mono text-neon-cyan transition-colors hover:bg-neon-cyan/20"
             >
               {t('rewardsHubCta')}

@@ -15,5 +15,29 @@
     "mainNavigation": "Main navigation",
     "sidebar": "Sidebar",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "sections": {
+        "main": "MAIN",
+        "vpn": "VPN",
+        "billing": "BILLING",
+        "growth": "REWARDS",
+        "communication": "SUPPORT",
+        "account": "ACCOUNT"
+    },
+    "items": {
+        "overview": "CABINET",
+        "vpnAccess": "NETWORK",
+        "subscription": "SUBSCRIPTION",
+        "wallet": "WALLET",
+        "paymentHistory": "PAYMENTS",
+        "rewards": "REWARDS HUB",
+        "referral": "REFERRAL",
+        "gifts": "GIFTS",
+        "invites": "INVITES",
+        "codes": "CODES",
+        "rewardNotifications": "ALERTS",
+        "support": "SUPPORT",
+        "messages": "MESSAGES",
+        "profileSecurity": "CONFIG"
+    }
 }
