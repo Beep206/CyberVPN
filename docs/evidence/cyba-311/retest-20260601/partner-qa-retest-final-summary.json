@@ -1,0 +1,67 @@
+{
+  "checkedAt": "2026-06-01T10:29:43.275Z",
+  "result": "pass",
+  "environment": {
+    "baseUrl": "http://127.0.0.1:3004",
+    "chromiumPath": "/home/beep/.local/bin/chromium",
+    "checkedAt": "2026-06-01T10:27:49.416Z"
+  },
+  "commands": [
+    "npm run lint -w partner — passed",
+    "npm run test:run -w partner — passed, 121 files / 673 tests",
+    "npm run test:mobile-layout -w partner — passed, 1 file / 5 tests",
+    "npm run build -w partner — passed, 94/94 static pages generated"
+  ],
+  "browserChecks": {
+    "desktopAxeViolationCount": 0,
+    "mobileDrawerAxeViolationCount": 0,
+    "desktopActiveLabel": "DASHBOARD",
+    "desktopDevButtonLabel": "Open developer tools",
+    "desktopOverflow": 0,
+    "mobileOpenBadges": [
+      "ДЕЙСТВИЕ",
+      "ТОЛЬКО ЧТЕНИЕ",
+      "ОГРАНИЧЕНО"
+    ],
+    "mobileDialogTag": "DIV",
+    "mobileDialogRole": "dialog",
+    "mobileAfterRouteUrl": "http://127.0.0.1:3004/ru-RU/application",
+    "mobileOverflow": 0,
+    "sensitiveMatches": {
+      "desktop": [],
+      "mobile": []
+    }
+  },
+  "routeChecks": {
+    "portalLegacyCommerce": {
+      "status": 307,
+      "location": "/en-EN/finance",
+      "cacheControl": null
+    },
+    "portalUnknownSection": {
+      "status": 404,
+      "location": null,
+      "cacheControl": "no-store"
+    },
+    "storefrontDashboardBlocked": {
+      "status": 307,
+      "location": "/en-EN",
+      "cacheControl": null
+    },
+    "storefrontLegacyBlocked": {
+      "status": 307,
+      "location": "/en-EN",
+      "cacheControl": null
+    }
+  },
+  "residualRisk": [
+    "Browser checks used local dev server with DEV_BYPASS_AUTH=true and synthetic localStorage partner state; production backend/data were not used.",
+    "Local backend on :8000 was not running, so dev console includes expected proxy noise for backend API calls; UI rendered from local scenario fallback.",
+    "Shared worktree contains unrelated dirty files outside CYBA-311/CYBA-327 scope; QA did not revert or modify them."
+  ],
+  "context7DocsChecked": [
+    "/microsoft/playwright Node.js browser automation/screenshot/keyboard APIs",
+    "/dequelabs/axe-core browser axe.run violations API",
+    "Web Interface Guidelines fetched from vercel-labs/web-interface-guidelines command.md"
+  ]
+}

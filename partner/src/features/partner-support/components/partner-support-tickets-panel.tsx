@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import {
@@ -156,6 +156,7 @@ export function PartnerSupportTicketsPanel({
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<TicketFilterValue>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilterValue>('all');
+  const [previousInitialTicketRef, setPreviousInitialTicketRef] = useState(initialTicketRef);
   const [selectedTicketRef, setSelectedTicketRef] = useState<string | null>(initialTicketRef);
   const [createDraft, setCreateDraft] = useState<CreatePartnerSupportTicketPayload>(
     createEmptyDraft,
@@ -163,9 +164,10 @@ export function PartnerSupportTicketsPanel({
   const [replyDraft, setReplyDraft] = useState('');
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
-  useEffect(() => {
+  if (initialTicketRef !== previousInitialTicketRef) {
+    setPreviousInitialTicketRef(initialTicketRef);
     setSelectedTicketRef(initialTicketRef);
-  }, [initialTicketRef]);
+  }
 
   const canRead = access !== 'none' && Boolean(workspaceId) && isCanonicalWorkspace;
   const hasOperationsWrite =

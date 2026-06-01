@@ -106,7 +106,7 @@ describe('CyberSidebar', () => {
     );
   });
 
-  it('renders the current dashboard navigation inventory', () => {
+  it('renders the grouped dashboard navigation inventory', () => {
     render(<CyberSidebar />);
 
     const links = screen.getAllByRole('link');
@@ -114,6 +114,9 @@ describe('CyberSidebar', () => {
 
     expect(links).toHaveLength(DASHBOARD_NAV_ITEMS.length);
     expect(cypherTexts).toHaveLength(DASHBOARD_NAV_ITEMS.length);
+    expect(screen.getByText('groupMain')).toBeInTheDocument();
+    expect(screen.getByText('groupOnboarding')).toBeInTheDocument();
+    expect(screen.getByText('groupTechnical')).toBeInTheDocument();
 
     for (const item of DASHBOARD_NAV_ITEMS) {
       expect(screen.getByRole('link', { name: item.labelKey })).toHaveAttribute(
@@ -138,7 +141,24 @@ describe('CyberSidebar', () => {
     expect(screen.queryByRole('link', { name: 'conversions' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'integrations' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'reseller' })).not.toBeInTheDocument();
+    expect(screen.queryByText('groupTechnical')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'analytics' })).toBeInTheDocument();
+  });
+
+  it('renders non-color-only badges for constrained lifecycle states', () => {
+    mockPortalState.mockReturnValue(
+      createPartnerPortalScenarioState(
+        'draft',
+        'creator_affiliate',
+        'workspace_owner',
+        'R4',
+      ),
+    );
+
+    render(<CyberSidebar />);
+
+    expect(screen.getAllByText('badgeTask').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('badgeReadOnly').length).toBeGreaterThan(0);
   });
 
   it('marks the active route with aria-current', () => {

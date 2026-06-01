@@ -17,18 +17,32 @@ function createQueryClient() {
   });
 }
 
-function renderPanel() {
-  return render(
-    <QueryClientProvider client={createQueryClient()}>
+type RenderPanelOptions = {
+  initialTicketRef?: string | null;
+};
+
+function renderPanel(options: RenderPanelOptions = {}) {
+  const queryClient = createQueryClient();
+  const renderPanelNode = (nextOptions: RenderPanelOptions = options) => (
+    <QueryClientProvider client={queryClient}>
       <PartnerSupportTicketsPanel
         access="admin"
         currentPermissionKeys={['workspace_read', 'operations_write']}
+        initialTicketRef={nextOptions.initialTicketRef}
         isCanonicalWorkspace
         workspaceId="workspace_001"
         workspaceName="North Star Growth Studio"
       />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const result = render(renderPanelNode());
+
+  return {
+    ...result,
+    rerenderPanel: (nextOptions: RenderPanelOptions) => {
+      result.rerender(renderPanelNode(nextOptions));
+    },
+  };
 }
 
 function ticketPayload(overrides: Record<string, unknown> = {}) {
@@ -80,6 +94,69 @@ function ticketPayload(overrides: Record<string, unknown> = {}) {
 }
 
 describe('PartnerSupportTicketsPanel', () => {
+  it('syncs the selected ticket when the initial ticket ref changes', async () => {
+    const detailPaths: string[] = [];
+
+    server.use(
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/support/tickets`, () =>
+        HttpResponse.json({
+          tickets: [
+            ticketPayload(),
+            ticketPayload({
+              public_id: 'SUP-2026-002',
+              subject: 'Escalated routing check',
+            }),
+          ],
+          nextCursor: null,
+        }),
+      ),
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/support/tickets/SUP-2026-001`, ({ request }) => {
+        detailPaths.push(new URL(request.url).pathname);
+        return HttpResponse.json(
+          ticketPayload({
+            messages: [
+              {
+                author_label: 'partner',
+                body: 'Initial ticket detail.',
+                created_at: '2026-05-29T10:00:00Z',
+              },
+            ],
+          }),
+        );
+      }),
+      http.get(`${API_BASE}/partner-workspaces/workspace_001/support/tickets/SUP-2026-002`, ({ request }) => {
+        detailPaths.push(new URL(request.url).pathname);
+        return HttpResponse.json(
+          ticketPayload({
+            public_id: 'SUP-2026-002',
+            subject: 'Escalated routing check',
+            messages: [
+              {
+                author_label: 'partner',
+                body: 'Rerendered ticket detail.',
+                created_at: '2026-05-29T10:03:00Z',
+              },
+            ],
+          }),
+        );
+      }),
+    );
+
+    const { rerenderPanel } = renderPanel({ initialTicketRef: 'SUP-2026-001' });
+
+    expect(await screen.findByText('Initial ticket detail.')).toBeInTheDocument();
+
+    rerenderPanel({ initialTicketRef: 'SUP-2026-002' });
+
+    expect(await screen.findByText('Rerendered ticket detail.')).toBeInTheDocument();
+    expect(detailPaths).toContain(
+      '/api/v1/partner-workspaces/workspace_001/support/tickets/SUP-2026-001',
+    );
+    expect(detailPaths).toContain(
+      '/api/v1/partner-workspaces/workspace_001/support/tickets/SUP-2026-002',
+    );
+  });
+
   it('renders public DTO tickets without requiring internal ownership fields', async () => {
     let detailPath: string | null = null;
 

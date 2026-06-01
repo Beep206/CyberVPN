@@ -26,6 +26,7 @@ export function DevButton({ onClick }: DevButtonProps) {
 
     return (
         <motion.button
+            aria-label="Open developer tools"
             className={cn(
                 "fixed bottom-4 left-4 z-50 flex h-12 w-12 items-center justify-center rounded-lg backdrop-blur-md overflow-hidden group transition-all duration-300",
                 isDark

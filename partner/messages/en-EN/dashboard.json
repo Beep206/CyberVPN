@@ -10,6 +10,7 @@
     "label": "Local review scenario",
     "description": "Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior.",
     "helper": "Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell.",
+    "canonicalDisabled": "Scenario simulation is disabled while canonical workspace data is active.",
     "options": {
       "draft": "Draft workspace",
       "needs_info": "Needs info",
@@ -23,7 +24,8 @@
   "role": {
     "label": "Workspace role simulator",
     "description": "PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set.",
-    "helper": "The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces."
+    "helper": "The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces.",
+    "canonicalDisabled": "Workspace role now follows backend permissions for the active portal workspace."
   },
   "releaseRing": {
     "label": "Portal release ring",
@@ -53,13 +55,88 @@
     "description": "Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here.",
     "openCases": "Open support & cases"
   },
+  "taskActions": {
+    "dashboard": "Open dashboard",
+    "application": "Open application",
+    "organization": "Open organization",
+    "team": "Open team",
+    "programs": "Open programs",
+    "legal": "Open legal",
+    "codes": "Open codes",
+    "campaigns": "Open campaigns",
+    "conversions": "Open conversions",
+    "analytics": "Open analytics",
+    "finance": "Open finance",
+    "compliance": "Open compliance",
+    "integrations": "Open integrations",
+    "cases": "Open cases",
+    "notifications": "Open notifications",
+    "settings": "Open settings",
+    "reseller": "Open reseller"
+  },
   "readiness": {
     "title": "Readiness overlays",
     "description": "Finance, compliance, technical posture, and governance state are kept separate from the canonical workspace status."
   },
+  "constraints": {
+    "title": "Current constraints",
+    "description": "Blocked, task-driven, limited, and read-only states are kept visible before the partner opens a section.",
+    "empty": "No active constraints are limiting the current workspace view.",
+    "canonicalReasonTitle": "Blocked reason: {code}",
+    "canonicalReasonDescription": "Partner ops has marked this workspace as constrained. Open the linked section for the current response path.",
+    "releaseRingTitle": "Release ring hold",
+    "releaseRingDescription": "{count} section(s) are held until a later release ring opens.",
+    "taskTitle": "Action-required sections",
+    "taskDescription": "{count} section(s) require partner action before the workspace can move forward.",
+    "limitedTitle": "Limited sections",
+    "limitedDescription": "{count} section(s) are visible with constrained workflow depth.",
+    "readOnlyTitle": "Read-only sections",
+    "readOnlyDescription": "{count} section(s) are visible for reference while writes remain unavailable."
+  },
   "sections": {
     "title": "Visible sections",
-    "description": "The sidebar and direct routes now follow the same visibility matrix."
+    "description": "The sidebar and direct routes now follow the same visibility matrix.",
+    "groups": {
+      "main": {
+        "title": "Overview",
+        "description": "Current posture, alerts, and urgent actions."
+      },
+      "onboarding": {
+        "title": "Start",
+        "description": "Identity, organization, terms, and review inputs."
+      },
+      "workspace": {
+        "title": "Workspace",
+        "description": "People, role posture, preferences, and workspace security."
+      },
+      "promotion": {
+        "title": "Programs & Promotion",
+        "description": "Lanes, links, codes, campaigns, and approved materials."
+      },
+      "results": {
+        "title": "Results",
+        "description": "Orders, attribution, performance, and exports."
+      },
+      "finance": {
+        "title": "Finance",
+        "description": "Statements, payout readiness, holds, and account posture."
+      },
+      "control": {
+        "title": "Control & Support",
+        "description": "Compliance tasks, disputes, requested info, and support workflow."
+      },
+      "technical": {
+        "title": "Integrations",
+        "description": "Tokens, postbacks, delivery logs, storefront, and voucher scope."
+      }
+    },
+    "stateDescriptions": {
+      "hidden": "This section is not shown in the current lifecycle state.",
+      "read": "Data is visible for reference while write actions stay disabled.",
+      "task": "This section has an action-required workflow for the current lifecycle band.",
+      "limited": "This section is available with limited workflow depth until the workspace advances.",
+      "full": "This section is fully available for the current role and lifecycle state."
+    }
   },
   "rollout": {
     "title": "Rollout readiness",

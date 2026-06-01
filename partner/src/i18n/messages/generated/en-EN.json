@@ -1226,6 +1226,21 @@
       "open": "Open cases",
       "title": "Latest cases"
     },
+    "constraints": {
+      "canonicalReasonDescription": "Partner ops has marked this workspace as constrained. Open the linked section for the current response path.",
+      "canonicalReasonTitle": "Blocked reason: {code}",
+      "description": "Blocked, task-driven, limited, and read-only states are kept visible before the partner opens a section.",
+      "empty": "No active constraints are limiting the current workspace view.",
+      "limitedDescription": "{count} section(s) are visible with constrained workflow depth.",
+      "limitedTitle": "Limited sections",
+      "readOnlyDescription": "{count} section(s) are visible for reference while writes remain unavailable.",
+      "readOnlyTitle": "Read-only sections",
+      "releaseRingDescription": "{count} section(s) are held until a later release ring opens.",
+      "releaseRingTitle": "Release ring hold",
+      "taskDescription": "{count} section(s) require partner action before the workspace can move forward.",
+      "taskTitle": "Action-required sections",
+      "title": "Current constraints"
+    },
     "eyebrow": "PARTNER OPERATING SURFACE",
     "financeSnapshot": {
       "available": "Available earnings",
@@ -1266,6 +1281,7 @@
       "label": "Portal release ring"
     },
     "role": {
+      "canonicalDisabled": "Workspace role now follows backend permissions for the active portal workspace.",
       "description": "PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set.",
       "helper": "The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces.",
       "label": "Workspace role simulator"
@@ -1279,6 +1295,7 @@
       "title": "Rollout readiness"
     },
     "scenario": {
+      "canonicalDisabled": "Scenario simulation is disabled while canonical workspace data is active.",
       "description": "Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior.",
       "helper": "Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell.",
       "label": "Local review scenario",
@@ -1294,9 +1311,69 @@
     },
     "sections": {
       "description": "The sidebar and direct routes now follow the same visibility matrix.",
+      "groups": {
+        "control": {
+          "description": "Compliance tasks, disputes, requested info, and support workflow.",
+          "title": "Control & Support"
+        },
+        "finance": {
+          "description": "Statements, payout readiness, holds, and account posture.",
+          "title": "Finance"
+        },
+        "main": {
+          "description": "Current posture, alerts, and urgent actions.",
+          "title": "Overview"
+        },
+        "onboarding": {
+          "description": "Identity, organization, terms, and review inputs.",
+          "title": "Start"
+        },
+        "promotion": {
+          "description": "Lanes, links, codes, campaigns, and approved materials.",
+          "title": "Programs & Promotion"
+        },
+        "results": {
+          "description": "Orders, attribution, performance, and exports.",
+          "title": "Results"
+        },
+        "technical": {
+          "description": "Tokens, postbacks, delivery logs, storefront, and voucher scope.",
+          "title": "Integrations"
+        },
+        "workspace": {
+          "description": "People, role posture, preferences, and workspace security.",
+          "title": "Workspace"
+        }
+      },
+      "stateDescriptions": {
+        "full": "This section is fully available for the current role and lifecycle state.",
+        "hidden": "This section is not shown in the current lifecycle state.",
+        "limited": "This section is available with limited workflow depth until the workspace advances.",
+        "read": "Data is visible for reference while write actions stay disabled.",
+        "task": "This section has an action-required workflow for the current lifecycle band."
+      },
       "title": "Visible sections"
     },
     "subtitle": "PP2 turns the shell into a state-aware applicant workspace: review requests, inbox events, limited-access modules, and explainable blocked states now move together.",
+    "taskActions": {
+      "analytics": "Open analytics",
+      "application": "Open application",
+      "campaigns": "Open campaigns",
+      "cases": "Open cases",
+      "codes": "Open codes",
+      "compliance": "Open compliance",
+      "conversions": "Open conversions",
+      "dashboard": "Open dashboard",
+      "finance": "Open finance",
+      "integrations": "Open integrations",
+      "legal": "Open legal",
+      "notifications": "Open notifications",
+      "organization": "Open organization",
+      "programs": "Open programs",
+      "reseller": "Open reseller",
+      "settings": "Open settings",
+      "team": "Open team"
+    },
     "tasks": {
       "description": "Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here.",
       "openCases": "Open support & cases",
@@ -3089,6 +3166,10 @@
     "analyticsHint": "Performance, exports, explainability",
     "application": "APPLICATION",
     "applicationHint": "Onboarding, review, requested info",
+    "badgeLimited": "LIMITED",
+    "badgeLocked": "LOCKED",
+    "badgeReadOnly": "READ ONLY",
+    "badgeTask": "ACTION",
     "campaigns": "CAMPAIGNS",
     "campaignsHint": "Assets, enablement, approvals",
     "cases": "SUPPORT & CASES",
@@ -3104,6 +3185,22 @@
     "dashboardHint": "Status, tasks, portal readiness",
     "finance": "FINANCE",
     "financeHint": "Statements, payout readiness, holds",
+    "groupControl": "Control & Support",
+    "groupControlHint": "Compliance tasks, disputes, requested info",
+    "groupFinance": "Finance",
+    "groupFinanceHint": "Statements, payout readiness, holds",
+    "groupMain": "Overview",
+    "groupMainHint": "Current posture, alerts, urgent actions",
+    "groupOnboarding": "Start",
+    "groupOnboardingHint": "Application, organization, contracts",
+    "groupPromotion": "Programs & Promotion",
+    "groupPromotionHint": "Lanes, links, campaigns",
+    "groupResults": "Results",
+    "groupResultsHint": "Orders, attribution, exports",
+    "groupTechnical": "Integrations",
+    "groupTechnicalHint": "Tokens, postbacks, reseller tools",
+    "groupWorkspace": "Workspace",
+    "groupWorkspaceHint": "People, settings, workspace security",
     "integrations": "INTEGRATIONS",
     "integrationsHint": "Tokens, postbacks, delivery logs",
     "legal": "CONTRACTS & LEGAL",

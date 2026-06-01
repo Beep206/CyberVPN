@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isPortalWorkspacePath,
+  isRetiredGenericPortalSectionPath,
   isStorefrontPublicPath,
   normalizeRequestHost,
   resolvePartnerSurfaceContext,
@@ -12,6 +13,11 @@ describe('storefront runtime resolution', () => {
 
     expect(context.family).toBe('portal');
     expect(context.authRealmKey).toBe('partner');
+  });
+
+  it('resolves the QA gate localhost port to the portal surface family', () => {
+    expect(resolvePartnerSurfaceContext('127.0.0.1:3004').family).toBe('portal');
+    expect(resolvePartnerSurfaceContext('localhost:3004').family).toBe('portal');
   });
 
   it('resolves dedicated storefront dev hosts to the storefront family', () => {
@@ -49,5 +55,13 @@ describe('storefront route classification', () => {
     expect(isStorefrontPublicPath('/ru-RU/checkout')).toBe(true);
     expect(isStorefrontPublicPath('/en-EN/support')).toBe(true);
     expect(isStorefrontPublicPath('/en-EN/legal-docs')).toBe(true);
+  });
+
+  it('recognizes retired generic portal section paths without catching active routes', () => {
+    expect(isRetiredGenericPortalSectionPath('/en-EN/not-a-real-section')).toBe(true);
+    expect(isRetiredGenericPortalSectionPath('/en-EN/dashboard')).toBe(false);
+    expect(isRetiredGenericPortalSectionPath('/en-EN/login')).toBe(false);
+    expect(isRetiredGenericPortalSectionPath('/en-EN/checkout')).toBe(false);
+    expect(isRetiredGenericPortalSectionPath('/en-EN/not-a-real-section/deep')).toBe(false);
   });
 });

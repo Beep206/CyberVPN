@@ -1,0 +1,1582 @@
+{
+  "generatedAt": "2026-06-01T09:15:46.614Z",
+  "url": "http://localhost:3002/en-EN/dashboard",
+  "context7DocsChecked": "/microsoft/playwright Node API screenshots/console/bounding boxes/viewport",
+  "webInterfaceGuidelinesChecked": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md",
+  "auth": "mocked /api/v1/auth/session and /api/v1/auth/me with synthetic partner operator; no production data/secrets",
+  "simulation": "NEXT_PUBLIC_PARTNER_PORTAL_SIMULATION_ENABLED=true, needs_info selected through visible dev-only simulator controls",
+  "results": [
+    {
+      "name": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 1200
+      },
+      "status": 200,
+      "finalUrl": "http://localhost:3002/en-EN/dashboard",
+      "consoleMessages": [
+        "log: [Client Instrumentation Hook] Slow execution detected: 17ms (Note: Code download overhead is not included in this measurement)",
+        "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "log: [HMR] connected",
+        "log: [Dev Tools] Console Intercepted globally.",
+        "warning: You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled",
+        "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "pageErrors": [],
+      "failedResponses": [
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-workspaces/me"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-session/bootstrap"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-notifications/preferences"
+        }
+      ],
+      "checks": {
+        "label": "desktop:default",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "path": "/en-EN/dashboard",
+        "h1": "OZOXY PARTNER PORTAL",
+        "headings": [
+          {
+            "tag": "H1",
+            "text": "OZOXY PARTNER PORTAL"
+          },
+          {
+            "tag": "H2",
+            "text": "Pending tasks"
+          },
+          {
+            "tag": "H2",
+            "text": "Readiness overlays"
+          },
+          {
+            "tag": "H3",
+            "text": "Current constraints"
+          },
+          {
+            "tag": "H4",
+            "text": "Release ring hold"
+          },
+          {
+            "tag": "H4",
+            "text": "Action-required sections"
+          },
+          {
+            "tag": "H4",
+            "text": "Read-only sections"
+          },
+          {
+            "tag": "H2",
+            "text": "Visible sections"
+          },
+          {
+            "tag": "H3",
+            "text": "Overview"
+          },
+          {
+            "tag": "H3",
+            "text": "Start"
+          },
+          {
+            "tag": "H3",
+            "text": "Workspace"
+          },
+          {
+            "tag": "H3",
+            "text": "Control & Support"
+          },
+          {
+            "tag": "H3",
+            "text": "Rollout readiness"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest notifications"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest cases"
+          },
+          {
+            "tag": "H2",
+            "text": "Next actions"
+          }
+        ],
+        "groupTitles": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Control & Support",
+          "Rollout readiness"
+        ],
+        "hasTaskPanel": false,
+        "hasConstraintsPanel": false,
+        "hasVisibleSectionsPanel": false,
+        "taskLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 753.95,
+              "y": 1590,
+              "width": 108.64,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2367,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 1276.98,
+              "y": 2963,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 305,
+              "y": 5053,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 479,
+              "y": 5053,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "actionLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 753.95,
+              "y": 1590,
+              "width": 108.64,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN NOTIFICATIONS",
+            "href": "/en-EN/notifications",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2185,
+              "width": 194.56,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2367,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN LEGAL",
+            "href": "/en-EN/legal",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2549,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open inbox",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 1280.09,
+              "y": 2705,
+              "width": 110.89,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 1276.98,
+              "y": 2963,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 305,
+              "y": 5053,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 479,
+              "y": 5053,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open notifications",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-matrix-green hover:border-matrix-green/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 605,
+              "y": 5053,
+              "width": 178,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "smallActionLinks": [],
+        "unlabelledControls": [
+          {
+            "tag": "SELECT",
+            "value": "draft",
+            "nearbyText": "LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Wai"
+          },
+          {
+            "tag": "SELECT",
+            "value": "workspace_owner",
+            "nearbyText": "WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Ma"
+          },
+          {
+            "tag": "SELECT",
+            "value": "R1",
+            "nearbyText": "PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate l"
+          }
+        ],
+        "documentWidth": 1440,
+        "viewportWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "bodyTextSample": "Skip to main content Skip to main content OZOXY PARTNER OVERVIEW CURRENT POSTURE, ALERTS, URGENT ACTIONS DASHBOARD DASHBOARD DASHBOARD STATUS, TASKS, PORTAL READINESS ACTION INBOX INBOX INBOX STATUS CHANGES AND ALERTS READ ONLY START APPLICATION, ORGANIZATION, CONTRACTS APPLICATION APPLICATION APPLICATION ONBOARDING, REVIEW, REQUESTED INFO ORGANIZATION ORGANIZATION ORGANIZATION BUSINESS PROFILE, DOMAINS, CONTACTS CONTRACTS & LEGAL CONTRACTS & LEGAL CONTRACTS & LEGAL TERMS, POLICIES, ACCEPTANCE HISTORY READ ONLY WORKSPACE PEOPLE, SETTINGS, WORKSPACE SECURITY SETTINGS SETTINGS SETTINGS MFA, SESSIONS, PREFERENCES CONTROL & SUPPORT COMPLIANCE TASKS, DISPUTES, REQUESTED INFO SUPPORT & CASES SUPPORT & CASES SUPPORT & CASES MESSAGES, DISPUTES, REQUESTS ACTION PT PARTNER PORTAL lyra-review WORKSPACE OWNER/SECURE SESSION FPS 45 | PING 11ms NET_UPLINK EN lyra-review LY DRAFT PRE-SUBMIT NO LANE SELECTED WORKSPACE OWNER R1 APPLICANT-SAFE LAUNCH PARTNER OPERATING SURFACE OZOXY PARTNER PORTAL PP2 turns the shell into a state-aware applicant workspace: review requests, inbox events, limited-access modules, and explainable blocked states now move together. WORKSPACE STATUS Draft PRIMARY LANE No lane selected VISIBILITY BAND Pre-submit LAST RUNTIME REFRESH Apr 18, 2026, 12:00 PM WORKSPACE ROLE Workspace Owner RELEASE RING R1 Applicant-safe launch ACCESSIBLE SECTIONS 7 LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Waitlisted Approved to probation Active workspace Restricted workspace Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell. WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Manager Support Manager Workspace Admin Technical Manager Legal / Compliance Manager The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces. PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate launch R3 Performance rollout R4 Reseller / API rollout Use R1 for applicant and probation-safe launch, R2 for Creator / Affiliate launch, R3 for Performance rollout, and R4 for Reseller / API rollout. DRAFT WORKSPACE STATUS Pre-submit Home, menu visibility, and direct-route posture all follow the same workspace band. 0 PENDING TASKS 0 Requested info and readiness blockers are now surfaced as first-class partner tasks. 1 INBOX SIGNALS 1 Unread portal notifications expose the latest ops, review, and governance signals. 1 OPEN CASES 1 Support and review threads stay visible even before operational launch. PENDING TASKS Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here. Open support & cases No pending tasks for the current scenario. READINESS OVERLAYS Finance, compliance, technical posture, and governance state are kept separate from the canonical workspace status. Finance readiness Not started Compliance readiness Not started Technical readiness Not required Governance state Clear CURRENT CONSTRAINTS Blocked, task-driven, limited, and read-only states are kept visible before the partner opens a section. RELEASE RING HOLD 4 section(s) are held until a later release ring opens. OPEN NOTIFICATIONS ACTION-REQUIRED SECTIONS 1 section(s) require partner action before the workspace can move forward. OPEN CASES READ-",
+        "hasMissingMessageText": false
+      },
+      "needsInfoChecks": {
+        "label": "desktop:needs_info",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "path": "/en-EN/dashboard",
+        "h1": "OZOXY PARTNER PORTAL",
+        "headings": [
+          {
+            "tag": "H1",
+            "text": "OZOXY PARTNER PORTAL"
+          },
+          {
+            "tag": "H2",
+            "text": "Pending tasks"
+          },
+          {
+            "tag": "H3",
+            "text": "Expand business profile"
+          },
+          {
+            "tag": "H3",
+            "text": "Prove owned channels"
+          },
+          {
+            "tag": "H3",
+            "text": "Complete finance profile"
+          },
+          {
+            "tag": "H3",
+            "text": "Blocked pending compliance"
+          },
+          {
+            "tag": "H2",
+            "text": "Readiness overlays"
+          },
+          {
+            "tag": "H3",
+            "text": "Current constraints"
+          },
+          {
+            "tag": "H4",
+            "text": "Release ring hold"
+          },
+          {
+            "tag": "H4",
+            "text": "Action-required sections"
+          },
+          {
+            "tag": "H4",
+            "text": "Limited sections"
+          },
+          {
+            "tag": "H4",
+            "text": "Read-only sections"
+          },
+          {
+            "tag": "H2",
+            "text": "Visible sections"
+          },
+          {
+            "tag": "H3",
+            "text": "Overview"
+          },
+          {
+            "tag": "H3",
+            "text": "Start"
+          },
+          {
+            "tag": "H3",
+            "text": "Workspace"
+          },
+          {
+            "tag": "H3",
+            "text": "Programs & Promotion"
+          },
+          {
+            "tag": "H3",
+            "text": "Control & Support"
+          },
+          {
+            "tag": "H3",
+            "text": "Rollout readiness"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest notifications"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest cases"
+          },
+          {
+            "tag": "H2",
+            "text": "Next actions"
+          }
+        ],
+        "groupTitles": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Programs & Promotion",
+          "Control & Support",
+          "Rollout readiness"
+        ],
+        "hasTaskPanel": false,
+        "hasConstraintsPanel": false,
+        "hasVisibleSectionsPanel": false,
+        "taskLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 753.95,
+              "y": 1590,
+              "width": 108.64,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN ORGANIZATION",
+            "href": "/en-EN/organization",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 1829,
+              "width": 185.64,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN APPLICATION",
+            "href": "/en-EN/application",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 2011,
+              "width": 176.73,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 2193,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 2375,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2367,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2549,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 1276.98,
+              "y": 3267,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 305,
+              "y": 5637.5,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 479,
+              "y": 5637.5,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "actionLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 753.95,
+              "y": 1590,
+              "width": 108.64,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN ORGANIZATION",
+            "href": "/en-EN/organization",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 1829,
+              "width": 185.64,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN APPLICATION",
+            "href": "/en-EN/application",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 2011,
+              "width": 176.73,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 2193,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 326,
+              "y": 2375,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN NOTIFICATIONS",
+            "href": "/en-EN/notifications",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2185,
+              "width": 194.56,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2367,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2549,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN PROGRAMS",
+            "href": "/en-EN/programs",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 978.59,
+              "y": 2731,
+              "width": 149.97,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open inbox",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 1280.09,
+              "y": 2887,
+              "width": 110.89,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 1276.98,
+              "y": 3267,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 305,
+              "y": 5637.5,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 479,
+              "y": 5637.5,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open notifications",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-matrix-green hover:border-matrix-green/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 605,
+              "y": 5637.5,
+              "width": 178,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "smallActionLinks": [],
+        "unlabelledControls": [
+          {
+            "tag": "SELECT",
+            "value": "needs_info",
+            "nearbyText": "LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Wai"
+          },
+          {
+            "tag": "SELECT",
+            "value": "workspace_owner",
+            "nearbyText": "WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Ma"
+          },
+          {
+            "tag": "SELECT",
+            "value": "R1",
+            "nearbyText": "PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate l"
+          }
+        ],
+        "documentWidth": 1440,
+        "viewportWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "bodyTextSample": "Skip to main content Skip to main content OZOXY PARTNER OVERVIEW CURRENT POSTURE, ALERTS, URGENT ACTIONS DASHBOARD DASHBOARD DASHBOARD STATUS, TASKS, PORTAL READINESS ACTION INBOX INBOX INBOX STATUS CHANGES AND ALERTS READ ONLY START APPLICATION, ORGANIZATION, CONTRACTS APPLICATION APPLICATION APPLICATION ONBOARDING, REVIEW, REQUESTED INFO ORGANIZATION ORGANIZATION ORGANIZATION BUSINESS PROFILE, DOMAINS, CONTACTS CONTRACTS & LEGAL CONTRACTS & LEGAL CONTRACTS & LEGAL TERMS, POLICIES, ACCEPTANCE HISTORY READ ONLY WORKSPACE PEOPLE, SETTINGS, WORKSPACE SECURITY SETTINGS SETTINGS SETTINGS MFA, SESSIONS, PREFERENCES PROGRAMS & PROMOTION LANES, LINKS, CAMPAIGNS PROGRAMS PROGRAMS PROGRAMS LANES, RESTRICTIONS, APPROVALS READ ONLY CONTROL & SUPPORT COMPLIANCE TASKS, DISPUTES, REQUESTED INFO COMPLIANCE COMPLIANCE COMPLIANCE DECLARATIONS, POLICY, GOVERNANCE ACTION SUPPORT & CASES SUPPORT & CASES SUPPORT & CASES MESSAGES, DISPUTES, REQUESTS LIMITED PT PARTNER PORTAL lyra-review WORKSPACE OWNER/SECURE SESSION FPS 54 | PING 11ms NET_UPLINK EN lyra-review LY NEEDS INFO REVIEW NO LANE SELECTED WORKSPACE OWNER R1 APPLICANT-SAFE LAUNCH PARTNER OPERATING SURFACE OZOXY PARTNER PORTAL PP2 turns the shell into a state-aware applicant workspace: review requests, inbox events, limited-access modules, and explainable blocked states now move together. WORKSPACE STATUS Needs info PRIMARY LANE No lane selected VISIBILITY BAND Review LAST RUNTIME REFRESH Jun 1, 2026, 9:15 AM WORKSPACE ROLE Workspace Owner RELEASE RING R1 Applicant-safe launch ACCESSIBLE SECTIONS 9 LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Waitlisted Approved to probation Active workspace Restricted workspace Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell. WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Manager Support Manager Workspace Admin Technical Manager Legal / Compliance Manager The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces. PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate launch R3 Performance rollout R4 Reseller / API rollout Use R1 for applicant and probation-safe launch, R2 for Creator / Affiliate launch, R3 for Performance rollout, and R4 for Reseller / API rollout. NEEDS INFO WORKSPACE STATUS Review Home, menu visibility, and direct-route posture all follow the same workspace band. 4 PENDING TASKS 4 Requested info and readiness blockers are now surfaced as first-class partner tasks. 1 INBOX SIGNALS 2 Unread portal notifications expose the latest ops, review, and governance signals. 2 OPEN CASES 2 Support and review threads stay visible even before operational launch. PENDING TASKS Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here. Open support & cases EXPAND BUSINESS PROFILE Partner ops needs more detail about the workspace profile, website, and audience fit. OPEN ORGANIZATION PROVE OWNED CHANNELS Add working owned properties, social links, or creator surfaces that can be reviewed. OPEN APPLICATION COMPLETE FINANCE PROFILE Finance onboarding still needs payout-profile and settlement-contact information. OPEN CASES BLOCKED PENDING COMPLIANCE Evidence or declarations are still missing, so",
+        "hasMissingMessageText": false
+      },
+      "missingMessageConsoleCount": 0,
+      "knownSandboxApi500s": [
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-workspaces/me"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-session/bootstrap"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-notifications/preferences"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "finalUrl": "http://localhost:3002/en-EN/dashboard",
+      "consoleMessages": [
+        "log: [Client Instrumentation Hook] Slow execution detected: 18ms (Note: Code download overhead is not included in this measurement)",
+        "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+        "log: [HMR] connected",
+        "log: [Dev Tools] Console Intercepted globally.",
+        "warning: You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled",
+        "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "pageErrors": [],
+      "failedResponses": [
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-workspaces/me"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-session/bootstrap"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-notifications/preferences"
+        }
+      ],
+      "checks": {
+        "label": "mobile:default",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "path": "/en-EN/dashboard",
+        "h1": "OZOXY PARTNER PORTAL",
+        "headings": [
+          {
+            "tag": "H1",
+            "text": "OZOXY PARTNER PORTAL"
+          },
+          {
+            "tag": "H2",
+            "text": "Pending tasks"
+          },
+          {
+            "tag": "H2",
+            "text": "Readiness overlays"
+          },
+          {
+            "tag": "H3",
+            "text": "Current constraints"
+          },
+          {
+            "tag": "H4",
+            "text": "Release ring hold"
+          },
+          {
+            "tag": "H4",
+            "text": "Action-required sections"
+          },
+          {
+            "tag": "H4",
+            "text": "Read-only sections"
+          },
+          {
+            "tag": "H2",
+            "text": "Visible sections"
+          },
+          {
+            "tag": "H3",
+            "text": "Overview"
+          },
+          {
+            "tag": "H3",
+            "text": "Start"
+          },
+          {
+            "tag": "H3",
+            "text": "Workspace"
+          },
+          {
+            "tag": "H3",
+            "text": "Control & Support"
+          },
+          {
+            "tag": "H3",
+            "text": "Rollout readiness"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest notifications"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest cases"
+          },
+          {
+            "tag": "H2",
+            "text": "Next actions"
+          }
+        ],
+        "groupTitles": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Control & Support",
+          "Rollout readiness"
+        ],
+        "hasTaskPanel": false,
+        "hasConstraintsPanel": false,
+        "hasVisibleSectionsPanel": false,
+        "taskLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 263,
+              "y": 3154.92,
+              "width": 90,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 4258.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 242.11,
+              "y": 8028.42,
+              "width": 110.89,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 37,
+              "y": 8426.42,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 211,
+              "y": 8426.42,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "actionLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 263,
+              "y": 3154.92,
+              "width": 90,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN NOTIFICATIONS",
+            "href": "/en-EN/notifications",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 4032.92,
+              "width": 194.56,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 4258.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN LEGAL",
+            "href": "/en-EN/legal",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 4464.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open inbox",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 263.88,
+              "y": 7734.42,
+              "width": 89.13,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 242.11,
+              "y": 8028.42,
+              "width": 110.89,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 37,
+              "y": 8426.42,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 211,
+              "y": 8426.42,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open notifications",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-matrix-green hover:border-matrix-green/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 37,
+              "y": 8482.42,
+              "width": 178,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "smallActionLinks": [],
+        "unlabelledControls": [
+          {
+            "tag": "SELECT",
+            "value": "draft",
+            "nearbyText": "LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Wai"
+          },
+          {
+            "tag": "SELECT",
+            "value": "workspace_owner",
+            "nearbyText": "WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Ma"
+          },
+          {
+            "tag": "SELECT",
+            "value": "R1",
+            "nearbyText": "PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate l"
+          }
+        ],
+        "documentWidth": 390,
+        "viewportWidth": 390,
+        "hasHorizontalOverflow": false,
+        "bodyTextSample": "Skip to main content Skip to main content EN LY DRAFT PRE-SUBMIT NO LANE SELECTED WORKSPACE OWNER R1 APPLICANT-SAFE LAUNCH PARTNER OPERATING SURFACE OZOXY PARTNER PORTAL PP2 turns the shell into a state-aware applicant workspace: review requests, inbox events, limited-access modules, and explainable blocked states now move together. WORKSPACE STATUS Draft PRIMARY LANE No lane selected VISIBILITY BAND Pre-submit LAST RUNTIME REFRESH Apr 18, 2026, 12:00 PM WORKSPACE ROLE Workspace Owner RELEASE RING R1 Applicant-safe launch ACCESSIBLE SECTIONS 7 LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Waitlisted Approved to probation Active workspace Restricted workspace Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell. WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Manager Support Manager Workspace Admin Technical Manager Legal / Compliance Manager The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces. PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate launch R3 Performance rollout R4 Reseller / API rollout Use R1 for applicant and probation-safe launch, R2 for Creator / Affiliate launch, R3 for Performance rollout, and R4 for Reseller / API rollout. DRAFT WORKSPACE STATUS Pre-submit Home, menu visibility, and direct-route posture all follow the same workspace band. 0 PENDING TASKS 0 Requested info and readiness blockers are now surfaced as first-class partner tasks. 1 INBOX SIGNALS 1 Unread portal notifications expose the latest ops, review, and governance signals. 1 OPEN CASES 1 Support and review threads stay visible even before operational launch. PENDING TASKS Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here. Open support & cases No pending tasks for the current scenario. READINESS OVERLAYS Finance, compliance, technical posture, and governance state are kept separate from the canonical workspace status. Finance readiness Not started Compliance readiness Not started Technical readiness Not required Governance state Clear CURRENT CONSTRAINTS Blocked, task-driven, limited, and read-only states are kept visible before the partner opens a section. RELEASE RING HOLD 4 section(s) are held until a later release ring opens. OPEN NOTIFICATIONS ACTION-REQUIRED SECTIONS 1 section(s) require partner action before the workspace can move forward. OPEN CASES READ-ONLY SECTIONS 1 section(s) are visible for reference while writes remain unavailable. OPEN LEGAL VISIBLE SECTIONS The sidebar and direct routes now follow the same visibility matrix. OVERVIEW Current posture, alerts, and urgent actions. 1 INBOX Status changes and alerts FULL CURRENT ACCESS: READ-ONLY START Identity, organization, terms, and review inputs. 3 APPLICATION Onboarding, review, requested info FULL CURRENT ACCESS: ADMIN ORGANIZATION Business profile, domains, contacts FULL CURRENT ACCESS: ADMIN CONTRACTS & LEGAL Terms, policies, acceptance history READ-ONLY CURRENT ACCESS: READ-ONLY Data is visible for reference while write actions stay disabled. WORKSPACE People, role posture, preferences, and workspace security. 1 SETTINGS MFA, sessions, preferences FULL CURRENT ACCESS: WRITE CONTROL & SUPPORT Complia",
+        "hasMissingMessageText": false
+      },
+      "needsInfoChecks": {
+        "label": "mobile:needs_info",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "path": "/en-EN/dashboard",
+        "h1": "OZOXY PARTNER PORTAL",
+        "headings": [
+          {
+            "tag": "H1",
+            "text": "OZOXY PARTNER PORTAL"
+          },
+          {
+            "tag": "H2",
+            "text": "Pending tasks"
+          },
+          {
+            "tag": "H3",
+            "text": "Expand business profile"
+          },
+          {
+            "tag": "H3",
+            "text": "Prove owned channels"
+          },
+          {
+            "tag": "H3",
+            "text": "Complete finance profile"
+          },
+          {
+            "tag": "H3",
+            "text": "Blocked pending compliance"
+          },
+          {
+            "tag": "H2",
+            "text": "Readiness overlays"
+          },
+          {
+            "tag": "H3",
+            "text": "Current constraints"
+          },
+          {
+            "tag": "H4",
+            "text": "Release ring hold"
+          },
+          {
+            "tag": "H4",
+            "text": "Action-required sections"
+          },
+          {
+            "tag": "H4",
+            "text": "Limited sections"
+          },
+          {
+            "tag": "H4",
+            "text": "Read-only sections"
+          },
+          {
+            "tag": "H2",
+            "text": "Visible sections"
+          },
+          {
+            "tag": "H3",
+            "text": "Overview"
+          },
+          {
+            "tag": "H3",
+            "text": "Start"
+          },
+          {
+            "tag": "H3",
+            "text": "Workspace"
+          },
+          {
+            "tag": "H3",
+            "text": "Programs & Promotion"
+          },
+          {
+            "tag": "H3",
+            "text": "Control & Support"
+          },
+          {
+            "tag": "H3",
+            "text": "Rollout readiness"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest notifications"
+          },
+          {
+            "tag": "H2",
+            "text": "Latest cases"
+          },
+          {
+            "tag": "H2",
+            "text": "Next actions"
+          }
+        ],
+        "groupTitles": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Programs & Promotion",
+          "Control & Support",
+          "Rollout readiness"
+        ],
+        "hasTaskPanel": false,
+        "hasConstraintsPanel": false,
+        "hasVisibleSectionsPanel": false,
+        "taskLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 263,
+              "y": 3154.92,
+              "width": 90,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN ORGANIZATION",
+            "href": "/en-EN/organization",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 3461.92,
+              "width": 185.64,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN APPLICATION",
+            "href": "/en-EN/application",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 3667.92,
+              "width": 176.73,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 3893.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 4143.92,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 5126.92,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 5308.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 242.11,
+              "y": 9895.42,
+              "width": 110.89,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 37,
+              "y": 10391.42,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 211,
+              "y": 10391.42,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "actionLinks": [
+          {
+            "text": "Open support & cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 263,
+              "y": 3154.92,
+              "width": 90,
+              "height": 78
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN ORGANIZATION",
+            "href": "/en-EN/organization",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 3461.92,
+              "width": 185.64,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN APPLICATION",
+            "href": "/en-EN/application",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 3667.92,
+              "width": 176.73,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 3893.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 54,
+              "y": 4143.92,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN NOTIFICATIONS",
+            "href": "/en-EN/notifications",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 4900.92,
+              "width": 194.56,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN COMPLIANCE",
+            "href": "/en-EN/compliance",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 5126.92,
+              "width": 167.81,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN CASES",
+            "href": "/en-EN/cases",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 5308.92,
+              "width": 123.2,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "OPEN PROGRAMS",
+            "href": "/en-EN/programs",
+            "className": "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 71,
+              "y": 5514.92,
+              "width": 149.97,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open inbox",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 263.88,
+              "y": 9435.42,
+              "width": 89.13,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 242.11,
+              "y": 9895.42,
+              "width": 110.89,
+              "height": 58
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open application",
+            "href": "/en-EN/application",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-cyan hover:border-neon-cyan/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 37,
+              "y": 10391.42,
+              "width": 162,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open cases",
+            "href": "/en-EN/cases",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-neon-purple hover:border-neon-purple/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 211,
+              "y": 10391.42,
+              "width": 114,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          },
+          {
+            "text": "Open notifications",
+            "href": "/en-EN/notifications",
+            "className": "inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors text-sm text-matrix-green hover:border-matrix-green/40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]",
+            "box": {
+              "x": 37,
+              "y": 10447.42,
+              "width": 178,
+              "height": 44
+            },
+            "hasFocusVisibleClass": true,
+            "hasRingClass": true
+          }
+        ],
+        "smallActionLinks": [],
+        "unlabelledControls": [
+          {
+            "tag": "SELECT",
+            "value": "needs_info",
+            "nearbyText": "LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Wai"
+          },
+          {
+            "tag": "SELECT",
+            "value": "workspace_owner",
+            "nearbyText": "WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Ma"
+          },
+          {
+            "tag": "SELECT",
+            "value": "R1",
+            "nearbyText": "PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate l"
+          }
+        ],
+        "documentWidth": 390,
+        "viewportWidth": 390,
+        "hasHorizontalOverflow": false,
+        "bodyTextSample": "Skip to main content Skip to main content EN LY NEEDS INFO REVIEW NO LANE SELECTED WORKSPACE OWNER R1 APPLICANT-SAFE LAUNCH PARTNER OPERATING SURFACE OZOXY PARTNER PORTAL PP2 turns the shell into a state-aware applicant workspace: review requests, inbox events, limited-access modules, and explainable blocked states now move together. WORKSPACE STATUS Needs info PRIMARY LANE No lane selected VISIBILITY BAND Review LAST RUNTIME REFRESH Jun 1, 2026, 9:15 AM WORKSPACE ROLE Workspace Owner RELEASE RING R1 Applicant-safe launch ACCESSIBLE SECTIONS 9 LOCAL REVIEW SCENARIO Until backend review APIs arrive, this simulator drives the current workspace status, menu visibility, inbox content, and applicant-safe surface behavior. Draft workspace Needs info Under review Waitlisted Approved to probation Active workspace Restricted workspace Use it to validate draft, needs-info, review, waitlist, probation, active, and restricted behavior in one portal shell. WORKSPACE ROLE SIMULATOR PP3 adds role-aware gating. Switch the current workspace role to verify menu access, section access, and route behavior for the launch role set. Workspace Owner Finance Manager Analyst Traffic Manager Support Manager Workspace Admin Technical Manager Legal / Compliance Manager The selected role updates the sidebar, direct route access, and the new team/programs/legal surfaces. PORTAL RELEASE RING PP7 adds rollout gating. Switch the current release band to verify that modules stay closed until the intended launch ring opens. R0 Internal scaffold R1 Applicant-safe launch R2 Creator / Affiliate launch R3 Performance rollout R4 Reseller / API rollout Use R1 for applicant and probation-safe launch, R2 for Creator / Affiliate launch, R3 for Performance rollout, and R4 for Reseller / API rollout. NEEDS INFO WORKSPACE STATUS Review Home, menu visibility, and direct-route posture all follow the same workspace band. 4 PENDING TASKS 4 Requested info and readiness blockers are now surfaced as first-class partner tasks. 1 INBOX SIGNALS 2 Unread portal notifications expose the latest ops, review, and governance signals. 2 OPEN CASES 2 Support and review threads stay visible even before operational launch. PENDING TASKS Applicant-facing work is now explicit: requested info, finance onboarding, and blocked-state explanations live here. Open support & cases EXPAND BUSINESS PROFILE Partner ops needs more detail about the workspace profile, website, and audience fit. OPEN ORGANIZATION PROVE OWNED CHANNELS Add working owned properties, social links, or creator surfaces that can be reviewed. OPEN APPLICATION COMPLETE FINANCE PROFILE Finance onboarding still needs payout-profile and settlement-contact information. OPEN CASES BLOCKED PENDING COMPLIANCE Evidence or declarations are still missing, so compliance-driven actions remain task-bound instead of becoming fully operational. OPEN COMPLIANCE READINESS OVERLAYS Finance, compliance, technical posture, and governance state are kept separate from the canonical workspace status. Finance readiness Not started Compliance readiness Evidence requested Technical readiness Not required Governance state Watch CURRENT CONSTRAINTS Blocked, task-driven, limited, and read-only states are kept visible before the partner opens a section. RELEASE RING HOLD 4 section(s) are held until a later release ring opens. OPEN NOTIFICATIONS ACTION-REQUIRED SECTIONS 1 section(s) require partner action before the workspace can move forward. OPEN COMPLIANCE LIMITED SECTIONS 1 section(s) are visible with constrained workflow depth. OPEN CASES READ-ONLY SECTIONS 2 section(s) are visible for reference while writes remain unavailable. OPEN PROGRAMS VISIBLE SECTIONS The sidebar and direct routes now follow the same visibility matrix. OVERVIEW Current posture, alerts, and u",
+        "hasMissingMessageText": false
+      },
+      "missingMessageConsoleCount": 0,
+      "knownSandboxApi500s": [
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-workspaces/me"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-session/bootstrap"
+        },
+        {
+          "status": 500,
+          "url": "http://localhost:3002/api/v1/partner-notifications/preferences"
+        }
+      ]
+    }
+  ]
+}

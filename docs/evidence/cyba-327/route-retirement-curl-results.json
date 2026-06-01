@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-06-01T10:14:11.949Z",
+  "baseUrl": "http://127.0.0.1:3004",
+  "portalUnknownSection": {
+    "status": 404,
+    "location": null,
+    "rawFirstLines": "HTTP/1.1 404 Not Found\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\ncache-control: no-store\nDate: Mon, 01 Jun 2026 10:12:20 GMT\nConnection: keep-alive\nKeep-Alive: timeout=5\n\n"
+  },
+  "portalLegacyCommerce": {
+    "status": 307,
+    "location": "/en-EN/finance",
+    "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\nlocation: /en-EN/finance\nDate: Mon, 01 Jun 2026 10:12:20 GMT\nConnection: keep-alive\nKeep-Alive: timeout=5\n\n"
+  },
+  "storefrontDashboardBlocked": {
+    "status": 307,
+    "location": "/en-EN",
+    "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\nlocation: /en-EN\nDate: Mon, 01 Jun 2026 10:12:20 GMT\nConnection: keep-alive\nKeep-Alive: timeout=5\n\n"
+  },
+  "storefrontLegacyBlocked": {
+    "status": 307,
+    "location": "/en-EN",
+    "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\nlocation: /en-EN\nDate: Mon, 01 Jun 2026 10:12:20 GMT\nConnection: keep-alive\nKeep-Alive: timeout=5\n\n"
+  }
+}
