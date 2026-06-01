@@ -55,3 +55,16 @@ btn-enter-promo = 🎟 Enter Promo Code
 
 # ── Pagination ───────────────────────────────────────────────────────────
 btn-page-info = 📄 { $current } / { $total }
+
+# -- English fallback parity additions for CYBA-284 growth navigation --
+btn-vpn = 🔐 VPN
+btn-finance = 💰 Finance
+btn-rewards = 🎁 Rewards
+btn-miniapp = 📲 Mini App
+btn-miniapp-open = 📲 Open Mini App
+btn-growth-referral = 👥 Referral program
+btn-growth-gifts = 🎁 Gifts
+btn-growth-invites = 🎟 Invites
+btn-growth-notifications = 🔔 Reward notifications
+btn-finance-open = 💰 Open finance
+btn-enter-code = 🎟 Activate Code

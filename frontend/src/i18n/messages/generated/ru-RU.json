@@ -1503,6 +1503,9 @@
     "title": "Сообщения"
   },
   "MiniApp": {
+    "common": {
+      "close": "Закрыть"
+    },
     "home": {
       "activateTrial": "Активировать пробный доступ",
       "channel": "Канал",
@@ -1814,6 +1817,7 @@
       "copied": "Скопировано",
       "copyCode": "Скопировать код",
       "copyFailed": "Не удалось скопировать код.",
+      "dateUnavailable": "Недоступно",
       "giftCreated": "Создан {date}",
       "giftPlan": "{plan} · {days} дней",
       "giftPurchase": {
@@ -1857,6 +1861,9 @@
         "used": "Использован"
       },
       "invitesTitle": "Мои инвайты",
+      "loadingDescription": "Реферальные, подарочные, промо- и инвайт-действия откроются после подтверждения runtime-политики.",
+      "loadingEyebrow": "Управление наградами",
+      "loadingTitle": "Проверяем доступность наград",
       "noActivity": "Реферальной активности пока нет.",
       "noGifts": "Подарочных кодов пока нет.",
       "noInvites": "Инвайт-кодов пока нет.",
@@ -1909,6 +1916,9 @@
         "totalRewards": "Получено наград",
         "totalRewardsHint": "Текущая сумма наград по backend-контракту."
       },
+      "pausedDescription": "Реферальные, подарочные и промокодовые экраны недоступны во время закрытой беты.",
+      "pausedEyebrow": "S1 beta",
+      "pausedTitle": "Центр наград приостановлен",
       "preferences": {
         "categories": {
           "adminUpdates": "Обновления от команды",
@@ -1947,6 +1957,7 @@
       "shareText": "Присоединяйтесь к CyberVPN по моему реферальному коду: {code}",
       "shareTitle": "Поделитесь реферальным кодом",
       "title": "Центр наград",
+      "valueUnavailable": "не указано",
       "yourCode": "Ваш реферальный код"
     },
     "support": {

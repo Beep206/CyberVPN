@@ -6,7 +6,7 @@ btn-vpn = 🔐 VPN
 btn-devices = 📱 Мои устройства
 btn-subscription = 💳 Подписка
 btn-finance = 💰 Финансы
-btn-rewards = 🎁 Бонусы
+btn-rewards = 🎁 Награды
 btn-miniapp = 📲 Mini App
 btn-miniapp-open = 📲 Открыть Mini App
 btn-invite = 👥 Пригласить
@@ -52,7 +52,7 @@ btn-referral-share = 📨 Поделиться
 btn-growth-referral = 👥 Реферальная система
 btn-growth-gifts = 🎁 Подарки
 btn-growth-invites = 🎟 Инвайты
-btn-growth-notifications = 🔔 Бонусные уведомления
+btn-growth-notifications = 🔔 Уведомления о наградах
 btn-finance-open = 💰 Открыть финансы
 
 # ── Доступ ───────────────────────────────────────────────────────────────
