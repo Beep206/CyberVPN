@@ -1,0 +1,337 @@
+{
+  "environment": {
+    "baseUrl": "http://127.0.0.1:3004",
+    "chromiumPath": "/home/beep/.local/bin/chromium",
+    "checkedAt": "2026-06-01T10:27:49.416Z"
+  },
+  "checks": {
+    "desktopActiveOwner": {
+      "metrics": {
+        "url": "http://127.0.0.1:3004/en-EN/dashboard",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "navGroups": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Programs & Promotion",
+          "Results",
+          "Finance",
+          "Control & Support",
+          "Integrations"
+        ],
+        "navLinks": [
+          {
+            "href": "/en-EN/dashboard",
+            "label": "DASHBOARD",
+            "current": "page"
+          },
+          {
+            "href": "/en-EN/notifications",
+            "label": "INBOX",
+            "current": null
+          },
+          {
+            "href": "/en-EN/application",
+            "label": "APPLICATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/organization",
+            "label": "ORGANIZATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/legal",
+            "label": "CONTRACTS & LEGAL",
+            "current": null
+          },
+          {
+            "href": "/en-EN/team",
+            "label": "TEAM & ACCESS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/settings",
+            "label": "SETTINGS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/programs",
+            "label": "PROGRAMS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/codes",
+            "label": "CODES & TRACKING",
+            "current": null
+          },
+          {
+            "href": "/en-EN/campaigns",
+            "label": "CAMPAIGNS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/conversions",
+            "label": "CONVERSIONS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/analytics",
+            "label": "ANALYTICS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/finance",
+            "label": "FINANCE",
+            "current": null
+          },
+          {
+            "href": "/en-EN/compliance",
+            "label": "COMPLIANCE",
+            "current": null
+          },
+          {
+            "href": "/en-EN/cases",
+            "label": "SUPPORT & CASES",
+            "current": null
+          },
+          {
+            "href": "/en-EN/integrations",
+            "label": "INTEGRATIONS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/reseller",
+            "label": "RESELLER CONSOLE",
+            "current": null
+          }
+        ],
+        "badges": [
+          "READ ONLY"
+        ],
+        "activeLabel": "DASHBOARD",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": [],
+        "devButtonLabel": "Open developer tools",
+        "mobileDialogTag": null,
+        "mobileDialogRole": null
+      },
+      "axeViolations": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    "desktopAnalystReadOnly": {
+      "metrics": {
+        "url": "http://127.0.0.1:3004/en-EN/dashboard",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "navGroups": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Programs & Promotion",
+          "Results",
+          "Finance",
+          "Control & Support"
+        ],
+        "navLinks": [
+          {
+            "href": "/en-EN/dashboard",
+            "label": "DASHBOARD",
+            "current": "page"
+          },
+          {
+            "href": "/en-EN/notifications",
+            "label": "INBOX",
+            "current": null
+          },
+          {
+            "href": "/en-EN/application",
+            "label": "APPLICATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/organization",
+            "label": "ORGANIZATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/legal",
+            "label": "CONTRACTS & LEGAL",
+            "current": null
+          },
+          {
+            "href": "/en-EN/settings",
+            "label": "SETTINGS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/programs",
+            "label": "PROGRAMS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/codes",
+            "label": "CODES & TRACKING",
+            "current": null
+          },
+          {
+            "href": "/en-EN/campaigns",
+            "label": "CAMPAIGNS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/analytics",
+            "label": "ANALYTICS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/finance",
+            "label": "FINANCE",
+            "current": null
+          },
+          {
+            "href": "/en-EN/compliance",
+            "label": "COMPLIANCE",
+            "current": null
+          }
+        ],
+        "badges": [
+          "READ ONLY"
+        ],
+        "activeLabel": "DASHBOARD",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": [],
+        "devButtonLabel": "Open developer tools",
+        "mobileDialogTag": null,
+        "mobileDialogRole": null
+      },
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    "mobileNeedsInfoRu": {
+      "openMetrics": {
+        "url": "http://127.0.0.1:3004/ru-RU/dashboard",
+        "title": "Дашборд - Ozoxy Partner Portal",
+        "navGroups": [
+          "Обзор",
+          "Старт",
+          "Рабочая область",
+          "Программы и продвижение",
+          "Контроль и поддержка"
+        ],
+        "navLinks": [
+          {
+            "href": "/ru-RU/dashboard",
+            "label": "ДАШБОРД",
+            "current": "page"
+          },
+          {
+            "href": "/ru-RU/notifications",
+            "label": "ИНБОКС",
+            "current": null
+          },
+          {
+            "href": "/ru-RU/compliance",
+            "label": "КОМПЛАЕНС",
+            "current": null
+          },
+          {
+            "href": "/ru-RU/cases",
+            "label": "ПОДДЕРЖКА И КЕЙСЫ",
+            "current": null
+          }
+        ],
+        "badges": [
+          "ДЕЙСТВИЕ",
+          "ТОЛЬКО ЧТЕНИЕ",
+          "ОГРАНИЧЕНО"
+        ],
+        "activeLabel": "ДАШБОРД",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": [],
+        "devButtonLabel": "Open developer tools",
+        "mobileDialogTag": "DIV",
+        "mobileDialogRole": "dialog"
+      },
+      "focusOpen": {
+        "activeLabel": "Закрыть меню партнёрского портала",
+        "dialogContainsFocus": true,
+        "expandedGroups": [
+          "ОбзорТекущее состояние, предупреждения, срочные действияДЕЙСТВИЕ",
+          "Контроль и поддержкаКомплаенс, споры, запросы данныхДЕЙСТВИЕ"
+        ],
+        "drawerWidth": 320,
+        "viewportWidth": 390
+      },
+      "focusAfterTab": {
+        "activeLabel": "ОбзорТекущее состояние, предупреждения, срочные действияДЕЙСТВИЕ",
+        "dialogContainsFocus": true
+      },
+      "afterEscape": {
+        "triggerFocused": true
+      },
+      "afterRoute": {
+        "url": "http://127.0.0.1:3004/ru-RU/application",
+        "title": "Заявка - Ozoxy Partner Portal",
+        "navGroups": [],
+        "navLinks": [],
+        "badges": [],
+        "activeLabel": "ЗАЯВКА",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": [],
+        "devButtonLabel": "Open developer tools",
+        "mobileDialogTag": null,
+        "mobileDialogRole": null
+      },
+      "axeViolationsOpenDrawer": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    "routeRetirement": {
+      "portalLegacyCommerce": {
+        "status": 307,
+        "location": "/en-EN/finance",
+        "cacheControl": null
+      },
+      "portalUnknownSection": {
+        "status": 404,
+        "location": null,
+        "cacheControl": "no-store"
+      },
+      "storefrontDashboardBlocked": {
+        "status": 307,
+        "location": "/en-EN",
+        "cacheControl": null
+      },
+      "storefrontLegacyBlocked": {
+        "status": 307,
+        "location": "/en-EN",
+        "cacheControl": null
+      }
+    }
+  },
+  "failures": []
+}

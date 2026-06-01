@@ -54,7 +54,7 @@ describe('proxy routing', () => {
   });
 
   it('passes dashboard route through to intlMiddleware (auth handled by AuthGuard)', () => {
-    const req = createRequest('/en-EN/infrastructure');
+    const req = createRequest('/en-EN/analytics');
     const res = proxy(req);
 
     // No redirect — AuthGuard in the (dashboard) layout handles auth
@@ -62,7 +62,7 @@ describe('proxy routing', () => {
   });
 
   it('passes dashboard route with auth cookie through', () => {
-    const req = createRequest('/en-EN/governance', {
+    const req = createRequest('/en-EN/team', {
       cookies: {
         access_token: 'some-token-value',
       },
@@ -99,6 +99,40 @@ describe('proxy routing', () => {
 
     // No redirect — auth is handled client-side by AuthGuard
     expect(res.status).toBe(200);
+  });
+
+  it('retires localized legacy admin routes before they render in the partner app', () => {
+    const req = createRequest('/en-EN/_legacy-admin-routes/growth/promo-codes?tab=active');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('http://localhost:3002/en-EN/codes');
+  });
+
+  it('retires sensitive legacy infrastructure routes to the dashboard', () => {
+    const req = createRequest('/ru-RU/_legacy-admin-routes/infrastructure/servers');
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('http://localhost:3002/ru-RU/dashboard');
+  });
+
+  it('retires legacy admin routes away from storefront hosts without entering workspace routes', () => {
+    const req = createRequest('/en-EN/_legacy-admin-routes/commerce/payments', {
+      host: 'storefront.localhost:3002',
+    });
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('http://storefront.localhost:3002/en-EN');
+  });
+
+  it('returns 404 for retired generic localized partner section routes', () => {
+    const req = createRequest('/en-EN/not-a-real-section');
+    const res = proxy(req);
+
+    expect(res.status).toBe(404);
+    expect(res.headers.get('cache-control')).toBe('no-store');
   });
 
   it('redirects portal workspace routes away from storefront hosts', () => {

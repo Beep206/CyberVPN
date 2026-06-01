@@ -7,26 +7,10 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/features/storefront-shell/lib/server-surface-context', () => ({
-  getPartnerSurfaceContext: vi.fn(),
-}));
-
 const { redirect } = await import('next/navigation');
-const { getPartnerSurfaceContext } = await import('@/features/storefront-shell/lib/server-surface-context');
 
 describe('legacy admin routes layout', () => {
-  it('redirects partner surfaces away from legacy admin-only routes', async () => {
-    vi.mocked(getPartnerSurfaceContext).mockResolvedValue({
-      family: 'portal',
-      host: 'portal.localhost:3002',
-      brandName: 'Ozoxy Partner Portal',
-      brandLabel: 'Ozoxy Partner Portal',
-      authRealmKey: 'partner',
-      routes: {
-        login: '/login',
-      },
-    });
-
+  it('keeps legacy admin routes retired even when proxy fallback is bypassed', async () => {
     await expect(
       LegacyAdminRoutesLayout({
         children: <div>legacy admin content</div>,

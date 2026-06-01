@@ -4,9 +4,11 @@ import { locales, defaultLocale } from '@/i18n/config';
 import {
   isLocalizedRootPath,
   isPortalWorkspacePath,
+  isRetiredGenericPortalSectionPath,
   isStorefrontPublicPath,
   resolvePartnerSurfaceContext,
 } from '@/features/storefront-shell/lib/runtime';
+import { getRetiredLegacyAdminRouteTarget } from '@/features/partner-shell/lib/legacy-route-retirement';
 import { canPartnerSurfaceAccess } from '@/shared/lib/surface-policy';
 
 const intlMiddleware = createMiddleware({
@@ -39,6 +41,30 @@ export function proxy(request: NextRequest) {
     normalizedUrl.pathname = remainder ? `/${defaultLocale}${remainder}` : `/${defaultLocale}/login`;
 
     return NextResponse.redirect(normalizedUrl);
+  }
+
+  const retiredLegacyAdminTarget = locale
+    ? getRetiredLegacyAdminRouteTarget(request.nextUrl.pathname)
+    : null;
+
+  if (retiredLegacyAdminTarget) {
+    const retirementUrl = request.nextUrl.clone();
+    retirementUrl.pathname = canPartnerSurfaceAccess(surfaceContext.family, 'workspace_navigation')
+      ? `/${locale}${retiredLegacyAdminTarget}`
+      : `/${locale}`;
+    retirementUrl.search = '';
+
+    return NextResponse.redirect(retirementUrl);
+  }
+
+  if (
+    surfaceContext.family === 'portal'
+    && locale
+    && isRetiredGenericPortalSectionPath(request.nextUrl.pathname)
+  ) {
+    const response = new NextResponse(null, { status: 404 });
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   }
 
   if (

@@ -145,7 +145,7 @@ export function TerminalHeaderPerformance({
   }
 
   return (
-    <div className={`hidden md:flex items-center gap-3 text-[11px] font-mono min-w-[102px] transition-opacity duration-500 ${isPendingActivation ? 'opacity-60 text-muted-foreground' : 'opacity-100 text-muted-foreground'}`}>
+    <div className="hidden md:flex min-w-[102px] items-center gap-3 text-[11px] font-mono text-muted-foreground-low opacity-100 transition-opacity duration-500">
       <div className="flex items-center gap-1">
         <span className="text-muted-foreground-low">{fpsLabel}</span>
         <span ref={fpsRef} className={`transition-colors duration-500 ${isPendingActivation ? 'text-muted-foreground-low' : 'text-neon-cyan'}`}>--</span>

@@ -64,6 +64,9 @@ const PARTNER_PORTAL_LOCAL_HOSTS = [
   'localhost:3002',
   '127.0.0.1:3002',
   'portal.localhost:3002',
+  'localhost:3004',
+  '127.0.0.1:3004',
+  'portal.localhost:3004',
 ] as const;
 const DEFAULT_STOREFRONT_HOST = 'storefront.localhost:3002';
 const DEFAULT_STOREFRONT_PUBLIC_HOST =
@@ -107,6 +110,14 @@ const STOREFRONT_PUBLIC_ROUTE_PREFIXES = [
   STOREFRONT_ROUTE_SET.checkout,
   STOREFRONT_ROUTE_SET.support,
   STOREFRONT_ROUTE_SET.legal,
+] as const;
+
+const AUTH_ROUTE_PREFIXES = [
+  '/forgot-password',
+  '/login',
+  '/register',
+  '/reset-password',
+  '/verify',
 ] as const;
 
 function readCsvHosts(value: string | undefined): string[] {
@@ -254,4 +265,22 @@ export function isStorefrontPublicPath(pathname: string): boolean {
 
 export function isLocalizedRootPath(pathname: string): boolean {
   return /^\/[a-z]{2,3}-[A-Z]{2}\/?$/.test(pathname);
+}
+
+export function isRetiredGenericPortalSectionPath(pathname: string): boolean {
+  const internalPathname = toInternalPathname(pathname);
+
+  if (!/^\/[^/]+\/?$/.test(internalPathname)) {
+    return false;
+  }
+
+  if (
+    isPortalWorkspacePath(pathname)
+    || isStorefrontPublicPath(pathname)
+    || AUTH_ROUTE_PREFIXES.some((prefix) => matchesPrefix(internalPathname, prefix))
+  ) {
+    return false;
+  }
+
+  return true;
 }

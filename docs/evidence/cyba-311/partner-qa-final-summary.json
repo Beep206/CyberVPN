@@ -1,0 +1,142 @@
+{
+  "checkedAt": "2026-06-01T09:56:01.694Z",
+  "result": "fail",
+  "finalFailures": [
+    "Axe desktop dashboard has critical/serious violations: unlabeled dev floating button and insufficient color contrast.",
+    "Axe RU mobile drawer has critical/serious violations: unlabeled dev floating button and insufficient purple badge/link contrast.",
+    "Generic retired section /en-EN/not-a-real-section returns HTTP 200 instead of 404/redirect."
+  ],
+  "passedChecks": [
+    "npm run lint -w partner passed",
+    "npm run test:run -w partner passed: 121 files / 670 tests",
+    "npm run test:mobile-layout -w partner passed: 1 file / 5 tests",
+    "Desktop active reseller owner: grouped nav visible, reseller link visible, aria-current on dashboard, no horizontal overflow, no token-like strings",
+    "Desktop analyst/R1: READ ONLY badge visible and reseller link hidden",
+    "RU mobile needs_info drawer: action/limited/read-only badges visible, focus trap/Tab/Escape/focus return and route-click close passed, no horizontal overflow, no token-like strings",
+    "Route smoke with curl: portal legacy commerce -> /en-EN/finance; storefront dashboard and storefront legacy admin -> /en-EN"
+  ],
+  "routeCurl": {
+    "checkedAt": "2026-06-01T09:53:48.962Z",
+    "portalLegacyCommerce": {
+      "status": 307,
+      "location": "/en-EN/finance",
+      "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlocation: /en-EN/finance\r\nDate: Mon, 01 Jun 2026 09:53:48 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r"
+    },
+    "portalUnknownSection": {
+      "status": 200,
+      "location": null,
+      "rawFirstLines": "HTTP/1.1 200 OK\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlink: <http://127.0.0.1:3004/ru-RU/not-a-real-section>; rel=\"alternate\"; hreflang=\"ru-RU\", <http://127.0.0.1:3004/en-EN/not-a-real-section>; rel=\"alternate\"; hreflang=\"en-EN\", <http://127.0.0.1:3004/not-a-real-section>; rel=\"alternate\"; hreflang=\"x-default\"\r\nlink: </_next/static/media/0acc7fdf55eb3220-s.p.12o-f1.6qra-s.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.1409xf.ylxg8g.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/c9bd7381a27f2960-s.p.0nt9ayxdmqydo.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"\r\nSet-Cookie: NEXT_LOCALE=en-EN; Path=/; SameSite=lax\r\nVary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding\r"
+    },
+    "storefrontDashboardBlocked": {
+      "status": 307,
+      "location": "/en-EN",
+      "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlocation: /en-EN\r\nDate: Mon, 01 Jun 2026 09:53:49 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r"
+    },
+    "storefrontLegacyBlocked": {
+      "status": 307,
+      "location": "/en-EN",
+      "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlocation: /en-EN\r\nDate: Mon, 01 Jun 2026 09:53:49 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r"
+    }
+  },
+  "axe": {
+    "desktopActiveOwner": [
+      {
+        "id": "button-name",
+        "impact": "critical",
+        "help": "Buttons must have discernible text",
+        "nodes": [
+          {
+            "target": [
+              ".bottom-4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+          }
+        ],
+        "nodeCount": 1
+      },
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-neon-purple\\/40"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.61 (foreground color: #9d00ff, background color: #180127, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".gap-1.items-center.flex:nth-child(1) > .text-muted-foreground-low"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #486b6a, background color: #000102, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".gap-1.items-center.flex:nth-child(3) > .text-muted-foreground-low"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #486b6a, background color: #000102, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".hover\\:border-neon-purple\\/40"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.87 (foreground color: #9d00ff, background color: #000000, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ],
+        "nodeCount": 4
+      }
+    ],
+    "mobileNeedsInfoRuOpenDrawer": [
+      {
+        "id": "aria-allowed-role",
+        "impact": "minor",
+        "help": "ARIA role should be appropriate for the element",
+        "nodes": [
+          {
+            "target": [
+              "#mobile-sidebar-panel"
+            ],
+            "failureSummary": "Fix any of the following:\n  ARIA role dialog is not allowed for given element"
+          }
+        ],
+        "nodeCount": 1
+      },
+      {
+        "id": "button-name",
+        "impact": "critical",
+        "help": "Buttons must have discernible text",
+        "nodes": [
+          {
+            "target": [
+              ".bottom-4"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+          }
+        ],
+        "nodeCount": 1
+      },
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".rounded-md[aria-label=\"ПОДДЕРЖКА И КЕЙСЫ\"][href$=\"cases\"] > .group-hover\\:translate-x-1.group-hover\\:text-foreground.transition-all > .flex-1.min-w-0.relative > .border-neon-purple\\/35.bg-neon-purple\\/10.text-neon-purple"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.73 (foreground color: #9d00ff, background color: #10001a, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "target": [
+              ".hover\\:border-neon-purple\\/40"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.87 (foreground color: #9d00ff, background color: #000000, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ],
+        "nodeCount": 2
+      }
+    ]
+  },
+  "hostHeaderNote": "partner-qa-results.json used Node fetch for Host-header checks; route-retirement-curl-results.json is the authoritative Host-header smoke."
+}

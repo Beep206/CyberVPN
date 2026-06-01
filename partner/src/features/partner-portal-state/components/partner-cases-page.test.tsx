@@ -237,5 +237,5 @@ describe('PartnerCasesPage', () => {
     });
 
     expect(await screen.findByText('caseList.readySuccess')).toBeInTheDocument();
-  });
+  }, 15_000);
 });

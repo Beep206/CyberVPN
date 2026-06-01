@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-06-01T09:53:48.962Z",
+  "portalLegacyCommerce": {
+    "status": 307,
+    "location": "/en-EN/finance",
+    "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlocation: /en-EN/finance\r\nDate: Mon, 01 Jun 2026 09:53:48 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r"
+  },
+  "portalUnknownSection": {
+    "status": 200,
+    "location": null,
+    "rawFirstLines": "HTTP/1.1 200 OK\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlink: <http://127.0.0.1:3004/ru-RU/not-a-real-section>; rel=\"alternate\"; hreflang=\"ru-RU\", <http://127.0.0.1:3004/en-EN/not-a-real-section>; rel=\"alternate\"; hreflang=\"en-EN\", <http://127.0.0.1:3004/not-a-real-section>; rel=\"alternate\"; hreflang=\"x-default\"\r\nlink: </_next/static/media/0acc7fdf55eb3220-s.p.12o-f1.6qra-s.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.1409xf.ylxg8g.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/c9bd7381a27f2960-s.p.0nt9ayxdmqydo.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"\r\nSet-Cookie: NEXT_LOCALE=en-EN; Path=/; SameSite=lax\r\nVary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding\r"
+  },
+  "storefrontDashboardBlocked": {
+    "status": 307,
+    "location": "/en-EN",
+    "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlocation: /en-EN\r\nDate: Mon, 01 Jun 2026 09:53:49 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r"
+  },
+  "storefrontLegacyBlocked": {
+    "status": 307,
+    "location": "/en-EN",
+    "rawFirstLines": "HTTP/1.1 307 Temporary Redirect\r\nContent-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://raw.githack.com https://raw.githubusercontent.com wss: ws:; worker-src 'self' blob:; frame-src 'self' https://oauth.telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'\r\nlocation: /en-EN\r\nDate: Mon, 01 Jun 2026 09:53:49 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r"
+  }
+}

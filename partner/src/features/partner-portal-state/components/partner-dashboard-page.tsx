@@ -6,10 +6,12 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import {
   PARTNER_NAV_ITEMS,
+  PARTNER_SECTION_SLUGS,
   PARTNER_RELEASE_RINGS,
   getPartnerRouteRequiredReleaseRing,
   type PartnerSectionSlug,
   type PartnerReleaseRing,
+  type PartnerNavItem,
 } from '@/features/partner-shell/config/section-registry';
 import {
   applyPartnerWorkspaceRole,
@@ -17,6 +19,7 @@ import {
   applyPartnerPortalScenario,
   type PartnerWorkspaceRole,
   type PartnerPortalScenario,
+  type PartnerReviewRequestKind,
 } from '@/features/partner-portal-state/lib/portal-state';
 import {
   canPartnerRouteAccess,
@@ -27,8 +30,54 @@ import {
   getPartnerRouteBlockReason,
   getPartnerRouteVisibility,
   getPartnerVisibilityBand,
+  type PartnerRouteKey,
+  type PartnerSectionVisibility,
 } from '@/features/partner-portal-state/lib/portal-visibility';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
+
+type DashboardRouteHref = '/dashboard' | `/${PartnerSectionSlug}`;
+
+type DashboardTone = 'good' | 'warning' | 'critical' | 'neutral';
+
+type DashboardTaskCard = {
+  id: string;
+  title: string;
+  description: string;
+  tone: Exclude<DashboardTone, 'good'>;
+  href: DashboardRouteHref;
+};
+
+type DashboardSectionGroupId =
+  | 'main'
+  | 'onboarding'
+  | 'workspace'
+  | 'promotion'
+  | 'results'
+  | 'finance'
+  | 'control'
+  | 'technical';
+
+type DashboardSectionGroupConfig = {
+  id: DashboardSectionGroupId;
+  titleKey: string;
+  descriptionKey: string;
+  routes: readonly PartnerSectionSlug[];
+};
+
+type DashboardSectionEntry = {
+  item: PartnerNavItem;
+  routeKey: PartnerSectionSlug;
+  visibility: PartnerSectionVisibility;
+  access: ReturnType<typeof getPartnerRoleRouteAccess>;
+};
+
+type DashboardConstraint = {
+  id: string;
+  title: string;
+  description: string;
+  tone: DashboardTone;
+  href: DashboardRouteHref;
+};
 
 const SCENARIO_OPTIONS: PartnerPortalScenario[] = [
   'draft',
@@ -51,6 +100,133 @@ const WORKSPACE_ROLE_OPTIONS: PartnerWorkspaceRole[] = [
   'legal_compliance_manager',
 ];
 
+const REVIEW_REQUEST_ROUTE_MAP = {
+  business_profile: '/organization',
+  owned_channels: '/application',
+  traffic_methods: '/application',
+  support_ownership: '/cases',
+  finance_profile: '/finance',
+} as const satisfies Record<PartnerReviewRequestKind, DashboardRouteHref>;
+
+const READINESS_ROUTE_MAP: Record<string, DashboardRouteHref> = {
+  finance: '/finance',
+  compliance: '/compliance',
+  technical: '/integrations',
+  governance: '/compliance',
+};
+
+const TASK_ACTION_LABEL_KEYS = {
+  '/dashboard': 'taskActions.dashboard',
+  '/application': 'taskActions.application',
+  '/organization': 'taskActions.organization',
+  '/team': 'taskActions.team',
+  '/programs': 'taskActions.programs',
+  '/legal': 'taskActions.legal',
+  '/codes': 'taskActions.codes',
+  '/campaigns': 'taskActions.campaigns',
+  '/conversions': 'taskActions.conversions',
+  '/analytics': 'taskActions.analytics',
+  '/finance': 'taskActions.finance',
+  '/compliance': 'taskActions.compliance',
+  '/integrations': 'taskActions.integrations',
+  '/cases': 'taskActions.cases',
+  '/notifications': 'taskActions.notifications',
+  '/settings': 'taskActions.settings',
+  '/reseller': 'taskActions.reseller',
+} as const satisfies Record<DashboardRouteHref, string>;
+
+const DASHBOARD_SECTION_GROUPS: readonly DashboardSectionGroupConfig[] = [
+  {
+    id: 'main',
+    titleKey: 'sections.groups.main.title',
+    descriptionKey: 'sections.groups.main.description',
+    routes: ['notifications'],
+  },
+  {
+    id: 'onboarding',
+    titleKey: 'sections.groups.onboarding.title',
+    descriptionKey: 'sections.groups.onboarding.description',
+    routes: ['application', 'organization', 'legal'],
+  },
+  {
+    id: 'workspace',
+    titleKey: 'sections.groups.workspace.title',
+    descriptionKey: 'sections.groups.workspace.description',
+    routes: ['team', 'settings'],
+  },
+  {
+    id: 'promotion',
+    titleKey: 'sections.groups.promotion.title',
+    descriptionKey: 'sections.groups.promotion.description',
+    routes: ['programs', 'codes', 'campaigns'],
+  },
+  {
+    id: 'results',
+    titleKey: 'sections.groups.results.title',
+    descriptionKey: 'sections.groups.results.description',
+    routes: ['conversions', 'analytics'],
+  },
+  {
+    id: 'finance',
+    titleKey: 'sections.groups.finance.title',
+    descriptionKey: 'sections.groups.finance.description',
+    routes: ['finance'],
+  },
+  {
+    id: 'control',
+    titleKey: 'sections.groups.control.title',
+    descriptionKey: 'sections.groups.control.description',
+    routes: ['compliance', 'cases'],
+  },
+  {
+    id: 'technical',
+    titleKey: 'sections.groups.technical.title',
+    descriptionKey: 'sections.groups.technical.description',
+    routes: ['integrations', 'reseller'],
+  },
+];
+
+const DASHBOARD_FOCUS_RING_CLASS = 'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg focus-visible:shadow-[0_0_12px_var(--color-neon-cyan)]';
+const DASHBOARD_ACTION_LINK_BASE_CLASS = 'inline-flex min-h-11 items-center justify-center rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-center font-mono transition-colors';
+const DASHBOARD_ACTION_LINK_CLASS = `${DASHBOARD_ACTION_LINK_BASE_CLASS} text-sm text-neon-cyan hover:border-neon-cyan/40 ${DASHBOARD_FOCUS_RING_CLASS}`;
+const DASHBOARD_TASK_ACTION_LINK_CLASS = `${DASHBOARD_ACTION_LINK_BASE_CLASS} text-xs uppercase tracking-[0.16em] text-neon-cyan hover:border-neon-cyan/40 ${DASHBOARD_FOCUS_RING_CLASS}`;
+const DASHBOARD_SECTION_CARD_LINK_CLASS = `rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-4 transition-colors hover:border-neon-cyan/35 ${DASHBOARD_FOCUS_RING_CLASS}`;
+
+function isPartnerRouteKey(value: string | null | undefined): value is PartnerRouteKey {
+  return value === 'dashboard' || PARTNER_SECTION_SLUGS.includes(value as PartnerSectionSlug);
+}
+
+function hrefFromRouteKey(route: PartnerRouteKey): DashboardRouteHref {
+  return route === 'dashboard' ? '/dashboard' : `/${route}`;
+}
+
+function hrefFromRouteSlug(routeSlug: string | null | undefined): DashboardRouteHref | null {
+  return isPartnerRouteKey(routeSlug) ? hrefFromRouteKey(routeSlug) : null;
+}
+
+function routeKeyFromHref(href: DashboardRouteHref): PartnerRouteKey {
+  return href === '/dashboard' ? 'dashboard' : href.slice(1) as PartnerSectionSlug;
+}
+
+function resolveAccessibleHref(
+  href: DashboardRouteHref,
+  state: Parameters<typeof canPartnerRouteAccess>[1],
+): DashboardRouteHref {
+  const routeKey = routeKeyFromHref(href);
+
+  if (routeKey === 'dashboard' || canPartnerRouteAccess(routeKey, state)) {
+    return href;
+  }
+
+  return canPartnerRouteAccess('cases', state) ? '/cases' : '/dashboard';
+}
+
+function getReadinessTaskHref(sourceId: string | null | undefined): DashboardRouteHref {
+  return sourceId && sourceId in READINESS_ROUTE_MAP
+    ? READINESS_ROUTE_MAP[sourceId]
+    : '/cases';
+}
+
 function formatDateTime(value: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
@@ -58,7 +234,7 @@ function formatDateTime(value: string, locale: string): string {
   }).format(new Date(value));
 }
 
-function toneClass(value: 'good' | 'warning' | 'critical' | 'neutral') {
+function toneClass(value: DashboardTone) {
   if (value === 'good') {
     return 'border-matrix-green/30 bg-matrix-green/10 text-matrix-green';
   }
@@ -78,18 +254,27 @@ function formatBootstrapPendingTask(
   task: {
     task_key: string;
     tone: string;
+    route_slug?: string | null;
     source_kind?: string | null;
     source_id?: string | null;
     notes?: readonly string[];
   },
   partnerT: (key: string, values?: Record<string, string | number>) => string,
-) {
+): DashboardTaskCard {
+  const explicitHref = hrefFromRouteSlug(task.route_slug);
+
   if (task.source_kind === 'review_request' && task.task_key.startsWith('review_request.')) {
     const kind = task.task_key.slice('review_request.'.length);
+    const href = kind in REVIEW_REQUEST_ROUTE_MAP
+      ? REVIEW_REQUEST_ROUTE_MAP[kind as PartnerReviewRequestKind]
+      : '/cases';
+
     return {
+      id: task.task_key,
       title: partnerT(`portalState.reviewRequestKinds.${kind}.title`),
       description: partnerT(`portalState.reviewRequestKinds.${kind}.description`),
       tone: task.tone === 'critical' ? 'critical' as const : 'warning' as const,
+      href: explicitHref ?? href,
     };
   }
 
@@ -102,16 +287,20 @@ function formatBootstrapPendingTask(
         : 'technicalStates';
 
     return {
+      id: task.task_key,
       title: partnerT(`portalState.readinessLabels.${task.source_id}`),
       description: partnerT(`portalState.${stateNamespace}.${stateKey}`),
       tone: task.tone === 'critical' ? 'critical' as const : 'warning' as const,
+      href: explicitHref ?? getReadinessTaskHref(task.source_id),
     };
   }
 
   return {
+    id: task.task_key,
     title: task.task_key,
     description: task.notes?.[0] ?? '',
     tone: task.tone === 'critical' ? 'critical' as const : 'neutral' as const,
+    href: explicitHref ?? '/cases',
   };
 }
 
@@ -126,6 +315,7 @@ export function PartnerDashboardPage() {
     isSimulationEnabled,
     counters,
     pendingTasks: bootstrapPendingTasks,
+    blockedReasons,
   } = usePartnerPortalRuntimeState();
   const showSimulationControls = isSimulationEnabled && !isCanonicalWorkspace;
 
@@ -135,22 +325,45 @@ export function PartnerDashboardPage() {
   const openCases = state.cases.filter((item) => item.status !== 'resolved');
   const accessibleSectionCount = countPartnerAccessibleSections(state);
   const spotlightMetrics = state.analyticsMetrics.slice(0, 3);
-  const visibleSections = PARTNER_NAV_ITEMS.filter((item) => (
-    item.href === '/dashboard'
-      ? true
-      : canPartnerRouteAccess(item.href.slice(1) as PartnerSectionSlug, state)
-  )).filter((item) => item.href !== '/dashboard');
+  const visibleSectionEntries = PARTNER_NAV_ITEMS
+    .filter((item) => item.href !== '/dashboard')
+    .map((item): DashboardSectionEntry | null => {
+      const routeKey = item.href.slice(1) as PartnerSectionSlug;
+      if (!canPartnerRouteAccess(routeKey, state)) {
+        return null;
+      }
+
+      return {
+        item,
+        routeKey,
+        visibility: getPartnerRouteVisibility(routeKey, state),
+        access: getPartnerRoleRouteAccess(routeKey, state),
+      };
+    })
+    .filter((item): item is DashboardSectionEntry => item !== null);
+  const visibleSectionGroups = DASHBOARD_SECTION_GROUPS
+    .map((group) => ({
+      ...group,
+      items: group.routes
+        .map((routeKey) => visibleSectionEntries.find((entry) => entry.routeKey === routeKey) ?? null)
+        .filter((item): item is DashboardSectionEntry => item !== null),
+    }))
+    .filter((group) => group.items.length > 0);
   const releaseRingBlockedSections = PARTNER_NAV_ITEMS.filter((item) => (
     item.href !== '/dashboard'
     && getPartnerRouteBlockReason(item.href.slice(1) as PartnerSectionSlug, state) === 'release_ring'
   ));
+  const taskSections = visibleSectionEntries.filter((entry) => entry.visibility === 'task');
+  const limitedSections = visibleSectionEntries.filter((entry) => entry.visibility === 'limited');
+  const readOnlySections = visibleSectionEntries.filter((entry) => entry.visibility === 'read');
 
-  const localPendingTasks = [
+  const localPendingTasks: DashboardTaskCard[] = [
     ...pendingReviewRequests.map((request) => ({
       id: request.id,
       title: partnerT(`portalState.reviewRequestKinds.${request.kind}.title`),
       description: partnerT(`portalState.reviewRequestKinds.${request.kind}.description`),
       tone: 'warning' as const,
+      href: REVIEW_REQUEST_ROUTE_MAP[request.kind],
     })),
     ...(state.financeReadiness === 'blocked'
       ? [{
@@ -158,6 +371,7 @@ export function PartnerDashboardPage() {
           title: partnerT('portalState.blockedOutcomes.finance.title'),
           description: partnerT('portalState.blockedOutcomes.finance.description'),
           tone: 'critical' as const,
+          href: '/finance' as const,
         }]
       : []),
     ...(state.complianceReadiness === 'evidence_requested'
@@ -166,15 +380,24 @@ export function PartnerDashboardPage() {
           title: partnerT('portalState.blockedOutcomes.compliance.title'),
           description: partnerT('portalState.blockedOutcomes.compliance.description'),
           tone: 'warning' as const,
+          href: '/compliance' as const,
         }]
       : []),
   ];
-  const pendingTasks = bootstrapPendingTasks.length > 0
+  const pendingTasks = (bootstrapPendingTasks.length > 0
     ? bootstrapPendingTasks.map((task) => ({
-        id: task.id,
         ...formatBootstrapPendingTask(task, partnerT),
+        id: task.id,
       }))
-    : localPendingTasks;
+    : localPendingTasks).map((task) => {
+      const href = resolveAccessibleHref(task.href, state);
+
+      return {
+        ...task,
+        href,
+        actionLabel: t(TASK_ACTION_LABEL_KEYS[href]),
+      };
+    });
   const pendingTaskCount = isCanonicalWorkspace
     ? (counters?.pending_tasks ?? pendingTasks.length)
     : pendingTasks.length;
@@ -184,6 +407,63 @@ export function PartnerDashboardPage() {
   const openCaseCount = isCanonicalWorkspace
     ? (counters?.open_cases ?? openCases.length)
     : openCases.length;
+  const commandConstraints: DashboardConstraint[] = [
+    ...blockedReasons.map((reason) => ({
+      id: `canonical:${reason.code}`,
+      title: t('constraints.canonicalReasonTitle', { code: reason.code }),
+      description: reason.notes?.[0] ?? t('constraints.canonicalReasonDescription'),
+      tone: reason.severity === 'critical'
+        ? 'critical' as const
+        : reason.severity === 'warning'
+          ? 'warning' as const
+          : 'neutral' as const,
+      href: resolveAccessibleHref(hrefFromRouteSlug(reason.route_slug) ?? '/cases', state),
+    })),
+    ...(releaseRingBlockedSections.length > 0
+      ? [{
+          id: 'release-ring',
+          title: t('constraints.releaseRingTitle'),
+          description: t('constraints.releaseRingDescription', {
+            count: releaseRingBlockedSections.length,
+          }),
+          tone: 'warning' as const,
+          href: '/notifications' as const,
+        }]
+      : []),
+    ...(taskSections.length > 0
+      ? [{
+          id: 'task-sections',
+          title: t('constraints.taskTitle'),
+          description: t('constraints.taskDescription', {
+            count: taskSections.length,
+          }),
+          tone: 'warning' as const,
+          href: taskSections[0]?.item.href ?? '/dashboard',
+        }]
+      : []),
+    ...(limitedSections.length > 0
+      ? [{
+          id: 'limited-sections',
+          title: t('constraints.limitedTitle'),
+          description: t('constraints.limitedDescription', {
+            count: limitedSections.length,
+          }),
+          tone: 'neutral' as const,
+          href: limitedSections[0]?.item.href ?? '/dashboard',
+        }]
+      : []),
+    ...(readOnlySections.length > 0
+      ? [{
+          id: 'read-only-sections',
+          title: t('constraints.readOnlyTitle'),
+          description: t('constraints.readOnlyDescription', {
+            count: readOnlySections.length,
+          }),
+          tone: 'neutral' as const,
+          href: readOnlySections[0]?.item.href ?? '/dashboard',
+        }]
+      : []),
+  ];
 
   return (
     <section className="space-y-6">
@@ -314,7 +594,7 @@ export function PartnerDashboardPage() {
             </select>
             <p className="mt-3 text-xs font-mono leading-5 text-muted-foreground">
               {isCanonicalWorkspace
-                ? 'Scenario simulation is disabled while canonical workspace data is active.'
+                ? t('scenario.canonicalDisabled')
                 : t('scenario.helper')}
             </p>
 
@@ -339,7 +619,7 @@ export function PartnerDashboardPage() {
               </select>
               <p className="mt-3 text-xs font-mono leading-5 text-muted-foreground">
                 {isCanonicalWorkspace
-                  ? 'Workspace role now follows backend permissions for the active portal workspace.'
+                  ? t('role.canonicalDisabled')
                   : t('role.helper')}
               </p>
             </div>
@@ -458,7 +738,7 @@ export function PartnerDashboardPage() {
             </div>
             <Link
               href="/cases"
-              className="text-sm font-mono text-neon-cyan underline underline-offset-4"
+              className={DASHBOARD_ACTION_LINK_CLASS}
             >
               {t('tasks.openCases')}
             </Link>
@@ -481,6 +761,12 @@ export function PartnerDashboardPage() {
                   <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
                     {task.description}
                   </p>
+                  <Link
+                    href={task.href}
+                    className={cn('mt-4', DASHBOARD_TASK_ACTION_LINK_CLASS)}
+                  >
+                    {task.actionLabel}
+                  </Link>
                 </article>
               ))}
             </div>
@@ -515,6 +801,43 @@ export function PartnerDashboardPage() {
               </div>
             ))}
           </dl>
+
+          <div className="mt-5 rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-4">
+            <h3 className="text-sm font-display uppercase tracking-[0.16em] text-white">
+              {t('constraints.title')}
+            </h3>
+            <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+              {t('constraints.description')}
+            </p>
+
+            {commandConstraints.length === 0 ? (
+              <p className="mt-4 text-sm font-mono leading-6 text-muted-foreground">
+                {t('constraints.empty')}
+              </p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {commandConstraints.map((constraint) => (
+                  <article
+                    key={constraint.id}
+                    className={cn('rounded-2xl border p-4', toneClass(constraint.tone))}
+                  >
+                    <h4 className="text-sm font-display uppercase tracking-[0.16em] text-white">
+                      {constraint.title}
+                    </h4>
+                    <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+                      {constraint.description}
+                    </p>
+                    <Link
+                      href={constraint.href}
+                      className={cn('mt-4', DASHBOARD_TASK_ACTION_LINK_CLASS)}
+                    >
+                      {t(TASK_ACTION_LABEL_KEYS[constraint.href])}
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </article>
       </div>
 
@@ -530,7 +853,7 @@ export function PartnerDashboardPage() {
                   {t('performanceSnapshot.description')}
                 </p>
               </div>
-              <Link href="/analytics" className="text-sm font-mono text-neon-cyan underline underline-offset-4">
+              <Link href="/analytics" className={DASHBOARD_ACTION_LINK_CLASS}>
                 {t('performanceSnapshot.open')}
               </Link>
             </div>
@@ -564,7 +887,7 @@ export function PartnerDashboardPage() {
                   {t('financeSnapshot.description')}
                 </p>
               </div>
-              <Link href="/finance" className="text-sm font-mono text-neon-cyan underline underline-offset-4">
+              <Link href="/finance" className={DASHBOARD_ACTION_LINK_CLASS}>
                 {t('financeSnapshot.open')}
               </Link>
             </div>
@@ -601,32 +924,65 @@ export function PartnerDashboardPage() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {visibleSections.map((item) => {
-              const routeKey = item.href.slice(1) as PartnerSectionSlug;
-              const visibility = getPartnerRouteVisibility(routeKey, state);
+          <div className="mt-5 space-y-4">
+            {visibleSectionGroups.map((group) => (
+              <section
+                key={group.id}
+                className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"
+              >
+                <div className="flex flex-col gap-2 border-b border-grid-line/20 pb-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h3 className="text-sm font-display uppercase tracking-[0.16em] text-white">
+                      {t(group.titleKey)}
+                    </h3>
+                    <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+                      {t(group.descriptionKey)}
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit rounded-full border border-grid-line/25 bg-terminal-surface/35 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                    {group.items.length}
+                  </span>
+                </div>
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-2xl border border-grid-line/20 bg-terminal-bg/55 p-4 transition-colors hover:border-neon-cyan/35"
-                >
-                  <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
-                    {navT(item.labelKey)}
-                  </p>
-                  <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
-                    {navT(item.hintKey)}
-                  </p>
-                  <p className="mt-4 text-[11px] font-mono uppercase tracking-[0.18em] text-neon-cyan/80">
-                    {partnerT('portalState.currentAccessLabel')}: {partnerT(`portalState.routeAccess.${getPartnerRoleRouteAccess(routeKey, state)}`)}
-                  </p>
-                  <p className="mt-2 text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                    {partnerT('portalState.currentVisibilityLabel')}: {partnerT(`portalState.routeVisibility.${visibility}`)}
-                  </p>
-                </Link>
-              );
-            })}
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {group.items.map(({ item, visibility, access }) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={DASHBOARD_SECTION_CARD_LINK_CLASS}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
+                            {navT(item.labelKey)}
+                          </p>
+                          <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
+                            {navT(item.hintKey)}
+                          </p>
+                        </div>
+                        <span className={cn('rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.16em]', toneClass(
+                          visibility === 'full'
+                            ? 'good'
+                            : visibility === 'task' || visibility === 'limited'
+                              ? 'warning'
+                              : 'neutral',
+                        ))}>
+                          {partnerT(`portalState.routeVisibility.${visibility}`)}
+                        </span>
+                      </div>
+                      <p className="mt-4 text-[11px] font-mono uppercase tracking-[0.18em] text-neon-cyan/80">
+                        {partnerT('portalState.currentAccessLabel')}: {partnerT(`portalState.routeAccess.${access}`)}
+                      </p>
+                      {visibility !== 'full' ? (
+                        <p className="mt-2 text-xs font-mono leading-5 text-muted-foreground">
+                          {t(`sections.stateDescriptions.${visibility}`)}
+                        </p>
+                      ) : null}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
 
           <div className="mt-6 rounded-2xl border border-grid-line/20 bg-terminal-bg/55 p-4">
@@ -692,7 +1048,7 @@ export function PartnerDashboardPage() {
               <h2 className="text-lg font-display uppercase tracking-[0.18em] text-white">
                 {t('notificationsPanel.title')}
               </h2>
-              <Link href="/notifications" className="text-sm font-mono text-neon-cyan underline underline-offset-4">
+              <Link href="/notifications" className={DASHBOARD_ACTION_LINK_CLASS}>
                 {t('notificationsPanel.open')}
               </Link>
             </div>
@@ -718,7 +1074,7 @@ export function PartnerDashboardPage() {
               <h2 className="text-lg font-display uppercase tracking-[0.18em] text-white">
                 {t('casesPanel.title')}
               </h2>
-              <Link href="/cases" className="text-sm font-mono text-neon-cyan underline underline-offset-4">
+              <Link href="/cases" className={DASHBOARD_ACTION_LINK_CLASS}>
                 {t('casesPanel.open')}
               </Link>
             </div>
@@ -752,13 +1108,22 @@ export function PartnerDashboardPage() {
           {t('nextActions.description')}
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/application" className="rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-sm font-mono text-neon-cyan transition-colors hover:border-neon-cyan/40">
+          <Link
+            href="/application"
+            className={cn(DASHBOARD_ACTION_LINK_BASE_CLASS, 'text-sm text-neon-cyan hover:border-neon-cyan/40', DASHBOARD_FOCUS_RING_CLASS)}
+          >
             {t('nextActions.application')}
           </Link>
-          <Link href="/cases" className="rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-sm font-mono text-neon-purple transition-colors hover:border-neon-purple/40">
+          <Link
+            href="/cases"
+            className={cn(DASHBOARD_ACTION_LINK_BASE_CLASS, 'text-sm text-neon-purple hover:border-neon-purple/40', DASHBOARD_FOCUS_RING_CLASS)}
+          >
             {t('nextActions.cases')}
           </Link>
-          <Link href="/notifications" className="rounded-full border border-grid-line/25 bg-terminal-bg/60 px-4 py-2 text-sm font-mono text-matrix-green transition-colors hover:border-matrix-green/40">
+          <Link
+            href="/notifications"
+            className={cn(DASHBOARD_ACTION_LINK_BASE_CLASS, 'text-sm text-matrix-green hover:border-matrix-green/40', DASHBOARD_FOCUS_RING_CLASS)}
+          >
             {t('nextActions.notifications')}
           </Link>
         </div>

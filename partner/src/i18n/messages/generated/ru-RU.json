@@ -1203,100 +1203,177 @@
   "Dashboard": {
     "cards": {
       "cases": {
-        "description": "Support и review threads остаются видимыми ещё до полноценного operational launch.",
-        "title": "ОТКРЫТЫЕ CASES"
+        "description": "Обращения в поддержку и ветки проверки остаются видимыми ещё до полноценного операционного запуска.",
+        "title": "ОТКРЫТЫЕ КЕЙСЫ"
       },
       "notifications": {
-        "description": "Непрочитанные portal notifications показывают последние сигналы от ops, review и governance.",
-        "title": "СИГНАЛЫ INBOX"
+        "description": "Непрочитанные уведомления портала показывают последние сигналы операций, проверки и управления.",
+        "title": "СИГНАЛЫ ИНБОКСА"
       },
       "pendingTasks": {
-        "description": "Requested info и readiness blockers теперь вынесены как первичные partner tasks.",
+        "description": "Запрошенные данные и блокеры готовности теперь вынесены как первичные задачи партнёра.",
         "title": "АКТИВНЫЕ ЗАДАЧИ"
       },
       "workspaceStatus": {
-        "description": "Home, видимость меню и прямые routes теперь следуют одной workspace band.",
-        "title": "СТАТУС WORKSPACE"
+        "description": "Главная страница, видимость меню и прямые маршруты теперь следуют одному диапазону рабочей области.",
+        "title": "СТАТУС РАБОЧЕЙ ОБЛАСТИ"
       }
     },
     "casesPanel": {
-      "open": "Открыть cases",
-      "title": "Последние cases"
+      "open": "Открыть кейсы",
+      "title": "Последние кейсы"
+    },
+    "constraints": {
+      "canonicalReasonDescription": "Партнёрские операции пометили эту рабочую область как ограниченную. Откройте связанный раздел, чтобы выполнить текущий сценарий ответа.",
+      "canonicalReasonTitle": "Причина блокировки: {code}",
+      "description": "Состояния блокировки, обязательного действия, ограничения и только чтения видны до перехода партнёра в раздел.",
+      "empty": "В текущем представлении рабочей области нет активных ограничений.",
+      "limitedDescription": "Разделы с ограниченной глубиной сценария: {count}.",
+      "limitedTitle": "Ограниченные разделы",
+      "readOnlyDescription": "Разделы, доступные для справки без изменений: {count}.",
+      "readOnlyTitle": "Разделы только для чтения",
+      "releaseRingDescription": "Разделы, удерживаемые до открытия следующего релизного кольца: {count}.",
+      "releaseRingTitle": "Ограничение релизного кольца",
+      "taskDescription": "Разделы, требующие действия партнёра до дальнейшего продвижения рабочей области: {count}.",
+      "taskTitle": "Разделы с обязательным действием",
+      "title": "Текущие ограничения"
     },
     "eyebrow": "ПАРТНЁРСКАЯ ОПЕРАЦИОННАЯ ПОВЕРХНОСТЬ",
     "financeSnapshot": {
-      "available": "Доступный earnings",
-      "description": "Finance readiness, reserves и payout forecast теперь имеют отдельную dashboard summary, а не прячутся в поздних settlement screens.",
-      "forecast": "Прогноз следующего payout",
-      "onHold": "На холде",
-      "open": "Открыть finance",
+      "available": "Доступный заработок",
+      "description": "Готовность финансов, резервы и прогноз выплат теперь имеют отдельную сводку на дашборде, а не скрываются в поздних экранах расчётов.",
+      "forecast": "Прогноз следующей выплаты",
+      "onHold": "На удержании",
+      "open": "Открыть финансы",
       "reserves": "Резервы",
-      "title": "Finance Snapshot"
+      "title": "Финансовый снимок"
     },
     "meta": {
-      "description": "Status-aware операционная поверхность для onboarding, review, inbox, cases и readiness gating.",
+      "description": "Операционная поверхность с учётом статуса для онбординга, проверки, инбокса, кейсов и контроля готовности.",
       "title": "Дашборд - Ozoxy Partner Portal"
     },
     "nextActions": {
-      "application": "Открыть application",
-      "cases": "Открыть cases",
-      "description": "Используйте applicant-safe поверхности, чтобы продолжить review loop: обновить заявку, ответить partner ops и проверить изменения во inbox.",
-      "notifications": "Открыть notifications",
+      "application": "Открыть заявку",
+      "cases": "Открыть кейсы",
+      "description": "Используйте безопасные для заявителя поверхности, чтобы продолжить цикл проверки: обновить заявку, ответить партнёрским операциям и проверить изменения в инбоксе.",
+      "notifications": "Открыть инбокс",
       "title": "Следующие действия"
     },
     "notificationsPanel": {
-      "open": "Открыть inbox",
+      "open": "Открыть инбокс",
       "title": "Последние уведомления"
     },
     "performanceSnapshot": {
-      "description": "PP5 подтягивает core reporting signals на дашборд, чтобы analytics и export posture были видны ещё до более глубоких conversion surfaces.",
-      "open": "Открыть analytics",
-      "title": "Performance Snapshot"
+      "description": "PP5 выводит основные отчётные сигналы на дашборд, чтобы аналитика и состояние выгрузок были видны ещё до более глубоких поверхностей конверсий.",
+      "open": "Открыть аналитику",
+      "title": "Снимок эффективности"
     },
     "readiness": {
-      "description": "Finance, compliance, technical posture и governance state остаются отдельными от canonical workspace status.",
-      "title": "Readiness overlays"
+      "description": "Финансы, комплаенс, техническое состояние и управление остаются отдельными от канонического статуса рабочей области.",
+      "title": "Слои готовности"
     },
     "releaseRing": {
-      "description": "PP7 добавляет rollout gating. Переключайте текущую release band, чтобы проверить, что модули остаются закрытыми до открытия нужного launch ring.",
-      "helper": "Используйте R1 для applicant/probation-safe launch, R2 для Creator / Affiliate launch, R3 для Performance rollout и R4 для Reseller / API rollout.",
-      "label": "Portal release ring"
+      "description": "PP7 добавляет ограничения раскатки. Переключайте текущий релизный диапазон, чтобы проверить, что модули остаются закрытыми до открытия нужного стартового кольца.",
+      "helper": "Используйте R1 для безопасного запуска заявителей и испытательного периода, R2 для запуска Creator / Affiliate, R3 для раскатки Performance и R4 для раскатки Reseller / API.",
+      "label": "Релизное кольцо портала"
     },
     "role": {
-      "description": "PP3 добавляет role-aware gating. Переключайте текущую workspace role, чтобы проверить доступ в меню, доступ к разделам и поведение route для launch role set.",
-      "helper": "Выбранная роль обновляет sidebar, прямой доступ к route и новые team/programs/legal поверхности.",
-      "label": "Симулятор роли workspace"
+      "canonicalDisabled": "Роль рабочей области теперь определяется серверными правами доступа для активной рабочей области портала.",
+      "description": "PP3 добавляет ограничения с учётом роли. Переключайте текущую роль рабочей области, чтобы проверить доступ к меню, разделам и маршрутам для стартового набора ролей.",
+      "helper": "Выбранная роль обновляет боковую панель, прямой доступ к маршрутам и новые поверхности команды, программ и юридического раздела.",
+      "label": "Симулятор роли рабочей области"
     },
     "rollout": {
       "blockedCount": "Удерживаемые модули",
-      "currentRing": "Текущий ring",
-      "description": "Release-ring gating не даёт модулям утечь раньше целевого launch band.",
-      "empty": "Текущий release ring больше не удерживает дополнительные модули.",
+      "currentRing": "Текущее кольцо",
+      "description": "Ограничения релизного кольца не дают модулям открыться раньше целевого стартового диапазона.",
+      "empty": "Текущее релизное кольцо больше не удерживает дополнительные модули.",
       "opensAt": "Откроется на {ring}",
-      "title": "Rollout readiness"
+      "title": "Готовность раскатки"
     },
     "scenario": {
-      "description": "Пока backend review API ещё не пришли, этот симулятор управляет текущим workspace status, видимостью меню, inbox content и applicant-safe поведением поверхностей.",
-      "helper": "Используйте его, чтобы проверить draft, needs-info, review, waitlist, probation, active и restricted поведение в одном portal shell.",
-      "label": "Локальный review scenario",
+      "canonicalDisabled": "Симуляция сценария отключена, пока используются канонические данные рабочей области.",
+      "description": "Пока серверные API проверки ещё не готовы, этот симулятор управляет текущим статусом рабочей области, видимостью меню, содержимым инбокса и безопасным для заявителя поведением поверхностей.",
+      "helper": "Используйте его, чтобы проверить черновик, запрос данных, проверку, лист ожидания, испытательный период, активное и ограниченное состояние в одной оболочке портала.",
+      "label": "Локальный сценарий проверки",
       "options": {
-        "active": "Активный workspace",
-        "approved_probation": "Одобрен в probation",
-        "draft": "Черновик workspace",
+        "active": "Активная рабочая область",
+        "approved_probation": "Одобрен на испытательный период",
+        "draft": "Черновик рабочей области",
         "needs_info": "Нужна информация",
-        "restricted": "Ограниченный workspace",
-        "under_review": "На review",
-        "waitlisted": "Waitlisted"
+        "restricted": "Ограниченная рабочая область",
+        "under_review": "На проверке",
+        "waitlisted": "В листе ожидания"
       }
     },
     "sections": {
-      "description": "Sidebar и прямые routes теперь следуют одной visibility matrix.",
+      "description": "Боковая панель и прямые маршруты теперь следуют одной матрице видимости.",
+      "groups": {
+        "control": {
+          "description": "Задачи комплаенса, споры, запрошенные данные и обращения в поддержку.",
+          "title": "Контроль и поддержка"
+        },
+        "finance": {
+          "description": "Ведомости, готовность к выплатам, удержания и состояние аккаунта.",
+          "title": "Финансы"
+        },
+        "main": {
+          "description": "Текущее состояние, предупреждения и срочные действия.",
+          "title": "Главное"
+        },
+        "onboarding": {
+          "description": "Идентификация, организация, условия и данные для проверки.",
+          "title": "Старт работы"
+        },
+        "promotion": {
+          "description": "Направления, ссылки, коды, кампании и одобренные материалы.",
+          "title": "Программы и продвижение"
+        },
+        "results": {
+          "description": "Заказы, атрибуция, показатели и выгрузки.",
+          "title": "Результаты"
+        },
+        "technical": {
+          "description": "Токены, postback-события, журналы доставки, витрина и область действия ваучеров.",
+          "title": "Интеграции"
+        },
+        "workspace": {
+          "description": "Команда, ролевое состояние, предпочтения и безопасность рабочей области.",
+          "title": "Рабочее пространство"
+        }
+      },
+      "stateDescriptions": {
+        "full": "Раздел полностью доступен для текущей роли и состояния жизненного цикла.",
+        "hidden": "Раздел не показывается в текущем состоянии жизненного цикла.",
+        "limited": "Раздел доступен с ограниченной глубиной сценария до продвижения рабочей области.",
+        "read": "Данные видны для справки, а действия изменения остаются отключёнными.",
+        "task": "В разделе есть обязательный сценарий действия для текущего этапа жизненного цикла."
+      },
       "title": "Видимые разделы"
     },
-    "subtitle": "PP2 превращает shell в state-aware applicant workspace: review requests, inbox events, limited-access модули и объяснимые blocked states теперь двигаются вместе.",
+    "subtitle": "PP2 превращает оболочку в рабочую область заявителя с учётом статуса: запросы проверки, события инбокса, модули с ограниченным доступом и объяснимые блокировки теперь двигаются вместе.",
+    "taskActions": {
+      "analytics": "Открыть аналитику",
+      "application": "Открыть заявку",
+      "campaigns": "Открыть кампании",
+      "cases": "Открыть кейсы",
+      "codes": "Открыть коды",
+      "compliance": "Открыть комплаенс",
+      "conversions": "Открыть конверсии",
+      "dashboard": "Открыть дашборд",
+      "finance": "Открыть финансы",
+      "integrations": "Открыть интеграции",
+      "legal": "Открыть юридический раздел",
+      "notifications": "Открыть инбокс",
+      "organization": "Открыть организацию",
+      "programs": "Открыть программы",
+      "reseller": "Открыть панель реселлера",
+      "settings": "Открыть настройки",
+      "team": "Открыть команду"
+    },
     "tasks": {
-      "description": "Работа со стороны applicant теперь явная: requested info, finance onboarding и объяснения blocked states живут здесь.",
-      "openCases": "Открыть support & cases",
+      "description": "Работа со стороны заявителя теперь явная: запрошенные данные, финансовый онбординг и объяснения блокировок собраны здесь.",
+      "openCases": "Открыть поддержку и кейсы",
       "title": "Активные задачи"
     },
     "title": "OZOXY PARTNER PORTAL"
@@ -3054,44 +3131,64 @@
   "Navigation": {
     "adminConsole": "ПАРТНЁРСКИЙ ПОРТАЛ",
     "analytics": "АНАЛИТИКА",
-    "analyticsHint": "Показатели, выгрузки, explainability",
+    "analyticsHint": "Показатели, выгрузки, объяснимость",
     "application": "ЗАЯВКА",
-    "applicationHint": "Онбординг, review, запросы данных",
+    "applicationHint": "Онбординг, проверка, запросы данных",
+    "badgeLimited": "ОГРАНИЧЕНО",
+    "badgeLocked": "ЗАКРЫТО",
+    "badgeReadOnly": "ТОЛЬКО ЧТЕНИЕ",
+    "badgeTask": "ДЕЙСТВИЕ",
     "campaigns": "КАМПАНИИ",
-    "campaignsHint": "Материалы, enablement, approvals",
+    "campaignsHint": "Материалы, подготовка, согласования",
     "cases": "ПОДДЕРЖКА И КЕЙСЫ",
     "casesHint": "Сообщения, споры, запросы",
     "closeMenu": "Закрыть меню партнёрского портала",
     "codes": "КОДЫ И ТРЕКИНГ",
     "codesHint": "Ссылки, QR, настройка атрибуции",
     "compliance": "КОМПЛАЕНС",
-    "complianceHint": "Декларации, policy, governance",
+    "complianceHint": "Декларации, политики, управление",
     "conversions": "КОНВЕРСИИ",
     "conversionsHint": "Заказы, лиды, комиссионный контекст",
     "dashboard": "ДАШБОРД",
     "dashboardHint": "Статусы, задачи, готовность портала",
     "finance": "ФИНАНСЫ",
-    "financeHint": "Стейтменты, payout readiness, hold",
+    "financeHint": "Ведомости, готовность выплат, удержания",
+    "groupControl": "Контроль и поддержка",
+    "groupControlHint": "Комплаенс, споры, запросы данных",
+    "groupFinance": "Финансы",
+    "groupFinanceHint": "Ведомости, готовность выплат, удержания",
+    "groupMain": "Обзор",
+    "groupMainHint": "Текущее состояние, предупреждения, срочные действия",
+    "groupOnboarding": "Старт",
+    "groupOnboardingHint": "Заявка, организация, договоры",
+    "groupPromotion": "Программы и продвижение",
+    "groupPromotionHint": "Направления, ссылки, кампании",
+    "groupResults": "Результаты",
+    "groupResultsHint": "Заказы, атрибуция, выгрузки",
+    "groupTechnical": "Интеграции",
+    "groupTechnicalHint": "Токены, postback-события, инструменты реселлера",
+    "groupWorkspace": "Рабочая область",
+    "groupWorkspaceHint": "Команда, настройки, безопасность рабочей области",
     "integrations": "ИНТЕГРАЦИИ",
-    "integrationsHint": "Токены, postback, delivery logs",
+    "integrationsHint": "Токены, postback-события, журналы доставки",
     "legal": "КОНТРАКТЫ И ПРАВО",
-    "legalHint": "Условия, policy, история акцепта",
+    "legalHint": "Условия, политики, история акцепта",
     "mainNavigation": "Навигация партнёрского портала",
     "notifications": "ИНБОКС",
-    "notificationsHint": "Изменения статусов и alerts",
+    "notificationsHint": "Изменения статусов и предупреждения",
     "openMenu": "Открыть меню партнёрского портала",
     "organization": "ОРГАНИЗАЦИЯ",
     "organizationHint": "Профиль бизнеса, домены, контакты",
     "programs": "ПРОГРАММЫ",
-    "programsHint": "Lane, ограничения, approval",
-    "reseller": "RESELLER CONSOLE",
-    "resellerHint": "Storefront и distribution scope",
+    "programsHint": "Направления, ограничения, согласования",
+    "reseller": "ПАНЕЛЬ РЕСЕЛЛЕРА",
+    "resellerHint": "Витрина и область дистрибуции",
     "secureSession": "ЗАЩИЩЁННАЯ СЕССИЯ",
     "settings": "НАСТРОЙКИ",
     "settingsHint": "MFA, сессии, предпочтения",
     "sidebar": "Боковая панель партнёрского портала",
     "team": "КОМАНДА И ДОСТУП",
-    "teamHint": "Участники, роли, безопасность workspace"
+    "teamHint": "Участники, роли, безопасность рабочей области"
   },
   "Network": {
     "description": "Более 5000 RAM-only узлов, развернутых в безопасных юрисдикциях. Телеметрия в реальном времени для нулевой задержки.",

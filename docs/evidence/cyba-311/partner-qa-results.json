@@ -1,0 +1,427 @@
+{
+  "environment": {
+    "baseUrl": "http://127.0.0.1:3004",
+    "chromiumPath": "/home/beep/.local/bin/chromium",
+    "checkedAt": "2026-06-01T09:50:26.045Z"
+  },
+  "checks": {
+    "desktopActiveOwner": {
+      "metrics": {
+        "url": "http://127.0.0.1:3004/en-EN/dashboard",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "navGroups": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Programs & Promotion",
+          "Results",
+          "Finance",
+          "Control & Support",
+          "Integrations"
+        ],
+        "navLinks": [
+          {
+            "href": "/en-EN/dashboard",
+            "label": "DASHBOARD",
+            "current": "page"
+          },
+          {
+            "href": "/en-EN/notifications",
+            "label": "INBOX",
+            "current": null
+          },
+          {
+            "href": "/en-EN/application",
+            "label": "APPLICATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/organization",
+            "label": "ORGANIZATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/legal",
+            "label": "CONTRACTS & LEGAL",
+            "current": null
+          },
+          {
+            "href": "/en-EN/team",
+            "label": "TEAM & ACCESS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/settings",
+            "label": "SETTINGS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/programs",
+            "label": "PROGRAMS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/codes",
+            "label": "CODES & TRACKING",
+            "current": null
+          },
+          {
+            "href": "/en-EN/campaigns",
+            "label": "CAMPAIGNS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/conversions",
+            "label": "CONVERSIONS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/analytics",
+            "label": "ANALYTICS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/finance",
+            "label": "FINANCE",
+            "current": null
+          },
+          {
+            "href": "/en-EN/compliance",
+            "label": "COMPLIANCE",
+            "current": null
+          },
+          {
+            "href": "/en-EN/cases",
+            "label": "SUPPORT & CASES",
+            "current": null
+          },
+          {
+            "href": "/en-EN/integrations",
+            "label": "INTEGRATIONS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/reseller",
+            "label": "RESELLER CONSOLE",
+            "current": null
+          }
+        ],
+        "badges": [
+          "READ ONLY"
+        ],
+        "activeLabel": "DASHBOARD",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": []
+      },
+      "axeViolations": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "nodes": [
+            {
+              "target": [
+                ".bottom-4"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ],
+          "nodeCount": 1
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": [
+            {
+              "target": [
+                ".border-neon-purple\\/40"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.61 (foreground color: #9d00ff, background color: #180127, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".gap-1.items-center.flex:nth-child(1) > .text-muted-foreground-low"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #486b6a, background color: #000102, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".gap-1.items-center.flex:nth-child(3) > .text-muted-foreground-low"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.56 (foreground color: #486b6a, background color: #000102, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".hover\\:border-neon-purple\\/40"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.87 (foreground color: #9d00ff, background color: #000000, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "nodeCount": 4
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    "desktopAnalystReadOnly": {
+      "metrics": {
+        "url": "http://127.0.0.1:3004/en-EN/dashboard",
+        "title": "Dashboard - Ozoxy Partner Portal",
+        "navGroups": [
+          "Overview",
+          "Start",
+          "Workspace",
+          "Programs & Promotion",
+          "Results",
+          "Finance",
+          "Control & Support"
+        ],
+        "navLinks": [
+          {
+            "href": "/en-EN/dashboard",
+            "label": "DASHBOARD",
+            "current": "page"
+          },
+          {
+            "href": "/en-EN/notifications",
+            "label": "INBOX",
+            "current": null
+          },
+          {
+            "href": "/en-EN/application",
+            "label": "APPLICATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/organization",
+            "label": "ORGANIZATION",
+            "current": null
+          },
+          {
+            "href": "/en-EN/legal",
+            "label": "CONTRACTS & LEGAL",
+            "current": null
+          },
+          {
+            "href": "/en-EN/settings",
+            "label": "SETTINGS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/programs",
+            "label": "PROGRAMS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/codes",
+            "label": "CODES & TRACKING",
+            "current": null
+          },
+          {
+            "href": "/en-EN/campaigns",
+            "label": "CAMPAIGNS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/analytics",
+            "label": "ANALYTICS",
+            "current": null
+          },
+          {
+            "href": "/en-EN/finance",
+            "label": "FINANCE",
+            "current": null
+          },
+          {
+            "href": "/en-EN/compliance",
+            "label": "COMPLIANCE",
+            "current": null
+          }
+        ],
+        "badges": [
+          "READ ONLY"
+        ],
+        "activeLabel": "DASHBOARD",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": []
+      },
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    "mobileNeedsInfoRu": {
+      "openMetrics": {
+        "url": "http://127.0.0.1:3004/ru-RU/dashboard",
+        "title": "Дашборд - Ozoxy Partner Portal",
+        "navGroups": [
+          "Обзор",
+          "Старт",
+          "Рабочая область",
+          "Программы и продвижение",
+          "Контроль и поддержка"
+        ],
+        "navLinks": [
+          {
+            "href": "/ru-RU/dashboard",
+            "label": "ДАШБОРД",
+            "current": "page"
+          },
+          {
+            "href": "/ru-RU/notifications",
+            "label": "ИНБОКС",
+            "current": null
+          },
+          {
+            "href": "/ru-RU/compliance",
+            "label": "КОМПЛАЕНС",
+            "current": null
+          },
+          {
+            "href": "/ru-RU/cases",
+            "label": "ПОДДЕРЖКА И КЕЙСЫ",
+            "current": null
+          }
+        ],
+        "badges": [
+          "ДЕЙСТВИЕ",
+          "ТОЛЬКО ЧТЕНИЕ",
+          "ОГРАНИЧЕНО"
+        ],
+        "activeLabel": "ДАШБОРД",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": []
+      },
+      "focusOpen": {
+        "activeLabel": "Закрыть меню партнёрского портала",
+        "dialogContainsFocus": true,
+        "bodyOverflow": "hidden",
+        "htmlOverflow": "hidden",
+        "expandedGroups": [
+          "ОбзорТекущее состояние, предупреждения, срочные действияДЕЙСТВИЕ",
+          "Контроль и поддержкаКомплаенс, споры, запросы данныхДЕЙСТВИЕ"
+        ],
+        "drawerWidth": 320,
+        "viewportWidth": 390
+      },
+      "focusAfterTab": {
+        "activeLabel": "ОбзорТекущее состояние, предупреждения, срочные действияДЕЙСТВИЕ",
+        "dialogContainsFocus": true
+      },
+      "afterEscape": {
+        "triggerFocused": true,
+        "bodyOverflow": "",
+        "htmlOverflow": ""
+      },
+      "afterRoute": {
+        "url": "http://127.0.0.1:3004/ru-RU/application",
+        "title": "Заявка - Ozoxy Partner Portal",
+        "navGroups": [],
+        "navLinks": [],
+        "badges": [],
+        "activeLabel": "ЗАЯВКА",
+        "bodyHorizontalOverflow": 0,
+        "mainHorizontalOverflow": 0,
+        "sensitiveMatches": []
+      },
+      "axeViolationsOpenDrawer": [
+        {
+          "id": "aria-allowed-role",
+          "impact": "minor",
+          "help": "ARIA role should be appropriate for the element",
+          "nodes": [
+            {
+              "target": [
+                "#mobile-sidebar-panel"
+              ],
+              "failureSummary": "Fix any of the following:\n  ARIA role dialog is not allowed for given element"
+            }
+          ],
+          "nodeCount": 1
+        },
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "nodes": [
+            {
+              "target": [
+                ".bottom-4"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ],
+          "nodeCount": 1
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "nodes": [
+            {
+              "target": [
+                ".rounded-md[aria-label=\"ПОДДЕРЖКА И КЕЙСЫ\"][href$=\"cases\"] > .group-hover\\:translate-x-1.group-hover\\:text-foreground.transition-all > .flex-1.min-w-0.relative > .border-neon-purple\\/35.bg-neon-purple\\/10.text-neon-purple"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.73 (foreground color: #9d00ff, background color: #10001a, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".hover\\:border-neon-purple\\/40"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.87 (foreground color: #9d00ff, background color: #000000, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "nodeCount": 2
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ]
+    },
+    "routeRetirement": {
+      "portalLegacyCommerce": {
+        "status": 307,
+        "location": "/en-EN/finance"
+      },
+      "portalUnknownSection": {
+        "status": 200,
+        "location": null
+      },
+      "storefrontDashboardBlocked": {
+        "status": 200,
+        "location": null
+      },
+      "storefrontLegacyBlocked": {
+        "status": 307,
+        "location": "/en-EN/finance"
+      }
+    }
+  },
+  "failures": [
+    "Desktop axe found serious/critical accessibility violations.",
+    "Mobile open drawer axe found serious/critical accessibility violations.",
+    "Unknown generic section expected 404, got 200.",
+    "Storefront dashboard expected 307 -> /en-EN, got {\"status\":200,\"location\":null}.",
+    "Storefront legacy expected 307 -> /en-EN, got {\"status\":307,\"location\":\"/en-EN/finance\"}."
+  ]
+}

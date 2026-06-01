@@ -138,7 +138,7 @@ describe('MobileSidebar', () => {
     expect(screen.getAllByRole('button', { name: 'openMenu' })).toHaveLength(1);
   });
 
-  it('opens as an accessible dialog and renders the full dashboard inventory', async () => {
+  it('opens as an accessible dialog and renders grouped dashboard navigation', async () => {
     const user = userEvent.setup();
 
     render(<MobileSidebar />);
@@ -149,6 +149,25 @@ describe('MobileSidebar', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(screen.getByRole('button', { name: 'closeMenu' })).toHaveFocus();
     expect(screen.getByTestId('partner-workspace-switcher')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /groupMain/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+
+    for (const groupName of [
+      'groupOnboarding',
+      'groupWorkspace',
+      'groupPromotion',
+      'groupResults',
+      'groupFinance',
+      'groupControl',
+      'groupTechnical',
+    ]) {
+      const groupButton = screen.getByRole('button', { name: new RegExp(groupName) });
+      if (groupButton.getAttribute('aria-expanded') === 'false') {
+        await user.click(groupButton);
+      }
+    }
 
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(DASHBOARD_NAV_ITEMS.length);
@@ -164,8 +183,7 @@ describe('MobileSidebar', () => {
 
     await user.tab({ shift: true });
 
-    const lastNavItem = DASHBOARD_NAV_ITEMS[DASHBOARD_NAV_ITEMS.length - 1];
-    expect(screen.getByRole('link', { name: lastNavItem.labelKey })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /groupTechnical/ })).toHaveFocus();
   });
 
   it('closes on overlay tap and restores document scroll', async () => {
@@ -206,6 +224,40 @@ describe('MobileSidebar', () => {
     expect(screen.queryByRole('link', { name: 'conversions' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'integrations' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'reseller' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /groupTechnical/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /groupResults/ }));
+
     expect(screen.getByRole('link', { name: 'analytics' })).toBeInTheDocument();
+  });
+
+  it('opens active and task groups first, then closes after route selection', async () => {
+    const user = userEvent.setup();
+    mockUsePathname.mockReturnValue('/application');
+    mockPortalState.mockReturnValue(
+      createPartnerPortalScenarioState(
+        'draft',
+        'creator_affiliate',
+        'workspace_owner',
+        'R4',
+      ),
+    );
+
+    render(<MobileSidebar />);
+    await user.click(screen.getByRole('button', { name: 'openMenu' }));
+
+    expect(screen.getByRole('button', { name: /groupOnboarding/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: /groupControl/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getAllByText('badgeTask').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('link', { name: 'application' }));
+
+    expect(screen.queryByRole('dialog', { name: 'sidebar' })).not.toBeInTheDocument();
   });
 });
