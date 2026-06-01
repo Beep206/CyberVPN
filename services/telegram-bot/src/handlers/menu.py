@@ -143,6 +143,7 @@ async def main_menu_command_handler(
     message: Message,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    settings: BotSettings | None = None,
 ) -> None:
     """Open the main menu from the Telegram command list."""
     if message.from_user is None:
@@ -156,7 +157,7 @@ async def main_menu_command_handler(
 
     await message.answer(
         text=i18n.get("menu-main-title"),
-        reply_markup=main_menu_keyboard(i18n, user),
+        reply_markup=main_menu_keyboard(i18n, user, settings=settings),
     )
 
 
@@ -165,6 +166,7 @@ async def main_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
     api_client: CyberVPNAPIClient,
+    settings: BotSettings | None = None,
 ) -> None:
     """Handle main menu callback."""
     user = None
@@ -175,12 +177,12 @@ async def main_menu_handler(
 
     await callback.message.edit_text(
         text=i18n.get("menu-main-title"),
-        reply_markup=main_menu_keyboard(i18n, user),
+        reply_markup=main_menu_keyboard(i18n, user, settings=settings),
     )
     await callback.answer()
 
 
-@router.callback_query(F.data == "menu:connect")
+@router.callback_query(F.data.in_({"menu:connect", "menu:vpn", "menu:subscription"}))
 async def connect_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
@@ -233,7 +235,7 @@ async def connect_command_handler(
     await message.answer(text=text, reply_markup=reply_markup)
 
 
-@router.callback_query(F.data == "menu:invite")
+@router.callback_query(F.data.in_({"menu:invite", "growth:invites"}))
 async def invite_menu_handler(
     callback: CallbackQuery,
     i18n: I18nContext,

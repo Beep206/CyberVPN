@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 
 import structlog
 from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
 
 from src.states.promocode import PromoCodeState
 
 if TYPE_CHECKING:
+    from aiogram.fsm.context import FSMContext
+    from aiogram.types import CallbackQuery, Message
     from aiogram_i18n import I18nContext
 
     from src.services.api_client import CyberVPNAPIClient
@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 router = Router(name="promocode")
 
 
-@router.callback_query(F.data == "promocode:enter")
+@router.callback_query(F.data.in_({"promocode:enter", "growth:code"}))
 async def enter_promocode_handler(
     callback: CallbackQuery,
     i18n: I18nContext,
@@ -27,11 +27,11 @@ async def enter_promocode_handler(
 ) -> None:
     """Start promo code entry flow."""
     await callback.message.edit_text(
-        text=i18n.get("promocode-enter-prompt"),
+        text=i18n.get("code-enter-prompt"),
     )
 
     await state.set_state(PromoCodeState.entering_code)
-    logger.info("promocode_entry_started", user_id=callback.from_user.id)
+    logger.info("code_entry_started", user_id=callback.from_user.id, callback_data=callback.data)
 
     await callback.answer()
 
@@ -49,11 +49,11 @@ async def promocode_entered_handler(
         return
 
     user_id = message.from_user.id
-    promo_code = message.text.strip().upper()
+    code = message.text.strip().upper()
 
     try:
         # Validate and activate promo code
-        result = await api_client.activate_promocode(user_id, promo_code)
+        result = await api_client.activate_promocode(user_id, code)
 
         discount_type = result.get("discount_type", "percentage")
         discount_value = result.get("discount_value", 0)
@@ -66,8 +66,8 @@ async def promocode_entered_handler(
 
         await message.answer(
             text=i18n.get(
-                "promocode-activated",
-                code=promo_code,
+                "code-activated",
+                code=code,
                 discount=discount_text,
             ),
         )
@@ -78,24 +78,24 @@ async def promocode_entered_handler(
         logger.info(
             "promocode_activated",
             user_id=user_id,
-            code=promo_code,
+            code=code,
             discount_type=discount_type,
             discount_value=discount_value,
         )
 
     except Exception as e:
         error_msg = str(e)
-        logger.error("promocode_activation_error", user_id=user_id, code=promo_code, error=error_msg)
+        logger.error("code_activation_error", user_id=user_id, code=code, error=error_msg)
 
         # Determine error type
         if "not found" in error_msg.lower():
-            await message.answer(i18n.get("promocode-not-found"))
+            await message.answer(i18n.get("code-not-found"))
         elif "expired" in error_msg.lower():
-            await message.answer(i18n.get("promocode-expired"))
+            await message.answer(i18n.get("code-expired"))
         elif "already used" in error_msg.lower():
-            await message.answer(i18n.get("promocode-already-used"))
+            await message.answer(i18n.get("code-already-used"))
         elif "usage limit" in error_msg.lower():
-            await message.answer(i18n.get("promocode-usage-limit"))
+            await message.answer(i18n.get("code-usage-limit"))
         else:
             await message.answer(i18n.get("error-generic"))
 
@@ -115,7 +115,7 @@ async def cancel_promocode_handler(
     from src.keyboards.menu import main_menu_keyboard
 
     await callback.message.edit_text(
-        text=i18n.get("promocode-cancelled"),
+        text=i18n.get("code-cancelled"),
         reply_markup=main_menu_keyboard(i18n),
     )
 

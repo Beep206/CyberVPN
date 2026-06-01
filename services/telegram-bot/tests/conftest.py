@@ -220,6 +220,7 @@ class MockCyberVPNAPIClient:
         self.get_user = AsyncMock(return_value={})
         self.register_user = AsyncMock(return_value={})
         self.update_user_language = AsyncMock(return_value={})
+        self.get_client_capabilities = AsyncMock(return_value={})
 
         # Subscription operations
         self.get_user_config = AsyncMock(return_value={})

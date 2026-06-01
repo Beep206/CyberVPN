@@ -472,6 +472,10 @@ class CyberVPNAPIClient:
             json=normalized_payload,
         )
 
+    async def get_client_capabilities(self) -> dict[str, Any]:
+        """Get public client capability flags used to hide unavailable bot actions."""
+        return await self._request_dict("GET", "/client/capabilities")
+
     async def complete_telegram_magic_link(
         self,
         *,
