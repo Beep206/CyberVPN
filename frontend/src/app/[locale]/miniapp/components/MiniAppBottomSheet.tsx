@@ -139,7 +139,7 @@ export function MiniAppBottomSheet({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 z-[60] bg-black/50"
             aria-hidden="true"
           />
 
@@ -158,7 +158,7 @@ export function MiniAppBottomSheet({
             aria-modal="true"
             aria-label={title}
             tabIndex={-1}
-            className={`fixed bottom-0 left-0 right-0 z-50 ${sheetBg} ${borderColor} border-t rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col pb-[var(--safe-area-bottom)] outline-none`}
+            className={`fixed bottom-0 left-0 right-0 z-[70] ${sheetBg} ${borderColor} border-t rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col pb-[var(--safe-area-bottom)] outline-none`}
           >
             {/* Header */}
             <div className={`flex items-center justify-between p-4 ${borderColor} border-b`}>

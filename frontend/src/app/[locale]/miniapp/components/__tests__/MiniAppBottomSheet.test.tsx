@@ -122,6 +122,33 @@ describe('MiniAppBottomSheet scroll lock', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('stacks the backdrop and sheet above fixed Mini App bottom navigation', () => {
+    render(
+      <>
+        <nav aria-label="Bottom navigation" className="fixed bottom-0 z-50">
+          Bottom nav
+        </nav>
+        <MiniAppBottomSheet isOpen onClose={() => {}} title="Stacked sheet">
+          Sheet body
+        </MiniAppBottomSheet>
+      </>,
+    );
+
+    const backdrop = Array.from(
+      document.querySelectorAll<HTMLElement>('[aria-hidden="true"]'),
+    ).find((element) => element.classList.contains('inset-0'));
+
+    if (!backdrop) {
+      throw new Error('Bottom sheet backdrop was not rendered');
+    }
+
+    expect(screen.getByRole('navigation')).toHaveClass('z-50');
+    expect(backdrop).toHaveClass('z-[60]');
+    expect(screen.getByRole('dialog', { name: 'Stacked sheet' })).toHaveClass(
+      'z-[70]',
+    );
+  });
+
   it('traps keyboard focus inside the sheet', async () => {
     const user = userEvent.setup();
 

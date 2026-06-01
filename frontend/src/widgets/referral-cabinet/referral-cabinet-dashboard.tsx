@@ -48,7 +48,6 @@ import { growthNotificationsApi, referralApi } from '@/lib/api';
 import { markPerformance } from '@/shared/lib/web-vitals';
 import {
   buildReferralLink,
-  buildShareText,
   formatDate,
   formatLabel,
   formatMoney,
@@ -497,11 +496,10 @@ export function ReferralCabinetDashboard({
           typeof window !== 'undefined' ? window.location.origin : undefined,
       })
     : '';
-  const shareText = buildShareText(
-    t('share.message'),
-    referralCode,
-    referralLink,
-  );
+  const shareText = t('share.message', {
+    code: referralCode,
+    link: referralLink,
+  });
   const currency =
     rewardsQuery.data?.[0]?.currency ??
     commissionsQuery.data?.[0]?.currency ??

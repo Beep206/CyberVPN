@@ -10,6 +10,7 @@ const {
   queryFixtures,
   redeemGrowthCodeMock,
   refetchMock,
+  translationMock,
 } = vi.hoisted(() => ({
   clientCapabilitiesMock: {
     data: {
@@ -100,6 +101,15 @@ const {
   } satisfies Record<string, unknown>,
   redeemGrowthCodeMock: vi.fn(),
   refetchMock: vi.fn(),
+  translationMock: vi.fn(
+    (key: string, values?: Record<string, string | number>) => {
+      if (!values) {
+        return key;
+      }
+
+      return `${key} ${Object.values(values).join(' ')}`;
+    },
+  ),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -120,14 +130,7 @@ vi.mock('@tanstack/react-query', () => ({
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-EN',
-  useTranslations:
-    () => (key: string, values?: Record<string, string | number>) => {
-      if (!values) {
-        return key;
-      }
-
-      return `${key} ${Object.values(values).join(' ')}`;
-    },
+  useTranslations: () => translationMock,
 }));
 
 vi.mock('@/i18n/navigation', () => ({
@@ -262,6 +265,30 @@ describe('ReferralCabinetDashboard', () => {
     });
     expect(markPerformanceMock).toHaveBeenCalledWith('referral-share-copy', {
       kind: 'code',
+    });
+  });
+
+  it('builds share copy through next-intl ICU interpolation values', async () => {
+    render(<ReferralCabinetDashboard />);
+
+    await screen.findByText('CYBER42');
+
+    expect(translationMock).toHaveBeenCalledWith(
+      'share.message',
+      expect.objectContaining({
+        code: 'CYBER42',
+        link: expect.stringContaining('/referral?code=CYBER42'),
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /share.copyShareText/i }),
+    );
+
+    await waitFor(() => {
+      expect(copyMock).toHaveBeenCalledWith(
+        expect.stringContaining('share.message CYBER42'),
+      );
     });
   });
 });
