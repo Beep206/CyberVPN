@@ -6,7 +6,6 @@ import json
 import secrets
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -51,6 +50,7 @@ from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.repositories.messaging_repository import SQLAlchemyMessagingRepository
 from src.infrastructure.messaging.presence import MessagingPresenceIdentity, MessagingPresenceRegistry
+from src.infrastructure.messaging.realtime_contract import build_sync_cursor, build_sync_required_payload
 from src.infrastructure.messaging.sse_manager import _format_sse_event, sse_manager
 from src.infrastructure.messaging.websocket_manager import ws_manager
 from src.presentation.dependencies.auth import get_current_mobile_user_id
@@ -78,6 +78,8 @@ from .schemas import (
     MessagingRealtimeTicketResponse,
     MessagingUnreadCountsResponse,
     MessagingWriteRequest,
+    SiteNotificationDismissRequest,
+    SiteNotificationDismissResponse,
     SiteNotificationListResponse,
     SiteNotificationReadRequest,
     SiteNotificationReadResponse,
@@ -121,7 +123,7 @@ def _new_connection_id() -> str:
 
 
 def _sync_cursor() -> str:
-    return f"sync:{datetime.now(UTC).isoformat().replace('+00:00', 'Z')}"
+    return build_sync_cursor()
 
 
 def _connection_payload(*, principal: MessagingRealtimePrincipal, connection_id: str, transport: str) -> dict[str, str]:
@@ -290,7 +292,7 @@ async def _handle_realtime_ws_message(
             await websocket.send_json(_subscription_response(principal, channel))
         return
     if message_type == "sync":
-        await websocket.send_json({"type": "sync_required", "sync_cursor": _sync_cursor()})
+        await websocket.send_json({"type": "sync_required", **build_sync_required_payload(reason="client_requested")})
         return
     await websocket.send_json({"type": "error", "code": "UNKNOWN_MESSAGE_TYPE"})
 
@@ -323,6 +325,7 @@ async def _create_messaging_sse_response(
                 heartbeat_interval_seconds=settings.messaging_realtime_heartbeat_seconds,
                 max_queue_size=settings.messaging_realtime_queue_size,
             ):
+                await presence.refresh(identity)
                 yield chunk
         finally:
             await presence.disconnect(identity)
@@ -595,6 +598,25 @@ async def mark_customer_notifications_read(
     except Exception as exc:
         _raise_http(exc)
     return SiteNotificationReadResponse(
+        notifications=[_notification_response(view.notification, view.delivery) for view in views],
+    )
+
+
+@customer_router.post("/notifications/dismiss", response_model=SiteNotificationDismissResponse)
+async def dismiss_customer_notifications(
+    payload: SiteNotificationDismissRequest,
+    db: AsyncSession = Depends(get_db),
+    customer_account_id: UUID = Depends(get_current_mobile_user_id),
+) -> SiteNotificationDismissResponse:
+    try:
+        views = await _service(db).dismiss_customer_notifications(
+            customer_account_id=customer_account_id,
+            notification_ids=tuple(payload.notification_ids),
+            read_all_before=payload.read_all_before,
+        )
+    except Exception as exc:
+        _raise_http(exc)
+    return SiteNotificationDismissResponse(
         notifications=[_notification_response(view.notification, view.delivery) for view in views],
     )
 

@@ -1,188 +1,55 @@
 {
+  "antiphishing": "Антифишинговый код",
+  "antiphishingDesc": "Защититесь от фишинговых писем",
   "cabinet": {
-    "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ",
-    "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
-    "hero": {
-      "eyebrow": "Личность / Безопасность / Уведомления",
-      "securityPosture": "Уровень защиты",
-      "securityScore": "{score}% уровень защиты аккаунта"
-    },
-    "posture": {
-      "hardened": "Усилен",
-      "attention": "Требует внимания",
-      "exposed": "Уязвим"
-    },
-    "errors": {
-      "partialTitle": "Часть настроек не загрузилась",
-      "partialDescription": "Страница остаётся доступной, но перед чувствительными изменениями обновите данные."
-    },
-    "summary": {
-      "ariaLabel": "Сводные метрики настроек",
-      "twoFactor": "2FA-защита",
-      "antiphishing": "Антифишинг",
-      "notifications": "Каналов включено",
-      "devices": "Сессии"
-    },
-    "profile": {
-      "eyebrow": "Ядро профиля",
-      "title": "Профиль аккаунта",
-      "description": "Редактируемые поля синхронизируются с backend profile record. Email и account ID здесь неизменяемые.",
-      "email": "Эл. почта",
-      "displayName": "Отображаемое имя",
-      "displayNamePlaceholder": "Имя оператора",
-      "language": "Язык",
-      "timezone": "Часовой пояс",
-      "accountId": "ID аккаунта",
-      "updatedAt": "Обновлено {date}"
-    },
-    "security": {
-      "eyebrow": "Чувствительные настройки",
-      "title": "Консоль безопасности",
-      "description": "Password, TOTP и anti-phishing flows остаются backend-owned и rate-limited.",
-      "twoFactor": {
-        "title": "Двухфакторная аутентификация",
-        "enabled": "TOTP активен для этого аккаунта.",
-        "disabled": "Включите TOTP перед повышением trust для платежей и устройств."
-      },
-      "recovery": {
-        "title": "Восстановление при потере 2FA",
-        "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Support обязан проверить личность и оставить audit trail до любого сброса 2FA.",
-        "cta": "Открыть поддержку"
-      },
-      "password": {
-        "title": "Пароль",
-        "description": "Смена пароля требует текущий пароль."
-      },
-      "antiphishing": {
-        "title": "Антифишинговый код",
-        "enabled": "Код подлинности email установлен: {code}",
-        "disabled": "Установите приватный код для легитимных писем."
-      }
-    },
-    "notifications": {
-      "eyebrow": "Матрица доставки",
-      "title": "Настройки уведомлений",
-      "description": "Core account notifications и growth notifications разделены на разные backend preference sets.",
-      "core": {
-        "title": "Основной аккаунт",
-        "emailSecurity": {
-          "title": "Email-алерты безопасности",
-          "description": "Login, password и account risk alerts."
-        },
-        "emailMarketing": {
-          "title": "Маркетинговые email",
-          "description": "Опциональные продуктовые и промо сообщения."
-        },
-        "pushConnection": {
-          "title": "Push о VPN-подключении",
-          "description": "Connection, disconnect и service state notices."
-        },
-        "pushPayment": {
-          "title": "Push об оплате",
-          "description": "Payment lifecycle и подтверждения invoice."
-        },
-        "pushSubscription": {
-          "title": "Push о подписке",
-          "description": "Renewal, expiry и entitlement reminders."
-        }
-      },
-      "growth": {
-        "title": "Growth-события",
-        "inAppInvites": {
-          "title": "Лента invite в приложении",
-          "description": "Invite и code events внутри кабинета."
-        },
-        "emailRewards": {
-          "title": "Email о реферальной награде",
-          "description": "Изменения lifecycle наград по email."
-        },
-        "telegramRewards": {
-          "title": "Telegram о реферальной награде",
-          "description": "Изменения lifecycle наград в Telegram."
-        },
-        "emailGifts": {
-          "title": "Email о подарочном коде",
-          "description": "Gift redemption и delivery status по email."
-        },
-        "adminUpdates": {
-          "title": "Админские обновления в Telegram",
-          "description": "Операционные growth announcements в Telegram."
-        }
-      }
-    },
-    "devices": {
-      "eyebrow": "Периметр сессий",
-      "title": "Активные устройства",
-      "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
-      "limitTitle": "Лимит устройств тарифа",
-      "limitDescription": "Лимит берётся из текущего entitlement snapshot. Перед подключением нового устройства отзывайте устаревшие сессии.",
-      "limitUsed": "{used} из {limit}",
-      "limitUnknown": "{used} активно / лимит недоступен",
-      "activeCount": "Активно",
-      "planLimit": "Лимит тарифа",
-      "remainingSlots": "Свободно",
-      "managePlan": "Управлять тарифом",
-      "limitStates": {
-        "available": "Есть свободные места",
-        "near_limit": "Почти лимит",
-        "at_limit": "Лимит достигнут",
-        "over_limit": "Сверх лимита",
-        "unknown": "Лимит неизвестен"
-      },
-      "limitHelp": {
-        "available": "На этом тарифе ещё доступно {remaining} слотов устройств.",
-        "near_limit": "Осталось только {remaining} слотов устройств. Перед добавлением новых устройств отзовите устаревшие сессии.",
-        "at_limit": "Лимит тарифа полностью использован. Отзовите устаревшие устройства или измените тариф перед добавлением нового устройства.",
-        "over_limit": "Аккаунт превышает текущий лимит тарифа на {count}. Отзовите устаревшие устройства или обратитесь в поддержку.",
-        "unknown": "Список активных сессий доступен, но лимит тарифа не удалось загрузить из entitlements."
-      },
-      "empty": "Активные устройства не найдены.",
-      "current": "Текущая",
-      "currentHint": "Эта сессия защищена от remote revoke controls.",
-      "meta": "IP {ip} / активность {date} / id {id}",
-      "revoke": "Отозвать",
-      "revokeDevice": "Отозвать устройство",
-      "revokeOthers": "Отозвать остальные"
-    },
-    "identity": {
-      "eyebrow": "Связанная идентичность",
-      "title": "Внешние аккаунты",
-      "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
-      "telegramLinked": "Telegram привязан: {id}",
-      "telegramMissing": "Telegram не привязан к этому аккаунту."
-    },
-    "privacy": {
-      "eyebrow": "Ограничения приватности",
-      "title": "Правила обработки данных",
-      "items": {
-        "serverTruth": {
-          "title": "Backend как source of truth",
-          "description": "Страница отражает API state и не хранит чувствительные настройки локально."
-        },
-        "noSecretTelemetry": {
-          "title": "Без secret telemetry",
-          "description": "Метрики отмечают только действия, не пароли, TOTP codes, IP или anti-phishing values."
-        },
-        "sessionRevocation": {
-          "title": "Отзыв сессий",
-          "description": "Удаление устройств вызывает authenticated backend session revoke endpoints."
-        },
-        "accountDeletion": {
-          "title": "Путь удаления",
-          "description": "Удаление аккаунта остаётся в отдельном privacy flow."
-        }
-      }
-    },
     "actions": {
       "copied": "Скопировано",
       "copyId": "Копировать ID",
       "manage": "Управлять",
-      "privacy": "Сценарий приватности",
+      "privacy": "Privacy flow",
       "refresh": "Обновить",
       "revoking": "Отзываю...",
       "saveProfile": "Сохранить профиль",
       "saving": "Сохраняю...",
       "starting": "Запускаю..."
+    },
+    "devices": {
+      "activeCount": "Активно",
+      "current": "Текущая",
+      "currentHint": "Эта сессия защищена от удалённого отзыва.",
+      "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
+      "empty": "Активные устройства не найдены.",
+      "eyebrow": "Периметр сессий",
+      "limitDescription": "Лимит берётся из текущего entitlement snapshot. Перед подключением нового устройства отзывайте устаревшие сессии.",
+      "limitHelp": {
+        "at_limit": "Лимит тарифа полностью использован. Отзовите устаревшие устройства или измените тариф перед добавлением нового устройства.",
+        "available": "На этом тарифе ещё доступно {remaining} слотов устройств.",
+        "near_limit": "Осталось только {remaining} слотов устройств. Перед добавлением новых устройств отзовите устаревшие сессии.",
+        "over_limit": "Аккаунт превышает текущий лимит тарифа на {count}. Отзовите устаревшие устройства или обратитесь в поддержку.",
+        "unknown": "Список активных сессий доступен, но лимит тарифа не удалось загрузить из entitlements."
+      },
+      "limitStates": {
+        "at_limit": "Лимит достигнут",
+        "available": "Есть свободные места",
+        "near_limit": "Почти лимит",
+        "over_limit": "Сверх лимита",
+        "unknown": "Лимит неизвестен"
+      },
+      "limitTitle": "Лимит устройств тарифа",
+      "limitUnknown": "{used} активно / лимит недоступен",
+      "limitUsed": "{used} из {limit}",
+      "managePlan": "Управлять тарифом",
+      "meta": "IP {ip} / активность {date} / id {id}",
+      "planLimit": "Лимит тарифа",
+      "remainingSlots": "Свободно",
+      "revoke": "Отозвать",
+      "revokeDevice": "Отозвать устройство",
+      "revokeOthers": "Отозвать остальные",
+      "title": "Активные устройства"
+    },
+    "errors": {
+      "partialDescription": "Страница остаётся доступной, но перед чувствительными изменениями обновите данные.",
+      "partialTitle": "Часть настроек не загрузилась"
     },
     "feedback": {
       "copyFailed": "Clipboard недоступен.",
@@ -195,6 +62,18 @@
       "securityUpdated": "Настройки безопасности обновлены.",
       "telegramLinkFailed": "Не удалось начать привязку Telegram. Попробуйте ещё раз из этой browser session."
     },
+    "hero": {
+      "eyebrow": "Идентификация / безопасность / уведомления",
+      "securityPosture": "Уровень защиты",
+      "securityScore": "{score}% уровень защиты аккаунта"
+    },
+    "identity": {
+      "description": "Telegram остаётся основной support и commerce identity там, где доступен.",
+      "eyebrow": "Связанная идентификация",
+      "telegramLinked": "Telegram привязан: {id}",
+      "telegramMissing": "Telegram не привязан к этому аккаунту.",
+      "title": "Внешние аккаунты"
+    },
     "labels": {
       "disabled": "Выключено",
       "enabled": "Включено",
@@ -202,30 +81,151 @@
       "notAvailable": "н/д",
       "notSet": "Не задан",
       "synced": "Синхронизировано"
-    }
+    },
+    "notifications": {
+      "core": {
+        "emailMarketing": {
+          "description": "Опциональные продуктовые и промо сообщения.",
+          "title": "Email-маркетинг"
+        },
+        "emailSecurity": {
+          "description": "Алерты входа, пароля и риска аккаунта.",
+          "title": "Email-алерты безопасности"
+        },
+        "pushConnection": {
+          "description": "Уведомления о подключении, отключении и состоянии сервиса.",
+          "title": "Push по VPN-подключению"
+        },
+        "pushPayment": {
+          "description": "Жизненный цикл оплаты и подтверждения invoice.",
+          "title": "Push по оплатам"
+        },
+        "pushSubscription": {
+          "description": "Напоминания о продлении, истечении и entitlement.",
+          "title": "Push по подписке"
+        },
+        "title": "Основной аккаунт"
+      },
+      "description": "Основные уведомления аккаунта и growth notifications разделены на разные серверные наборы предпочтений.",
+      "eyebrow": "Матрица маршрутизации",
+      "growth": {
+        "adminUpdates": {
+          "description": "Операционные growth announcements в Telegram.",
+          "title": "Операционные обновления Telegram"
+        },
+        "emailGifts": {
+          "description": "Активация подарка и статус доставки по email.",
+          "title": "Email по подарочным кодам"
+        },
+        "emailRewards": {
+          "description": "Изменения жизненного цикла наград по email.",
+          "title": "Email о реферальных наградах"
+        },
+        "inAppInvites": {
+          "description": "События инвайтов и кодов внутри кабинета.",
+          "title": "Инвайты в ленте кабинета"
+        },
+        "telegramRewards": {
+          "description": "Изменения жизненного цикла наград в Telegram.",
+          "title": "Telegram о реферальных наградах"
+        },
+        "title": "События роста"
+      },
+      "title": "Настройки уведомлений"
+    },
+    "posture": {
+      "attention": "Требует внимания",
+      "exposed": "Уязвим",
+      "hardened": "Усилен"
+    },
+    "privacy": {
+      "eyebrow": "Privacy-правила",
+      "items": {
+        "accountDeletion": {
+          "description": "Удаление аккаунта остаётся в отдельном privacy flow.",
+          "title": "Сценарий удаления"
+        },
+        "noSecretTelemetry": {
+          "description": "Метрики отмечают только действия, не пароли, TOTP-коды, IP или anti-phishing values.",
+          "title": "Без secret telemetry"
+        },
+        "serverTruth": {
+          "description": "Страница отражает API state и не хранит чувствительные настройки локально.",
+          "title": "Сервер как source of truth"
+        },
+        "sessionRevocation": {
+          "description": "Удаление устройств вызывает authenticated server session revoke endpoints.",
+          "title": "Отзыв сессий"
+        }
+      },
+      "title": "Правила обработки данных"
+    },
+    "profile": {
+      "accountId": "ID аккаунта",
+      "description": "Редактируемые поля синхронизируются с серверной записью профиля. Email и ID аккаунта здесь неизменяемые.",
+      "displayName": "Отображаемое имя",
+      "displayNamePlaceholder": "Имя оператора",
+      "email": "Email",
+      "eyebrow": "Профиль аккаунта",
+      "language": "Язык",
+      "timezone": "Часовой пояс",
+      "title": "Профиль аккаунта",
+      "updatedAt": "Обновлено {date}"
+    },
+    "security": {
+      "antiphishing": {
+        "disabled": "Установите приватный код для легитимных писем.",
+        "enabled": "Код подлинности email установлен: {code}",
+        "title": "Антифишинговый код"
+      },
+      "description": "Пароль, TOTP и anti-phishing flows остаются под управлением сервера и rate-limited.",
+      "eyebrow": "Чувствительные настройки",
+      "password": {
+        "description": "Смена пароля требует текущий пароль.",
+        "title": "Пароль"
+      },
+      "recovery": {
+        "cta": "Открыть поддержку",
+        "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Поддержка обязана проверить личность и оставить audit trail до любого сброса 2FA.",
+        "title": "Восстановление при потере 2FA"
+      },
+      "title": "Консоль безопасности",
+      "twoFactor": {
+        "disabled": "Включите TOTP перед повышением trust для платежей и устройств.",
+        "enabled": "TOTP активен для этого аккаунта.",
+        "title": "Двухфакторная аутентификация"
+      }
+    },
+    "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
+    "summary": {
+      "antiphishing": "Anti-phishing",
+      "ariaLabel": "Сводные метрики настроек",
+      "devices": "Сессии",
+      "notifications": "Каналов включено",
+      "twoFactor": "2FA"
+    },
+    "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ"
   },
-  "title": "НАСТРОЙКИ",
-  "subtitle": "Управляйте предпочтениями аккаунта и безопасностью",
-  "linkedAccounts": "Связанные аккаунты",
-  "profile": "Профиль",
-  "email": "Эл. почта",
-  "displayName": "Отображаемое имя",
-  "save": "Сохранить",
   "cancel": "Отмена",
-  "edit": "Изменить",
-  "language": "Язык",
-  "timezone": "Часовой пояс",
-  "security": "Безопасность",
-  "twoFactor": "Двухфакторная аутентификация",
-  "tfaEnabled": "Аккаунт защищён с помощью 2FA",
-  "tfaDisabled": "Добавьте дополнительный уровень защиты",
-  "enable": "Включить",
+  "change": "Изменить",
+  "devices": "Активные устройства",
   "disable": "Отключить",
+  "displayName": "Отображаемое имя",
+  "edit": "Изменить",
+  "email": "Эл. почта",
+  "enable": "Включить",
+  "language": "Язык",
+  "linkedAccounts": "Связанные аккаунты",
+  "manage": "Управлять",
   "password": "Пароль",
   "passwordDesc": "Изменить пароль аккаунта",
-  "change": "Изменить",
-  "antiphishing": "Антифишинговый код",
-  "antiphishingDesc": "Защититесь от фишинговых писем",
-  "manage": "Управлять",
-  "devices": "Активные устройства"
+  "profile": "Профиль",
+  "save": "Сохранить",
+  "security": "Безопасность",
+  "subtitle": "Управляйте предпочтениями аккаунта и безопасностью",
+  "tfaDisabled": "Добавьте дополнительный уровень защиты",
+  "tfaEnabled": "Аккаунт защищён с помощью 2FA",
+  "timezone": "Часовой пояс",
+  "title": "НАСТРОЙКИ",
+  "twoFactor": "Двухфакторная аутентификация"
 }

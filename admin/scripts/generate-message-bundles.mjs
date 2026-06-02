@@ -1,16 +1,16 @@
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { watch as watchFs } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
-const MESSAGES_ROOT = path.join(PROJECT_ROOT, 'messages');
-const OUTPUT_ROOT = path.join(PROJECT_ROOT, 'src', 'i18n', 'messages', 'generated');
+export const PROJECT_ROOT = path.resolve(__dirname, '..');
+export const MESSAGES_ROOT = path.join(PROJECT_ROOT, 'messages');
+export const OUTPUT_ROOT = path.join(PROJECT_ROOT, 'src', 'i18n', 'messages', 'generated');
 
-const MESSAGE_FILE_NAMESPACE_MAP = {
+export const MESSAGE_FILE_NAMESPACE_MAP = {
   'header.json': 'Header',
   'navigation.json': 'Navigation',
   'dashboard.json': 'Dashboard',
@@ -61,11 +61,11 @@ const MESSAGE_FILE_NAMESPACE_MAP = {
   'Security.json': 'Security',
 };
 
-function isJsonObject(value) {
+export function isJsonObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function stableSortObject(value) {
+export function stableSortObject(value) {
   if (Array.isArray(value)) {
     return value.map(stableSortObject);
   }
@@ -82,7 +82,7 @@ function stableSortObject(value) {
     }, {});
 }
 
-async function getLocaleDirectories() {
+export async function getLocaleDirectories() {
   const entries = await readdir(MESSAGES_ROOT, { withFileTypes: true });
 
   return entries
@@ -91,7 +91,7 @@ async function getLocaleDirectories() {
     .sort((left, right) => left.localeCompare(right));
 }
 
-async function readMessageFile(locale, fileName) {
+export async function readMessageFile(locale, fileName) {
   const filePath = path.join(MESSAGES_ROOT, locale, fileName);
 
   try {
@@ -106,7 +106,7 @@ async function readMessageFile(locale, fileName) {
   }
 }
 
-async function buildLocaleBundle(locale) {
+export async function buildLocaleBundle(locale) {
   const bundle = {};
 
   for (const [fileName, namespace] of Object.entries(MESSAGE_FILE_NAMESPACE_MAP)) {
@@ -116,7 +116,7 @@ async function buildLocaleBundle(locale) {
   return stableSortObject(bundle);
 }
 
-async function removeStaleBundles(currentLocales) {
+export async function removeStaleBundles(currentLocales) {
   try {
     const outputEntries = await readdir(OUTPUT_ROOT, { withFileTypes: true });
 
@@ -135,7 +135,7 @@ async function removeStaleBundles(currentLocales) {
   }
 }
 
-async function buildBundles() {
+export async function buildBundles() {
   await mkdir(OUTPUT_ROOT, { recursive: true });
 
   const locales = await getLocaleDirectories();
@@ -230,10 +230,14 @@ async function watchBundles() {
   await new Promise(() => null);
 }
 
-const args = new Set(process.argv.slice(2));
+const isDirectRun = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
-if (args.has('--watch')) {
-  await watchBundles();
-} else {
-  await buildBundles();
+if (isDirectRun) {
+  const args = new Set(process.argv.slice(2));
+
+  if (args.has('--watch')) {
+    await watchBundles();
+  } else {
+    await buildBundles();
+  }
 }

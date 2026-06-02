@@ -10,6 +10,7 @@ import {
   RadioTower,
   RefreshCw,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,8 @@ import {
   useCustomerConversationList,
   useCustomerMessagingRealtimeSession,
   useCustomerNotifications,
+  useDismissCustomerNotifications,
+  isUnreadSiteNotification,
   useMarkCustomerNotificationsRead,
   type CustomerMessagingRealtimeStatus,
 } from '../hooks/useCustomerMessaging';
@@ -45,9 +48,13 @@ function formatTimestamp(locale: string, value: string): string {
   }
 }
 
-function notificationHref(notification: SiteNotification): string | null {
-  if (notification.action_url?.startsWith('/')) {
-    return notification.action_url;
+const SAFE_NOTIFICATION_PATH_RE = /^\/(?!\/)(?!.*\\)[^\u0000-\u001f\u007f]*$/;
+
+export function getSafeNotificationHref(notification: SiteNotification): string | null {
+  const actionUrl = notification.action_url?.trim();
+
+  if (actionUrl && SAFE_NOTIFICATION_PATH_RE.test(actionUrl)) {
+    return actionUrl;
   }
 
   if (notification.conversation_id) {
@@ -77,19 +84,21 @@ export function NotificationCenterDropdown() {
   const notificationsQuery = useCustomerNotifications({ limit: 10 });
   const conversationsQuery = useCustomerConversationList({ limit: 50 });
   const markRead = useMarkCustomerNotificationsRead();
+  const dismissNotifications = useDismissCustomerNotifications();
   const realtime = useCustomerMessagingRealtimeSession();
 
-  const notifications = notificationsQuery.data?.notifications ?? [];
-  const unreadNotifications = notifications.filter(
-    (notification) => notification.status !== 'read',
+  const notifications = (notificationsQuery.data?.notifications ?? []).filter(
+    (notification) => notification.status !== 'dismissed',
   );
+  const unreadNotifications = notifications.filter(isUnreadSiteNotification);
   const unreadConversationCount = (conversationsQuery.data?.conversations ?? [])
     .filter((conversation) => conversation.unread_count > 0).length;
   const unreadTotal = unreadNotifications.length + unreadConversationCount;
   const isBusy =
     notificationsQuery.isFetching ||
     conversationsQuery.isFetching ||
-    markRead.isPending;
+    markRead.isPending ||
+    dismissNotifications.isPending;
 
   const markAllRead = () => {
     if (unreadNotifications.length === 0) {
@@ -121,7 +130,7 @@ export function NotificationCenterDropdown() {
         <section
           role="dialog"
           aria-label={t('panelLabel')}
-          className="absolute right-0 top-12 z-50 w-[min(92vw,24rem)] overflow-hidden rounded-lg border border-grid-line/40 bg-terminal-surface/95 shadow-[0_0_40px_rgba(0,255,255,0.14)] backdrop-blur-xl"
+          className="fixed left-[calc(var(--mobile-page-gutter)+var(--safe-area-left))] right-[calc(var(--mobile-page-gutter)+var(--safe-area-right))] top-[calc(var(--safe-area-top)+4.5rem)] z-50 flex max-h-[calc(100dvh-var(--safe-area-top)-var(--safe-area-bottom)-5.5rem)] flex-col overflow-hidden rounded-lg border border-grid-line/40 bg-terminal-surface/95 shadow-[0_0_40px_rgba(0,255,255,0.14)] backdrop-blur-xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[min(92vw,24rem)]"
         >
           <header className="border-b border-grid-line/30 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -158,7 +167,7 @@ export function NotificationCenterDropdown() {
             </div>
           </header>
 
-          <div className="max-h-[30rem] overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:max-h-[30rem]">
             {notificationsQuery.isLoading ? (
               <div className="space-y-2" aria-busy="true">
                 {[0, 1, 2].map((item) => (
@@ -183,12 +192,12 @@ export function NotificationCenterDropdown() {
             ) : (
               <div className="space-y-2">
                 {notifications.map((notification) => {
-                  const href = notificationHref(notification);
-                  const isUnread = notification.status !== 'read';
+                  const href = getSafeNotificationHref(notification);
+                  const isUnread = isUnreadSiteNotification(notification);
                   const content = (
                     <article
                       className={cn(
-                        'rounded-md border p-3 transition',
+                        'rounded-md border p-3 pr-12 transition',
                         isUnread
                           ? 'border-neon-cyan/40 bg-neon-cyan/10'
                           : 'border-grid-line/30 bg-terminal-bg/60',
@@ -249,16 +258,28 @@ export function NotificationCenterDropdown() {
                       ) : (
                         content
                       )}
-                      {isUnread && !href ? (
+                      <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                        {isUnread ? (
+                          <button
+                            type="button"
+                            aria-label={t('markOneRead')}
+                            disabled={markRead.isPending}
+                            onClick={() => markRead.mutate([notification.id])}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-grid-line/40 bg-terminal-bg/90 text-muted-foreground transition hover:border-matrix-green/50 hover:text-matrix-green focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          aria-label={t('markOneRead')}
-                          onClick={() => markRead.mutate([notification.id])}
-                          className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-grid-line/40 bg-terminal-bg/90 text-muted-foreground opacity-0 transition hover:border-matrix-green/50 hover:text-matrix-green focus:opacity-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan group-hover:opacity-100"
+                          aria-label={t('dismissOne')}
+                          disabled={dismissNotifications.isPending}
+                          onClick={() => dismissNotifications.mutate([notification.id])}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-grid-line/40 bg-terminal-bg/90 text-muted-foreground transition hover:border-neon-pink/50 hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-cyan disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
-                      ) : null}
+                      </div>
                     </div>
                   );
                 })}

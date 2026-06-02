@@ -412,15 +412,15 @@
     "title": "ЗАЩИЩЕННАЯ СВЯЗЬ"
   },
   "CookiePolicy": {
-    "intro": "Эта Cookie Policy объясняет cookies, local storage, session storage, telemetry и похожее browser storage, используемое или подготовленное в CyberVPN website, web cabinet, Telegram Mini App, backend API flows и admin/support surfaces.",
+    "intro": "Эта политика объясняет cookies, local storage, session storage, telemetry и похожее browser storage, используемое или подготовленное на сайте CyberVPN, в веб-кабинете, Telegram Mini App, backend API flows и admin/support surfaces.",
     "lastUpdated": "Обновлено 23 мая 2026",
     "meta": {
-      "description": "Cookie Policy для CyberVPN Public Release 1.0.",
-      "title": "Cookie Policy"
+      "description": "Политика cookies для CyberVPN Public Release 1.0.",
+      "title": "Политика cookies"
     },
     "sections": {
       "changes": {
-        "content": "CyberVPN может обновлять эту policy при изменении storage mechanisms, SDKs, analytics providers, payment flows, login flows или legal requirements. Изменения должны быть согласованы с Privacy Policy, Terms of Service, Acceptable Use Policy и Refund Policy.",
+        "content": "CyberVPN может обновлять эту политику при изменении storage mechanisms, SDKs, analytics providers, payment flows, login flows или legal requirements. Изменения должны быть согласованы с Privacy Policy, Terms of Service, Acceptable Use Policy и Refund Policy.",
         "title": "7. Изменения"
       },
       "consent": {
@@ -430,7 +430,7 @@
           "necessary": "Strictly necessary cookies and storage may be used to provide login, security, checkout return handling, fraud prevention, language routing, support and VPN provisioning flows requested by the user.",
           "nonEssential": "Non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default unless the project has a consent mechanism, cookie inventory, legal approval and evidence."
         },
-        "title": "3. Consent and Default State"
+        "title": "3. Consent и состояние по умолчанию"
       },
       "controls": {
         "items": {
@@ -438,7 +438,7 @@
           "logout": "Logging out should clear CyberVPN auth cookies. Some provider-side cookies, browser cache, locale preference or Telegram-controlled storage may need to be cleared through the browser, Telegram app or the third-party provider.",
           "support": "Cookie/privacy questions can be sent to support@cyber-vpn.net. Refund-related payment questions can be sent to refund@cyber-vpn.net."
         },
-        "title": "5. User Controls"
+        "title": "5. Пользовательские настройки"
       },
       "goLiveBlockers": {
         "items": {
@@ -460,7 +460,7 @@
           "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced.",
           "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP, 2FA and checkout return handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests."
         },
-        "title": "2. Cookie and Storage Inventory"
+        "title": "2. Inventory cookies и storage"
       },
       "retention": {
         "items": {
@@ -469,14 +469,14 @@
           "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the Privacy Policy, provider settings and observability evidence.",
           "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow."
         },
-        "title": "4. Retention"
+        "title": "4. Срок хранения"
       },
       "scope": {
-        "content": "Политика покрывает cyber-vpn.net как основной публичный домен и admin.cyber-vpn.net как основной admin-домен. cyber-vpn.org зарезервирован для VPN-нод и subscription delivery routes там, где CyberVPN их показывает; это не general customer-site mirror. Cookies должны оставаться canonical для cyber-vpn.net/admin.cyber-vpn.net, если отдельный evidence pack не утверждает другой домен.",
-        "title": "1. Scope"
+        "content": "Политика покрывает cyber-vpn.net как основной публичный домен и admin.cyber-vpn.net как основной admin-домен. cyber-vpn.org зарезервирован для VPN-нод и маршрутов доставки подписки там, где CyberVPN их показывает; это не общий mirror customer site. Cookies должны оставаться canonical для cyber-vpn.net/admin.cyber-vpn.net, если отдельный evidence pack не утверждает другой домен.",
+        "title": "1. Область действия"
       }
     },
-    "title": "Cookie Policy"
+    "title": "Политика cookies"
   },
   "Dashboard": {
     "activeConnections": "Активные подключения",
@@ -553,7 +553,7 @@
       "noActivePlan": "Нет активного тарифа",
       "notifications": {
         "actionRequired": "Требуется действие",
-        "description": "Свежие обновления по доставке доступа, наградам, оплатам и админским событиям из backend notification system.",
+        "description": "Свежие обновления по доставке доступа, наградам, оплатам и админским событиям из серверной системы уведомлений.",
         "empty": "Сейчас нет видимых пользовательских уведомлений.",
         "errorDescription": "Кабинет остаётся рабочим. Повторите загрузку уведомлений или продолжите в настройках и оплатах.",
         "errorTitle": "Поток уведомлений недоступен",
@@ -575,9 +575,9 @@
       },
       "readiness": {
         "channel": "Канал доступа",
-        "credential": "Учётные данные",
+        "credential": "Credential",
         "degraded": "ДЕГРАДАЦИЯ",
-        "description": "Панель проверяет, согласованы ли подписка, профиль подготовки, credential устройства и канал доступа с backend.",
+        "description": "Панель проверяет, согласованы ли подписка, профиль подготовки, credential устройства и канал доступа с сервером.",
         "eyebrow": "Готовность VPN",
         "lastConnection": "Последнее подключение",
         "noConnectionYet": "Подключений ещё не было",
@@ -588,7 +588,7 @@
       "rewards": {
         "available": "Доступно",
         "availableMeta": "Можно использовать в кошельке",
-        "eyebrow": "Growth-награды",
+        "eyebrow": "Награды роста",
         "pending": "В ожидании",
         "pendingMeta": "Удерживается до релиза награды",
         "referrals": "Рефералы",
@@ -597,20 +597,20 @@
       },
       "s2Actions": {
         "codes": {
-          "description": "Активировать promo, checkout, invite и gift codes.",
+          "description": "Активировать промокоды, коды оплаты, инвайт-коды и подарочные коды.",
           "label": "Промо и подарки"
         },
-        "description": "Действия публичного релиза собраны в одном месте: trial, продление, история оплат и growth-коды появляются здесь только когда это разрешено backend/runtime flags.",
-        "eyebrow": "S2 КОММЕРЦИЯ",
+        "description": "Действия публичного релиза собраны в одном месте: пробный доступ, продление, история оплат и коды роста появляются здесь только когда это разрешено сервером и runtime flags.",
+        "eyebrow": "S2 COMMERCE",
         "growthHub": {
-          "description": "Скопировать реферальные ссылки и проверить invite rewards.",
+          "description": "Скопировать реферальные ссылки и проверить награды за приглашения.",
           "label": "Рефералы"
         },
         "paymentHistory": {
           "description": "Проверить invoices, attempts и историю кошелька.",
           "label": "Оплаты"
         },
-        "title": "Тариф, оплата и growth-действия",
+        "title": "Тариф, оплата и действия роста",
         "trialPlans": {
           "description": "Запустить trial, выбрать тариф или продлить доступ.",
           "label": "Trial и тарифы"
@@ -675,7 +675,7 @@
           },
           "eyebrow": "Оплата",
           "failed": {
-            "description": "Платёж отклонён или завершился ошибкой. Создайте новый checkout или обратитесь в поддержку, если средства были зарезервированы.",
+            "description": "Платёж отклонён или завершился ошибкой. Создайте новую оплату или обратитесь в поддержку, если средства были зарезервированы.",
             "title": "Оплата не прошла"
           },
           "not_started": {
@@ -691,7 +691,7 @@
             "title": "Оплата ожидается"
           },
           "processing": {
-            "description": "Провайдер ещё обрабатывает платёж. Не повторяйте тот же checkout до финального статуса.",
+            "description": "Провайдер ещё обрабатывает платёж. Не повторяйте ту же оплату до финального статуса.",
             "title": "Оплата обрабатывается"
           },
           "reconciliation_required": {
@@ -708,7 +708,7 @@
             "description": "Dashboard загружает сигналы VPN delivery перед показом финального состояния provisioning.",
             "title": "Проверяем provisioning"
           },
-          "eyebrow": "Подготовка",
+          "eyebrow": "Provisioning",
           "failed": {
             "description": "Выдача VPN завершилась ошибкой. Поддержка должна повторить provisioning или выполнить ручное исправление.",
             "title": "Provisioning не прошёл"
@@ -734,7 +734,7 @@
             "title": "Remnawave недоступен"
           },
           "retrying": {
-            "description": "Backend повторяет выдачу VPN. Обратитесь в поддержку, если состояние быстро не исправится.",
+            "description": "Сервер повторяет выдачу VPN. Обратитесь в поддержку, если состояние быстро не исправится.",
             "title": "Provisioning повторяется"
           }
         }
@@ -747,7 +747,7 @@
         "issues": "{count} ресурсов кабинета требуют повтора.",
         "lastSynced": "Последняя синхронизация: {value}",
         "loading": "{count} ресурсов кабинета ещё загружаются.",
-        "neverSynced": "Снимок backend ещё не загружен.",
+        "neverSynced": "Снимок сервера ещё не загружен.",
         "resources": {
           "entitlement": "Права подписки",
           "notificationCounters": "Счётчики уведомлений",
@@ -762,10 +762,10 @@
         "retryAll": "Повторить всё",
         "status": {
           "degraded": "ЧАСТИЧНЫЕ ДАННЫЕ",
-          "live": "ЖИВАЯ СИНХРОНИЗАЦИЯ",
+          "live": "LIVE SYNC",
           "loading": "СИНХРОНИЗАЦИЯ"
         },
-        "title": "Состояние синхронизации backend"
+        "title": "Состояние синхронизации с сервером"
       },
       "title": "Личный кабинет CyberVPN",
       "unavailable": "Недоступно",
@@ -800,9 +800,9 @@
       },
       "categories": {
         "account": "Аккаунт",
-        "billing": "Оплата",
+        "billing": "Billing",
         "other": "Другое",
-        "privacy": "Приватность",
+        "privacy": "Privacy",
         "setup": "Настройка",
         "status": "Статус сервиса",
         "vpn_access": "VPN-доступ"
@@ -826,7 +826,7 @@
         "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз.",
         "reply": "Не удалось отправить ответ. Попробуйте ещё раз."
       },
-      "eyebrow": "СВЯЗЬ С ПОДДЕРЖКОЙ",
+      "eyebrow": "SUPPORT LINK",
       "filters": {
         "all": "Все обращения",
         "statusLabel": "Фильтр обращений по статусу"
@@ -849,7 +849,7 @@
         "title": "Мои обращения"
       },
       "meta": {
-        "description": "Создавайте и отслеживайте обращения CyberVPN из customer cabinet.",
+        "description": "Создавайте и отслеживайте обращения CyberVPN из личного кабинета.",
         "title": "Обращения в поддержку - CyberVPN"
       },
       "reply": {
@@ -859,7 +859,7 @@
         "submitting": "Отправка..."
       },
       "sensitiveWarning": {
-        "description": "Не добавляйте пароли, 2FA codes, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files.",
+        "description": "Не добавляйте пароли, коды 2FA, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files.",
         "title": "Не отправляйте секреты"
       },
       "status": {
@@ -871,7 +871,7 @@
       },
       "surface": {
         "dashboard": "Личный кабинет",
-        "miniapp": "Мини-приложение Telegram"
+        "miniapp": "Telegram Mini App"
       },
       "title": "Обращения в поддержку"
     },
@@ -1028,69 +1028,69 @@
     "title": "ЗАЩИЩЕННЫЙ ПАКЕТ"
   },
   "Features": {
-    "description": "Public release feature set фокусируется на логине, trial или оплате, Remnawave provisioning, config delivery, support recovery и наблюдаемой эксплуатации.",
+    "description": "Набор возможностей публичного релиза фокусируется на входе, пробном доступе или оплате, выдаче доступа через Remnawave, доставке конфигурации, восстановлении через поддержку и наблюдаемой эксплуатации.",
     "features": {
       "killswitch": {
-        "description": "The product surface prioritizes recoverability: paid-but-no-access cases, provisioning failures, expired access, and support escalation have explicit handling.",
+        "description": "Пользовательская поверхность делает восстановимость явной: paid-but-no-access случаи, ошибки выдачи доступа, истёкший доступ и эскалация в поддержку имеют понятную обработку.",
         "specs": [
-          "Policy: paid orphan review within 24h",
-          "Provisioning: retry and support escalation",
-          "Admin: audited manual recovery actions"
+          "Политика: review orphan payment в течение 24 часов",
+          "Выдача доступа: повтор и эскалация в поддержку",
+          "Admin: аудируемые ручные действия восстановления"
         ],
-        "subtitle": "Payment and provisioning safeguards",
-        "title": "Support Recovery Path"
+        "subtitle": "Защита оплаты и выдачи доступа",
+        "title": "Сценарий восстановления через поддержку"
       },
       "multihop": {
-        "description": "Regions are not public promises until staging or production node evidence exists. The catalogue hides unavailable nodes.",
+        "description": "Регионы не считаются публичным обещанием, пока нет staging или production evidence по нодам. Каталог скрывает недоступные ноды.",
         "specs": [
-          "Public display: enabled nodes only",
-          "Required proof: health, profile, monitoring",
-          "Node-only policy for VPN hosts"
+          "Публичный показ: только включённые ноды",
+          "Обязательные доказательства: здоровье, профиль, мониторинг",
+          "Политика VPN-хостов: только ноды"
         ],
-        "subtitle": "Country-level public inventory",
-        "title": "Evidence-Gated Regions"
+        "subtitle": "Публичный каталог на уровне стран",
+        "title": "Регионы, включаемые по evidence"
       },
       "obfuscation": {
-        "description": "Reality-based profiles are designed for restricted networks, but public copy stays bounded: performance and access depend on the user's network and current node evidence.",
+        "description": "Профили на Reality рассчитаны на сети с ограничениями, но публичный текст остаётся ограниченным: производительность и доступ зависят от сети пользователя и текущего evidence по нодам.",
         "specs": [
-          "Profile: HTTPS-like Reality transport",
-          "Fallback: XHTTP where configured",
-          "Claim boundary: evidence required"
+          "Профиль: Reality-транспорт, похожий на HTTPS",
+          "Fallback: XHTTP там, где он настроен",
+          "Граница заявлений: требуется evidence"
         ],
-        "subtitle": "No universal unblock promise",
-        "title": "DPI-Resistant Profiles"
+        "subtitle": "Без обещания универсального обхода блокировок",
+        "title": "Профили, устойчивые к DPI"
       },
       "quantum": {
-        "description": "CyberVPN keeps the public VPN transport surface narrow: VLESS Reality RAW is the default profile and VLESS Reality XHTTP is the alternate path where configured and evidenced.",
+        "description": "CyberVPN сохраняет публичную поверхность VPN-транспортов узкой: VLESS Reality RAW — основной профиль, а VLESS Reality XHTTP — альтернативный путь там, где он настроен и подтверждён evidence.",
         "specs": [
-          "Default: VLESS Reality RAW",
-          "Alternate: VLESS Reality XHTTP",
-          "Out of public default: Helix, Verta, Beep production"
+          "Основной профиль: VLESS Reality RAW",
+          "Альтернатива: VLESS Reality XHTTP",
+          "Вне публичного default scope: Helix, Verta, Beep production"
         ],
         "subtitle": "VLESS Reality RAW + XHTTP",
-        "title": "Protocol Baseline"
+        "title": "Базовый набор протоколов"
       }
     },
     "secondary": {
       "items": [
         {
-          "desc": "CyberVPN does not make an independent audited no-logs claim. Operational metadata may exist for security, billing, support, and provisioning.",
-          "title": "Bounded Privacy Copy"
+          "desc": "CyberVPN не делает независимого аудированного no-logs заявления. Операционные метаданные могут существовать для безопасности, биллинга, поддержки и выдачи доступа.",
+          "title": "Ограниченные privacy-заявления"
         },
         {
-          "desc": "Device counts depend on the selected plan and must be enforced by the backend and support process.",
-          "title": "Plan-Based Device Limits"
+          "desc": "Количество устройств зависит от выбранного тарифа и должно контролироваться сервером и процессом поддержки.",
+          "title": "Лимиты устройств по тарифу"
         },
         {
-          "desc": "Automatic renewal appears only where the provider flow, user consent, cancel flow and evidence support it.",
-          "title": "Renewal Controls"
+          "desc": "Автоматическое продление появляется только там, где это поддерживают provider flow, согласие пользователя, сценарий отмены и evidence.",
+          "title": "Контроль продлений"
         },
         {
-          "desc": "Torrent/P2P access is not advertised as broadly available. Node policy and provider rules control what is enabled.",
-          "title": "P2P Restricted by Default"
+          "desc": "Torrent/P2P-доступ не рекламируется как широко доступный. Политика нод и правила провайдеров управляют тем, что включено.",
+          "title": "P2P ограничен по умолчанию"
         }
       ],
-      "title": "Operating Boundaries"
+      "title": "Операционные границы"
     },
     "title": "Возможности Public Release"
   },
@@ -1197,192 +1197,194 @@
     "comparison_table": {
       "headers": {
         "cybervpn": "CyberVPN (VLESS-Reality)",
-        "feature": "Feature",
+        "feature": "Критерий",
         "legacy": "Legacy VPN (WireGuard/OpenVPN)"
       },
       "rows": {
         "dpi": {
-          "cybervpn": "HTTPS-like Reality profile",
-          "feature": "DPI Detection",
-          "legacy": "Easily fingerprinted and blocked"
+          "cybervpn": "Reality-профиль, похожий на HTTPS",
+          "feature": "Распознавание DPI",
+          "legacy": "Легко отпечатывается и блокируется"
         },
         "ip_blocking": {
-          "cybervpn": "Lower when node evidence is current",
-          "feature": "IP Blocking Risk",
-          "legacy": "High (static patterns)"
+          "cybervpn": "Ниже, когда evidence по нодам актуален",
+          "feature": "Риск блокировки IP",
+          "legacy": "Высокий при статичных паттернах"
         },
         "privacy": {
-          "cybervpn": "Bounded privacy claims tied to evidence",
-          "feature": "Privacy Layer",
-          "legacy": "Standard encryption"
+          "cybervpn": "Ограниченные privacy-заявления, привязанные к evidence",
+          "feature": "Privacy-слой",
+          "legacy": "Стандартное шифрование"
         },
         "speed": {
-          "cybervpn": "Measured per enabled node",
-          "feature": "Speed under Load",
-          "legacy": "Throttled by ISP deep inspection"
+          "cybervpn": "Измеряется для каждой включённой ноды",
+          "feature": "Скорость под нагрузкой",
+          "legacy": "Может замедляться при глубокой проверке провайдера"
         }
       },
-      "title": "Legacy vs Next-Gen"
+      "title": "Legacy VPN и новый подход"
     },
     "features": {
       "backbone": {
-        "desc": "Regions are enabled only after Remnawave node evidence, monitoring, support recovery, and rollback proof are available.",
-        "title": "Backbone Performance"
+        "desc": "Регионы включаются только после evidence по нодам Remnawave, мониторингу, восстановлению через поддержку и подтверждённому rollback.",
+        "title": "Производительность магистрали"
       },
-      "badge": "FEATURE MATRIX",
+      "badge": "Матрица возможностей",
       "multiplatform": {
-        "desc": "CyberVPN supports web cabinet, Telegram Bot/Mini App, and standard third-party client import instructions for Android, iOS, Windows, macOS, and Linux.",
-        "title": "Multi-Platform Access"
+        "desc": "CyberVPN поддерживает веб-кабинет, Telegram Bot/Mini App и стандартные инструкции импорта в сторонние клиенты для Android, iOS, Windows, macOS и Linux.",
+        "title": "Доступ на разных платформах"
       },
       "protocols": {
-        "desc": "CyberVPN exposes VLESS Reality RAW as default and VLESS Reality XHTTP as the alternate path. Other transports stay out of default public scope until separately approved.",
-        "title": "Advanced Protocols"
+        "desc": "CyberVPN показывает VLESS Reality RAW как основной профиль и VLESS Reality XHTTP как альтернативный путь. Другие транспорты не входят в публичный scope по умолчанию без отдельного approval.",
+        "title": "Продвинутые протоколы"
       },
       "ram": {
-        "desc": "Public privacy wording is limited to what current evidence can support. Operational metadata may exist for security, billing, support, and provisioning.",
-        "title": "Privacy-Bounded Operations"
+        "desc": "Публичные privacy-формулировки ограничены тем, что подтверждает текущий evidence. Операционные метаданные могут использоваться для безопасности, биллинга, поддержки и выдачи доступа.",
+        "title": "Операции с ограниченными privacy-заявлениями"
       },
       "routing": {
-        "desc": "Region visibility is evidence-gated: a location is shown only when node health, profile mapping, and support handling are ready.",
-        "title": "Intelligent Routing"
+        "desc": "Видимость регионов управляется evidence: локация показывается только когда готовы здоровье ноды, привязка профилей и сценарий поддержки.",
+        "title": "Умная маршрутизация"
       },
-      "sectionSubtitle": "Six layers of defense engineered for the modern cyber-citizen",
-      "sectionTitle": "TECHNOLOGICAL SUPERIORITY",
+      "sectionSubtitle": "Шесть уровней защиты для современного цифрового пользователя",
+      "sectionTitle": "Технологическое преимущество",
       "stats": {
-        "bandwidth": "approved transports",
-        "locations": "enabled regions",
-        "logs": "bounded claims",
-        "uptime": "monitored status"
+        "bandwidth": "утверждённые транспорты",
+        "locations": "включённые регионы",
+        "logs": "ограниченные заявления",
+        "uptime": "наблюдаемый статус"
       },
       "stealth": {
-        "desc": "VLESS Reality is the default path for networks where standard VPN fingerprints are unreliable. Availability depends on real node evidence.",
-        "title": "Stealth Mode (Reality)"
+        "desc": "VLESS Reality — основной путь для сетей, где стандартные VPN-отпечатки ненадёжны. Доступность зависит от реального evidence по нодам.",
+        "title": "Скрытый режим Reality"
       }
     },
     "hero": {
-      "cta_app": "DOWNLOAD APP",
-      "cta_telegram": "LAUNCH IN TELEGRAM",
-      "protocol_badge": "PUBLIC RELEASE PROTOCOLS: VLESS REALITY RAW + VLESS REALITY XHTTP | CORE: XRAY-CORE",
-      "subtitle": "Публичный B2C VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
-      "title": "PUBLIC VPN ACCESS. POWERED BY VLESS REALITY",
-      "titleHighlight": "PUBLIC VPN ACCESS"
+      "cta_app": "Скачать приложение",
+      "cta_telegram": "Открыть в Telegram",
+      "protocol_badge": "ПРОТОКОЛЫ PUBLIC RELEASE: VLESS REALITY RAW + VLESS REALITY XHTTP | ЯДРО: XRAY-CORE",
+      "subtitle": "Публичный B2C VPN-доступ с регионами, включаемыми по evidence, ограниченными privacy-заявлениями и наблюдаемыми сценариями восстановления через поддержку.",
+      "title": "Публичный VPN-доступ на VLESS Reality",
+      "titleHighlight": "Публичный VPN-доступ"
     },
     "how_it_works": {
-      "badge": "ANTI-DPI ENGINE",
-      "desc": "Reality-based profiles are configured to resemble ordinary HTTPS flows while keeping rollout evidence-driven. XHTTP is treated as an alternate path, not as a universal bypass promise.",
-      "title": "How Reality Works"
+      "badge": "Anti-DPI engine",
+      "desc": "Профили на Reality настроены так, чтобы напоминать обычные HTTPS-потоки, а rollout оставался evidence-driven. XHTTP считается альтернативным путём, а не универсальным обещанием обхода блокировок.",
+      "title": "Как работает Reality"
     },
     "network_stats": {
-      "bandwidth": "Capacity shown after node evidence",
-      "coverage": "Country-level public regions",
-      "nodes": "Enabled regions only",
-      "title": "Network Infrastructure",
-      "uptime": "Monitoring and alerts active"
+      "bandwidth": "Ёмкость показывается после evidence по нодам",
+      "coverage": "Публичные регионы на уровне стран",
+      "nodes": "Только включённые регионы",
+      "title": "Сетевая инфраструктура",
+      "uptime": "Мониторинг и алерты активны"
     },
     "pricing": {
-      "basic": "Basic: Trial / Entry level",
-      "cyber": "Cyber: Premium / Full access",
-      "pro": "Pro: Most popular",
-      "ultra": "Ultra: High bandwidth"
+      "basic": "Basic: пробный или начальный уровень",
+      "cyber": "Cyber: премиум и полный доступ",
+      "pro": "Pro: самый популярный",
+      "ultra": "Ultra: высокая пропускная способность"
     },
     "quick_start": {
-      "badge": "Fast Track",
-      "step1": "Launch the Telegram bot",
-      "step2": "Activate trial or choose a plan",
-      "step3": "Import QR, subscription URL, or config into a supported client",
-      "terminalComment": "# Auto-provisioning VPN tunnel...",
-      "terminalStatus": "> VPN access ready when provisioning and support recovery pass.",
-      "terminalTitle": "Deploy Connection",
-      "title": "30-Second Path"
+      "badge": "Быстрый старт",
+      "step1": "Откройте Telegram-бот",
+      "step2": "Активируйте пробный доступ или выберите тариф",
+      "step3": "Импортируйте QR, subscription URL или конфиг в поддерживаемый клиент",
+      "terminalComment": "# Автоматическая выдача VPN-туннеля...",
+      "terminalStatus": "> VPN-доступ готов, когда выдача доступа и восстановление через поддержку проходят проверки.",
+      "terminalTitle": "Подготовка подключения",
+      "title": "Путь за 30 секунд"
     },
     "speed_tunnel": {
-      "featureNoAds": "HTTPS-like profile",
-      "featureTorrent": "P2P restricted",
-      "online": "PUBLIC SLOT",
+      "featureNoAds": "Профиль, похожий на HTTPS",
+      "featureTorrent": "P2P ограничен",
+      "online": "Публичный слот",
       "seoCopy": {
         "primary": "CyberVPN показывает только те регионы, которые прошли проверку здоровья ноды, доставки подписки, rollback, поддержки и abuse-контроля.",
-        "secondary": "Доступ VLESS Reality и XHTTP выдаётся через мониторимые ссылки подписки, а расширение beta-ёмкости идёт только после подтверждённых метрик и поддержки."
+        "secondary": "Доступ VLESS Reality и XHTTP выдаётся через наблюдаемые ссылки подписки, а расширение beta-ёмкости идёт только после подтверждённых метрик и готовности поддержки."
       },
       "servers": {
         "amsterdam": {
-          "city": "Amsterdam",
-          "country": "Netherlands"
+          "city": "Амстердам",
+          "country": "Нидерланды"
         },
         "frankfurt": {
-          "city": "Frankfurt",
-          "country": "Germany"
+          "city": "Франкфурт",
+          "country": "Германия"
         },
         "london": {
-          "city": "London",
-          "country": "United Kingdom"
+          "city": "Лондон",
+          "country": "Великобритания"
         },
         "newYork": {
-          "city": "New York",
-          "country": "USA"
+          "city": "Нью-Йорк",
+          "country": "США"
         },
         "paris": {
-          "city": "Paris",
-          "country": "France"
+          "city": "Париж",
+          "country": "Франция"
         },
         "seoul": {
-          "city": "Seoul",
-          "country": "South Korea"
+          "city": "Сеул",
+          "country": "Южная Корея"
         },
         "singapore": {
-          "city": "Singapore",
-          "country": "Singapore"
+          "city": "Сингапур",
+          "country": "Сингапур"
         },
         "sydney": {
-          "city": "Sydney",
-          "country": "Australia"
+          "city": "Сидней",
+          "country": "Австралия"
         },
         "tokyo": {
-          "city": "Tokyo",
-          "country": "Japan"
+          "city": "Токио",
+          "country": "Япония"
         },
         "toronto": {
-          "city": "Toronto",
-          "country": "Canada"
+          "city": "Торонто",
+          "country": "Канада"
         }
       },
-      "subtitle": "Evidence-gated nodes. Fair-use policy. Bounded public claims.",
-      "titleEnd": "NETWORK",
-      "titleHighlight": "MONITORED",
-      "titleStart": "GLOBAL"
+      "subtitle": "Ноды включаются по evidence. Действует fair-use policy. Публичные заявления ограничены.",
+      "titleEnd": "СЕТЬ",
+      "titleHighlight": "НАБЛЮДАЕМАЯ",
+      "titleStart": "ГЛОБАЛЬНАЯ"
     },
     "status_board": {
-      "item_online": "EVIDENCE OK",
-      "live": "READY",
+      "item_online": "Evidence в норме",
+      "live": "Готово",
       "protocols": {
         "reality": "Reality",
         "xhttp": "Reality XHTTP"
       },
-      "title": "Node Status Dashboard"
+      "title": "Статус нод"
     },
     "tech_specs": {
-      "encryption": "Encryption: profile-dependent Xray transport security",
-      "network": "Network: monitored public regions with node evidence",
-      "transport": "Transport: VLESS Reality RAW and XHTTP where configured"
+      "encryption": "Шифрование: защита транспорта Xray зависит от профиля",
+      "network": "Сеть: наблюдаемые публичные регионы с evidence по нодам",
+      "transport": "Транспорт: VLESS Reality RAW и XHTTP там, где они настроены"
     },
     "technical": {
       "labels": {
-        "encryption": "Encryption",
-        "network": "Network",
-        "transport": "Transport"
+        "encryption": "Шифрование",
+        "network": "Сеть",
+        "transport": "Транспорт"
       },
       "networkLabels": {
-        "bandwidth": "Public capacity",
-        "coverage": "Coverage",
-        "nodes": "Enabled regions",
-        "uptime": "Monitoring posture"
+        "bandwidth": "Публичная ёмкость",
+        "coverage": "Покрытие",
+        "nodes": "Включённые регионы",
+        "uptime": "Состояние мониторинга"
       },
-      "specificationsTitle": "Technical Specifications"
+      "specificationsTitle": "Технические характеристики"
     }
   },
   "LanguageSelector": {
-    "noResults": "NO_MATCHES_FOUND",
-    "searchPlaceholder": "SEARCH_LANGUAGE...",
-    "title": "SELECT_LANGUAGE"
+    "noResults": "Подходящих языков нет",
+    "searchLabel": "Поиск языков",
+    "searchPlaceholder": "Найти язык...",
+    "title": "Выбор языка",
+    "triggerLabel": "Выбрать язык: {language}"
   },
   "Messaging": {
     "actions": {
@@ -1423,6 +1425,7 @@
       "title": "Сообщения и уведомления"
     },
     "notifications": {
+      "dismissOne": "Скрыть уведомление",
       "emptyDescription": "Здесь появятся обновления аккаунта и алерты по сообщениям.",
       "emptyTitle": "Уведомлений нет",
       "error": "Не удалось загрузить уведомления.",
@@ -1537,6 +1540,7 @@
       "sessionRestoringTitle": "Восстанавливаем вход через Telegram",
       "settings": "Настройки",
       "subscriptionActive": "Подписка активна",
+      "support": "Поддержка",
       "trafficLimit": "Трафик",
       "trial": "ПРОБНЫЙ ДОСТУП",
       "trialAvailable": "Доступен бесплатный пробный период",
@@ -1590,7 +1594,7 @@
       "apply": "Применить",
       "availablePlans": "Выберите тариф",
       "billingCurrencyNotice": "Списание в {currency}",
-      "catalogHint": "Показывается только публичная линейка тарифов. Скрытые тарифы не появятся здесь, пока backend не откроет их явно.",
+      "catalogHint": "Показывается только публичная линейка тарифов. Скрытые тарифы не появятся здесь, пока сервер не откроет их явно.",
       "checkoutCodeAccepted": "Код принят: {code}",
       "checkoutCodeAcceptedReferral": "Реферальная скидка для друга принята для этой оплаты.",
       "checkoutCodeDisabled": "Коды для оплаты временно отключены.",
@@ -1607,7 +1611,7 @@
       "currentPlanNoExpiry": "Дата окончания не указана",
       "currentPlanSelected": "У вас уже активен этот тариф. Можно докупить дополнения или выбрать другой срок.",
       "currentPlanTitle": "Текущий доступ",
-      "dedicatedIpLocationHint": "Для выделенного IP требуется код локации. Держим его коротким и понятным, чтобы backend и поддержка читали его одинаково.",
+      "dedicatedIpLocationHint": "Для выделенного IP требуется код локации. Держим его коротким и понятным, чтобы сервер и поддержка читали его одинаково.",
       "dedicatedIpLocationPlaceholder": "Код локации, например us-ny",
       "dedicatedIpLocationRequired": "Добавьте код локации для выделенного IP перед расчётом.",
       "dedicatedIpPrice": "Цена: {price}",
@@ -1824,7 +1828,7 @@
     "referral": {
       "activityBase": "На основе {amount} при ставке {rate}%",
       "activityReward": "Начисление {amount}",
-      "activitySubtitle": "Текущий backend-контракт пока возвращает реферальную активность как записи наград, привязанные к аккаунту.",
+      "activitySubtitle": "Текущий серверный контракт пока возвращает реферальную активность как записи наград, привязанные к аккаунту.",
       "activityTitle": "Последняя реферальная активность",
       "copied": "Скопировано",
       "copyCode": "Скопировать код",
@@ -1931,7 +1935,7 @@
         "totalReferrals": "Всего рефералов",
         "totalReferralsHint": "Аккаунты, привязанные к текущей реферальной программе.",
         "totalRewards": "Получено наград",
-        "totalRewardsHint": "Текущая сумма наград по backend-контракту."
+        "totalRewardsHint": "Текущая сумма наград по серверному контракту."
       },
       "paused": {
         "description": "Экраны рефералов, подарков и промокодов недоступны во время controlled beta.",
@@ -1992,10 +1996,87 @@
       "yourCode": "Ваш реферальный код"
     },
     "support": {
+      "actions": {
+        "close": "Закрыть обращение",
+        "refreshList": "Обновить список обращений",
+        "reopen": "Переоткрыть обращение"
+      },
+      "categories": {
+        "account": "Аккаунт",
+        "billing": "Billing",
+        "other": "Другое",
+        "privacy": "Privacy",
+        "setup": "Настройка",
+        "status": "Статус сервиса",
+        "vpn_access": "VPN-доступ"
+      },
+      "description": "Создайте обращение, следите за ответами, закрывайте и переоткрывайте свои обращения из Telegram.",
+      "detail": {
+        "closedDescription": "Переоткройте обращение, если проблема вернулась или нужно добавить информацию.",
+        "closedTitle": "Обращение закрыто",
+        "conversationTitle": "Переписка",
+        "customerAuthor": "Вы",
+        "emptyDescription": "Здесь появятся детали обращения и ответы.",
+        "emptyTitle": "Выберите обращение",
+        "noMessages": "К этому обращению пока не прикреплены публичные сообщения.",
+        "supportAuthor": "Поддержка"
+      },
+      "errors": {
+        "close": "Не удалось закрыть обращение. Попробуйте ещё раз.",
+        "create": "Не удалось создать обращение. Попробуйте ещё раз.",
+        "detail": "Не удалось загрузить это обращение.",
+        "list": "Обращения временно недоступны.",
+        "reopen": "Не удалось переоткрыть обращение. Попробуйте ещё раз.",
+        "reply": "Не удалось отправить ответ. Попробуйте ещё раз."
+      },
+      "eyebrow": "SUPPORT LINK",
+      "filters": {
+        "all": "Все обращения",
+        "statusLabel": "Фильтр обращений по статусу"
+      },
+      "form": {
+        "categoryLabel": "Категория",
+        "messageHelp": "{count}/4000 символов. Редактируйте приватные значения перед отправкой.",
+        "messageLabel": "Сообщение",
+        "messagePlaceholder": "Опишите, что произошло, и добавьте только безопасный текст ошибки.",
+        "subjectLabel": "Тема",
+        "subjectPlaceholder": "Коротко опишите проблему",
+        "submit": "Создать обращение",
+        "submitting": "Создание...",
+        "title": "Создать обращение"
+      },
+      "list": {
+        "emptyDescription": "Создайте обращение, если нужна помощь с оплатой, доступом, настройкой или восстановлением аккаунта.",
+        "emptyTitle": "Обращений пока нет",
+        "openTicket": "Открыть обращение {id}",
+        "title": "Мои обращения"
+      },
       "meta": {
-        "description": "Управляйте обращениями в поддержку CyberVPN внутри Telegram.",
-        "title": "Поддержка CyberVPN Mini App"
-      }
+        "description": "Создавайте и отслеживайте обращения CyberVPN в Telegram.",
+        "title": "Обращения в поддержку - CyberVPN Mini App"
+      },
+      "reply": {
+        "label": "Ответ",
+        "placeholder": "Добавьте безопасное обновление для поддержки.",
+        "submit": "Отправить ответ",
+        "submitting": "Отправка..."
+      },
+      "sensitiveWarning": {
+        "description": "Не добавляйте пароли, 2FA codes, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN config files.",
+        "title": "Не отправляйте секреты"
+      },
+      "status": {
+        "closed": "Закрыто",
+        "open": "Открыто",
+        "pending_customer": "Ожидает клиента",
+        "pending_support": "Ожидает поддержку",
+        "resolved": "Решено"
+      },
+      "surface": {
+        "dashboard": "Личный кабинет",
+        "miniapp": "Telegram Mini App"
+      },
+      "title": "Обращения в поддержку"
     },
     "vpn": {
       "description": "Скопируйте ссылку подписки, откройте её в совместимом клиенте или отсканируйте QR-код на отдельном экране Mini App.",
@@ -2037,32 +2118,32 @@
   },
   "Monitoring": {},
   "Navigation": {
-    "analytics": "СЕТЬ",
-    "billing": "ПОДПИСКА",
+    "analytics": "Сетевая аналитика",
+    "billing": "Подписка",
     "closeMenu": "Закрыть меню",
-    "dashboard": "КАБИНЕТ",
+    "dashboard": "Личный кабинет",
     "items": {
       "codes": "КОДЫ",
       "gifts": "ПОДАРКИ",
       "invites": "ИНВАЙТЫ",
       "messages": "СООБЩЕНИЯ",
-      "overview": "КАБИНЕТ",
+      "overview": "Обзор",
       "paymentHistory": "ПЛАТЕЖИ",
-      "profileSecurity": "НАСТРОЙКИ",
+      "profileSecurity": "Настройки профиля",
       "referral": "РЕФЕРАЛЫ",
-      "rewardNotifications": "АЛЕРТЫ",
+      "rewardNotifications": "Оповещения",
       "rewards": "ЦЕНТР НАГРАД",
       "subscription": "ПОДПИСКА",
       "support": "ПОДДЕРЖКА",
-      "vpnAccess": "СЕТЬ",
+      "vpnAccess": "VPN-доступ",
       "wallet": "КОШЕЛЁК"
     },
     "mainNavigation": "Главная навигация",
     "messages": "СООБЩЕНИЯ",
     "openMenu": "Открыть меню",
-    "partner": "ПАРТНЁР",
-    "paymentHistory": "ПЛАТЕЖИ",
-    "referral": "НАГРАДЫ",
+    "partner": "Партнёрская программа",
+    "paymentHistory": "История платежей",
+    "referral": "Реферальные награды",
     "sections": {
       "account": "АККАУНТ",
       "billing": "БИЛЛИНГ",
@@ -2071,17 +2152,17 @@
       "main": "ОСНОВНОЕ",
       "vpn": "VPN"
     },
-    "security": "БЕЗОПАСНОСТЬ",
-    "servers": "СЕТЬ",
-    "settings": "НАСТРОЙКИ",
+    "security": "Безопасность",
+    "servers": "VPN-серверы",
+    "settings": "Настройки",
     "sidebar": "Боковая панель",
-    "support": "ПОДДЕРЖКА",
-    "users": "КЛИЕНТЫ",
-    "wallet": "КОШЕЛЁК"
+    "support": "Поддержка",
+    "users": "Клиенты",
+    "wallet": "Кошелёк"
   },
   "Network": {
     "actions": {
-      "dpiResistance": "Сводка по DPI resistance"
+      "dpiResistance": "Сводка по устойчивости к DPI"
     },
     "description": "Публичный обзор сети с текущим охватом, утилизацией и состоянием сервиса на основе санитизированной телеметрии.",
     "dpi": {
@@ -2092,71 +2173,71 @@
         "methodology": "Методология"
       },
       "confidenceValues": {
-        "high": "ВЫСОКАЯ",
-        "low": "НИЗКАЯ",
-        "medium": "СРЕДНЯЯ"
+        "high": "Высокая",
+        "low": "Низкая",
+        "medium": "Средняя"
       },
-      "description": "Осторожная публичная поверхность для устойчивости в restrictive networks. Эта страница публикует score только тогда, когда есть достаточно свежего probe signal.",
-      "disabledState": "Публичный DPI score остаётся gated, пока не накопится достаточно реального probe signal по свежим measurement windows.",
-      "enabledState": "Свежего probe coverage достаточно, поэтому можно публиковать country-level DPI score.",
+      "description": "Осторожная публичная поверхность для устойчивости в сетях с ограничениями. Эта страница публикует оценку только тогда, когда есть достаточно свежих сигналов проверок.",
+      "disabledState": "Публичная DPI-оценка остаётся закрытой, пока не накопится достаточно реального сигнала проверок по свежим окнам измерений.",
+      "enabledState": "Свежего покрытия проверок достаточно, поэтому можно публиковать country-level оценку DPI.",
       "error": "Контракт DPI resistance сейчас недоступен.",
-      "eyebrow": "CYBERVPN DPI RESISTANCE",
+      "eyebrow": "Устойчивость CyberVPN к DPI",
       "gating": {
-        "eyebrow": "PUBLIC RELEASE GATE"
+        "eyebrow": "Гейт Public Release"
       },
       "guardrails": {
-        "eyebrow": "TRUTHFULNESS POLICY",
+        "eyebrow": "Политика честности",
         "items": {
-          "conditionsChange": "Условия в restrictive countries могут быстро меняться, и confidence обязан это отражать.",
-          "directional": "Любой опубликованный score является directional evidence, а не гарантией.",
-          "noInternals": "Никаких anti-blocking internals, identities probe sources или чувствительной topology.",
-          "noMagic": "Никакого декоративного public score без достаточного числа реальных probes."
+          "conditionsChange": "Условия в странах с ограничениями могут быстро меняться, и confidence обязан это отражать.",
+          "directional": "Любая опубликованная оценка является directional evidence, а не гарантией.",
+          "noInternals": "Никаких внутренних anti-blocking деталей, идентификаторов источников проверок или чувствительной топологии.",
+          "noMagic": "Никакой декоративной публичной оценки без достаточного числа реальных проверок."
         },
         "title": "Что эта страница не будет фейковать"
       },
       "lastUpdated": "Последнее обновление {value}",
       "links": {
-        "eyebrow": "NEXT SURFACES",
+        "eyebrow": "Следующие разделы",
         "guide": "Открыть гайд по обходу DPI",
         "network": "Открыть полную карту сети"
       },
-      "loading": "Загружаем readiness DPI resistance...",
+      "loading": "Загружаем готовность устойчивости к DPI...",
       "methodology": {
-        "eyebrow": "SIGNAL MODEL",
+        "eyebrow": "Модель сигналов",
         "items": {
           "baseline": "HTTPS/SNI application baseline там, где доступны TLS-capable surfaces.",
-          "connection": "Успешность подключения в restrictive conditions.",
+          "connection": "Успешность подключения в условиях ограничений.",
           "freshness": "Свежесть, объём выборки и directional confidence перед публикацией.",
           "handshake": "Медианная latency рукопожатия для поддерживаемых протоколов.",
           "survival": "Устойчивость сессии и reconnect после установления соединения."
         },
-        "title": "Что в будущем должен отражать публичный score"
+        "title": "Что в будущем должна отражать публичная оценка"
       },
       "publishedCountries": {
-        "baseline": "Baseline",
+        "baseline": "Базовый уровень",
         "handshake": "Handshake",
-        "score": "Connect",
-        "title": "Опубликованные country scores",
+        "score": "Подключение",
+        "title": "Опубликованные оценки по странам",
         "updated": "Обновлено {value}"
       },
       "reasonCodes": {
-        "public_dpi_not_enabled": "Ожидаем достаточный свежий probe signal",
-        "public_dpi_probe_dimensions_insufficient": "Реальные probes уже идут, но измерений пока недостаточно для честного публичного score.",
-        "public_dpi_probe_pipeline_not_enabled": "Публичный DPI pipeline уже собран, но публикация probe snapshots ещё не активна.",
-        "public_dpi_probe_source_unavailable": "Сбор probes временно degraded, поэтому публичный DPI surface остаётся gated.",
-        "public_dpi_probe_targets_unavailable": "Сейчас недоступны probe targets для надёжного country-level snapshot.",
-        "public_network_regions_unavailable": "Региональные network data для DPI surface временно недоступны."
+        "public_dpi_not_enabled": "Ожидаем достаточный свежий сигнал проверок",
+        "public_dpi_probe_dimensions_insufficient": "Реальные проверки уже идут, но измерений пока недостаточно для честной публичной оценки.",
+        "public_dpi_probe_pipeline_not_enabled": "Публичный DPI pipeline уже собран, но публикация снимков проверок ещё не активна.",
+        "public_dpi_probe_source_unavailable": "Сбор проверок временно деградировал, поэтому публичная DPI-поверхность остаётся закрытой.",
+        "public_dpi_probe_targets_unavailable": "Сейчас недоступны цели проверок для надёжного country-level снимка.",
+        "public_network_regions_unavailable": "Региональные сетевые данные для DPI-поверхности временно недоступны."
       },
-      "title": "DPI Resistance Score",
+      "title": "Оценка устойчивости к DPI",
       "windowValue": "Окно {hours}ч"
     },
     "labels": {
-      "activeNodes": "Серверы Онлайн",
+      "activeNodes": "Серверы онлайн",
       "encryption": "AES-256-GCM",
-      "latency": "СР. ПИНГ: 12мс",
-      "status": "СТАТУС: ОНЛАЙН",
-      "threatsIntercepted": "Пользователи Онлайн",
-      "totalBandwidth": "Трафик За Месяц"
+      "latency": "Средний пинг: 12 мс",
+      "status": "Статус: онлайн",
+      "threatsIntercepted": "Пользователи онлайн",
+      "totalBandwidth": "Трафик за месяц"
     },
     "metrics": {
       "bandwidth": "100+ Гбит/с",
@@ -2178,19 +2259,19 @@
       "6": "Сан-Паулу, БР",
       "7": "Сидней, АВСТР"
     },
-    "title": "Глобальная Инфраструктура",
+    "title": "Глобальная инфраструктура",
     "widget": {
       "actions": {
         "fullMap": "Открыть полную карту",
         "statusPage": "Статус-страница"
       },
-      "description": "Санитизированное live-доказательство сети для partner embeds, sales pages и trust surfaces.",
-      "error": "Виджет не смог загрузить публичный network snapshot.",
-      "eyebrow": "CYBERVPN PUBLIC NETWORK PROOF",
+      "description": "Санитизированное live-доказательство сети для партнёрских встраиваний, продающих страниц и trust surfaces.",
+      "error": "Виджет не смог загрузить публичный снимок сети.",
+      "eyebrow": "Публичное подтверждение сети CyberVPN",
       "focusRegion": "Фокусный регион",
       "freshness": "Обновлено {value}",
       "incidents": "Инциденты: {value}",
-      "loading": "Загружаем публичный network widget...",
+      "loading": "Загружаем публичный сетевой виджет...",
       "metrics": {
         "availability": "Доступность",
         "liveUsers": "Пользователи онлайн",
@@ -2200,11 +2281,11 @@
       "regionServers": "Серверы онлайн: {value}",
       "regionUsers": "Пользователи онлайн: {value}",
       "statusValues": {
-        "degraded": "ДЕГРАДАЦИЯ",
-        "major_outage": "КРУПНЫЙ СБОЙ",
-        "online": "ОНЛАЙН"
+        "degraded": "Деградация",
+        "major_outage": "Крупный сбой",
+        "online": "Онлайн"
       },
-      "title": "Виджет Сети",
+      "title": "Виджет сети",
       "topRegions": "Топ регионов"
     }
   },
@@ -2581,7 +2662,7 @@
   "Referral": {
     "activityBase": "На основе {amount} при ставке {rate}%",
     "activityReward": "Начисление {amount}",
-    "activitySubtitle": "Текущий backend-контракт возвращает реферальную активность как записи наград, привязанные к аккаунту.",
+    "activitySubtitle": "Текущий серверный контракт возвращает реферальную активность как записи наград, привязанные к аккаунту.",
     "activityTitle": "Последняя реферальная активность",
     "cabinet": {
       "actions": {
@@ -2591,31 +2672,31 @@
         "commission": "Реферальная комиссия",
         "empty": "Реферальной активности пока нет.",
         "eyebrow": "Недавняя активность",
-        "holdUntil": "Hold до {date}",
+        "holdUntil": "Удержание до {date}",
         "reward": "Начисление награды",
         "title": "Хронология наград"
       },
       "caps": {
-        "description": "Soft progress bars помогают понять скорость начислений без раскрытия fraud/risk engine internals.",
+        "description": "Индикаторы прогресса помогают понять скорость начислений без раскрытия внутренней логики антифрода и риск-движка.",
         "eyebrow": "Risk и cap-сигналы",
         "lifetime": "Общее использование",
         "monthly": "Месячное использование",
         "title": "Использование лимитов"
       },
       "errors": {
-        "partialDescription": "Cockpit оставляет доступные секции видимыми, пока недоступный growth endpoint восстанавливается.",
+        "partialDescription": "Панель оставляет доступные разделы видимыми, пока недоступная служба роста восстанавливается.",
         "partialTitle": "Реферальные данные частично недоступны"
       },
       "health": {
-        "active": "Готово к шерингу",
+        "active": "Готово к отправке",
         "disabled": "Пауза",
         "earning": "Награды активны",
         "review": "Проверка удержания"
       },
       "hero": {
-        "disabledHint": "Программа приостановлена backend-политикой. Существующие награды остаются видимыми для трассируемости.",
-        "enabledHint": "Текущая ставка backend: {rate}. Eligibility и stacking наград всегда решаются на сервере.",
-        "eyebrow": "Пульт роста клиента",
+        "disabledHint": "Программа приостановлена политикой сервера. Существующие награды остаются видимыми для трассируемости.",
+        "enabledHint": "Текущая ставка сервера: {rate}. Право на награду и совместимость скидок всегда решаются на сервере.",
+        "eyebrow": "Панель клиентского роста",
         "health": "Состояние программы",
         "payments": "История платежей",
         "wallet": "Открыть кошелек"
@@ -2625,8 +2706,8 @@
       },
       "lifecycle": {
         "blocked": "{count} заблокировано",
-        "description": "Награды проходят backend-owned states. Pending rewards находятся на hold; available rewards доступны согласно account policy.",
-        "eyebrow": "Lifecycle наград",
+        "description": "Награды проходят статусы, которыми владеет сервер. Награды в ожидании удерживаются; доступные награды можно использовать согласно политике аккаунта.",
+        "eyebrow": "Жизненный цикл наград",
         "status": {
           "available": "Доступно",
           "blocked_by_risk": "Заблокировано",
@@ -2634,36 +2715,36 @@
           "pending": "Ожидает",
           "reversed": "Отменено"
         },
-        "title": "Канонические состояния наград"
+        "title": "Утверждённые статусы наград"
       },
       "notifications": {
         "actionRequired": "{count} требуют действия",
-        "description": "Реферальные награды и invite updates отображаются через durable growth notifications.",
+        "description": "Реферальные награды и обновления по инвайтам отображаются через устойчивые уведомления роста.",
         "empty": "Реферальных уведомлений сейчас нет.",
-        "eyebrow": "Статус доставки",
+        "eyebrow": "Состояние доставки",
         "read": "Прочитано",
         "required": "Действие",
-        "title": "Growth-уведомления",
+        "title": "Уведомления роста",
         "unread": "Новое"
       },
       "rules": {
-        "eyebrow": "Ограничения политики",
+        "eyebrow": "Правила политики",
         "items": {
           "backendTruth": {
-            "description": "UI показывает решения из backend contracts и не рассчитывает eligibility или stacking наград локально.",
-            "title": "Backend — источник истины"
+            "description": "Интерфейс показывает решения из серверных контрактов и не рассчитывает право на награду или совместимость скидок локально.",
+            "title": "Сервер — источник истины"
           },
           "holdWindow": {
-            "description": "Backend сообщает текущее окно удержания наград: {days} дней. Pending rewards все еще могут быть отменены политикой.",
-            "title": "Hold window явный"
+            "description": "Сервер сообщает текущее окно удержания наград: {days} дней. Награды в ожидании всё ещё могут быть отменены политикой.",
+            "title": "Окно удержания явно указано"
           },
           "nonWithdrawable": {
-            "description": "Реферальные награды показываются как customer growth rewards, а не partner payouts или withdrawable earnings.",
-            "title": "Реферальные награды — growth credits"
+            "description": "Реферальные награды показываются как клиентские бонусы роста, а не партнёрские выплаты или средства для вывода.",
+            "title": "Реферальные награды — бонусы роста"
           },
           "partnerHidden": {
-            "description": "Partner commissions, reseller tools, payout statements и traffic controls намеренно не раскрываются здесь.",
-            "title": "Partner-механики скрыты"
+            "description": "Партнёрские комиссии, инструменты реселлеров, отчёты о выплатах и управление трафиком намеренно не раскрываются здесь.",
+            "title": "Партнёрские механики скрыты"
           }
         },
         "title": "Что эта страница не угадывает"
@@ -2675,13 +2756,13 @@
         "copyCode": "Копировать код",
         "copyLink": "Копировать ссылку",
         "copyShareText": "Копировать текст",
-        "description": "Делитесь ссылкой или кодом с друзьями. Frontend не решает discount eligibility: checkout и redeem flows запрашивают backend.",
+        "description": "Делитесь ссылкой или кодом с друзьями. Интерфейс не решает право на скидку: оформление оплаты и активация кода запрашивают сервер.",
         "eyebrow": "Ссылка для приглашения",
         "message": "Подключайся к CyberVPN с моим реферальным кодом {code}: {link}",
         "paused": "Пауза",
         "title": "Ваш реферальный код"
       },
-      "subtitle": "Делитесь кодом, отслеживайте canonical lifecycle наград и отделяйте customer growth от partner-механик.",
+      "subtitle": "Делитесь кодом, отслеживайте утверждённый жизненный цикл наград и отделяйте клиентские награды роста от партнёрских механик.",
       "summary": {
         "ariaLabel": "Сводка реферальных наград",
         "available": "Доступные награды",
@@ -2725,7 +2806,7 @@
       "revoked": "Отозван"
     },
     "giftsTitle": "Мои подарки",
-    "hubEyebrow": "ПОДЕЛИТЬСЯ И ОТСЛЕЖИВАТЬ",
+    "hubEyebrow": "Поделиться и отследить",
     "inviteCreated": "Выдан {date}",
     "inviteDays": "{days} бесплатных дней",
     "inviteExpires": "Истекает {date}",
@@ -2786,9 +2867,9 @@
       "totalReferrals": "Всего рефералов",
       "totalReferralsHint": "Аккаунты, привязанные к текущей реферальной программе.",
       "totalRewards": "Получено наград",
-      "totalRewardsHint": "Текущая сумма наград по backend-контракту."
+      "totalRewardsHint": "Текущая сумма наград по серверному контракту."
     },
-    "pageEyebrow": "РОСТ КЛИЕНТОВ",
+    "pageEyebrow": "Клиентский рост",
     "preferences": {
       "categories": {
         "adminUpdates": "Админские обновления",
@@ -2824,34 +2905,34 @@
     "shareDescription": "Реферальные ссылки, инвайты, подарочные коды и отслеживание выданных кодов собраны в одном месте. Промоскидки остаются в оформлении оплаты.",
     "shareMessage": "Подключайся к CyberVPN с моим реферальным кодом: {code}",
     "shareTitle": "Поделитесь реферальным кодом",
-    "subtitle": "Управляйте инвайтами, подарочными кодами, реферальным шарингом и активностью наград в одном месте.",
+    "subtitle": "Управляйте инвайт-кодами, подарочными кодами, реферальным распространением и активностью наград в одном месте.",
     "title": "ЦЕНТР НАГРАД",
     "yourCode": "Ваш код"
   },
   "RefundPolicy": {
-    "intro": "Эта Refund Policy объясняет, как обрабатываются refund requests для CyberVPN accounts, trial-to-paid flows, Telegram Bot, Telegram Mini App, web checkout и VPN access, выданного через CyberVPN.",
+    "intro": "Эта политика объясняет, как обрабатываются запросы на возврат для аккаунтов CyberVPN, переходов от пробного доступа к оплате, Telegram Bot, Telegram Mini App, web checkout и VPN-доступа, выданного через CyberVPN.",
     "lastUpdated": "Обновлено 23 мая 2026",
     "meta": {
-      "description": "Refund Policy для CyberVPN Public Release 1.0.",
-      "title": "Refund Policy"
+      "description": "Политика возвратов для CyberVPN Public Release 1.0.",
+      "title": "Политика возвратов"
     },
     "sections": {
       "access": {
         "items": {
-          "fullRefund": "A full refund normally cancels or disables the paid subscription period associated with that payment.",
-          "partialRefund": "A partial refund may reduce subscription time, quota, wallet balance or other paid entitlement, depending on the approved correction.",
-          "pending": "A pending refund request does not automatically pause, extend or disable VPN access unless support/ops applies a separate correction.",
-          "trial": "Trial access remains governed by the trial policy and does not create a cash refund entitlement."
+          "fullRefund": "Полный возврат обычно отменяет или отключает оплаченный период подписки, связанный с этим платежом.",
+          "partialRefund": "Частичный возврат может уменьшить срок подписки, квоту, баланс кошелька или другое оплаченное право доступа в зависимости от утверждённого исправления.",
+          "pending": "Ожидающий запрос на возврат не приостанавливает, не продлевает и не отключает VPN-доступ автоматически, если support/ops не применяет отдельное исправление.",
+          "trial": "Пробный доступ остаётся под управлением trial policy и не создаёт права на денежный возврат."
         },
-        "title": "5. Effect on VPN Access"
+        "title": "5. Влияние на VPN-доступ"
       },
       "changes": {
-        "content": "CyberVPN может обновлять эту policy при изменении provider rules, product flows, payment methods, support processes или legal requirements. Изменения должны быть согласованы с Terms of Service, Privacy Policy, Acceptable Use Policy и Cookie Policy.",
+        "content": "CyberVPN может обновлять эту политику при изменении provider rules, product flows, payment methods, support processes или legal requirements. Изменения должны быть согласованы с Terms of Service, Privacy Policy, Acceptable Use Policy и Cookie Policy.",
         "title": "8. Изменения"
       },
       "evidence": {
         "content": "CyberVPN may keep payment, refund, support, audit and provider evidence needed to review the request, prevent fraud, reconcile provider records, respond to disputes and satisfy legal or tax obligations. This must align with the Privacy Policy and data-retention controls.",
-        "title": "7. Evidence and Records"
+        "title": "7. Evidence и записи"
       },
       "providerRules": {
         "items": {
@@ -2862,34 +2943,34 @@
           "telegramStars": "Telegram Stars: refund handling is available only for Telegram Bot/Mini App paid flow after CyberVPN stores the Telegram payment charge ID and proves the refundStarPayment path. The bot must support /paysupport for payment issues.",
           "yookassa": "YooKassa: refunds can be created for successful payments where the payment method supports it. Full or partial refund handling must use provider evidence, idempotency controls, receipt/fiscalization rules where required and finance approval."
         },
-        "title": "4. Provider-Specific Rules"
+        "title": "4. Правила отдельных провайдеров"
       },
       "request": {
-        "content": "Send refund requests to refund@cyber-vpn.net or through the approved Telegram/support flow. Include your CyberVPN account email or Telegram ID, payment ID or provider invoice ID, payment date, payment method/provider and a short reason for the request. Do not send passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs or raw VPN configuration files.",
-        "title": "2. How to Request a Refund"
+        "content": "Отправляйте запросы на возврат на refund@cyber-vpn.net или через утверждённый сценарий Telegram/поддержки. Укажите email аккаунта CyberVPN или Telegram ID, payment ID или provider invoice ID, дату оплаты, способ/провайдера оплаты и короткую причину запроса. Не отправляйте пароли, коды 2FA, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN configuration files.",
+        "title": "2. Как запросить возврат"
       },
       "review": {
         "items": {
           "abuse": "Fraud, chargeback abuse, policy violations, account resale, credential sharing, malware/spam abuse or other Acceptable Use Policy violations may reduce or remove refund eligibility where allowed by applicable law.",
           "duplicate": "Duplicate charges, confirmed overpayments, wrong amount or provider-confirmed processing errors are reviewable cases.",
           "fees": "Blockchain network fees, provider fees, conversion spread, exchange fees, bank fees, fiscal/receipt obligations and third-party fees may be non-refundable unless a provider or applicable law requires otherwise.",
-          "manualReview": "Refunds are handled through finance/support review unless a provider-specific automated path is enabled and evidenced.",
-          "noGuarantee": "Submitting a request does not guarantee a refund. CyberVPN must verify the payment status, provider rules, provisioning status and support evidence before a refund is approved or denied.",
-          "paidNoAccess": "Paid-but-no-access or orphan payment cases must be escalated for manual review. No unresolved paid-but-no-access/orphan payment may be older than 24 hours without owner/support escalation.",
-          "serviceFault": "If CyberVPN cannot provision or restore paid VPN access after reasonable support and retry steps, CyberVPN may provide a refund, service extension or another correction approved by finance/ops."
+          "manualReview": "Возвраты проходят проверку finance/support, если не включён и не подтверждён evidence автоматический путь конкретного провайдера.",
+          "noGuarantee": "Подача запроса не гарантирует возврат. CyberVPN должен проверить статус оплаты, правила провайдера, статус provisioning и evidence поддержки до одобрения или отказа.",
+          "paidNoAccess": "Случаи paid-but-no-access или orphan payment должны эскалироваться на ручную проверку. Неразрешённый paid-but-no-access/orphan payment не должен быть старше 24 часов без владельца или эскалации в поддержку.",
+          "serviceFault": "Если CyberVPN не может выдать или восстановить оплаченный VPN-доступ после разумных шагов поддержки и повторов, CyberVPN может предоставить возврат, продление сервиса или другое исправление, утверждённое finance/ops."
         },
-        "title": "3. Review Rules"
+        "title": "3. Правила рассмотрения"
       },
       "scope": {
-        "content": "Политика применяется к public B2C purchases и payment attempts через PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller и YooKassa, если эти провайдеры включены. Возвраты рассматриваются с учётом payment provider status, CyberVPN subscription state, provisioning state, support evidence, abuse checks и applicable legal requirements.",
-        "title": "1. Scope"
+        "content": "Политика применяется к публичным B2C-покупкам и попыткам оплаты через PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller и YooKassa, если эти провайдеры включены. Возвраты рассматриваются с учётом статуса платёжного провайдера, состояния подписки CyberVPN, состояния provisioning, evidence поддержки, abuse checks и применимых правовых требований.",
+        "title": "1. Область действия"
       },
       "timing": {
         "content": "CyberVPN aims to acknowledge refund/payment support requests within the published support targets. Actual refund timing depends on manual review, provider status, blockchain or bank settlement, provider validation and any additional information required from the user.",
-        "title": "6. Timing"
+        "title": "6. Сроки"
       }
     },
-    "title": "Refund Policy"
+    "title": "Политика возвратов"
   },
   "Security": {
     "classified": {
@@ -3157,7 +3238,7 @@
         "copied": "Скопировано",
         "copyId": "Копировать ID",
         "manage": "Управлять",
-        "privacy": "Сценарий приватности",
+        "privacy": "Privacy flow",
         "refresh": "Обновить",
         "revoking": "Отзываю...",
         "saveProfile": "Сохранить профиль",
@@ -3167,7 +3248,7 @@
       "devices": {
         "activeCount": "Активно",
         "current": "Текущая",
-        "currentHint": "Эта сессия защищена от remote revoke controls.",
+        "currentHint": "Эта сессия защищена от удалённого отзыва.",
         "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
         "empty": "Активные устройства не найдены.",
         "eyebrow": "Периметр сессий",
@@ -3214,13 +3295,13 @@
         "telegramLinkFailed": "Не удалось начать привязку Telegram. Попробуйте ещё раз из этой browser session."
       },
       "hero": {
-        "eyebrow": "Личность / Безопасность / Уведомления",
+        "eyebrow": "Идентификация / безопасность / уведомления",
         "securityPosture": "Уровень защиты",
         "securityScore": "{score}% уровень защиты аккаунта"
       },
       "identity": {
-        "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
-        "eyebrow": "Связанная идентичность",
+        "description": "Telegram остаётся основной support и commerce identity там, где доступен.",
+        "eyebrow": "Связанная идентификация",
         "telegramLinked": "Telegram привязан: {id}",
         "telegramMissing": "Telegram не привязан к этому аккаунту.",
         "title": "Внешние аккаунты"
@@ -3237,50 +3318,50 @@
         "core": {
           "emailMarketing": {
             "description": "Опциональные продуктовые и промо сообщения.",
-            "title": "Маркетинговые email"
+            "title": "Email-маркетинг"
           },
           "emailSecurity": {
-            "description": "Login, password и account risk alerts.",
+            "description": "Алерты входа, пароля и риска аккаунта.",
             "title": "Email-алерты безопасности"
           },
           "pushConnection": {
-            "description": "Connection, disconnect и service state notices.",
-            "title": "Push о VPN-подключении"
+            "description": "Уведомления о подключении, отключении и состоянии сервиса.",
+            "title": "Push по VPN-подключению"
           },
           "pushPayment": {
-            "description": "Payment lifecycle и подтверждения invoice.",
-            "title": "Push об оплате"
+            "description": "Жизненный цикл оплаты и подтверждения invoice.",
+            "title": "Push по оплатам"
           },
           "pushSubscription": {
-            "description": "Renewal, expiry и entitlement reminders.",
-            "title": "Push о подписке"
+            "description": "Напоминания о продлении, истечении и entitlement.",
+            "title": "Push по подписке"
           },
           "title": "Основной аккаунт"
         },
-        "description": "Core account notifications и growth notifications разделены на разные backend preference sets.",
-        "eyebrow": "Матрица доставки",
+        "description": "Основные уведомления аккаунта и growth notifications разделены на разные серверные наборы предпочтений.",
+        "eyebrow": "Матрица маршрутизации",
         "growth": {
           "adminUpdates": {
             "description": "Операционные growth announcements в Telegram.",
-            "title": "Админские обновления в Telegram"
+            "title": "Операционные обновления Telegram"
           },
           "emailGifts": {
-            "description": "Gift redemption и delivery status по email.",
-            "title": "Email о подарочном коде"
+            "description": "Активация подарка и статус доставки по email.",
+            "title": "Email по подарочным кодам"
           },
           "emailRewards": {
-            "description": "Изменения lifecycle наград по email.",
-            "title": "Email о реферальной награде"
+            "description": "Изменения жизненного цикла наград по email.",
+            "title": "Email о реферальных наградах"
           },
           "inAppInvites": {
-            "description": "Invite и code events внутри кабинета.",
-            "title": "Лента invite в приложении"
+            "description": "События инвайтов и кодов внутри кабинета.",
+            "title": "Инвайты в ленте кабинета"
           },
           "telegramRewards": {
-            "description": "Изменения lifecycle наград в Telegram.",
-            "title": "Telegram о реферальной награде"
+            "description": "Изменения жизненного цикла наград в Telegram.",
+            "title": "Telegram о реферальных наградах"
           },
-          "title": "Growth-события"
+          "title": "События роста"
         },
         "title": "Настройки уведомлений"
       },
@@ -3290,22 +3371,22 @@
         "hardened": "Усилен"
       },
       "privacy": {
-        "eyebrow": "Ограничения приватности",
+        "eyebrow": "Privacy-правила",
         "items": {
           "accountDeletion": {
             "description": "Удаление аккаунта остаётся в отдельном privacy flow.",
-            "title": "Путь удаления"
+            "title": "Сценарий удаления"
           },
           "noSecretTelemetry": {
-            "description": "Метрики отмечают только действия, не пароли, TOTP codes, IP или anti-phishing values.",
+            "description": "Метрики отмечают только действия, не пароли, TOTP-коды, IP или anti-phishing values.",
             "title": "Без secret telemetry"
           },
           "serverTruth": {
             "description": "Страница отражает API state и не хранит чувствительные настройки локально.",
-            "title": "Backend как source of truth"
+            "title": "Сервер как source of truth"
           },
           "sessionRevocation": {
-            "description": "Удаление устройств вызывает authenticated backend session revoke endpoints.",
+            "description": "Удаление устройств вызывает authenticated server session revoke endpoints.",
             "title": "Отзыв сессий"
           }
         },
@@ -3313,11 +3394,11 @@
       },
       "profile": {
         "accountId": "ID аккаунта",
-        "description": "Редактируемые поля синхронизируются с backend profile record. Email и account ID здесь неизменяемые.",
+        "description": "Редактируемые поля синхронизируются с серверной записью профиля. Email и ID аккаунта здесь неизменяемые.",
         "displayName": "Отображаемое имя",
         "displayNamePlaceholder": "Имя оператора",
-        "email": "Эл. почта",
-        "eyebrow": "Ядро профиля",
+        "email": "Email",
+        "eyebrow": "Профиль аккаунта",
         "language": "Язык",
         "timezone": "Часовой пояс",
         "title": "Профиль аккаунта",
@@ -3329,7 +3410,7 @@
           "enabled": "Код подлинности email установлен: {code}",
           "title": "Антифишинговый код"
         },
-        "description": "Password, TOTP и anti-phishing flows остаются backend-owned и rate-limited.",
+        "description": "Пароль, TOTP и anti-phishing flows остаются под управлением сервера и rate-limited.",
         "eyebrow": "Чувствительные настройки",
         "password": {
           "description": "Смена пароля требует текущий пароль.",
@@ -3337,7 +3418,7 @@
         },
         "recovery": {
           "cta": "Открыть поддержку",
-          "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Support обязан проверить личность и оставить audit trail до любого сброса 2FA.",
+          "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Поддержка обязана проверить личность и оставить audit trail до любого сброса 2FA.",
           "title": "Восстановление при потере 2FA"
         },
         "title": "Консоль безопасности",
@@ -3349,11 +3430,11 @@
       },
       "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
       "summary": {
-        "antiphishing": "Антифишинг",
+        "antiphishing": "Anti-phishing",
         "ariaLabel": "Сводные метрики настроек",
         "devices": "Сессии",
         "notifications": "Каналов включено",
-        "twoFactor": "2FA-защита"
+        "twoFactor": "2FA"
       },
       "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ"
     },
@@ -3406,23 +3487,23 @@
   "Subscriptions": {
     "actions": {
       "cancel": "Отменить продление",
-      "getConfig": "Получить VPN config",
+      "getConfig": "Получить VPN-конфиг",
       "paymentHistory": "История платежей",
       "wallet": "Кошелёк"
     },
     "addons": {
-      "billingCurrencyNotice": "Web add-ons списываются в {currency}; локальная цена показана для ориентира.",
-      "description": "Add-ons сначала считаются через backend quote текущего entitlement, поэтому цена и изменения доступа остаются авторитетными.",
-      "empty": "Для текущего плана нет активных add-ons.",
-      "eyebrow": "Каталог add-ons",
+      "billingCurrencyNotice": "Веб-дополнения списываются в {currency}; локальная цена показана для ориентира.",
+      "description": "Дополнения сначала считаются через серверный quote текущего entitlement, поэтому цена и изменения доступа остаются авторитетными.",
+      "empty": "Для текущего плана нет активных дополнений.",
+      "eyebrow": "Каталог дополнений",
       "purchase": {
-        "completed": "Add-on применён к подписке.",
-        "pending": "Checkout для add-on создан. Завершите invoice для активации."
+        "completed": "Дополнение применено к подписке.",
+        "pending": "Оплата для дополнения создана. Завершите invoice для активации."
       },
       "purchaseCta": "Купить",
-      "purchaseError": "Покупка add-on не удалась. Повторите или обратитесь в поддержку.",
+      "purchaseError": "Покупка дополнения не удалась. Повторите или обратитесь в поддержку.",
       "quote": "Рассчитать",
-      "quoteError": "Не удалось рассчитать add-on. Обновите страницу и повторите.",
+      "quoteError": "Не удалось рассчитать дополнение. Обновите страницу и повторите.",
       "quoteReady": "Quote готов: {amount}",
       "title": "Дополнительная ёмкость и доступ"
     },
@@ -3431,15 +3512,15 @@
     "cancelSubscription": "Отменить подписку",
     "checkoutCodes": {
       "active": "Код {code} будет применён при следующем расчёте.",
-      "description": "Введите код один раз перед расчётом. Он будет передан в backend quote для смены тарифа или покупки add-on.",
-      "empty": "Оставьте поле пустым, если скидка или checkout code не нужны.",
+      "description": "Введите код один раз перед расчётом. Он будет передан в серверный quote для смены тарифа или покупки дополнения.",
+      "empty": "Оставьте поле пустым, если скидка или код оплаты не нужны.",
       "eyebrow": "Код для оплаты",
       "label": "Код",
       "placeholder": "PROMO2026",
-      "title": "Промо, реферальный или checkout-код"
+      "title": "Промо-, реферальный или платёжный код"
     },
-    "checkoutCodesDescription": "Promo-коды применяются в checkout. Invite redemption остаётся в центре наград, чтобы цены и доступ не расходились между поверхностями.",
-    "checkoutCodesTitle": "Checkout-коды",
+    "checkoutCodesDescription": "Промокоды применяются при оплате. Активация инвайтов остаётся в центре наград, чтобы цены и доступ не расходились между поверхностями.",
+    "checkoutCodesTitle": "Коды оплаты",
     "checkoutQuote": {
       "chargedIn": "Списание в {currency}",
       "expiredBody": "Обновите quote перед checkout, чтобы backend totals, страна и валюта были актуальны.",
@@ -3454,11 +3535,11 @@
     "codesAndRewards": "Коды и награды",
     "current": {
       "connectionModes": "Режимы подключения",
-      "description": "Это backend entitlement, который сейчас управляет VPN-доступом, лимитами устройств, traffic policy и delivery сервиса.",
+      "description": "Это серверный entitlement, который сейчас управляет VPN-доступом, лимитами устройств, traffic policy и delivery сервиса.",
       "devices": "Устройства",
       "expiresAt": "Истекает",
       "eyebrow": "Текущий entitlement",
-      "noPlanDescription": "Выберите публичный план или активируйте доступный trial, чтобы подготовить VPN-доступ.",
+      "noPlanDescription": "Выберите публичный план или активируйте доступный пробный период, чтобы подготовить VPN-доступ.",
       "noPlanTitle": "Нет активного плана",
       "subscriptionFallback": "подписка",
       "support": "Поддержка",
@@ -3476,13 +3557,13 @@
       "healthy": "В норме"
     },
     "hero": {
-      "eyebrow": "Cockpit плана и доступа",
+      "eyebrow": "Центр плана и доступа",
       "health": "Здоровье подписки",
-      "service": "Provisioning"
+      "service": "Выдача доступа"
     },
     "history": {
-      "empty": "Backend ещё не вернул историю заказов.",
-      "eyebrow": "Billing trail",
+      "empty": "Сервер ещё не вернул историю заказов.",
+      "eyebrow": "История биллинга",
       "title": "Последние заказы подписки"
     },
     "labels": {
@@ -3490,13 +3571,13 @@
       "notAvailable": "Н/Д"
     },
     "nextActions": {
-      "addonsAvailable": "Для этого плана можно рассчитать optional add-ons.",
-      "choosePlan": "Выберите план или trial, чтобы открыть VPN-доступ.",
-      "eyebrow": "Readiness checklist",
-      "finishProvisioning": "Provisioning ещё не завершён. Проверьте service access перед импортом config.",
-      "noAddons": "Для этого плана сейчас нет add-ons.",
-      "paymentSignal": "Для долгосрочного доступа должен быть хотя бы один paid order.",
-      "serviceReady": "Service access подготовлен.",
+      "addonsAvailable": "Для этого плана можно рассчитать дополнительные опции.",
+      "choosePlan": "Выберите план или пробный период, чтобы открыть VPN-доступ.",
+      "eyebrow": "Чек-лист готовности",
+      "finishProvisioning": "Выдача доступа ещё не завершена. Проверьте сервисный доступ перед импортом конфига.",
+      "noAddons": "Для этого плана сейчас нет дополнений.",
+      "paymentSignal": "Для долгосрочного доступа должен быть хотя бы один оплаченный заказ.",
+      "serviceReady": "Сервисный доступ подготовлен.",
       "subscriptionReady": "Subscription entitlement активен.",
       "title": "Следующие действия"
     },
@@ -3505,10 +3586,10 @@
     "planActions": {
       "commit": {
         "completed": "Изменение плана завершено.",
-        "pending": "Checkout изменения плана создан. Завершите invoice для активации."
+        "pending": "Оплата изменения плана создана. Завершите invoice для активации."
       },
       "commitCta": "Применить",
-      "commitError": "Не удалось изменить план. Повторите или обратитесь в checkout support.",
+      "commitError": "Не удалось изменить план. Повторите или обратитесь в поддержку оплаты.",
       "current": "Текущий",
       "downgrade": "Изменить",
       "loading": "Выполняется",
@@ -3516,10 +3597,10 @@
       "quote": "Рассчитать",
       "quoteError": "Не удалось рассчитать план. Обновите каталог и повторите.",
       "quoteReady": "Quote готов: {amount}",
-      "upgrade": "Upgrade"
+      "upgrade": "Сменить тариф"
     },
     "plans": {
-      "description": "Публичные планы загружаются из canonical web catalog. Текущий план заблокирован; остальные планы сначала проходят quote перед покупкой или upgrade.",
+      "description": "Публичные планы загружаются из canonical web catalog. Текущий план заблокирован; остальные планы сначала проходят quote перед покупкой или сменой тарифа.",
       "empty": "Сейчас нет публичных планов.",
       "eyebrow": "Каталог планов",
       "perCycle": "за {duration}",
@@ -3527,7 +3608,7 @@
       "title": "Выберите следующий уровень доступа"
     },
     "rewardsHubCta": "Открыть центр наград",
-    "rewardsHubDescription": "Управляйте invite-кодами, referral sharing и redemption в одном месте, не разделяя flow по экранам подписки.",
+    "rewardsHubDescription": "Управляйте инвайт-кодами, реферальным распространением и активацией кодов в одном месте, не разделяя сценарий по экранам подписки.",
     "rewardsHubTitle": "Центр наград",
     "service": {
       "channel": "Канал",
@@ -3539,9 +3620,9 @@
     "startedAt": "Начало",
     "status": "Статус",
     "subscriptionHistory": "История подписки",
-    "subtitle": "Управляйте VPN-доступом, trial, upgrade path, add-ons, billing-сигналами и provisioning readiness из одного пользовательского cockpit.",
+    "subtitle": "Управляйте VPN-доступом, пробным периодом, сменой тарифа, дополнениями, billing-сигналами и готовностью выдачи доступа из одного пользовательского центра.",
     "summary": {
-      "addons": "Add-ons",
+      "addons": "Дополнения",
       "ariaLabel": "Сводка подписки и доступа",
       "billing": "Цена цикла",
       "days": "{count}д",
@@ -3556,15 +3637,15 @@
     },
     "title": "УПРАВЛЕНИЕ ПОДПИСКОЙ",
     "trial": {
-      "activate": "Запустить trial",
+      "activate": "Запустить пробный период",
       "activating": "Активация",
-      "activeDescription": "Trial-доступ активен. Осталось {count} дней до необходимости платного плана.",
-      "activeTitle": "Trial активен",
-      "eligibleDescription": "Запустите trial, чтобы подготовить ограниченный VPN entitlement перед checkout.",
-      "eligibleTitle": "Trial доступен",
-      "error": "Не удалось активировать trial. Повторите или обратитесь в поддержку.",
-      "eyebrow": "Trial-доступ",
-      "success": "Trial активирован. Состояние доступа обновляется."
+      "activeDescription": "Пробный доступ активен. Осталось {count} дней до необходимости платного плана.",
+      "activeTitle": "Пробный доступ активен",
+      "eligibleDescription": "Запустите пробный период, чтобы подготовить ограниченный VPN entitlement перед оплатой.",
+      "eligibleTitle": "Пробный доступ доступен",
+      "error": "Не удалось активировать пробный период. Повторите или обратитесь в поддержку.",
+      "eyebrow": "Пробный доступ",
+      "success": "Пробный доступ активирован. Состояние доступа обновляется."
     }
   },
   "Terms": {

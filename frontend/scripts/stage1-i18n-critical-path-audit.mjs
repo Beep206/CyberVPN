@@ -44,11 +44,20 @@ const S1_CRITICAL_MESSAGE_FILES = [
   'CookiePolicy.json',
 ];
 
-const S1_DIRECT_REVIEWED_LOCALES = ['en-EN', 'ru-RU'];
+const DIRECT_REVIEWED_LOCALES = ['en-EN', 'ru-RU'];
 const MIN_DIRECT_REVIEWED_COVERAGE = 0.85;
 const S1_TOUCHED_MESSAGE_FILES = ['messaging.json', 'navigation.json'];
 const S1_REQUIRED_DIRECT_REVIEWED_KEYS_BY_FILE = new Map([
   ['navigation.json', ['messages']],
+]);
+const HUMAN_READABLE_NAVIGATION_LOCALES = new Set(DIRECT_REVIEWED_LOCALES);
+const UNCLEAR_PRIMARY_NAVIGATION_LABELS = new Set([
+  'ALERTS',
+  'CABINET',
+  'CONFIG',
+  'NETWORK',
+  'КАБИНЕТ',
+  'СЕТЬ',
 ]);
 const RU_SAME_AS_ENGLISH_EXACT_ALLOWLIST = new Set([
   'API',
@@ -198,6 +207,10 @@ function containsUnsafePlaceholder(message) {
   return unsafePlaceholderPatterns.some((pattern) => pattern.test(message));
 }
 
+function normalizeNavigationLabel(label) {
+  return label.trim().replace(/\s+/g, ' ').toLocaleUpperCase('ru-RU');
+}
+
 function formatCoverage(present, total) {
   return `${present}/${total} (${((present / total) * 100).toFixed(1)}%)`;
 }
@@ -281,7 +294,7 @@ function main() {
   const defaultLocale = parseDefaultLocale(configSource);
   assertMessagingBundleWiring(defaultLocale);
 
-  for (const locale of S1_DIRECT_REVIEWED_LOCALES) {
+  for (const locale of DIRECT_REVIEWED_LOCALES) {
     assertGeneratedNamespaceMatchesSource(locale, 'messaging.json', 'Messaging');
     assertGeneratedNamespaceMatchesSource(locale, 'navigation.json', 'Navigation');
   }
@@ -291,6 +304,9 @@ function main() {
   );
   const locales = LOCALE_GROUPS.flatMap((groupName) => localeGroups[groupName]);
   const uniqueLocales = new Set(locales);
+  const visibleFallbackLocales = locales.filter(
+    (locale) => !DIRECT_REVIEWED_LOCALES.includes(locale),
+  );
 
   assert(
     uniqueLocales.size === locales.length,
@@ -346,7 +362,7 @@ function main() {
       const missingDirectKeys = [...defaultLeafMap.keys()].filter((key) => !localeLeafMap.has(key));
 
       if (
-        S1_DIRECT_REVIEWED_LOCALES.includes(locale) &&
+        DIRECT_REVIEWED_LOCALES.includes(locale) &&
         S1_TOUCHED_MESSAGE_FILES.includes(fileName) &&
         missingDirectKeys.length > 0
       ) {
@@ -359,7 +375,7 @@ function main() {
 
       const requiredDirectReviewedKeys = S1_REQUIRED_DIRECT_REVIEWED_KEYS_BY_FILE.get(fileName) ?? [];
       for (const requiredKey of requiredDirectReviewedKeys) {
-        if (S1_DIRECT_REVIEWED_LOCALES.includes(locale) && !localeLeafMap.has(requiredKey)) {
+        if (DIRECT_REVIEWED_LOCALES.includes(locale) && !localeLeafMap.has(requiredKey)) {
           failures.push(`${locale}/${fileName}/${requiredKey}: required direct reviewed key is missing`);
         }
       }
@@ -419,7 +435,7 @@ function main() {
     fallbackRows.push({ locale, fallbackUsed });
 
     if (
-      S1_DIRECT_REVIEWED_LOCALES.includes(locale) &&
+      DIRECT_REVIEWED_LOCALES.includes(locale) &&
       (missingFiles.length > 0 || coverage < MIN_DIRECT_REVIEWED_COVERAGE)
     ) {
       directReviewedCoveragePass = false;
@@ -429,6 +445,21 @@ function main() {
           directTotal,
         )} is below ${(MIN_DIRECT_REVIEWED_COVERAGE * 100).toFixed(0)}% or has missing critical files`,
       );
+    }
+
+    if (HUMAN_READABLE_NAVIGATION_LOCALES.has(locale)) {
+      const navigationMessages = readLocaleFile(locale, 'navigation.json') ?? {};
+      const navigationLeafMap = toMessageMap(navigationMessages);
+
+      for (const [key, value] of navigationLeafMap) {
+        const normalizedValue = normalizeNavigationLabel(value);
+
+        if (UNCLEAR_PRIMARY_NAVIGATION_LABELS.has(normalizedValue)) {
+          failures.push(
+            `${locale}/navigation.json/${key}: unclear primary navigation label "${value}"`,
+          );
+        }
+      }
     }
   }
 
@@ -444,9 +475,12 @@ function main() {
   writeLine(`Touched namespace direct key parity: ${S1_TOUCHED_MESSAGE_FILES.join(', ')}`);
   writeLine('Messaging bundle wiring: dashboard client namespace + generated bundle path');
   writeLine(
-    `Direct reviewed S1 locales: ${S1_DIRECT_REVIEWED_LOCALES.join(', ')}; threshold >=${(
+    `Direct reviewed S1 locales: ${DIRECT_REVIEWED_LOCALES.join(', ')}; threshold >=${(
       MIN_DIRECT_REVIEWED_COVERAGE * 100
     ).toFixed(0)}%`,
+  );
+  writeLine(
+    `Visible fallback locales: ${visibleFallbackLocales.length}; fallback incompleteness is a non-blocking warning when the ${defaultLocale} runtime merge remains complete.`,
   );
 
   writeLine('\nDirect source coverage by locale:');
@@ -456,9 +490,11 @@ function main() {
     writeLine(`- ${row.locale}: ${formatCoverage(row.present, row.total)}${missingSummary}`);
   }
 
-  const fallbackLocales = fallbackRows.filter((row) => row.fallbackUsed > 0);
+  const fallbackLocales = fallbackRows.filter(
+    (row) => row.fallbackUsed > 0 && !DIRECT_REVIEWED_LOCALES.includes(row.locale),
+  );
   writeLine(
-    `\nFallback-supported locales with at least one default ${defaultLocale} critical key: ${fallbackLocales.length}`,
+    `\nNon-blocking fallback coverage warnings: ${fallbackLocales.length} visible locale(s) use at least one default ${defaultLocale} critical key.`,
   );
   writeLine(
     fallbackLocales

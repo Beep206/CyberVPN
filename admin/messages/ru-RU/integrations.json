@@ -6,7 +6,7 @@
     "overview": "Обзор",
     "telegram": "Telegram",
     "push": "Push",
-    "realtime": "Realtime"
+    "realtime": "Реалтайм"
   },
   "common": {
     "active": "Активно",
@@ -38,7 +38,7 @@
       "telegramHint": "Текущее состояние Telegram linkage."
     },
     "routesTitle": "Маршруты",
-    "routesDescription": "Переходите напрямую к Telegram-операциям, push-диагностике и realtime topic tooling из одного operator shell.",
+    "routesDescription": "Переходите напрямую к Telegram-операциям, push-диагностике и инструментам реалтайм-топиков из одной операторской оболочки.",
     "routes": {
       "telegram": "Разбор Telegram-linked пользователей, bootstrap bot-facing identity, просмотр config и генерация login link.",
       "push": "Просмотр текущих notification preferences оператора и проверка FCM registration flow.",
@@ -59,7 +59,7 @@
       "botSecretNote": "Bot-secret proxy не настроен или upstream bot settings сейчас недоступны."
     },
     "incidentsTitle": "Webhook Инциденты",
-    "incidentsDescription": "Последние невалидные callback-записи из governance webhook log."
+    "incidentsDescription": "Последние невалидные callback-записи из журнала вебхуков контроля."
   },
   "telegram": {
     "eyebrow": "Telegram Ops",
@@ -179,9 +179,9 @@
     "registeredSummary": "Последняя регистрация выполнена в {createdAt}."
   },
   "realtime": {
-    "eyebrow": "Realtime",
-    "metaTitle": "Realtime Ops - Ozoxy Admin",
-    "title": "Realtime Topic Console",
+    "eyebrow": "Реалтайм",
+    "metaTitle": "Реалтайм Ops - Ozoxy Admin",
+    "title": "Консоль реалтайм-топиков",
     "description": "Выпуск websocket tickets, проверка доступа к monitoring topics и просмотр live-сообщений из админки.",
     "metrics": {
       "socket": "Сокет",

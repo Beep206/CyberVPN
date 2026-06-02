@@ -490,6 +490,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 path_prefixes=(
                     "/api/v1/me/conversations/",
                     "/api/v1/me/notifications/read",
+                    "/api/v1/me/notifications/dismiss",
                     "/api/v1/admin/messaging/conversations/",
                 ),
             ),

@@ -229,7 +229,7 @@
       "serviceAccessEmpty": "Для этого клиента не вернулись канонические service-access артефакты.",
       "settlementTitle": "Settlement и payouts",
       "settlementEmpty": "Settlement-workspace оверлеи для этого клиента пока не связаны.",
-      "riskTitle": "Risk и governance",
+      "riskTitle": "Риск и контроль",
       "riskEmpty": "Для этого клиента не связаны risk subjects или reviews.",
       "financeHidden": "Finance-оверлеи скрыты для текущей роли оператора.",
       "riskHidden": "Risk-оверлеи скрыты для текущей роли оператора.",

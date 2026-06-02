@@ -103,7 +103,8 @@
       "success": "Success",
       "warning": "Warning",
       "critical": "Critical"
-    }
+    },
+    "dismissOne": "Dismiss notification"
   },
   "realtime": {
     "status": {

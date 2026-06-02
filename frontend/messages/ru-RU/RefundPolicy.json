@@ -1,63 +1,63 @@
 {
-  "meta": {
-    "title": "Refund Policy",
-    "description": "Refund Policy для CyberVPN Public Release 1.0."
-  },
-  "title": "Refund Policy",
+  "intro": "Эта политика объясняет, как обрабатываются запросы на возврат для аккаунтов CyberVPN, переходов от пробного доступа к оплате, Telegram Bot, Telegram Mini App, web checkout и VPN-доступа, выданного через CyberVPN.",
   "lastUpdated": "Обновлено 23 мая 2026",
-  "intro": "Эта Refund Policy объясняет, как обрабатываются refund requests для CyberVPN accounts, trial-to-paid flows, Telegram Bot, Telegram Mini App, web checkout и VPN access, выданного через CyberVPN.",
+  "meta": {
+    "description": "Политика возвратов для CyberVPN Public Release 1.0.",
+    "title": "Политика возвратов"
+  },
   "sections": {
-    "scope": {
-      "title": "1. Scope",
-      "content": "Политика применяется к public B2C purchases и payment attempts через PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller и YooKassa, если эти провайдеры включены. Возвраты рассматриваются с учётом payment provider status, CyberVPN subscription state, provisioning state, support evidence, abuse checks и applicable legal requirements."
-    },
-    "request": {
-      "title": "2. How to Request a Refund",
-      "content": "Send refund requests to refund@cyber-vpn.net or through the approved Telegram/support flow. Include your CyberVPN account email or Telegram ID, payment ID or provider invoice ID, payment date, payment method/provider and a short reason for the request. Do not send passwords, 2FA codes, full card numbers, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs or raw VPN configuration files."
-    },
-    "review": {
-      "title": "3. Review Rules",
-      "items": {
-        "noGuarantee": "Submitting a request does not guarantee a refund. CyberVPN must verify the payment status, provider rules, provisioning status and support evidence before a refund is approved or denied.",
-        "manualReview": "Refunds are handled through finance/support review unless a provider-specific automated path is enabled and evidenced.",
-        "paidNoAccess": "Paid-but-no-access or orphan payment cases must be escalated for manual review. No unresolved paid-but-no-access/orphan payment may be older than 24 hours without owner/support escalation.",
-        "duplicate": "Duplicate charges, confirmed overpayments, wrong amount or provider-confirmed processing errors are reviewable cases.",
-        "serviceFault": "If CyberVPN cannot provision or restore paid VPN access after reasonable support and retry steps, CyberVPN may provide a refund, service extension or another correction approved by finance/ops.",
-        "abuse": "Fraud, chargeback abuse, policy violations, account resale, credential sharing, malware/spam abuse or other Acceptable Use Policy violations may reduce or remove refund eligibility where allowed by applicable law.",
-        "fees": "Blockchain network fees, provider fees, conversion spread, exchange fees, bank fees, fiscal/receipt obligations and third-party fees may be non-refundable unless a provider or applicable law requires otherwise."
-      }
-    },
-    "providerRules": {
-      "title": "4. Provider-Specific Rules",
-      "items": {
-        "payram": "PayRam: crypto refunds are not automatic chargebacks. Refunds must be handled manually through the merchant-controlled dashboard/API or direct wallet transfer, with wallet-address validation and finance approval.",
-        "nowpayments": "NOWPayments: completed and partially paid crypto transactions generally leave provider custody; CyberVPN must review merchant-side refund responsibility, wrong-asset/wrong-network/minimum-amount exceptions and any NOWPayments validation requirements.",
-        "cryptobot": "CryptoBot/Crypto Pay: paid invoices are final provider states for access, but refunds require manual support/finance action, transfer/check evidence or another approved provider workflow. No automatic refund is promised.",
-        "telegramStars": "Telegram Stars: refund handling is available only for Telegram Bot/Mini App paid flow after CyberVPN stores the Telegram payment charge ID and proves the refundStarPayment path. The bot must support /paysupport for payment issues.",
-        "digiseller": "Digiseller: refund handling follows Digiseller purchase/dispute flow, seller balance rules and provider status evidence. Digital goods and delivered credentials require manual review before any refund decision.",
-        "yookassa": "YooKassa: refunds can be created for successful payments where the payment method supports it. Full or partial refund handling must use provider evidence, idempotency controls, receipt/fiscalization rules where required and finance approval."
-      }
-    },
     "access": {
-      "title": "5. Effect on VPN Access",
       "items": {
-        "fullRefund": "A full refund normally cancels or disables the paid subscription period associated with that payment.",
-        "partialRefund": "A partial refund may reduce subscription time, quota, wallet balance or other paid entitlement, depending on the approved correction.",
-        "trial": "Trial access remains governed by the trial policy and does not create a cash refund entitlement.",
-        "pending": "A pending refund request does not automatically pause, extend or disable VPN access unless support/ops applies a separate correction."
-      }
-    },
-    "timing": {
-      "title": "6. Timing",
-      "content": "CyberVPN aims to acknowledge refund/payment support requests within the published support targets. Actual refund timing depends on manual review, provider status, blockchain or bank settlement, provider validation and any additional information required from the user."
-    },
-    "evidence": {
-      "title": "7. Evidence and Records",
-      "content": "CyberVPN may keep payment, refund, support, audit and provider evidence needed to review the request, prevent fraud, reconcile provider records, respond to disputes and satisfy legal or tax obligations. This must align with the Privacy Policy and data-retention controls."
+        "fullRefund": "Полный возврат обычно отменяет или отключает оплаченный период подписки, связанный с этим платежом.",
+        "partialRefund": "Частичный возврат может уменьшить срок подписки, квоту, баланс кошелька или другое оплаченное право доступа в зависимости от утверждённого исправления.",
+        "pending": "Ожидающий запрос на возврат не приостанавливает, не продлевает и не отключает VPN-доступ автоматически, если support/ops не применяет отдельное исправление.",
+        "trial": "Пробный доступ остаётся под управлением trial policy и не создаёт права на денежный возврат."
+      },
+      "title": "5. Влияние на VPN-доступ"
     },
     "changes": {
-      "title": "8. Изменения",
-      "content": "CyberVPN может обновлять эту policy при изменении provider rules, product flows, payment methods, support processes или legal requirements. Изменения должны быть согласованы с Terms of Service, Privacy Policy, Acceptable Use Policy и Cookie Policy."
+      "content": "CyberVPN может обновлять эту политику при изменении provider rules, product flows, payment methods, support processes или legal requirements. Изменения должны быть согласованы с Terms of Service, Privacy Policy, Acceptable Use Policy и Cookie Policy.",
+      "title": "8. Изменения"
+    },
+    "evidence": {
+      "content": "CyberVPN may keep payment, refund, support, audit and provider evidence needed to review the request, prevent fraud, reconcile provider records, respond to disputes and satisfy legal or tax obligations. This must align with the Privacy Policy and data-retention controls.",
+      "title": "7. Evidence и записи"
+    },
+    "providerRules": {
+      "items": {
+        "cryptobot": "CryptoBot/Crypto Pay: paid invoices are final provider states for access, but refunds require manual support/finance action, transfer/check evidence or another approved provider workflow. No automatic refund is promised.",
+        "digiseller": "Digiseller: refund handling follows Digiseller purchase/dispute flow, seller balance rules and provider status evidence. Digital goods and delivered credentials require manual review before any refund decision.",
+        "nowpayments": "NOWPayments: completed and partially paid crypto transactions generally leave provider custody; CyberVPN must review merchant-side refund responsibility, wrong-asset/wrong-network/minimum-amount exceptions and any NOWPayments validation requirements.",
+        "payram": "PayRam: crypto refunds are not automatic chargebacks. Refunds must be handled manually through the merchant-controlled dashboard/API or direct wallet transfer, with wallet-address validation and finance approval.",
+        "telegramStars": "Telegram Stars: refund handling is available only for Telegram Bot/Mini App paid flow after CyberVPN stores the Telegram payment charge ID and proves the refundStarPayment path. The bot must support /paysupport for payment issues.",
+        "yookassa": "YooKassa: refunds can be created for successful payments where the payment method supports it. Full or partial refund handling must use provider evidence, idempotency controls, receipt/fiscalization rules where required and finance approval."
+      },
+      "title": "4. Правила отдельных провайдеров"
+    },
+    "request": {
+      "content": "Отправляйте запросы на возврат на refund@cyber-vpn.net или через утверждённый сценарий Telegram/поддержки. Укажите email аккаунта CyberVPN или Telegram ID, payment ID или provider invoice ID, дату оплаты, способ/провайдера оплаты и короткую причину запроса. Не отправляйте пароли, коды 2FA, полные номера карт, CVV/CVC, seed phrases, raw QR codes, raw subscription URLs или raw VPN configuration files.",
+      "title": "2. Как запросить возврат"
+    },
+    "review": {
+      "items": {
+        "abuse": "Fraud, chargeback abuse, policy violations, account resale, credential sharing, malware/spam abuse or other Acceptable Use Policy violations may reduce or remove refund eligibility where allowed by applicable law.",
+        "duplicate": "Duplicate charges, confirmed overpayments, wrong amount or provider-confirmed processing errors are reviewable cases.",
+        "fees": "Blockchain network fees, provider fees, conversion spread, exchange fees, bank fees, fiscal/receipt obligations and third-party fees may be non-refundable unless a provider or applicable law requires otherwise.",
+        "manualReview": "Возвраты проходят проверку finance/support, если не включён и не подтверждён evidence автоматический путь конкретного провайдера.",
+        "noGuarantee": "Подача запроса не гарантирует возврат. CyberVPN должен проверить статус оплаты, правила провайдера, статус provisioning и evidence поддержки до одобрения или отказа.",
+        "paidNoAccess": "Случаи paid-but-no-access или orphan payment должны эскалироваться на ручную проверку. Неразрешённый paid-but-no-access/orphan payment не должен быть старше 24 часов без владельца или эскалации в поддержку.",
+        "serviceFault": "Если CyberVPN не может выдать или восстановить оплаченный VPN-доступ после разумных шагов поддержки и повторов, CyberVPN может предоставить возврат, продление сервиса или другое исправление, утверждённое finance/ops."
+      },
+      "title": "3. Правила рассмотрения"
+    },
+    "scope": {
+      "content": "Политика применяется к публичным B2C-покупкам и попыткам оплаты через PayRam, NOWPayments, CryptoBot, Telegram Stars, Digiseller и YooKassa, если эти провайдеры включены. Возвраты рассматриваются с учётом статуса платёжного провайдера, состояния подписки CyberVPN, состояния provisioning, evidence поддержки, abuse checks и применимых правовых требований.",
+      "title": "1. Область действия"
+    },
+    "timing": {
+      "content": "CyberVPN aims to acknowledge refund/payment support requests within the published support targets. Actual refund timing depends on manual review, provider status, blockchain or bank settlement, provider validation and any additional information required from the user.",
+      "title": "6. Сроки"
     }
-  }
+  },
+  "title": "Политика возвратов"
 }

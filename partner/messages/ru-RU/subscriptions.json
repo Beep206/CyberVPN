@@ -1,0 +1,20 @@
+{
+  "title": "ПОДПИСКИ",
+  "subtitle": "Управляйте тарифами VPN-подписки",
+  "errorLoading": "Ошибка загрузки подписок",
+  "currentSubscription": "Текущая подписка",
+  "status": "Статус",
+  "expiresAt": "Истекает",
+  "startedAt": "Начало",
+  "autoRenew": "Автопродление",
+  "enabled": "Включено",
+  "disabled": "Отключено",
+  "cancelSubscription": "Отменить подписку",
+  "noActiveSubscription": "Нет активной подписки",
+  "choosePlanBelow": "Выберите тариф ниже, чтобы начать",
+  "availablePlans": "Доступные тарифы",
+  "errorLoadingPlans": "Ошибка загрузки тарифов",
+  "noPlansAvailable": "Сейчас нет доступных тарифов",
+  "codesAndRewards": "Коды и награды",
+  "subscriptionHistory": "История подписки"
+}

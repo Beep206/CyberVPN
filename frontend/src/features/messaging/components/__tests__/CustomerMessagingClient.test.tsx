@@ -5,7 +5,10 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '@/test/mocks/server';
 import { CustomerMessagingClient } from '../CustomerMessagingClient';
-import { NotificationCenterDropdown } from '../NotificationCenterDropdown';
+import {
+  NotificationCenterDropdown,
+  getSafeNotificationHref,
+} from '../NotificationCenterDropdown';
 
 const messages = vi.hoisted(() => ({
   'Messaging.actions.refreshList': 'Refresh conversations',
@@ -30,10 +33,12 @@ const messages = vi.hoisted(() => ({
   'Messaging.notifications.eyebrow': 'Signal center',
   'Messaging.notifications.markAllRead': 'Mark all notifications read',
   'Messaging.notifications.markOneRead': 'Mark notification read',
+  'Messaging.notifications.dismissOne': 'Dismiss notification',
   'Messaging.notifications.openMessages': 'Open messages',
   'Messaging.notifications.panelLabel': 'Notification center',
   'Messaging.notifications.refresh': 'Refresh notifications',
   'Messaging.notifications.severity.info': 'Info',
+  'Messaging.notifications.severity.warning': 'Warning',
   'Messaging.notifications.title': 'Notifications',
   'Messaging.notifications.triggerLabel': 'Open notification center, {count} unread updates',
   'Messaging.priority.normal': 'Normal',
@@ -105,6 +110,32 @@ function renderWithQuery(ui: React.ReactNode) {
   );
 
   return queryClient;
+}
+
+function setViewport(width: number, height: number) {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: width,
+  });
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    value: height,
+  });
+  window.dispatchEvent(new Event('resize'));
+}
+
+function expectMobileViewportAnchoredPanel(panel: HTMLElement, viewportWidth: number) {
+  const classTokens = panel.className.split(/\s+/);
+  const minimumViewportInset = 16;
+  const expectedLeftBound = minimumViewportInset;
+  const expectedRightBound = viewportWidth - minimumViewportInset;
+
+  expect(classTokens).toContain('fixed');
+  expect(classTokens).not.toContain('absolute');
+  expect(classTokens).toContain('left-[calc(var(--mobile-page-gutter)+var(--safe-area-left))]');
+  expect(classTokens).toContain('right-[calc(var(--mobile-page-gutter)+var(--safe-area-right))]');
+  expect(expectedLeftBound).toBeGreaterThanOrEqual(0);
+  expect(expectedRightBound).toBeLessThanOrEqual(viewportWidth);
 }
 
 function installMessagingHandlers({
@@ -309,6 +340,141 @@ describe('NotificationCenterDropdown', () => {
       value: MockEventSource,
     });
   });
+
+  it('sanitizes unsafe action URLs and dismisses visible notifications', async () => {
+    const unsafeNotification = {
+      id: 'notification-unsafe',
+      delivery_id: 'delivery-unsafe',
+      notification_type: 'system',
+      severity: 'warning',
+      title: 'External alert',
+      body: 'Do not follow protocol-relative URLs.',
+      action_url: '//evil.example/phish',
+      aggregate_type: 'system_notice',
+      aggregate_id: 'notice-unsafe',
+      conversation_id: null,
+      message_id: null,
+      status: 'delivered',
+      created_at: '2026-05-31T11:00:00Z',
+      updated_at: '2026-05-31T11:00:00Z',
+      read_at: null,
+    } as const;
+    let dismissedIds: string[] = [];
+
+    expect(getSafeNotificationHref(unsafeNotification)).toBeNull();
+
+    server.use(
+      http.get(`${API_BASE}/me/conversations`, () =>
+        HttpResponse.json({
+          conversations: [],
+          nextCursor: null,
+        }),
+      ),
+      http.get(`${API_BASE}/me/notifications`, () =>
+        HttpResponse.json({
+          notifications: [unsafeNotification],
+          nextCursor: null,
+        }),
+      ),
+      http.post(`${API_BASE}/me/notifications/dismiss`, async ({ request }) => {
+        const body = (await request.json()) as { notification_ids: string[] };
+        dismissedIds = body.notification_ids;
+
+        return HttpResponse.json({
+          notifications: [
+            {
+              ...unsafeNotification,
+              status: 'dismissed',
+              updated_at: '2026-05-31T11:01:00Z',
+            },
+          ],
+        });
+      }),
+    );
+
+    const user = userEvent.setup();
+    renderWithQuery(<NotificationCenterDropdown />);
+
+    await screen.findByText('1');
+    await user.click(screen.getByLabelText('Open notification center, 1 unread updates'));
+
+    expect(await screen.findByText('External alert')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /external alert/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Dismiss notification'));
+
+    await waitFor(() => expect(dismissedIds).toEqual(['notification-unsafe']));
+    await waitFor(() => expect(screen.queryByText('External alert')).not.toBeInTheDocument());
+    expect(await screen.findByText('No notifications')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['desktop', 1440, 900],
+    ['mobile', 390, 844],
+  ])(
+    'keeps notification controls reachable on %s viewport',
+    async (_viewportName, width, height) => {
+      setViewport(width, height);
+
+      server.use(
+        http.get(`${API_BASE}/me/conversations`, () =>
+          HttpResponse.json({
+            conversations: [],
+            nextCursor: null,
+          }),
+        ),
+        http.get(`${API_BASE}/me/notifications`, () =>
+          HttpResponse.json({
+            notifications: [
+              {
+                id: `notification-${width}`,
+                delivery_id: `delivery-${width}`,
+                notification_type: 'system',
+                severity: 'warning',
+                title: 'Maintenance window',
+                body: 'Planned maintenance starts soon.',
+                action_url: null,
+                aggregate_type: 'system_notice',
+                aggregate_id: `notice-${width}`,
+                conversation_id: null,
+                message_id: null,
+                status: 'delivered',
+                created_at: '2026-05-31T11:00:00Z',
+                updated_at: '2026-05-31T11:00:00Z',
+                read_at: null,
+              },
+            ],
+            nextCursor: null,
+          }),
+        ),
+      );
+
+      const user = userEvent.setup();
+      renderWithQuery(<NotificationCenterDropdown />);
+
+      await screen.findByText('1');
+      await user.click(screen.getByLabelText('Open notification center, 1 unread updates'));
+
+      const panel = await screen.findByRole('dialog', { name: 'Notification center' });
+      const scroller = panel.querySelector('.overflow-y-auto');
+      const actions = screen.getByLabelText('Dismiss notification').parentElement;
+
+      if (width < 640) {
+        expectMobileViewportAnchoredPanel(panel, width);
+      } else {
+        expect(panel).toHaveClass('sm:absolute');
+        expect(panel).toHaveClass('sm:right-0');
+        expect(panel).toHaveClass('sm:w-[min(92vw,24rem)]');
+      }
+      expect(panel).toHaveTextContent('Maintenance window');
+      expect(scroller?.className).toContain('overflow-y-auto');
+      expect(scroller?.className).toContain('min-h-0');
+      expect(scroller?.className).toContain('flex-1');
+      expect(screen.getByLabelText('Mark notification read')).toBeVisible();
+      expect(screen.getByLabelText('Dismiss notification')).toBeVisible();
+      expect(actions?.className).toContain('opacity-100');
+    },
+  );
 
   it('restores missed messages by refetching active details after custom SSE sync_required', async () => {
     let includeMissedDetailMessage = false;

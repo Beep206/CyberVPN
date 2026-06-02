@@ -193,6 +193,14 @@ class SiteNotificationReadResponse(BaseModel):
     notifications: list[SiteNotificationResponse]
 
 
+class SiteNotificationDismissRequest(SiteNotificationReadRequest):
+    pass
+
+
+class SiteNotificationDismissResponse(BaseModel):
+    notifications: list[SiteNotificationResponse]
+
+
 class MessagingUnreadCountsResponse(BaseModel):
     conversations: int
     notifications: int

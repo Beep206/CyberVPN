@@ -76,7 +76,7 @@ describe('mobile layout regression harness', () => {
     );
 
     expect(packageJson.scripts?.['test:mobile-layout']).toBe(
-      'vitest run src/__tests__/mobile-layout-regressions.test.tsx',
+      'NODE_ENV=test vitest run src/__tests__/mobile-layout-regressions.test.tsx',
     );
     expect(packageJson.scripts?.['check:mobile-performance']).toBe(
       'node scripts/mobile-performance-budget.mjs',

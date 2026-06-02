@@ -25,7 +25,7 @@
     "internalNotesHint": "заметки выбранного ticket"
   },
   "filters": {
-    "search": "Поиск support tickets",
+    "search": "Поиск тикетов поддержки",
     "searchPlaceholder": "Public id, safe account/workspace id, subject",
     "status": "Фильтр status",
     "priority": "Фильтр priority",
@@ -49,7 +49,7 @@
   "list": {
     "tableCaption": "Admin support ticket inbox",
     "mobileListLabel": "Компактный admin support ticket inbox",
-    "loadError": "Не удалось загрузить support tickets.",
+    "loadError": "Не удалось загрузить тикеты поддержки.",
     "empty": "Под текущие фильтры не подходит ни один support ticket.",
     "noPreview": "Public preview пока отсутствует.",
     "safeOwnerRef": "Safe ref #{id}",
@@ -83,7 +83,7 @@
   "actions": {
     "title": "Ticket controls",
     "description": "Обновляйте metadata и lifecycle, не затрагивая billing, VPN provisioning или entitlement state.",
-    "readOnly": "Эта роль может просматривать support tickets, но не может отвечать, писать notes, назначать или менять lifecycle state.",
+    "readOnly": "Эта роль может просматривать тикеты поддержки, но не может отвечать, писать notes, назначать или менять lifecycle state.",
     "status": "Ticket status",
     "priority": "Ticket priority",
     "category": "Ticket category",

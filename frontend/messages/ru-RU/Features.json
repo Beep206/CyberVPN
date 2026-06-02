@@ -1,66 +1,66 @@
 {
   "title": "Возможности Public Release",
-  "description": "Public release feature set фокусируется на логине, trial или оплате, Remnawave provisioning, config delivery, support recovery и наблюдаемой эксплуатации.",
+  "description": "Набор возможностей публичного релиза фокусируется на входе, пробном доступе или оплате, выдаче доступа через Remnawave, доставке конфигурации, восстановлении через поддержку и наблюдаемой эксплуатации.",
   "features": {
     "quantum": {
-      "title": "Protocol Baseline",
+      "title": "Базовый набор протоколов",
       "subtitle": "VLESS Reality RAW + XHTTP",
-      "description": "CyberVPN keeps the public VPN transport surface narrow: VLESS Reality RAW is the default profile and VLESS Reality XHTTP is the alternate path where configured and evidenced.",
+      "description": "CyberVPN сохраняет публичную поверхность VPN-транспортов узкой: VLESS Reality RAW — основной профиль, а VLESS Reality XHTTP — альтернативный путь там, где он настроен и подтверждён evidence.",
       "specs": [
-        "Default: VLESS Reality RAW",
-        "Alternate: VLESS Reality XHTTP",
-        "Out of public default: Helix, Verta, Beep production"
+        "Основной профиль: VLESS Reality RAW",
+        "Альтернатива: VLESS Reality XHTTP",
+        "Вне публичного default scope: Helix, Verta, Beep production"
       ]
     },
     "multihop": {
-      "title": "Evidence-Gated Regions",
-      "subtitle": "Country-level public inventory",
-      "description": "Regions are not public promises until staging or production node evidence exists. The catalogue hides unavailable nodes.",
+      "title": "Регионы, включаемые по evidence",
+      "subtitle": "Публичный каталог на уровне стран",
+      "description": "Регионы не считаются публичным обещанием, пока нет staging или production evidence по нодам. Каталог скрывает недоступные ноды.",
       "specs": [
-        "Public display: enabled nodes only",
-        "Required proof: health, profile, monitoring",
-        "Node-only policy for VPN hosts"
+        "Публичный показ: только включённые ноды",
+        "Обязательные доказательства: здоровье, профиль, мониторинг",
+        "Политика VPN-хостов: только ноды"
       ]
     },
     "obfuscation": {
-      "title": "DPI-Resistant Profiles",
-      "subtitle": "No universal unblock promise",
-      "description": "Reality-based profiles are designed for restricted networks, but public copy stays bounded: performance and access depend on the user's network and current node evidence.",
+      "title": "Профили, устойчивые к DPI",
+      "subtitle": "Без обещания универсального обхода блокировок",
+      "description": "Профили на Reality рассчитаны на сети с ограничениями, но публичный текст остаётся ограниченным: производительность и доступ зависят от сети пользователя и текущего evidence по нодам.",
       "specs": [
-        "Profile: HTTPS-like Reality transport",
-        "Fallback: XHTTP where configured",
-        "Claim boundary: evidence required"
+        "Профиль: Reality-транспорт, похожий на HTTPS",
+        "Fallback: XHTTP там, где он настроен",
+        "Граница заявлений: требуется evidence"
       ]
     },
     "killswitch": {
-      "title": "Support Recovery Path",
-      "subtitle": "Payment and provisioning safeguards",
-      "description": "The product surface prioritizes recoverability: paid-but-no-access cases, provisioning failures, expired access, and support escalation have explicit handling.",
+      "title": "Сценарий восстановления через поддержку",
+      "subtitle": "Защита оплаты и выдачи доступа",
+      "description": "Пользовательская поверхность делает восстановимость явной: paid-but-no-access случаи, ошибки выдачи доступа, истёкший доступ и эскалация в поддержку имеют понятную обработку.",
       "specs": [
-        "Policy: paid orphan review within 24h",
-        "Provisioning: retry and support escalation",
-        "Admin: audited manual recovery actions"
+        "Политика: review orphan payment в течение 24 часов",
+        "Выдача доступа: повтор и эскалация в поддержку",
+        "Admin: аудируемые ручные действия восстановления"
       ]
     }
   },
   "secondary": {
-    "title": "Operating Boundaries",
+    "title": "Операционные границы",
     "items": [
       {
-        "title": "Bounded Privacy Copy",
-        "desc": "CyberVPN does not make an independent audited no-logs claim. Operational metadata may exist for security, billing, support, and provisioning."
+        "title": "Ограниченные privacy-заявления",
+        "desc": "CyberVPN не делает независимого аудированного no-logs заявления. Операционные метаданные могут существовать для безопасности, биллинга, поддержки и выдачи доступа."
       },
       {
-        "title": "Plan-Based Device Limits",
-        "desc": "Device counts depend on the selected plan and must be enforced by the backend and support process."
+        "title": "Лимиты устройств по тарифу",
+        "desc": "Количество устройств зависит от выбранного тарифа и должно контролироваться сервером и процессом поддержки."
       },
       {
-        "title": "Renewal Controls",
-        "desc": "Automatic renewal appears only where the provider flow, user consent, cancel flow and evidence support it."
+        "title": "Контроль продлений",
+        "desc": "Автоматическое продление появляется только там, где это поддерживают provider flow, согласие пользователя, сценарий отмены и evidence."
       },
       {
-        "title": "P2P Restricted by Default",
-        "desc": "Torrent/P2P access is not advertised as broadly available. Node policy and provider rules control what is enabled."
+        "title": "P2P ограничен по умолчанию",
+        "desc": "Torrent/P2P-доступ не рекламируется как широко доступный. Политика нод и правила провайдеров управляют тем, что включено."
       }
     ]
   }

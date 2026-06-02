@@ -1,67 +1,67 @@
 {
-  "meta": {
-    "title": "Cookie Policy",
-    "description": "Cookie Policy для CyberVPN Public Release 1.0."
-  },
-  "title": "Cookie Policy",
+  "intro": "Эта политика объясняет cookies, local storage, session storage, telemetry и похожее browser storage, используемое или подготовленное на сайте CyberVPN, в веб-кабинете, Telegram Mini App, backend API flows и admin/support surfaces.",
   "lastUpdated": "Обновлено 23 мая 2026",
-  "intro": "Эта Cookie Policy объясняет cookies, local storage, session storage, telemetry и похожее browser storage, используемое или подготовленное в CyberVPN website, web cabinet, Telegram Mini App, backend API flows и admin/support surfaces.",
+  "meta": {
+    "description": "Политика cookies для CyberVPN Public Release 1.0.",
+    "title": "Политика cookies"
+  },
   "sections": {
-    "scope": {
-      "title": "1. Scope",
-      "content": "Политика покрывает cyber-vpn.net как основной публичный домен и admin.cyber-vpn.net как основной admin-домен. cyber-vpn.org зарезервирован для VPN-нод и subscription delivery routes там, где CyberVPN их показывает; это не general customer-site mirror. Cookies должны оставаться canonical для cyber-vpn.net/admin.cyber-vpn.net, если отдельный evidence pack не утверждает другой домен."
-    },
-    "inventory": {
-      "title": "2. Cookie and Storage Inventory",
-      "intro": "The inventory is based on current product flows and deployed evidence expectations. Browser inventory should be refreshed when login, checkout, analytics, Telegram Mini App or admin flows change.",
-      "items": {
-        "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime should match browser cookie inventory evidence.",
-        "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
-        "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP, 2FA and checkout return handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests.",
-        "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing where enabled.",
-        "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
-        "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced."
-      }
+    "changes": {
+      "content": "CyberVPN может обновлять эту политику при изменении storage mechanisms, SDKs, analytics providers, payment flows, login flows или legal requirements. Изменения должны быть согласованы с Privacy Policy, Terms of Service, Acceptable Use Policy и Refund Policy.",
+      "title": "7. Изменения"
     },
     "consent": {
-      "title": "3. Consent and Default State",
       "items": {
-        "necessary": "Strictly necessary cookies and storage may be used to provide login, security, checkout return handling, fraud prevention, language routing, support and VPN provisioning flows requested by the user.",
-        "nonEssential": "Non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default unless the project has a consent mechanism, cookie inventory, legal approval and evidence.",
+        "changes": "If CyberVPN adds a new cookie, storage mechanism, SDK or tracking provider, the owner should approve the change and attach updated cookie inventory evidence before public use.",
         "marketing": "Marketing pixels, advertising retargeting or cross-site profiling require Cookie Policy, Privacy Policy, consent UI and evidence updates before public use.",
-        "changes": "If CyberVPN adds a new cookie, storage mechanism, SDK or tracking provider, the owner should approve the change and attach updated cookie inventory evidence before public use."
-      }
-    },
-    "retention": {
-      "title": "4. Retention",
-      "items": {
-        "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
-        "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow.",
-        "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
-        "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the Privacy Policy, provider settings and observability evidence."
-      }
+        "necessary": "Strictly necessary cookies and storage may be used to provide login, security, checkout return handling, fraud prevention, language routing, support and VPN provisioning flows requested by the user.",
+        "nonEssential": "Non-essential analytics, marketing, profiling or advertising cookies must not be enabled by default unless the project has a consent mechanism, cookie inventory, legal approval and evidence."
+      },
+      "title": "3. Consent и состояние по умолчанию"
     },
     "controls": {
-      "title": "5. User Controls",
       "items": {
         "browser": "Users can control cookies, local storage and session storage in their browser or device settings. Blocking strictly necessary storage may prevent login, checkout, VPN provisioning, support/admin access or Telegram Mini App flows from working.",
         "logout": "Logging out should clear CyberVPN auth cookies. Some provider-side cookies, browser cache, locale preference or Telegram-controlled storage may need to be cleared through the browser, Telegram app or the third-party provider.",
         "support": "Cookie/privacy questions can be sent to support@cyber-vpn.net. Refund-related payment questions can be sent to refund@cyber-vpn.net."
-      }
+      },
+      "title": "5. Пользовательские настройки"
     },
     "goLiveBlockers": {
-      "title": "6. Runtime evidence",
       "items": {
         "browserInventory": "Maintain deployed browser cookie inventory for public site, web cabinet, login/register, OAuth, Telegram Mini App, checkout, logout and admin flows.",
-        "setCookie": "Maintain redacted Set-Cookie evidence proving Secure, HttpOnly where applicable, SameSite, domain, path and expiry/max-age for production HTTPS responses.",
         "consent": "If non-essential analytics or marketing storage is enabled, maintain consent banner/settings evidence proving default-off behavior and withdrawal controls.",
         "legal": "Keep this Cookie Policy aligned with Terms of Service, Privacy Policy, Acceptable Use Policy and Refund Policy.",
-        "pii": "Maintain Sentry/observability PII scrubbing evidence, analytics payload review and proof that cookies, Set-Cookie headers and secrets are filtered from logs."
-      }
+        "pii": "Maintain Sentry/observability PII scrubbing evidence, analytics payload review and proof that cookies, Set-Cookie headers and secrets are filtered from logs.",
+        "setCookie": "Maintain redacted Set-Cookie evidence proving Secure, HttpOnly where applicable, SameSite, domain, path and expiry/max-age for production HTTPS responses."
+      },
+      "title": "6. Runtime evidence"
     },
-    "changes": {
-      "title": "7. Изменения",
-      "content": "CyberVPN может обновлять эту policy при изменении storage mechanisms, SDKs, analytics providers, payment flows, login flows или legal requirements. Изменения должны быть согласованы с Privacy Policy, Terms of Service, Acceptable Use Policy и Refund Policy."
+    "inventory": {
+      "intro": "The inventory is based on current product flows and deployed evidence expectations. Browser inventory should be refreshed when login, checkout, analytics, Telegram Mini App or admin flows change.",
+      "items": {
+        "auth": "Authentication cookies: the backend uses access_token, refresh_token and realm-scoped variants such as {realm}_access_token and {realm}_refresh_token for web API sessions. Production behavior should be HttpOnly, SameSite=Lax, Secure in production, path /api, default access lifetime 15 minutes and default refresh lifetime 7 days unless production configuration changes and evidence is updated.",
+        "locale": "Language and routing state: next-intl may use a locale cookie such as NEXT_LOCALE where enabled to remember the selected language/locale. The exact production cookie name, domain, path and lifetime should match browser cookie inventory evidence.",
+        "observability": "Operational observability may include Sentry error/performance events, Web Vitals, internal traffic analytics and Telegram Mini App runtime analytics. Sentry is configured with sendDefaultPii=false, text/media replay masking and beforeSend PII scrubbing where enabled.",
+        "telegram": "Telegram Mini App flows may receive Telegram initData and Telegram WebView/runtime information. Cookies or storage controlled by Telegram itself are governed by Telegram, not by CyberVPN.",
+        "thirdParty": "Payment providers, OAuth providers, Telegram, Sentry, GA4, PostHog or other analytics/observability services may set or access their own storage on their own domains only where that provider is enabled. PostHog, GA4, marketing pixels and advertising tracking are disabled unless separately approved, consented where required and evidenced.",
+        "transaction": "Short-lived browser flow cookies may be used for OAuth, Magic link/OTP, 2FA and checkout return handling, including oauth_tx, pending_2fa and oauth_result. CSRF protection validates Origin/Referer for unsafe cookie-authenticated API requests."
+      },
+      "title": "2. Inventory cookies и storage"
+    },
+    "retention": {
+      "items": {
+        "auth": "Auth cookie retention follows token configuration: access cookies default to 15 minutes and refresh cookies default to 7 days unless production configuration changes and evidence is updated.",
+        "locale": "Locale and preference storage may remain until browser expiry, user clearing, logout or another configured lifetime confirmed by browser evidence.",
+        "telemetry": "Sentry, Web Vitals, internal analytics and provider telemetry retention must follow the Privacy Policy, provider settings and observability evidence.",
+        "transactions": "OAuth, Magic link/OTP, 2FA and checkout return cookies or browser state are intended to be short-lived and limited to completing the current login/payment flow."
+      },
+      "title": "4. Срок хранения"
+    },
+    "scope": {
+      "content": "Политика покрывает cyber-vpn.net как основной публичный домен и admin.cyber-vpn.net как основной admin-домен. cyber-vpn.org зарезервирован для VPN-нод и маршрутов доставки подписки там, где CyberVPN их показывает; это не общий mirror customer site. Cookies должны оставаться canonical для cyber-vpn.net/admin.cyber-vpn.net, если отдельный evidence pack не утверждает другой домен.",
+      "title": "1. Область действия"
     }
-  }
+  },
+  "title": "Политика cookies"
 }

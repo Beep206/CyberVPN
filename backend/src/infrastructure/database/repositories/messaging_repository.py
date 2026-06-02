@@ -519,6 +519,7 @@ class SQLAlchemyMessagingRepository(MessagingRepository):
             .where(
                 SiteNotificationDeliveryModel.recipient_type == recipient_type.value,
                 SiteNotificationDeliveryModel.recipient_id == recipient_id,
+                SiteNotificationDeliveryModel.status != SiteNotificationDeliveryStatus.DISMISSED.value,
             )
             .order_by(SiteNotificationModel.created_at.desc(), SiteNotificationDeliveryModel.id.desc())
             .offset(offset)

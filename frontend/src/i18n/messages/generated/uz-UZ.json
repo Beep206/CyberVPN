@@ -918,6 +918,7 @@
       "title": "Messages and notifications"
     },
     "notifications": {
+      "dismissOne": "Dismiss notification",
       "emptyDescription": "Account updates and message alerts will appear here.",
       "emptyTitle": "No notifications",
       "error": "Could not load notifications.",

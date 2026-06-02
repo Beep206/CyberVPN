@@ -40,6 +40,7 @@ from src.domain.events.messaging import (
     MESSAGING_MESSAGE_CREATED,
     MESSAGING_MESSAGE_READ,
     MESSAGING_OUTBOX_CONSUMERS,
+    NOTIFICATION_DISMISSED,
     NOTIFICATION_READ,
 )
 from src.domain.repositories.messaging_repository import (
@@ -200,6 +201,27 @@ class MessagingService:
         )
         for view in views:
             await self._append_notification_read_event(
+                view=view,
+                actor_context=OutboxActorContext(principal_type="customer", principal_id=str(customer_account_id)),
+            )
+        return views
+
+    async def dismiss_customer_notifications(
+        self,
+        *,
+        customer_account_id: UUID,
+        notification_ids: tuple[UUID, ...],
+        read_all_before: datetime | None,
+    ) -> tuple[SiteNotificationDeliveryView, ...]:
+        views = await self._repository.mark_site_notifications(
+            recipient_type=SiteNotificationRecipientType.CUSTOMER,
+            recipient_id=customer_account_id,
+            notification_ids=notification_ids,
+            read_all_before=read_all_before,
+            status=SiteNotificationDeliveryStatus.DISMISSED,
+        )
+        for view in views:
+            await self._append_notification_dismissed_event(
                 view=view,
                 actor_context=OutboxActorContext(principal_type="customer", principal_id=str(customer_account_id)),
             )
@@ -602,6 +624,32 @@ class MessagingService:
             actor_context=actor_context,
             event_key=f"notification.read:{view.delivery.id}:{uuid.uuid4().hex}",
             occurred_at=view.delivery.read_at or view.delivery.updated_at,
+        )
+
+    async def _append_notification_dismissed_event(
+        self,
+        *,
+        view: SiteNotificationDeliveryView,
+        actor_context: OutboxActorContext,
+    ) -> None:
+        if view.delivery.recipient_id is None:
+            return
+        await self._append_outbox_event(
+            event_name=NOTIFICATION_DISMISSED,
+            aggregate_type="site_notification",
+            aggregate_id=view.notification.id,
+            partition_key=view.delivery.recipient_id,
+            event_payload={
+                "notification_id": str(view.notification.id),
+                "delivery_id": str(view.delivery.id),
+                "recipient_type": view.delivery.recipient_type.value,
+                "recipient_id": str(view.delivery.recipient_id),
+                "status": view.delivery.status.value,
+                "recipient_refs": [{"type": view.delivery.recipient_type.value, "id": str(view.delivery.recipient_id)}],
+            },
+            actor_context=actor_context,
+            event_key=f"notification.dismissed:{view.delivery.id}:{uuid.uuid4().hex}",
+            occurred_at=view.delivery.dismissed_at or view.delivery.updated_at,
         )
 
     async def _append_broadcast_created_event(self, *, campaign: BroadcastCampaign, admin_id: UUID) -> None:

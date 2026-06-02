@@ -5,7 +5,7 @@
   },
   "eyebrow": "ОПЕРАЦИОННАЯ ПОВЕРХНОСТЬ АДМИНА",
   "title": "КОМАНДНЫЙ ЦЕНТР OZOXY",
-  "subtitle": "Операционный cockpit для инфраструктуры, коммерции, контроля и реакции на инциденты.",
+  "subtitle": "Операционный центр для инфраструктуры, коммерции, контроля и реакции на инциденты.",
   "statusLabel": "РЕЖИМ:",
   "statusValue": "LIVE",
   "connectionStatus": "ADMIN ORIGIN ПРОВЕРЕН",
@@ -40,15 +40,15 @@
   "workspaceRoleLabel": "Роль",
   "workspaceEnabledActions": "Доступные маршруты",
   "workspaceRestrictedActions": "Закрытые маршруты",
-  "workspacePermissionCount": "Permissions",
+  "workspacePermissionCount": "Права доступа",
   "workspaceAvailableNow": "Доступно сейчас",
   "workspaceReadActions": "read",
   "workspaceWriteActions": "write",
   "workspaceNoActions": "Для этой роли нет доступных dashboard-действий.",
   "workspaceRisk": {
-    "danger": "Sensitive action",
-    "read": "Read surface",
-    "write": "Operator action"
+    "danger": "Чувствительное действие",
+    "read": "Раздел чтения",
+    "write": "Действие оператора"
   },
   "openQueue": "Открыть",
   "queueUnavailableForRole": "Закрыто ролью",
@@ -68,22 +68,22 @@
     "support": {
       "title": "Support handoff",
       "description": "Tickets, которые сейчас ждут ответа со стороны support.",
-      "metric": "support tickets"
+      "metric": "тикеты поддержки"
     },
     "securityReviews": {
-      "title": "Risk reviews",
+      "title": "Проверки рисков",
       "description": "Канонические risk review записи из security queue.",
       "metric": "открытых reviews"
     },
     "growthAbuse": {
-      "title": "Growth abuse signals",
+      "title": "Сигналы злоупотребления ростом",
       "description": "Referral и reward abuse signals, видимые growth-операторам.",
       "metric": "групп сигналов"
     },
     "webhookFailures": {
       "title": "Ошибки вебхуков",
-      "description": "Невалидные webhook callbacks на последней странице governance log.",
-      "metric": "callback errors"
+      "description": "Невалидные webhook callbacks на последней странице управление log.",
+      "metric": "ошибки обратных вызовов"
     }
   },
   "cards": {
