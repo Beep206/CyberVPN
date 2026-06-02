@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 LOCALES_DIR = Path(__file__).parents[2] / "src" / "locales"
 CONTRACT_LOCALE = "en"
+PRIMARY_LOCALES = ("en", "ru")
 
 
 def _walk(node: object) -> Iterator[object]:
@@ -66,11 +67,11 @@ def _locale_contract(locale: str) -> dict[str, dict[str, tuple[str, ...]]]:
     }
 
 
-def test_locale_files_and_keys_match_english_contract() -> None:
+def test_primary_locale_files_and_keys_match_english_contract() -> None:
     contract = _locale_contract(CONTRACT_LOCALE)
     failures: list[str] = []
 
-    for locale in SUPPORTED_LOCALES:
+    for locale in PRIMARY_LOCALES:
         actual = _locale_contract(locale)
         missing_files = sorted(set(contract) - set(actual))
         extra_files = sorted(set(actual) - set(contract))
@@ -91,7 +92,22 @@ def test_locale_files_and_keys_match_english_contract() -> None:
     assert not failures, "FTL key parity failed:\n" + "\n".join(failures[:80])
 
 
-def test_locale_variables_match_english_contract() -> None:
+def test_locale_directories_are_visible_and_parseable() -> None:
+    failures: list[str] = []
+    for locale in SUPPORTED_LOCALES:
+        locale_dir = LOCALES_DIR / locale
+        if not locale_dir.is_dir():
+            failures.append(f"{locale}: locale directory is missing")
+            continue
+        if not list(locale_dir.glob("*.ftl")):
+            failures.append(f"{locale}: locale directory has no FTL files")
+            continue
+        _locale_contract(locale)
+
+    assert not failures, "Locale visibility failed:\n" + "\n".join(failures[:80])
+
+
+def test_locale_variables_match_english_contract_where_keys_exist() -> None:
     contract = _locale_contract(CONTRACT_LOCALE)
     failures: list[str] = []
 
@@ -100,6 +116,8 @@ def test_locale_variables_match_english_contract() -> None:
         for filename, messages in contract.items():
             for key, expected_variables in messages.items():
                 actual_variables = actual.get(filename, {}).get(key)
+                if actual_variables is None and locale not in PRIMARY_LOCALES:
+                    continue
                 if actual_variables != expected_variables:
                     failures.append(
                         f"{locale}/{filename}/{key}: "

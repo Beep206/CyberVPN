@@ -60,7 +60,7 @@
       "inviteCodes": "Генерация invite-кодов и видимость их погашения.",
       "partnerPromotion": "Повышение до партнёра плюс live-directory и drill-down контекст.",
       "referralSignals": "Referral overview, top referrer'ы и аналитика последних commission.",
-      "growthReporting": "Отдельная reporting-консоль для rollups, подписок, governance coverage и export artifacts.",
+      "growthReporting": "Отдельная reporting-консоль для rollups, подписок, управление coverage и export artifacts.",
       "growthNotifications": "Отдельная notification-консоль для manual notices, delivery feed и forensics.",
       "growthRiskQueue": "Отдельная risk-консоль для abuse-сигналов и blocked reward posture."
     },
@@ -99,7 +99,7 @@
     "title": "Контур Безопасности",
     "description": "Поверхность доверия для админских сессий, 2FA, anti-phishing и усиления привилегированного доступа.",
     "currentState": "Базовые security-примитивы уже есть, а сама админка теперь работает с role-check и контуром входа только через 2FA.",
-    "backendCoverage": "Сильное покрытие для первого релиза. Основа готова для мониторинга сессий и governance привилегированного доступа.",
+    "backendCoverage": "Сильное покрытие для первого релиза. Основа готова для мониторинга сессий и контроля привилегированного доступа.",
     "nextFocus": "Дальше нужно наложить anomaly detection, reason capture и device trust поверх текущего auth-фундамента.",
     "availableNow": {
       "adminSessions": "Session-aware модель доступа в админку с защищённым dashboard.",
@@ -116,16 +116,16 @@
   },
   "governance": {
     "metaTitle": "Контроль - Ozoxy Admin",
-    "title": "Governance И Аудит",
+    "title": "Контроль и аудит",
     "description": "Операционная поверхность для привилегированных действий, вебхуков, onboarding сотрудников и будущего policy control.",
-    "currentState": "Audit logs, webhook logs и admin invites уже доступны. Первый выделенный system configuration governance API уже работает для `miniapp.runtime`; основной remaining gap теперь в более широком staff directory management и покрытии остальных `system_config` семейств.",
+    "currentState": "Журналы аудита, журналы вебхуков и инвайты админов уже доступны. Первый выделенный system configuration API контроля уже работает для `miniapp.runtime`; основной remaining gap теперь в более широком staff directory management и покрытии остальных `system_config` семейств.",
     "backendCoverage": "Частичное покрытие. Видимость аудита сильная, а `miniapp.runtime` уже под операторским контролем, но более широкие system configuration семейства и богатые staff-management API пока отсутствуют.",
     "nextFocus": "Сначала выпустить workspace вокруг аудита, инвайтов и webhook-forensics, потом добавить admin directory и policy controls.",
     "availableNow": {
       "auditLog": "Трасса привилегированных действий из backend audit log.",
       "webhookLog": "Видимость обработки вебхуков и контекста ошибок.",
       "adminInvites": "Жизненный цикл инвайтов для новых admin-сотрудников.",
-      "policyVisibility": "Базовая видимость уже существующих governance-поверхностей."
+      "policyVisibility": "Базовая видимость уже существующих поверхностей контроля."
     },
     "nextModules": {
       "adminDirectory": "Каталог сотрудников с ролями, статусами и зонами ответственности.",
@@ -137,14 +137,14 @@
   "integrations": {
     "metaTitle": "Интеграции - Ozoxy Admin",
     "title": "Операции Интеграций",
-    "description": "Поверхность для Telegram, realtime-доставки, bot-linked flows и видимости callback-событий.",
+    "description": "Поверхность для Telegram, реалтайм-доставки, bot-linked flows и видимости callback-событий.",
     "currentState": "Backend уже экспонирует Telegram, bot и webhook-возможности, но операторская видимость по ним пока раскидана по нескольким зонам.",
     "backendCoverage": "Частичное покрытие. Значимые integration-примитивы уже есть, но admin UI ещё нужно собрать в единый diagnostic слой.",
-    "nextFocus": "Собрать единый integration-health surface, где будут delivery state, bot controls и realtime diagnostics.",
+    "nextFocus": "Собрать единый integration-health surface, где будут delivery state, bot controls и реалтайм-диагностика.",
     "availableNow": {
       "telegramOps": "Telegram-связанные operational и auth-примитивы.",
       "botConfigAccess": "Пути доступа к bot configuration и смежному backend coverage.",
-      "realtimeTopics": "Realtime- и websocket-driven event topics.",
+      "realtimeTopics": "Реалтайм- и websocket-driven event topics.",
       "websocketTickets": "Низкоуровневые websocket- и callback-сигналы, уже видимые в backend-доменах."
     },
     "nextModules": {

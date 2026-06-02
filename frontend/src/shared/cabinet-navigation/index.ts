@@ -467,19 +467,19 @@ const DASHBOARD_COMPATIBILITY_ITEM_DEFINITIONS: readonly DashboardNavigationItem
 ] as const;
 
 export const DASHBOARD_NAV_LABEL_FALLBACKS = {
-  billing: 'SUBSCRIPTION',
+  billing: 'Subscription',
   closeMenu: 'Close menu',
-  dashboard: 'CABINET',
+  dashboard: 'Dashboard',
   mainNavigation: 'Main navigation',
-  messages: 'MESSAGES',
+  messages: 'Messages',
   openMenu: 'Open menu',
-  paymentHistory: 'PAYMENTS',
-  referral: 'REWARDS',
-  servers: 'NETWORK',
-  settings: 'SETTINGS',
+  paymentHistory: 'Payment history',
+  referral: 'Referral rewards',
+  servers: 'VPN servers',
+  settings: 'Settings',
   sidebar: 'Sidebar',
-  support: 'SUPPORT',
-  wallet: 'WALLET',
+  support: 'Support',
+  wallet: 'Wallet',
 } as const;
 
 export const CABINET_NAV_LABEL_FALLBACKS = {

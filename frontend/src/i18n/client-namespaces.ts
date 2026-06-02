@@ -3,6 +3,7 @@ export const ROOT_CLIENT_NAMESPACES = ['A11y'] as const;
 export const AUTH_CLIENT_NAMESPACES = [
   'A11y',
   'Auth',
+  'LanguageSelector',
 ] as const;
 
 export const DASHBOARD_CLIENT_NAMESPACES = [
@@ -11,6 +12,7 @@ export const DASHBOARD_CLIENT_NAMESPACES = [
   'Auth',
   'Dashboard',
   'Devices',
+  'LanguageSelector',
   'Messaging',
   'Monitoring',
   'Navigation',
@@ -38,6 +40,7 @@ export const MARKETING_CLIENT_NAMESPACES = [
   'Download',
   'Features',
   'HelpCenter',
+  'LanguageSelector',
   'Network',
   'Pricing',
   'Privacy',

@@ -3,6 +3,8 @@ import json
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from src.infrastructure.messaging.realtime_contract import build_sync_required_payload
+
 
 class SSEManager:
     def __init__(self) -> None:
@@ -36,7 +38,7 @@ class SSEManager:
                 queue.put_nowait(
                     {
                         "event": "sync_required",
-                        "data": {"reason": "subscriber_backpressure"},
+                        "data": build_sync_required_payload(reason="subscriber_backpressure"),
                     }
                 )
 

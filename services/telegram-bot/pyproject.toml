@@ -46,6 +46,7 @@ dev = [
     "respx>=0.22",
     "fakeredis[json]>=2.33",
     "factory-boy>=3.3",
+    "PyYAML>=6.0",
     "ruff>=0.14",
     "mypy>=1.19",
     "coverage>=7.6",
@@ -59,6 +60,7 @@ test = [
     "respx>=0.22",
     "fakeredis[json]>=2.33",
     "factory-boy>=3.3",
+    "PyYAML>=6.0",
     "freezegun>=1.4",
 ]
 

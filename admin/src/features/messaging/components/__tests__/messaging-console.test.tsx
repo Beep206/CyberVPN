@@ -7,6 +7,7 @@ import { MessagingConsole } from '../messaging-console';
 import type {
   AdminMessagingConversationDetail,
   AdminMessagingConversationSummary,
+  AdminNotificationBroadcastCampaign,
 } from '@/lib/api/messaging';
 
 const {
@@ -14,22 +15,26 @@ const {
   mockAddAdminMessage,
   mockCloseAdminConversation,
   mockCreateAdminConversation,
+  mockCreateAdminNotificationBroadcast,
   mockGetAdminConversation,
   mockListAdminConversations,
   mockReopenAdminConversation,
   mockRouterReplace,
   mockSession,
+  mockCancelAdminNotificationBroadcast,
   mockUpdateAdminConversation,
 } = vi.hoisted(() => ({
   mockAddAdminInternalNote: vi.fn(),
   mockAddAdminMessage: vi.fn(),
   mockCloseAdminConversation: vi.fn(),
   mockCreateAdminConversation: vi.fn(),
+  mockCreateAdminNotificationBroadcast: vi.fn(),
   mockGetAdminConversation: vi.fn(),
   mockListAdminConversations: vi.fn(),
   mockReopenAdminConversation: vi.fn(),
   mockRouterReplace: vi.fn(),
   mockSession: vi.fn(),
+  mockCancelAdminNotificationBroadcast: vi.fn(),
   mockUpdateAdminConversation: vi.fn(),
 }));
 
@@ -71,8 +76,12 @@ vi.mock('@/lib/api/messaging', async () => {
     messagingApi: {
       addAdminInternalNote: (...args: unknown[]) => mockAddAdminInternalNote(...args),
       addAdminMessage: (...args: unknown[]) => mockAddAdminMessage(...args),
+      cancelAdminNotificationBroadcast: (...args: unknown[]) =>
+        mockCancelAdminNotificationBroadcast(...args),
       closeAdminConversation: (...args: unknown[]) => mockCloseAdminConversation(...args),
       createAdminConversation: (...args: unknown[]) => mockCreateAdminConversation(...args),
+      createAdminNotificationBroadcast: (...args: unknown[]) =>
+        mockCreateAdminNotificationBroadcast(...args),
       getAdminConversation: (...args: unknown[]) => mockGetAdminConversation(...args),
       listAdminConversations: (...args: unknown[]) => mockListAdminConversations(...args),
       reopenAdminConversation: (...args: unknown[]) => mockReopenAdminConversation(...args),
@@ -165,6 +174,33 @@ function buildConversation(
   };
 }
 
+function buildBroadcastCampaign(
+  overrides: Partial<AdminNotificationBroadcastCampaign> = {},
+): AdminNotificationBroadcastCampaign {
+  return {
+    action_url: '/status',
+    audience_filter: {
+      customer_account_ids: [
+        '8ef69814-83a8-4591-b3d4-9f749cbd0001',
+        '8ef69814-83a8-4591-b3d4-9f749cbd0002',
+      ],
+      estimated_recipient_count: 2,
+    },
+    audience_type: 'explicit_customers',
+    body: 'Synthetic maintenance notice.',
+    created_at: '2026-06-01T10:00:00Z',
+    created_by_admin_id: '2fc0360d-3f88-4619-b813-d3f20e2c1234',
+    id: '8ef69814-83a8-4591-b3d4-9f749cbd0601',
+    name: 'Maintenance notice',
+    public_id: 'broadcast_20260601_0001',
+    scheduled_at: null,
+    status: 'draft',
+    title: 'Maintenance',
+    updated_at: '2026-06-01T10:00:00Z',
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   Object.defineProperty(globalThis, 'EventSource', {
@@ -192,6 +228,10 @@ beforeEach(() => {
   });
   mockGetAdminConversation.mockResolvedValue({ data: conversation });
   mockCreateAdminConversation.mockResolvedValue({ data: conversation });
+  mockCreateAdminNotificationBroadcast.mockResolvedValue({ data: buildBroadcastCampaign() });
+  mockCancelAdminNotificationBroadcast.mockResolvedValue({
+    data: buildBroadcastCampaign({ status: 'cancelled' }),
+  });
   mockAddAdminMessage.mockResolvedValue({
     data: {
       conversation,
@@ -212,6 +252,21 @@ beforeEach(() => {
   });
   mockReopenAdminConversation.mockResolvedValue({ data: conversation });
 });
+
+function mockAdminSession(role: 'admin' | 'support' = 'admin') {
+  mockSession.mockResolvedValue({
+    data: {
+      created_at: '2026-05-01T00:00:00Z',
+      email: `${role}@example.com`,
+      id: '2fc0360d-3f88-4619-b813-d3f20e2c1234',
+      is_active: true,
+      is_email_verified: true,
+      login: role,
+      role,
+      telegram_id: null,
+    },
+  });
+}
 
 describe('MessagingConsole', () => {
   it('renders public messages, internal notes, unread state, and read states', async () => {
@@ -328,6 +383,119 @@ describe('MessagingConsole', () => {
     });
     expect((await screen.findAllByText('Second private thread')).length).toBeGreaterThan(0);
     expect(screen.getByText('list.endOfQueue')).toBeInTheDocument();
+  });
+
+  it('previews recipient count before creating and cancelling a notification broadcast', async () => {
+    mockAdminSession('admin');
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<MessagingConsole />);
+
+    const broadcastForm = await screen.findByTestId('messaging-broadcast-form');
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.name'), {
+      target: { value: 'Maintenance notice' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.explicitCustomers'), {
+      target: {
+        value: [
+          '8ef69814-83a8-4591-b3d4-9f749cbd0001',
+          '8ef69814-83a8-4591-b3d4-9f749cbd0002',
+        ].join('\n'),
+      },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.messageTitle'), {
+      target: { value: 'Maintenance' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.body'), {
+      target: { value: 'Synthetic maintenance notice.' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.actionUrl'), {
+      target: { value: '/status' },
+    });
+
+    expect(within(broadcastForm).getByRole('button', { name: 'broadcast.submit' })).toBeDisabled();
+    await user.click(within(broadcastForm).getByRole('button', { name: 'broadcast.preview' }));
+
+    expect(await screen.findByTestId('messaging-broadcast-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('messaging-broadcast-recipient-count')).toHaveTextContent('2');
+
+    await user.click(within(broadcastForm).getByRole('button', { name: 'broadcast.submit' }));
+
+    await waitFor(() => {
+      expect(mockCreateAdminNotificationBroadcast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action_url: '/status',
+          audience_filter: {
+            customer_account_ids: [
+              '8ef69814-83a8-4591-b3d4-9f749cbd0001',
+              '8ef69814-83a8-4591-b3d4-9f749cbd0002',
+            ],
+            estimated_recipient_count: 2,
+          },
+          audience_type: 'explicit_customers',
+          body: 'Synthetic maintenance notice.',
+          name: 'Maintenance notice',
+          scheduled_at: null,
+          title: 'Maintenance',
+        }),
+      );
+    });
+    expect(await screen.findByText('broadcast_20260601_0001')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'broadcast.cancel' }));
+
+    await waitFor(() => {
+      expect(mockCancelAdminNotificationBroadcast).toHaveBeenCalledWith(
+        'broadcast_20260601_0001',
+      );
+    });
+  });
+
+  it('requires explicit confirmation before broad notification broadcast preview', async () => {
+    mockAdminSession('admin');
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<MessagingConsole />);
+
+    const broadcastForm = await screen.findByTestId('messaging-broadcast-form');
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.audience'), {
+      target: { value: 'all_customers' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.name'), {
+      target: { value: 'All customer maintenance' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.recipientEstimate'), {
+      target: { value: '1200' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.messageTitle'), {
+      target: { value: 'Maintenance' },
+    });
+    fireEvent.change(within(broadcastForm).getByLabelText('broadcast.body'), {
+      target: { value: 'Synthetic maintenance notice.' },
+    });
+
+    await user.click(within(broadcastForm).getByRole('button', { name: 'broadcast.preview' }));
+
+    expect(await within(broadcastForm).findByText('broadcast.feedback.confirmationRequired'))
+      .toBeInTheDocument();
+    expect(mockCreateAdminNotificationBroadcast).not.toHaveBeenCalled();
+
+    await user.type(within(broadcastForm).getByLabelText('broadcast.confirmation'), 'BROADCAST');
+    await user.click(within(broadcastForm).getByRole('button', { name: 'broadcast.preview' }));
+
+    expect(await screen.findByTestId('messaging-broadcast-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('messaging-broadcast-recipient-count')).toHaveTextContent('1200');
+  });
+
+  it('renders notification broadcast controls as read-only for support role', async () => {
+    renderWithQueryClient(<MessagingConsole />);
+
+    const broadcastForm = await screen.findByTestId('messaging-broadcast-form');
+
+    expect(screen.getByText('broadcast.readOnly')).toBeInTheDocument();
+    expect(within(broadcastForm).getByLabelText('broadcast.name')).toBeDisabled();
+    expect(within(broadcastForm).getByRole('button', { name: 'broadcast.preview' })).toBeDisabled();
+    expect(within(broadcastForm).getByRole('button', { name: 'broadcast.submit' })).toBeDisabled();
   });
 
   it('posts public replies and internal notes to separate messaging endpoints', async () => {

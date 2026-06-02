@@ -103,7 +103,8 @@
       "success": "Успех",
       "warning": "Предупреждение",
       "critical": "Критично"
-    }
+    },
+    "dismissOne": "Скрыть уведомление"
   },
   "realtime": {
     "status": {

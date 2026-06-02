@@ -29,6 +29,13 @@ export const MESSAGING_PRIORITIES = [
   'urgent',
 ] as const;
 
+export const NOTIFICATION_BROADCAST_AUDIENCE_TYPES = [
+  'explicit_customers',
+  'customer_segment',
+  'all_customers',
+  'admins',
+] as const;
+
 export type MessagingConversationStatus = (typeof MESSAGING_CONVERSATION_STATUSES)[number];
 export type MessagingResponseState = (typeof MESSAGING_RESPONSE_STATES)[number];
 export type MessagingConversationCategory = (typeof MESSAGING_CONVERSATION_CATEGORIES)[number];
@@ -36,6 +43,14 @@ export type MessagingPriority = (typeof MESSAGING_PRIORITIES)[number];
 export type MessagingSenderType = 'customer' | 'admin' | 'system';
 export type MessagingMessageVisibility = 'public' | 'internal';
 export type MessagingBodyFormat = 'plain_text';
+export type NotificationBroadcastAudienceType = (typeof NOTIFICATION_BROADCAST_AUDIENCE_TYPES)[number];
+export type NotificationBroadcastCampaignStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'sending'
+  | 'sent'
+  | 'cancelled'
+  | 'failed';
 
 export interface AdminMessagingConversationListParams {
   assigned_admin_id?: string;
@@ -127,6 +142,32 @@ export interface AdminMessagingMessageWriteResponse {
   message: AdminMessagingMessage;
 }
 
+export interface AdminNotificationBroadcastCreateRequest {
+  action_url?: string | null;
+  audience_filter: Record<string, unknown>;
+  audience_type: NotificationBroadcastAudienceType;
+  body: string;
+  name: string;
+  scheduled_at?: string | null;
+  title: string;
+}
+
+export interface AdminNotificationBroadcastCampaign {
+  action_url?: string | null;
+  audience_filter: Record<string, unknown>;
+  audience_type: NotificationBroadcastAudienceType;
+  body: string;
+  created_at: string;
+  created_by_admin_id: string;
+  id: string;
+  name: string;
+  public_id: string;
+  scheduled_at?: string | null;
+  status: NotificationBroadcastCampaignStatus;
+  title: string;
+  updated_at: string;
+}
+
 function adminMessagingConversationPath(conversationRef: string) {
   return `/admin/messaging/conversations/${encodeURIComponent(conversationRef)}`;
 }
@@ -200,5 +241,16 @@ export const messagingApi = {
   reopenAdminConversation: (conversationRef: string) =>
     apiClient.post<AdminMessagingConversationDetail>(
       `${adminMessagingConversationPath(conversationRef)}/reopen`,
+    ),
+
+  createAdminNotificationBroadcast: (data: AdminNotificationBroadcastCreateRequest) =>
+    apiClient.post<AdminNotificationBroadcastCampaign>(
+      '/admin/notifications/broadcasts',
+      data,
+    ),
+
+  cancelAdminNotificationBroadcast: (campaignRef: string) =>
+    apiClient.post<AdminNotificationBroadcastCampaign>(
+      `/admin/notifications/broadcasts/${encodeURIComponent(campaignRef)}/cancel`,
     ),
 };

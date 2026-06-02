@@ -206,4 +206,42 @@ describe('messagingApi', () => {
       notifications: 0,
     });
   });
+
+  it('dismisses customer notifications through the scoped customer endpoint', async () => {
+    server.use(
+      http.post(`${API_BASE}/me/notifications/dismiss`, async ({ request }) => {
+        const body = (await request.json()) as { notification_ids: string[] };
+        expect(body.notification_ids).toEqual(['notification-1']);
+
+        return HttpResponse.json({
+          notifications: [
+            {
+              id: 'notification-1',
+              delivery_id: 'delivery-1',
+              notification_type: 'system',
+              severity: 'warning',
+              title: 'Maintenance window',
+              body: 'Planned maintenance starts soon.',
+              action_url: null,
+              aggregate_type: 'system_notice',
+              aggregate_id: 'notice-1',
+              conversation_id: null,
+              message_id: null,
+              status: 'dismissed',
+              created_at: '2026-05-31T10:05:00Z',
+              updated_at: '2026-05-31T10:06:00Z',
+              read_at: null,
+            },
+          ],
+        });
+      }),
+    );
+
+    const response = await messagingApi.dismissNotifications({
+      notification_ids: ['notification-1'],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.data.notifications[0]?.status).toBe('dismissed');
+  });
 });

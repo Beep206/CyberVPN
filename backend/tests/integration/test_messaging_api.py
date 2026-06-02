@@ -464,6 +464,96 @@ async def test_customer_notifications_read_and_sync_are_recipient_scoped(async_c
         cleanup_sqlite_file(sqlite_path)
 
 
+@pytest.mark.asyncio
+async def test_customer_notifications_dismiss_are_recipient_scoped_and_hidden(
+    async_client: AsyncClient,
+) -> None:
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+    _create_messaging_tables(engine)
+
+    try:
+        async with override_realm_test_db(sessionmaker):
+            context = _seed_context(sessionmaker)
+            customer_a_id = context["customer_a_id"]
+            customer_b_id = context["customer_b_id"]
+            assert isinstance(customer_a_id, uuid.UUID)
+            assert isinstance(customer_b_id, uuid.UUID)
+
+            now = datetime.now(UTC)
+            notification_id = uuid.uuid4()
+            with sessionmaker() as db:
+                db.add(
+                    SiteNotificationModel(
+                        id=notification_id,
+                        notification_type="system",
+                        severity="info",
+                        title="Dismissible notification",
+                        body="Synthetic body.",
+                        action_url="/status",
+                        created_by_actor_type="system",
+                        payload={},
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+                db.add(
+                    SiteNotificationDeliveryModel(
+                        id=uuid.uuid4(),
+                        notification_id=notification_id,
+                        recipient_type="customer",
+                        recipient_id=customer_a_id,
+                        delivery_channel="site",
+                        status="pending",
+                        attempts=0,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+                db.commit()
+
+            _override_mobile_user(customer_b_id)
+            scoped_dismiss_response = await async_client.post(
+                "/api/v1/me/notifications/dismiss",
+                json={"notification_ids": [str(notification_id)], "read_all_before": None},
+            )
+            assert scoped_dismiss_response.status_code == 200
+            assert scoped_dismiss_response.json()["notifications"] == []
+
+            _override_mobile_user(customer_a_id)
+            dismiss_response = await async_client.post(
+                "/api/v1/me/notifications/dismiss",
+                json={"notification_ids": [str(notification_id)], "read_all_before": None},
+            )
+            assert dismiss_response.status_code == 200
+            assert dismiss_response.json()["notifications"][0]["id"] == str(notification_id)
+            assert dismiss_response.json()["notifications"][0]["status"] == "dismissed"
+
+            list_response = await async_client.get("/api/v1/me/notifications")
+            assert list_response.status_code == 200
+            assert list_response.json()["notifications"] == []
+
+            sync_response = await async_client.get("/api/v1/me/realtime/sync")
+            assert sync_response.status_code == 200
+            assert sync_response.json()["unread_counts"]["notifications"] == 0
+            assert sync_response.json()["notifications"] == []
+
+            with sessionmaker() as db:
+                dismiss_events = (
+                    db.execute(
+                        select(OutboxEventModel).where(
+                            OutboxEventModel.event_name == "notification.dismissed",
+                            OutboxEventModel.aggregate_id == str(notification_id),
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(dismiss_events) == 1
+    finally:
+        cleanup_sqlite_file(sqlite_path)
+
+
 def test_messaging_openapi_paths_are_registered() -> None:
     paths = app.openapi()["paths"]
 
@@ -474,6 +564,7 @@ def test_messaging_openapi_paths_are_registered() -> None:
         "/api/v1/me/conversations/{conversation_id}/read",
         "/api/v1/me/notifications",
         "/api/v1/me/notifications/read",
+        "/api/v1/me/notifications/dismiss",
         "/api/v1/me/realtime/sync",
         "/api/v1/admin/messaging/conversations",
         "/api/v1/admin/messaging/conversations/{conversation_id}",

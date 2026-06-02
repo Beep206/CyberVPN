@@ -121,6 +121,15 @@ export interface SiteNotificationReadResponse {
   notifications: SiteNotification[];
 }
 
+export interface SiteNotificationDismissRequest {
+  notification_ids?: string[];
+  read_all_before?: string | null;
+}
+
+export interface SiteNotificationDismissResponse {
+  notifications: SiteNotification[];
+}
+
 export interface MessagingUnreadCounts {
   conversations: number;
   notifications: number;
@@ -202,6 +211,12 @@ export const messagingApi = {
   markNotificationsRead: (payload: SiteNotificationReadRequest) =>
     apiClient.post<SiteNotificationReadResponse>(
       '/me/notifications/read',
+      payload,
+    ),
+
+  dismissNotifications: (payload: SiteNotificationDismissRequest) =>
+    apiClient.post<SiteNotificationDismissResponse>(
+      '/me/notifications/dismiss',
       payload,
     ),
 

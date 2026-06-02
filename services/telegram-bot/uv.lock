@@ -285,6 +285,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "respx" },
     { name = "ruff" },
 ]
@@ -295,6 +296,7 @@ test = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "respx" },
 ]
 
@@ -324,6 +326,8 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=1.3" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=7.0" },
+    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pyyaml", marker = "extra == 'test'", specifier = ">=6.0" },
     { name = "qrcode", extras = ["pil"], specifier = ">=8.0" },
     { name = "redis", extras = ["hiredis"], specifier = ">=7.1" },
     { name = "respx", marker = "extra == 'dev'", specifier = ">=0.22" },

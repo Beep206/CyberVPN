@@ -113,7 +113,9 @@ function mergeNotifications(
   const byId = new Map(current.map((notification) => [notification.id, notification]));
 
   for (const notification of incoming) {
-    if (notification.status !== 'dismissed') {
+    if (notification.status === 'dismissed') {
+      byId.delete(notification.id);
+    } else {
       byId.set(notification.id, notification);
     }
   }
@@ -205,6 +207,10 @@ export function createCustomerMessageClientId(): string {
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   return `web_${rawId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 60)}`;
+}
+
+export function isUnreadSiteNotification(notification: SiteNotification): boolean {
+  return !['dismissed', 'expired', 'read'].includes(notification.status);
 }
 
 export function useCustomerConversationList(
@@ -336,6 +342,30 @@ export function useMarkCustomerNotificationsRead() {
   return useMutation({
     mutationFn: async (notificationIds: string[]) => {
       const { data } = await messagingApi.markNotificationsRead({
+        notification_ids: notificationIds,
+      });
+
+      return data;
+    },
+    onSuccess: async (result) => {
+      queryClient.setQueriesData<SiteNotificationListResponse>(
+        { queryKey: customerMessagingKeys.notificationLists() },
+        (current) => mergeNotificationListResponse(current, result.notifications),
+      );
+
+      await queryClient.invalidateQueries({
+        queryKey: customerMessagingKeys.unreadCounts(),
+      });
+    },
+  });
+}
+
+export function useDismissCustomerNotifications() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationIds: string[]) => {
+      const { data } = await messagingApi.dismissNotifications({
         notification_ids: notificationIds,
       });
 

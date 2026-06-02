@@ -271,7 +271,10 @@
       "validateTitle": "Проверка текущего кода"
     }
   },
-  "Analytics": {},
+  "Analytics": {
+    "subtitle": "Отслеживайте эффективность платформы и метрики роста",
+    "title": "АНАЛИТИКА"
+  },
   "Api": {
     "description": "Программный доступ к глобальной инфраструктуре CyberVPN. Автоматизируйте маршрутизацию серверов, управление пользователями и политики безопасности.",
     "endpoints": {
@@ -1390,7 +1393,8 @@
       "message": "We couldn't process your deletion request. Please try again or contact support.",
       "networkError": "Network error. Please check your connection.",
       "serverError": "Server error. Please try again later.",
-      "title": "Deletion failed"
+      "title": "Deletion failed",
+      "unauthenticated": "You must be logged in to delete your account."
     },
     "form": {
       "cancel": "Cancel",
@@ -1399,6 +1403,12 @@
         "confirmation": {
           "error": "You must confirm to proceed",
           "label": "I understand this action is permanent and cannot be undone"
+        },
+        "confirmInput": {
+          "error": "You must type DELETE to proceed",
+          "keyword": "DELETE",
+          "label": "Type DELETE to confirm",
+          "placeholder": "DELETE"
         },
         "email": {
           "error": "Valid email is required",
@@ -1469,6 +1479,7 @@
     "success": {
       "details": "Your account will be permanently deleted within 30 days. You can cancel this request by contacting support before the deletion is finalized.",
       "message": "Your account deletion request has been submitted. You will receive a confirmation email shortly.",
+      "returnHome": "Return to Home",
       "title": "Account deletion requested"
     },
     "title": "Delete Account",
@@ -1477,7 +1488,10 @@
       "title": "Warning: This action is permanent"
     }
   },
-  "Devices": {},
+  "Devices": {
+    "subtitle": "Управляйте активными сессиями и устройствами",
+    "title": "Активные устройства"
+  },
   "Docs": {
     "doc_config_desc": "Создание защищенных путей через враждебные сети.",
     "doc_config_title": "Настройка Туннелей",
@@ -2096,6 +2110,7 @@
     "systemLabel": "СИСТЕМА"
   },
   "HelpCenter": {
+    "categories_intro": "Выберите проверенный модуль и сразу перейдите к нужным ответам в архиве.",
     "categories_title": "МОДУЛИ ЗНАНИЙ",
     "category_billing": "Кредиты Доступа",
     "category_billing_desc": "Подписки, платежи и распределение пропускной способности.",
@@ -2121,6 +2136,7 @@
     "faq_getting_started_2_q": "Какие устройства поддерживаются?",
     "faq_getting_started_3_a": "Да, в зависимости от вашего уровня Кредитов Доступа, вы можете связать до 10 одновременных нейронных путей.",
     "faq_getting_started_3_q": "Могу ли я подключить несколько устройств одновременно?",
+    "faq_intro": "Просматривайте ответы по запуску, маршрутизации, оплате и безопасности без ожидания клиентской загрузки.",
     "faq_security_1_a": "Отрицательно. Все базы данных волатильны. Мы работаем по строгой архитектуре нулевого знания.",
     "faq_security_1_q": "Служба ведет логирование моих данных?",
     "faq_security_2_a": "Мы используем шифры ChaCha20-Poly1305 и AES-256-GCM, обеспечивая криптографическую целостность военного уровня.",
@@ -2887,9 +2903,9 @@
     }
   },
   "LanguageSelector": {
-    "noResults": "NO_MATCHES_FOUND",
-    "searchPlaceholder": "SEARCH_LANGUAGE...",
-    "title": "SELECT_LANGUAGE"
+    "noResults": "Языки не найдены",
+    "searchPlaceholder": "Найти язык...",
+    "title": "Выбор языка"
   },
   "MiniApp": {
     "home": {
@@ -2913,6 +2929,7 @@
       "quickActions": "Quick Actions",
       "settings": "Settings",
       "subscriptionActive": "Subscription Active",
+      "trafficLimit": "Трафик",
       "trial": "TRIAL",
       "trialAvailable": "Free Trial Available",
       "trialDescription": "Try CyberVPN free for 7 days. Full access to all features.",
@@ -2952,6 +2969,7 @@
       "apply": "Apply",
       "availablePlans": "Subscription Plans",
       "contactForPrice": "Contact",
+      "days": "дней",
       "daysCount": "{count} days",
       "discountApplied": "Discount applied: ${amount}",
       "free": "Free",
@@ -2965,7 +2983,14 @@
       "inviteRedeemed": "Invite code redeemed! Reward: {reward}",
       "monthly": "per month",
       "noPlans": "No plans available at the moment",
+      "oneDay": "1 день",
+      "oneMonth": "1 месяц",
+      "oneWeek": "1 неделя",
+      "oneYear": "1 год",
+      "paymentCancelled": "Платёж был отменён.",
       "paymentError": "Payment failed. Please try again.",
+      "paymentFailed": "Платёж не прошёл. Попробуйте ещё раз.",
+      "paymentSuccess": "Платёж прошёл успешно. Подписка активна.",
       "planNote": "This is a VPN configuration template. Contact support for pricing and activation.",
       "processing": "Processing...",
       "promoCodePlaceholder": "PROMO2024",
@@ -2975,12 +3000,16 @@
       "quarterly": "per quarter",
       "redeem": "Redeem",
       "selectPlanFirst": "Please select a plan first",
+      "sixMonths": "6 месяцев",
+      "threeMonths": "3 месяца",
       "trialActivated": "Trial activated successfully! Enjoy 7 days of premium access.",
       "trialError": "Failed to activate trial. Please try again.",
+      "unlimited": "Безлимитно",
       "yearly": "per year"
     },
     "profile": {
       "accountDeleted": "Account deleted successfully",
+      "activeDevices": "Активные устройства",
       "antiphishing": {
         "codePlaceholder": "Enter 4-32 characters",
         "codeRequired": "Code is required",
@@ -3127,7 +3156,10 @@
       "withdrawFunds": "Withdraw Funds"
     }
   },
-  "Monitoring": {},
+  "Monitoring": {
+    "subtitle": "Состояние системы и метрики производительности в реальном времени",
+    "title": "СИСТЕМНЫЙ МОНИТОРИНГ"
+  },
   "Navigation": {
     "adminConsole": "ПАРТНЁРСКИЙ ПОРТАЛ",
     "analytics": "АНАЛИТИКА",
@@ -3246,7 +3278,7 @@
         "requestMessage": "Запрос на выгрузку зафиксирован для {kind}.",
         "requestSuccess": "Запрос на выгрузку зафиксирован для {kind}.",
         "title": "Выгрузки",
-        "workspaceRequired": "Выберите workspace перед запросом выгрузки."
+        "workspaceRequired": "Выберите рабочая область перед запросом выгрузки."
       },
       "eyebrow": "PP5 ANALYTICS И EXPORTS",
       "links": {
@@ -3255,24 +3287,24 @@
         "finance": "Открыть finance",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите KPI reporting, export posture и explainability scope для partner workspace.",
+      "metaDescription": "Смотрите KPI reporting, export posture и explainability scope для partner рабочая область.",
       "metaTitle": "Analytics & Exports - Ozoxy Partner Portal",
       "metrics": {
         "description": "Метрики остаются explainable на probation, active и constrained состояниях без раскрытия внутренних moderation или fraud tools.",
         "title": "Performance metrics"
       },
       "modes": {
-        "full": "Workspace может использовать полный analytics surface для стандартного reporting и export workflows.",
-        "history_only": "Workspace может смотреть reporting history и explainability context, но expansion-oriented analytics actions остаются ограниченными.",
-        "lite": "Probation открывает облегчённую analytics surface с core KPI и более узким export scope.",
-        "review": "Analytics остаётся review-bound, пока workspace не войдёт в probation или active reporting depth."
+        "full": "рабочая область может использовать полный analytics раздел для стандартного reporting и export workflows.",
+        "history_only": "рабочая область может смотреть reporting history и explainability context, но expansion-oriented analytics actions остаются ограниченными.",
+        "lite": "Probation открывает облегчённую analytics раздел с core KPI и более узким export scope.",
+        "review": "Analytics остаётся ограниченный проверкой, пока рабочая область не войдёт в probation или active reporting depth."
       },
-      "subtitle": "PP5 делает reporting первичной partner surface: KPI visibility, explainability, export posture и lane-aware глубина reporting теперь живут в одном месте.",
+      "subtitle": "PP5 делает reporting первичной partner раздел: KPI visibility, explainability, export posture и lane-aware глубина reporting теперь живут в одном месте.",
       "summary": {
         "currentLane": "Текущий lane",
         "exports": "Выгрузки",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "title": "Analytics & Exports"
     },
@@ -3296,7 +3328,7 @@
         "country": "Страна",
         "primaryLane": "Основной partner lane",
         "website": "Сайт или основная площадка",
-        "workspaceName": "Название workspace / бизнеса"
+        "workspaceName": "Название рабочая область / бизнеса"
       },
       "laneOptions": {
         "creatorAffiliate": {
@@ -3318,36 +3350,36 @@
         "reseller_api": "Reseller / API"
       },
       "linkedWorkspaces": {
-        "description": "Используйте canonical route map уже сейчас: `/organization` станет устойчивой business profile surface, а `/settings` будет держать security и session controls.",
-        "organizationLink": "Открыть organization surface",
-        "settingsLink": "Открыть settings surface",
-        "title": "Следующие portal surfaces"
+        "description": "Используйте canonical route map уже сейчас: `/organization` станет устойчивой business profile раздел, а `/settings` будет держать security и session controls.",
+        "organizationLink": "Открыть organization раздел",
+        "settingsLink": "Открыть settings раздел",
+        "title": "Следующие portal разделы"
       },
-      "metaDescription": "Соберите базу partner workspace, заполните staged application и отправьте пакет в governed backend review flow.",
+      "metaDescription": "Соберите базу partner рабочая область, заполните staged application и отправьте пакет в governed backend процесс проверки.",
       "metaTitle": "Заявка - Ozoxy Partner Portal",
       "panels": {
         "compliance": {
-          "intro": "Сделайте traffic и disclosure expectations явными. Эти attestation вынесены отдельно от общих terms, потому что позже они управляют review и governance.",
+          "intro": "Сделайте traffic и disclosure expectations явными. Эти attestation вынесены отдельно от общих terms, потому что позже они управляют проверка и governance.",
           "items": {
-            "audit": "Я принимаю evidence requests, traffic review и compliance audit, когда это требуется.",
+            "audit": "Я принимаю evidence requests, traffic проверка и compliance audit, когда это требуется.",
             "brandBidding": "Я не буду делать brand bidding и запускать undeclared traffic methods без письменного approval.",
             "disclosure": "Я буду явно раскрывать material connection при продвижении CyberVPN.",
-            "fakeReviews": "Я не буду использовать fake reviews, misleading testimonials и deceptive privacy claims."
+            "fakeReviews": "Я не буду использовать поддельные отзывы, misleading testimonials и deceptive privacy claims."
           },
           "notice": "Эта базовая декларация не заменяет последующие finance, tax или lane-specific compliance потоки. Она фиксирует первый обязательный слой attestation со стороны партнёра."
         },
         "profile": {
-          "intro": "Добавьте starter organization profile и контекст каналов. Целью здесь не является полный KYB, а достаточный сигнал для fit review и routing."
+          "intro": "Добавьте starter organization profile и контекст каналов. Целью здесь не является полный KYB, а достаточный сигнал для fit проверка и routing."
         },
         "review": {
           "backendNote": "Draft data теперь сохраняется в backend. Local storage остаётся только как autosave cache, чтобы незавершённые правки не терялись до следующего sync.",
-          "intro": "Проверьте текущий draft, убедитесь, что staged inputs заполнены, и отправьте пакет в backend review queue.",
-          "requestedInfoTitle": "Открытые review requests",
+          "intro": "Проверьте текущий draft, убедитесь, что staged inputs заполнены, и отправьте пакет в backend очередь проверки.",
+          "requestedInfoTitle": "Открытые запросы проверки",
           "requiredFields": "Обязательные поля: {value}",
-          "validation": "Завершите этапы workspace, profile и compliance, прежде чем отмечать заявку как готовую."
+          "validation": "Завершите этапы рабочая область, profile и compliance, прежде чем отмечать заявку как готовую."
         },
         "workspace": {
-          "intro": "Создайте минимальную идентичность workspace для портала. Этот этап специально небольшой, чтобы заявитель мог быстро стартовать без схлопывания последующего review flow."
+          "intro": "Создайте минимальную идентичность рабочая область для портала. Этот этап специально небольшой, чтобы заявитель мог быстро стартовать без схлопывания последующего процесс проверки."
         }
       },
       "placeholders": {
@@ -3364,15 +3396,15 @@
         "complete": "Заполнено",
         "currentStatus": "Текущий статус",
         "missing": "Не хватает",
-        "readinessSummary": "Сводка readiness",
-        "workspaceSummary": "Сводка workspace"
+        "readinessSummary": "Сводка готовность",
+        "workspaceSummary": "Сводка рабочая область"
       },
       "saveFeedback": {
         "error": "Не удалось синхронизировать application draft с partner backend.",
         "saved": "Draft синхронизирован с partner backend."
       },
       "stages": {
-        "description": "Портал держит workspace, profile, compliance и review отдельными шагами, чтобы governed activation оставался явным.",
+        "description": "Портал держит рабочая область, profile, compliance и проверка отдельными шагами, чтобы governed activation оставался явным.",
         "items": {
           "compliance": {
             "description": "Зафиксировать базовые attestation по traffic и disclosure.",
@@ -3384,11 +3416,11 @@
           },
           "review": {
             "description": "Проверить готовность и отметить draft как подготовленный к backend submit.",
-            "label": "Review"
+            "label": "проверка"
           },
           "workspace": {
-            "description": "Зафиксировать базовую оболочку partner workspace и выбрать primary lane.",
-            "label": "Workspace"
+            "description": "Зафиксировать базовую оболочку partner рабочая область и выбрать primary lane.",
+            "label": "рабочая область"
           }
         },
         "stageNumber": "Этап {value}",
@@ -3398,35 +3430,35 @@
         "actionRequired": "Требуется Действие",
         "backendLinked": "Backend Source Of Truth",
         "draft": "Черновик Заявки",
-        "ready": "Готово К Review",
-        "submitted": "Отправлено На Review"
+        "ready": "Готово К проверка",
+        "submitted": "Отправлено На проверка"
       },
       "submitFeedback": {
         "error": "Не удалось обновить backend application flow.",
         "resubmitted": "Заявка переотправлена после requested updates.",
-        "submitted": "Заявка отправлена на partner review.",
+        "submitted": "Заявка отправлена на partner проверка.",
         "withdrawn": "Заявка переведена обратно в draft state.",
-        "workspaceRequired": "Для продолжения нужен backend workspace draft."
+        "workspaceRequired": "Для продолжения нужен backend черновик рабочей области."
       },
-      "subtitle": "Это первый реальный onboarding loop для отдельного partner realm: собрать базу workspace, заполнить staged application draft и отправить его в governed backend review flow.",
+      "subtitle": "Это первый реальный onboarding loop для отдельного partner realm: собрать базу рабочая область, заполнить staged application draft и отправить его в governed backend процесс проверки.",
       "summary": {
         "notSaved": "Локальный draft ещё не сохранялся.",
         "progressLabel": "Прогресс foundation",
         "savedAt": "Последнее сохранение: {value}"
       },
-      "title": "Заявка на Partner Workspace"
+      "title": "Заявка на Partner рабочая область"
     },
     "campaigns": {
       "actions": {
         "controlled": "Эта роль может работать с controlled campaign assets, пока approval-sensitive paths остаются явными.",
-        "full": "Эта роль может использовать текущую campaign surface на полной глубине lane.",
-        "readOnly": "Эта роль или состояние workspace позволяют только смотреть assets, а новые campaign actions остаются заблокированными.",
-        "starter": "Эта роль может использовать стартовые campaign kits и review notes, но более широкий rollout остаётся gated.",
+        "full": "Эта роль может использовать текущую campaign раздел на полной глубине lane.",
+        "readOnly": "Эта роль или состояние рабочая область позволяют только смотреть assets, а новые campaign actions остаются заблокированными.",
+        "starter": "Эта роль может использовать стартовые campaign kits и заметки проверки, но более широкий rollout остаётся gated.",
         "title": "Action posture"
       },
       "capabilities": {
         "items": {
-          "approval_comments": "Approval comments и review notes",
+          "approval_comments": "Approval comments и заметки проверки",
           "creative_library": "Creative library",
           "creative_submission": "Отправка креативов",
           "disclosure_templates": "Disclosure templates",
@@ -3441,10 +3473,10 @@
         "allowedGeographies": "Allowed geographies: {value}",
         "approvalOwner": "Approval owner: {value}",
         "bannedClaims": "Banned claims",
-        "description": "Campaign assets остаются lane-aware. Performance требует самый строгий review path, а Creator и Reseller получают разную глубину enablement.",
+        "description": "Campaign assets остаются lane-aware. Performance требует самый строгий проверка path, а Creator и Reseller получают разную глубину enablement.",
         "destinationUrls": "Destination URLs: {value}",
         "disclosureText": "Disclosure text: {value}",
-        "empty": "Для текущего статуса workspace и lane campaign assets пока недоступны.",
+        "empty": "Для текущего статуса рабочая область и lane campaign assets пока недоступны.",
         "promoReference": "Promo reference: {value}",
         "title": "Campaign library",
         "validUntil": "Valid until: {value}"
@@ -3455,40 +3487,40 @@
         "legal": "Открыть contracts & legal",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите campaign library, enablement kits и lane-aware posture по approval креативов для workspace.",
+      "metaDescription": "Смотрите campaign library, enablement kits и lane-aware posture по approval креативов для рабочая область.",
       "metaTitle": "Campaigns & Enablement - Ozoxy Partner Portal",
       "modes": {
         "controlled": "Доступ к campaigns есть, но submissions, approvals и глубина library остаются ограниченными правилами lane.",
-        "full": "Lane может использовать полный PP4 campaigns surface для стандартной launch и enablement работы.",
-        "read_only": "Workspace может просматривать текущие assets и approval posture, но не может двигать campaign operations дальше.",
-        "starter": "Lane может использовать стартовые enablement assets, но расширение campaign scope остаётся осторожным и review-aware."
+        "full": "Lane может использовать полный PP4 campaigns раздел для стандартной launch и enablement работы.",
+        "read_only": "рабочая область может просматривать текущие assets и approval posture, но не может двигать campaign operations дальше.",
+        "starter": "Lane может использовать стартовые enablement assets, но расширение campaign scope остаётся осторожным и проверка-aware."
       },
       "submission": {
-        "description": "Отправляйте новый creative или campaign scope в канонический backend approval loop и держите его статус видимым в этой surface.",
+        "description": "Отправляйте новый creative или campaign scope в канонический backend approval loop и держите его статус видимым в этой раздел.",
         "detailsPlaceholder": "Опишите asset, placement, messaging guardrails и disclosure-sensitive notes.",
         "error": "Не удалось отправить creative approval request.",
         "readOnly": "Эта роль может просматривать текущий campaign posture, но новые creative approval requests остаются заблокированными.",
         "referencePlaceholder": "Creative reference, landing page или asset ID",
         "scopePlaceholder": "Creative scope или campaign label",
-        "submitAction": "Отправить creative review",
+        "submitAction": "Отправить creative проверка",
         "submitting": "Отправка...",
-        "success": "Creative approval request отправлен на workspace review.",
+        "success": "Creative approval request отправлен на рабочая область проверка.",
         "title": "Request creative approval",
-        "workspaceRequired": "Выберите workspace перед отправкой creative approval request."
+        "workspaceRequired": "Выберите рабочая область перед отправкой creative approval request."
       },
-      "subtitle": "Assets, launch kits и approval-sensitive campaigns теперь живут в одной partner surface, а не подразумеваются через коды.",
+      "subtitle": "Assets, launch kits и approval-sensitive campaigns теперь живут в одной partner раздел, а не подразумеваются через коды.",
       "summary": {
-        "compliance": "Compliance readiness",
+        "compliance": "Compliance готовность",
         "currentLane": "Текущий lane",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "title": "Campaigns / Assets / Enablement"
     },
     "cases": {
       "capabilities": {
         "items": {
-          "applicant_messages": "Applicant review messages",
+          "applicant_messages": "Applicant проверка messages",
           "attachment_handoffs": "Передача вложений и evidence",
           "attribution_disputes": "Attribution disputes",
           "finance_cases": "Finance onboarding и settlement cases",
@@ -3498,7 +3530,7 @@
         "title": "Case capability posture"
       },
       "caseList": {
-        "description": "Каждый кейс остаётся привязанным к статусу workspace и не исчезает, даже когда портал ещё не полностью active.",
+        "description": "Каждый кейс остаётся привязанным к статусу рабочая область и не исчезает, даже когда портал ещё не полностью active.",
         "notesTitle": "Канонический контекст",
         "readyAction": "Отметить готовым для ops",
         "readySuccess": "Кейс отмечен как готовый для partner ops.",
@@ -3506,20 +3538,20 @@
         "replySuccess": "Ответ по кейсу зафиксирован.",
         "responseError": "Не удалось обновить workflow кейса.",
         "responseLabel": "Обновление по кейсу",
-        "responsePlaceholder": "Добавьте следующий partner-side update для ops, finance или compliance review.",
+        "responsePlaceholder": "Добавьте следующий partner-side update для ops, finance или compliance проверка.",
         "threadEmpty": "Для этого кейса ещё нет зафиксированных workflow-сообщений партнёра.",
         "threadTitle": "Контекст треда",
         "title": "Лента кейсов",
         "updatedAt": "Обновлено: {value}"
       },
-      "eyebrow": "PP2 SUPPORT И REVIEW LOOP",
+      "eyebrow": "PP2 SUPPORT И цикл проверки",
       "guidance": {
         "description": "PP2 держит applicant communication loop внутри портала ещё до запуска полной backend case platform.",
         "items": {
           "application": "Обновите staged application, если partner ops запросили больше контекста.",
           "compliance": "Ожидайте, что compliance и traffic questions останутся явными, а не спрятанными в terms.",
           "notifications": "Держите inbox открытым для статусов и reminders.",
-          "organization": "Используйте organization surface, чтобы заполнить business profile, регионы и named contacts."
+          "organization": "Используйте organization раздел, чтобы заполнить business profile, регионы и named contacts."
         },
         "links": {
           "analytics": "Открыть analytics & exports",
@@ -3530,54 +3562,54 @@
         },
         "title": "Как использовать эту поверхность"
       },
-      "metaDescription": "Смотрите requested information, application cases и applicant-safe message loop для partner workspace.",
+      "metaDescription": "Смотрите requested information, application cases и applicant-safe message loop для partner рабочая область.",
       "metaTitle": "Support & Cases - Ozoxy Partner Portal",
       "modes": {
-        "applicant": "Workspace всё ещё находится в applicant-safe режиме: requested information, review заявки и ранние support-вопросы собраны в одной governed surface.",
-        "dispute": "Workspace работает в constrained dispute posture: remediation, payout disputes и governance-sensitive cases остаются видимыми, пока expansion заблокирован.",
-        "history_only": "Workspace может просматривать историю кейсов, но live operational support loop больше не активен.",
-        "operational": "Workspace может использовать более широкую support surface для operational-вопросов, attribution follow-up и clarifications по statement."
+        "applicant": "рабочая область всё ещё находится в applicant-safe режиме: requested information, проверка заявки и ранние support-вопросы собраны в одной governed раздел.",
+        "dispute": "рабочая область работает в constrained dispute posture: remediation, payout disputes и governance-sensitive cases остаются видимыми, пока expansion заблокирован.",
+        "history_only": "рабочая область может просматривать историю кейсов, но live operational support loop больше не активен.",
+        "operational": "рабочая область может использовать более широкую support раздел для operational-вопросов, attribution follow-up и clarifications по statement."
       },
       "requestedInfo": {
-        "description": "Открытые review-запросы видны здесь, а не прячутся в settings или внешней переписке.",
+        "description": "Открытые проверка-запросы видны здесь, а не прячутся в settings или внешней переписке.",
         "dueDate": "Срок: {value}",
         "empty": "Для текущего сценария открытых requested-info задач нет.",
-        "error": "Не удалось отправить ответ по review-запросу.",
+        "error": "Не удалось отправить ответ по проверка-запросу.",
         "respondAction": "Отметить ответ подготовленным",
         "responseLabel": "Сообщение для ответа",
         "responsePlaceholder": "Кратко опишите, что было загружено, уточнено или передано для partner ops.",
         "sending": "Отправка...",
         "submitCanonicalAction": "Отправить ответ",
         "success": "Ответ добавлен в тред partner ops.",
-        "threadEmpty": "Для этого review-запроса ещё нет зафиксированных ответов со стороны партнёра.",
+        "threadEmpty": "Для этого проверка-запроса ещё нет зафиксированных ответов со стороны партнёра.",
         "threadTitle": "Контекст треда",
         "title": "Запрошенная информация"
       },
       "restrictions": {
-        "description": "Cases остаются видимыми во время restricted или governed states, чтобы workspace мог закрывать finance, compliance и launch issues без внутренних ops tools.",
-        "fallbackNote": "Это ограничение остаётся backend-governed для текущего workspace.",
+        "description": "Cases остаются видимыми во время restricted или governed states, чтобы рабочая область мог закрывать finance, compliance и launch issues без внутренних ops tools.",
+        "fallbackNote": "Это ограничение остаётся backend-governed для текущего рабочая область.",
         "title": "Ограниченный operating posture"
       },
-      "subtitle": "Теперь applicants и ранние партнёры могут оставаться внутри портала, отвечая partner ops, review, finance и compliance запросам.",
+      "subtitle": "Теперь applicants и ранние партнёры могут оставаться внутри портала, отвечая partner ops, проверка, finance и compliance запросам.",
       "summary": {
         "governance": "Governance",
         "openCases": "Открытые operational cases",
         "restrictions": "Видимые ограничения",
-        "reviewRequests": "Открытые review requests",
+        "reviewRequests": "Открытые запросы проверки",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "thread": {
         "eventAt": "Обновление партнёра от {value}"
       },
       "title": "Support & Cases",
-      "workspaceFallback": "Текущий workspace"
+      "workspaceFallback": "Текущий рабочая область"
     },
     "codes": {
       "actions": {
-        "controlled": "Эта роль может управлять контролируемым launch set, но некоторые типы кодов всё ещё требуют дополнительный approval или lane readiness.",
-        "full": "Эта роль может использовать PP4 code surface в рамках текущего lane.",
-        "readOnly": "Эта роль или состояние workspace позволяют только смотреть posture по кодам, но create и expansion actions остаются заблокированными.",
+        "controlled": "Эта роль может управлять контролируемым launch set, но некоторые типы кодов всё ещё требуют дополнительный approval или lane готовность.",
+        "full": "Эта роль может использовать PP4 code раздел в рамках текущего lane.",
+        "readOnly": "Эта роль или состояние рабочая область позволяют только смотреть posture по кодам, но create и expansion actions остаются заблокированными.",
         "starter": "Эта роль может работать со стартовым launch inventory, но более широкий scale-out по кодам остаётся gated.",
         "title": "Action posture"
       },
@@ -3596,7 +3628,7 @@
       "inventory": {
         "description": "Список кодов теперь lane-aware. Creator получает самый широкий probation launch, Performance строже, а Reseller зависит от storefront alignment.",
         "destination": "Назначение: {value}",
-        "empty": "Для текущего статуса workspace и lane коды пока недоступны.",
+        "empty": "Для текущего статуса рабочая область и lane коды пока недоступны.",
         "title": "Инвентарь кодов"
       },
       "links": {
@@ -3605,20 +3637,20 @@
         "programs": "Открыть programs",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите partner codes, стартовый tracking inventory и lane-aware ограничения по кодам для workspace.",
+      "metaDescription": "Смотрите partner codes, стартовый tracking inventory и lane-aware ограничения по кодам для рабочая область.",
       "metaTitle": "Codes & Tracking - Ozoxy Partner Portal",
       "modes": {
         "controlled": "Lane уже может работать, но scale-out по кодам намеренно ограничен approval, governance или storefront alignment.",
-        "full": "Для этого lane доступен полный PP4 code surface для стандартных growth-операций.",
-        "read_only": "Workspace может видеть текущую posture по кодам, но новые launch actions останутся заблокированными, пока restriction не снят.",
-        "starter": "Для этого lane уже доступен стартовый launch path, но инструменты расширения всё ещё зависят от quality checks и readiness overlays."
+        "full": "Для этого lane доступен полный PP4 code раздел для стандартных growth-операций.",
+        "read_only": "рабочая область может видеть текущую posture по кодам, но новые launch actions останутся заблокированными, пока restriction не снят.",
+        "starter": "Для этого lane уже доступен стартовый launch path, но инструменты расширения всё ещё зависят от quality checks и готовность overlays."
       },
-      "subtitle": "PP4 открывает первый реальный commercial loop: стартовые коды, vanity links, QR-паки и attribution-ready макросы теперь живут в отдельной lane-aware surface.",
+      "subtitle": "PP4 открывает первый реальный commercial loop: стартовые коды, vanity links, QR-паки и attribution-ready макросы теперь живут в отдельной lane-aware раздел.",
       "summary": {
         "currentLane": "Текущий lane",
         "governance": "Governance",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "title": "Codes & Tracking"
     },
@@ -3626,35 +3658,35 @@
       "actions": {
         "controlled": "Эта роль может управлять активными compliance tasks для текущего lane, включая approval-sensitive controls.",
         "creative": {
-          "description": "Проводите creative review через workspace-safe approval flow без раскрытия внутренних moderation controls.",
+          "description": "Проводите creative проверка через безопасный для рабочей области approval flow без раскрытия внутренних moderation controls.",
           "detailsLabel": "Детали creative",
           "referenceLabel": "Creative reference",
           "scopeLabel": "Creative scope",
-          "submit": "Отправить creative review",
-          "success": "Запрос на creative approval отправлен на workspace review.",
+          "submit": "Отправить creative проверка",
+          "success": "Запрос на creative approval отправлен на рабочая область проверка.",
           "title": "Запросить creative approval"
         },
         "errorFallback": "Не удалось отправить compliance action. Повторите попытку.",
-        "full": "Эта роль может использовать текущую compliance surface на полной глубине lane.",
-        "readOnly": "Эта роль или состояние workspace позволяют видеть remediation context, но прямые compliance actions сейчас ограничены.",
-        "review": "Эта роль может проходить review-bound compliance loop и отвечать на запросы, но сам launch surface остаётся governed.",
+        "full": "Эта роль может использовать текущую compliance раздел на полной глубине lane.",
+        "readOnly": "Эта роль или состояние рабочая область позволяют видеть remediation context, но прямые compliance actions сейчас ограничены.",
+        "review": "Эта роль может проходить ограниченный проверкой compliance loop и отвечать на запросы, но сам launch раздел остаётся governed.",
         "starter": "Эта роль может работать с более лёгким compliance starter set, пока escalation controls остаются явными.",
         "submitting": "Отправка...",
         "title": "Action posture",
         "traffic": {
-          "description": "Заявляйте approved sources или postback readiness прямо из портала на каноническом объекте workspace.",
+          "description": "Заявляйте approved sources или postback готовность прямо из портала на каноническом объекте рабочая область.",
           "detailsLabel": "Детали declaration",
           "kindLabel": "Тип declaration",
           "kinds": {
             "approved_sources": "Approved sources",
-            "postback_readiness": "Postback readiness"
+            "postback_readiness": "Postback готовность"
           },
           "scopeLabel": "Scope label",
           "submit": "Отправить declaration",
-          "success": "Traffic declaration отправлена на workspace review.",
+          "success": "Traffic declaration отправлена на рабочая область проверка.",
           "title": "Отправить traffic declaration"
         },
-        "workspaceRequired": "Для отправки compliance actions требуется активный workspace."
+        "workspaceRequired": "Для отправки compliance actions требуется активный рабочая область."
       },
       "capabilities": {
         "items": {
@@ -3668,8 +3700,8 @@
         "title": "Capability posture"
       },
       "declarations": {
-        "description": "Backend-owned visibility привязывает declared traffic sources, postback posture и creative review scope к активному workspace, а не к локальным portal-only assumptions.",
-        "empty": "Для этого workspace и роли backend-owned traffic declarations сейчас не видны.",
+        "description": "Backend-owned visibility привязывает declared traffic sources, postback posture и creative проверка scope к активному рабочая область, а не к локальным portal-only assumptions.",
+        "empty": "Для этого рабочая область и роли backend-owned traffic declarations сейчас не видны.",
         "scope": "Scope: {value}",
         "title": "Traffic declarations"
       },
@@ -3680,32 +3712,32 @@
         "legal": "Открыть contracts & legal",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите lane-specific compliance tasks, traffic declarations и remediation posture для workspace.",
+      "metaDescription": "Смотрите lane-specific compliance tasks, traffic declarations и remediation posture для рабочая область.",
       "metaTitle": "Traffic & Compliance - Ozoxy Partner Portal",
       "modes": {
-        "controlled": "Lane управляется через controlled compliance posture с явными declarations, approval steps и readiness gates.",
-        "full": "Lane может использовать полный PP4 compliance surface в рамках текущего operational state.",
-        "read_only": "Workspace может видеть задачи и remediation context, но текущая posture для route остаётся read-only.",
-        "review": "Workspace всё ещё находится в review-bound posture, поэтому compliance сейчас сосредоточен на declarations, clarifications и evidence loops.",
+        "controlled": "Lane управляется через controlled compliance posture с явными declarations, approval steps и готовность gates.",
+        "full": "Lane может использовать полный PP4 compliance раздел в рамках текущего operational state.",
+        "read_only": "рабочая область может видеть задачи и remediation context, но текущая posture для route остаётся read-only.",
+        "review": "рабочая область всё ещё находится в ограниченный проверкой posture, поэтому compliance сейчас сосредоточен на declarations, clarifications и evidence loops.",
         "starter": "Lane может работать с более лёгким compliance starter set, но evidence и escalation paths остаются видимыми."
       },
       "restrictions": {
-        "description": "Эти ограничения приходят из канонического bootstrap posture. Они объясняют, почему compliance actions остаются governed, даже когда workspace всё ещё видим.",
-        "fallbackNote": "Детали ограничения для этого workspace остаются backend-governed.",
+        "description": "Эти ограничения приходят из канонического bootstrap posture. Они объясняют, почему compliance actions остаются governed, даже когда рабочая область всё ещё видим.",
+        "fallbackNote": "Детали ограничения для этого рабочая область остаются backend-governed.",
         "title": "Ограничения, видимые партнёру"
       },
       "subtitle": "PP4 отделяет declarations, evidence, approvals креативов и governance-facing remediation в отдельный partner-facing compliance center.",
       "summary": {
-        "compliance": "Compliance readiness",
+        "compliance": "Compliance готовность",
         "currentLane": "Текущий lane",
         "governance": "Governance",
         "restrictions": "Видимые ограничения",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "tasks": {
         "description": "Набор задач зависит от lane. Performance добавляет postback и creative controls, а Reseller показывает support ownership и storefront-sensitive obligations.",
-        "empty": "Для текущего статуса workspace compliance tasks не видны.",
+        "empty": "Для текущего статуса рабочая область compliance tasks не видны.",
         "ownerRole": "Ответственная роль: {value}",
         "title": "Compliance tasks"
       },
@@ -3739,7 +3771,7 @@
         "description": "Explainability для {order} загружается напрямую из канонического backend order-resolution pipeline.",
         "empty": "Выберите conversion record, чтобы посмотреть explainability и commissionability posture.",
         "error": "Не удалось загрузить explainability snapshot.",
-        "loading": "Загрузка explainability из канонического backend contract...",
+        "loading": "Загрузка explainability из канонического серверный контракт...",
         "noReasonCodes": "Для этой evaluation не были приложены явные reason codes.",
         "reasonCodesTitle": "Reason codes",
         "snapshotTitle": "Explainability snapshot",
@@ -3752,12 +3784,12 @@
         "finance": "Открыть finance",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите attributed conversions, order visibility, dispute context и row-scoped customer explainability для partner workspace.",
+      "metaDescription": "Смотрите attributed conversions, order visibility, dispute context и row-scoped customer explainability для partner рабочая область.",
       "metaTitle": "Conversions / Orders / Customers - Ozoxy Partner Portal",
       "modes": {
-        "dispute": "Workspace остаётся в constrained operational state, поэтому disputes, refunds и explainability остаются видимыми, пока expansion actions заблокированы.",
-        "full": "Workspace может использовать полный conversions surface для order visibility, review commissionability и row-scoped customer context.",
-        "lite": "Probation открывает облегчённую conversions surface с attributed records и explainability, но более широкие order и customer workflows остаются governed."
+        "dispute": "рабочая область остаётся в constrained operational state, поэтому disputes, refunds и explainability остаются видимыми, пока expansion actions заблокированы.",
+        "full": "рабочая область может использовать полный conversions раздел для order visibility, проверка commissionability и row-scoped customer context.",
+        "lite": "Probation открывает облегчённую conversions раздел с attributed records и explainability, но более широкие order и customer workflows остаются governed."
       },
       "records": {
         "code": "Код: {value}",
@@ -3769,7 +3801,7 @@
         "currentLane": "Текущий lane",
         "records": "Видимые записи",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "title": "Conversions / Orders / Customers"
     },
@@ -3780,7 +3812,7 @@
           "submitting": "Отправляем..."
         },
         "description": "Finance onboarding теперь partner-facing: отправьте payout destination, а finance ops проверят его через admin maker-checker flow.",
-        "error": "Не удалось отправить payout account. Проверьте destination details и состояние workspace.",
+        "error": "Не удалось отправить payout account. Проверьте destination details и состояние рабочая область.",
         "fields": {
           "currency": "Currency",
           "destinationReference": "Destination reference",
@@ -3798,7 +3830,7 @@
           "cryptoUsdt": "Crypto USDT",
           "manualInvoice": "Manual / invoice"
         },
-        "success": "Payout account отправлен. Finance readiness обновится после verification и bootstrap recompute.",
+        "success": "Payout account отправлен. Finance готовность обновится после verification и bootstrap recompute.",
         "title": "Добавить payout account"
       },
       "accounts": {
@@ -3836,7 +3868,7 @@
       },
       "eligibility": {
         "checkedAt": "Последняя проверка: {value}",
-        "description": "Eligibility считается от verification payout account, состояния workspace и reserve/risk blockers.",
+        "description": "Eligibility считается от verification payout account, состояния рабочая область и reserve/risk blockers.",
         "eligible": "Готов к payout execution",
         "emptyState": "Выберите payout account, чтобы посмотреть его eligibility posture.",
         "error": "Сейчас не удалось загрузить eligibility.",
@@ -3848,7 +3880,7 @@
       "eyebrow": "PP5 FINANCE И SETTLEMENT",
       "history": {
         "description": "Эта partner-facing history суммирует payout instructions и executions без раскрытия внутренних admin override tools.",
-        "emptyState": "Для этого workspace пока нет видимой истории payout instructions или executions.",
+        "emptyState": "Для этого рабочая область пока нет видимой истории payout instructions или executions.",
         "error": "Сейчас не удалось загрузить payout history.",
         "labels": {
           "createdAt": "Создано",
@@ -3864,7 +3896,7 @@
           "failed": "Ошибка",
           "in_flight": "В процессе",
           "paid": "Оплачен",
-          "pending_review": "Ожидает review",
+          "pending_review": "Ожидает проверка",
           "queued": "В очереди"
         },
         "loading": "Загружаем payout history...",
@@ -3876,14 +3908,14 @@
         "legal": "Открыть contracts & legal",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите statements, payout account posture, reserves и settlement readiness для partner workspace.",
+      "metaDescription": "Смотрите statements, payout account posture, reserves и settlement готовность для partner рабочая область.",
       "metaTitle": "Finance - Ozoxy Partner Portal",
       "modes": {
-        "blocked": "Finance visibility остаётся доступной, но payout-bearing actions заблокированы, пока не будут сняты readiness или governance issues.",
-        "full": "Workspace может использовать полный finance surface для review statements и visibility payout-readiness.",
-        "history_only": "Workspace может просматривать исторические finance records, но активные finance operations больше недоступны.",
-        "onboarding": "Probation открывает finance onboarding: настройка payout profile, preview statement и forecast posture становятся видимыми до execution.",
-        "review": "Finance остаётся в review-only posture, пока workspace не войдёт в probation или active settlement flows."
+        "blocked": "Finance visibility остаётся доступной, но payout-bearing actions заблокированы, пока не будут сняты готовность или governance issues.",
+        "full": "рабочая область может использовать полный finance раздел для проверка statements и visibility payout-готовность.",
+        "history_only": "рабочая область может просматривать исторические finance records, но активные finance operations больше недоступны.",
+        "onboarding": "Probation открывает finance onboarding: настройка payout profile, pпроверка statement и forecast posture становятся видимыми до execution.",
+        "review": "Finance остаётся в проверка-only posture, пока рабочая область не войдёт в probation или active settlement flows."
       },
       "snapshot": {
         "available": "Доступный earnings",
@@ -3894,19 +3926,19 @@
       "statements": {
         "available": "Доступно",
         "description": "Видимость statements остаётся partner-facing и explainable без раскрытия внутренних payout execution или reserve override controls.",
-        "emptyState": "Для этого workspace пока нет видимой истории statements.",
+        "emptyState": "Для этого рабочая область пока нет видимой истории statements.",
         "gross": "Gross",
         "net": "Net",
         "onHold": "На холде",
         "title": "Statements"
       },
-      "subtitle": "PP5 даёт workspace реальную finance surface: visibility statement, posture payout-account, reserves и объяснимые blocked finance states.",
+      "subtitle": "PP5 даёт рабочая область реальную finance раздел: visibility statement, posture payout-account, reserves и объяснимые blocked finance states.",
       "summary": {
         "accounts": "Payout accounts",
-        "financeReadiness": "Finance readiness",
+        "financeReadiness": "Finance готовность",
         "history": "Записи payout history",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface"
+        "surfaceMode": "Режим раздел"
       },
       "title": "Finance"
     },
@@ -3923,7 +3955,7 @@
         "binding": "Telegram binding: {value}",
         "bindingPending": "ещё не привязан",
         "createBotKeyPlaceholder": "bot key",
-        "createDescriptionPlaceholder": "Короткое branded-описание для профиля бота и launch surfaces.",
+        "createDescriptionPlaceholder": "Короткое branded-описание для профиля бота и launch разделы.",
         "createDisplayNamePlaceholder": "display name",
         "createError": "Не удалось создать draft partner bot.",
         "createHelp": "Сначала создайте branded bot record, затем поставьте provisioning или manual-token onboarding в очередь.",
@@ -3936,8 +3968,8 @@
         "createSuccess": "Draft partner bot создан.",
         "createTitle": "Создать draft bot",
         "defaultLocale": "Локаль по умолчанию: {value}",
-        "description": "Это первый inventory slice для white-label runtime: записи брендированных Telegram-ботов, путь provisioning и текущий launch status активного workspace.",
-        "empty": "Для этого workspace пока не создано ни одного partner bot.",
+        "description": "Это первый inventory slice для white-label runtime: записи брендированных Telegram-ботов, путь provisioning и текущий launch status активного рабочая область.",
+        "empty": "Для этого рабочая область пока не создано ни одного partner bot.",
         "lastError": "Последняя ошибка provisioning: {value}",
         "lastReasonCode": "Последний reason code job: {value}",
         "latestJob": "Последний provisioning job: {value}",
@@ -3959,7 +3991,7 @@
         "title": "Partner bots",
         "tokenStatus": "Статус токена: {value}",
         "updatedAt": "Обновлено: {value}",
-        "workspaceRequired": "Выберите workspace перед созданием partner bot."
+        "workspaceRequired": "Выберите рабочая область перед созданием partner bot."
       },
       "capabilities": {
         "items": {
@@ -3988,12 +4020,12 @@
         "reseller": "Открыть reseller console",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите partner-side tokens, postbacks, webhook delivery и technical readiness posture для workspace.",
+      "metaDescription": "Смотрите partner-side tokens, postbacks, webhook delivery и technical готовность posture для рабочая область.",
       "metaTitle": "Integrations - Ozoxy Partner Portal",
       "modes": {
-        "blocked": "История integrations остаётся видимой, но launch-sensitive technical controls ограничены readiness или governance.",
+        "blocked": "История integrations остаётся видимой, но launch-sensitive technical controls ограничены готовность или governance.",
         "selected": "Выбранные creator use cases могут видеть ограниченные integrations, но более широкие technical operations остаются gated.",
-        "technical": "Workspace может использовать technical partner surface для diagnostics, token posture и visibility integration delivery."
+        "technical": "рабочая область может использовать technical partner раздел для diagnostics, token posture и visibility integration delivery."
       },
       "readiness": {
         "cards": {
@@ -4007,21 +4039,21 @@
           "pendingCount": "В очереди или в работе: {value}",
           "postback": "Postback"
         },
-        "description": "Phase 5 делает posture white-label launch явной: readiness managed-bot, manual token fallback и delivery postback теперь видны прямо на partner surface, а не только во внутренних operator workflows.",
-        "error": "Контракт postback readiness сейчас недоступен.",
-        "loading": "Загружаем readiness для postback и provisioning...",
-        "noNotes": "Для текущего readiness posture дополнительных operator notes нет.",
+        "description": "Phase 5 делает posture white-label launch явной: готовность managed-bot, manual token fallback и delivery postback теперь видны прямо на partner раздел, а не только во внутренних operator workflows.",
+        "error": "Контракт postback готовность сейчас недоступен.",
+        "loading": "Загружаем готовность для postback и provisioning...",
+        "noNotes": "Для текущего готовность posture дополнительных operator notes нет.",
         "notes": {
           "managed_path_operator_handoff": "Создание managed-bot всё ещё требует operator-mediated Telegram binding, прежде чем этот путь можно считать полностью live.",
           "manual_path_available": "Manual token onboarding остаётся доступным fallback launch path для партнёров, которым нужен более быстрый handoff.",
           "operator_attention_required": "Как минимум один бот всё ещё требует operator follow-up, прежде чем launch posture станет чистой.",
-          "postback_blocked": "Postback readiness заблокирован, поэтому launch-sensitive automation остаётся ограниченной.",
-          "postback_under_review": "Postback readiness всё ещё на review, поэтому click-tracking и promotion delivery остаются conditional."
+          "postback_blocked": "Postback готовность заблокирован, поэтому launch-sensitive automation остаётся ограниченной.",
+          "postback_under_review": "Postback готовность всё ещё на проверка, поэтому click-tracking и promotion delivery остаются conditional."
         },
         "notesTitle": "Заметки для операторов",
         "postbackCredential": "Статус credential",
         "postbackDelivery": "Статус delivery",
-        "postbackStatus": "Статус readiness",
+        "postbackStatus": "Статус готовность",
         "postbackTitle": "Postback posture",
         "snapshot": {
           "activeBots": "Активные боты",
@@ -4029,24 +4061,24 @@
           "scope": "Tracking scope",
           "suspendedBots": "Приостановленные боты"
         },
-        "title": "Provisioning readiness"
+        "title": "Provisioning готовность"
       },
-      "subtitle": "PP6 открывает техническую operating surface: reporting tokens, postback credentials, webhook delivery logs и ограниченные diagnostics по lane.",
+      "subtitle": "PP6 открывает техническую operating раздел: reporting tokens, postback credentials, webhook delivery logs и ограниченные diagnostics по lane.",
       "summary": {
         "bots": "Боты",
         "credentials": "Credentials",
         "routeAccess": "Доступ к route",
-        "surfaceMode": "Режим surface",
-        "technicalReadiness": "Technical readiness"
+        "surfaceMode": "Режим раздел",
+        "technicalReadiness": "Technical готовность"
       },
       "title": "Integrations",
       "widgets": {
         "description": "Phase 5 открывает первый partner-facing slice для trust widgets: approved public network card на основе sanitized snapshot data, готовый для iframe embeds.",
         "embedCodeTitle": "Код для вставки",
-        "error": "Контракт preview виджета сейчас недоступен.",
-        "loading": "Загружаем posture preview виджета...",
+        "error": "Контракт pпроверка виджета сейчас недоступен.",
+        "loading": "Загружаем posture pпроверка виджета...",
         "openLivePreview": "Открыть standalone виджет",
-        "previewTitle": "Live preview виджета",
+        "previewTitle": "Live pпроверка виджета",
         "runtimeHint": "Санитизированный public proof",
         "snapshot": {
           "availability": "Доступность",
@@ -4063,7 +4095,7 @@
         "acceptAction": "Принять документ",
         "acceptancePending": "Ожидает акцепта",
         "acceptedBy": "Принято ролью: {role}",
-        "description": "Эти карточки теперь приходят из канонического workspace legal contract и отражают acceptance state, зафиксированный на backend.",
+        "description": "Эти карточки теперь приходят из канонического рабочая область legal contract и отражают acceptance state, зафиксированный на backend.",
         "title": "Набор legal documents",
         "version": "Версия: {value}"
       },
@@ -4074,19 +4106,19 @@
         "settings": "Открыть settings",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Проверьте legal documents, policy acceptance state и owner-level contract responsibilities для partner workspace.",
+      "metaDescription": "Проверьте legal documents, policy acceptance state и owner-level contract responsibilities для partner рабочая область.",
       "metaTitle": "Contracts & Legal - Ozoxy Partner Portal",
       "ownerActions": {
-        "allowed": "Эта роль может выполнять узкие owner-level действия, которые остаются чувствительными даже при делегированном workspace.",
+        "allowed": "Эта роль может выполнять узкие owner-level действия, которые остаются чувствительными даже при делегированном рабочая область.",
         "blocked": "Эта роль может просматривать документы и policy history, но owner-level legal actions остаются ограниченными.",
         "items": {
           "contracts": "Финальное принятие contract, где policy требует owner authority.",
           "payoutDestination": "Изменения settlement destination, которые меняют payout ownership.",
-          "termination": "Запросы на termination workspace или завершение отношений."
+          "termination": "Запросы на termination рабочая область или завершение отношений."
         },
         "title": "Owner-level действия"
       },
-      "subtitle": "Contracts, payout terms, policy history и owner-level responsibilities теперь живут в одной отдельной legal surface, а не растекаются по generic settings.",
+      "subtitle": "Contracts, payout terms, policy history и owner-level responsibilities теперь живут в одной отдельной legal раздел, а не растекаются по generic settings.",
       "summary": {
         "currentRole": "Текущая роль",
         "pending": "Документы в ожидании",
@@ -4096,7 +4128,7 @@
     },
     "notifications": {
       "blockedStates": {
-        "description": "Readiness overlays остаются отдельными от canonical status. Используйте эти объяснения, чтобы понять, почему модуль ограничен, даже если workspace всё ещё существует.",
+        "description": "готовность overlays остаются отдельными от canonical status. Используйте эти объяснения, чтобы понять, почему модуль ограничен, даже если рабочая область всё ещё существует.",
         "links": {
           "application": "Открыть application",
           "cases": "Открыть support & cases"
@@ -4107,16 +4139,16 @@
       "feed": {
         "actionRequired": "Требует действия",
         "archive": "Архивировать",
-        "description": "Inbox теперь читает канонические backend events для review, finance, compliance и governed changes workspace.",
-        "empty": "Для текущего workspace и роли сейчас нет активных уведомлений.",
+        "description": "Inbox теперь читает канонические backend events для проверка, finance, compliance и governed changes рабочая область.",
+        "empty": "Для текущего рабочая область и роли сейчас нет активных уведомлений.",
         "markRead": "Отметить прочитанным",
         "open": "Открыть раздел",
         "title": "Лента inbox",
         "unread": "Не прочитано"
       },
-      "metaDescription": "Проверьте inbox events, workflow reminders и объяснения blocked states для partner workspace.",
+      "metaDescription": "Проверьте inbox events, workflow reminders и объяснения blocked states для partner рабочая область.",
       "metaTitle": "Inbox - Ozoxy Partner Portal",
-      "subtitle": "Inbox теперь стал реальной partner surface: review changes, blocked-state reminders, finance signals и probation notices собраны в одном feed.",
+      "subtitle": "Inbox теперь стал реальной partner раздел: проверка changes, blocked-state reminders, finance signals и probation notices собраны в одном feed.",
       "summary": {
         "actionRequired": "Требует действия",
         "total": "Всего уведомлений",
@@ -4129,7 +4161,7 @@
         "reset": "Сбросить Изменения",
         "save": "Сохранить Профиль"
       },
-      "eyebrow": "WORKSPACE ORGANIZATION PROFILE",
+      "eyebrow": "рабочая область ORGANIZATION PROFILE",
       "fields": {
         "acquisitionChannels": "Acquisition channels",
         "businessDescription": "Описание бизнеса",
@@ -4143,7 +4175,7 @@
         "supportContact": "Support contact",
         "technicalContact": "Technical contact",
         "website": "Сайт или storefront",
-        "workspaceName": "Название workspace / бизнеса"
+        "workspaceName": "Название рабочая область / бизнеса"
       },
       "laneSummary": {
         "creator_affiliate": "Creator / Affiliate",
@@ -4152,11 +4184,11 @@
       },
       "links": {
         "application": "Открыть application",
-        "programs": "Открыть programs surface",
+        "programs": "Открыть programs раздел",
         "settings": "Открыть settings",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Управляйте каноническим organization profile, operating regions и ключевыми контактами активного partner workspace.",
+      "metaDescription": "Управляйте каноническим organization profile, operating regions и ключевыми контактами активного partner рабочая область.",
       "metaTitle": "Organization - Ozoxy Partner Portal",
       "placeholders": {
         "acquisitionChannels": "SEO content, Telegram channels, newsletters, communities, paid media...",
@@ -4167,40 +4199,42 @@
         "financeContact": "finance@example.com",
         "languages": "English, German, Russian",
         "operatingRegions": "DACH, Nordics, UK",
-        "primaryLane": "Сначала выберите lane на application surface",
+        "primaryLane": "Сначала выберите lane на application раздел",
         "supportContact": "support@example.com",
         "technicalContact": "tech@example.com",
         "website": "https://example.com",
         "workspaceName": "North Star Growth Studio"
       },
       "readiness": {
-        "description": "Organization profile теперь является backend-owned surface для review, routing, finance и support flows.",
+        "description": "Organization profile теперь является backend-owned раздел для проверка, routing, finance и support flows.",
         "items": {
-          "channels": "Сохранять business и channel context для review, compliance и analytics surfaces.",
+          "channels": "Сохранять business и channel context для проверка, compliance и analytics разделы.",
           "contacts": "Поддерживать named contacts для support, technical и finance operations.",
-          "geo": "Держать регионы и языки актуальными для lane review и routing.",
-          "workspace": "Держать identity активного workspace синхронизированной с business profile."
+          "geo": "Держать регионы и языки актуальными для lane проверка и routing.",
+          "workspace": "Держать identity активного рабочая область синхронизированной с business profile."
         },
         "title": "Почему это важно"
       },
       "readOnlyMode": "Эта роль может только просматривать organization profile без редактирования.",
       "saveFeedback": {
-        "error": "Не удалось сохранить organization profile workspace.",
-        "saved": "Organization profile workspace сохранён."
+        "error": "Не удалось сохранить organization profile рабочая область.",
+        "saved": "Organization profile рабочая область сохранён."
       },
       "status": {
         "foundation": "Canonical Profile"
       },
-      "subtitle": "Эта поверхность хранит канонический organization profile активного workspace и держит identity, contacts и operating context синхронизированными с backend truth.",
+      "subtitle": "Эта поверхность хранит канонический organization profile активного рабочая область и держит identity, contacts и operating context синхронизированными с backend truth.",
       "summary": {
-        "notSaved": "Для этого workspace profile пока не зафиксировано ни одного backend-сохранения.",
+        "notSaved": "Для этого рабочая область profile пока не зафиксировано ни одного backend-сохранения.",
         "profileCoverage": "Покрытие профиля",
-        "reviewPending": "Application draft всё ещё требует дополнительных organization-данных перед review.",
-        "reviewReady": "Application draft сейчас отмечен как готовый к review.",
+        "reviewPending": "Application draft всё ещё требует дополнительных organization-данных перед проверка.",
+        "reviewReady": "Application draft сейчас отмечен как готовый к проверка.",
         "savedAt": "Последнее сохранение: {value}"
       },
       "title": "Organization Profile"
     },
+    "pageDescription": "Управляйте партнёрскими кодами и отслеживайте доход",
+    "pageTitle": "Партнёрский дашборд - CyberVPN",
     "portalState": {
       "accessibleSectionsLabel": "Доступные разделы",
       "analyticsMetricKeys": {
@@ -4221,7 +4255,7 @@
         "full": "Полная analytics",
         "history_only": "Только история analytics",
         "lite": "Облегчённая analytics",
-        "review": "Только review analytics"
+        "review": "Только проверка analytics"
       },
       "blockedOutcomes": {
         "compliance": {
@@ -4229,12 +4263,12 @@
           "title": "Blocked pending compliance"
         },
         "finance": {
-          "description": "Workspace может оставаться видимым, но payout actions и finance expansion заблокированы, пока payout onboarding не завершён.",
+          "description": "рабочая область может оставаться видимым, но payout actions и finance expansion заблокированы, пока payout onboarding не завершён.",
           "title": "Blocked pending finance"
         },
         "technical": {
           "description": "Integrations и launch tooling остаются ограниченными, пока technical setup и validation не завершены.",
-          "title": "Blocked pending technical readiness"
+          "title": "Blocked pending technical готовность"
         }
       },
       "campaignChannels": {
@@ -4248,7 +4282,7 @@
         "approval_required": "Нужен approval",
         "approved": "Одобрено",
         "available": "Доступно",
-        "in_review": "На review",
+        "in_review": "На проверка",
         "restricted": "Ограничено"
       },
       "capabilityAvailability": {
@@ -4258,15 +4292,15 @@
       },
       "caseKinds": {
         "application_review": {
-          "description": "Основной review-thread между workspace и partner ops.",
-          "title": "Тред review заявки"
+          "description": "Основной проверка-thread между рабочая область и partner ops.",
+          "title": "Тред проверка заявки"
         },
         "attribution_dispute": {
           "description": "Этот кейс ведёт вопросы explainability, споры об ownership и follow-up с partner ops.",
           "title": "Attribution dispute"
         },
         "compliance_followup": {
-          "description": "Compliance и governance signals остаются видимыми во время probation и review.",
+          "description": "Compliance и governance signals остаются видимыми во время probation и проверка.",
           "title": "Compliance follow-up"
         },
         "finance_onboarding": {
@@ -4282,7 +4316,7 @@
           "title": "Цикл requested info"
         },
         "restriction_notice": {
-          "description": "Governance или finance issue сейчас сокращает возможности workspace.",
+          "description": "Governance или finance issue сейчас сокращает возможности рабочая область.",
           "title": "Уведомление об ограничении"
         },
         "statement_question": {
@@ -4324,7 +4358,7 @@
         "controlled": "Контролируемый запуск",
         "full": "Полный lane scope",
         "read_only": "Только чтение / remediation",
-        "review": "Через review",
+        "review": "Через проверка",
         "starter": "Стартовый запуск"
       },
       "complianceStates": {
@@ -4346,7 +4380,7 @@
         "action_required": "Нужно действие",
         "blocked": "Заблокировано",
         "complete": "Готово",
-        "under_review": "На review"
+        "under_review": "На проверка"
       },
       "conversionKinds": {
         "chargeback": "Chargeback",
@@ -4372,14 +4406,14 @@
       "customerScopes": {
         "masked": "Маскированный customer scope",
         "storefront_scoped": "Storefront-scoped customer view",
-        "workspace_scoped": "Workspace-scoped customer view"
+        "workspace_scoped": "ограниченный рабочей областью customer view"
       },
       "financeModes": {
         "blocked": "Finance заблокирован",
         "full": "Полная finance visibility",
         "history_only": "Только история finance",
         "onboarding": "Finance onboarding",
-        "review": "Только finance review"
+        "review": "Только finance проверка"
       },
       "financeStatementStatuses": {
         "blocked": "Заблокировано",
@@ -4438,7 +4472,7 @@
         "declined": "Отклонён",
         "not_applied": "Не запрошен",
         "paused": "Приостановлен",
-        "pending": "На review",
+        "pending": "На проверка",
         "suspended": "Заблокирован",
         "terminated": "Завершён"
       },
@@ -4457,39 +4491,39 @@
       "noLane": "Lane не выбран",
       "notificationKinds": {
         "application_approved_probation": {
-          "description": "Workspace может перейти в ограниченный governed launch path, оставаясь под review controls.",
+          "description": "рабочая область может перейти в ограниченный governed launch path, оставаясь под проверка controls.",
           "title": "Выдан probation approval"
         },
         "application_needs_info": {
-          "description": "Partner ops запросили дополнительный profile, traffic или compliance context перед продолжением review.",
+          "description": "Partner ops запросили дополнительный profile, traffic или compliance context перед продолжением проверка.",
           "title": "По заявке нужны дополнительные данные"
         },
         "application_rejected": {
-          "description": "Текущая application закрыта, и workspace остаётся вне active partner surface.",
+          "description": "Текущая application закрыта, и рабочая область остаётся вне active partner раздел.",
           "title": "Заявка отклонена"
         },
         "application_submitted": {
-          "description": "Staged application готов, и partner-facing review loop может начаться.",
-          "title": "Заявка staged for review"
+          "description": "Staged application готов, и partner-facing цикл проверки может начаться.",
+          "title": "Заявка staged for проверка"
         },
         "application_waitlisted": {
-          "description": "Активация отложена по причинам fit, timing или capacity, но workspace не отклонён.",
+          "description": "Активация отложена по причинам fit, timing или capacity, но рабочая область не отклонён.",
           "title": "Заявка waitlisted"
         },
         "case_created": {
-          "description": "Для этого workspace активирован governed support или operational case.",
+          "description": "Для этого рабочая область активирован governed support или operational case.",
           "title": "Открыт case"
         },
         "case_reply_received": {
-          "description": "В активном partner case появился новый ответ от reviewer или ops.",
+          "description": "В активном partner case появился новый ответ от проверкаer или ops.",
           "title": "Получен ответ по case"
         },
         "finance_blocked": {
-          "description": "Payout actions остаются заблокированными, пока finance readiness не будет восстановлен.",
+          "description": "Payout actions остаются заблокированными, пока finance готовность не будет восстановлен.",
           "title": "Finance actions заблокированы"
         },
         "governance_action_applied": {
-          "description": "Ограничения workspace изменились, и partner-facing surface теперь сужена.",
+          "description": "Ограничения рабочая область изменились, и partner-facing раздел теперь сужена.",
           "title": "Применено governance action"
         },
         "integration_delivery_failed": {
@@ -4497,7 +4531,7 @@
           "title": "Сбой integration delivery"
         },
         "lane_membership_changed": {
-          "description": "Одобрение или decline lane изменили governed commercial surface этого workspace.",
+          "description": "Одобрение или decline lane изменили governed commercial раздел этого рабочая область.",
           "title": "Изменён lane membership"
         },
         "legal_acceptance_required": {
@@ -4509,44 +4543,44 @@
           "title": "Запрошена дополнительная информация"
         },
         "payout_blocked": {
-          "description": "Finance или governance posture блокируют payout execution до восстановления readiness.",
+          "description": "Finance или governance posture блокируют payout execution до восстановления готовность.",
           "title": "Payout заблокирован"
         },
         "payout_profile_needed": {
-          "description": "Finance onboarding обязателен, прежде чем workspace сможет полноценно проводить settlement.",
+          "description": "Finance onboarding обязателен, прежде чем рабочая область сможет полноценно проводить settlement.",
           "title": "Нужен payout profile"
         },
         "probation_started": {
-          "description": "Workspace может идти по ограниченному launch path, оставаясь governed.",
+          "description": "рабочая область может идти по ограниченному launch path, оставаясь governed.",
           "title": "Probation начат"
         },
         "review_in_progress": {
-          "description": "Заявка снова у partner ops и сейчас находится в review.",
-          "title": "Review в процессе"
+          "description": "Заявка снова у partner ops и сейчас находится в проверка.",
+          "title": "проверка в процессе"
         },
         "review_request_opened": {
           "description": "Requested-information task открыт и теперь требует partner response.",
-          "title": "Открыт review request"
+          "title": "Открыт запрос проверки"
         },
         "statement_ready": {
           "description": "Settlement statement закрыт и теперь доступен в finance.",
           "title": "Statement готов"
         },
         "waitlisted": {
-          "description": "Workspace не отклонён, но активация отложена по причинам fit, timing или capacity.",
+          "description": "рабочая область не отклонён, но активация отложена по причинам fit, timing или capacity.",
           "title": "Заявка waitlisted"
         },
         "workspace_active": {
-          "description": "Governed activation path завершён, и workspace может работать с полной active-surface visibility.",
-          "title": "Workspace активен"
+          "description": "Governed activation path завершён, и рабочая область может работать с полной active-раздел visibility.",
+          "title": "рабочая область активен"
         },
         "workspace_draft": {
-          "description": "Workspace уже существует, но application ещё не вошёл в governed review.",
-          "title": "Черновик workspace создан"
+          "description": "рабочая область уже существует, но application ещё не вошёл в governed проверка.",
+          "title": "Черновик рабочая область создан"
         },
         "workspace_restricted": {
-          "description": "Governance и finance signals сократили текущую operational surface.",
-          "title": "Workspace ограничен"
+          "description": "Governance и finance signals сократили текущую operational раздел.",
+          "title": "рабочая область ограничен"
         }
       },
       "notSaved": "Runtime-снимок пока недоступен.",
@@ -4563,16 +4597,16 @@
       "payoutAccountStatuses": {
         "blocked": "Заблокировано",
         "missing": "Отсутствует",
-        "pending_review": "На review",
+        "pending_review": "На проверка",
         "ready": "Готово"
       },
       "readinessLabels": {
-        "compliance": "Compliance readiness",
-        "finance": "Finance readiness",
+        "compliance": "Compliance готовность",
+        "finance": "Finance готовность",
         "governance": "Governance state",
-        "technical": "Technical readiness"
+        "technical": "Technical готовность"
       },
-      "releaseRingLabel": "Release ring",
+      "releaseRingLabel": "кольцо выпуска",
       "releaseRings": {
         "R0": "R0 Внутренний scaffold",
         "R1": "R1 Applicant-safe launch",
@@ -4597,13 +4631,13 @@
         "operational": "Operational reseller console"
       },
       "resellerStorefrontStatuses": {
-        "in_review": "На review",
+        "in_review": "На проверка",
         "ready": "Готово",
         "restricted": "Ограничено"
       },
       "reviewRequestKinds": {
         "business_profile": {
-          "description": "Partner ops нужен более полный контекст по профилю workspace, сайту и fit аудитории.",
+          "description": "Partner ops нужен более полный контекст по профилю рабочая область, сайту и fit аудитории.",
           "title": "Расширить business profile"
         },
         "finance_profile": {
@@ -4611,7 +4645,7 @@
           "title": "Заполнить finance profile"
         },
         "owned_channels": {
-          "description": "Добавьте рабочие owned properties, social links или creator surfaces, которые можно проверить.",
+          "description": "Добавьте рабочие owned properties, social links или creator разделы, которые можно проверить.",
           "title": "Подтвердить owned channels"
         },
         "support_ownership": {
@@ -4642,17 +4676,17 @@
       },
       "sectionAccess": {
         "applicationLink": "Открыть application",
-        "banner": "Этот раздел сейчас {access}, потому что workspace находится в статусе {status}.",
-        "blockedDescription": "{section} сейчас недоступен для текущего состояния workspace. Держите applicant-safe loop в application, cases и inbox, пока статус не продвинется дальше.",
+        "banner": "Этот раздел сейчас {access}, потому что рабочая область находится в статусе {status}.",
+        "blockedDescription": "{section} сейчас недоступен для текущего состояния рабочая область. Держите applicant-safe loop в application, cases и inbox, пока статус не продвинется дальше.",
         "casesLink": "Открыть support & cases",
         "currentAccessLabel": "Текущий доступ к route",
-        "currentReleaseRingLabel": "Текущий release ring",
-        "currentStatusLabel": "Текущий статус workspace",
+        "currentReleaseRingLabel": "Текущий кольцо выпуска",
+        "currentStatusLabel": "Текущий статус рабочая область",
         "dashboardLink": "Открыть dashboard",
         "notificationsLink": "Открыть inbox",
-        "releaseRingBlockedDescription": "{section} удерживается текущим portal release ring. Модуль откроется после того, как rollout перейдёт с {currentRing} на {requiredRing}.",
+        "releaseRingBlockedDescription": "{section} удерживается текущим portal кольцо выпуска. Модуль откроется после того, как rollout перейдёт с {currentRing} на {requiredRing}.",
         "requiredAccessLabel": "Раздел открывается на этапе",
-        "requiredReleaseRingLabel": "Release ring модуля",
+        "requiredReleaseRingLabel": "кольцо выпуска модуля",
         "roleBlockedDescription": "{section} сейчас недоступен для роли {role}. Переключите роль на имеющую доступ или продолжайте работу через dashboard и settings.",
         "settingsLink": "Открыть settings"
       },
@@ -4672,7 +4706,7 @@
         "constrained": "Constrained",
         "pre_submit": "До submit",
         "probation": "Probation",
-        "review": "Review",
+        "review": "проверка",
         "terminal": "Terminal"
       },
       "workflowActionKinds": {
@@ -4680,7 +4714,7 @@
         "partner_reply": "Ответ партнёра в треде",
         "partner_response_submitted": "Ответ партнёра отправлен"
       },
-      "workspaceRoleLabel": "Роль workspace",
+      "workspaceRoleLabel": "Роль рабочая область",
       "workspaceRoles": {
         "analyst": "Analyst",
         "finance_manager": "Finance Manager",
@@ -4688,8 +4722,8 @@
         "support_manager": "Support Manager",
         "technical_manager": "Technical Manager",
         "traffic_manager": "Traffic Manager",
-        "workspace_admin": "Workspace Admin",
-        "workspace_owner": "Workspace Owner"
+        "workspace_admin": "администратор рабочей области",
+        "workspace_owner": "владелец рабочей области"
       },
       "workspaceStatuses": {
         "active": "Активен",
@@ -4702,44 +4736,44 @@
         "submitted": "Отправлено",
         "suspended": "Приостановлен",
         "terminated": "Завершён",
-        "under_review": "На review",
+        "under_review": "На проверка",
         "waitlisted": "Waitlisted"
       },
-      "workspaceStatusLabel": "Статус workspace"
+      "workspaceStatusLabel": "Статус рабочая область"
     },
     "programs": {
       "actions": {
         "items": {
           "manager": "Показывать owner и manager context до запуска более глубоких workflow.",
           "restrictions": "Показывать blockers, probation и rollout warnings рядом с каждым lane.",
-          "status": "Держать per-lane status отдельно от единого workspace flag."
+          "status": "Держать per-lane status отдельно от единого рабочая область flag."
         },
         "readOnly": "Эта роль может просматривать backend-owned lane posture, но write actions остаются в delegated owner, admin или traffic workflows.",
         "title": "Program actions",
-        "writeAllowed": "Эта роль может разбирать backend-owned lane posture и использовать связанные workspace surfaces для прогресса по finance, compliance и support задачам."
+        "writeAllowed": "Эта роль может разбирать backend-owned lane posture и использовать связанные рабочая область разделы для прогресса по finance, compliance и support задачам."
       },
       "eyebrow": "PP3 PROGRAMS И LANE MEMBERSHIPS",
       "laneApplications": {
-        "description": "Запрашивайте дополнительный lane access через канонический backend review flow, а не через локальные или email-only handoff’ы.",
-        "empty": "Для этого workspace пока не зафиксировано ни одной lane application.",
-        "placeholder": "Опишите business case, launch intent, traffic posture и почему этот lane должен быть открыт для workspace.",
+        "description": "Запрашивайте дополнительный lane access через канонический backend процесс проверки, а не через локальные или email-only handoff’ы.",
+        "empty": "Для этого рабочая область пока не зафиксировано ни одной lane application.",
+        "placeholder": "Опишите business case, launch intent, traffic posture и почему этот lane должен быть открыт для рабочая область.",
         "readOnly": "Эта роль может просматривать lane applications, но новые запросы остаются ограничены owner, admin или делегированными operator roles.",
-        "submitAction": "Запросить review lane",
+        "submitAction": "Запросить проверка lane",
         "submitError": "Не удалось отправить lane application.",
         "submitSuccess": "Lane application отправлена для {lane}.",
         "submitting": "Отправка...",
         "title": "Lane applications",
         "updatedAt": "Обновлено: {value}",
-        "workspaceRequired": "Выберите workspace перед запросом lane."
+        "workspaceRequired": "Выберите рабочая область перед запросом lane."
       },
       "lanes": {
         "blockingTitle": "Blocking reasons",
         "cohortStatus": "Pilot cohort: {value}",
-        "description": "Lane posture остаётся отдельной от workspace status, чтобы review, probation, activation и restrictions были объяснимыми из backend-owned contracts.",
-        "empty": "Для текущего состояния workspace канонические lane memberships пока недоступны.",
+        "description": "Lane posture остаётся отдельной от статус рабочей области, чтобы проверка, probation, activation и restrictions были объяснимыми из backend-owned contracts.",
+        "empty": "Для текущего состояния рабочая область канонические lane memberships пока недоступны.",
         "ownerContext": "Owner context: {value}",
-        "readinessEmpty": "Для этого lane пока нет дополнительных readiness notes.",
-        "readinessTitle": "Readiness notes",
+        "readinessEmpty": "Для этого lane пока нет дополнительных готовность notes.",
+        "readinessTitle": "готовность notes",
         "restrictionsTitle": "Restriction posture",
         "title": "Lane memberships",
         "warningsTitle": "Warnings"
@@ -4749,22 +4783,22 @@
         "legal": "Открыть contracts & legal",
         "organization": "Открыть organization",
         "title": "Связанные поверхности",
-        "workspaceContext": "Контекст workspace: {value}"
+        "workspaceContext": "Контекст рабочая область: {value}"
       },
-      "metaDescription": "Проверьте канонические lane memberships, readiness posture, manager context и rollout blockers для partner workspace.",
+      "metaDescription": "Проверьте канонические lane memberships, готовность posture, manager context и rollout blockers для partner рабочая область.",
       "metaTitle": "Programs - Ozoxy Partner Portal",
       "readiness": {
         "description": "Finance, compliance и technical posture остаются backend-owned, чтобы решения по pilot и lane не схлопывались в локальные UI heuristics.",
         "lastUpdated": "Последнее каноническое обновление: {value}",
-        "title": "Workspace readiness"
+        "title": "рабочая область готовность"
       },
-      "subtitle": "Programs становится канонической lane-operations surface: она отделяет lane posture, rollout readiness и owner context от общих workspace settings.",
+      "subtitle": "Programs становится канонической lane-operations раздел: она отделяет lane posture, rollout готовность и owner context от общих настройки рабочей области.",
       "summary": {
         "canonicalSource": "Канонический источник",
         "currentLane": "Текущий lane",
         "currentRole": "Текущая роль",
         "routeAccess": "Доступ к route",
-        "workspaceStatus": "Статус workspace"
+        "workspaceStatus": "Статус рабочая область"
       },
       "title": "Programs"
     },
@@ -4773,7 +4807,7 @@
         "items": {
           "customer_scope": "Customer scope",
           "linked_domains": "Связанные domains",
-          "pricebook_preview": "Preview pricebook",
+          "pricebook_preview": "Pпроверка pricebook",
           "storefront_scope": "Storefront scope",
           "support_ownership": "Support ownership",
           "technical_health": "Technical health"
@@ -4787,9 +4821,9 @@
         },
         "contractTitle": "Storefront contract",
         "description": "Рассчитывайте выбранный storefront contract и effective catalog в read-only режиме до отправки live traffic партнёром.",
-        "empty": "Для этого reseller workspace пока не назначен storefront.",
+        "empty": "Для этой рабочей области reseller пока не назначен storefront.",
         "entryPath": "Entry path",
-        "error": "Не удалось загрузить reseller commercial preview.",
+        "error": "Не удалось загрузить коммерческий предпросмотр reseller.",
         "metrics": {
           "billingPeriods": "Billing periods",
           "currency": "Валюта",
@@ -4798,8 +4832,8 @@
         },
         "partnerCode": "Partner code",
         "routeHost": "Route host",
-        "selectLabel": "Preview storefront",
-        "title": "Commercial preview"
+        "selectLabel": "Предпросмотр storefront",
+        "title": "Коммерческий предпросмотр"
       },
       "eyebrow": "PP6 RESELLER OPERATIONS CONSOLE",
       "links": {
@@ -4808,16 +4842,16 @@
         "integrations": "Открыть integrations",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Смотрите storefront-linked scope, domains, preview pricebook, support ownership и reseller technical posture.",
+      "metaDescription": "Смотрите storefront-linked scope, domains, pпроверка pricebook, support ownership и reseller technical posture.",
       "metaTitle": "Reseller Console - Ozoxy Partner Portal",
       "modes": {
         "constrained": "Reseller console остаётся видимым для remediation, но storefront actions, связанные с expansion, остаются ограниченными.",
-        "operational": "Reseller workspace может использовать свой storefront-linked operational console в рамках назначенного row-level scope."
+        "operational": "Reseller рабочая область может использовать свой storefront-linked operational console в рамках назначенного row-level scope."
       },
       "snapshot": {
         "customerScope": "Customer scope",
         "notAvailable": "Недоступно",
-        "pricebook": "Pricebook preview",
+        "pricebook": "Pricebook pпроверка",
         "supportOwnership": "Support ownership",
         "technicalHealth": "Technical health"
       },
@@ -4826,27 +4860,27 @@
         "supportOwner": "Ответственный за support: {value}",
         "title": "Назначенные storefronts"
       },
-      "subtitle": "PP6 открывает reseller-only operating surface: storefronts, support ownership, preview pricebook и customer scope без утечки admin-level controls.",
+      "subtitle": "PP6 открывает reseller-only operating раздел: storefronts, support ownership, pпроверка pricebook и customer scope без утечки admin-level controls.",
       "summary": {
         "routeAccess": "Доступ к route",
         "storefronts": "Storefronts",
-        "surfaceMode": "Режим surface",
+        "surfaceMode": "Режим раздел",
         "voucherBatches": "Voucher batches",
-        "workspaceStatus": "Статус workspace"
+        "workspaceStatus": "Статус рабочая область"
       },
       "title": "Reseller Console",
       "voucherBatches": {
         "batchStats": "Issued: {issued} · Redeemed: {redeemed} · Available: {available}",
         "batchTitle": "{plan} / {duration} days",
-        "description": "Approved reseller workspace может отслеживать batch-issued gift vouchers без переноса consumer invite или referral mechanics в partner portal.",
-        "empty": "Для этого reseller workspace пока не было выпущено voucher batches.",
+        "description": "Approved reseller рабочая область может отслеживать batch-issued gift vouchers без переноса consumer invite или referral mechanics в partner portal.",
+        "empty": "Для этого reseller рабочая область пока не было выпущено voucher batches.",
         "expiresAt": "Expires at: {value}",
         "title": "Voucher batches"
       },
       "voucherRequest": {
         "countLabel": "Количество vouchers",
         "countPlaceholder": "Количество voucher codes",
-        "description": "Выпускайте reseller-scoped voucher batch прямо из partner surface. Raw codes показываются один раз сразу после issuance.",
+        "description": "Выпускайте reseller-scoped voucher batch прямо из partner раздел. Raw codes показываются один раз сразу после issuance.",
         "error": "Не удалось выпустить reseller voucher batch.",
         "issuedCodesTitle": "Выпущенные коды",
         "messageLabel": "Сообщение batch",
@@ -4861,7 +4895,7 @@
         "submitting": "Выпуск...",
         "success": "Voucher batch выпущен с {count} codes.",
         "title": "Request voucher batch",
-        "workspaceRequired": "Выберите workspace перед запросом voucher batch."
+        "workspaceRequired": "Выберите рабочая область перед запросом voucher batch."
       }
     },
     "settings": {
@@ -4869,13 +4903,13 @@
         "reset": "Сбросить Settings",
         "save": "Сохранить Settings"
       },
-      "eyebrow": "WORKSPACE SETTINGS AND SECURITY",
+      "eyebrow": "настройки рабочей области AND SECURITY",
       "fields": {
         "preferredCurrency": "Предпочитаемая валюта",
         "preferredLanguage": "Предпочитаемый язык"
       },
       "identity": {
-        "description": "Используйте аутентифицированную partner session и workspace role как текущий identity read model.",
+        "description": "Используйте аутентифицированную partner session и роль в рабочей области как текущий identity read model.",
         "items": {
           "email": "Email",
           "emailVerified": "Email подтверждён",
@@ -4896,10 +4930,10 @@
         "team": "Открыть team & access",
         "title": "Связанные поверхности"
       },
-      "metaDescription": "Управляйте settings workspace, delivery preferences и operator-facing security posture активного partner workspace.",
+      "metaDescription": "Управляйте settings рабочая область, delivery preferences и operator-facing security posture активного partner рабочая область.",
       "metaTitle": "Settings - Ozoxy Partner Portal",
       "nextSteps": {
-        "description": "Workspace settings contract уже live, но часть security и delivery capabilities всё ещё зависит от следующего backend rollout.",
+        "description": "настройки рабочей области contract уже live, но часть security и delivery capabilities всё ещё зависит от следующего backend rollout.",
         "items": {
           "mfa": "Настоящий MFA setup, enforcement и audit hooks.",
           "notifications": "Server-backed delivery preferences и inbox routing.",
@@ -4912,35 +4946,35 @@
         "preferredLanguage": "ru-RU"
       },
       "preferences": {
-        "description": "Notification и delivery preferences теперь сохраняются через workspace settings contract.",
+        "description": "Notification и delivery preferences теперь сохраняются через настройки рабочей области contract.",
         "title": "Предпочтения"
       },
       "saveFeedback": {
-        "error": "Не удалось сохранить workspace settings.",
-        "saved": "Workspace settings сохранены."
+        "error": "Не удалось сохранить настройки рабочей области.",
+        "saved": "настройки рабочей области сохранены."
       },
       "security": {
-        "description": "Эти controls сохраняются как workspace security posture, даже если часть enforcement всё ещё зависит от следующих auth milestones.",
+        "description": "Эти controls сохраняются как безопасность рабочей области posture, даже если часть enforcement всё ещё зависит от следующих auth milestones.",
         "title": "Security posture"
       },
       "status": {
         "foundation": "Security Profile"
       },
-      "subtitle": "Эта поверхность теперь опирается на canonical workspace settings: identity summary, notification preferences и security posture сохраняются через backend contracts.",
+      "subtitle": "Эта поверхность теперь опирается на canonical настройки рабочей области: identity summary, notification preferences и security posture сохраняются через серверные контракты.",
       "summary": {
         "cookieModel": "Auth использует cookie-backed partner sessions; более глубокие MFA и active-session controls остаются следующими backend milestones.",
         "notSaved": "Для этих settings пока не зафиксировано ни одного backend-сохранения.",
         "savedAt": "Последнее сохранение: {value}",
-        "securityCoverage": "Security readiness"
+        "securityCoverage": "Security готовность"
       },
-      "title": "Workspace Settings",
+      "title": "настройки рабочей области",
       "toggles": {
         "payoutStatusEmails": {
-          "description": "Получать будущие finance и settlement state notifications в workspace inbox и по email.",
+          "description": "Получать будущие finance и settlement state notifications в входящие рабочей области и по email.",
           "label": "Payout status emails"
         },
         "preferPasskeys": {
-          "description": "Отметить passkeys как предпочтительный будущий способ входа для этого workspace.",
+          "description": "Отметить passkeys как предпочтительный будущий способ входа для этого рабочая область.",
           "label": "Предпочитать passkeys"
         },
         "productAnnouncements": {
@@ -4948,11 +4982,11 @@
           "label": "Program announcements"
         },
         "requireMfaForWorkspace": {
-          "description": "Зафиксировать, что workspace собирается требовать MFA, когда backend enforcement hooks появятся.",
+          "description": "Зафиксировать, что рабочая область собирается требовать MFA, когда backend enforcement hooks появятся.",
           "label": "Запланировать MFA enforcement"
         },
         "reviewedActiveSessions": {
-          "description": "Подтвердить, что workspace проверил session hygiene перед launch.",
+          "description": "Подтвердить, что рабочая область проверил session hygiene перед launch.",
           "label": "Проверить active sessions"
         },
         "workspaceSecurityAlerts": {
@@ -4961,10 +4995,11 @@
         }
       },
       "workspaceContext": {
-        "role": "Роль workspace",
-        "status": "Статус workspace"
+        "role": "Роль рабочая область",
+        "status": "Статус рабочая область"
       }
     },
+    "subtitle": "Управляйте кодами, отслеживайте доход и развивайте свою сеть",
     "supportTickets": {
       "actions": {
         "refresh": "Обновить",
@@ -4994,7 +5029,7 @@
         "sending": "Создание...",
         "subjectLabel": "Subject",
         "submit": "Создать ticket",
-        "success": "Support ticket создан для этого workspace.",
+        "success": "Support ticket создан для этого рабочая область.",
         "title": "Создать ticket"
       },
       "detail": {
@@ -5016,12 +5051,12 @@
         "replyLabel": "Public reply",
         "replySending": "Ответ...",
         "replySuccess": "Reply добавлен в support ticket.",
-        "selectPrompt": "Выберите ticket из workspace list, чтобы открыть conversation.",
+        "selectPrompt": "Выберите ticket из список рабочей области, чтобы открыть conversation.",
         "title": "Ticket detail",
         "updatedAt": "Обновлено: {value}"
       },
       "errors": {
-        "workspaceMissing": "Workspace context требуется перед действиями с support ticket."
+        "workspaceMissing": "контекст рабочей области требуется перед действиями с support ticket."
       },
       "events": {
         "category_changed": "Категория изменена",
@@ -5032,7 +5067,7 @@
         "status_changed": "Статус изменён",
         "ticket_created": "Ticket создан"
       },
-      "eyebrow": "WORKSPACE SUPPORT TICKETS",
+      "eyebrow": "тикеты поддержки рабочей области",
       "filters": {
         "allCategories": "Все категории",
         "allStatuses": "Все статусы",
@@ -5040,7 +5075,7 @@
         "statusLabel": "Статус"
       },
       "list": {
-        "title": "Workspace ticket list",
+        "title": "тикет рабочей области list",
         "updatedAt": "Обновлено: {value}"
       },
       "priorities": {
@@ -5052,12 +5087,12 @@
       "states": {
         "detailError": "Не удалось открыть этот support ticket.",
         "detailLoading": "Загрузка ticket detail...",
-        "empty": "Для этого workspace support tickets не найдены.",
-        "isolationBlocked": "Этот ticket не принадлежит активному workspace, поэтому портал не покажет его detail.",
-        "listError": "Не удалось загрузить support tickets этого workspace.",
-        "loading": "Загрузка workspace tickets...",
-        "readOnly": "Эта роль может просматривать workspace tickets, но не может создавать, отвечать, закрывать или переоткрывать их.",
-        "workspaceUnavailable": "Выберите canonical partner workspace перед использованием support tickets."
+        "empty": "Для этого тикеты поддержки рабочей области не найдены.",
+        "isolationBlocked": "Этот ticket не принадлежит активному рабочая область, поэтому портал не покажет его detail.",
+        "listError": "Не удалось загрузить support tickets этого рабочая область.",
+        "loading": "Загрузка тикеты рабочей области...",
+        "readOnly": "Эта роль может просматривать тикеты рабочей области, но не может создавать, отвечать, закрывать или переоткрывать их.",
+        "workspaceUnavailable": "Выберите canonical partner рабочая область перед использованием support tickets."
       },
       "statuses": {
         "closed": "Closed",
@@ -5066,10 +5101,10 @@
         "pending_support": "Ожидает support",
         "resolved": "Resolved"
       },
-      "subtitle": "Создавайте и ведите support tickets только для {workspace}. Internal support notes и tickets других workspace не отображаются в этой partner surface.",
+      "subtitle": "Создавайте и ведите тикеты поддержки только для {workspace}. Внутренние заметки поддержки и тикеты других рабочих областей не отображаются в этом партнёрском разделе.",
       "summary": {
         "visibleTickets": "Видимые tickets",
-        "workspace": "Workspace",
+        "workspace": "рабочая область",
         "writeAccess": "Write access",
         "writeDisabled": "Только чтение",
         "writeEnabled": "Включён"
@@ -5078,7 +5113,7 @@
     },
     "team": {
       "actions": {
-        "manageAllowed": "Эта роль может управлять составом workspace team или delegated administration внутри launch surface.",
+        "manageAllowed": "Эта роль может управлять составом команда рабочей области или delegated administration внутри launch раздел.",
         "manageBlocked": "Эта роль может только видеть состояние команды, а delegated administration остаётся у owner/admin ролей.",
         "organization": "Открыть organization",
         "settings": "Открыть settings",
@@ -5090,9 +5125,9 @@
       },
       "editor": {
         "addMember": "Добавить участника",
-        "error": "Не удалось обновить состав workspace team.",
+        "error": "Не удалось обновить состав команда рабочей области.",
         "lookupPlaceholder": "Введите email или login partner operator",
-        "saved": "Изменения workspace team сохранены."
+        "saved": "Изменения команда рабочей области сохранены."
       },
       "eyebrow": "PP3 TEAM И ACCESS",
       "launchSet": {
@@ -5100,18 +5135,18 @@
         "title": "Launch role set"
       },
       "members": {
-        "description": "Поверхность team теперь читает канонические membership records, role assignments и limited member posture из backend workspace domain.",
-        "empty": "Для текущего workspace участники пока не видны.",
-        "title": "Участники workspace"
+        "description": "Поверхность team теперь читает канонические membership records, role assignments и limited member posture из backend рабочая область domain.",
+        "empty": "Для текущего рабочая область участники пока не видны.",
+        "title": "Участники рабочая область"
       },
       "memberStatuses": {
         "active": "Активен",
         "invited": "Приглашён",
         "limited": "Ограничен"
       },
-      "metaDescription": "Проверьте участников workspace, launch roles, deferred roles и role-aware access posture для partner workspace.",
+      "metaDescription": "Проверьте участников рабочая область, launch roles, deferred roles и role-aware access posture для partner рабочая область.",
       "metaTitle": "Team & Access - Ozoxy Partner Portal",
-      "subtitle": "PP3 вводит внешний workspace RBAC layer: launch roles, deferred roles, member posture и role-aware access для operating portal.",
+      "subtitle": "PP3 вводит внешний рабочая область RBAC layer: launch roles, deferred roles, member posture и role-aware access для operating portal.",
       "summary": {
         "currentRole": "Текущая роль",
         "memberCount": "Участники",
@@ -5119,15 +5154,21 @@
       },
       "title": "Team & Access"
     },
+    "title": "ПАРТНЁРСКИЙ ДАШБОРД",
     "workspaceSwitcher": {
       "canonicalSource": "Canonical runtime",
-      "description": "Переключайте канонический workspace-контекст портала явно, без скрытой зависимости от query fallback.",
-      "inputLabel": "Выбрать активный workspace",
-      "label": "Активный workspace",
-      "sessionNote": "Выбор остаётся привязан к текущему partner host, пока вы не переключите workspace снова."
+      "description": "Переключайте канонический рабочая область-контекст портала явно, без скрытой зависимости от query fallback.",
+      "inputLabel": "Выбрать активный рабочая область",
+      "label": "Активный рабочая область",
+      "sessionNote": "Выбор остаётся привязан к текущему partner host, пока вы не переключите рабочая область снова."
     }
   },
-  "PaymentHistory": {},
+  "PaymentHistory": {
+    "history": "История платежей",
+    "noPayments": "Истории платежей пока нет",
+    "subtitle": "Просматривайте все платёжные операции",
+    "title": "ИСТОРИЯ ПЛАТЕЖЕЙ"
+  },
   "Placeholder": {
     "descriptionLine1": "Этот модуль кибер-дека сейчас в разработке.",
     "descriptionLine2": "Проверьте позже для обновлений прошивки.",
@@ -5323,35 +5364,48 @@
     },
     "title": "Privacy Policy"
   },
-  "Referral": {},
+  "Referral": {
+    "commissionRate": "Ставка комиссии",
+    "copied": "Скопировано",
+    "copy": "Копировать",
+    "noCommissions": "Комиссий пока нет",
+    "recentCommissions": "Последние комиссии",
+    "shareDescription": "Поделитесь этим кодом с друзьями, чтобы получать комиссии с их подписок",
+    "startReferring": "Начните приглашать друзей, чтобы получать комиссии.",
+    "subtitle": "Получайте комиссии за приглашение друзей",
+    "title": "РЕФЕРАЛЬНАЯ ПРОГРАММА",
+    "totalEarnings": "Общий доход",
+    "totalReferrals": "Всего рефералов",
+    "yourCode": "Ваш реферальный код"
+  },
   "Sections": {
     "common": {
       "accessStages": {
-        "activeVisible": "поверхность только для active",
-        "alwaysVisible": "всегда видимая поверхность",
-        "applicantVisible": "applicant-safe поверхность",
-        "probationVisible": "probation-safe поверхность",
-        "resellerVisible": "поверхность только для reseller"
+        "activeVisible": "доступ только для активных партнёров",
+        "alwaysVisible": "всегда видимый доступ",
+        "applicantVisible": "доступ, безопасный для заявителя",
+        "probationVisible": "доступ для испытательного периода",
+        "resellerVisible": "доступ только для реселлеров"
       },
-      "availableNow": "Доступно Сейчас",
+      "availableNow": "Доступно сейчас",
       "availableNowItems": {
-        "menuPolicy": "Status-aware видимость меню уже можно навешивать без передизайна дерева навигации.",
-        "metadata": "Раздел уже можно линковать, открывать и гейтить без изменения route-модели.",
-        "routeSlot": "Route, metadata и ownership этого раздела уже зафиксированы в канонической IA."
+        "menuPolicy": "Видимость меню с учётом статуса можно подключать без переработки дерева навигации.",
+        "metadata": "Раздел уже можно связывать, открывать и ограничивать без изменения модели маршрутов.",
+        "routeSlot": "Маршрут, метаданные и владелец раздела уже зафиксированы в канонической информационной архитектуре."
       },
-      "backendCoverage": "Поставка И Готовность",
-      "backendCoverageTemplate": "Целевая фаза {phase}. Release ring {ring}. Доступ раскрывается по статусу, роли, lane и readiness overlay.",
-      "currentState": "Текущее Состояние",
-      "currentStateTemplate": "{section} уже зарегистрирован как каноническая поверхность партнёрского портала и участвует в стабильной route-map модели.",
+      "backendCoverage": "Серверное покрытие",
+      "backendCoverageTemplate": "Целевая фаза {phase}. Релизное кольцо {ring}. Доступ раскрывается по статусу, роли, направлению и слоям готовности.",
+      "currentState": "Текущее состояние",
+      "currentStateTemplate": "{section} уже зарегистрирован как каноническая поверхность партнёрского портала и участвует в стабильной карте маршрутов.",
       "metaTitle": "{section} - Ozoxy Partner Portal",
-      "nextFocus": "Следующий Фокус",
-      "nextFocusTemplate": "Перевести {section} из scaffold в операционную глубину в рамках {phase}, начиная с режима {accessStage}.",
+      "nextFocus": "Следующий фокус",
+      "nextFocusTemplate": "Перевести {section} из каркаса в операционную глубину в рамках {phase}, начиная с режима {accessStage}.",
       "nextModuleItems": {
-        "laneDepth": "Добавить lane-specific поведение и release-ring gating поверх общего shell.",
-        "liveData": "Подключить live read-model, счётчики и domain-specific API контракты.",
-        "roleActions": "Наложить role-aware действия, task-flow и операционные объяснения."
+        "laneDepth": "Добавить поведение по направлениям и ограничения релизного кольца поверх общей оболочки.",
+        "liveData": "Подключить живые модели чтения, счётчики и профильные API-контракты.",
+        "roleActions": "Добавить действия с учётом роли, сценарии задач и операционные объяснения."
       },
-      "nextModules": "Следующие Модули",
+      "nextModules": "Следующие модули",
       "returnToDashboard": "Вернуться на дашборд"
     }
   },
@@ -5451,6 +5505,7 @@
       "status": "СТАТУС"
     },
     "deployNode": "+ РАЗВЕРНУТЬ УЗЕЛ",
+    "error": "Не удалось загрузить данные серверов. Попробуйте ещё раз.",
     "status": {
       "maintenance": "ОБСЛУЖИВАНИЕ",
       "offline": "ОФФЛАЙН",
@@ -5459,7 +5514,32 @@
     },
     "title": "АКТИВНАЯ ИНФРАСТРУКТУРА"
   },
-  "Settings": {},
+  "Settings": {
+    "antiphishing": "Антифишинговый код",
+    "antiphishingDesc": "Защититесь от фишинговых писем",
+    "cancel": "Отмена",
+    "change": "Изменить",
+    "devices": "Активные устройства",
+    "disable": "Отключить",
+    "displayName": "Отображаемое имя",
+    "edit": "Изменить",
+    "email": "Эл. почта",
+    "enable": "Включить",
+    "language": "Язык",
+    "linkedAccounts": "Связанные аккаунты",
+    "manage": "Управлять",
+    "password": "Пароль",
+    "passwordDesc": "Изменить пароль аккаунта",
+    "profile": "Профиль",
+    "save": "Сохранить",
+    "security": "Безопасность",
+    "subtitle": "Управляйте предпочтениями аккаунта и безопасностью",
+    "tfaDisabled": "Добавьте дополнительный уровень защиты",
+    "tfaEnabled": "Аккаунт защищён с помощью 2FA",
+    "timezone": "Часовой пояс",
+    "title": "НАСТРОЙКИ",
+    "twoFactor": "Двухфакторная аутентификация"
+  },
   "Status": {
     "history": {
       "title": "История за 90 дней",
@@ -5563,7 +5643,26 @@
       "title": "{brandName} support routing"
     }
   },
-  "Subscriptions": {},
+  "Subscriptions": {
+    "autoRenew": "Автопродление",
+    "availablePlans": "Доступные тарифы",
+    "cancelSubscription": "Отменить подписку",
+    "choosePlanBelow": "Выберите тариф ниже, чтобы начать",
+    "codesAndRewards": "Коды и награды",
+    "currentSubscription": "Текущая подписка",
+    "disabled": "Отключено",
+    "enabled": "Включено",
+    "errorLoading": "Ошибка загрузки подписок",
+    "errorLoadingPlans": "Ошибка загрузки тарифов",
+    "expiresAt": "Истекает",
+    "noActiveSubscription": "Нет активной подписки",
+    "noPlansAvailable": "Сейчас нет доступных тарифов",
+    "startedAt": "Начало",
+    "status": "Статус",
+    "subscriptionHistory": "История подписки",
+    "subtitle": "Управляйте тарифами VPN-подписки",
+    "title": "ПОДПИСКИ"
+  },
   "Terms": {
     "description": "КРИТИЧЕСКИЙ УРОВЕНЬ: УСЛОВИЯ ОБСЛУЖИВАНИЯ. ОЖИДАЕТСЯ ПОДТВЕРЖДЕНИЕ...",
     "sections": {
@@ -5625,10 +5724,22 @@
     "status": {
       "active": "АКТИВЕН",
       "banned": "ЗАБЛОКИРОВАН",
+      "disabled": "ОТКЛЮЧЁН",
       "expired": "ИСТЕК",
+      "limited": "ОГРАНИЧЕН",
       "trial": "ПРОБНЫЙ"
     },
     "title": "БАЗА КЛИЕНТОВ"
   },
-  "Wallet": {}
+  "Wallet": {
+    "balance": "Доступный баланс",
+    "next": "Вперёд",
+    "noTransactions": "Операций пока нет",
+    "page": "Страница",
+    "previous": "Назад",
+    "subtitle": "Управляйте балансом и операциями",
+    "title": "КОШЕЛЁК",
+    "transactions": "История операций",
+    "withdraw": "Вывести"
+  }
 }

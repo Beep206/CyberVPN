@@ -7,7 +7,17 @@ const replaceMock = vi.fn();
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en-EN',
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, string>) => {
+    const messages: Record<string, string> = {
+      noResults: 'No matching languages',
+      searchLabel: 'Search languages',
+      searchPlaceholder: 'Search language...',
+      title: 'Select language',
+      triggerLabel: `Select language: ${values?.language ?? ''}`,
+    };
+
+    return messages[key] ?? key;
+  },
 }));
 
 vi.mock('@/i18n/navigation', () => ({

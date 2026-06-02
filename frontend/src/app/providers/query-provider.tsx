@@ -40,7 +40,7 @@ type QueryProviderProps = {
   showDevtools?: boolean;
 };
 
-export function QueryProvider({ children, showDevtools = true }: QueryProviderProps) {
+export function QueryProvider({ children, showDevtools = false }: QueryProviderProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({

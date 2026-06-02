@@ -122,7 +122,7 @@
       "routes": {
         "antiPhishing": "Управление кодом, который показывается в исходящих письмах.",
         "posture": "Оценка сигналов доверия и смена пароля аккаунта.",
-        "reviewQueue": "Работа с очередью risk review, evidence attachments и governance actions из одного внутреннего workflow rail.",
+        "reviewQueue": "Работа с очередью риск-проверок, evidence attachments и контрольными действиями из одного внутреннего workflow rail.",
         "sessions": "Просмотр всех активных сессий и отзыв устаревших или подозрительных устройств.",
         "twoFactor": "Настройка TOTP, проверка статуса и отключение 2FA с повторной авторизацией."
       },
@@ -213,15 +213,15 @@
         "submit": "Прикрепить evidence",
         "title": "Прикрепить evidence"
       },
-      "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте governance actions и резолвите решения из одной внутренней очереди.",
+      "description": "Обрабатывайте канонические риск-проверки, прикладывайте evidence, фиксируйте контрольные действия и резолвите решения из одной внутренней очереди.",
       "detail": {
         "attachmentsTitle": "Attachments",
-        "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные governance actions.",
+        "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные контрольные действия.",
         "empty": "Выберите review из очереди для просмотра деталей.",
-        "governanceTitle": "Governance actions",
+        "governanceTitle": "Контрольные действия",
         "loadError": "Не удалось загрузить выбранный review.",
         "noAttachments": "К этому review ещё не привязаны attachments.",
-        "noGovernanceActions": "К этому review ещё не привязаны governance actions.",
+        "noGovernanceActions": "К этому review ещё не привязаны контрольные действия.",
         "review": "Review",
         "subject": "Subject",
         "title": "Детали проверки",
@@ -230,9 +230,9 @@
       "eyebrow": "RISK WORKFLOW",
       "feedback": {
         "attachmentCreated": "Evidence прикреплена к review.",
-        "governanceActionCreated": "Governance action записана.",
+        "governanceActionCreated": "Контрольное действие записано.",
         "invalidAttachmentMetadata": "Attachment metadata должна быть валидным JSON object.",
-        "invalidGovernancePayload": "Governance payload должен быть валидным JSON object.",
+        "invalidGovernancePayload": "Payload контрольного действия должен быть валидным JSON object.",
         "invalidResolutionEvidence": "Resolution evidence должна быть валидным JSON object.",
         "reviewResolved": "Review успешно завершён.",
         "selectReview": "Сначала выберите review из очереди."
@@ -244,14 +244,14 @@
           "applyNow": "Применить сразу",
           "payload": "Payload JSON",
           "reason": "Причина",
-          "reasonPlaceholder": "Опишите, почему эта governance action нужна.",
+          "reasonPlaceholder": "Опишите, почему это контрольное действие нужно.",
           "targetRef": "Target reference",
           "targetRefPlaceholder": "ppa_demo_001",
           "targetType": "Target type",
           "targetTypePlaceholder": "partner_payout_account"
         },
         "submit": "Записать action",
-        "title": "Governance action"
+        "title": "Контрольное действие"
       },
       "metaTitle": "Очередь проверок - Ozoxy Admin",
       "metrics": {
@@ -259,8 +259,8 @@
         "attachmentsHint": "артефакты, привязанные к review",
         "blocking": "Блокирующие",
         "blockingHint": "решения hold или block",
-        "governanceActions": "Actions",
-        "governanceActionsHint": "governance records, связанные с очередью",
+        "governanceActions": "Действия",
+        "governanceActionsHint": "контрольные записи, связанные с очередью",
         "openReviews": "Очередь",
         "openReviewsHint": "активные review items"
       },
@@ -268,7 +268,7 @@
         "attachments": "attachments: {count}",
         "description": "Каждая строка — каноническая запись risk review, поднятая из backend queue.",
         "empty": "В очереди сейчас нет элементов на обработку.",
-        "governanceActions": "governance actions: {count}",
+        "governanceActions": "контрольные действия: {count}",
         "loadError": "Не удалось загрузить очередь risk review.",
         "reviewRef": "Review #{reviewId} / Subject #{subjectId}",
         "subject": "Principal subject",
@@ -716,80 +716,6 @@
         "numericInvalid": "Шаг количества и цена должны быть корректными неотрицательными числами."
       }
     },
-    "catalogPreview": {
-      "addonsTitle": "Add-ons",
-      "boolean": {
-        "no": "Нет",
-        "yes": "Да"
-      },
-      "contextOptionsCountries": "Страны",
-      "contextOptionsCurrencies": "Валюты",
-      "contextOptionsDescription": "Управление country и currency options, которые использует commercial context resolution.",
-      "contextOptionsJson": "Countries/currencies JSON",
-      "contextOptionsJsonInvalid": "Context options должны быть валидным countries/currencies JSON.",
-      "contextOptionsJsonInvalidDetail": "Context options JSON невалиден: {detail}",
-      "contextOptionsReason": "Change reason",
-      "contextOptionsReasonPlaceholder": "Почему изменились context options",
-      "contextOptionsSave": "Сохранить context options",
-      "contextOptionsTitle": "Commercial context options",
-      "contextTitle": "Resolved context",
-      "description": "Расчет public commercial catalog для выбранной оператором страны, валюты, канала, locale и storefront context.",
-      "empty": "Catalog preview ещё не загружен.",
-      "eyebrow": "EFFECTIVE CATALOG",
-      "fields": {
-        "analyticsDimensions": "Analytics dimensions",
-        "attributionOwner": "Attribution owner",
-        "catalogVersion": "Catalog version",
-        "channel": "Channel",
-        "checkoutSideEffects": "Checkout side effects",
-        "country": "Страна",
-        "currency": "Валюта",
-        "displayCountry": "Display country",
-        "entryPath": "Entry path",
-        "invalidationEvents": "Invalidation events",
-        "partnerCode": "Partner code",
-        "paymentCountry": "Payment country",
-        "paymentMethods": "Payment methods",
-        "policyIds": "Policy IDs",
-        "pricingCountry": "Pricing country",
-        "pricingOffers": "Pricing offers",
-        "routeHost": "Route host",
-        "routeStatus": "Route status",
-        "selectableCountries": "Selectable countries",
-        "selectableCurrencies": "Selectable currencies",
-        "source": "Source",
-        "storefrontKey": "Storefront key",
-        "trace": "Resolution trace",
-        "uiLocale": "UI locale"
-      },
-      "filtersTitle": "Preview context",
-      "metadataTitle": "Catalog metadata",
-      "metaTitle": "Превью каталога - Ozoxy Admin",
-      "metrics": {
-        "addons": "Add-ons",
-        "addonsHint": "доступных расширений",
-        "currency": "Валюта",
-        "currencyHint": "рассчитанная pricing currency",
-        "periods": "Billing periods",
-        "periodsHint": "строк duration с ценами",
-        "plans": "Семейства",
-        "plansHint": "рассчитанных групп"
-      },
-      "noAddons": "Для этого context add-ons не рассчитаны.",
-      "noPlans": "Для этого context тарифы не рассчитаны.",
-      "noPromo": "Без promo",
-      "noTrial": "Без trial",
-      "plansTitle": "Семейства тарифов",
-      "promo": "Promo",
-      "refreshAction": "Обновить превью",
-      "refreshing": "Обновление...",
-      "storefrontPreviewDescription": "Read-only preview reseller storefront contract. Он не создаёт quotes, checkout sessions, attribution touchpoints или commercial bindings.",
-      "storefrontPreviewEmpty": "Введите storefront key, чтобы загрузить partner storefront contract preview.",
-      "storefrontPreviewError": "Не удалось загрузить storefront contract preview.",
-      "storefrontPreviewTitle": "Storefront contract preview",
-      "title": "Превью каталога",
-      "trial": "Trial"
-    },
     "common": {
       "actionFailed": "Операция не выполнена. Попробуйте ещё раз.",
       "actions": "Действия",
@@ -844,11 +770,9 @@
     },
     "nav": {
       "addons": "Add-ons",
-      "catalogPreview": "Превью каталога",
       "overview": "Обзор",
       "payments": "Платежи",
       "plans": "Тарифы",
-      "pricebooks": "Pricebooks",
       "subscriptionTemplates": "Шаблоны",
       "wallets": "Кошельки",
       "withdrawals": "Выводы"
@@ -865,8 +789,6 @@
         "paymentsHint": "записей в ленте",
         "pendingItemsHint": "элементов в очереди",
         "plans": "Тарифы",
-        "pricebooks": "Pricebooks",
-        "pricebooksHint": "версионных pricing-записей",
         "withdrawals": "Выводы в ожидании"
       },
       "modulesDescription": "Ниже собраны основные маршруты Commerce, чтобы быстро перейти от обзора к нужной рабочей очереди.",
@@ -876,10 +798,8 @@
       "paymentsTitle": "Последние платежи",
       "routes": {
         "addons": "Управление каталогом add-ons, лимитами количества и entitlement delta для checkout surfaces.",
-        "catalogPreview": "Расчет клиентского каталога по стране, валюте, каналу и storefront.",
         "payments": "Разбор платежей с фильтрами по провайдеру и статусу.",
         "plans": "Создание, настройка и вывод из эксплуатации коммерческих тарифов без выхода из админки.",
-        "pricebooks": "Проверка активных price books и создание новых версий каталога по offer references.",
         "subscriptionTemplates": "Поддержка шаблонов Remnawave и их config payload.",
         "wallets": "Поиск кошелька по UUID пользователя и ручные top-up операции при необходимости.",
         "withdrawals": "Подтверждение или отклонение заявок на вывод с заметкой оператора."
@@ -893,10 +813,10 @@
     "payments": {
       "allProviders": "Все провайдеры",
       "allStatuses": "Все статусы",
-      "description": "Просмотр платежей, фильтрация по UUID пользователя и сегментация списка по провайдеру или статусу.",
+      "description": "Просмотр платежей и сегментация полученного списка по провайдеру, статусу или ID платежа.",
       "empty": "По текущим фильтрам платежи не найдены.",
       "eyebrow": "ИСТОРИЯ ПЛАТЕЖЕЙ",
-      "filtersDescription": "Фильтры по провайдеру, статусу и ID применяются на клиенте к безопасной ленте payment history.",
+      "filtersDescription": "Провайдер, статус и поиск по ID применяются к полученной истории платежей в клиентской консоли.",
       "filtersTitle": "Стек фильтров",
       "idSearchPlaceholder": "Поиск по ID платежа",
       "metaTitle": "Платежи - Ozoxy Admin",
@@ -910,9 +830,7 @@
         "volume": "Объём",
         "volumeHint": "сумма отфильтрованных платежей"
       },
-      "serverFilterHint": "Текущий payment history endpoint возвращает безопасную authenticated feed; для customer-specific support lookup используйте экраны payment attempts.",
-      "title": "Консоль платежей",
-      "userUuidPlaceholder": "550e8400-e29b-41d4-a716-446655440000"
+      "title": "Консоль платежей"
     },
     "plans": {
       "createAction": "Создать тариф",
@@ -970,101 +888,6 @@
       "visibility": {
         "hidden": "Hidden",
         "public": "Public"
-      }
-    },
-    "pricebooks": {
-      "auditEmpty": "Для этого pricebook audit entries не вернулись.",
-      "auditTitle": "Audit trail",
-      "createAction": "Создать pricebook",
-      "createTitle": "Создать pricebook",
-      "description": "Управление версионными price books для storefront, региона, валюты, offer entries, discount rules и renewal policy preview.",
-      "detailsAction": "Детали",
-      "detailsEmpty": "Выберите pricebook, чтобы проверить validation, history и audit events.",
-      "detailsTitle": "Lifecycle детали",
-      "empty": "Pricebooks ещё не настроены.",
-      "eyebrow": "PRICE BOOKS",
-      "fields": {
-        "currencyCode": "Currency code",
-        "discountRules": "Discount rules JSON",
-        "displayName": "Display name",
-        "effectiveFrom": "Effective from",
-        "effectiveTo": "Effective to",
-        "effectiveWindow": "Effective window",
-        "entries": "Entries",
-        "entriesJson": "Entries JSON",
-        "entryValue": "Entry value",
-        "merchantProfileId": "Merchant profile ID",
-        "pricebookKey": "Pricebook key",
-        "regionCode": "Region code",
-        "renewalPricingPolicy": "Renewal policy JSON",
-        "storefrontId": "Storefront ID",
-        "versionStatus": "Version status"
-      },
-      "historyEmpty": "Для этого pricebook key история версий не вернулась.",
-      "historyTitle": "История версий",
-      "lifecycle": {
-        "currentVersion": "Текущая версия",
-        "effectiveFrom": "Effective from",
-        "publishAction": "Publish",
-        "publishDescription": "Опубликовать этот pricebook через admin lifecycle endpoint и записать audit context.",
-        "publishTitle": "Publish pricebook",
-        "reasonLabel": "Change reason",
-        "reasonOptionalHelp": "Необязательно. Сохраняется как audit context; максимум 500 символов.",
-        "reasonOptionalLabel": "Change reason (optional)",
-        "reasonPlaceholder": "Необязательный operator context для audit trail",
-        "reasonRequiredHelp": "Обязательно для rollback. Сохраняется как audit context; максимум 500 символов.",
-        "reasonRequiredLabel": "Change reason (required)",
-        "reasonTooLong": "Change reason должен быть не длиннее 500 символов.",
-        "rollbackAction": "Rollback",
-        "rollbackDescription": "Выполнить rollback через admin lifecycle endpoint. Выберите target version или оставьте backend выбрать предыдущую безопасную цель.",
-        "rollbackLatest": "Использовать backend default target",
-        "rollbackLatestSummary": "Backend выберет предыдущую безопасную цель.",
-        "rollbackReasonRequired": "Добавьте причину rollback перед подтверждением.",
-        "rollbackTarget": "Rollback target",
-        "rollbackTitle": "Rollback pricebook",
-        "scheduleAction": "Schedule",
-        "scheduleDescription": "Запланировать будущую активацию этого pricebook.",
-        "scheduledFor": "Scheduled for",
-        "scheduleRequired": "Выберите timestamp для schedule.",
-        "scheduleTitle": "Schedule pricebook",
-        "targetVersion": "Target version",
-        "unavailableForStatus": "Недоступно при статусе {status}."
-      },
-      "metaTitle": "Pricebooks - Ozoxy Admin",
-      "metrics": {
-        "active": "Активные",
-        "activeHint": "включенных pricebooks",
-        "currencies": "Валюты",
-        "currenciesHint": "покрытых currency codes",
-        "entries": "Entries",
-        "entriesHint": "строк цен по offers",
-        "total": "Pricebooks",
-        "totalHint": "версионных записей"
-      },
-      "offersDescription": "Используйте эти backend offer ID при составлении JSON для pricebook entries.",
-      "offersEmpty": "Нет offers для pricebook entries.",
-      "offersTitle": "Offer references",
-      "selectAction": "Открыть детали {name}",
-      "status": {
-        "active": "Active",
-        "archived": "Archived",
-        "draft": "Draft",
-        "scheduled": "Scheduled"
-      },
-      "tableCaption": "Admin pricebook records",
-      "title": "Управление pricebooks",
-      "validation": {
-        "currencyInvalid": "Currency code должен состоять ровно из трех букв.",
-        "idle": "Запустите validation перед publish или schedule этого pricebook.",
-        "invalid": "Есть issues",
-        "jsonInvalid": "JSON-поля pricebook должны быть валидными, а entries должны содержать минимум один offer.",
-        "jsonInvalidDetail": "Pricebook JSON невалиден: {detail}",
-        "noIssues": "Validation issues не вернулись.",
-        "required": "Pricebook key, display name и storefront ID обязательны.",
-        "title": "Validation",
-        "valid": "Готово",
-        "validateAction": "Validate",
-        "validating": "Validation..."
       }
     },
     "subscriptionTemplates": {
@@ -1410,7 +1233,7 @@
         "ordersTitle": "Commerce и explainability",
         "riskEmpty": "Для этого клиента не связаны risk subjects или reviews.",
         "riskHidden": "Risk-оверлеи скрыты для текущей роли оператора.",
-        "riskTitle": "Risk и governance",
+        "riskTitle": "Риск и контроль",
         "serviceAccessEmpty": "Для этого клиента не вернулись канонические service-access артефакты.",
         "serviceAccessTitle": "Service access",
         "settlementEmpty": "Settlement-workspace оверлеи для этого клиента пока не связаны.",
@@ -1575,21 +1398,21 @@
       "growthAbuse": {
         "description": "Referral и reward abuse signals, видимые growth-операторам.",
         "metric": "групп сигналов",
-        "title": "Growth abuse signals"
+        "title": "Сигналы злоупотребления ростом"
       },
       "securityReviews": {
         "description": "Канонические risk review записи из security queue.",
         "metric": "открытых reviews",
-        "title": "Risk reviews"
+        "title": "Проверки рисков"
       },
       "support": {
         "description": "Tickets, которые сейчас ждут ответа со стороны support.",
-        "metric": "support tickets",
+        "metric": "тикеты поддержки",
         "title": "Support handoff"
       },
       "webhookFailures": {
-        "description": "Невалидные webhook callbacks на последней странице governance log.",
-        "metric": "callback errors",
+        "description": "Невалидные webhook callbacks на последней странице управление log.",
+        "metric": "ошибки обратных вызовов",
         "title": "Ошибки вебхуков"
       },
       "withdrawals": {
@@ -1689,7 +1512,7 @@
     "serverMatrixDescription": "Живой снимок VPN-флота, состояния узлов и текущего давления на сеть.",
     "statusLabel": "РЕЖИМ:",
     "statusValue": "LIVE",
-    "subtitle": "Операционный cockpit для инфраструктуры, коммерции, контроля и реакции на инциденты.",
+    "subtitle": "Операционный центр для инфраструктуры, коммерции, контроля и реакции на инциденты.",
     "title": "КОМАНДНЫЙ ЦЕНТР OZOXY",
     "webhooksDescription": "Последние callback-события интеграций и ошибки обработки.",
     "webhooksTitle": "ПОТОК ВЕБХУКОВ",
@@ -1698,13 +1521,13 @@
     "workspaceAvailableNow": "Доступно сейчас",
     "workspaceEnabledActions": "Доступные маршруты",
     "workspaceNoActions": "Для этой роли нет доступных dashboard-действий.",
-    "workspacePermissionCount": "Permissions",
+    "workspacePermissionCount": "Права доступа",
     "workspaceReadActions": "read",
     "workspaceRestrictedActions": "Закрытые маршруты",
     "workspaceRisk": {
-      "danger": "Sensitive action",
-      "read": "Read surface",
-      "write": "Operator action"
+      "danger": "Чувствительное действие",
+      "read": "Раздел чтения",
+      "write": "Действие оператора"
     },
     "workspaceRoleLabel": "Роль",
     "workspaceWriteActions": "write"
@@ -1791,7 +1614,7 @@
           "configs": "VPN configurations and connection history",
           "referrals": "Referral data and earned rewards",
           "subscriptions": "All active subscriptions (no refunds)",
-          "support": "Support tickets and communication history"
+          "support": "Тикеты поддержки и история коммуникаций"
         },
         "title": "What will be deleted"
       }
@@ -1970,7 +1793,7 @@
       "eyebrow": "ДОСТУП СОТРУДНИКОВ",
       "inventoryDescription": "Single-use invite tokens для staff, которые сейчас живут в Redis-backed storage.",
       "inventoryTitle": "Активные токены",
-      "metaTitle": "Admin Invites - Ozoxy Admin",
+      "metaTitle": "Инвайты админов - Ozoxy Admin",
       "metrics": {
         "active": "Активные",
         "activeHint": "живые invite tokens",
@@ -1988,7 +1811,7 @@
       "title": "Admin invite tokens"
     },
     "auditLog": {
-      "description": "Читайте поток последних привилегированных действий и проверяйте before/after payloads для governance-review.",
+      "description": "Читайте поток последних привилегированных действий и проверяйте before/after payloads для контрольной проверки.",
       "detailDescription": "Выбранная audit-запись с атрибуцией, request metadata и diff payload-ов.",
       "detailTitle": "Детали события",
       "empty": "Нет audit-записей для текущего представления.",
@@ -2060,14 +1883,14 @@
       "value": "Значение"
     },
     "layout": {
-      "subnavLabel": "Навигация governance"
+      "subnavLabel": "Навигация контроля"
     },
     "nav": {
-      "adminInvites": "Admin invites",
-      "auditLog": "Audit log",
+      "adminInvites": "Инвайты админов",
+      "auditLog": "Журнал аудита",
       "overview": "Обзор",
       "policy": "Политики",
-      "webhookLog": "Webhook log"
+      "webhookLog": "Журнал вебхуков"
     },
     "overview": {
       "auditDescription": "Последние привилегированные действия из backend audit stream.",
@@ -2076,7 +1899,7 @@
       "eyebrow": "КОНТУР УПРАВЛЕНИЯ",
       "invitesDescription": "Активные invite tokens, доступные сейчас для онбординга сотрудников.",
       "invitesTitle": "Доступ staff",
-      "metaTitle": "Governance - Ozoxy Admin",
+      "metaTitle": "Контроль - Ozoxy Admin",
       "metrics": {
         "audit": "Аудит",
         "auditHint": "последние привилегированные события",
@@ -2087,7 +1910,7 @@
         "webhooks": "Невалидные webhook-и",
         "webhooksHint": "callback-и, требующие внимания"
       },
-      "policyDescription": "Текущая видимость по settings и покрытию governance.",
+      "policyDescription": "Текущая видимость по settings и покрытию контроля.",
       "policyStats": {
         "publicSettings": "Публичные настройки",
         "restrictedInvites": "Ограниченные invite tokens",
@@ -2097,18 +1920,18 @@
       "routes": {
         "adminInvites": "Создание, просмотр, копирование и отзыв staff invite tokens.",
         "auditLog": "Просмотр последних привилегированных действий и изменений сущностей.",
-        "policy": "Просмотр видимых настроек и текущей матрицы ролей и permissions.",
+        "policy": "Просмотр видимых настроек и текущей матрицы ролей и разрешений.",
         "webhookLog": "Проверка валидности callback-ов, статуса обработки и ошибок провайдеров."
       },
       "routesDescription": "Переходите напрямую в audit, webhook, staff-access и policy-разделы, не выходя из admin shell.",
-      "routesTitle": "Маршруты governance",
-      "title": "Governance workspace",
+      "routesTitle": "Маршруты контроля",
+      "title": "Рабочая зона контроля",
       "webhookDescription": "Последнее состояние callback-ов по интеграционным провайдерам.",
       "webhookTitle": "Пульс webhook-ов"
     },
     "policy": {
       "createSuccess": "Настройка создана.",
-      "description": "Текущая governance-видимость по Remnawave settings и backend role-permission matrix.",
+      "description": "Текущая видимость контроля по Remnawave settings и backend role-permission matrix.",
       "descriptionPlaceholder": "Короткое операторское пояснение",
       "detailDescription": "Текущий JSON payload для выбранной настройки.",
       "detailTitle": "Выбранная настройка",
@@ -2119,7 +1942,7 @@
       "editorTitle": "Редактор настройки",
       "empty": "Нет настроек для текущего представления.",
       "eyebrow": "ВИДИМОСТЬ ПОЛИТИК",
-      "gapDescription": "Первый выделенный `system_config` governance API уже появился для `miniapp.runtime`. Более широкие семейства системной конфигурации и настоящий admin directory всё ещё нужно вынести с общего слоя `/settings`.",
+      "gapDescription": "Первый выделенный `system_config` API контроля уже появился для `miniapp.runtime`. Более широкие семейства системной конфигурации и настоящий admin directory всё ещё нужно вынести с общего слоя `/settings`.",
       "gapTitle": "Известный gap",
       "keyPlaceholder": "registration_mode",
       "launchActions": {
@@ -2250,7 +2073,7 @@
       "registryDescription": "Редактируемые настройки, доступные через текущий backend `/settings` layer.",
       "registryTitle": "Реестр настроек",
       "resetEditor": "Сбросить редактор",
-      "roleMatrixDescription": "Frontend mirror текущего backend mapping permissions по staff-ролям.",
+      "roleMatrixDescription": "Frontend mirror текущего backend mapping разрешений по staff-ролям.",
       "roleMatrixTitle": "Матрица ролей",
       "runtimeControl": {
         "apply": "Применить runtime policy",
@@ -2301,7 +2124,7 @@
         "pending": "Ожидают",
         "processed": "Обработанные"
       },
-      "metaTitle": "Webhook Log - Ozoxy Admin",
+      "metaTitle": "Журнал вебхуков - Ozoxy Admin",
       "metrics": {
         "invalid": "Невалидные",
         "invalidHint": "callback-и с проваленной валидацией",
@@ -2601,14 +2424,14 @@
           },
           "auditLink": "Открыть audit log",
           "auditTitle": "Последний Audit Политик",
-          "decisionsTitle": "Последние Governance Решения",
-          "description": "Audit timeline и решения delivery-governance по тихим пробелам в покрытии reporting.",
-          "emptyAudit": "Пока не записано недавних governance audit entries.",
+          "decisionsTitle": "Последние решения контроля",
+          "description": "Аудиторский таймлайн и решения контроля доставки по тихим пробелам в покрытии reporting.",
+          "emptyAudit": "Пока не записано недавних событий аудита контроля.",
           "emptyDecisions": "Пока не записано недавних suppressed или domain-blocked решений по reporting.",
-          "export": "Экспорт governance snapshot",
+          "export": "Экспорт снимка контроля",
           "exporting": "Экспортируем snapshot...",
           "followupDue": "Срок {value}",
-          "followupEmpty": "Сейчас нет открытой governance follow-up работы.",
+          "followupEmpty": "Сейчас нет открытой последующей работы по контролю.",
           "followupLastNotified": "Последний reminder {value}",
           "followupTitle": "Очередь Recovery Follow-up",
           "metrics": {
@@ -2619,7 +2442,7 @@
             "paused": "Подписки на паузе"
           },
           "noFieldDiff": "Только смена snapshot",
-          "title": "Governance Покрытие"
+          "title": "Покрытие контроля"
         },
         "health": {
           "description": "Freshness, лаг и состояние последнего запуска scheduled reporting pipeline.",
@@ -2660,8 +2483,8 @@
         "partners": "Повышение пользователей до партнёров, просмотр live-directory и переход в customer card.",
         "promoCodes": "Создание, просмотр, обновление и деактивация кампаний по промокодам.",
         "referrals": "Мониторинг referral-комиссий, топ-referrer'ов и последних earnings по конверсиям.",
-        "reporting": "Просмотр persisted rollups, reporting-подписок, governance coverage и exportable delivery artifacts.",
-        "risk": "Triage referral abuse-pressure, blocked rewards и lifecycle risk signals из growth queue."
+        "reporting": "Просмотр persisted rollups, reporting-подписок, управление coverage и exportable delivery artifacts.",
+        "risk": "Triage referral abuse-pressure, blocked rewards и lifecycle сигналы риска из growth queue."
       },
       "routesDescription": "Growth реализован только там, где backend реально даёт admin-покрытие. Каждый маршрут ниже привязан к существующей операторской поверхности.",
       "routesTitle": "Инвентарь Маршрутов",
@@ -2695,7 +2518,7 @@
         "reasonSummary": "Решение принято вручную из admin partner operations console.",
         "requestInfoMessage": "Пожалуйста, пришлите недостающие operating-, compliance- или lane-specific данные, чтобы review можно было продолжить."
       },
-      "description": "Единая операторская поверхность для partner applications, inventory рабочих пространств, lane-решений, payout-review и связанных governance-процессов.",
+      "description": "Единая операторская поверхность для partner applications, inventory рабочих пространств, lane-решений, payout-review и связанных процессов контроля.",
       "eyebrow": "Рост / Партнёры",
       "feedback": {
         "applicationApproved": "Workspace одобрен в probation.",
@@ -2763,8 +2586,8 @@
       },
       "openAuditLog": "Открыть audit log",
       "openPolicyConsole": "Открыть policy console",
-      "openReviewQueue": "Открыть risk review queue",
-      "opsLinksDescription": "Risk, governance и audit остаются в своих admin-консолях и отсюда только быстро открываются.",
+      "openReviewQueue": "Открыть очередь риск-проверок",
+      "opsLinksDescription": "Риски, контроль и аудит остаются в своих admin-консолях и отсюда только быстро открываются.",
       "opsLinksTitle": "Связанные Ops-Поверхности",
       "payoutAccountsEmpty": "Для выбранного workspace payout accounts не найдены.",
       "payoutExecutionsEmpty": "С выбранным workspace пока не связаны payout executions.",
@@ -2830,8 +2653,8 @@
       "inspectUnavailable": "Деталь промо недоступна.",
       "lookup": {
         "action": "Запустить проверку",
-        "description": "Проверяет любой код кампании с контекстом, заданным оператором, до обращения к текущему состоянию оформления оплаты.",
-        "empty": "Введите код, чтобы проверить его текущий жизненный цикл и доступность к применению.",
+        "description": "Проверьте любой growth-код с операторским контекстом до изменений в живом checkout-состоянии.",
+        "empty": "Введите код, чтобы проверить его текущий lifecycle и eligibility-состояние.",
         "fields": {
           "amount": "Сумма",
           "channel": "Канал",
@@ -2847,9 +2670,9 @@
         "resultOwner": "Тип владельца",
         "resultReason": "Причина отказа",
         "resultStatus": "Результат",
-        "resultTarget": "Цель неверного контекста",
-        "resultType": "Определённый тип",
-        "title": "Проверка кода кампании"
+        "resultTarget": "Целевой контекст не совпал",
+        "resultType": "Разрешённый тип",
+        "title": "Проверка growth-кода"
       },
       "metaTitle": "Промокоды - Ozoxy Admin",
       "metrics": {
@@ -3324,7 +3147,7 @@
     "nav": {
       "overview": "Обзор",
       "push": "Push",
-      "realtime": "Realtime",
+      "realtime": "Реалтайм",
       "telegram": "Telegram"
     },
     "overview": {
@@ -3344,7 +3167,7 @@
       "eyebrow": "Фаза 6",
       "healthDescription": "Общие health-сигналы, собранные из monitoring и callback-поверхностей.",
       "healthTitle": "Здоровье Интеграций",
-      "incidentsDescription": "Последние невалидные callback-записи из governance webhook log.",
+      "incidentsDescription": "Последние невалидные callback-записи из журнала вебхуков контроля.",
       "incidentsTitle": "Webhook Инциденты",
       "metaTitle": "Интеграции - Ozoxy Admin",
       "metrics": {
@@ -3362,7 +3185,7 @@
         "realtime": "Выпуск websocket ticket и подписка на monitoring topics для живой видимости инцидентов.",
         "telegram": "Разбор Telegram-linked пользователей, bootstrap bot-facing identity, просмотр config и генерация login link."
       },
-      "routesDescription": "Переходите напрямую к Telegram-операциям, push-диагностике и realtime topic tooling из одного operator shell.",
+      "routesDescription": "Переходите напрямую к Telegram-операциям, push-диагностике и инструментам реалтайм-топиков из одной операторской оболочки.",
       "routesTitle": "Маршруты",
       "title": "Операции Интеграций"
     },
@@ -3421,10 +3244,10 @@
       "connectionSummary": "Количество topics в текущем batch-запросе: {topics}.",
       "description": "Выпуск websocket tickets, проверка доступа к monitoring topics и просмотр live-сообщений из админки.",
       "emptyLog": "События websocket пока не получены.",
-      "eyebrow": "Realtime",
+      "eyebrow": "Реалтайм",
       "healthTitle": "Health Snapshot",
       "logTitle": "Live Event Log",
-      "metaTitle": "Realtime Ops - Ozoxy Admin",
+      "metaTitle": "Реалтайм Ops - Ozoxy Admin",
       "metrics": {
         "availableTopics": "Доступные Topics",
         "availableTopicsHint": "Topics, разрешённые backend после connect.",
@@ -3437,7 +3260,7 @@
       },
       "ticketDescription": "Создайте короткоживущий websocket ticket, откройте monitoring socket и завершите сессию после диагностики.",
       "ticketTitle": "Ticket Flow",
-      "title": "Realtime Topic Console",
+      "title": "Консоль реалтайм-топиков",
       "topicDescription": "Выберите topics и подпишитесь после открытия websocket. Backend сам сообщит, какие topics разрешены текущей роли.",
       "topics": {
         "general": "Общее",
@@ -3716,13 +3539,77 @@
       "category": "Категория диалога",
       "close": "Закрыть",
       "closedReadOnly": "Закрытые диалоги доступны только для чтения. Откройте диалог повторно перед изменением метаданных или отправкой сообщений.",
-      "description": "Обновляйте назначение и метаданные разбора, не затрагивая оплату, выдачу VPN, auth или состояние прав доступа.",
+      "description": "Обновляйте назначение и метаданные разбора, не затрагивая оплату, выдачу VPN, авторизацию или состояние прав доступа.",
       "priority": "Приоритет диалога",
       "readOnly": "Эта роль может просматривать диалоги, но не может назначать их или менять метаданные.",
       "reopen": "Открыть повторно",
       "save": "Сохранить метаданные",
       "saving": "Сохранение",
       "title": "Управление диалогом"
+    },
+    "broadcast": {
+      "actionUrl": "URL действия",
+      "actionUrlPlaceholder": "/status",
+      "audience": "Аудитория рассылки",
+      "audienceFilter": "Фильтр аудитории JSON",
+      "audienceTypes": {
+        "admins": "Администраторы",
+        "all_customers": "Все клиенты",
+        "customer_segment": "Сегмент клиентов",
+        "explicit_customers": "Явные клиенты"
+      },
+      "body": "Текст уведомления",
+      "bodyPlaceholder": "Только обычный текст. Не добавляйте секреты, номера платежных карт, приватные ключи или URL VPN-учётных данных.",
+      "broadAudienceWarning": "Широкая аудитория требует явного действия администратора. Введите {phrase} точно перед созданием кампании.",
+      "cancel": "Отменить кампанию",
+      "cancelling": "Отмена",
+      "confirmation": "Подтверждение широкой рассылки",
+      "creating": "Создание черновика",
+      "description": "Создавайте черновики или запланированные кампании внутренних уведомлений только после явного предпросмотра. Тесты и UI не выполняют production fanout.",
+      "explicitCustomers": "Явные ID клиентов",
+      "explicitCustomersPlaceholder": "Вставьте до 25 UUID клиентов через запятую или с новой строки.",
+      "feedback": {
+        "actionUrlTooLong": "URL действия должен быть не длиннее {count} символов.",
+        "bodyRequired": "Введите текст уведомления.",
+        "bodyTooLong": "Текст уведомления должен быть не длиннее {count} символов.",
+        "confirmationRequired": "Введите BROADCAST точно для широкой аудитории.",
+        "explicitCustomersRequired": "Добавьте минимум один явный ID клиента.",
+        "explicitCustomersTooMany": "Явные рассылки ограничены {count} ID клиентов из admin UI.",
+        "filterInvalid": "Фильтр аудитории должен быть валидным объектом JSON.",
+        "filterRequired": "Для рассылки по сегменту клиентов нужен структурированный фильтр аудитории.",
+        "nameRequired": "Укажите название кампании.",
+        "nameTooLong": "Название кампании должно быть не длиннее {count} символов.",
+        "previewRequired": "Сначала выполните предпросмотр текущего текста рассылки.",
+        "recipientEstimateRequired": "Введите положительную оценку числа получателей перед предпросмотром.",
+        "scheduledAtInvalid": "Время отправки должно быть валидной датой и временем.",
+        "titleRequired": "Укажите заголовок уведомления.",
+        "titleTooLong": "Заголовок уведомления должен быть не длиннее {count} символов."
+      },
+      "historyEmpty": "В этой сессии администратора ещё нет созданных кампаний рассылки.",
+      "historyTitle": "История статусов",
+      "messageTitle": "Заголовок уведомления",
+      "name": "Название кампании",
+      "namePlaceholder": "Уведомление о техработах",
+      "preview": "Предпросмотр",
+      "previewReady": "Предпросмотр готов",
+      "previewStale": "Предпросмотр изменился",
+      "previewTitle": "Предпросмотр рассылки",
+      "readOnly": "Эта роль может просматривать сообщения, но не может создавать рассылки уведомлений.",
+      "recipientCount": "Число получателей:",
+      "recipientEstimate": "Оценка числа получателей",
+      "recipientEstimatePlaceholder": "Обязательна для сегмента или широкой аудитории",
+      "scheduledAt": "Время отправки",
+      "statuses": {
+        "cancelled": "Отменена",
+        "draft": "Черновик",
+        "failed": "Ошибка",
+        "scheduled": "Запланирована",
+        "sending": "Отправляется",
+        "sent": "Отправлена"
+      },
+      "submit": "Создать черновик рассылки",
+      "title": "Рассылки уведомлений",
+      "titlePlaceholder": "Короткий заголовок для клиента"
     },
     "categories": {
       "billing": "Оплата",
@@ -3771,6 +3658,8 @@
       "updatedAt": "Обновлено {value}"
     },
     "feedback": {
+      "broadcastCancelled": "Кампания рассылки {publicId} отменена.",
+      "broadcastCreated": "Кампания рассылки {publicId} создана для {count} оценочных получателей.",
       "conversationClosed": "Диалог закрыт.",
       "conversationCreated": "Диалог создан.",
       "conversationReopened": "Диалог открыт повторно.",
@@ -3793,14 +3682,14 @@
         "all": "Все диалоги",
         "mine": "Назначены мне",
         "unassigned": "Без назначения",
-        "unassignedScopeHint": "Диалоги без назначения фильтруются только внутри текущей страницы на {count} записей, потому что admin API пока не поддерживает backend-фильтр unassigned. Для точного разбора сузьте очередь через поиск или статус."
+        "unassignedScopeHint": "Диалоги без назначения фильтруются только внутри текущей страницы на {count} записей, потому что admin API пока не поддерживает серверный фильтр по неназначенным диалогам. Для точного разбора сузьте очередь через поиск или статус."
       },
       "category": "Фильтр по категории",
       "customer": "Фильтр по аккаунту клиента",
       "customerPlaceholder": "UUID аккаунта клиента",
       "priority": "Фильтр по приоритету",
       "search": "Поиск диалогов",
-      "searchPlaceholder": "Public id, ID клиента, тема",
+      "searchPlaceholder": "Публичный ID, ID клиента, тема",
       "status": "Фильтр по статусу"
     },
     "inbox": {
@@ -3828,7 +3717,7 @@
       "nextPageAvailable": "После текущей страницы на {count} записей доступны ещё диалоги.",
       "open": "Открыть",
       "openRoute": "Открыть маршрут диалога {publicId}",
-      "safeCustomerRef": "Безопасный ref #{id}",
+      "safeCustomerRef": "Безопасная ссылка #{id}",
       "selectConversation": "Выбрать диалог {publicId}",
       "table": {
         "conversation": "Диалог",
@@ -3842,14 +3731,14 @@
       "open": "Открытые",
       "openHint": "активные личные диалоги",
       "presence": "Присутствие",
-      "presenceHint": "состояние realtime-потока администратора",
+      "presenceHint": "состояние потока присутствия администратора",
       "visible": "Видимые",
       "visibleHint": "диалоги после фильтров",
       "waitingAdmin": "Непрочитанные",
       "waitingAdminHint": "открытые диалоги ждут администратора"
     },
     "permissionDenied": {
-      "description": "Этот аккаунт не может читать личные диалоги. Используйте роль support, admin или owner с правом messaging read.",
+      "description": "Этот аккаунт не может читать личные диалоги. Используйте роль поддержки, администратора или владельца с правом чтения сообщений.",
       "title": "Нужны права для сообщений"
     },
     "priorities": {
@@ -3871,7 +3760,7 @@
       "description": "SSE доставляет только подсказки событий; REST остаётся источником истины для содержимого сообщений.",
       "offline": "Офлайн",
       "privacy": "События без тела",
-      "title": "Realtime-присутствие"
+      "title": "Присутствие в реальном времени"
     },
     "reply": {
       "description": "Виден клиенту и может запустить сценарий уведомлений.",
@@ -4186,9 +4075,9 @@
     "growth": "РОСТ",
     "growthHint": "Промо, инвайты, рефералы",
     "infrastructure": "ИНФРАСТРУКТУРА",
-    "infrastructureHint": "Серверы, ноды, развертывания",
+    "infrastructureHint": "Серверы, ноды, rollout",
     "integrations": "ИНТЕГРАЦИИ",
-    "integrationsHint": "Telegram, пуш-уведомления, события в реальном времени",
+    "integrationsHint": "Telegram, push, реалтайм",
     "item": {
       "addons": "Дополнения",
       "addonsHint": "Платные дополнения",
@@ -4242,7 +4131,7 @@
       "policyHint": "Видимость политик",
       "posture": "Профиль безопасности",
       "postureHint": "Риски и укрепление защиты",
-      "pricebooks": "Pricebooks",
+      "pricebooks": "Прайсбуки",
       "pricebooksHint": "Версионные pricing-записи",
       "promoCodes": "Промокоды",
       "promoCodesHint": "Промо и скидки",
@@ -4287,15 +4176,15 @@
     },
     "mainNavigation": "Навигация админки",
     "messaging": "СООБЩЕНИЯ",
-    "messagingHint": "Диалоги, заметки, присутствие",
+    "messagingHint": "Private dialogs, notes, presence",
     "openMenu": "Открыть меню админки",
     "secondaryNavigation": "Навигация раздела",
-    "secureSession": "ЗАЩИЩЕННАЯ СЕССИЯ",
+    "secureSession": "ЗАЩИЩЁННАЯ СЕССИЯ",
     "security": "БЕЗОПАСНОСТЬ",
     "securityHint": "Сессии, 2FA, доверие",
     "sidebar": "Боковая панель админки",
     "support": "ПОДДЕРЖКА",
-    "supportHint": "Инбокс, ответы, внутренние заметки",
+    "supportHint": "Инбокс, ответы, internal notes",
     "unavailableForRole": "Недоступно для текущей роли"
   },
   "Network": {
@@ -4582,11 +4471,11 @@
       "availableNow": {
         "adminInvites": "Жизненный цикл инвайтов для новых admin-сотрудников.",
         "auditLog": "Трасса привилегированных действий из backend audit log.",
-        "policyVisibility": "Базовая видимость уже существующих governance-поверхностей.",
+        "policyVisibility": "Базовая видимость уже существующих поверхностей контроля.",
         "webhookLog": "Видимость обработки вебхуков и контекста ошибок."
       },
       "backendCoverage": "Частичное покрытие. Видимость аудита сильная, а `miniapp.runtime` уже под операторским контролем, но более широкие system configuration семейства и богатые staff-management API пока отсутствуют.",
-      "currentState": "Audit logs, webhook logs и admin invites уже доступны. Первый выделенный system configuration governance API уже работает для `miniapp.runtime`; основной remaining gap теперь в более широком staff directory management и покрытии остальных `system_config` семейств.",
+      "currentState": "Журналы аудита, журналы вебхуков и инвайты админов уже доступны. Первый выделенный system configuration API контроля уже работает для `miniapp.runtime`; основной remaining gap теперь в более широком staff directory management и покрытии остальных `system_config` семейств.",
       "description": "Операционная поверхность для привилегированных действий, вебхуков, onboarding сотрудников и будущего policy control.",
       "metaTitle": "Контроль - Ozoxy Admin",
       "nextFocus": "Сначала выпустить workspace вокруг аудита, инвайтов и webhook-forensics, потом добавить admin directory и policy controls.",
@@ -4596,12 +4485,12 @@
         "staffRoleChanges": "Workflow смены ролей и история согласований.",
         "systemConfig": "Редактор системных настроек с safety-ограничениями."
       },
-      "title": "Governance И Аудит"
+      "title": "Контроль и аудит"
     },
     "growth": {
       "availableNow": {
         "growthNotifications": "Отдельная notification-консоль для manual notices, delivery feed и forensics.",
-        "growthReporting": "Отдельная reporting-консоль для rollups, подписок, governance coverage и export artifacts.",
+        "growthReporting": "Отдельная reporting-консоль для rollups, подписок, управление coverage и export artifacts.",
         "growthRiskQueue": "Отдельная risk-консоль для abuse-сигналов и blocked reward posture.",
         "inviteCodes": "Генерация invite-кодов и видимость их погашения.",
         "partnerPromotion": "Повышение до партнёра плюс live-directory и drill-down контекст.",
@@ -4647,15 +4536,15 @@
     "integrations": {
       "availableNow": {
         "botConfigAccess": "Пути доступа к bot configuration и смежному backend coverage.",
-        "realtimeTopics": "Realtime- и websocket-driven event topics.",
+        "realtimeTopics": "Реалтайм- и websocket-driven event topics.",
         "telegramOps": "Telegram-связанные operational и auth-примитивы.",
         "websocketTickets": "Низкоуровневые websocket- и callback-сигналы, уже видимые в backend-доменах."
       },
       "backendCoverage": "Частичное покрытие. Значимые integration-примитивы уже есть, но admin UI ещё нужно собрать в единый diagnostic слой.",
       "currentState": "Backend уже экспонирует Telegram, bot и webhook-возможности, но операторская видимость по ним пока раскидана по нескольким зонам.",
-      "description": "Поверхность для Telegram, realtime-доставки, bot-linked flows и видимости callback-событий.",
+      "description": "Поверхность для Telegram, реалтайм-доставки, bot-linked flows и видимости callback-событий.",
       "metaTitle": "Интеграции - Ozoxy Admin",
-      "nextFocus": "Собрать единый integration-health surface, где будут delivery state, bot controls и realtime diagnostics.",
+      "nextFocus": "Собрать единый integration-health surface, где будут delivery state, bot controls и реалтайм-диагностика.",
       "nextModules": {
         "deliveryDiagnostics": "Диагностика интеграций и drill-down по ошибкам.",
         "integrationHealth": "Сводное здоровье внешних интеграций и callback-потоков.",
@@ -4671,7 +4560,7 @@
         "authHardening": "Role-based access checks и усиленный session flow.",
         "twoFactor": "Вход email/password, жёстко завязанный на 2FA flow."
       },
-      "backendCoverage": "Сильное покрытие для первого релиза. Основа готова для мониторинга сессий и governance привилегированного доступа.",
+      "backendCoverage": "Сильное покрытие для первого релиза. Основа готова для мониторинга сессий и контроля привилегированного доступа.",
       "currentState": "Базовые security-примитивы уже есть, а сама админка теперь работает с role-check и контуром входа только через 2FA.",
       "description": "Поверхность доверия для админских сессий, 2FA, anti-phishing и усиления привилегированного доступа.",
       "metaTitle": "Безопасность - Ozoxy Admin",
@@ -4826,7 +4715,7 @@
         "pending_support": "Reopen",
         "resolved": "Resolve"
       },
-      "readOnly": "Эта роль может просматривать support tickets, но не может отвечать, писать notes, назначать или менять lifecycle state.",
+      "readOnly": "Эта роль может просматривать тикеты поддержки, но не может отвечать, писать notes, назначать или менять lifecycle state.",
       "save": "Сохранить metadata",
       "saving": "Сохранение",
       "status": "Ticket status",
@@ -4887,7 +4776,7 @@
       },
       "category": "Фильтр category",
       "priority": "Фильтр priority",
-      "search": "Поиск support tickets",
+      "search": "Поиск тикетов поддержки",
       "searchPlaceholder": "Public id, safe account/workspace id, subject",
       "source": "Фильтр source",
       "status": "Фильтр status"
@@ -4908,7 +4797,7 @@
     },
     "list": {
       "empty": "Под текущие фильтры не подходит ни один support ticket.",
-      "loadError": "Не удалось загрузить support tickets.",
+      "loadError": "Не удалось загрузить тикеты поддержки.",
       "mobileListLabel": "Компактный admin support ticket inbox",
       "noPreview": "Public preview пока отсутствует.",
       "open": "Открыть",

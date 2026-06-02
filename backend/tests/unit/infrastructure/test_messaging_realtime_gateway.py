@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -110,6 +111,77 @@ async def test_sse_manager_streams_event_and_heartbeat() -> None:
 
 
 @pytest.mark.asyncio
+async def test_sse_manager_overflow_emits_sync_required_with_cursor() -> None:
+    manager = SSEManager()
+    queue = manager.subscribe("messaging:customer:customer-1", max_queue_size=1)
+
+    await manager.broadcast_event("messaging:customer:customer-1", "notification.created", {"event_id": "evt-1"})
+    await manager.broadcast_event("messaging:customer:customer-1", "notification.read", {"event_id": "evt-2"})
+
+    message = queue.get_nowait()
+
+    assert message["event"] == "sync_required"
+    assert message["data"]["reason"] == "subscriber_backpressure"
+    assert message["data"]["recovery"] == "rest_sync"
+    assert message["data"]["sync_cursor"].startswith("sync:")
+
+    manager.unsubscribe("messaging:customer:customer-1", queue)
+
+
+@pytest.mark.asyncio
+async def test_sse_response_refreshes_presence_on_stream_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _Presence:
+        def __init__(self) -> None:
+            self.registered = 0
+            self.refreshed = 0
+            self.disconnected = 0
+
+        async def register(self, _identity) -> bool:
+            self.registered += 1
+            return True
+
+        async def refresh(self, _identity) -> bool:
+            self.refreshed += 1
+            return True
+
+        async def disconnect(self, _identity) -> bool:
+            self.disconnected += 1
+            return True
+
+    class _SSE:
+        async def create_stream(self, *_args, **_kwargs):
+            yield "event: ping\ndata: {}\n\n"
+            yield 'event: notification.created\ndata: {"event_id":"evt-1"}\n\n'
+
+    presence = _Presence()
+    monkeypatch.setattr(messaging_routes, "_presence_registry", lambda _redis_client: presence)
+    monkeypatch.setattr(messaging_routes, "sse_manager", _SSE())
+
+    principal = messaging_routes.MessagingRealtimePrincipal(principal_type="customer", principal_id="customer-1")
+    response = await messaging_routes._create_messaging_sse_response(
+        principal=principal,
+        redis_client=AsyncMock(),
+    )
+
+    iterator = response.body_iterator
+    connected_chunk = await anext(iterator)
+    assert connected_chunk.startswith("event: connected\n")
+    connected_payload = connected_chunk.split("data: ", 1)[1].strip()
+    assert '"type":"connected"' in connected_payload
+    assert '"principal_type":"customer"' in connected_payload
+    assert '"recovery":"rest_sync"' in connected_payload
+    assert presence.registered == 1
+
+    assert await anext(iterator) == "event: ping\ndata: {}\n\n"
+    assert presence.refreshed == 1
+    assert await anext(iterator) == 'event: notification.created\ndata: {"event_id":"evt-1"}\n\n'
+    assert presence.refreshed == 2
+
+    await iterator.aclose()
+    assert presence.disconnected == 1
+
+
+@pytest.mark.asyncio
 async def test_messaging_ws_auth_rejects_missing_or_wrong_principal_ticket(monkeypatch: pytest.MonkeyPatch) -> None:
     class _TicketService:
         def __init__(self, _redis) -> None:
@@ -121,7 +193,7 @@ async def test_messaging_ws_auth_rejects_missing_or_wrong_principal_ticket(monke
                     user_id="admin-1",
                     role="admin",
                     login="admin",
-                    created_at=messaging_routes.datetime.now(messaging_routes.UTC),
+                    created_at=datetime.now(UTC),
                     principal_type="admin",
                     scope=MESSAGING_REALTIME_TICKET_SCOPE,
                 )
@@ -158,7 +230,7 @@ async def test_messaging_ws_auth_rejects_generic_admin_ticket_scope(monkeypatch:
                 user_id="admin-1",
                 role="admin",
                 login="admin",
-                created_at=messaging_routes.datetime.now(messaging_routes.UTC),
+                created_at=datetime.now(UTC),
                 principal_type="admin",
             )
 
@@ -198,6 +270,29 @@ async def test_messaging_ws_subscribe_rejects_cross_principal_channel() -> None:
         },
         {"type": "subscribed", "channel": "self"},
     ]
+
+
+@pytest.mark.asyncio
+async def test_messaging_ws_sync_returns_rest_recovery_cursor() -> None:
+    websocket = SimpleNamespace(sent=[])
+
+    async def send_json(payload):
+        websocket.sent.append(payload)
+
+    websocket.send_json = send_json
+    principal = messaging_routes.MessagingRealtimePrincipal(principal_type="customer", principal_id="customer-1")
+
+    await messaging_routes._handle_realtime_ws_message(
+        websocket=websocket,  # type: ignore[arg-type]
+        principal=principal,
+        raw_message='{"type":"sync"}',
+    )
+
+    assert len(websocket.sent) == 1
+    assert websocket.sent[0]["type"] == "sync_required"
+    assert websocket.sent[0]["reason"] == "client_requested"
+    assert websocket.sent[0]["recovery"] == "rest_sync"
+    assert websocket.sent[0]["sync_cursor"].startswith("sync:")
 
 
 @pytest.mark.asyncio

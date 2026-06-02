@@ -1431,9 +1431,11 @@
     }
   },
   "LanguageSelector": {
-    "noResults": "NO_MATCHES_FOUND",
-    "searchPlaceholder": "SEARCH_LANGUAGE...",
-    "title": "SELECT_LANGUAGE"
+    "noResults": "No matching languages",
+    "searchLabel": "Search languages",
+    "searchPlaceholder": "Search language...",
+    "title": "Select language",
+    "triggerLabel": "Select language: {language}"
   },
   "Messaging": {
     "actions": {
@@ -1474,6 +1476,7 @@
       "title": "Messages and notifications"
     },
     "notifications": {
+      "dismissOne": "Dismiss notification",
       "emptyDescription": "Account updates and message alerts will appear here.",
       "emptyTitle": "No notifications",
       "error": "Could not load notifications.",
@@ -2091,32 +2094,32 @@
     "title": "SYSTEM MONITORING"
   },
   "Navigation": {
-    "analytics": "NET OP",
-    "billing": "SUBSCRIPTION",
+    "analytics": "Network analytics",
+    "billing": "Subscription",
     "closeMenu": "Close menu",
-    "dashboard": "CABINET",
+    "dashboard": "Dashboard",
     "items": {
       "codes": "CODES",
       "gifts": "GIFTS",
       "invites": "INVITES",
       "messages": "MESSAGES",
-      "overview": "CABINET",
+      "overview": "Overview",
       "paymentHistory": "PAYMENTS",
-      "profileSecurity": "CONFIG",
+      "profileSecurity": "Security settings",
       "referral": "REFERRAL",
-      "rewardNotifications": "ALERTS",
+      "rewardNotifications": "Notifications",
       "rewards": "REWARDS HUB",
       "subscription": "SUBSCRIPTION",
       "support": "SUPPORT",
-      "vpnAccess": "NETWORK",
+      "vpnAccess": "VPN access",
       "wallet": "WALLET"
     },
     "mainNavigation": "Main navigation",
     "messages": "MESSAGES",
     "openMenu": "Open menu",
-    "partner": "PARTNER",
-    "paymentHistory": "PAYMENTS",
-    "referral": "REWARDS",
+    "partner": "Partner program",
+    "paymentHistory": "Payment history",
+    "referral": "Referral rewards",
     "sections": {
       "account": "ACCOUNT",
       "billing": "BILLING",
@@ -2125,13 +2128,13 @@
       "main": "MAIN",
       "vpn": "VPN"
     },
-    "security": "SECURITY",
-    "servers": "NETWORK",
-    "settings": "CONFIG",
+    "security": "Security",
+    "servers": "VPN servers",
+    "settings": "Settings",
     "sidebar": "Sidebar",
-    "support": "SUPPORT",
-    "users": "CLIENTS",
-    "wallet": "WALLET"
+    "support": "Support",
+    "users": "Customers",
+    "wallet": "Wallet"
   },
   "Network": {
     "actions": {

@@ -10,6 +10,7 @@ import {
   LockKeyhole,
   MessageCirclePlus,
   MessageSquareReply,
+  Megaphone,
   NotebookPen,
   RadioTower,
   RefreshCw,
@@ -24,15 +25,19 @@ import {
   MESSAGING_CONVERSATION_CATEGORIES,
   MESSAGING_CONVERSATION_STATUSES,
   MESSAGING_PRIORITIES,
+  NOTIFICATION_BROADCAST_AUDIENCE_TYPES,
   messagingApi,
   type AdminMessagingConversationCreateRequest,
   type AdminMessagingConversationDetail,
   type AdminMessagingConversationListParams,
   type AdminMessagingConversationSummary,
   type AdminMessagingConversationUpdateRequest,
+  type AdminNotificationBroadcastCampaign,
+  type AdminNotificationBroadcastCreateRequest,
   type MessagingConversationCategory,
   type MessagingConversationStatus,
   type MessagingPriority,
+  type NotificationBroadcastAudienceType,
 } from '@/lib/api/messaging';
 import { cn } from '@/lib/utils';
 import { hasAdminPermission } from '@/shared/lib/admin-rbac';
@@ -76,8 +81,14 @@ type UpdateMutationInput = {
   feedbackKey: string;
   payload: AdminMessagingConversationUpdateRequest;
 };
+type BroadcastCreateMutationInput = {
+  payload: AdminNotificationBroadcastCreateRequest;
+  recipientCount: number;
+};
 type CreateConversationField = 'customer' | 'subject' | 'initialMessage';
 type CreateConversationErrors = Partial<Record<CreateConversationField, string>>;
+type BroadcastFormField = 'name' | 'audience' | 'title' | 'body' | 'actionUrl' | 'scheduledAt' | 'confirmation';
+type BroadcastFormErrors = Partial<Record<BroadcastFormField, string>>;
 type PaginationState = {
   extraConversations: AdminMessagingConversationSummary[];
   hasLoadedExtra: boolean;
@@ -87,6 +98,13 @@ type PaginationState = {
 
 const MESSAGE_MAX_LENGTH = 4000;
 const SUBJECT_MAX_LENGTH = 160;
+const BROADCAST_NAME_MAX_LENGTH = 160;
+const BROADCAST_TITLE_MAX_LENGTH = 160;
+const BROADCAST_BODY_MAX_LENGTH = 4000;
+const BROADCAST_ACTION_URL_MAX_LENGTH = 500;
+const BROADCAST_EXPLICIT_CUSTOMER_LIMIT = 25;
+const BROADCAST_CONFIRM_PHRASE = 'BROADCAST';
+const BROADCAST_HISTORY_LIMIT = 6;
 const MESSAGING_LIST_LIMIT = 50;
 const ASSIGNMENT_FILTERS = ['all', 'mine', 'unassigned'] as const;
 const STATUS_FILTERS = ['all', ...MESSAGING_CONVERSATION_STATUSES] as const;
@@ -226,6 +244,59 @@ function createClientMessageId(prefix: string) {
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   return `${prefix}-${randomId}`.slice(0, 80);
+}
+
+function parseExplicitCustomerIds(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\s,]+/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function parsePositiveInteger(value: string) {
+  const parsed = Number.parseInt(value.trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseAudienceFilterJson(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return {};
+  }
+
+  const parsed = JSON.parse(trimmed) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('audience_filter_must_be_object');
+  }
+
+  return parsed as Record<string, unknown>;
+}
+
+function toDatetimeIso(value: string) {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  return date.toISOString();
+}
+
+function upsertBroadcastHistory(
+  current: AdminNotificationBroadcastCampaign[],
+  campaign: AdminNotificationBroadcastCampaign,
+) {
+  return [
+    campaign,
+    ...current.filter((item) => item.id !== campaign.id && item.public_id !== campaign.public_id),
+  ].slice(0, BROADCAST_HISTORY_LIMIT);
 }
 
 function getRequiredTextError(
@@ -1195,6 +1266,533 @@ function CreateConversationPanel({
   );
 }
 
+function canCancelBroadcastStatus(status: AdminNotificationBroadcastCampaign['status']) {
+  return status === 'draft' || status === 'scheduled' || status === 'sending';
+}
+
+function BroadcastOperationsPanel({
+  canCreateBroadcast,
+  history,
+  isCancelPending,
+  isCreatePending,
+  onCancel,
+  onSubmit,
+  t,
+}: {
+  canCreateBroadcast: boolean;
+  history: AdminNotificationBroadcastCampaign[];
+  isCancelPending: boolean;
+  isCreatePending: boolean;
+  onCancel: (campaignRef: string) => void;
+  onSubmit: (input: BroadcastCreateMutationInput) => void;
+  t: MessagingTranslate;
+}) {
+  const [form, setForm] = useState({
+    actionUrl: '',
+    audienceFilterJson: '{\n  "region": "test"\n}',
+    audienceType: 'explicit_customers' as NotificationBroadcastAudienceType,
+    body: '',
+    confirmationText: '',
+    estimatedRecipientCount: '',
+    explicitCustomerIds: '',
+    name: '',
+    scheduledAt: '',
+    title: '',
+  });
+  const [fieldErrors, setFieldErrors] = useState<BroadcastFormErrors>({});
+  const [preview, setPreview] = useState<{
+    fingerprint: string;
+    payload: AdminNotificationBroadcastCreateRequest;
+    recipientCount: number;
+  } | null>(null);
+  const fingerprint = JSON.stringify(form);
+  const previewMatches = preview?.fingerprint === fingerprint;
+  const isBroadAudience = form.audienceType === 'all_customers' || form.audienceType === 'admins';
+
+  function updateForm<Key extends keyof typeof form>(key: Key, value: (typeof form)[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function buildBroadcastDraft(requireCurrentPreview: boolean) {
+    const errors: BroadcastFormErrors = {};
+    const trimmedName = form.name.trim();
+    const trimmedTitle = form.title.trim();
+    const trimmedBody = form.body.trim();
+    const trimmedActionUrl = form.actionUrl.trim();
+    const estimatedRecipientCount = parsePositiveInteger(form.estimatedRecipientCount);
+    let recipientCount = 0;
+    let audienceFilter: Record<string, unknown> = {};
+
+    if (!trimmedName) {
+      errors.name = t('broadcast.feedback.nameRequired');
+    } else if (trimmedName.length > BROADCAST_NAME_MAX_LENGTH) {
+      errors.name = t('broadcast.feedback.nameTooLong', { count: BROADCAST_NAME_MAX_LENGTH });
+    }
+
+    if (!trimmedTitle) {
+      errors.title = t('broadcast.feedback.titleRequired');
+    } else if (trimmedTitle.length > BROADCAST_TITLE_MAX_LENGTH) {
+      errors.title = t('broadcast.feedback.titleTooLong', { count: BROADCAST_TITLE_MAX_LENGTH });
+    }
+
+    if (!trimmedBody) {
+      errors.body = t('broadcast.feedback.bodyRequired');
+    } else if (trimmedBody.length > BROADCAST_BODY_MAX_LENGTH) {
+      errors.body = t('broadcast.feedback.bodyTooLong', { count: BROADCAST_BODY_MAX_LENGTH });
+    }
+
+    if (trimmedActionUrl.length > BROADCAST_ACTION_URL_MAX_LENGTH) {
+      errors.actionUrl = t('broadcast.feedback.actionUrlTooLong', {
+        count: BROADCAST_ACTION_URL_MAX_LENGTH,
+      });
+    }
+
+    if (form.audienceType === 'explicit_customers') {
+      const customerIds = parseExplicitCustomerIds(form.explicitCustomerIds);
+      recipientCount = customerIds.length;
+      if (!customerIds.length) {
+        errors.audience = t('broadcast.feedback.explicitCustomersRequired');
+      } else if (customerIds.length > BROADCAST_EXPLICIT_CUSTOMER_LIMIT) {
+        errors.audience = t('broadcast.feedback.explicitCustomersTooMany', {
+          count: BROADCAST_EXPLICIT_CUSTOMER_LIMIT,
+        });
+      }
+      audienceFilter = {
+        customer_account_ids: customerIds,
+        estimated_recipient_count: recipientCount,
+      };
+    } else if (form.audienceType === 'customer_segment') {
+      try {
+        audienceFilter = parseAudienceFilterJson(form.audienceFilterJson);
+      } catch {
+        errors.audience = t('broadcast.feedback.filterInvalid');
+      }
+      if (!Object.keys(audienceFilter).length) {
+        errors.audience = t('broadcast.feedback.filterRequired');
+      }
+      if (estimatedRecipientCount === null) {
+        errors.audience = t('broadcast.feedback.recipientEstimateRequired');
+      } else {
+        recipientCount = estimatedRecipientCount;
+        audienceFilter = {
+          ...audienceFilter,
+          estimated_recipient_count: recipientCount,
+        };
+      }
+    } else {
+      if (estimatedRecipientCount === null) {
+        errors.audience = t('broadcast.feedback.recipientEstimateRequired');
+      } else {
+        recipientCount = estimatedRecipientCount;
+        audienceFilter = {
+          estimated_recipient_count: recipientCount,
+        };
+      }
+    }
+
+    const scheduledAt = toDatetimeIso(form.scheduledAt);
+    if (scheduledAt === undefined) {
+      errors.scheduledAt = t('broadcast.feedback.scheduledAtInvalid');
+    }
+
+    if (isBroadAudience && form.confirmationText.trim() !== BROADCAST_CONFIRM_PHRASE) {
+      errors.confirmation = t('broadcast.feedback.confirmationRequired');
+    }
+
+    if (requireCurrentPreview && !previewMatches) {
+      errors.confirmation = t('broadcast.feedback.previewRequired');
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length) {
+      return null;
+    }
+
+    return {
+      payload: {
+        action_url: trimmedActionUrl || null,
+        audience_filter: audienceFilter,
+        audience_type: form.audienceType,
+        body: trimmedBody,
+        name: trimmedName,
+        scheduled_at: scheduledAt,
+        title: trimmedTitle,
+      },
+      recipientCount,
+    };
+  }
+
+  function previewBroadcast() {
+    const draft = buildBroadcastDraft(false);
+    if (!draft) {
+      setPreview(null);
+      return;
+    }
+
+    setPreview({
+      fingerprint,
+      payload: draft.payload,
+      recipientCount: draft.recipientCount,
+    });
+  }
+
+  return (
+    <section className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-5">
+      <div className="flex items-center gap-3">
+        <Megaphone className="h-5 w-5 text-amber-300" />
+        <div>
+          <h3 className="text-sm font-display uppercase tracking-[0.22em] text-white">
+            {t('broadcast.title')}
+          </h3>
+          <p className="mt-1 text-sm font-mono text-muted-foreground">
+            {t('broadcast.description')}
+          </p>
+        </div>
+      </div>
+
+      {!canCreateBroadcast ? (
+        <div className="mt-4 rounded-xl border border-neon-pink/25 bg-neon-pink/10 p-4 text-sm font-mono text-neon-pink">
+          {t('broadcast.readOnly')}
+        </div>
+      ) : null}
+
+      <form
+        data-testid="messaging-broadcast-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const draft = buildBroadcastDraft(true);
+          if (draft) {
+            onSubmit(draft);
+          }
+        }}
+        className="mt-5 grid gap-3"
+      >
+        <div className="grid gap-1">
+          <input
+            value={form.name}
+            onChange={(event) => updateForm('name', event.target.value)}
+            disabled={!canCreateBroadcast || isCreatePending}
+            placeholder={t('broadcast.namePlaceholder')}
+            aria-describedby={fieldErrors.name ? 'messaging-broadcast-name-error' : undefined}
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-label={t('broadcast.name')}
+            className={cn(
+              'h-11 rounded-md border border-input bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+              fieldErrors.name ? 'border-neon-pink/60' : undefined,
+              AMBER_FOCUS_CLASS,
+            )}
+          />
+          {fieldErrors.name ? (
+            <p id="messaging-broadcast-name-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+              {fieldErrors.name}
+            </p>
+          ) : null}
+        </div>
+
+        <select
+          value={form.audienceType}
+          onChange={(event) =>
+            updateForm('audienceType', event.target.value as NotificationBroadcastAudienceType)}
+          disabled={!canCreateBroadcast || isCreatePending}
+          aria-label={t('broadcast.audience')}
+          className={cn(
+            'h-11 rounded-md border border-input bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+            AMBER_FOCUS_CLASS,
+          )}
+        >
+          {NOTIFICATION_BROADCAST_AUDIENCE_TYPES.map((item) => (
+            <option key={item} value={item}>
+              {t(`broadcast.audienceTypes.${item}`)}
+            </option>
+          ))}
+        </select>
+
+        {form.audienceType === 'explicit_customers' ? (
+          <textarea
+            value={form.explicitCustomerIds}
+            onChange={(event) => updateForm('explicitCustomerIds', event.target.value)}
+            disabled={!canCreateBroadcast || isCreatePending}
+            aria-describedby={fieldErrors.audience ? 'messaging-broadcast-audience-error' : undefined}
+            aria-invalid={Boolean(fieldErrors.audience)}
+            aria-label={t('broadcast.explicitCustomers')}
+            placeholder={t('broadcast.explicitCustomersPlaceholder')}
+            className={cn(
+              'min-h-24 rounded-xl border border-amber-300/25 bg-terminal-bg/70 p-3 text-sm font-mono text-foreground disabled:opacity-60',
+              fieldErrors.audience ? 'border-neon-pink/60' : undefined,
+              AMBER_FOCUS_CLASS,
+            )}
+          />
+        ) : null}
+
+        {form.audienceType !== 'explicit_customers' ? (
+          <>
+            {form.audienceType === 'customer_segment' ? (
+              <textarea
+                value={form.audienceFilterJson}
+                onChange={(event) => updateForm('audienceFilterJson', event.target.value)}
+                disabled={!canCreateBroadcast || isCreatePending}
+                aria-describedby={fieldErrors.audience ? 'messaging-broadcast-audience-error' : undefined}
+                aria-invalid={Boolean(fieldErrors.audience)}
+                aria-label={t('broadcast.audienceFilter')}
+                className={cn(
+                  'min-h-28 rounded-xl border border-amber-300/25 bg-terminal-bg/70 p-3 text-sm font-mono text-foreground disabled:opacity-60',
+                  fieldErrors.audience ? 'border-neon-pink/60' : undefined,
+                  AMBER_FOCUS_CLASS,
+                )}
+              />
+            ) : null}
+            <input
+              value={form.estimatedRecipientCount}
+              onChange={(event) => updateForm('estimatedRecipientCount', event.target.value)}
+              disabled={!canCreateBroadcast || isCreatePending}
+              inputMode="numeric"
+              aria-describedby={fieldErrors.audience ? 'messaging-broadcast-audience-error' : undefined}
+              aria-invalid={Boolean(fieldErrors.audience)}
+              aria-label={t('broadcast.recipientEstimate')}
+              placeholder={t('broadcast.recipientEstimatePlaceholder')}
+              className={cn(
+                'h-11 rounded-md border border-input bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+                fieldErrors.audience ? 'border-neon-pink/60' : undefined,
+                AMBER_FOCUS_CLASS,
+              )}
+            />
+          </>
+        ) : null}
+
+        {fieldErrors.audience ? (
+          <p id="messaging-broadcast-audience-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+            {fieldErrors.audience}
+          </p>
+        ) : null}
+
+        <div className="grid gap-1">
+          <input
+            value={form.title}
+            onChange={(event) => updateForm('title', event.target.value)}
+            disabled={!canCreateBroadcast || isCreatePending}
+            placeholder={t('broadcast.titlePlaceholder')}
+            aria-describedby={fieldErrors.title ? 'messaging-broadcast-title-error' : undefined}
+            aria-invalid={Boolean(fieldErrors.title)}
+            aria-label={t('broadcast.messageTitle')}
+            className={cn(
+              'h-11 rounded-md border border-input bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+              fieldErrors.title ? 'border-neon-pink/60' : undefined,
+              AMBER_FOCUS_CLASS,
+            )}
+          />
+          {fieldErrors.title ? (
+            <p id="messaging-broadcast-title-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+              {fieldErrors.title}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-1">
+          <textarea
+            value={form.body}
+            onChange={(event) => updateForm('body', event.target.value)}
+            disabled={!canCreateBroadcast || isCreatePending}
+            aria-describedby={fieldErrors.body ? 'messaging-broadcast-body-error' : undefined}
+            aria-invalid={Boolean(fieldErrors.body)}
+            aria-label={t('broadcast.body')}
+            placeholder={t('broadcast.bodyPlaceholder')}
+            className={cn(
+              'min-h-28 rounded-xl border border-amber-300/25 bg-terminal-bg/70 p-3 text-sm font-mono text-foreground disabled:opacity-60',
+              fieldErrors.body ? 'border-neon-pink/60' : undefined,
+              AMBER_FOCUS_CLASS,
+            )}
+          />
+          {fieldErrors.body ? (
+            <p id="messaging-broadcast-body-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+              {fieldErrors.body}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <input
+            value={form.actionUrl}
+            onChange={(event) => updateForm('actionUrl', event.target.value)}
+            disabled={!canCreateBroadcast || isCreatePending}
+            placeholder={t('broadcast.actionUrlPlaceholder')}
+            aria-describedby={fieldErrors.actionUrl ? 'messaging-broadcast-action-url-error' : undefined}
+            aria-invalid={Boolean(fieldErrors.actionUrl)}
+            aria-label={t('broadcast.actionUrl')}
+            className={cn(
+              'h-11 rounded-md border border-input bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+              fieldErrors.actionUrl ? 'border-neon-pink/60' : undefined,
+              AMBER_FOCUS_CLASS,
+            )}
+          />
+          <input
+            type="datetime-local"
+            value={form.scheduledAt}
+            onChange={(event) => updateForm('scheduledAt', event.target.value)}
+            disabled={!canCreateBroadcast || isCreatePending}
+            aria-describedby={fieldErrors.scheduledAt ? 'messaging-broadcast-scheduled-error' : undefined}
+            aria-invalid={Boolean(fieldErrors.scheduledAt)}
+            aria-label={t('broadcast.scheduledAt')}
+            className={cn(
+              'h-11 rounded-md border border-input bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+              fieldErrors.scheduledAt ? 'border-neon-pink/60' : undefined,
+              AMBER_FOCUS_CLASS,
+            )}
+          />
+        </div>
+        {fieldErrors.actionUrl ? (
+          <p id="messaging-broadcast-action-url-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+            {fieldErrors.actionUrl}
+          </p>
+        ) : null}
+        {fieldErrors.scheduledAt ? (
+          <p id="messaging-broadcast-scheduled-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+            {fieldErrors.scheduledAt}
+          </p>
+        ) : null}
+
+        {isBroadAudience ? (
+          <div className="grid gap-2 rounded-xl border border-neon-pink/25 bg-neon-pink/10 p-4">
+            <p className="text-xs font-mono leading-5 text-neon-pink">
+              {t('broadcast.broadAudienceWarning', { phrase: BROADCAST_CONFIRM_PHRASE })}
+            </p>
+            <input
+              value={form.confirmationText}
+              onChange={(event) => updateForm('confirmationText', event.target.value)}
+              disabled={!canCreateBroadcast || isCreatePending}
+              aria-describedby={fieldErrors.confirmation ? 'messaging-broadcast-confirmation-error' : undefined}
+              aria-invalid={Boolean(fieldErrors.confirmation)}
+              aria-label={t('broadcast.confirmation')}
+              placeholder={BROADCAST_CONFIRM_PHRASE}
+              className={cn(
+                'h-11 rounded-md border border-neon-pink/30 bg-terminal-bg/70 px-3 py-2 text-sm text-foreground disabled:opacity-60',
+                fieldErrors.confirmation ? 'border-neon-pink/60' : undefined,
+                CONTROL_FOCUS_CLASS,
+              )}
+            />
+          </div>
+        ) : null}
+        {fieldErrors.confirmation ? (
+          <p id="messaging-broadcast-confirmation-error" role="alert" className="text-xs font-mono leading-5 text-neon-pink">
+            {fieldErrors.confirmation}
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={previewBroadcast}
+            disabled={!canCreateBroadcast || isCreatePending}
+            className={cn(
+              'inline-flex w-fit items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/10 px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] text-amber-300 transition-colors hover:bg-amber-300/15 disabled:opacity-60',
+              AMBER_FOCUS_CLASS,
+            )}
+          >
+            <Eye className="h-4 w-4" />
+            {t('broadcast.preview')}
+          </button>
+          <button
+            type="submit"
+            disabled={!canCreateBroadcast || isCreatePending || !previewMatches}
+            className={cn(
+              'inline-flex w-fit items-center gap-2 rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-4 py-3 text-xs font-mono uppercase tracking-[0.18em] text-neon-cyan transition-colors hover:bg-neon-cyan/15 disabled:opacity-60',
+              CONTROL_FOCUS_CLASS,
+            )}
+          >
+            <Send className="h-4 w-4" />
+            {isCreatePending ? t('broadcast.creating') : t('broadcast.submit')}
+          </button>
+        </div>
+      </form>
+
+      {preview ? (
+        <div
+          data-testid="messaging-broadcast-preview"
+          className={cn(
+            'mt-4 rounded-xl border p-4',
+            previewMatches
+              ? 'border-amber-300/25 bg-terminal-bg/55'
+              : 'border-neon-pink/25 bg-neon-pink/10',
+          )}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-display uppercase tracking-[0.18em] text-white">
+              {t('broadcast.previewTitle')}
+            </p>
+            <MessagingStatusChip
+              label={previewMatches ? t('broadcast.previewReady') : t('broadcast.previewStale')}
+              tone={previewMatches ? 'success' : 'warning'}
+            />
+          </div>
+          <div className="mt-3 grid gap-3 text-sm font-mono leading-6 text-muted-foreground">
+            <p className="text-white">{preview.payload.title}</p>
+            <p>{preview.payload.body}</p>
+            <p>
+              {t('broadcast.recipientCount')}{' '}
+              <span data-testid="messaging-broadcast-recipient-count" className="text-amber-200">
+                {preview.recipientCount}
+              </span>
+            </p>
+            <p>{t(`broadcast.audienceTypes.${preview.payload.audience_type}`)}</p>
+            {preview.payload.action_url ? <p>{preview.payload.action_url}</p> : null}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-5">
+        <h4 className="text-xs font-display uppercase tracking-[0.18em] text-white">
+          {t('broadcast.historyTitle')}
+        </h4>
+        <div className="mt-3 grid gap-3">
+          {history.length ? (
+            history.map((campaign) => (
+              <article
+                key={campaign.id}
+                className="rounded-xl border border-grid-line/20 bg-terminal-bg/55 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
+                      {campaign.name}
+                    </p>
+                    <p className="mt-1 text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {campaign.public_id}
+                    </p>
+                  </div>
+                  <MessagingStatusChip
+                    label={t(`broadcast.statuses.${campaign.status}`)}
+                    tone={campaign.status === 'cancelled' || campaign.status === 'failed' ? 'danger' : 'info'}
+                  />
+                </div>
+                <p className="mt-3 text-sm font-mono leading-6 text-muted-foreground">
+                  {campaign.title}
+                </p>
+                {canCancelBroadcastStatus(campaign.status) ? (
+                  <button
+                    type="button"
+                    onClick={() => onCancel(campaign.public_id)}
+                    disabled={!canCreateBroadcast || isCancelPending}
+                    className={cn(
+                      'mt-3 rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-3 py-2 text-xs font-mono uppercase tracking-[0.16em] text-neon-pink transition-colors hover:bg-neon-pink/15 disabled:opacity-60',
+                      CONTROL_FOCUS_CLASS,
+                    )}
+                  >
+                    {isCancelPending ? t('broadcast.cancelling') : t('broadcast.cancel')}
+                  </button>
+                ) : null}
+              </article>
+            ))
+          ) : (
+            <p className="rounded-xl border border-dashed border-grid-line/25 bg-terminal-bg/35 px-4 py-5 text-sm font-mono text-muted-foreground">
+              {t('broadcast.historyEmpty')}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 interface MessagingConsoleProps {
   initialConversationRef?: string;
   initialSearchParams?: MessagingSearchParams;
@@ -1227,6 +1825,7 @@ export function MessagingConsole({
   const [publicReplyDraft, setPublicReplyDraft] = useState('');
   const [internalNoteDraft, setInternalNoteDraft] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [broadcastHistory, setBroadcastHistory] = useState<AdminNotificationBroadcastCampaign[]>([]);
   const [realtimeState, setRealtimeState] = useState<RealtimeState>(() =>
     typeof EventSource === 'undefined' ? 'offline' : 'connecting',
   );
@@ -1283,6 +1882,7 @@ export function MessagingConsole({
   const canWriteInternalNote = hasAdminPermission(role, 'messaging_internal_note_write');
   const canAssignMessaging = hasAdminPermission(role, 'messaging_conversation_assign');
   const canCloseMessaging = hasAdminPermission(role, 'messaging_conversation_close');
+  const canCreateBroadcast = hasAdminPermission(role, 'notification_broadcast_create');
   const assignedAdminId =
     assignmentFilter === 'mine' && sessionQuery.data?.id
       ? sessionQuery.data.id
@@ -1523,6 +2123,39 @@ export function MessagingConsole({
           : t('feedback.conversationReopened'),
       );
       await refreshMessagingData(conversation.public_id);
+    },
+    onError: (error) => {
+      setFeedback(getMessagingErrorMessage(error, t('common.actionFailed')));
+    },
+  });
+
+  const createBroadcastMutation = useMutation({
+    mutationFn: async ({ payload }: BroadcastCreateMutationInput) => {
+      const response = await messagingApi.createAdminNotificationBroadcast(payload);
+      return response.data;
+    },
+    onSuccess: (campaign, variables) => {
+      setBroadcastHistory((current) => upsertBroadcastHistory(current, campaign));
+      setFeedback(
+        t('feedback.broadcastCreated', {
+          count: variables.recipientCount,
+          publicId: campaign.public_id,
+        }),
+      );
+    },
+    onError: (error) => {
+      setFeedback(getMessagingErrorMessage(error, t('common.actionFailed')));
+    },
+  });
+
+  const cancelBroadcastMutation = useMutation({
+    mutationFn: async (campaignRef: string) => {
+      const response = await messagingApi.cancelAdminNotificationBroadcast(campaignRef);
+      return response.data;
+    },
+    onSuccess: (campaign) => {
+      setBroadcastHistory((current) => upsertBroadcastHistory(current, campaign));
+      setFeedback(t('feedback.broadcastCancelled', { publicId: campaign.public_id }));
     },
     onError: (error) => {
       setFeedback(getMessagingErrorMessage(error, t('common.actionFailed')));
@@ -1797,6 +2430,16 @@ export function MessagingConsole({
             isPending={createConversationMutation.isPending}
             onSubmit={(payload, clientMessageId) =>
               createConversationMutation.mutate({ clientMessageId, payload })}
+            t={t}
+          />
+
+          <BroadcastOperationsPanel
+            canCreateBroadcast={canCreateBroadcast}
+            history={broadcastHistory}
+            isCancelPending={cancelBroadcastMutation.isPending}
+            isCreatePending={createBroadcastMutation.isPending}
+            onCancel={(campaignRef) => cancelBroadcastMutation.mutate(campaignRef)}
+            onSubmit={(input) => createBroadcastMutation.mutate(input)}
             t={t}
           />
 

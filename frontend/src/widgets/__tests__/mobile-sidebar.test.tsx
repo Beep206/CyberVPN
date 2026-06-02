@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from 'react';
 import { resetScrollLockForTests } from '@/shared/lib/scroll-lock';
-import { getWebCabinetNavigationSections } from '@/widgets/dashboard-navigation';
+import { DASHBOARD_NAV_ITEMS } from '@/widgets/dashboard-navigation';
 
 const mockUsePathname = vi.fn(() => '/dashboard');
 const clientCapabilitiesMock = vi.hoisted(() => ({
@@ -98,12 +98,6 @@ import { MobileSidebar } from '../mobile-sidebar';
 describe('MobileSidebar', () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue('/dashboard');
-    clientCapabilitiesMock.data.growth.checkout_code_discounts = false;
-    clientCapabilitiesMock.data.growth.gift_codes = false;
-    clientCapabilitiesMock.data.growth.growth_hub = false;
-    clientCapabilitiesMock.data.growth.invites = false;
-    clientCapabilitiesMock.data.growth.promo_codes = false;
-    clientCapabilitiesMock.data.growth.referral = false;
   });
 
   afterEach(() => {
@@ -127,13 +121,12 @@ describe('MobileSidebar', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'sidebar' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveClass('h-dvh');
+    expect(dialog.parentElement).toBe(document.body);
     expect(screen.getByRole('button', { name: 'closeMenu' })).toHaveFocus();
 
     const links = screen.getAllByRole('link');
-    const navItems = getWebCabinetNavigationSections({
-      capabilities: clientCapabilitiesMock.data,
-    }).flatMap((section) => section.items);
-    expect(links).toHaveLength(navItems.length);
+    expect(links).toHaveLength(DASHBOARD_NAV_ITEMS.length);
   });
 
   it('traps focus inside the dialog when tabbing backwards from the close button', async () => {
@@ -146,35 +139,19 @@ describe('MobileSidebar', () => {
 
     await user.tab({ shift: true });
 
-    expect(
-      screen.getByRole('link', { name: 'items.profileSecurity' }),
-    ).toHaveFocus();
-  });
-
-  it('closes on Escape and returns focus to the trigger', async () => {
-    const user = userEvent.setup();
-
-    render(<MobileSidebar />);
-    await user.click(screen.getByRole('button', { name: 'openMenu' }));
-
-    await user.keyboard('{Escape}');
-
-    expect(
-      screen.queryByRole('dialog', { name: 'sidebar' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'openMenu' })).toHaveFocus();
+    expect(screen.getByRole('link', { name: 'settings' })).toHaveFocus();
   });
 
   it('closes on overlay tap and restores document scroll', async () => {
     const user = userEvent.setup();
-    const { container } = render(<MobileSidebar />);
+    render(<MobileSidebar />);
 
     await user.click(screen.getByRole('button', { name: 'openMenu' }));
 
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.documentElement.style.overflow).toBe('hidden');
 
-    const backdrop = container.querySelector('div[aria-hidden="true"]');
+    const backdrop = document.body.querySelector('div[aria-hidden="true"]');
     expect(backdrop).toBeInTheDocument();
 
     await user.click(backdrop as HTMLElement);

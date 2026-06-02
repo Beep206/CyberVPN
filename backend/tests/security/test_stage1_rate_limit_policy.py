@@ -125,6 +125,7 @@ class _FakeRedisClient:
         ("/api/v1/me/conversations/conv_1/messages", "POST", "messaging_write", 30),
         ("/api/v1/me/conversations/conv_1/read", "POST", "messaging_write", 30),
         ("/api/v1/me/notifications/read", "POST", "messaging_write", 30),
+        ("/api/v1/me/notifications/dismiss", "POST", "messaging_write", 30),
         ("/api/v1/admin/messaging/conversations", "POST", "messaging_write", 30),
         ("/api/v1/admin/messaging/conversations/conv_1/internal-notes", "POST", "messaging_write", 30),
         ("/api/v1/me/realtime/sync", "GET", "messaging_realtime", 60),

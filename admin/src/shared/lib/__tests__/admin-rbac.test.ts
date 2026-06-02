@@ -39,10 +39,12 @@ describe('admin-rbac', () => {
     expect(hasAdminPermission('support', 'user_read')).toBe(true);
     expect(hasAdminPermission('support', 'vpn_credential_regenerate')).toBe(true);
     expect(hasAdminPermission('support', 'support_ticket_read')).toBe(true);
+    expect(hasAdminPermission('support', 'notification_broadcast_create')).toBe(false);
     expect(hasAdminPermission('support', 'payment_read')).toBe(false);
 
     expect(hasAdminPermission('operator', 'subscription_create')).toBe(true);
     expect(hasAdminPermission('operator', 'support_ticket_read')).toBe(false);
+    expect(hasAdminPermission('operator', 'notification_broadcast_create')).toBe(false);
     expect(hasAdminPermission('operator', 'payment_read')).toBe(false);
     expect(hasAdminPermission('operator', 'user_update')).toBe(false);
 
@@ -52,8 +54,19 @@ describe('admin-rbac', () => {
     expect(hasAdminPermission('finance', 'server_read')).toBe(false);
 
     expect(hasAdminPermission('viewer', 'view_analytics')).toBe(true);
+    expect(hasAdminPermission('viewer', 'notification_broadcast_create')).toBe(false);
     expect(hasAdminPermission('viewer', 'support_ticket_read')).toBe(false);
     expect(hasAdminPermission('viewer', 'user_update')).toBe(false);
+  });
+
+  it('grants notification broadcast creation only to admin-level roles', () => {
+    for (const role of ['admin', 'super_admin', 'owner/super_admin'] as const) {
+      expect(hasAdminPermission(role, 'notification_broadcast_create')).toBe(true);
+    }
+
+    for (const role of ['viewer', 'support', 'finance', 'operator'] as const) {
+      expect(hasAdminPermission(role, 'notification_broadcast_create')).toBe(false);
+    }
   });
 
   it('grants support ticket read only to backend-approved support roles', () => {

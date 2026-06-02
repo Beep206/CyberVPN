@@ -2903,9 +2903,9 @@
     }
   },
   "LanguageSelector": {
-    "noResults": "NO_MATCHES_FOUND",
-    "searchPlaceholder": "SEARCH_LANGUAGE...",
-    "title": "SELECT_LANGUAGE"
+    "noResults": "No languages found",
+    "searchPlaceholder": "Search language...",
+    "title": "Select language"
   },
   "MiniApp": {
     "home": {

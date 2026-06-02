@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, Shield, X } from 'lucide-react';
 import { CypherText } from '@/shared/ui/atoms/cypher-text';
@@ -14,8 +15,8 @@ import {
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
 import {
-  getCabinetNavigationLabelFallback,
-  getWebCabinetNavigationSections,
+  DASHBOARD_NAV_LABEL_FALLBACKS,
+  getDashboardNavItems,
 } from '@/widgets/dashboard-navigation';
 
 const FOCUSABLE_SELECTOR =
@@ -28,15 +29,16 @@ export function MobileSidebar() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { data: capabilities } = useClientCapabilities();
-  const navSections = getWebCabinetNavigationSections({
-    capabilities,
+  const portalContainer =
+    typeof document === 'undefined' ? null : document.body;
+  const navItems = getDashboardNavItems({
     growthVisible: isAnyGrowthSurfaceEnabled(capabilities),
   });
-  const labelFor = (key: string) => {
+  const labelFor = (key: keyof typeof DASHBOARD_NAV_LABEL_FALLBACKS) => {
     try {
       return t(key);
     } catch {
-      return getCabinetNavigationLabelFallback(key);
+      return DASHBOARD_NAV_LABEL_FALLBACKS[key];
     }
   };
 
@@ -111,66 +113,62 @@ export function MobileSidebar() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-              aria-hidden="true"
-            />
-            <motion.aside
-              ref={sidebarRef}
-              id="mobile-sidebar-panel"
-              role="dialog"
-              aria-modal="true"
-              aria-label={labelFor('sidebar')}
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
-            >
-              <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
-                <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
-                  <Shield className="h-6 w-6" />
-                  <span>NEXUS</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  magnetic={false}
-                  data-close-btn
-                  onClick={() => setIsOpen(false)}
-                  aria-label={labelFor('closeMenu')}
-                  className="text-muted-foreground hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
+      {portalContainer
+        ? createPortal(
+            <AnimatePresence>
+              {isOpen && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsOpen(false)}
+                    className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
+                    aria-hidden="true"
+                  />
+                  <motion.aside
+                    ref={sidebarRef}
+                    id="mobile-sidebar-panel"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={labelFor('sidebar')}
+                    initial={{ x: '-100%' }}
+                    animate={{ x: 0 }}
+                    exit={{ x: '-100%' }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                    className="fixed inset-y-0 left-0 z-[80] flex h-dvh w-[min(20rem,calc(100vw-var(--mobile-page-gutter)*2))] max-w-full flex-col border-r border-grid-line/30 bg-terminal-surface/95 backdrop-blur-xl"
+                  >
+                    <div className="flex h-16 items-center justify-between border-b border-grid-line/30 px-6">
+                      <div className="flex items-center gap-2 font-display text-xl tracking-wider text-neon-cyan drop-shadow-glow">
+                        <Shield className="h-6 w-6" />
+                        <span>NEXUS</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        magnetic={false}
+                        data-close-btn
+                        onClick={() => setIsOpen(false)}
+                        aria-label={labelFor('closeMenu')}
+                        className="text-muted-foreground hover:text-neon-pink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-neon-pink focus-visible:shadow-[0_0_12px_var(--color-neon-pink)]"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
 
-              <div className="flex-1 overflow-y-auto py-6 px-4">
-                <nav
-                  aria-label={labelFor('mainNavigation')}
-                  className="grid gap-5"
-                >
-                  {navSections.map((section) => (
-                    <div key={section.id}>
-                      <p className="px-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70">
-                        {labelFor(section.labelKey)}
-                      </p>
-                      <div className="mt-2 grid gap-1">
-                        {section.items.map((item) => {
-                          const isActive = item.match(pathname);
+                    <div className="flex-1 overflow-y-auto px-4 py-6">
+                      <nav
+                        aria-label={labelFor('mainNavigation')}
+                        className="grid gap-2"
+                      >
+                        {navItems.map((item) => {
+                          const isActive = pathname?.includes(item.href);
                           const Icon = item.icon;
                           const label = labelFor(item.labelKey);
 
                           return (
                             <Link
-                              key={item.id}
+                              key={item.href}
                               href={item.href}
                               onClick={() => setIsOpen(false)}
                               aria-label={label}
@@ -191,17 +189,17 @@ export function MobileSidebar() {
                               >
                                 <Icon
                                   className={cn(
-                                    'h-4 w-4 transition-transform duration-300',
+                                    'h-4 w-4 shrink-0 transition-transform duration-300',
                                     isActive
                                       ? 'drop-shadow-[0_0_8px_cyan]'
                                       : 'group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_white]',
                                   )}
                                 />
 
-                                <span className="relative tracking-wide">
+                                <span className="relative min-w-0 flex-1 tracking-wide">
                                   <CypherText
                                     text={label}
-                                    className="group-hover:text-neon-cyan transition-colors duration-300"
+                                    className="block max-w-full break-words transition-colors duration-300 group-hover:text-neon-cyan"
                                     speed={30}
                                   />
                                 </span>
@@ -209,31 +207,31 @@ export function MobileSidebar() {
                             </Link>
                           );
                         })}
-                      </div>
+                      </nav>
                     </div>
-                  ))}
-                </nav>
-              </div>
 
-              <div className="border-t border-grid-line/30 p-4">
-                <div className="rounded-lg bg-sidebar-accent/50 p-3 border border-grid-line/20">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded bg-neon-cyan/20 flex items-center justify-center text-neon-cyan border border-neon-cyan/50">
-                      CV
-                    </div>
-                    <div className="text-xs font-mono">
-                      <div className="text-foreground">USER NODE</div>
-                      <div className="text-muted-foreground">
-                        PRIVATE ACCESS
+                    <div className="border-t border-grid-line/30 p-4">
+                      <div className="rounded-lg bg-sidebar-accent/50 p-3 border border-grid-line/20">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded bg-neon-cyan/20 flex items-center justify-center text-neon-cyan border border-neon-cyan/50">
+                            CV
+                          </div>
+                          <div className="text-xs font-mono">
+                            <div className="text-foreground">USER NODE</div>
+                            <div className="text-muted-foreground">
+                              PRIVATE ACCESS
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+                  </motion.aside>
+                </>
+              )}
+            </AnimatePresence>,
+            portalContainer,
+          )
+        : null}
     </div>
   );
 }

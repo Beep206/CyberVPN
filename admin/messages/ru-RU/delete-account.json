@@ -17,7 +17,7 @@
         "subscriptions": "All active subscriptions (no refunds)",
         "configs": "VPN configurations and connection history",
         "referrals": "Referral data and earned rewards",
-        "support": "Support tickets and communication history"
+        "support": "Тикеты поддержки и история коммуникаций"
       }
     },
     "beforeDelete": {
