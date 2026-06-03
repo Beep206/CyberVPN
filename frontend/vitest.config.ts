@@ -1,18 +1,28 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { existsSync } from 'fs';
 import { resolve } from 'path';
+
+const resolveWorkspaceDependency = (...segments: string[]) => {
+  const localPath = resolve(__dirname, 'node_modules', ...segments);
+  if (existsSync(localPath)) {
+    return localPath;
+  }
+
+  return resolve(__dirname, '..', 'node_modules', ...segments);
+};
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
-      '@tanstack/react-query': resolve(__dirname, 'node_modules/@tanstack/react-query'),
-      react: resolve(__dirname, 'node_modules/react'),
-      'react-dom': resolve(__dirname, 'node_modules/react-dom'),
-      'react-dom/client': resolve(__dirname, 'node_modules/react-dom/client.js'),
-      'react/jsx-dev-runtime': resolve(__dirname, 'node_modules/react/jsx-dev-runtime.js'),
-      'react/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime.js'),
+      '@tanstack/react-query': resolveWorkspaceDependency('@tanstack/react-query'),
+      react: resolveWorkspaceDependency('react'),
+      'react-dom': resolveWorkspaceDependency('react-dom'),
+      'react-dom/client': resolveWorkspaceDependency('react-dom/client.js'),
+      'react/jsx-dev-runtime': resolveWorkspaceDependency('react/jsx-dev-runtime.js'),
+      'react/jsx-runtime': resolveWorkspaceDependency('react/jsx-runtime.js'),
     },
   },
   test: {
