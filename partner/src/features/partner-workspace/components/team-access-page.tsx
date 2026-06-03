@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
+import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
 import { PartnerRouteGuard } from '@/features/partner-portal-state/components/partner-route-guard';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
 
@@ -14,6 +15,14 @@ const FIELD_CLASS_NAME = 'w-full rounded-xl border border-grid-line/25 bg-termin
 
 const LAUNCH_ROLE_KEYS = ['owner', 'finance', 'analyst', 'traffic_manager', 'support_manager'];
 const DEFERRED_ROLE_KEYS = ['manager', 'technical_manager'];
+
+function getWorkspaceMemberCreateAction(workspaceId: string): string {
+  return `partner.member.create:${workspaceId}`;
+}
+
+function getWorkspaceMemberUpdateAction(workspaceId: string, memberId: string): string {
+  return `partner.member.update:${workspaceId}:${memberId}`;
+}
 
 export function TeamAccessPage() {
   const t = useTranslations('Partner.team');
@@ -66,10 +75,17 @@ export function TeamAccessPage() {
       if (!activeWorkspace) {
         throw new Error('Partner workspace is not available.');
       }
-      const response = await partnerPortalApi.createWorkspaceMember(activeWorkspace.id, {
-        operator_lookup: operatorLookup,
-        role_key: selectedRoleKey,
-      });
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getWorkspaceMemberCreateAction(activeWorkspace.id),
+      );
+      const response = await partnerPortalApi.createWorkspaceMember(
+        activeWorkspace.id,
+        {
+          operator_lookup: operatorLookup,
+          role_key: selectedRoleKey,
+        },
+        { freshAuthGrantId },
+      );
       return response.data;
     },
     onSuccess: async () => {
@@ -98,10 +114,18 @@ export function TeamAccessPage() {
       if (!activeWorkspace) {
         throw new Error('Partner workspace is not available.');
       }
-      const response = await partnerPortalApi.updateWorkspaceMember(activeWorkspace.id, memberId, {
-        membership_status: membershipStatus,
-        role_key: roleKey,
-      });
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getWorkspaceMemberUpdateAction(activeWorkspace.id, memberId),
+      );
+      const response = await partnerPortalApi.updateWorkspaceMember(
+        activeWorkspace.id,
+        memberId,
+        {
+          membership_status: membershipStatus,
+          role_key: roleKey,
+        },
+        { freshAuthGrantId },
+      );
       return response.data;
     },
     onSuccess: async () => {

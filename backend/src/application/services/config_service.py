@@ -8,6 +8,7 @@ from src.config.settings import settings
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 
 MiniAppRuntimeMode = Literal["live", "canary", "maintenance", "rollback"]
+PASSKEY_ADMIN_POLICY_CONFIG_KEY = "passkeys.admin_policy"
 
 
 def _normalize_miniapp_runtime_mode(value: object) -> MiniAppRuntimeMode:
@@ -76,6 +77,30 @@ class MiniAppLaunchReadinessConfig:
                 bool(self.primary_oncall_contact),
             )
         )
+
+
+@dataclass(frozen=True)
+class PasskeyAdminPolicyConfig:
+    enabled: bool = True
+    registration_enabled: bool = True
+    authentication_enabled: bool = True
+    reauthentication_enabled: bool = True
+    conditional_ui_enabled: bool = True
+    security_dashboard_enabled: bool = True
+    admin_counts_as_mfa: bool = False
+    challenge_ttl_seconds: int = 300
+    browser_timeout_ms: int = 60000
+    fresh_auth_ttl_seconds: int = 300
+
+
+def _bounded_int(value: object, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        candidate = int(value)
+    except (TypeError, ValueError):
+        return default
+    if candidate < minimum or candidate > maximum:
+        return default
+    return candidate
 
 
 class ConfigService:
@@ -148,6 +173,41 @@ class ConfigService:
             return int(val.get("days", 45))
         val = await self._repo.get_value("affiliate.payout_hold_days", {"days": 30})
         return int(val.get("days", 30))
+
+    # --- Passkey/WebAuthn config ---
+
+    async def get_passkey_admin_policy_config(self) -> PasskeyAdminPolicyConfig:
+        val = await self._repo.get_value(PASSKEY_ADMIN_POLICY_CONFIG_KEY, {})
+        if not isinstance(val, dict):
+            val = {}
+
+        return PasskeyAdminPolicyConfig(
+            enabled=bool(val.get("enabled", True)),
+            registration_enabled=bool(val.get("registration_enabled", True)),
+            authentication_enabled=bool(val.get("authentication_enabled", True)),
+            reauthentication_enabled=bool(val.get("reauthentication_enabled", True)),
+            conditional_ui_enabled=bool(val.get("conditional_ui_enabled", True)),
+            security_dashboard_enabled=bool(val.get("security_dashboard_enabled", True)),
+            admin_counts_as_mfa=bool(val.get("admin_counts_as_mfa", settings.passkey_admin_counts_as_mfa)),
+            challenge_ttl_seconds=_bounded_int(
+                val.get("challenge_ttl_seconds"),
+                default=settings.passkey_challenge_ttl_seconds,
+                minimum=30,
+                maximum=300,
+            ),
+            browser_timeout_ms=_bounded_int(
+                val.get("browser_timeout_ms"),
+                default=settings.passkey_browser_timeout_ms,
+                minimum=15000,
+                maximum=120000,
+            ),
+            fresh_auth_ttl_seconds=_bounded_int(
+                val.get("fresh_auth_ttl_seconds"),
+                default=settings.passkey_fresh_auth_ttl_seconds,
+                minimum=60,
+                maximum=900,
+            ),
+        )
 
     # --- Wallet config ---
 

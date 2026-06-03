@@ -14,6 +14,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
+import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
 import { PartnerRouteGuard } from '@/features/partner-portal-state/components/partner-route-guard';
 import {
   getPartnerFinanceCapabilities,
@@ -47,6 +48,17 @@ const PAYOUT_RAIL_OPTIONS = [
   { value: 'crypto_usdt', labelKey: 'cryptoUsdt' },
   { value: 'manual', labelKey: 'manualInvoice' },
 ] as const;
+
+function getPayoutAccountCreateAction(workspaceId: string): string {
+  return `partner.payout_account.create:${workspaceId}`;
+}
+
+function getPayoutAccountMakeDefaultAction(
+  workspaceId: string,
+  payoutAccountId: string,
+): string {
+  return `partner.payout_account.make_default:${workspaceId}:${payoutAccountId}`;
+}
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) {
@@ -153,15 +165,22 @@ export function FinanceOperationsPage() {
         throw new Error('Workspace is required before creating a payout account.');
       }
 
-      return partnerPortalApi.createWorkspacePayoutAccount(workspaceId, {
-        payout_rail: formState.payoutRail,
-        display_label: formState.displayLabel.trim(),
-        destination_reference: formState.destinationReference.trim(),
-        destination_metadata: {
-          currency: formState.currency.trim().toUpperCase(),
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getPayoutAccountCreateAction(workspaceId),
+      );
+      return partnerPortalApi.createWorkspacePayoutAccount(
+        workspaceId,
+        {
+          payout_rail: formState.payoutRail,
+          display_label: formState.displayLabel.trim(),
+          destination_reference: formState.destinationReference.trim(),
+          destination_metadata: {
+            currency: formState.currency.trim().toUpperCase(),
+          },
+          make_default: formState.makeDefault,
         },
-        make_default: formState.makeDefault,
-      });
+        { freshAuthGrantId },
+      );
     },
     onSuccess: async (response) => {
       await Promise.all([
@@ -194,7 +213,14 @@ export function FinanceOperationsPage() {
         throw new Error('Workspace is required before updating the default payout account.');
       }
 
-      return partnerPortalApi.makeWorkspacePayoutAccountDefault(workspaceId, payoutAccountId);
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getPayoutAccountMakeDefaultAction(workspaceId, payoutAccountId),
+      );
+      return partnerPortalApi.makeWorkspacePayoutAccountDefault(
+        workspaceId,
+        payoutAccountId,
+        { freshAuthGrantId },
+      );
     },
     onSuccess: async (response) => {
       await Promise.all([

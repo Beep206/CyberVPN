@@ -17,7 +17,14 @@ const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const FRONTEND_PRIMARY_ORIGIN = "cyber-vpn.net";
 const FRONTEND_WWW_ORIGIN = "www.cyber-vpn.net";
 const FRONTEND_CABINET_ORIGIN = "my.cyber-vpn.net";
-const FRONTEND_LOCAL_ORIGINS = ["localhost:3000", "127.0.0.1:3000"];
+const FRONTEND_LOCAL_ORIGINS = [
+  "localhost",
+  "127.0.0.1",
+  "localhost:3000",
+  "127.0.0.1:3000",
+  "localhost:9001",
+  "127.0.0.1:9001",
+];
 const apiInternalOrigin = (
   process.env.API_INTERNAL_ORIGIN?.trim() ||
   process.env.API_URL?.trim() ||

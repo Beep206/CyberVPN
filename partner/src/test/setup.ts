@@ -112,6 +112,7 @@ vi.mock('motion/react', () => ({
     set: vi.fn(),
   }),
   useSpring: (value: unknown) => value,
+  useMotionTemplate: () => '',
   useReducedMotion: () => false,
   useInView: () => true,
 }));

@@ -7,12 +7,12 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
-      '@tanstack/react-query': resolve(__dirname, '../node_modules/@tanstack/react-query'),
-      react: resolve(__dirname, '../node_modules/react'),
-      'react-dom': resolve(__dirname, '../node_modules/react-dom'),
-      'react-dom/client': resolve(__dirname, '../node_modules/react-dom/client.js'),
-      'react/jsx-dev-runtime': resolve(__dirname, '../node_modules/react/jsx-dev-runtime.js'),
-      'react/jsx-runtime': resolve(__dirname, '../node_modules/react/jsx-runtime.js'),
+      '@tanstack/react-query': resolve(__dirname, 'node_modules/@tanstack/react-query'),
+      react: resolve(__dirname, 'node_modules/react'),
+      'react-dom': resolve(__dirname, 'node_modules/react-dom'),
+      'react-dom/client': resolve(__dirname, 'node_modules/react-dom/client.js'),
+      'react/jsx-dev-runtime': resolve(__dirname, 'node_modules/react/jsx-dev-runtime.js'),
+      'react/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime.js'),
     },
   },
   test: {

@@ -7,6 +7,7 @@
     "reviewQueue": "Review queue",
     "sessions": "Sessions",
     "twoFactor": "2FA",
+    "passkeys": "Passkeys",
     "antiPhishing": "Anti-phishing",
     "posture": "Posture"
   },
@@ -66,6 +67,7 @@
       "reviewQueue": "Work risk review queues, evidence attachments, and governance actions from one internal workflow rail.",
       "sessions": "Review all active sessions and revoke stale or suspicious devices.",
       "twoFactor": "Provision TOTP, validate setup, or disable 2FA with re-auth.",
+      "passkeys": "Manage passkey sign-in, personal credentials, and admin compliance posture.",
       "antiPhishing": "Manage the verification code shown in outbound emails.",
       "posture": "Review trust signals and rotate the account password."
     },
@@ -275,6 +277,66 @@
       "validationHint": "latest code check",
       "recoveryCodes": "Recovery codes",
       "recoveryCodesHint": "codes shown in session"
+    }
+  },
+  "passkeys": {
+    "metaTitle": "Passkeys - Ozoxy Admin",
+    "eyebrow": "PHISHING-RESISTANT ACCESS",
+    "title": "Passkeys Control",
+    "description": "Manage personal admin passkeys and monitor sanitized passkey compliance across privileged operators.",
+    "personalTitle": "Personal passkeys",
+    "personalDescription": "Add, rename, or revoke passkeys for the current admin account.",
+    "complianceTitle": "Admin compliance",
+    "complianceDescription": "Review sanitized credential posture without exposing raw credential IDs, public keys, or challenges.",
+    "complianceCaption": "Admin passkey compliance credentials",
+    "addLabel": "Passkey name",
+    "addPlaceholder": "Work laptop passkey",
+    "addAction": "Add passkey",
+    "addingAction": "Adding passkey...",
+    "defaultLabel": "Admin passkey",
+    "renameAction": "Rename",
+    "renameInputAria": "Rename passkey {label}",
+    "renameAria": "Rename passkey {label}",
+    "deleteAria": "Delete passkey {label}",
+    "deleteConfirm": "Delete passkey {label}?",
+    "emptyPersonal": "No personal passkeys enrolled yet.",
+    "emptyCompliance": "No passkey compliance records returned yet.",
+    "neverUsed": "Never used",
+    "createdAt": "Created {value}",
+    "lastUsedAt": "Last used {value}",
+    "metrics": {
+      "policy": "Policy",
+      "policyHint": "backend policy unavailable",
+      "realm": "realm {value}",
+      "personalActive": "Personal",
+      "personalActiveHint": "active passkeys on this account",
+      "adminsCovered": "Covered",
+      "adminsCoveredHint": "principals with active passkeys",
+      "cloneSuspected": "Clone risk",
+      "cloneSuspectedHint": "suspected cloned credentials"
+    },
+    "status": {
+      "registrationOpen": "Registration open",
+      "registrationClosed": "Registration closed"
+    },
+    "credentialStatus": {
+      "active": "Active",
+      "pending": "Pending",
+      "revoked": "Revoked"
+    },
+    "feedback": {
+      "added": "Passkey {label} added.",
+      "addFailed": "Could not add passkey.",
+      "renamed": "Passkey renamed to {label}.",
+      "renameFailed": "Could not rename passkey.",
+      "deleted": "Passkey deleted.",
+      "deleteFailed": "Could not delete passkey."
+    },
+    "table": {
+      "principal": "Principal",
+      "status": "Status",
+      "hashPrefix": "Hash prefix",
+      "lastUsed": "Last used"
     }
   },
   "antiPhishing": {

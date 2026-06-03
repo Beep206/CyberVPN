@@ -11,6 +11,8 @@ import {
   Link2,
   LockKeyhole,
   Monitor,
+  Pencil,
+  Plus,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
@@ -28,14 +30,17 @@ import {
   customerSubscriptionsApi,
   entitlementsApi,
   growthNotificationsApi,
+  passkeysApi,
   profileApi,
   securityApi,
   twofaApi,
+  type PasskeyCredential,
 } from '@/lib/api';
 import { markPerformance } from '@/shared/lib/web-vitals';
 import { AntiphishingModal } from '@/app/[locale]/(dashboard)/settings/components/AntiphishingModal';
 import { ChangePasswordModal } from '@/app/[locale]/(dashboard)/settings/components/ChangePasswordModal';
 import { TwoFactorModal } from '@/app/[locale]/(dashboard)/settings/components/TwoFactorModal';
+import { completePasskeyRegistration } from '@/features/auth/lib/passkey-webauthn';
 import {
   buildCoreNotificationPatch,
   buildGrowthNotificationPatch,
@@ -96,6 +101,11 @@ const toneClasses: Record<StatusTone, { border: string; fill: string; text: stri
 };
 
 type SensitiveModal = 'antiphishing' | 'password' | 'twoFactor' | null;
+
+type PasskeyRenameDraft = {
+  id: string;
+  label: string;
+} | null;
 
 function StatusPill({ children, tone }: { children: ReactNode; tone: StatusTone }) {
   const classes = toneClasses[tone];
@@ -166,6 +176,8 @@ export function SettingsCabinetDashboard() {
   const [activeModal, setActiveModal] = useState<SensitiveModal>(null);
   const [banner, setBanner] = useState<{ tone: StatusTone; text: string } | null>(null);
   const [copyState, setCopyState] = useState<'account' | 'idle'>('idle');
+  const [newPasskeyLabel, setNewPasskeyLabel] = useState('');
+  const [passkeyRenameDraft, setPasskeyRenameDraft] = useState<PasskeyRenameDraft>(null);
   const [isStartingTelegramLink, setIsStartingTelegramLink] = useState(false);
   const publicSiteBaseUrl = 'https://cyber-vpn.net';
 
@@ -205,6 +217,27 @@ export function SettingsCabinetDashboard() {
       const response = await securityApi.getAntiphishingCode();
       return response.data;
     },
+    refetchOnWindowFocus: false,
+    staleTime: SECURITY_STALE_MS,
+  });
+
+  const passkeyPolicyQuery = useQuery({
+    queryKey: ['settings', 'passkey-policy'],
+    queryFn: async () => {
+      const response = await passkeysApi.getPolicy();
+      return response.data;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: SECURITY_STALE_MS,
+  });
+
+  const passkeysQuery = useQuery({
+    queryKey: ['settings', 'passkeys'],
+    queryFn: async () => {
+      const response = await passkeysApi.list();
+      return response.data;
+    },
+    enabled: passkeyPolicyQuery.data?.enabled === true,
     refetchOnWindowFocus: false,
     staleTime: SECURITY_STALE_MS,
   });
@@ -258,6 +291,11 @@ export function SettingsCabinetDashboard() {
   const user = userQuery.data ?? null;
   const twoFactorStatus = twoFactorQuery.data ?? null;
   const antiphishingCode = antiphishingQuery.data ?? null;
+  const passkeyPolicy = passkeyPolicyQuery.data ?? null;
+  const passkeyCredentials = passkeysQuery.data?.credentials ?? [];
+  const activePasskeys = passkeyCredentials.filter(
+    (credential) => credential.status !== 'revoked' && !credential.revokedAt,
+  );
   const coreNotifications = coreNotificationsQuery.data ?? null;
   const growthNotifications = growthNotificationsQuery.data ?? null;
   const devices = devicesQuery.data?.devices ?? [];
@@ -307,6 +345,8 @@ export function SettingsCabinetDashboard() {
     userQuery.isError ||
     twoFactorQuery.isError ||
     antiphishingQuery.isError ||
+    passkeyPolicyQuery.isError ||
+    passkeysQuery.isError ||
     coreNotificationsQuery.isError ||
     growthNotificationsQuery.isError ||
     entitlementQuery.isError ||
@@ -425,6 +465,70 @@ export function SettingsCabinetDashboard() {
     },
   });
 
+  const addPasskeyMutation = useMutation({
+    mutationFn: async (label: string) => {
+      const response = await completePasskeyRegistration(label);
+      return response.data;
+    },
+    onSuccess: (credential) => {
+      queryClient.setQueryData(['settings', 'passkeys'], (current?: { credentials: PasskeyCredential[] }) => ({
+        credentials: [
+          credential,
+          ...(current?.credentials ?? []).filter((item) => item.id !== credential.id),
+        ],
+      }));
+      setNewPasskeyLabel('');
+      markPerformance('settings-passkey-add', {
+        credential: formatShortId(credential.id),
+      });
+      setBanner({ tone: 'green', text: t('feedback.passkeyAdded') });
+    },
+    onError: () => {
+      setBanner({ tone: 'pink', text: t('feedback.passkeyFailed') });
+    },
+  });
+
+  const renamePasskeyMutation = useMutation({
+    mutationFn: async ({ credentialId, label }: { credentialId: string; label: string }) => {
+      const response = await passkeysApi.rename(credentialId, label);
+      return response.data;
+    },
+    onSuccess: (credential) => {
+      queryClient.setQueryData(['settings', 'passkeys'], (current?: { credentials: PasskeyCredential[] }) => ({
+        credentials: (current?.credentials ?? []).map((item) =>
+          item.id === credential.id ? credential : item,
+        ),
+      }));
+      setPasskeyRenameDraft(null);
+      markPerformance('settings-passkey-rename', {
+        credential: formatShortId(credential.id),
+      });
+      setBanner({ tone: 'green', text: t('feedback.passkeyRenamed') });
+    },
+    onError: () => {
+      setBanner({ tone: 'pink', text: t('feedback.passkeyFailed') });
+    },
+  });
+
+  const deletePasskeyMutation = useMutation({
+    mutationFn: async (credentialId: string) => {
+      const response = await passkeysApi.delete(credentialId);
+      return response.data;
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData(['settings', 'passkeys'], (current?: { credentials: PasskeyCredential[] }) => ({
+        credentials: (current?.credentials ?? []).filter((item) => item.id !== result.id),
+      }));
+      markPerformance('settings-passkey-delete', {
+        credential: formatShortId(result.id),
+      });
+      setBanner({ tone: 'green', text: t('feedback.passkeyDeleted') });
+    },
+    onError: () => {
+      setBanner({ tone: 'pink', text: t('feedback.passkeyFailed') });
+    },
+  });
+
   const openModal = (modal: SensitiveModal) => {
     setActiveModal(modal);
     if (modal) {
@@ -449,6 +553,8 @@ export function SettingsCabinetDashboard() {
       userQuery.refetch(),
       twoFactorQuery.refetch(),
       antiphishingQuery.refetch(),
+      passkeyPolicyQuery.refetch(),
+      ...(passkeyPolicy?.enabled ? [passkeysQuery.refetch()] : []),
       coreNotificationsQuery.refetch(),
       growthNotificationsQuery.refetch(),
       entitlementQuery.refetch(),
@@ -479,6 +585,39 @@ export function SettingsCabinetDashboard() {
       setBanner({ tone: 'pink', text: t('feedback.telegramLinkFailed') });
       setIsStartingTelegramLink(false);
     }
+  };
+
+  const startPasskeyRename = (credential: PasskeyCredential) => {
+    setPasskeyRenameDraft({
+      id: credential.id,
+      label: credential.label,
+    });
+  };
+
+  const submitPasskeyRename = () => {
+    if (!passkeyRenameDraft?.id) {
+      return;
+    }
+
+    const label = passkeyRenameDraft.label.trim();
+    if (!label) {
+      setBanner({ tone: 'amber', text: t('security.passkeys.renameRequired') });
+      return;
+    }
+
+    renamePasskeyMutation.mutate({
+      credentialId: passkeyRenameDraft.id,
+      label,
+    });
+  };
+
+  const requestPasskeyDelete = (credential: PasskeyCredential) => {
+    if (activePasskeys.length <= 1 && twoFactorStatus?.status !== 'enabled') {
+      setBanner({ tone: 'amber', text: t('security.passkeys.lastRecoveryWarning') });
+      return;
+    }
+
+    deletePasskeyMutation.mutate(credential.id);
   };
 
   return (
@@ -769,6 +908,210 @@ export function SettingsCabinetDashboard() {
                 </div>
               </button>
             ))}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-matrix-green/25 bg-black/20 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="font-mono text-sm text-white">{t('security.passkeys.title')}</p>
+                <p className="mt-1 font-mono text-xs leading-6 text-muted-foreground">
+                  {t('security.passkeys.description')}
+                </p>
+                <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground">
+                  {t('security.passkeys.privacyNote')}
+                </p>
+              </div>
+              <StatusPill
+                tone={
+                  passkeyPolicyQuery.isPending
+                    ? 'muted'
+                    : passkeyPolicy?.enabled
+                      ? 'green'
+                      : 'amber'
+                }
+              >
+                {passkeyPolicyQuery.isPending
+                  ? t('labels.loading')
+                  : passkeyPolicy?.enabled
+                    ? t('labels.enabled')
+                    : t('labels.disabled')}
+              </StatusPill>
+            </div>
+
+            {passkeyPolicyQuery.isPending ? (
+              <div className="mt-4">
+                <LoadingCard className="min-h-28" />
+              </div>
+            ) : !passkeyPolicy?.enabled ? (
+              <p className="mt-4 rounded-xl border border-grid-line/30 bg-terminal-bg/50 p-3 font-mono text-xs leading-6 text-muted-foreground">
+                {t('security.passkeys.disabled')}
+              </p>
+            ) : (
+              <>
+                <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                  <label className="space-y-2">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {t('security.passkeys.label')}
+                    </span>
+                    <input
+                      value={newPasskeyLabel}
+                      maxLength={120}
+                      onChange={(event) => setNewPasskeyLabel(event.target.value)}
+                      placeholder={t('security.passkeys.labelPlaceholder')}
+                      className="h-11 w-full rounded-xl border border-matrix-green/30 bg-terminal-bg/70 px-4 font-mono text-sm text-white outline-hidden transition focus:border-matrix-green focus:ring-2 focus:ring-matrix-green/30"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => addPasskeyMutation.mutate(newPasskeyLabel)}
+                    disabled={
+                      addPasskeyMutation.isPending ||
+                      passkeyPolicy.registrationEnabled === false
+                    }
+                    className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl border border-matrix-green/40 bg-matrix-green/10 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-matrix-green transition hover:bg-matrix-green/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {addPasskeyMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {addPasskeyMutation.isPending
+                      ? t('security.passkeys.adding')
+                      : t('security.passkeys.addAction')}
+                  </button>
+                </div>
+
+                {passkeysQuery.isPending ? (
+                  <div className="mt-4 space-y-3">
+                    <LoadingCard className="min-h-20" />
+                    <LoadingCard className="min-h-20" />
+                  </div>
+                ) : passkeyCredentials.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-grid-line/30 bg-terminal-bg/50 p-5 text-center">
+                    <KeyRound className="mx-auto h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
+                    <p className="mt-3 font-mono text-sm text-muted-foreground">
+                      {t('security.passkeys.empty')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {passkeyCredentials.map((credential) => {
+                      const isEditing = passkeyRenameDraft?.id === credential.id;
+                      const isDeleting =
+                        deletePasskeyMutation.isPending &&
+                        deletePasskeyMutation.variables === credential.id;
+                      const isRenaming =
+                        renamePasskeyMutation.isPending &&
+                        renamePasskeyMutation.variables?.credentialId === credential.id;
+                      const credentialTone: StatusTone = credential.revokedAt || credential.status === 'revoked'
+                        ? 'pink'
+                        : credential.backedUp
+                          ? 'green'
+                          : 'cyan';
+
+                      return (
+                        <div
+                          key={credential.id}
+                          className="rounded-2xl border border-grid-line/30 bg-terminal-bg/50 p-4"
+                        >
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0 flex-1">
+                              {isEditing ? (
+                                <label className="block space-y-2">
+                                  <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                                    {t('security.passkeys.renameLabel')}
+                                  </span>
+                                  <input
+                                    value={passkeyRenameDraft.label}
+                                    maxLength={120}
+                                    onChange={(event) =>
+                                      setPasskeyRenameDraft({
+                                        id: credential.id,
+                                        label: event.target.value,
+                                      })
+                                    }
+                                    className="h-11 w-full rounded-xl border border-neon-cyan/30 bg-black/30 px-4 font-mono text-sm text-white outline-hidden transition focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/30"
+                                  />
+                                </label>
+                              ) : (
+                                <>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="truncate font-mono text-sm text-white">
+                                      {credential.label}
+                                    </p>
+                                    <StatusPill tone={credentialTone}>
+                                      {credential.backedUp
+                                        ? t('security.passkeys.synced')
+                                        : credential.credentialType || t('labels.notAvailable')}
+                                    </StatusPill>
+                                  </div>
+                                  <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground">
+                                    {t('security.passkeys.metadata', {
+                                      created: formatDateTime(credential.createdAt, locale),
+                                      id: formatShortId(credential.id),
+                                      lastUsed: credential.lastUsedAt
+                                        ? formatDateTime(credential.lastUsedAt, locale)
+                                        : t('security.passkeys.neverUsed'),
+                                    })}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {isEditing ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={submitPasskeyRename}
+                                    disabled={isRenaming}
+                                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-cyan transition hover:bg-neon-cyan/15 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {isRenaming
+                                      ? t('security.passkeys.saving')
+                                      : t('security.passkeys.saveRename')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPasskeyRenameDraft(null)}
+                                    disabled={isRenaming}
+                                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-grid-line/35 bg-black/20 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground transition hover:border-grid-line/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {t('security.passkeys.cancelRename')}
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => startPasskeyRename(credential)}
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-neon-cyan/35 bg-neon-cyan/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-cyan transition hover:bg-neon-cyan/15"
+                                  >
+                                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                                    {t('security.passkeys.renameAction')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => requestPasskeyDelete(credential)}
+                                    disabled={isDeleting}
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-neon-pink/35 bg-neon-pink/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.14em] text-neon-pink transition hover:bg-neon-pink/15 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                    {isDeleting
+                                      ? t('security.passkeys.deleting')
+                                      : t('security.passkeys.deleteAction')}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4">

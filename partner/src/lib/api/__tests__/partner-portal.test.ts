@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
+import { FRESH_AUTH_GRANT_ID_HEADER } from '../fresh-auth';
 import { partnerPortalApi } from '../partner-portal';
 
 const API_BASE = '*/api/v1';
@@ -247,6 +248,143 @@ describe('partnerPortalApi', () => {
     expect(capturedUrl).toBe('/api/v1/partner-workspaces/workspace_001/payout-accounts');
   });
 
+  it('attaches fresh auth grants to partner security-sensitive workspace mutations', async () => {
+    const capturedHeaders: Record<string, string | null> = {};
+
+    server.use(
+      http.patch(`${API_BASE}/partner-workspaces/workspace_001/settings`, async ({ request }) => {
+        capturedHeaders.settings = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+        return HttpResponse.json({
+          is_email_verified: true,
+          operator_email: 'operator@partner.example',
+          operator_role: 'owner',
+          payout_status_emails: true,
+          prefer_passkeys: true,
+          preferred_currency: 'USD',
+          preferred_language: 'en-EN',
+          product_announcements: false,
+          require_mfa_for_workspace: true,
+          reviewed_active_sessions: true,
+          updated_at: '2026-06-03T12:30:00Z',
+          workspace_security_alerts: true,
+        });
+      }),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/payout-accounts`, async ({ request }) => {
+        capturedHeaders.payoutCreate = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+        return HttpResponse.json({
+          account_status: 'pending_review',
+          approval_status: 'pending_review',
+          created_at: '2026-06-03T12:30:00Z',
+          display_label: 'Primary US bank',
+          id: 'payout_001',
+          is_default: true,
+          masked_destination: 'Bank **** 4242',
+          payout_rail: 'bank_wire',
+          updated_at: '2026-06-03T12:30:00Z',
+          verification_status: 'pending',
+        }, { status: 201 });
+      }),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/payout-accounts/payout_001/make-default`, async ({ request }) => {
+        capturedHeaders.payoutDefault = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+        return HttpResponse.json({
+          account_status: 'ready',
+          approval_status: 'approved',
+          created_at: '2026-06-03T12:30:00Z',
+          display_label: 'Primary US bank',
+          id: 'payout_001',
+          is_default: true,
+          masked_destination: 'Bank **** 4242',
+          payout_rail: 'bank_wire',
+          updated_at: '2026-06-03T12:35:00Z',
+          verification_status: 'verified',
+        });
+      }),
+      http.post(`${API_BASE}/partner-workspaces/workspace_001/members`, async ({ request }) => {
+        capturedHeaders.memberCreate = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+        return HttpResponse.json({
+          admin_user_id: 'admin_001',
+          id: 'member_001',
+          membership_status: 'active',
+          operator_display_name: 'Finance Operator',
+          operator_email: 'finance@partner.example',
+          operator_login: 'finance',
+          permission_keys: ['workspace_read'],
+          role_display_name: 'Finance',
+          role_key: 'finance',
+        }, { status: 201 });
+      }),
+      http.patch(`${API_BASE}/partner-workspaces/workspace_001/members/member_001`, async ({ request }) => {
+        capturedHeaders.memberUpdate = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+        return HttpResponse.json({
+          admin_user_id: 'admin_001',
+          id: 'member_001',
+          membership_status: 'limited',
+          operator_display_name: 'Finance Operator',
+          operator_email: 'finance@partner.example',
+          operator_login: 'finance',
+          permission_keys: ['workspace_read'],
+          role_display_name: 'Analyst',
+          role_key: 'analyst',
+        });
+      }),
+    );
+
+    await partnerPortalApi.updateWorkspaceSettings(
+      'workspace_001',
+      {
+        payout_status_emails: true,
+        prefer_passkeys: true,
+        preferred_currency: 'USD',
+        preferred_language: 'en-EN',
+        product_announcements: false,
+        require_mfa_for_workspace: true,
+        reviewed_active_sessions: true,
+        workspace_security_alerts: true,
+      },
+      { freshAuthGrantId: 'fresh-settings-grant' },
+    );
+    await partnerPortalApi.createWorkspacePayoutAccount(
+      'workspace_001',
+      {
+        destination_reference: 'bank-account-token',
+        display_label: 'Primary US bank',
+        make_default: true,
+        payout_rail: 'bank_wire',
+      },
+      { freshAuthGrantId: 'fresh-payout-create-grant' },
+    );
+    await partnerPortalApi.makeWorkspacePayoutAccountDefault(
+      'workspace_001',
+      'payout_001',
+      { freshAuthGrantId: 'fresh-payout-default-grant' },
+    );
+    await partnerPortalApi.createWorkspaceMember(
+      'workspace_001',
+      {
+        operator_lookup: 'finance@partner.example',
+        role_key: 'finance',
+      },
+      { freshAuthGrantId: 'fresh-member-create-grant' },
+    );
+    await partnerPortalApi.updateWorkspaceMember(
+      'workspace_001',
+      'member_001',
+      {
+        membership_status: 'limited',
+        role_key: 'analyst',
+      },
+      { freshAuthGrantId: 'fresh-member-update-grant' },
+    );
+
+    expect(capturedHeaders).toEqual({
+      memberCreate: 'fresh-member-create-grant',
+      memberUpdate: 'fresh-member-update-grant',
+      payoutCreate: 'fresh-payout-create-grant',
+      payoutDefault: 'fresh-payout-default-grant',
+      settings: 'fresh-settings-grant',
+    });
+  });
+
   it('lists partner bots from the canonical partner-bots family with workspace params', async () => {
     let capturedQuery: string | null = null;
     server.use(
@@ -302,6 +440,7 @@ describe('partnerPortalApi', () => {
       createBody?: unknown;
       provisionBody?: unknown;
       rotateBody?: unknown;
+      rotateFreshAuthGrantId?: string | null;
       suspendBody?: unknown;
       restorePath?: string;
     } = {};
@@ -390,6 +529,7 @@ describe('partnerPortalApi', () => {
       }),
       http.post(`${API_BASE}/partner-bots/bot_001/rotate-token`, async ({ request }) => {
         captured.rotateBody = await request.json();
+        captured.rotateFreshAuthGrantId = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
         return HttpResponse.json({ status: 'provisioning_requested', token_status: 'rotating' });
       }),
       http.post(`${API_BASE}/partner-bots/bot_001/suspend`, async ({ request }) => {
@@ -414,6 +554,8 @@ describe('partnerPortalApi', () => {
     });
     const rotateResponse = await partnerPortalApi.rotatePartnerBotToken('bot_001', {
       request_payload: { handoff_reference: 'bf-rotate-001' },
+    }, {
+      freshAuthGrantId: 'fresh-bot-token-rotate-grant',
     });
     const suspendResponse = await partnerPortalApi.suspendPartnerBot('bot_001', {
       reason_code: 'policy_hold',
@@ -428,8 +570,52 @@ describe('partnerPortalApi', () => {
     expect(captured.createBody).toMatchObject({ bot_key: 'alpha-bot', provisioning_path: 'manual_token' });
     expect(captured.provisionBody).toMatchObject({ request_payload: { handoff_reference: 'bf-001' } });
     expect(captured.rotateBody).toMatchObject({ request_payload: { handoff_reference: 'bf-rotate-001' } });
+    expect(captured.rotateFreshAuthGrantId).toBe('fresh-bot-token-rotate-grant');
     expect(captured.suspendBody).toMatchObject({ reason_code: 'policy_hold' });
     expect(captured.restorePath).toBe('/api/v1/partner-bots/bot_001/restore');
+  });
+
+  it('rotates workspace integration credentials with fresh-auth headers', async () => {
+    let capturedFreshAuthGrantId: string | null = null;
+    let capturedBody: unknown = null;
+
+    server.use(
+      http.post(
+        `${API_BASE}/partner-workspaces/workspace_001/integration-credentials/reporting_api_token/rotate`,
+        async ({ request }) => {
+          capturedFreshAuthGrantId = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+          capturedBody = await request.json();
+          return HttpResponse.json({
+            credential: {
+              blocking_reason_codes: [],
+              created_at: '2026-04-22T10:10:00Z',
+              destination_ref: null,
+              id: 'credential_001',
+              kind: 'reporting_api_token',
+              label: 'Reporting API token',
+              last_rotated_at: '2026-04-22T10:10:00Z',
+              metadata: { surface: 'partner_portal' },
+              status: 'ready',
+              updated_at: '2026-04-22T10:10:00Z',
+              workspace_id: 'workspace_001',
+            },
+            issued_at: '2026-04-22T10:10:00Z',
+            issued_secret: 'rpt_test_secret',
+          });
+        },
+      ),
+    );
+
+    const response = await partnerPortalApi.rotateWorkspaceIntegrationCredential(
+      'workspace_001',
+      'reporting_api_token',
+      { credential_metadata: { surface: 'partner_portal' } },
+      { freshAuthGrantId: 'fresh-reporting-token-rotate-grant' },
+    );
+
+    expect(response.status).toBe(200);
+    expect(capturedBody).toMatchObject({ credential_metadata: { surface: 'partner_portal' } });
+    expect(capturedFreshAuthGrantId).toBe('fresh-reporting-token-rotate-grant');
   });
 
   it('loads payout history from the workspace-scoped finance history route', async () => {

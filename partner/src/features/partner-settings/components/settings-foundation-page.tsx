@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import { getPartnerRoleRouteAccess } from '@/features/partner-portal-state/lib/portal-access';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
+import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
 import {
   EMPTY_PARTNER_SETTINGS_FOUNDATION_DRAFT,
   type PartnerSettingsFoundationDraft,
@@ -18,8 +19,13 @@ import {
   buildWorkspaceSettingsPayload,
   mapWorkspaceSettingsToDraft,
 } from '@/features/partner-settings/lib/workspace-settings-contract';
+import { OperatorPasskeysPanel } from './operator-passkeys-panel';
 
 const FIELD_CLASS_NAME = 'w-full rounded-xl border border-grid-line/25 bg-terminal-bg/70 px-4 py-3 text-sm font-mono text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-neon-cyan/50 focus:ring-2 focus:ring-neon-cyan/20';
+
+function getPartnerSettingsSecurityUpdateAction(workspaceId: string): string {
+  return `partner.settings.security.update:${workspaceId}`;
+}
 
 function formatSavedAt(value: string | null, locale: string): string | null {
   if (!value) {
@@ -125,9 +131,13 @@ export function SettingsFoundationPage() {
       if (!activeWorkspace) {
         throw new Error('Partner workspace is not available.');
       }
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getPartnerSettingsSecurityUpdateAction(activeWorkspace.id),
+      );
       const response = await partnerPortalApi.updateWorkspaceSettings(
         activeWorkspace.id,
         buildWorkspaceSettingsPayload(draft),
+        { freshAuthGrantId },
       );
       return response.data;
     },
@@ -342,6 +352,11 @@ export function SettingsFoundationPage() {
                 onChange={(checked) => handleFieldChange('reviewedActiveSessions', checked)}
               />
             </div>
+
+            <OperatorPasskeysPanel
+              activeWorkspaceId={activeWorkspace?.id ?? null}
+              isReadOnly={isReadOnly}
+            />
           </section>
 
           <div className="flex flex-col gap-3 border-t border-grid-line/20 pt-5 md:flex-row md:items-center md:justify-between">

@@ -22,6 +22,11 @@ const SECURITY_PAGE_CONFIG = {
     titleKey: 'twoFactor.metaTitle',
     descriptionKey: 'twoFactor.description',
   },
+  passkeys: {
+    canonicalPath: '/security/passkeys',
+    titleKey: 'passkeys.metaTitle',
+    descriptionKey: 'passkeys.description',
+  },
   antiPhishing: {
     canonicalPath: '/security/anti-phishing',
     titleKey: 'antiPhishing.metaTitle',

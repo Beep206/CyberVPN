@@ -1,17 +1,38 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { memo } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 
-// Dynamic import with SSR disabled to prevent WebGL context issues
-const AuthScene3DWrapper = dynamic(
-    () => import('@/3d/scenes/AuthScene3D').then((mod) => mod.AuthScene3D),
-    {
-        ssr: false,
-        loading: () => <div className="absolute inset-0 z-0 bg-terminal-bg" />,
-    }
-);
+const AUTH_SCENE_FALLBACK = <div className="absolute inset-0 z-0 bg-terminal-bg" />;
 
-export const AuthSceneLoader = memo(function AuthSceneLoader() {
-    return <AuthScene3DWrapper />;
-});
+function canCreateWebGLContext(): boolean {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('webgl2') || canvas.getContext('webgl');
+
+    return Boolean(context);
+}
+
+export function AuthSceneLoader() {
+    const [AuthScene, setAuthScene] = useState<ComponentType | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!canCreateWebGLContext()) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        void import('@/3d/scenes/AuthScene3D').then((mod) => {
+            if (!cancelled) {
+                setAuthScene(() => mod.AuthScene3D);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    return AuthScene ? <AuthScene /> : AUTH_SCENE_FALLBACK;
+}

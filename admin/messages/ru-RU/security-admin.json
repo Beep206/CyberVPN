@@ -7,6 +7,7 @@
     "reviewQueue": "Очередь проверок",
     "sessions": "Сессии",
     "twoFactor": "2FA",
+    "passkeys": "Ключи доступа",
     "antiPhishing": "Антифишинг",
     "posture": "Профиль защиты"
   },
@@ -63,9 +64,10 @@
     "routesTitle": "Маршруты безопасности",
     "routesDescription": "Переходите сразу в нужный контур защиты, не покидая admin shell.",
     "routes": {
-      "reviewQueue": "Работа с очередью риск-проверок, evidence attachments и контрольными действиями из одного внутреннего workflow rail.",
+      "reviewQueue": "Работа с очередью risk review, evidence attachments и governance actions из одного внутреннего workflow rail.",
       "sessions": "Просмотр всех активных сессий и отзыв устаревших или подозрительных устройств.",
       "twoFactor": "Настройка TOTP, проверка статуса и отключение 2FA с повторной авторизацией.",
+      "passkeys": "Управление входом по ключу доступа, личными учётными данными и профилем соответствия админов.",
       "antiPhishing": "Управление кодом, который показывается в исходящих письмах.",
       "posture": "Оценка сигналов доверия и смена пароля аккаунта."
     },
@@ -118,7 +120,7 @@
     "metaTitle": "Очередь проверок - Ozoxy Admin",
     "eyebrow": "RISK WORKFLOW",
     "title": "Очередь проверок",
-    "description": "Обрабатывайте канонические риск-проверки, прикладывайте evidence, фиксируйте контрольные действия и резолвите решения из одной внутренней очереди.",
+    "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте governance actions и резолвите решения из одной внутренней очереди.",
     "metrics": {
       "openReviews": "Очередь",
       "openReviewsHint": "активные review items",
@@ -126,8 +128,8 @@
       "blockingHint": "решения hold или block",
       "attachments": "Evidence",
       "attachmentsHint": "артефакты, привязанные к review",
-      "governanceActions": "Действия",
-      "governanceActionsHint": "контрольные записи, связанные с очередью"
+      "governanceActions": "Actions",
+      "governanceActionsHint": "governance records, связанные с очередью"
     },
     "queue": {
       "title": "Состав очереди",
@@ -138,20 +140,20 @@
       "subject": "Principal subject",
       "updatedAt": "Обновлено",
       "attachments": "attachments: {count}",
-      "governanceActions": "контрольные действия: {count}"
+      "governanceActions": "governance actions: {count}"
     },
     "detail": {
       "title": "Детали проверки",
-      "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные контрольные действия.",
+      "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные governance actions.",
       "loadError": "Не удалось загрузить выбранный review.",
       "empty": "Выберите review из очереди для просмотра деталей.",
       "review": "Review",
       "subject": "Subject",
       "updatedAt": "Обновлено",
       "attachmentsTitle": "Attachments",
-      "governanceTitle": "Контрольные действия",
+      "governanceTitle": "Governance actions",
       "noAttachments": "К этому review ещё не привязаны attachments.",
-      "noGovernanceActions": "К этому review ещё не привязаны контрольные действия."
+      "noGovernanceActions": "К этому review ещё не привязаны governance actions."
     },
     "attachments": {
       "title": "Прикрепить evidence",
@@ -167,13 +169,13 @@
       }
     },
     "governance": {
-      "title": "Контрольное действие",
+      "title": "Governance action",
       "description": "Зафиксируйте operational action, которая сопровождает выбранный review, и сохраните audit trail каноническим.",
       "submit": "Записать action",
       "fields": {
         "actionType": "Тип action",
         "reason": "Причина",
-        "reasonPlaceholder": "Опишите, почему это контрольное действие нужно.",
+        "reasonPlaceholder": "Опишите, почему эта governance action нужна.",
         "targetType": "Target type",
         "targetTypePlaceholder": "partner_payout_account",
         "targetRef": "Target reference",
@@ -197,10 +199,10 @@
     "feedback": {
       "selectReview": "Сначала выберите review из очереди.",
       "invalidAttachmentMetadata": "Attachment metadata должна быть валидным JSON object.",
-      "invalidGovernancePayload": "Payload контрольного действия должен быть валидным JSON object.",
+      "invalidGovernancePayload": "Governance payload должен быть валидным JSON object.",
       "invalidResolutionEvidence": "Resolution evidence должна быть валидным JSON object.",
       "attachmentCreated": "Evidence прикреплена к review.",
-      "governanceActionCreated": "Контрольное действие записано.",
+      "governanceActionCreated": "Governance action записана.",
       "reviewResolved": "Review успешно завершён."
     }
   },
@@ -275,6 +277,66 @@
       "validationHint": "результат последней проверки кода",
       "recoveryCodes": "Recovery codes",
       "recoveryCodesHint": "коды, показанные в текущей сессии"
+    }
+  },
+  "passkeys": {
+    "metaTitle": "Ключи доступа - Ozoxy Admin",
+    "eyebrow": "PHISHING-RESISTANT ДОСТУП",
+    "title": "Контроль ключи доступа",
+    "description": "Управление личными админские ключи доступа и мониторинг sanitized соответствие по ключам доступа для привилегированных операторов.",
+    "personalTitle": "Личные ключи доступа",
+    "personalDescription": "Добавляйте, переименовывайте или отзывайте ключи доступа текущего admin-аккаунта.",
+    "complianceTitle": "Admin соответствие политикам",
+    "complianceDescription": "Проверяйте sanitized credential posture без раскрытия raw credential IDs, public keys или challenges.",
+    "complianceCaption": "Админский соответствие по ключам доступа учётными данными",
+    "addLabel": "Имя ключа доступа",
+    "addPlaceholder": "Ключ доступа рабочего ноутбука",
+    "addAction": "Добавить ключ доступа",
+    "addingAction": "Добавляем ключ доступа...",
+    "defaultLabel": "Админский ключ доступа",
+    "renameAction": "Переименовать",
+    "renameInputAria": "Переименовать ключ доступа {label}",
+    "renameAria": "Переименовать ключ доступа {label}",
+    "deleteAria": "Удалить ключ доступа {label}",
+    "deleteConfirm": "Удалить ключ доступа {label}?",
+    "emptyPersonal": "Личные ключи доступа ещё не добавлены.",
+    "emptyCompliance": "Ключ доступа записи соответствия пока не получены.",
+    "neverUsed": "Не использовался",
+    "createdAt": "Создано: {value}",
+    "lastUsedAt": "Последнее использование: {value}",
+    "metrics": {
+      "policy": "Policy",
+      "policyHint": "backend policy недоступна",
+      "realm": "realm {value}",
+      "personalActive": "Личные",
+      "personalActiveHint": "активные ключи доступа этого аккаунта",
+      "adminsCovered": "Покрытие",
+      "adminsCoveredHint": "principals с активными ключи доступа",
+      "cloneSuspected": "Clone risk",
+      "cloneSuspectedHint": "подозрение на клонированные учётными данными"
+    },
+    "status": {
+      "registrationOpen": "Регистрация открыта",
+      "registrationClosed": "Регистрация закрыта"
+    },
+    "credentialStatus": {
+      "active": "Активен",
+      "pending": "Ожидает",
+      "revoked": "Отозван"
+    },
+    "feedback": {
+      "added": "Ключ доступа {label} добавлен.",
+      "addFailed": "Не удалось добавить ключ доступа.",
+      "renamed": "Ключ доступа переименован в {label}.",
+      "renameFailed": "Не удалось переименовать ключ доступа.",
+      "deleted": "Ключ доступа удалён.",
+      "deleteFailed": "Не удалось удалить ключ доступа."
+    },
+    "table": {
+      "principal": "Principal",
+      "status": "Статус",
+      "hashPrefix": "Hash prefix",
+      "lastUsed": "Последнее использование"
     }
   },
   "antiPhishing": {

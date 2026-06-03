@@ -1,4 +1,8 @@
 import { apiClient } from './client';
+import {
+  buildFreshAuthRequestConfig,
+  type FreshAuthRequestOptions,
+} from './fresh-auth';
 import type { operations } from './generated/types';
 
 type ListMyPartnerWorkspacesResponse =
@@ -230,6 +234,12 @@ export interface ReplyPartnerSupportTicketPayload {
 }
 type ListPartnerWorkspaceIntegrationCredentialsResponse =
   operations['list_partner_workspace_integration_credentials_api_v1_partner_workspaces__workspace_id__integration_credentials_get']['responses'][200]['content']['application/json'];
+type RotatePartnerWorkspaceIntegrationCredentialPayload =
+  operations['rotate_partner_workspace_integration_credential_api_v1_partner_workspaces__workspace_id__integration_credentials__credential_kind__rotate_post']['requestBody']['content']['application/json'];
+type RotatePartnerWorkspaceIntegrationCredentialResponse =
+  operations['rotate_partner_workspace_integration_credential_api_v1_partner_workspaces__workspace_id__integration_credentials__credential_kind__rotate_post']['responses'][200]['content']['application/json'];
+type PartnerIntegrationCredentialKind =
+  operations['rotate_partner_workspace_integration_credential_api_v1_partner_workspaces__workspace_id__integration_credentials__credential_kind__rotate_post']['parameters']['path']['credential_kind'];
 type ListPartnerWorkspaceIntegrationDeliveryLogsResponse =
   operations['list_partner_workspace_integration_delivery_logs_api_v1_partner_workspaces__workspace_id__integration_delivery_logs_get']['responses'][200]['content']['application/json'];
 type GetPartnerWorkspacePostbackReadinessResponse =
@@ -542,10 +552,12 @@ export const partnerPortalApi = {
   createWorkspaceMember: (
     workspaceId: string,
     payload: CreatePartnerWorkspaceMemberPayload,
+    options?: FreshAuthRequestOptions,
   ) =>
     apiClient.post<CreatePartnerWorkspaceMemberResponse>(
       `/partner-workspaces/${workspaceId}/members`,
       payload,
+      buildFreshAuthRequestConfig(options),
     ),
 
   listWorkspaceRoles: (workspaceId: string) =>
@@ -557,10 +569,12 @@ export const partnerPortalApi = {
     workspaceId: string,
     memberId: string,
     payload: UpdatePartnerWorkspaceMemberPayload,
+    options?: FreshAuthRequestOptions,
   ) =>
     apiClient.patch<UpdatePartnerWorkspaceMemberResponse>(
       `/partner-workspaces/${workspaceId}/members/${memberId}`,
       payload,
+      buildFreshAuthRequestConfig(options),
     ),
 
   listWorkspaceLegalDocuments: (workspaceId: string) =>
@@ -582,10 +596,12 @@ export const partnerPortalApi = {
   updateWorkspaceSettings: (
     workspaceId: string,
     payload: UpdatePartnerWorkspaceSettingsPayload,
+    options?: FreshAuthRequestOptions,
   ) =>
     apiClient.patch<UpdatePartnerWorkspaceSettingsResponse>(
       `/partner-workspaces/${workspaceId}/settings`,
       payload,
+      buildFreshAuthRequestConfig(options),
     ),
 
   getWorkspacePrograms: (workspaceId: string) =>
@@ -806,6 +822,18 @@ export const partnerPortalApi = {
       `/partner-workspaces/${workspaceId}/integration-credentials`,
     ),
 
+  rotateWorkspaceIntegrationCredential: (
+    workspaceId: string,
+    credentialKind: PartnerIntegrationCredentialKind,
+    payload: RotatePartnerWorkspaceIntegrationCredentialPayload,
+    options?: FreshAuthRequestOptions,
+  ) =>
+    apiClient.post<RotatePartnerWorkspaceIntegrationCredentialResponse>(
+      `/partner-workspaces/${workspaceId}/integration-credentials/${credentialKind}/rotate`,
+      payload,
+      buildFreshAuthRequestConfig(options),
+    ),
+
   listWorkspaceIntegrationDeliveryLogs: (workspaceId: string) =>
     apiClient.get<ListPartnerWorkspaceIntegrationDeliveryLogsResponse>(
       `/partner-workspaces/${workspaceId}/integration-delivery-logs`,
@@ -837,8 +865,13 @@ export const partnerPortalApi = {
   rotatePartnerBotToken: (
     partnerBotId: string,
     payload: RotatePartnerBotTokenPayload,
+    options?: FreshAuthRequestOptions,
   ) =>
-    apiClient.post<PartnerBotResponse>(`/partner-bots/${partnerBotId}/rotate-token`, payload),
+    apiClient.post<PartnerBotResponse>(
+      `/partner-bots/${partnerBotId}/rotate-token`,
+      payload,
+      buildFreshAuthRequestConfig(options),
+    ),
 
   getWorkspacePostbackReadiness: (workspaceId: string) =>
     apiClient.get<GetPartnerWorkspacePostbackReadinessResponse>(
@@ -857,10 +890,12 @@ export const partnerPortalApi = {
   createWorkspacePayoutAccount: (
     workspaceId: string,
     payload: CreatePartnerWorkspacePayoutAccountPayload,
+    options?: FreshAuthRequestOptions,
   ) =>
     apiClient.post<PartnerWorkspacePayoutAccountResponse>(
       `/partner-workspaces/${workspaceId}/payout-accounts`,
       payload,
+      buildFreshAuthRequestConfig(options),
     ),
 
   getWorkspacePayoutAccountEligibility: (
@@ -874,10 +909,12 @@ export const partnerPortalApi = {
   makeWorkspacePayoutAccountDefault: (
     workspaceId: string,
     payoutAccountId: string,
+    options?: FreshAuthRequestOptions,
   ) =>
     apiClient.post<PartnerWorkspacePayoutAccountResponse>(
       `/partner-workspaces/${workspaceId}/payout-accounts/${payoutAccountId}/make-default`,
       {},
+      buildFreshAuthRequestConfig(options),
     ),
 
   listWorkspacePayoutHistory: (
@@ -924,6 +961,7 @@ export type {
   ListPartnerWorkspaceIntegrationCredentialsResponse,
   ListPartnerWorkspaceIntegrationDeliveryLogsResponse,
   ListPartnerWorkspaceReportExportsResponse,
+  PartnerIntegrationCredentialKind,
   SchedulePartnerWorkspaceReportExportPayload,
   SchedulePartnerWorkspaceReportExportResponse,
   ListPartnerWorkspaceReviewRequestsResponse,
@@ -935,6 +973,8 @@ export type {
   MarkPartnerWorkspaceCaseReadyForOpsResponse,
   GetPartnerWorkspacePostbackReadinessResponse,
   ResubmitPartnerApplicationDraftResponse,
+  RotatePartnerWorkspaceIntegrationCredentialPayload,
+  RotatePartnerWorkspaceIntegrationCredentialResponse,
   SubmitPartnerWorkspaceCaseResponsePayload,
   SubmitPartnerWorkspaceCaseResponseResponse,
   SubmitPartnerWorkspaceCreativeApprovalPayload,

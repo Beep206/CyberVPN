@@ -23,7 +23,6 @@ export { usageApi } from './usage';
 export { walletApi } from './wallet';
 export { paymentsApi } from './payments';
 export { commerceApi } from './commerce';
-export { commercialCatalogApi } from './commercial-catalog';
 export { codesApi } from './codes';
 export { referralApi } from './referral';
 export { promoApi } from './promo';
@@ -50,6 +49,7 @@ export { publicNetworkApi } from './public-network';
 // Security
 export { twofaApi } from './twofa';
 export { securityApi } from './security';
+export { passkeysApi } from './passkeys';
 
 // Core Client & Types
 export { apiClient, RateLimitError } from './client';
@@ -66,3 +66,7 @@ export type {
   TokenResponse,
   OAuthProvider,
 } from './auth';
+export type {
+  PasskeyCredential,
+  PasskeyPolicyResponse,
+} from './passkeys';

@@ -202,6 +202,7 @@ export const ADMIN_SECTION_OVERVIEWS: Record<
     availableNow: [
       'adminSessions',
       'twoFactor',
+      'passkeys',
       'antiPhishing',
       'authHardening',
     ],

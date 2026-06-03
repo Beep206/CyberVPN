@@ -537,6 +537,230 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/passkeys/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Passkey Policy */
+        get: operations["get_passkey_policy_api_v1_auth_passkeys_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/registration/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Passkey Registration Options */
+        post: operations["create_passkey_registration_options_api_v1_auth_passkeys_registration_options_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/registration/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Passkey Registration */
+        post: operations["verify_passkey_registration_api_v1_auth_passkeys_registration_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/authentication/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Passkey Authentication Options */
+        post: operations["create_passkey_authentication_options_api_v1_auth_passkeys_authentication_options_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/authentication/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Passkey Authentication */
+        post: operations["verify_passkey_authentication_api_v1_auth_passkeys_authentication_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Passkeys */
+        get: operations["list_passkeys_api_v1_auth_passkeys_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/{credential_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Passkey */
+        delete: operations["delete_passkey_api_v1_auth_passkeys__credential_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename Passkey */
+        patch: operations["rename_passkey_api_v1_auth_passkeys__credential_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/reauthentication/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Passkey Reauthentication Options */
+        post: operations["create_passkey_reauthentication_options_api_v1_auth_passkeys_reauthentication_options_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/passkeys/reauthentication/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Passkey Reauthentication */
+        post: operations["verify_passkey_reauthentication_api_v1_auth_passkeys_reauthentication_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/security/passkeys/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Passkey Policy */
+        get: operations["get_admin_passkey_policy_api_v1_security_passkeys_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Passkey Policy */
+        patch: operations["update_admin_passkey_policy_api_v1_security_passkeys_policy_patch"];
+        trace?: never;
+    };
+    "/api/v1/security/passkeys/compliance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Passkey Compliance */
+        get: operations["get_admin_passkey_compliance_api_v1_security_passkeys_compliance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/security/passkeys/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Workspace Passkey Policy */
+        get: operations["get_partner_workspace_passkey_policy_api_v1_partner_workspaces__workspace_id__security_passkeys_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Partner Workspace Passkey Policy */
+        patch: operations["update_partner_workspace_passkey_policy_api_v1_partner_workspaces__workspace_id__security_passkeys_policy_patch"];
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/security/passkeys/compliance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Workspace Passkey Compliance */
+        get: operations["get_partner_workspace_passkey_compliance_api_v1_partner_workspaces__workspace_id__security_passkeys_compliance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -2405,40 +2629,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/catalog/context": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resolve Public Catalog Context */
-        post: operations["resolve_public_catalog_context_api_v1_catalog_context_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/catalog/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Public Catalog */
-        get: operations["get_public_catalog_api_v1_catalog__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/offers/": {
         parameters: {
             query?: never;
@@ -3213,6 +3403,348 @@ export interface paths {
         get: operations["get_partner_workspace_reporting_snapshot_api_v1_reporting_partner_workspaces__workspace_id__snapshot_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Customer Conversations */
+        get: operations["list_customer_conversations_api_v1_me_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Conversation */
+        get: operations["get_customer_conversation_api_v1_me_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Customer Message */
+        post: operations["add_customer_message_api_v1_me_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/conversations/{conversation_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Customer Conversation Read */
+        post: operations["mark_customer_conversation_read_api_v1_me_conversations__conversation_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Customer Notifications */
+        get: operations["list_customer_notifications_api_v1_me_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Customer Notifications Read */
+        post: operations["mark_customer_notifications_read_api_v1_me_notifications_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Customer Notifications */
+        post: operations["dismiss_customer_notifications_api_v1_me_notifications_dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/realtime/ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Customer Realtime Ticket */
+        post: operations["create_customer_realtime_ticket_api_v1_me_realtime_ticket_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/realtime/sse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Customer Realtime Sse */
+        get: operations["customer_realtime_sse_api_v1_me_realtime_sse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/realtime/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync Customer Realtime */
+        get: operations["sync_customer_realtime_api_v1_me_realtime_sync_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/realtime/ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Admin Realtime Ticket */
+        post: operations["create_admin_realtime_ticket_api_v1_admin_messaging_realtime_ticket_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/realtime/sse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Realtime Sse */
+        get: operations["admin_realtime_sse_api_v1_admin_messaging_realtime_sse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Conversations */
+        get: operations["list_admin_conversations_api_v1_admin_messaging_conversations_get"];
+        put?: never;
+        /** Create Admin Conversation */
+        post: operations["create_admin_conversation_api_v1_admin_messaging_conversations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Conversation */
+        get: operations["get_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Conversation */
+        patch: operations["update_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Admin Message */
+        post: operations["add_admin_message_api_v1_admin_messaging_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/conversations/{conversation_id}/internal-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Admin Internal Note */
+        post: operations["add_admin_internal_note_api_v1_admin_messaging_conversations__conversation_id__internal_notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/conversations/{conversation_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Admin Conversation */
+        post: operations["close_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/messaging/conversations/{conversation_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Admin Conversation */
+        post: operations["reopen_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/notifications/broadcasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Admin Notification Broadcast */
+        post: operations["create_admin_notification_broadcast_api_v1_admin_notifications_broadcasts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/notifications/broadcasts/{campaign_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Admin Notification Broadcast */
+        post: operations["cancel_admin_notification_broadcast_api_v1_admin_notifications_broadcasts__campaign_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8634,160 +9166,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/pricebooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Admin Commercial Pricebooks */
-        get: operations["list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Admin Commercial Pricebook */
-        patch: operations["update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Publish Admin Commercial Pricebook */
-        post: operations["publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_id}/schedule": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Schedule Admin Commercial Pricebook */
-        post: operations["schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_id}/rollback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Rollback Admin Commercial Pricebook */
-        post: operations["rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_key}/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Admin Commercial Pricebook History */
-        get: operations["get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_id}/audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Admin Commercial Pricebook Audit */
-        get: operations["get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/pricebooks/{pricebook_id}/validate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Validate Admin Commercial Pricebook */
-        post: operations["validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/commercial-context/options": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Admin Commercial Context Options */
-        get: operations["get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get"];
-        /** Update Admin Commercial Context Options */
-        put: operations["update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/admin/mobile-users/{user_id}/notes": {
         parameters: {
             query?: never;
@@ -11301,6 +11679,125 @@ export interface components {
             /** Revoked Devices */
             revoked_devices?: components["schemas"]["AdminMobileDeviceResponse"][];
         };
+        /** AdminConversationDetailResponse */
+        AdminConversationDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            /**
+             * Customer Account Id
+             * Format: uuid
+             */
+            customer_account_id: string;
+            status: components["schemas"]["MessagingConversationStatus"];
+            response_state: components["schemas"]["MessagingResponseState"];
+            category: components["schemas"]["MessagingConversationCategory"];
+            priority: components["schemas"]["MessagingPriority"];
+            /** Subject */
+            subject: string;
+            /** Created By Admin Id */
+            created_by_admin_id?: string | null;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /** Related Support Ticket Id */
+            related_support_ticket_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Message At */
+            last_message_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Messages */
+            messages?: components["schemas"]["MessagingMessageResponse"][];
+            /** Read States */
+            read_states?: components["schemas"]["MessagingReadStateResponse"][];
+        };
+        /** AdminConversationListResponse */
+        AdminConversationListResponse: {
+            /** Conversations */
+            conversations: components["schemas"]["AdminConversationSummaryResponse"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminConversationSummaryResponse */
+        AdminConversationSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            /**
+             * Customer Account Id
+             * Format: uuid
+             */
+            customer_account_id: string;
+            status: components["schemas"]["MessagingConversationStatus"];
+            response_state: components["schemas"]["MessagingResponseState"];
+            category: components["schemas"]["MessagingConversationCategory"];
+            priority: components["schemas"]["MessagingPriority"];
+            /** Subject */
+            subject: string;
+            /** Created By Admin Id */
+            created_by_admin_id?: string | null;
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /** Related Support Ticket Id */
+            related_support_ticket_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Message At */
+            last_message_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+        };
+        /** AdminConversationUpdateRequest */
+        AdminConversationUpdateRequest: {
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            priority?: components["schemas"]["MessagingPriority"] | null;
+            category?: components["schemas"]["MessagingConversationCategory"] | null;
+        };
+        /** AdminCreateConversationRequest */
+        AdminCreateConversationRequest: {
+            /**
+             * Customer Account Id
+             * Format: uuid
+             */
+            customer_account_id: string;
+            /** Subject */
+            subject: string;
+            /** @default other */
+            category: components["schemas"]["MessagingConversationCategory"];
+            /** @default normal */
+            priority: components["schemas"]["MessagingPriority"];
+            /** Assigned Admin Id */
+            assigned_admin_id?: string | null;
+            /** Related Support Ticket Id */
+            related_support_ticket_id?: string | null;
+            initial_message: components["schemas"]["MessagingWriteRequest"];
+        };
         /** AdminCreateCustomerStaffNoteRequest */
         AdminCreateCustomerStaffNoteRequest: {
             /**
@@ -13460,107 +13957,6 @@ export interface components {
             /** Redacted Fields */
             redacted_fields?: string[];
         };
-        /** AdminPricebookHistoryResponse */
-        AdminPricebookHistoryResponse: {
-            /** Pricebook Key */
-            pricebook_key: string;
-            /** Versions */
-            versions: components["schemas"]["AdminPricebookVersionResponse"][];
-        };
-        /** AdminPricebookLifecycleResponse */
-        AdminPricebookLifecycleResponse: {
-            pricebook: components["schemas"]["PricebookResponse"];
-            /** Lifecycle Status */
-            lifecycle_status: string;
-            /** Audit Action */
-            audit_action: string;
-        };
-        /** AdminPricebookValidationIssueResponse */
-        AdminPricebookValidationIssueResponse: {
-            /**
-             * Code
-             * @enum {string}
-             */
-            code: "missing_price" | "unsupported_currency" | "missing_provisioning_profile" | "incompatible_addon";
-            /**
-             * Severity
-             * @enum {string}
-             */
-            severity: "error" | "warning";
-            /** Message */
-            message: string;
-            /** Field */
-            field?: string | null;
-            /** Entry Id */
-            entry_id?: string | null;
-            /** Offer Id */
-            offer_id?: string | null;
-            /** Remediation */
-            remediation?: string | null;
-        };
-        /** AdminPricebookValidationResponse */
-        AdminPricebookValidationResponse: {
-            /**
-             * Pricebook Id
-             * Format: uuid
-             */
-            pricebook_id: string;
-            /** Valid */
-            valid: boolean;
-            /**
-             * Checked At
-             * Format: date-time
-             */
-            checked_at: string;
-            /** Issues */
-            issues: components["schemas"]["AdminPricebookValidationIssueResponse"][];
-        };
-        /** AdminPricebookVersionResponse */
-        AdminPricebookVersionResponse: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Pricebook Key */
-            pricebook_key: string;
-            /** Display Name */
-            display_name: string;
-            /**
-             * Storefront Id
-             * Format: uuid
-             */
-            storefront_id: string;
-            /** Merchant Profile Id */
-            merchant_profile_id: string | null;
-            /** Currency Code */
-            currency_code: string;
-            /** Region Code */
-            region_code: string | null;
-            /** Discount Rules */
-            discount_rules: {
-                [key: string]: unknown;
-            };
-            /** Renewal Pricing Policy */
-            renewal_pricing_policy: {
-                [key: string]: unknown;
-            };
-            /** Version Status */
-            version_status: string;
-            /**
-             * Effective From
-             * Format: date-time
-             */
-            effective_from: string;
-            /** Effective To */
-            effective_to: string | null;
-            /** Is Active */
-            is_active: boolean;
-            /** Entries */
-            entries: components["schemas"]["PricebookEntryResponse"][];
-            /** Lifecycle Status */
-            lifecycle_status: string;
-        };
         /** AdminProcessWithdrawalRequest */
         AdminProcessWithdrawalRequest: {
             /** Admin Note */
@@ -14022,6 +14418,75 @@ export interface components {
         BindPartnerRequest: {
             /** Partner Code */
             partner_code: string;
+        };
+        /**
+         * BroadcastAudienceType
+         * @enum {string}
+         */
+        BroadcastAudienceType: "all_customers" | "customer_segment" | "explicit_customers" | "admins";
+        /** BroadcastCampaignResponse */
+        BroadcastCampaignResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            /** Name */
+            name: string;
+            status: components["schemas"]["BroadcastCampaignStatus"];
+            audience_type: components["schemas"]["BroadcastAudienceType"];
+            /** Audience Filter */
+            audience_filter: {
+                [key: string]: unknown;
+            };
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Action Url */
+            action_url?: string | null;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+            /**
+             * Created By Admin Id
+             * Format: uuid
+             */
+            created_by_admin_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BroadcastCampaignStatus
+         * @enum {string}
+         */
+        BroadcastCampaignStatus: "draft" | "scheduled" | "sending" | "sent" | "cancelled" | "failed";
+        /** BroadcastCreateRequest */
+        BroadcastCreateRequest: {
+            /** Name */
+            name: string;
+            audience_type: components["schemas"]["BroadcastAudienceType"];
+            /** Audience Filter */
+            audience_filter?: {
+                [key: string]: unknown;
+            };
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Action Url */
+            action_url?: string | null;
+            /** Scheduled At */
+            scheduled_at?: string | null;
         };
         /**
          * CancelSubscriptionResponse
@@ -14561,41 +15026,6 @@ export interface components {
             cloneFromUuid: string;
         } & {
             [key: string]: unknown;
-        };
-        /** CommercialContextCountryOptionResponse */
-        CommercialContextCountryOptionResponse: {
-            /** Country Code */
-            country_code: string;
-            /** Default Currency Code */
-            default_currency_code: string;
-            /** Supported Currency Codes */
-            supported_currency_codes: string[];
-            /** Payment Country Code */
-            payment_country_code: string;
-            /** Is Enabled */
-            is_enabled: boolean;
-        };
-        /** CommercialContextCurrencyOptionResponse */
-        CommercialContextCurrencyOptionResponse: {
-            /** Currency Code */
-            currency_code: string;
-            /** Minor Units */
-            minor_units: number;
-            /** Is Enabled */
-            is_enabled: boolean;
-        };
-        /** CommercialContextOptionsResponse */
-        CommercialContextOptionsResponse: {
-            /** Countries */
-            countries: components["schemas"]["CommercialContextCountryOptionResponse"][];
-            /** Currencies */
-            currencies: components["schemas"]["CommercialContextCurrencyOptionResponse"][];
-            /**
-             * Source
-             * @default default
-             * @enum {string}
-             */
-            source: "default" | "system_config";
         };
         /**
          * CommercialOwnerSource
@@ -16577,6 +17007,116 @@ export interface components {
          * @enum {string}
          */
         CustomerCommercialBindingType: "reseller_binding" | "storefront_default_owner" | "manual_override" | "contract_assignment";
+        /** CustomerConversationDetailResponse */
+        CustomerConversationDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            status: components["schemas"]["MessagingConversationStatus"];
+            response_state: components["schemas"]["MessagingResponseState"];
+            category: components["schemas"]["MessagingConversationCategory"];
+            priority: components["schemas"]["MessagingPriority"];
+            /** Subject */
+            subject: string;
+            /**
+             * Unread Count
+             * @default 0
+             */
+            unread_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Message At */
+            last_message_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+            /** Messages */
+            messages?: components["schemas"]["CustomerMessagingMessageResponse"][];
+        };
+        /** CustomerConversationListResponse */
+        CustomerConversationListResponse: {
+            /** Conversations */
+            conversations: components["schemas"]["CustomerConversationSummaryResponse"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** CustomerConversationSummaryResponse */
+        CustomerConversationSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            status: components["schemas"]["MessagingConversationStatus"];
+            response_state: components["schemas"]["MessagingResponseState"];
+            category: components["schemas"]["MessagingConversationCategory"];
+            priority: components["schemas"]["MessagingPriority"];
+            /** Subject */
+            subject: string;
+            /**
+             * Unread Count
+             * @default 0
+             */
+            unread_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Last Message At */
+            last_message_at?: string | null;
+            /** Closed At */
+            closed_at?: string | null;
+        };
+        /** CustomerMessagingMessageResponse */
+        CustomerMessagingMessageResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            sender_type: components["schemas"]["MessagingSenderType"];
+            visibility: components["schemas"]["MessagingMessageVisibility"];
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** CustomerMessagingMessageWriteResponse */
+        CustomerMessagingMessageWriteResponse: {
+            message: components["schemas"]["CustomerMessagingMessageResponse"];
+            conversation: components["schemas"]["CustomerConversationSummaryResponse"];
+            /** Created */
+            created: boolean;
+        };
         /** CustomerSubscriptionListResponse */
         CustomerSubscriptionListResponse: {
             /**
@@ -18992,6 +19532,153 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * MessagingBodyFormat
+         * @enum {string}
+         */
+        MessagingBodyFormat: "plain_text";
+        /**
+         * MessagingConversationCategory
+         * @enum {string}
+         */
+        MessagingConversationCategory: "support" | "billing" | "subscription" | "security" | "system" | "other";
+        /**
+         * MessagingConversationStatus
+         * @enum {string}
+         */
+        MessagingConversationStatus: "open" | "closed" | "archived" | "locked";
+        /** MessagingMessageResponse */
+        MessagingMessageResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Public Id */
+            public_id: string;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            sender_type: components["schemas"]["MessagingSenderType"];
+            /** Sender Id */
+            sender_id?: string | null;
+            visibility: components["schemas"]["MessagingMessageVisibility"];
+            /** Body */
+            body: string;
+            body_format: components["schemas"]["MessagingBodyFormat"];
+            /** Client Message Id */
+            client_message_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * MessagingMessageVisibility
+         * @enum {string}
+         */
+        MessagingMessageVisibility: "public" | "internal";
+        /** MessagingMessageWriteResponse */
+        MessagingMessageWriteResponse: {
+            message: components["schemas"]["MessagingMessageResponse"];
+            conversation: components["schemas"]["AdminConversationSummaryResponse"];
+            /** Created */
+            created: boolean;
+        };
+        /**
+         * MessagingPriority
+         * @enum {string}
+         */
+        MessagingPriority: "low" | "normal" | "high" | "urgent";
+        /** MessagingReadRequest */
+        MessagingReadRequest: {
+            /** Last Read Message Id */
+            last_read_message_id?: string | null;
+        };
+        /** MessagingReadStateResponse */
+        MessagingReadStateResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Participant Id
+             * Format: uuid
+             */
+            participant_id: string;
+            /** Last Read Message Id */
+            last_read_message_id?: string | null;
+            /**
+             * Last Read At
+             * Format: date-time
+             */
+            last_read_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** MessagingRealtimeSyncResponse */
+        MessagingRealtimeSyncResponse: {
+            /** Cursor */
+            cursor: string;
+            /** Conversations */
+            conversations: components["schemas"]["CustomerConversationSummaryResponse"][];
+            /** Messages */
+            messages?: components["schemas"]["CustomerMessagingMessageResponse"][];
+            /** Notifications */
+            notifications: components["schemas"]["SiteNotificationResponse"][];
+            unread_counts: components["schemas"]["MessagingUnreadCountsResponse"];
+        };
+        /** MessagingRealtimeTicketResponse */
+        MessagingRealtimeTicketResponse: {
+            /** Ticket */
+            ticket: string;
+            /**
+             * Expiresin
+             * @default 30
+             */
+            expiresIn: number;
+        };
+        /**
+         * MessagingResponseState
+         * @enum {string}
+         */
+        MessagingResponseState: "none" | "waiting_customer" | "waiting_admin";
+        /**
+         * MessagingSenderType
+         * @enum {string}
+         */
+        MessagingSenderType: "customer" | "admin" | "system";
+        /** MessagingUnreadCountsResponse */
+        MessagingUnreadCountsResponse: {
+            /** Conversations */
+            conversations: number;
+            /** Notifications */
+            notifications: number;
+        };
+        /** MessagingWriteRequest */
+        MessagingWriteRequest: {
+            /** Client Message Id */
+            client_message_id?: string | null;
+            /** Body */
+            body: string;
         };
         /**
          * MetadataBuildResponse
@@ -21630,6 +22317,63 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
         };
+        /** PartnerWorkspacePasskeyComplianceResponse */
+        PartnerWorkspacePasskeyComplianceResponse: {
+            /**
+             * Workspaceid
+             * Format: uuid
+             */
+            workspaceId: string;
+            /** Workspacekey */
+            workspaceKey: string;
+            /** Workspacestatus */
+            workspaceStatus: string;
+            /** Workspacepasskeyspreferred */
+            workspacePasskeysPreferred: boolean;
+            /** Workspacemfarequired */
+            workspaceMfaRequired: boolean;
+            /** Workspacepolicyupdatedat */
+            workspacePolicyUpdatedAt?: string | null;
+            policy: components["schemas"]["PasskeyPolicyResponse"];
+            operatorCompliance: components["schemas"]["PartnerWorkspacePasskeyOperatorComplianceResponse"];
+            summary: components["schemas"]["PasskeyComplianceSummaryResponse"];
+            /** Credentials */
+            credentials: components["schemas"]["PasskeyComplianceCredentialResponse"][];
+        };
+        /** PartnerWorkspacePasskeyOperatorComplianceResponse */
+        PartnerWorkspacePasskeyOperatorComplianceResponse: {
+            /**
+             * Workspaceid
+             * Format: uuid
+             */
+            workspaceId: string;
+            /** Activemembers */
+            activeMembers: number;
+            /** Operatorswithactivepasskeys */
+            operatorsWithActivePasskeys: number;
+            /** Operatorsmissingactivepasskeys */
+            operatorsMissingActivePasskeys: number;
+        };
+        /** PartnerWorkspacePasskeyPolicyResponse */
+        PartnerWorkspacePasskeyPolicyResponse: {
+            /**
+             * Workspaceid
+             * Format: uuid
+             */
+            workspaceId: string;
+            /** Workspacekey */
+            workspaceKey: string;
+            /** Workspacestatus */
+            workspaceStatus: string;
+            /** Workspacepasskeyspreferred */
+            workspacePasskeysPreferred: boolean;
+            /** Workspacemfarequired */
+            workspaceMfaRequired: boolean;
+            /** Workspacepolicyupdatedat */
+            workspacePolicyUpdatedAt?: string | null;
+            policy: components["schemas"]["PasskeyPolicyResponse"];
+            operatorCompliance: components["schemas"]["PartnerWorkspacePasskeyOperatorComplianceResponse"];
+        };
         /** PartnerWorkspacePayoutAccountEligibilityResponse */
         PartnerWorkspacePayoutAccountEligibilityResponse: {
             /**
@@ -22213,6 +22957,257 @@ export interface components {
             /** Notes */
             notes?: string[];
         };
+        /** PasskeyAuthenticationOptionsRequest */
+        PasskeyAuthenticationOptionsRequest: {
+            /** Identifier */
+            identifier?: string | null;
+            /**
+             * Conditional
+             * @default false
+             */
+            conditional: boolean;
+        };
+        /** PasskeyAuthenticationVerifyRequest */
+        PasskeyAuthenticationVerifyRequest: {
+            /** Challengeid */
+            challengeId: string;
+            /** Credential */
+            credential: {
+                [key: string]: unknown;
+            };
+        };
+        /** PasskeyComplianceCredentialResponse */
+        PasskeyComplianceCredentialResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Status */
+            status: string;
+            /** Realmkey */
+            realmKey: string;
+            /** Principalclass */
+            principalClass: string;
+            /** Principalsubject */
+            principalSubject: string;
+            /** Surface */
+            surface: string;
+            /** Rpid */
+            rpId: string;
+            /** Credentialidhashprefix */
+            credentialIdHashPrefix: string;
+            /** Credentialtype */
+            credentialType: string;
+            /** Devicetype */
+            deviceType: string | null;
+            /** Transports */
+            transports: string[];
+            /** Backedup */
+            backedUp: boolean;
+            /** Userverified */
+            userVerified: boolean;
+            /** Clonesuspectedat */
+            cloneSuspectedAt: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Lastusedat */
+            lastUsedAt: string | null;
+            /** Revokedat */
+            revokedAt: string | null;
+        };
+        /** PasskeyComplianceResponse */
+        PasskeyComplianceResponse: {
+            policy: components["schemas"]["PasskeyPolicyResponse"];
+            summary: components["schemas"]["PasskeyComplianceSummaryResponse"];
+            /** Credentials */
+            credentials: components["schemas"]["PasskeyComplianceCredentialResponse"][];
+        };
+        /** PasskeyComplianceSummaryResponse */
+        PasskeyComplianceSummaryResponse: {
+            /** Activecredentials */
+            activeCredentials: number;
+            /** Revokedcredentials */
+            revokedCredentials: number;
+            /** Clonesuspectedcredentials */
+            cloneSuspectedCredentials: number;
+            /** Principalswithactivepasskeys */
+            principalsWithActivePasskeys: number;
+            /** Stalecredentials */
+            staleCredentials: number;
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+        };
+        /** PasskeyCredentialListResponse */
+        PasskeyCredentialListResponse: {
+            /** Credentials */
+            credentials: components["schemas"]["PasskeyCredentialResponse"][];
+        };
+        /** PasskeyCredentialResponse */
+        PasskeyCredentialResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Status */
+            status: string;
+            /** Credentialtype */
+            credentialType: string;
+            /** Devicetype */
+            deviceType: string | null;
+            /** Transports */
+            transports: string[];
+            /** Backedup */
+            backedUp: boolean;
+            /** Userverified */
+            userVerified: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Lastusedat */
+            lastUsedAt: string | null;
+            /** Revokedat */
+            revokedAt: string | null;
+        };
+        /** PasskeyDeleteResponse */
+        PasskeyDeleteResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+        };
+        /** PasskeyOptionsResponse */
+        PasskeyOptionsResponse: {
+            /** Challengeid */
+            challengeId: string;
+            /** Publickey */
+            publicKey: {
+                [key: string]: unknown;
+            };
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+        };
+        /** PasskeyPolicyResponse */
+        PasskeyPolicyResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Configuredenabled */
+            configuredEnabled: boolean;
+            /** Globalenabled */
+            globalEnabled: boolean;
+            /** Surfaceenabled */
+            surfaceEnabled: boolean;
+            /** Surface */
+            surface: string;
+            /** Realm Key */
+            realm_key: string;
+            /** Rp Id */
+            rp_id: string;
+            /** Rp Name */
+            rp_name: string;
+            /** Allowedorigins */
+            allowedOrigins: string[];
+            /**
+             * Userverification
+             * @default required
+             */
+            userVerification: string;
+            /** Conditionaluienabled */
+            conditionalUiEnabled: boolean;
+            /** Registrationenabled */
+            registrationEnabled: boolean;
+            /** Authenticationenabled */
+            authenticationEnabled: boolean;
+            /** Reauthenticationenabled */
+            reauthenticationEnabled: boolean;
+            /** Securitydashboardenabled */
+            securityDashboardEnabled?: boolean | null;
+            /** Workspacepolicyenabled */
+            workspacePolicyEnabled?: boolean | null;
+            /** Admincountsasmfa */
+            adminCountsAsMfa: boolean;
+            /** Challengettlseconds */
+            challengeTtlSeconds: number;
+            /** Browsertimeoutms */
+            browserTimeoutMs: number;
+            /** Freshauthttlseconds */
+            freshAuthTtlSeconds?: number | null;
+            /**
+             * Policysource
+             * @default settings
+             */
+            policySource: string;
+            /** Updatedat */
+            updatedAt?: string | null;
+            /** Updatedby */
+            updatedBy?: string | null;
+        };
+        /** PasskeyReauthenticationOptionsRequest */
+        PasskeyReauthenticationOptionsRequest: {
+            /** Action */
+            action: string;
+        };
+        /** PasskeyReauthenticationVerifyRequest */
+        PasskeyReauthenticationVerifyRequest: {
+            /** Challengeid */
+            challengeId: string;
+            /** Credential */
+            credential: {
+                [key: string]: unknown;
+            };
+            /** Action */
+            action: string;
+        };
+        /** PasskeyReauthenticationVerifyResponse */
+        PasskeyReauthenticationVerifyResponse: {
+            /** Freshauthgrantid */
+            freshAuthGrantId: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+        };
+        /** PasskeyRegistrationOptionsRequest */
+        PasskeyRegistrationOptionsRequest: {
+            /** Label */
+            label?: string | null;
+        };
+        /** PasskeyRegistrationVerifyRequest */
+        PasskeyRegistrationVerifyRequest: {
+            /** Challengeid */
+            challengeId: string;
+            /** Credential */
+            credential: {
+                [key: string]: unknown;
+            };
+            /** Label */
+            label?: string | null;
+        };
+        /** PasskeyRenameRequest */
+        PasskeyRenameRequest: {
+            /** Label */
+            label: string;
+        };
         /** PausePilotCohortRequest */
         PausePilotCohortRequest: {
             /** Reason Code */
@@ -22380,21 +23375,6 @@ export interface components {
              * @description List of payment history items
              */
             payments: components["schemas"]["PaymentHistoryItem"][];
-        };
-        /** PaymentMethodAvailabilityResponse */
-        PaymentMethodAvailabilityResponse: {
-            /** Availablemethods */
-            availableMethods: string[];
-            /** Webcheckout */
-            webCheckout: boolean;
-            /** Cryptobot */
-            cryptobot: boolean;
-            /** Telegramstars */
-            telegramStars: boolean;
-            /** Manualinvoice */
-            manualInvoice: boolean;
-            /** Autorenewal */
-            autorenewal: boolean;
         };
         /**
          * PaymentProvider
@@ -23476,193 +24456,6 @@ export interface components {
          * @enum {string}
          */
         ProvisioningProfileStatus: "draft" | "active" | "archived";
-        /** PublicCatalogAddonResponse */
-        PublicCatalogAddonResponse: {
-            /**
-             * Addonid
-             * Format: uuid
-             */
-            addonId: string;
-            /** Code */
-            code: string;
-            /** Displayname */
-            displayName: string;
-            /** Durationmode */
-            durationMode: string;
-            /** Isstackable */
-            isStackable: boolean;
-            /** Quantitystep */
-            quantityStep: number;
-            displayPrice: components["schemas"]["PublicCatalogMoneyResponse"];
-            /** Maxquantitybyplan */
-            maxQuantityByPlan: {
-                [key: string]: number;
-            };
-            /** Deltaentitlements */
-            deltaEntitlements: {
-                [key: string]: unknown;
-            };
-            /** Requireslocation */
-            requiresLocation: boolean;
-            /** Salechannels */
-            saleChannels: string[];
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        /** PublicCatalogBillingPeriodResponse */
-        PublicCatalogBillingPeriodResponse: {
-            /**
-             * Planid
-             * Format: uuid
-             */
-            planId: string;
-            /** Catalogitemkey */
-            catalogItemKey: string;
-            /** Durationdays */
-            durationDays: number;
-            displayPrice: components["schemas"]["PublicCatalogMoneyResponse"];
-            /** Version */
-            version: string;
-            quote: components["schemas"]["PublicCatalogQuoteHandoffResponse"];
-            /** Includedaddoncodes */
-            includedAddonCodes: string[];
-            /** Availability */
-            availability: string[];
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        /** PublicCatalogContextResponse */
-        PublicCatalogContextResponse: {
-            /** Uilocale */
-            uiLocale: string;
-            /** Displaycountry */
-            displayCountry: string;
-            /** Pricingcountry */
-            pricingCountry: string;
-            /** Paymentcountry */
-            paymentCountry: string;
-            /** Currency */
-            currency: string;
-            /** Confidence */
-            confidence: string;
-            /** Selectablecountries */
-            selectableCountries: string[];
-            /** Selectablecurrencies */
-            selectableCurrencies: string[];
-            paymentMethods: components["schemas"]["PaymentMethodAvailabilityResponse"];
-            /** Cachekey */
-            cacheKey: string;
-            /** Resolutiontrace */
-            resolutionTrace: string[];
-        };
-        /** PublicCatalogMetadataResponse */
-        PublicCatalogMetadataResponse: {
-            /** Policyids */
-            policyIds: string[];
-            /** Source */
-            source: string;
-            /** Channel */
-            channel: string;
-            /** Storefrontkey */
-            storefrontKey: string | null;
-            /** Addonsenabled */
-            addonsEnabled: boolean;
-            /** Promocodesenabled */
-            promoCodesEnabled: boolean;
-            /** Checkoutcodediscountsenabled */
-            checkoutCodeDiscountsEnabled: boolean;
-            /** Invalidationevents */
-            invalidationEvents: string[];
-        };
-        /** PublicCatalogMoneyResponse */
-        PublicCatalogMoneyResponse: {
-            /** Amount */
-            amount: string;
-            /** Currency */
-            currency: string;
-            /** Minorunits */
-            minorUnits: number;
-        };
-        /** PublicCatalogPlanResponse */
-        PublicCatalogPlanResponse: {
-            /** Plancode */
-            planCode: string;
-            /** Displayname */
-            displayName: string;
-            /** Version */
-            version: string;
-            /** Billingperiods */
-            billingPeriods: components["schemas"]["PublicCatalogBillingPeriodResponse"][];
-            /** Devicesincluded */
-            devicesIncluded: number;
-            /** Trafficlimitbytes */
-            trafficLimitBytes: number | null;
-            /** Trafficpolicy */
-            trafficPolicy: {
-                [key: string]: unknown;
-            };
-            /** Connectionmodes */
-            connectionModes: string[];
-            /** Serverpool */
-            serverPool: string[];
-            /** Supportsla */
-            supportSla: string;
-            /** Dedicatedip */
-            dedicatedIp: {
-                [key: string]: unknown;
-            };
-            /** Invitebundle */
-            inviteBundle: {
-                [key: string]: unknown;
-            };
-            /** Trialeligible */
-            trialEligible: boolean;
-            /** Promoeligible */
-            promoEligible: boolean;
-            /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        /** PublicCatalogQuoteHandoffResponse */
-        PublicCatalogQuoteHandoffResponse: {
-            /**
-             * Planid
-             * Format: uuid
-             */
-            planId: string;
-            /** Plancode */
-            planCode: string;
-            /** Billingperioddays */
-            billingPeriodDays: number;
-            /** Currency */
-            currency: string;
-            /** Catalogitemkey */
-            catalogItemKey: string;
-            /** Contextcachekey */
-            contextCacheKey: string;
-        };
-        /** PublicCommercialCatalogResponse */
-        PublicCommercialCatalogResponse: {
-            /** Catalogversion */
-            catalogVersion: string;
-            /** Cachekey */
-            cacheKey: string;
-            context: components["schemas"]["PublicCatalogContextResponse"];
-            /** Plans */
-            plans: components["schemas"]["PublicCatalogPlanResponse"][];
-            /** Addons */
-            addons: components["schemas"]["PublicCatalogAddonResponse"][];
-            /** Trialeligible */
-            trialEligible: boolean;
-            /** Promoeligible */
-            promoEligible: boolean;
-            metadata: components["schemas"]["PublicCatalogMetadataResponse"];
-        };
         /** PublicNetworkDpiCountryResponse */
         PublicNetworkDpiCountryResponse: {
             /** Countrycode */
@@ -24213,13 +25006,6 @@ export interface components {
             resolved_at?: string | null;
             /** Closed At */
             closed_at?: string | null;
-        };
-        /** PublishAdminPricebookRequest */
-        PublishAdminPricebookRequest: {
-            /** Effective From */
-            effective_from?: string | null;
-            /** Change Reason */
-            change_reason?: string | null;
         };
         /** PurchaseSubscriptionAddonsRequest */
         PurchaseSubscriptionAddonsRequest: {
@@ -25433,42 +26219,6 @@ export interface components {
              */
             message: string;
         };
-        /** ResolveCatalogContextRequest */
-        ResolveCatalogContextRequest: {
-            /** Urllocale */
-            urlLocale?: string | null;
-            /** Browserlanguage */
-            browserLanguage?: string | null;
-            /** Telegramlanguagecode */
-            telegramLanguageCode?: string | null;
-            /** Explicituilocale */
-            explicitUiLocale?: string | null;
-            /** Explicitcountrycode */
-            explicitCountryCode?: string | null;
-            /** Explicitdisplaycountrycode */
-            explicitDisplayCountryCode?: string | null;
-            /** Explicitpricingcountrycode */
-            explicitPricingCountryCode?: string | null;
-            /** Explicitcurrencycode */
-            explicitCurrencyCode?: string | null;
-            /** Sessioncountrycode */
-            sessionCountryCode?: string | null;
-            /** Sessioncurrencycode */
-            sessionCurrencyCode?: string | null;
-            /** Cookiecountrycode */
-            cookieCountryCode?: string | null;
-            /** Cookiecurrencycode */
-            cookieCurrencyCode?: string | null;
-            /** Channelkey */
-            channelKey?: string | null;
-            /** Channeldefaultlocale */
-            channelDefaultLocale?: string | null;
-            /**
-             * Fallbackcountrycode
-             * @default US
-             */
-            fallbackCountryCode: string;
-        };
         /** ResolveCurrentAccessDeliveryChannelRequest */
         ResolveCurrentAccessDeliveryChannelRequest: {
             /**
@@ -25825,13 +26575,6 @@ export interface components {
              */
             updated_at: string;
         };
-        /** RollbackAdminPricebookRequest */
-        RollbackAdminPricebookRequest: {
-            /** Target Pricebook Id */
-            target_pricebook_id?: string | null;
-            /** Change Reason */
-            change_reason?: string | null;
-        };
         /** RotatePartnerBotTokenRequest */
         RotatePartnerBotTokenRequest: {
             /** Request Payload */
@@ -25858,16 +26601,6 @@ export interface components {
              * Format: date-time
              */
             issued_at: string;
-        };
-        /** ScheduleAdminPricebookRequest */
-        ScheduleAdminPricebookRequest: {
-            /**
-             * Scheduled For
-             * Format: date-time
-             */
-            scheduled_for: string;
-            /** Change Reason */
-            change_reason?: string | null;
         };
         /** SchedulePartnerWorkspaceReportExportRequest */
         SchedulePartnerWorkspaceReportExportRequest: {
@@ -26263,6 +26996,94 @@ export interface components {
              */
             algorithm: string | null;
         };
+        /**
+         * SiteNotificationDeliveryStatus
+         * @enum {string}
+         */
+        SiteNotificationDeliveryStatus: "pending" | "delivered" | "read" | "dismissed" | "failed" | "expired";
+        /** SiteNotificationDismissRequest */
+        SiteNotificationDismissRequest: {
+            /** Notification Ids */
+            notification_ids?: string[];
+            /** Read All Before */
+            read_all_before?: string | null;
+        };
+        /** SiteNotificationDismissResponse */
+        SiteNotificationDismissResponse: {
+            /** Notifications */
+            notifications: components["schemas"]["SiteNotificationResponse"][];
+        };
+        /** SiteNotificationListResponse */
+        SiteNotificationListResponse: {
+            /** Notifications */
+            notifications: components["schemas"]["SiteNotificationResponse"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** SiteNotificationReadRequest */
+        SiteNotificationReadRequest: {
+            /** Notification Ids */
+            notification_ids?: string[];
+            /** Read All Before */
+            read_all_before?: string | null;
+        };
+        /** SiteNotificationReadResponse */
+        SiteNotificationReadResponse: {
+            /** Notifications */
+            notifications: components["schemas"]["SiteNotificationResponse"][];
+        };
+        /** SiteNotificationResponse */
+        SiteNotificationResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Delivery Id
+             * Format: uuid
+             */
+            delivery_id: string;
+            notification_type: components["schemas"]["SiteNotificationType"];
+            severity: components["schemas"]["SiteNotificationSeverity"];
+            /** Title */
+            title: string;
+            /** Body */
+            body?: string | null;
+            /** Action Url */
+            action_url?: string | null;
+            /** Aggregate Type */
+            aggregate_type?: string | null;
+            /** Aggregate Id */
+            aggregate_id?: string | null;
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /** Message Id */
+            message_id?: string | null;
+            status: components["schemas"]["SiteNotificationDeliveryStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Read At */
+            read_at?: string | null;
+        };
+        /**
+         * SiteNotificationSeverity
+         * @enum {string}
+         */
+        SiteNotificationSeverity: "info" | "success" | "warning" | "critical";
+        /**
+         * SiteNotificationType
+         * @enum {string}
+         */
+        SiteNotificationType: "message" | "system" | "billing" | "subscription" | "security" | "broadcast";
         /**
          * Stage1PaymentState
          * @description Canonical payment state for web, Telegram, admin and support views.
@@ -28336,76 +29157,30 @@ export interface components {
             /** Change Reason */
             change_reason?: string | null;
         };
-        /** UpdateAdminPricebookRequest */
-        UpdateAdminPricebookRequest: {
-            /** Display Name */
-            display_name?: string | null;
-            /** Merchant Profile Id */
-            merchant_profile_id?: string | null;
-            /** Currency Code */
-            currency_code?: string | null;
-            /** Region Code */
-            region_code?: string | null;
-            /** Discount Rules */
-            discount_rules?: {
-                [key: string]: unknown;
-            } | null;
-            /** Renewal Pricing Policy */
-            renewal_pricing_policy?: {
-                [key: string]: unknown;
-            } | null;
-            /** Version Status */
-            version_status?: string | null;
-            /** Effective From */
-            effective_from?: string | null;
-            /** Effective To */
-            effective_to?: string | null;
-            /** Is Active */
-            is_active?: boolean | null;
-            /** Entries */
-            entries?: components["schemas"]["PricebookEntryRequest"][] | null;
-            /** Change Reason */
-            change_reason?: string | null;
-        };
-        /** UpdateCommercialContextCountryOptionRequest */
-        UpdateCommercialContextCountryOptionRequest: {
-            /** Country Code */
-            country_code: string;
-            /** Default Currency Code */
-            default_currency_code: string;
-            /** Supported Currency Codes */
-            supported_currency_codes: string[];
-            /** Payment Country Code */
-            payment_country_code?: string | null;
-            /**
-             * Is Enabled
-             * @default true
-             */
-            is_enabled: boolean;
-        };
-        /** UpdateCommercialContextCurrencyOptionRequest */
-        UpdateCommercialContextCurrencyOptionRequest: {
-            /** Currency Code */
-            currency_code: string;
-            /**
-             * Minor Units
-             * @default 2
-             */
-            minor_units: number;
-            /**
-             * Is Enabled
-             * @default true
-             */
-            is_enabled: boolean;
-        };
-        /** UpdateCommercialContextOptionsRequest */
-        UpdateCommercialContextOptionsRequest: {
-            /** Countries */
-            countries: components["schemas"]["UpdateCommercialContextCountryOptionRequest"][];
-            /** Currencies */
-            currencies?: components["schemas"]["UpdateCommercialContextCurrencyOptionRequest"][];
-            /** Change Reason */
-            change_reason?: string | null;
+        /** UpdateAdminPasskeyPolicyRequest */
+        UpdateAdminPasskeyPolicyRequest: {
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Registrationenabled */
+            registrationEnabled?: boolean | null;
+            /** Authenticationenabled */
+            authenticationEnabled?: boolean | null;
+            /** Reauthenticationenabled */
+            reauthenticationEnabled?: boolean | null;
+            /** Conditionaluienabled */
+            conditionalUiEnabled?: boolean | null;
+            /** Securitydashboardenabled */
+            securityDashboardEnabled?: boolean | null;
+            /** Admincountsasmfa */
+            adminCountsAsMfa?: boolean | null;
+            /** Challengettlseconds */
+            challengeTtlSeconds?: number | null;
+            /** Browsertimeoutms */
+            browserTimeoutMs?: number | null;
+            /** Freshauthttlseconds */
+            freshAuthTtlSeconds?: number | null;
+            /** Changereason */
+            changeReason?: string | null;
         };
         /**
          * UpdateHostRequest
@@ -28494,6 +29269,15 @@ export interface components {
             business_description?: string | null;
             /** Acquisition Channels */
             acquisition_channels?: string | null;
+        };
+        /** UpdatePartnerWorkspacePasskeyPolicyRequest */
+        UpdatePartnerWorkspacePasskeyPolicyRequest: {
+            /** Preferpasskeys */
+            preferPasskeys?: boolean | null;
+            /** Requiremfaforworkspace */
+            requireMfaForWorkspace?: boolean | null;
+            /** Changereason */
+            changeReason?: string | null;
         };
         /** UpdatePartnerWorkspaceSettingsRequest */
         UpdatePartnerWorkspaceSettingsRequest: {
@@ -30404,6 +31188,492 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_passkey_policy_api_v1_auth_passkeys_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyPolicyResponse"];
+                };
+            };
+        };
+    };
+    create_passkey_registration_options_api_v1_auth_passkeys_registration_options_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyRegistrationOptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_passkey_registration_api_v1_auth_passkeys_registration_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyRegistrationVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyCredentialResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_passkey_authentication_options_api_v1_auth_passkeys_authentication_options_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyAuthenticationOptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_passkey_authentication_api_v1_auth_passkeys_authentication_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyAuthenticationVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_passkeys_api_v1_auth_passkeys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyCredentialListResponse"];
+                };
+            };
+        };
+    };
+    delete_passkey_api_v1_auth_passkeys__credential_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_passkey_api_v1_auth_passkeys__credential_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyRenameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyCredentialResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_passkey_reauthentication_options_api_v1_auth_passkeys_reauthentication_options_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyReauthenticationOptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_passkey_reauthentication_api_v1_auth_passkeys_reauthentication_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasskeyReauthenticationVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyReauthenticationVerifyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_passkey_policy_api_v1_security_passkeys_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyPolicyResponse"];
+                };
+            };
+        };
+    };
+    update_admin_passkey_policy_api_v1_security_passkeys_policy_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminPasskeyPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyPolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_passkey_compliance_api_v1_security_passkeys_compliance_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyComplianceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_workspace_passkey_policy_api_v1_partner_workspaces__workspace_id__security_passkeys_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspacePasskeyPolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_partner_workspace_passkey_policy_api_v1_partner_workspaces__workspace_id__security_passkeys_policy_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePartnerWorkspacePasskeyPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspacePasskeyPolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_workspace_passkey_compliance_api_v1_partner_workspaces__workspace_id__security_passkeys_compliance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerWorkspacePasskeyComplianceResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -34400,75 +35670,6 @@ export interface operations {
             };
         };
     };
-    resolve_public_catalog_context_api_v1_catalog_context_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResolveCatalogContextRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicCatalogContextResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_public_catalog_api_v1_catalog__get: {
-        parameters: {
-            query?: {
-                channel?: string;
-                country?: string | null;
-                currency?: string | null;
-                uiLocale?: string | null;
-                urlLocale?: string | null;
-                storefrontKey?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicCommercialCatalogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_offers_api_v1_offers__get: {
         parameters: {
             query?: {
@@ -36187,6 +37388,691 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartnerReportingApiSnapshotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_customer_conversations_api_v1_me_conversations_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["MessagingConversationStatus"] | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerConversationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_conversation_api_v1_me_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerConversationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_customer_message_api_v1_me_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessagingWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerMessagingMessageWriteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_customer_conversation_read_api_v1_me_conversations__conversation_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessagingReadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingReadStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_customer_notifications_api_v1_me_notifications_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteNotificationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_customer_notifications_read_api_v1_me_notifications_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteNotificationReadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteNotificationReadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_customer_notifications_api_v1_me_notifications_dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteNotificationDismissRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteNotificationDismissResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_customer_realtime_ticket_api_v1_me_realtime_ticket_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingRealtimeTicketResponse"];
+                };
+            };
+        };
+    };
+    customer_realtime_sse_api_v1_me_realtime_sse_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    sync_customer_realtime_api_v1_me_realtime_sync_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingRealtimeSyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_admin_realtime_ticket_api_v1_admin_messaging_realtime_ticket_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingRealtimeTicketResponse"];
+                };
+            };
+        };
+    };
+    admin_realtime_sse_api_v1_admin_messaging_realtime_sse_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_admin_conversations_api_v1_admin_messaging_conversations_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["MessagingConversationStatus"] | null;
+                category?: components["schemas"]["MessagingConversationCategory"] | null;
+                priority?: components["schemas"]["MessagingPriority"] | null;
+                assigned_admin_id?: string | null;
+                customer_account_id?: string | null;
+                query?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConversationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_admin_conversation_api_v1_admin_messaging_conversations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateConversationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConversationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConversationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminConversationUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConversationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_admin_message_api_v1_admin_messaging_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessagingWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingMessageWriteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_admin_internal_note_api_v1_admin_messaging_conversations__conversation_id__internal_notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessagingWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingMessageWriteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConversationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminConversationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_admin_notification_broadcast_api_v1_admin_notifications_broadcasts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BroadcastCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_admin_notification_broadcast_api_v1_admin_notifications_broadcasts__campaign_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastCampaignResponse"];
                 };
             };
             /** @description Validation Error */
@@ -47245,329 +49131,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminPaymentAttemptListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get: {
-        parameters: {
-            query?: {
-                include_inactive?: boolean;
-                storefront_id?: string | null;
-                storefront_key?: string | null;
-                currency_code?: string | null;
-                region_code?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookVersionResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pricebook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateAdminPricebookRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pricebook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PublishAdminPricebookRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pricebook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ScheduleAdminPricebookRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pricebook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RollbackAdminPricebookRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookLifecycleResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pricebook_key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookHistoryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                pricebook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pricebook_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminPricebookValidationResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CommercialContextOptionsResponse"];
-                };
-            };
-        };
-    };
-    update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateCommercialContextOptionsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CommercialContextOptionsResponse"];
                 };
             };
             /** @description Validation Error */

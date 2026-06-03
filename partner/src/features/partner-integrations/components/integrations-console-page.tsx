@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
 import { publicNetworkApi } from '@/lib/api/public-network';
+import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
 import { PartnerRouteGuard } from '@/features/partner-portal-state/components/partner-route-guard';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
 import {
@@ -99,6 +100,10 @@ function getBotActionDraft(
     action_reference: '',
     suspend_reason: '',
   };
+}
+
+function getPartnerBotTokenRotateAction(workspaceId: string, botId: string): string {
+  return `partner.integration_credential.rotate:${workspaceId}:partner_bot_token:${botId}`;
 }
 
 export function IntegrationsConsolePage() {
@@ -259,15 +264,25 @@ export function IntegrationsConsolePage() {
       botId: string;
       provisioningPath: string;
       actionReference: string;
-    }) =>
-      partnerPortalApi.rotatePartnerBotToken(botId, {
+    }) => {
+      if (!state.activeWorkspaceId) {
+        throw new Error(t('bots.workspaceRequired'));
+      }
+
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getPartnerBotTokenRotateAction(state.activeWorkspaceId, botId),
+      );
+      return partnerPortalApi.rotatePartnerBotToken(botId, {
         request_payload:
           actionReference.trim().length > 0
             ? provisioningPath === 'manual_token'
               ? { handoff_reference: actionReference.trim() }
               : { operator_note: actionReference.trim() }
             : {},
-      }),
+      }, {
+        freshAuthGrantId,
+      });
+    },
     onSuccess: async () => {
       setBotFeedback({
         tone: 'success',

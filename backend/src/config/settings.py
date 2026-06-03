@@ -25,6 +25,14 @@ S1_PRODUCTION_COOKIE_DOMAINS = frozenset({"", "cyber-vpn.net"})
 S1_PRODUCTION_ADMIN_ALLOWED_HOSTS = frozenset({"admin.cyber-vpn.net"})
 S1_REDIRECT_ONLY_ADMIN_HOSTS = frozenset({"admin.cyber-vpn.org"})
 S1_PUBLIC_NON_ADMIN_HOSTS = frozenset({"cyber-vpn.net", "my.cyber-vpn.net", "cyber-vpn.org"})
+S1_PRODUCTION_PASSKEY_ORIGINS = frozenset(
+    {
+        "https://cyber-vpn.net",
+        "https://my.cyber-vpn.net",
+        "https://admin.cyber-vpn.net",
+        "https://partner.cyber-vpn.net",
+    }
+)
 
 
 class Settings(BaseSettings):
@@ -246,6 +254,40 @@ class Settings(BaseSettings):
     cookie_domain: str = ""  # Leave empty for current domain
     cookie_secure: bool = True  # Set to False for local HTTP development
 
+    # Passkey/WebAuthn 2.0
+    passkey_enabled: bool = False
+    passkey_customer_enabled: bool = False
+    passkey_admin_enabled: bool = False
+    passkey_partner_enabled: bool = False
+    passkey_conditional_ui_enabled: bool = False
+    passkey_customer_registration_prompt_enabled: bool = False
+    passkey_admin_security_dashboard_enabled: bool = False
+    passkey_partner_workspace_policy_enabled: bool = False
+    passkey_admin_counts_as_mfa: bool = False
+    passkey_dev_enabled: bool = False
+    passkey_rp_id: str = "cyber-vpn.net"
+    passkey_rp_name: str = "CyberVPN"
+    passkey_allowed_origins: Annotated[list[str], NoDecode] = [
+        "https://cyber-vpn.net",
+        "https://my.cyber-vpn.net",
+        "https://admin.cyber-vpn.net",
+        "https://partner.cyber-vpn.net",
+    ]
+    passkey_dev_rp_id: str = "localhost"
+    passkey_dev_allowed_origins: Annotated[list[str], NoDecode] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3004",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3004",
+    ]
+    passkey_challenge_ttl_seconds: int = 300
+    passkey_browser_timeout_ms: int = 60000
+    passkey_fresh_auth_ttl_seconds: int = 300
+
     # Metrics (SEC-02)
     enable_metrics: bool = True  # Enable HTTP Prometheus middleware metrics
     metrics_host: str = "0.0.0.0"
@@ -305,6 +347,8 @@ class Settings(BaseSettings):
         "jwt_allowed_algorithms",
         "trusted_proxy_ips",
         "admin_allowed_hosts",
+        "passkey_allowed_origins",
+        "passkey_dev_allowed_origins",
         mode="before",
     )
     @classmethod
@@ -518,6 +562,89 @@ class Settings(BaseSettings):
         if environment == "production" and not v:
             raise ValueError("CSRF_PROTECTION_ENABLED=false is not allowed in production.")
         return v
+
+    @field_validator("passkey_rp_id", "passkey_dev_rp_id", mode="before")
+    @classmethod
+    def normalize_passkey_rp_id(cls, v: str | None) -> str:
+        return (v or "").strip().lower().lstrip(".")
+
+    @field_validator("passkey_rp_id", "passkey_dev_rp_id", mode="after")
+    @classmethod
+    def validate_passkey_rp_id(cls, v: str, info) -> str:
+        field_name = info.field_name
+        if not v:
+            raise ValueError(f"{field_name.upper()} must not be empty.")
+        if "://" in v or "/" in v or ":" in v or "?" in v or "#" in v or "*" in v:
+            raise ValueError(f"{field_name.upper()} must be a bare domain without protocol, path, port, or wildcard.")
+        return v
+
+    @field_validator("passkey_allowed_origins", "passkey_dev_allowed_origins", mode="after")
+    @classmethod
+    def validate_passkey_origins(cls, v: list[str], info) -> list[str]:
+        environment = str(info.data.get("environment", "development")).lower()
+        field_name = info.field_name
+        normalized_origins: list[str] = []
+
+        for origin in v:
+            normalized = origin.strip().rstrip("/")
+            if not normalized:
+                continue
+            if "*" in normalized:
+                raise ValueError(f"{field_name.upper()} must not include wildcard origins.")
+
+            parsed = urlparse(normalized)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError(f"{field_name.upper()} entries must be absolute http(s) origins.")
+            if parsed.path not in {"", "/"} or parsed.params or parsed.query or parsed.fragment:
+                raise ValueError(f"{field_name.upper()} entries must not include path, query, or fragment.")
+
+            origin_value = f"{parsed.scheme}://{parsed.netloc}"
+            if field_name == "passkey_allowed_origins":
+                if environment == "production" and parsed.scheme != "https":
+                    raise ValueError("Production PASSKEY_ALLOWED_ORIGINS must use https origins.")
+                if environment == "production" and origin_value not in S1_PRODUCTION_PASSKEY_ORIGINS:
+                    raise ValueError(f"Production passkey origin is not approved for S1: {origin_value}")
+            normalized_origins.append(origin_value)
+
+        return normalized_origins
+
+    @field_validator("passkey_challenge_ttl_seconds", mode="after")
+    @classmethod
+    def validate_passkey_challenge_ttl_seconds(cls, v: int) -> int:
+        if v < 30 or v > 300:
+            raise ValueError("PASSKEY_CHALLENGE_TTL_SECONDS must be between 30 and 300 seconds.")
+        return v
+
+    @field_validator("passkey_browser_timeout_ms", mode="after")
+    @classmethod
+    def validate_passkey_browser_timeout_ms(cls, v: int) -> int:
+        if v < 15000 or v > 120000:
+            raise ValueError("PASSKEY_BROWSER_TIMEOUT_MS must be between 15000 and 120000 milliseconds.")
+        return v
+
+    @field_validator("passkey_fresh_auth_ttl_seconds", mode="after")
+    @classmethod
+    def validate_passkey_fresh_auth_ttl_seconds(cls, v: int) -> int:
+        if v < 60 or v > 900:
+            raise ValueError("PASSKEY_FRESH_AUTH_TTL_SECONDS must be between 60 and 900 seconds.")
+        return v
+
+    @model_validator(mode="after")
+    def validate_passkey_runtime_policy(self) -> Self:
+        environment = self.environment.lower()
+        if not self.passkey_enabled:
+            return self
+
+        if not self.passkey_allowed_origins:
+            raise ValueError("PASSKEY_ALLOWED_ORIGINS is required when PASSKEY_ENABLED=true.")
+        if environment == "production":
+            if self.passkey_dev_enabled:
+                raise ValueError("PASSKEY_DEV_ENABLED=true is not allowed in production.")
+            if not self.cookie_secure:
+                raise ValueError("COOKIE_SECURE=true is required when passkeys are enabled in production.")
+            if self.passkey_rp_id != "cyber-vpn.net":
+                raise ValueError("Production PASSKEY_RP_ID must be cyber-vpn.net for S1.")
+        return self
 
     @field_validator("cryptobot_network", mode="after")
     @classmethod

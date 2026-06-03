@@ -1,8 +1,13 @@
 import { create } from 'zustand';
 import { authApi, type User } from '@/lib/api/auth';
 import { RateLimitError, tokenStorage } from '@/lib/api/client';
+import { passkeysApi } from '@/lib/api/passkeys';
 import { authAnalytics } from '@/lib/analytics';
 import { defaultLocale } from '@/i18n/config';
+import {
+  isPasskeyWebAuthnError,
+  startPasskeyAuthentication,
+} from '@/features/auth/lib/passkey-webauthn';
 import { stagePendingTwoFactorSession } from '@/features/auth/lib/pending-twofa-client';
 import { getDefaultPostLoginPath, getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 import {
@@ -77,6 +82,7 @@ interface AuthState {
   error: string | null;
   rateLimitUntil: number | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithPasskey: (identifier?: string) => Promise<void>;
   register: (
     identifier: string,
     password: string,
@@ -151,6 +157,74 @@ export const useAuthStore = create<AuthState>()((set) => ({
       }
 
       const message = readErrorMessage(error, 'Login failed');
+      authAnalytics.loginError(message);
+      set({ error: message, isLoading: false, isAuthenticated: false, user: null });
+      throw error;
+    }
+  },
+
+  loginWithPasskey: async (identifier) => {
+    authAnalytics.loginStarted();
+    set({ isLoading: true, error: null, rateLimitUntil: null });
+
+    try {
+      const optionsResponse = await passkeysApi.createAuthenticationOptions({
+        identifier: identifier?.trim() || null,
+      });
+      const credential = await startPasskeyAuthentication(optionsResponse.data.publicKey);
+      const { data } = await passkeysApi.verifyAuthentication({
+        challengeId: optionsResponse.data.challengeId,
+        credential,
+      });
+
+      if (data.requires_2fa && data.tfa_token) {
+        const locale = getActiveLocale();
+        const redirectTarget = getPostLoginRedirect(locale);
+
+        await stagePendingTwoFactorSession({
+          token: data.tfa_token,
+          locale,
+          returnTo: redirectTarget,
+        });
+
+        set({ isLoading: false, isAuthenticated: false, error: null });
+        if (typeof window !== 'undefined') {
+          window.location.href = buildTwoFactorLoginUrl(locale, redirectTarget);
+        }
+        return;
+      }
+
+      const { data: user } = await authApi.session();
+      if (!hasPartnerPortalAccess(user)) {
+        const locale = getActiveLocale();
+        await clearUnauthorizedAdminSession();
+        set({ user: null, isAuthenticated: false, isLoading: false, error: null });
+        if (typeof window !== 'undefined') {
+          window.location.href = buildLocalizedAccessDeniedLoginPath(locale);
+        }
+        return;
+      }
+
+      set({ user, isAuthenticated: true, isLoading: false, error: null });
+      authAnalytics.loginSuccess(user.id, 'passkey');
+    } catch (error: unknown) {
+      if (error instanceof RateLimitError) {
+        authAnalytics.rateLimited(error.retryAfter);
+        set({
+          error: error.message,
+          isLoading: false,
+          rateLimitUntil: Date.now() + error.retryAfter * 1000,
+        });
+        throw error;
+      }
+
+      if (isPasskeyWebAuthnError(error)) {
+        authAnalytics.loginError(error.code);
+        set({ error: null, isLoading: false, isAuthenticated: false, user: null });
+        throw error;
+      }
+
+      const message = readErrorMessage(error, 'Passkey login failed');
       authAnalytics.loginError(message);
       set({ error: message, isLoading: false, isAuthenticated: false, user: null });
       throw error;

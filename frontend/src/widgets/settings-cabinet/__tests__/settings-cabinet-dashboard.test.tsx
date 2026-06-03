@@ -13,11 +13,16 @@ const apiMocks = vi.hoisted(() => ({
   getCurrentEntitlement: vi.fn(),
   getGrowthPreferences: vi.fn(),
   getNotificationPreferences: vi.fn(),
+  getPasskeyPolicy: vi.fn(),
   getProfile: vi.fn(),
   getTwoFactorStatus: vi.fn(),
   listDevices: vi.fn(),
+  listPasskeys: vi.fn(),
   logoutDevice: vi.fn(),
   markPerformance: vi.fn(),
+  registerPasskey: vi.fn(),
+  renamePasskey: vi.fn(),
+  deletePasskey: vi.fn(),
   updateGrowthPreferences: vi.fn(),
   updateNotificationPreferences: vi.fn(),
   updateProfile: vi.fn(),
@@ -65,6 +70,10 @@ vi.mock('@/shared/lib/web-vitals', () => ({
   markPerformance: apiMocks.markPerformance,
 }));
 
+vi.mock('@/features/auth/lib/passkey-webauthn', () => ({
+  completePasskeyRegistration: apiMocks.registerPasskey,
+}));
+
 vi.mock('@/app/[locale]/(dashboard)/settings/components/TwoFactorModal', () => ({
   TwoFactorModal: ({
     isOpen,
@@ -107,6 +116,12 @@ vi.mock('@/lib/api', () => ({
   growthNotificationsApi: {
     getPreferences: apiMocks.getGrowthPreferences,
     updatePreferences: apiMocks.updateGrowthPreferences,
+  },
+  passkeysApi: {
+    delete: apiMocks.deletePasskey,
+    getPolicy: apiMocks.getPasskeyPolicy,
+    list: apiMocks.listPasskeys,
+    rename: apiMocks.renamePasskey,
   },
   profileApi: {
     getNotificationPreferences: apiMocks.getNotificationPreferences,
@@ -207,6 +222,40 @@ const entitlement = {
   status: 'active',
 };
 
+const passkeyPolicy = {
+  enabled: true,
+  surface: 'frontend',
+  realm_key: 'customer',
+  rp_id: 'localhost',
+  rp_name: 'CyberVPN',
+  allowedOrigins: ['http://localhost:3000'],
+  conditionalUiEnabled: true,
+  registrationEnabled: true,
+  authenticationEnabled: true,
+  reauthenticationEnabled: true,
+  adminCountsAsMfa: false,
+  challengeTtlSeconds: 120,
+  browserTimeoutMs: 60000,
+};
+
+const passkeys = {
+  credentials: [
+    {
+      id: 'b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab',
+      label: 'Work laptop',
+      status: 'active',
+      credentialType: 'public-key',
+      deviceType: 'multiDevice',
+      transports: ['internal'],
+      backedUp: true,
+      userVerified: true,
+      createdAt: '2026-06-03T09:00:00Z',
+      lastUsedAt: null,
+      revokedAt: null,
+    },
+  ],
+};
+
 describe('SettingsCabinetDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -229,6 +278,21 @@ describe('SettingsCabinetDashboard', () => {
     apiMocks.getAntiphishingCode.mockResolvedValue({ data: { code: 'CYBER-ALPHA' } });
     apiMocks.getNotificationPreferences.mockResolvedValue({ data: corePreferences });
     apiMocks.getGrowthPreferences.mockResolvedValue({ data: growthPreferences });
+    apiMocks.getPasskeyPolicy.mockResolvedValue({ data: passkeyPolicy });
+    apiMocks.listPasskeys.mockResolvedValue({ data: passkeys });
+    apiMocks.registerPasskey.mockResolvedValue({ data: passkeys.credentials[0] });
+    apiMocks.renamePasskey.mockResolvedValue({
+      data: {
+        ...passkeys.credentials[0],
+        label: 'Phone',
+      },
+    });
+    apiMocks.deletePasskey.mockResolvedValue({
+      data: {
+        id: passkeys.credentials[0].id,
+        status: 'revoked',
+      },
+    });
     apiMocks.getCurrentEntitlement.mockResolvedValue({ data: entitlement });
     apiMocks.listDevices.mockResolvedValue({ data: devices });
     apiMocks.updateProfile.mockImplementation((payload) => ({
@@ -260,6 +324,7 @@ describe('SettingsCabinetDashboard', () => {
     expect(await screen.findByDisplayValue('operator@example.com')).toBeInTheDocument();
     expect(screen.getByText('CY*******HA')).toBeInTheDocument();
     expect(screen.getByText(/identity.telegramLinked/)).toBeInTheDocument();
+    expect(await screen.findByText('Work laptop')).toBeInTheDocument();
     expect(screen.getByText(/Chrome \/ Windows NT 10.0/)).toBeInTheDocument();
     expect(screen.getByText(/Safari \/ Unknown OS/)).toBeInTheDocument();
     expect(await screen.findByText(/devices\.limitUsed/)).toHaveTextContent('"used":2');

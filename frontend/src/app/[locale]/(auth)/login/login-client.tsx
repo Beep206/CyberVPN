@@ -5,9 +5,10 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { LogIn, Loader2, AlertCircle } from 'lucide-react';
+import { LogIn, Loader2, AlertCircle, Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authAnalytics } from '@/lib/analytics';
+import { passkeysApi, type PasskeyPolicyResponse } from '@/lib/api';
 import {
   AuthFormCard,
   CyberInput,
@@ -27,6 +28,13 @@ import {
   getPendingTwoFactorSession,
   stagePendingTwoFactorSession,
 } from '@/features/auth/lib/pending-twofa-client';
+import {
+  cancelPasskeyCeremony,
+  completePasskeyAuthentication,
+  getPasskeyBrowserSupport,
+  getPasskeyErrorMessageKey,
+  type PasskeyBrowserSupport,
+} from '@/features/auth/lib/passkey-webauthn';
 import { getSafeRedirectPath } from '@/features/auth/lib/redirect-path';
 import {
   validateLoginIdentifierInput,
@@ -43,6 +51,7 @@ const FALLBACK_LOGIN_VALIDATION_MESSAGES: Record<LoginIdentifierValidationCode, 
 };
 
 type TwoFactorSessionState = 'idle' | 'checking' | 'ready' | 'expired';
+type PasskeyActionState = 'idle' | 'checking';
 
 export function LoginClient() {
   const t = useTranslations('Auth.login');
@@ -51,7 +60,7 @@ export function LoginClient() {
   const searchParams = useSearchParams();
   const redirectPath = getSafeRedirectPath(searchParams.get('redirect'), locale);
 
-  const { login, oauthLogin, isLoading, error, isAuthenticated, clearError } = useAuthStore();
+  const { login, oauthLogin, fetchUser, isLoading, error, isAuthenticated, clearError } = useAuthStore();
   const isRateLimited = useIsRateLimited();
   const isTwoFactorFlow = searchParams.get('2fa') === 'true';
   const oauthErrorCode = searchParams.get('oauth_error');
@@ -68,12 +77,18 @@ export function LoginClient() {
   const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
   const [isCompletingTwoFactor, setIsCompletingTwoFactor] = useState(false);
   const [identifierTouched, setIdentifierTouched] = useState(false);
+  const [passkeyActionState, setPasskeyActionState] = useState<PasskeyActionState>('idle');
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeyPolicy, setPasskeyPolicy] = useState<PasskeyPolicyResponse | null>(null);
+  const [passkeySupport, setPasskeySupport] = useState<PasskeyBrowserSupport | null>(null);
   const [twoFactorSessionState, setTwoFactorSessionState] = useState<TwoFactorSessionState>(
     isTwoFactorFlow ? 'checking' : 'idle',
   );
   const errorRef = useRef<HTMLDivElement>(null);
+  const loginIdentifierInputRef = useRef<HTMLInputElement>(null);
   const twoFactorInputRef = useRef<HTMLInputElement>(null);
   const trackedOAuthEventRef = useRef<string | null>(null);
+  const conditionalPasskeyStartedRef = useRef(false);
   const loginIdentifierValidation = validateLoginIdentifierInput(email);
 
   const getLoginIdentifierValidationMessage = (code: LoginIdentifierValidationCode): string => {
@@ -84,6 +99,21 @@ export function LoginClient() {
   const loginIdentifierError = identifierTouched && !loginIdentifierValidation.isValid
     ? getLoginIdentifierValidationMessage(loginIdentifierValidation.codes[0])
     : undefined;
+  const passkeyAvailable = Boolean(
+    passkeyPolicy?.enabled &&
+    passkeyPolicy.authenticationEnabled &&
+    passkeySupport?.secureContext &&
+    passkeySupport.webAuthn,
+  );
+  const passkeyUnsupported = Boolean(
+    passkeyPolicy?.enabled &&
+    passkeySupport &&
+    (!passkeySupport.secureContext || !passkeySupport.webAuthn),
+  );
+  const passkeyInputAutocomplete =
+    passkeyPolicy?.conditionalUiEnabled && passkeySupport?.autofill && passkeyAvailable
+      ? 'username webauthn'
+      : 'username';
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -94,6 +124,30 @@ export function LoginClient() {
   useEffect(() => {
     clearError();
   }, [clearError]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([
+      passkeysApi
+        .getPolicy()
+        .then((response) => response.data)
+        .catch(() => null),
+      getPasskeyBrowserSupport(),
+    ]).then(([policy, support]) => {
+      if (cancelled) {
+        return;
+      }
+
+      setPasskeyPolicy(policy);
+      setPasskeySupport(support);
+    });
+
+    return () => {
+      cancelled = true;
+      cancelPasskeyCeremony();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isTwoFactorFlow) {
@@ -137,11 +191,73 @@ export function LoginClient() {
   }, [twoFactorSessionState]);
 
   useEffect(() => {
-    const activeError = twoFactorError || oauthErrorMessage || error;
+    const activeError = twoFactorError || passkeyError || oauthErrorMessage || error;
     if (activeError && !isRateLimited && errorRef.current) {
       errorRef.current.focus();
     }
-  }, [error, isRateLimited, oauthErrorMessage, twoFactorError]);
+  }, [error, isRateLimited, oauthErrorMessage, passkeyError, twoFactorError]);
+
+  useEffect(() => {
+    if (
+      isTwoFactorFlow ||
+      conditionalPasskeyStartedRef.current ||
+      !passkeyPolicy?.enabled ||
+      !passkeyPolicy.authenticationEnabled ||
+      !passkeyPolicy.conditionalUiEnabled ||
+      !passkeySupport?.secureContext ||
+      !passkeySupport.autofill ||
+      !passkeySupport.webAuthn
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    conditionalPasskeyStartedRef.current = true;
+
+    completePasskeyAuthentication({
+      conditional: true,
+      identifier: null,
+    })
+      .then(async ({ data }) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (data.requires_2fa && data.tfa_token) {
+          setTwoFactorSessionState('checking');
+          await stagePendingTwoFactorSession({
+            token: data.tfa_token,
+            locale,
+            returnTo: redirectPath,
+          });
+          router.push(`/${locale}/login?2fa=true`);
+          return;
+        }
+
+        if (data.requires_2fa && !data.tfa_token) {
+          setPasskeyError(t('twoFactorStartFailed'));
+          return;
+        }
+
+        await fetchUser();
+        router.push(redirectPath);
+      })
+      .catch((err) => {
+        if (cancelled) {
+          return;
+        }
+
+        const messageKey = getPasskeyErrorMessageKey(err);
+        if (messageKey !== 'passkeyCancelled') {
+          setPasskeyError(t(messageKey as never));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      cancelPasskeyCeremony();
+    };
+  }, [fetchUser, isTwoFactorFlow, locale, passkeyPolicy, passkeySupport, redirectPath, router, t]);
 
   useEffect(() => {
     if (!oauthProvider) {
@@ -175,6 +291,49 @@ export function LoginClient() {
 
   const handleOAuthLogin = (provider: string) => {
     oauthLogin(provider as Parameters<typeof oauthLogin>[0]).catch(() => {});
+  };
+
+  const handlePasskeyLogin = async () => {
+    setPasskeyError(null);
+
+    if (!passkeyAvailable) {
+      setPasskeyError(t('passkeyUnsupported'));
+      return;
+    }
+
+    setPasskeyActionState('checking');
+    cancelPasskeyCeremony();
+
+    try {
+      const currentIdentifier = loginIdentifierInputRef.current?.value ?? email;
+      const { data } = await completePasskeyAuthentication({
+        conditional: false,
+        identifier: currentIdentifier,
+      });
+
+      if (data.requires_2fa && data.tfa_token) {
+        setTwoFactorSessionState('checking');
+        await stagePendingTwoFactorSession({
+          token: data.tfa_token,
+          locale,
+          returnTo: redirectPath,
+        });
+        router.push(`/${locale}/login?2fa=true`);
+        return;
+      }
+
+      if (data.requires_2fa && !data.tfa_token) {
+        setPasskeyError(t('twoFactorStartFailed'));
+        return;
+      }
+
+      await fetchUser();
+      router.push(redirectPath);
+    } catch (err) {
+      setPasskeyError(t(getPasskeyErrorMessageKey(err) as never));
+    } finally {
+      setPasskeyActionState('idle');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,11 +388,48 @@ export function LoginClient() {
 
   return (
     <AuthFormCard title={t('title')} subtitle={t('subtitle')} className="keyboard-safe-bottom">
+      {!isTwoFactorFlow && (passkeyAvailable || passkeyUnsupported) && (
+        <div className="space-y-2">
+          {passkeyAvailable ? (
+            <motion.div
+              whileHover={{ scale: passkeyActionState === 'checking' ? 1 : 1.01 }}
+              whileTap={{ scale: passkeyActionState === 'checking' ? 1 : 0.99 }}
+              className="flex justify-center"
+            >
+              <Button
+                type="button"
+                disabled={passkeyActionState === 'checking' || isRateLimited}
+                touchTarget="comfortable"
+                onClick={() => void handlePasskeyLogin()}
+                className="min-h-12 w-full border border-matrix-green/40 bg-matrix-green/10 font-mono font-bold tracking-wider text-matrix-green shadow-lg shadow-matrix-green/10 transition-all hover:bg-matrix-green/15 hover:shadow-matrix-green/20 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={passkeyActionState === 'checking' ? t('passkeyChecking') : t('passkeyButton')}
+                aria-busy={passkeyActionState === 'checking'}
+              >
+                {passkeyActionState === 'checking' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    {t('passkeyChecking')}
+                  </>
+                ) : (
+                  <>
+                    <Fingerprint className="mr-2 h-4 w-4" aria-hidden="true" />
+                    {t('passkeyButton')}
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          ) : (
+            <p role="status" className="rounded-lg border border-grid-line/40 bg-terminal-bg/60 p-3 text-center font-mono text-xs text-muted-foreground">
+              {t('passkeyUnsupported')} {t('passkeyFallbackHint')}
+            </p>
+          )}
+        </div>
+      )}
       <SocialAuthButtons onProviderClick={handleOAuthLogin} disabled={isLoading || isRateLimited} />
       <AuthDivider text={t('divider')} />
       <RateLimitCountdown />
       <div aria-live="assertive" aria-atomic="true">
-        {(twoFactorError || oauthErrorMessage || error) && !isRateLimited && (
+        {(twoFactorError || passkeyError || oauthErrorMessage || error) && !isRateLimited && (
           <motion.div
             ref={errorRef}
             role="alert"
@@ -243,7 +439,7 @@ export function LoginClient() {
             className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500/50"
           >
             <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>{twoFactorError || oauthErrorMessage || error}</span>
+            <span>{twoFactorError || passkeyError || oauthErrorMessage || error}</span>
           </motion.div>
         )}
         {searchParams.get('registered') === 'true' && !error && (
@@ -325,6 +521,7 @@ export function LoginClient() {
       ) : (
         <form onSubmit={handleSubmit} className="keyboard-safe-bottom space-y-5" aria-busy={isLoading}>
           <CyberInput
+            ref={loginIdentifierInputRef}
             label={t('emailLabel')}
             type="text"
             prefix="email"
@@ -335,7 +532,7 @@ export function LoginClient() {
             error={loginIdentifierError}
             success={identifierTouched && loginIdentifierValidation.isValid && email.trim().length > 0}
             required
-            autoComplete="username"
+            autoComplete={passkeyInputAutocomplete}
             disabled={isLoading || isRateLimited}
             className="mobile-form-input"
           />

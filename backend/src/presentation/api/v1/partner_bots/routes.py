@@ -3,9 +3,11 @@ from __future__ import annotations
 import hmac
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+import redis.asyncio as redis
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.partner_bots import (
     ClaimPartnerBotProvisioningJobUseCase,
     CreatePartnerBotUseCase,
@@ -21,13 +23,17 @@ from src.application.use_cases.partner_bots import (
 from src.config.settings import settings
 from src.domain.entities.partner_permission import PartnerPermission
 from src.domain.enums import PartnerBotStatus
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.partner_workspace import (
     enforce_partner_workspace_permission,
     resolve_partner_workspace_access,
 )
+from src.presentation.dependencies.passkey_fresh_auth import enforce_passkey_fresh_auth
 
 from .schemas import (
     ClaimPartnerBotProvisioningJobRequest,
@@ -128,6 +134,25 @@ async def _require_workspace_permission(
         permission=permission,
         current_user=current_user,
         db=db,
+    )
+
+
+async def _enforce_partner_bot_passkey_fresh_auth(
+    *,
+    request: Request,
+    redis_client: redis.Redis,
+    current_user: AdminUserModel,
+    current_realm: RealmResolution,
+    action: str,
+) -> None:
+    await enforce_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        principal_subject=str(current_user.id),
+        principal_class=get_principal_type_for_realm(current_realm),
+        auth_realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        action=action,
     )
 
 
@@ -288,8 +313,11 @@ async def restore_partner_bot(
 async def rotate_partner_bot_token(
     partner_bot_id: UUID,
     payload: RotatePartnerBotTokenRequest,
+    request: Request,
     current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerBotResponse:
     existing = await GetPartnerBotUseCase(db).execute(partner_bot_id=partner_bot_id)
     if existing is None:
@@ -299,6 +327,16 @@ async def rotate_partner_bot_token(
         current_user=current_user,
         db=db,
         permission=PartnerPermission.INTEGRATIONS_WRITE,
+    )
+    await _enforce_partner_bot_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=(
+            "partner.integration_credential.rotate:"
+            f"{existing.bot.partner_account_id}:partner_bot_token:{partner_bot_id}"
+        ),
     )
     try:
         item = await RotatePartnerBotTokenUseCase(db).execute(

@@ -6,7 +6,8 @@ from decimal import Decimal
 from time import perf_counter
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import redis.asyncio as redis
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService
@@ -69,6 +70,7 @@ from src.domain.exceptions import (
     PartnerCodeNotFoundError,
     UserAlreadyBoundToPartnerError,
 )
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.commissionability_evaluation_model import (
     CommissionabilityEvaluationModel,
@@ -133,6 +135,7 @@ from src.presentation.dependencies.partner_workspace import (
     require_partner_workspace_permission,
     resolve_partner_workspace_access,
 )
+from src.presentation.dependencies.passkey_fresh_auth import enforce_passkey_fresh_auth
 from src.presentation.dependencies.roles import require_role
 
 from .schemas import (
@@ -1107,6 +1110,25 @@ def _require_partner_realm(current_realm: RealmResolution) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Partner realm session is required for this route",
         )
+
+
+async def _enforce_partner_passkey_fresh_auth(
+    *,
+    request: Request,
+    redis_client: redis.Redis,
+    current_user: AdminUserModel,
+    current_realm: RealmResolution,
+    action: str,
+) -> None:
+    await enforce_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        principal_subject=str(current_user.id),
+        principal_class=get_principal_type_for_realm(current_realm),
+        auth_realm_id=str(current_realm.auth_realm.id),
+        realm_key=current_realm.realm_key,
+        action=action,
+    )
 
 
 async def _resolve_partner_session_workspace_access(
@@ -5202,16 +5224,28 @@ async def update_partner_workspace_member(
     workspace_id: UUID,
     member_id: UUID,
     body: UpdatePartnerWorkspaceMemberRequest,
+    request: Request,
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)
     ),
+    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspaceMemberResponse:
     if body.role_key is None and body.membership_status is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one member update field is required",
         )
+
+    await _enforce_partner_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=f"partner.member.update:{access.workspace.id}:{member_id}",
+    )
 
     repo = PartnerAccountRepository(db)
     membership = await repo.get_membership_by_id(member_id)
@@ -5391,13 +5425,23 @@ async def get_partner_workspace_settings(
 async def update_partner_workspace_settings(
     workspace_id: UUID,
     body: UpdatePartnerWorkspaceSettingsRequest,
+    request: Request,
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
     ),
     current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspaceSettingsResponse:
     updates = body.model_dump(exclude_unset=True)
+    await _enforce_partner_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=f"partner.settings.security.update:{access.workspace.id}",
+    )
     profile_repo = PartnerWorkspaceProfileRepository(db)
     profile = await profile_repo.get_or_create(access.workspace.id)
 
@@ -5649,12 +5693,22 @@ async def list_partner_workspace_payout_accounts(
 async def create_partner_workspace_payout_account(
     workspace_id: UUID,
     payload: CreatePartnerWorkspacePayoutAccountRequest,
+    request: Request,
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)
     ),
     current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspacePayoutAccountResponse:
+    await _enforce_partner_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=f"partner.payout_account.create:{access.workspace.id}",
+    )
     try:
         item = await CreatePartnerPayoutAccountUseCase(db).execute(
             partner_account_id=access.workspace.id,
@@ -5711,12 +5765,22 @@ async def get_partner_workspace_payout_account_eligibility(
 async def make_partner_workspace_payout_account_default(
     workspace_id: UUID,
     payout_account_id: UUID,
+    request: Request,
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)
     ),
     current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspacePayoutAccountResponse:
+    await _enforce_partner_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=f"partner.payout_account.make_default:{access.workspace.id}:{payout_account_id}",
+    )
     payout_accounts = await ListPartnerPayoutAccountsUseCase(db).execute(
         partner_account_id=access.workspace.id,
         limit=500,
@@ -5977,12 +6041,22 @@ async def rotate_partner_workspace_integration_credential(
     workspace_id: UUID,
     credential_kind: PartnerIntegrationCredentialKind,
     body: RotatePartnerWorkspaceIntegrationCredentialRequest,
+    request: Request,
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.INTEGRATIONS_WRITE)
     ),
     current_user: AdminUserModel = Depends(get_current_active_user),
+    current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> RotatePartnerWorkspaceIntegrationCredentialResponse:
+    await _enforce_partner_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=f"partner.integration_credential.rotate:{access.workspace.id}:{credential_kind.value}",
+    )
     result = await RotatePartnerWorkspaceIntegrationCredentialUseCase(db).execute(
         partner_account_id=access.workspace.id,
         credential_kind=credential_kind,
@@ -6299,14 +6373,23 @@ async def mark_partner_workspace_case_ready_for_ops(
 async def add_partner_workspace_member(
     workspace_id: UUID,
     body: AddPartnerWorkspaceMemberRequest,
+    request: Request,
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)
     ),
     current_user: AdminUserModel = Depends(get_current_active_user),
     current_realm: RealmResolution = Depends(get_request_admin_realm),
     db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspaceMemberResponse:
     _require_partner_realm(current_realm)
+    await _enforce_partner_passkey_fresh_auth(
+        request=request,
+        redis_client=redis_client,
+        current_user=current_user,
+        current_realm=current_realm,
+        action=f"partner.member.create:{access.workspace.id}",
+    )
     partner_account_repo = PartnerAccountRepository(db)
     use_case = AddPartnerWorkspaceMemberUseCase(db, partner_account_repo)
     target_admin_user_id = body.admin_user_id

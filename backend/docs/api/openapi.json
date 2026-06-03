@@ -1006,6 +1006,722 @@
         }
       }
     },
+    "/api/v1/auth/passkeys/policy": {
+      "get": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Get Passkey Policy",
+        "operationId": "get_passkey_policy_api_v1_auth_passkeys_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyPolicyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/registration/options": {
+      "post": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Create Passkey Registration Options",
+        "operationId": "create_passkey_registration_options_api_v1_auth_passkeys_registration_options_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRegistrationOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/registration/verify": {
+      "post": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Verify Passkey Registration",
+        "operationId": "verify_passkey_registration_api_v1_auth_passkeys_registration_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRegistrationVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyCredentialResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/authentication/options": {
+      "post": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Create Passkey Authentication Options",
+        "operationId": "create_passkey_authentication_options_api_v1_auth_passkeys_authentication_options_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyAuthenticationOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/authentication/verify": {
+      "post": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Verify Passkey Authentication",
+        "operationId": "verify_passkey_authentication_api_v1_auth_passkeys_authentication_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyAuthenticationVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys": {
+      "get": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "List Passkeys",
+        "operationId": "list_passkeys_api_v1_auth_passkeys_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyCredentialListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/{credential_id}": {
+      "patch": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Rename Passkey",
+        "operationId": "rename_passkey_api_v1_auth_passkeys__credential_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "credential_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Credential Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyCredentialResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Delete Passkey",
+        "operationId": "delete_passkey_api_v1_auth_passkeys__credential_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "credential_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Credential Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/reauthentication/options": {
+      "post": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Create Passkey Reauthentication Options",
+        "operationId": "create_passkey_reauthentication_options_api_v1_auth_passkeys_reauthentication_options_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyReauthenticationOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/passkeys/reauthentication/verify": {
+      "post": {
+        "tags": [
+          "auth",
+          "passkeys"
+        ],
+        "summary": "Verify Passkey Reauthentication",
+        "operationId": "verify_passkey_reauthentication_api_v1_auth_passkeys_reauthentication_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyReauthenticationVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyReauthenticationVerifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/security/passkeys/policy": {
+      "get": {
+        "tags": [
+          "passkeys",
+          "security"
+        ],
+        "summary": "Get Admin Passkey Policy",
+        "operationId": "get_admin_passkey_policy_api_v1_security_passkeys_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyPolicyResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "passkeys",
+          "security"
+        ],
+        "summary": "Update Admin Passkey Policy",
+        "operationId": "update_admin_passkey_policy_api_v1_security_passkeys_policy_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminPasskeyPolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyPolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/security/passkeys/compliance": {
+      "get": {
+        "tags": [
+          "passkeys",
+          "security"
+        ],
+        "summary": "Get Admin Passkey Compliance",
+        "operationId": "get_admin_passkey_compliance_api_v1_security_passkeys_compliance_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyComplianceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/security/passkeys/policy": {
+      "get": {
+        "tags": [
+          "passkeys",
+          "security"
+        ],
+        "summary": "Get Partner Workspace Passkey Policy",
+        "operationId": "get_partner_workspace_passkey_policy_api_v1_partner_workspaces__workspace_id__security_passkeys_policy_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspacePasskeyPolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "passkeys",
+          "security"
+        ],
+        "summary": "Update Partner Workspace Passkey Policy",
+        "operationId": "update_partner_workspace_passkey_policy_api_v1_partner_workspaces__workspace_id__security_passkeys_policy_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePartnerWorkspacePasskeyPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspacePasskeyPolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/partner-workspaces/{workspace_id}/security/passkeys/compliance": {
+      "get": {
+        "tags": [
+          "passkeys",
+          "security"
+        ],
+        "summary": "Get Partner Workspace Passkey Compliance",
+        "operationId": "get_partner_workspace_passkey_compliance_api_v1_partner_workspaces__workspace_id__security_passkeys_compliance_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWorkspacePasskeyComplianceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -7018,180 +7734,6 @@
         }
       }
     },
-    "/api/v1/catalog/context": {
-      "post": {
-        "tags": [
-          "catalog"
-        ],
-        "summary": "Resolve Public Catalog Context",
-        "operationId": "resolve_public_catalog_context_api_v1_catalog_context_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveCatalogContextRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicCatalogContextResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/catalog/": {
-      "get": {
-        "tags": [
-          "catalog"
-        ],
-        "summary": "Get Public Catalog",
-        "operationId": "get_public_catalog_api_v1_catalog__get",
-        "parameters": [
-          {
-            "name": "channel",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 80,
-              "default": "web",
-              "title": "Channel"
-            }
-          },
-          {
-            "name": "country",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "minLength": 2,
-                  "maxLength": 2
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Country"
-            }
-          },
-          {
-            "name": "currency",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "minLength": 3,
-                  "maxLength": 3
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Currency"
-            }
-          },
-          {
-            "name": "uiLocale",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "maxLength": 20
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Uilocale"
-            }
-          },
-          {
-            "name": "urlLocale",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "maxLength": 20
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Urllocale"
-            }
-          },
-          {
-            "name": "storefrontKey",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 80
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Storefrontkey"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicCommercialCatalogResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/offers/": {
       "get": {
         "tags": [
@@ -10344,6 +10886,1286 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PartnerReportingApiSnapshotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/conversations": {
+      "get": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "List Customer Conversations",
+        "operationId": "list_customer_conversations_api_v1_me_conversations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MessagingConversationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerConversationListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Get Customer Conversation",
+        "operationId": "get_customer_conversation_api_v1_me_conversations__conversation_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerConversationDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/conversations/{conversation_id}/messages": {
+      "post": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Add Customer Message",
+        "operationId": "add_customer_message_api_v1_me_conversations__conversation_id__messages_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessagingWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerMessagingMessageWriteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/conversations/{conversation_id}/read": {
+      "post": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Mark Customer Conversation Read",
+        "operationId": "mark_customer_conversation_read_api_v1_me_conversations__conversation_id__read_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessagingReadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingReadStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/notifications": {
+      "get": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "List Customer Notifications",
+        "operationId": "list_customer_notifications_api_v1_me_notifications_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteNotificationListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/notifications/read": {
+      "post": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Mark Customer Notifications Read",
+        "operationId": "mark_customer_notifications_read_api_v1_me_notifications_read_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteNotificationReadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteNotificationReadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/notifications/dismiss": {
+      "post": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Dismiss Customer Notifications",
+        "operationId": "dismiss_customer_notifications_api_v1_me_notifications_dismiss_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteNotificationDismissRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteNotificationDismissResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/realtime/ticket": {
+      "post": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Create Customer Realtime Ticket",
+        "operationId": "create_customer_realtime_ticket_api_v1_me_realtime_ticket_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingRealtimeTicketResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/realtime/sse": {
+      "get": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Customer Realtime Sse",
+        "operationId": "customer_realtime_sse_api_v1_me_realtime_sse_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/realtime/sync": {
+      "get": {
+        "tags": [
+          "messaging",
+          "messaging"
+        ],
+        "summary": "Sync Customer Realtime",
+        "operationId": "sync_customer_realtime_api_v1_me_realtime_sync_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingRealtimeSyncResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/messaging/realtime/ticket": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Create Admin Realtime Ticket",
+        "operationId": "create_admin_realtime_ticket_api_v1_admin_messaging_realtime_ticket_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingRealtimeTicketResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/realtime/sse": {
+      "get": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Admin Realtime Sse",
+        "operationId": "admin_realtime_sse_api_v1_admin_messaging_realtime_sse_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/messaging/conversations": {
+      "get": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "List Admin Conversations",
+        "operationId": "list_admin_conversations_api_v1_admin_messaging_conversations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MessagingConversationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MessagingConversationCategory"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MessagingPriority"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "name": "assigned_admin_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assigned Admin Id"
+            }
+          },
+          {
+            "name": "customer_account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Account Id"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Create Admin Conversation",
+        "operationId": "create_admin_conversation_api_v1_admin_messaging_conversations_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCreateConversationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/messaging/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Get Admin Conversation",
+        "operationId": "get_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Update Admin Conversation",
+        "operationId": "update_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminConversationUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/messaging/conversations/{conversation_id}/messages": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Add Admin Message",
+        "operationId": "add_admin_message_api_v1_admin_messaging_conversations__conversation_id__messages_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessagingWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingMessageWriteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/messaging/conversations/{conversation_id}/internal-notes": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Add Admin Internal Note",
+        "operationId": "add_admin_internal_note_api_v1_admin_messaging_conversations__conversation_id__internal_notes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessagingWriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingMessageWriteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/messaging/conversations/{conversation_id}/close": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Close Admin Conversation",
+        "operationId": "close_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__close_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/messaging/conversations/{conversation_id}/reopen": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "messaging"
+        ],
+        "summary": "Reopen Admin Conversation",
+        "operationId": "reopen_admin_conversation_api_v1_admin_messaging_conversations__conversation_id__reopen_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/broadcasts": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "notifications"
+        ],
+        "summary": "Create Admin Notification Broadcast",
+        "operationId": "create_admin_notification_broadcast_api_v1_admin_notifications_broadcasts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastCampaignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/notifications/broadcasts/{campaign_id}/cancel": {
+      "post": {
+        "tags": [
+          "messaging",
+          "admin",
+          "notifications"
+        ],
+        "summary": "Cancel Admin Notification Broadcast",
+        "operationId": "cancel_admin_notification_broadcast_api_v1_admin_notifications_broadcasts__campaign_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastCampaignResponse"
                 }
               }
             }
@@ -29708,600 +31530,6 @@
         }
       }
     },
-    "/api/v1/admin/pricebooks": {
-      "get": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "List Admin Commercial Pricebooks",
-        "operationId": "list_admin_commercial_pricebooks_api_v1_admin_pricebooks_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "include_inactive",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": true,
-              "title": "Include Inactive"
-            }
-          },
-          {
-            "name": "storefront_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Storefront Id"
-            }
-          },
-          {
-            "name": "storefront_key",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 80
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Storefront Key"
-            }
-          },
-          {
-            "name": "currency_code",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "minLength": 3,
-                  "maxLength": 3
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Currency Code"
-            }
-          },
-          {
-            "name": "region_code",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "minLength": 2,
-                  "maxLength": 16
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Region Code"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminPricebookVersionResponse"
-                  },
-                  "title": "Response List Admin Commercial Pricebooks Api V1 Admin Pricebooks Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_id}": {
-      "patch": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Update Admin Commercial Pricebook",
-        "operationId": "update_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__patch",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pricebook Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAdminPricebookRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_id}/publish": {
-      "post": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Publish Admin Commercial Pricebook",
-        "operationId": "publish_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__publish_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pricebook Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishAdminPricebookRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_id}/schedule": {
-      "post": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Schedule Admin Commercial Pricebook",
-        "operationId": "schedule_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__schedule_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pricebook Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ScheduleAdminPricebookRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_id}/rollback": {
-      "post": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Rollback Admin Commercial Pricebook",
-        "operationId": "rollback_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__rollback_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pricebook Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RollbackAdminPricebookRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminPricebookLifecycleResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_key}/history": {
-      "get": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Get Admin Commercial Pricebook History",
-        "operationId": "get_admin_commercial_pricebook_history_api_v1_admin_pricebooks__pricebook_key__history_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_key",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Pricebook Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminPricebookHistoryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_id}/audit": {
-      "get": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Get Admin Commercial Pricebook Audit",
-        "operationId": "get_admin_commercial_pricebook_audit_api_v1_admin_pricebooks__pricebook_id__audit_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pricebook Id"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "default": 50,
-              "title": "Limit"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AuditLogResponse"
-                  },
-                  "title": "Response Get Admin Commercial Pricebook Audit Api V1 Admin Pricebooks  Pricebook Id  Audit Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/pricebooks/{pricebook_id}/validate": {
-      "post": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Validate Admin Commercial Pricebook",
-        "operationId": "validate_admin_commercial_pricebook_api_v1_admin_pricebooks__pricebook_id__validate_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pricebook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Pricebook Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminPricebookValidationResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/commercial-context/options": {
-      "get": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Get Admin Commercial Context Options",
-        "operationId": "get_admin_commercial_context_options_api_v1_admin_commercial_context_options_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommercialContextOptionsResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "admin",
-          "commercial-pricebooks"
-        ],
-        "summary": "Update Admin Commercial Context Options",
-        "operationId": "update_admin_commercial_context_options_api_v1_admin_commercial_context_options_put",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCommercialContextOptionsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommercialContextOptionsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
     "/api/v1/admin/mobile-users/{user_id}/notes": {
       "get": {
         "tags": [
@@ -37753,6 +38981,380 @@
         ],
         "title": "AdminBulkDeviceRevokeResponse"
       },
+      "AdminConversationDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "customer_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Customer Account Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MessagingConversationStatus"
+          },
+          "response_state": {
+            "$ref": "#/components/schemas/MessagingResponseState"
+          },
+          "category": {
+            "$ref": "#/components/schemas/MessagingConversationCategory"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/MessagingPriority"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "created_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Admin Id"
+          },
+          "assigned_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Admin Id"
+          },
+          "related_support_ticket_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Support Ticket Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "last_message_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessagingMessageResponse"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "read_states": {
+            "items": {
+              "$ref": "#/components/schemas/MessagingReadStateResponse"
+            },
+            "type": "array",
+            "title": "Read States"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "customer_account_id",
+          "status",
+          "response_state",
+          "category",
+          "priority",
+          "subject",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminConversationDetailResponse"
+      },
+      "AdminConversationListResponse": {
+        "properties": {
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/AdminConversationSummaryResponse"
+            },
+            "type": "array",
+            "title": "Conversations"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversations"
+        ],
+        "title": "AdminConversationListResponse"
+      },
+      "AdminConversationSummaryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "customer_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Customer Account Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MessagingConversationStatus"
+          },
+          "response_state": {
+            "$ref": "#/components/schemas/MessagingResponseState"
+          },
+          "category": {
+            "$ref": "#/components/schemas/MessagingConversationCategory"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/MessagingPriority"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "created_by_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Admin Id"
+          },
+          "assigned_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Admin Id"
+          },
+          "related_support_ticket_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Support Ticket Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "last_message_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "customer_account_id",
+          "status",
+          "response_state",
+          "category",
+          "priority",
+          "subject",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminConversationSummaryResponse"
+      },
+      "AdminConversationUpdateRequest": {
+        "properties": {
+          "assigned_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Admin Id"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessagingPriority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessagingConversationCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AdminConversationUpdateRequest"
+      },
+      "AdminCreateConversationRequest": {
+        "properties": {
+          "customer_account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Customer Account Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Subject"
+          },
+          "category": {
+            "$ref": "#/components/schemas/MessagingConversationCategory",
+            "default": "other"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/MessagingPriority",
+            "default": "normal"
+          },
+          "assigned_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Admin Id"
+          },
+          "related_support_ticket_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Support Ticket Id"
+          },
+          "initial_message": {
+            "$ref": "#/components/schemas/MessagingWriteRequest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "customer_account_id",
+          "subject",
+          "initial_message"
+        ],
+        "title": "AdminCreateConversationRequest"
+      },
       "AdminCreateCustomerStaffNoteRequest": {
         "properties": {
           "category": {
@@ -44017,275 +45619,6 @@
         "title": "AdminPaymentAttemptResponse",
         "description": "Admin-safe payment attempt row.\n\nProvider snapshots, request snapshots, idempotency keys, checkout URLs and\nraw external references are intentionally excluded."
       },
-      "AdminPricebookHistoryResponse": {
-        "properties": {
-          "pricebook_key": {
-            "type": "string",
-            "title": "Pricebook Key"
-          },
-          "versions": {
-            "items": {
-              "$ref": "#/components/schemas/AdminPricebookVersionResponse"
-            },
-            "type": "array",
-            "title": "Versions"
-          }
-        },
-        "type": "object",
-        "required": [
-          "pricebook_key",
-          "versions"
-        ],
-        "title": "AdminPricebookHistoryResponse"
-      },
-      "AdminPricebookLifecycleResponse": {
-        "properties": {
-          "pricebook": {
-            "$ref": "#/components/schemas/PricebookResponse"
-          },
-          "lifecycle_status": {
-            "type": "string",
-            "title": "Lifecycle Status"
-          },
-          "audit_action": {
-            "type": "string",
-            "title": "Audit Action"
-          }
-        },
-        "type": "object",
-        "required": [
-          "pricebook",
-          "lifecycle_status",
-          "audit_action"
-        ],
-        "title": "AdminPricebookLifecycleResponse"
-      },
-      "AdminPricebookValidationIssueResponse": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "enum": [
-              "missing_price",
-              "unsupported_currency",
-              "missing_provisioning_profile",
-              "incompatible_addon"
-            ],
-            "title": "Code"
-          },
-          "severity": {
-            "type": "string",
-            "enum": [
-              "error",
-              "warning"
-            ],
-            "title": "Severity"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "field": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Field"
-          },
-          "entry_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Entry Id"
-          },
-          "offer_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Offer Id"
-          },
-          "remediation": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Remediation"
-          }
-        },
-        "type": "object",
-        "required": [
-          "code",
-          "severity",
-          "message"
-        ],
-        "title": "AdminPricebookValidationIssueResponse"
-      },
-      "AdminPricebookValidationResponse": {
-        "properties": {
-          "pricebook_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Pricebook Id"
-          },
-          "valid": {
-            "type": "boolean",
-            "title": "Valid"
-          },
-          "checked_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Checked At"
-          },
-          "issues": {
-            "items": {
-              "$ref": "#/components/schemas/AdminPricebookValidationIssueResponse"
-            },
-            "type": "array",
-            "title": "Issues"
-          }
-        },
-        "type": "object",
-        "required": [
-          "pricebook_id",
-          "valid",
-          "checked_at",
-          "issues"
-        ],
-        "title": "AdminPricebookValidationResponse"
-      },
-      "AdminPricebookVersionResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "pricebook_key": {
-            "type": "string",
-            "title": "Pricebook Key"
-          },
-          "display_name": {
-            "type": "string",
-            "title": "Display Name"
-          },
-          "storefront_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Storefront Id"
-          },
-          "merchant_profile_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Merchant Profile Id"
-          },
-          "currency_code": {
-            "type": "string",
-            "title": "Currency Code"
-          },
-          "region_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Region Code"
-          },
-          "discount_rules": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Discount Rules"
-          },
-          "renewal_pricing_policy": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Renewal Pricing Policy"
-          },
-          "version_status": {
-            "type": "string",
-            "title": "Version Status"
-          },
-          "effective_from": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Effective From"
-          },
-          "effective_to": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective To"
-          },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active"
-          },
-          "entries": {
-            "items": {
-              "$ref": "#/components/schemas/PricebookEntryResponse"
-            },
-            "type": "array",
-            "title": "Entries"
-          },
-          "lifecycle_status": {
-            "type": "string",
-            "title": "Lifecycle Status"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "pricebook_key",
-          "display_name",
-          "storefront_id",
-          "merchant_profile_id",
-          "currency_code",
-          "region_code",
-          "discount_rules",
-          "renewal_pricing_policy",
-          "version_status",
-          "effective_from",
-          "effective_to",
-          "is_active",
-          "entries",
-          "lifecycle_status"
-        ],
-        "title": "AdminPricebookVersionResponse"
-      },
       "AdminProcessWithdrawalRequest": {
         "properties": {
           "admin_note": {
@@ -45699,6 +47032,180 @@
         ],
         "title": "BindPartnerRequest"
       },
+      "BroadcastAudienceType": {
+        "type": "string",
+        "enum": [
+          "all_customers",
+          "customer_segment",
+          "explicit_customers",
+          "admins"
+        ],
+        "title": "BroadcastAudienceType"
+      },
+      "BroadcastCampaignResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BroadcastCampaignStatus"
+          },
+          "audience_type": {
+            "$ref": "#/components/schemas/BroadcastAudienceType"
+          },
+          "audience_filter": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audience Filter"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "action_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Url"
+          },
+          "scheduled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled At"
+          },
+          "created_by_admin_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By Admin Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "name",
+          "status",
+          "audience_type",
+          "audience_filter",
+          "title",
+          "body",
+          "created_by_admin_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BroadcastCampaignResponse"
+      },
+      "BroadcastCampaignStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "scheduled",
+          "sending",
+          "sent",
+          "cancelled",
+          "failed"
+        ],
+        "title": "BroadcastCampaignStatus"
+      },
+      "BroadcastCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "audience_type": {
+            "$ref": "#/components/schemas/BroadcastAudienceType"
+          },
+          "audience_filter": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Audience Filter"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Body"
+          },
+          "action_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Url"
+          },
+          "scheduled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "audience_type",
+          "title",
+          "body"
+        ],
+        "title": "BroadcastCreateRequest"
+      },
       "CancelSubscriptionResponse": {
         "properties": {
           "message": {
@@ -46924,100 +48431,6 @@
           "cloneFromUuid"
         ],
         "title": "CloneNodePluginRequest"
-      },
-      "CommercialContextCountryOptionResponse": {
-        "properties": {
-          "country_code": {
-            "type": "string",
-            "title": "Country Code"
-          },
-          "default_currency_code": {
-            "type": "string",
-            "title": "Default Currency Code"
-          },
-          "supported_currency_codes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Supported Currency Codes"
-          },
-          "payment_country_code": {
-            "type": "string",
-            "title": "Payment Country Code"
-          },
-          "is_enabled": {
-            "type": "boolean",
-            "title": "Is Enabled"
-          }
-        },
-        "type": "object",
-        "required": [
-          "country_code",
-          "default_currency_code",
-          "supported_currency_codes",
-          "payment_country_code",
-          "is_enabled"
-        ],
-        "title": "CommercialContextCountryOptionResponse"
-      },
-      "CommercialContextCurrencyOptionResponse": {
-        "properties": {
-          "currency_code": {
-            "type": "string",
-            "title": "Currency Code"
-          },
-          "minor_units": {
-            "type": "integer",
-            "maximum": 4.0,
-            "minimum": 0.0,
-            "title": "Minor Units"
-          },
-          "is_enabled": {
-            "type": "boolean",
-            "title": "Is Enabled"
-          }
-        },
-        "type": "object",
-        "required": [
-          "currency_code",
-          "minor_units",
-          "is_enabled"
-        ],
-        "title": "CommercialContextCurrencyOptionResponse"
-      },
-      "CommercialContextOptionsResponse": {
-        "properties": {
-          "countries": {
-            "items": {
-              "$ref": "#/components/schemas/CommercialContextCountryOptionResponse"
-            },
-            "type": "array",
-            "title": "Countries"
-          },
-          "currencies": {
-            "items": {
-              "$ref": "#/components/schemas/CommercialContextCurrencyOptionResponse"
-            },
-            "type": "array",
-            "title": "Currencies"
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "default",
-              "system_config"
-            ],
-            "title": "Source",
-            "default": "default"
-          }
-        },
-        "type": "object",
-        "required": [
-          "countries",
-          "currencies"
-        ],
-        "title": "CommercialContextOptionsResponse"
       },
       "CommercialOwnerSource": {
         "type": "string",
@@ -51826,6 +53239,267 @@
           "contract_assignment"
         ],
         "title": "CustomerCommercialBindingType"
+      },
+      "CustomerConversationDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MessagingConversationStatus"
+          },
+          "response_state": {
+            "$ref": "#/components/schemas/MessagingResponseState"
+          },
+          "category": {
+            "$ref": "#/components/schemas/MessagingConversationCategory"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/MessagingPriority"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "unread_count": {
+            "type": "integer",
+            "title": "Unread Count",
+            "default": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "last_message_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerMessagingMessageResponse"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "status",
+          "response_state",
+          "category",
+          "priority",
+          "subject",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CustomerConversationDetailResponse"
+      },
+      "CustomerConversationListResponse": {
+        "properties": {
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerConversationSummaryResponse"
+            },
+            "type": "array",
+            "title": "Conversations"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversations"
+        ],
+        "title": "CustomerConversationListResponse"
+      },
+      "CustomerConversationSummaryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MessagingConversationStatus"
+          },
+          "response_state": {
+            "$ref": "#/components/schemas/MessagingResponseState"
+          },
+          "category": {
+            "$ref": "#/components/schemas/MessagingConversationCategory"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/MessagingPriority"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "unread_count": {
+            "type": "integer",
+            "title": "Unread Count",
+            "default": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "last_message_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "status",
+          "response_state",
+          "category",
+          "priority",
+          "subject",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CustomerConversationSummaryResponse"
+      },
+      "CustomerMessagingMessageResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "sender_type": {
+            "$ref": "#/components/schemas/MessagingSenderType"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/MessagingMessageVisibility"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "conversation_id",
+          "sender_type",
+          "visibility",
+          "body",
+          "created_at"
+        ],
+        "title": "CustomerMessagingMessageResponse"
+      },
+      "CustomerMessagingMessageWriteResponse": {
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/CustomerMessagingMessageResponse"
+          },
+          "conversation": {
+            "$ref": "#/components/schemas/CustomerConversationSummaryResponse"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "conversation",
+          "created"
+        ],
+        "title": "CustomerMessagingMessageWriteResponse"
       },
       "CustomerSubscriptionListResponse": {
         "properties": {
@@ -57444,6 +59118,343 @@
           "updated_at"
         ],
         "title": "MerchantProfileResponse"
+      },
+      "MessagingBodyFormat": {
+        "type": "string",
+        "enum": [
+          "plain_text"
+        ],
+        "title": "MessagingBodyFormat"
+      },
+      "MessagingConversationCategory": {
+        "type": "string",
+        "enum": [
+          "support",
+          "billing",
+          "subscription",
+          "security",
+          "system",
+          "other"
+        ],
+        "title": "MessagingConversationCategory"
+      },
+      "MessagingConversationStatus": {
+        "type": "string",
+        "enum": [
+          "open",
+          "closed",
+          "archived",
+          "locked"
+        ],
+        "title": "MessagingConversationStatus"
+      },
+      "MessagingMessageResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "public_id": {
+            "type": "string",
+            "title": "Public Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "sender_type": {
+            "$ref": "#/components/schemas/MessagingSenderType"
+          },
+          "sender_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Id"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/MessagingMessageVisibility"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "body_format": {
+            "$ref": "#/components/schemas/MessagingBodyFormat"
+          },
+          "client_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Message Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "public_id",
+          "conversation_id",
+          "sender_type",
+          "visibility",
+          "body",
+          "body_format",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "MessagingMessageResponse"
+      },
+      "MessagingMessageVisibility": {
+        "type": "string",
+        "enum": [
+          "public",
+          "internal"
+        ],
+        "title": "MessagingMessageVisibility"
+      },
+      "MessagingMessageWriteResponse": {
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/MessagingMessageResponse"
+          },
+          "conversation": {
+            "$ref": "#/components/schemas/AdminConversationSummaryResponse"
+          },
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "conversation",
+          "created"
+        ],
+        "title": "MessagingMessageWriteResponse"
+      },
+      "MessagingPriority": {
+        "type": "string",
+        "enum": [
+          "low",
+          "normal",
+          "high",
+          "urgent"
+        ],
+        "title": "MessagingPriority"
+      },
+      "MessagingReadRequest": {
+        "properties": {
+          "last_read_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Read Message Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MessagingReadRequest"
+      },
+      "MessagingReadStateResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "participant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Participant Id"
+          },
+          "last_read_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Read Message Id"
+          },
+          "last_read_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Read At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "participant_id",
+          "last_read_at",
+          "updated_at"
+        ],
+        "title": "MessagingReadStateResponse"
+      },
+      "MessagingRealtimeSyncResponse": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "title": "Cursor"
+          },
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerConversationSummaryResponse"
+            },
+            "type": "array",
+            "title": "Conversations"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerMessagingMessageResponse"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          },
+          "unread_counts": {
+            "$ref": "#/components/schemas/MessagingUnreadCountsResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cursor",
+          "conversations",
+          "notifications",
+          "unread_counts"
+        ],
+        "title": "MessagingRealtimeSyncResponse"
+      },
+      "MessagingRealtimeTicketResponse": {
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "title": "Ticket"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "title": "Expiresin",
+            "default": 30
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket"
+        ],
+        "title": "MessagingRealtimeTicketResponse"
+      },
+      "MessagingResponseState": {
+        "type": "string",
+        "enum": [
+          "none",
+          "waiting_customer",
+          "waiting_admin"
+        ],
+        "title": "MessagingResponseState"
+      },
+      "MessagingSenderType": {
+        "type": "string",
+        "enum": [
+          "customer",
+          "admin",
+          "system"
+        ],
+        "title": "MessagingSenderType"
+      },
+      "MessagingUnreadCountsResponse": {
+        "properties": {
+          "conversations": {
+            "type": "integer",
+            "title": "Conversations"
+          },
+          "notifications": {
+            "type": "integer",
+            "title": "Notifications"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversations",
+          "notifications"
+        ],
+        "title": "MessagingUnreadCountsResponse"
+      },
+      "MessagingWriteRequest": {
+        "properties": {
+          "client_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Message Id"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "MessagingWriteRequest"
       },
       "MetadataBuildResponse": {
         "properties": {
@@ -63926,6 +65937,155 @@
         ],
         "title": "PartnerWorkspaceOrganizationProfileResponse"
       },
+      "PartnerWorkspacePasskeyComplianceResponse": {
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspaceid"
+          },
+          "workspaceKey": {
+            "type": "string",
+            "title": "Workspacekey"
+          },
+          "workspaceStatus": {
+            "type": "string",
+            "title": "Workspacestatus"
+          },
+          "workspacePasskeysPreferred": {
+            "type": "boolean",
+            "title": "Workspacepasskeyspreferred"
+          },
+          "workspaceMfaRequired": {
+            "type": "boolean",
+            "title": "Workspacemfarequired"
+          },
+          "workspacePolicyUpdatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspacepolicyupdatedat"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PasskeyPolicyResponse"
+          },
+          "operatorCompliance": {
+            "$ref": "#/components/schemas/PartnerWorkspacePasskeyOperatorComplianceResponse"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PasskeyComplianceSummaryResponse"
+          },
+          "credentials": {
+            "items": {
+              "$ref": "#/components/schemas/PasskeyComplianceCredentialResponse"
+            },
+            "type": "array",
+            "title": "Credentials"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspaceId",
+          "workspaceKey",
+          "workspaceStatus",
+          "workspacePasskeysPreferred",
+          "workspaceMfaRequired",
+          "policy",
+          "operatorCompliance",
+          "summary",
+          "credentials"
+        ],
+        "title": "PartnerWorkspacePasskeyComplianceResponse"
+      },
+      "PartnerWorkspacePasskeyOperatorComplianceResponse": {
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspaceid"
+          },
+          "activeMembers": {
+            "type": "integer",
+            "title": "Activemembers"
+          },
+          "operatorsWithActivePasskeys": {
+            "type": "integer",
+            "title": "Operatorswithactivepasskeys"
+          },
+          "operatorsMissingActivePasskeys": {
+            "type": "integer",
+            "title": "Operatorsmissingactivepasskeys"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspaceId",
+          "activeMembers",
+          "operatorsWithActivePasskeys",
+          "operatorsMissingActivePasskeys"
+        ],
+        "title": "PartnerWorkspacePasskeyOperatorComplianceResponse"
+      },
+      "PartnerWorkspacePasskeyPolicyResponse": {
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspaceid"
+          },
+          "workspaceKey": {
+            "type": "string",
+            "title": "Workspacekey"
+          },
+          "workspaceStatus": {
+            "type": "string",
+            "title": "Workspacestatus"
+          },
+          "workspacePasskeysPreferred": {
+            "type": "boolean",
+            "title": "Workspacepasskeyspreferred"
+          },
+          "workspaceMfaRequired": {
+            "type": "boolean",
+            "title": "Workspacemfarequired"
+          },
+          "workspacePolicyUpdatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspacepolicyupdatedat"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PasskeyPolicyResponse"
+          },
+          "operatorCompliance": {
+            "$ref": "#/components/schemas/PartnerWorkspacePasskeyOperatorComplianceResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workspaceId",
+          "workspaceKey",
+          "workspaceStatus",
+          "workspacePasskeysPreferred",
+          "workspaceMfaRequired",
+          "policy",
+          "operatorCompliance"
+        ],
+        "title": "PartnerWorkspacePasskeyPolicyResponse"
+      },
       "PartnerWorkspacePayoutAccountEligibilityResponse": {
         "properties": {
           "partner_payout_account_id": {
@@ -65380,6 +67540,687 @@
         ],
         "title": "PartnerWorkspaceTrafficDeclarationResponse"
       },
+      "PasskeyAuthenticationOptionsRequest": {
+        "properties": {
+          "identifier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier"
+          },
+          "conditional": {
+            "type": "boolean",
+            "title": "Conditional",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "PasskeyAuthenticationOptionsRequest"
+      },
+      "PasskeyAuthenticationVerifyRequest": {
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Challengeid"
+          },
+          "credential": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Credential"
+          }
+        },
+        "type": "object",
+        "required": [
+          "challengeId",
+          "credential"
+        ],
+        "title": "PasskeyAuthenticationVerifyRequest"
+      },
+      "PasskeyComplianceCredentialResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "realmKey": {
+            "type": "string",
+            "title": "Realmkey"
+          },
+          "principalClass": {
+            "type": "string",
+            "title": "Principalclass"
+          },
+          "principalSubject": {
+            "type": "string",
+            "title": "Principalsubject"
+          },
+          "surface": {
+            "type": "string",
+            "title": "Surface"
+          },
+          "rpId": {
+            "type": "string",
+            "title": "Rpid"
+          },
+          "credentialIdHashPrefix": {
+            "type": "string",
+            "title": "Credentialidhashprefix"
+          },
+          "credentialType": {
+            "type": "string",
+            "title": "Credentialtype"
+          },
+          "deviceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Devicetype"
+          },
+          "transports": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Transports"
+          },
+          "backedUp": {
+            "type": "boolean",
+            "title": "Backedup"
+          },
+          "userVerified": {
+            "type": "boolean",
+            "title": "Userverified"
+          },
+          "cloneSuspectedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clonesuspectedat"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastusedat"
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revokedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "status",
+          "realmKey",
+          "principalClass",
+          "principalSubject",
+          "surface",
+          "rpId",
+          "credentialIdHashPrefix",
+          "credentialType",
+          "deviceType",
+          "transports",
+          "backedUp",
+          "userVerified",
+          "cloneSuspectedAt",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "title": "PasskeyComplianceCredentialResponse"
+      },
+      "PasskeyComplianceResponse": {
+        "properties": {
+          "policy": {
+            "$ref": "#/components/schemas/PasskeyPolicyResponse"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PasskeyComplianceSummaryResponse"
+          },
+          "credentials": {
+            "items": {
+              "$ref": "#/components/schemas/PasskeyComplianceCredentialResponse"
+            },
+            "type": "array",
+            "title": "Credentials"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policy",
+          "summary",
+          "credentials"
+        ],
+        "title": "PasskeyComplianceResponse"
+      },
+      "PasskeyComplianceSummaryResponse": {
+        "properties": {
+          "activeCredentials": {
+            "type": "integer",
+            "title": "Activecredentials"
+          },
+          "revokedCredentials": {
+            "type": "integer",
+            "title": "Revokedcredentials"
+          },
+          "cloneSuspectedCredentials": {
+            "type": "integer",
+            "title": "Clonesuspectedcredentials"
+          },
+          "principalsWithActivePasskeys": {
+            "type": "integer",
+            "title": "Principalswithactivepasskeys"
+          },
+          "staleCredentials": {
+            "type": "integer",
+            "title": "Stalecredentials"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activeCredentials",
+          "revokedCredentials",
+          "cloneSuspectedCredentials",
+          "principalsWithActivePasskeys",
+          "staleCredentials",
+          "generatedAt"
+        ],
+        "title": "PasskeyComplianceSummaryResponse"
+      },
+      "PasskeyCredentialListResponse": {
+        "properties": {
+          "credentials": {
+            "items": {
+              "$ref": "#/components/schemas/PasskeyCredentialResponse"
+            },
+            "type": "array",
+            "title": "Credentials"
+          }
+        },
+        "type": "object",
+        "required": [
+          "credentials"
+        ],
+        "title": "PasskeyCredentialListResponse"
+      },
+      "PasskeyCredentialResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "credentialType": {
+            "type": "string",
+            "title": "Credentialtype"
+          },
+          "deviceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Devicetype"
+          },
+          "transports": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Transports"
+          },
+          "backedUp": {
+            "type": "boolean",
+            "title": "Backedup"
+          },
+          "userVerified": {
+            "type": "boolean",
+            "title": "Userverified"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastusedat"
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revokedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "status",
+          "credentialType",
+          "deviceType",
+          "transports",
+          "backedUp",
+          "userVerified",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "title": "PasskeyCredentialResponse"
+      },
+      "PasskeyDeleteResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "PasskeyDeleteResponse"
+      },
+      "PasskeyOptionsResponse": {
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "title": "Challengeid"
+          },
+          "publicKey": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Publickey"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "challengeId",
+          "publicKey",
+          "expiresAt"
+        ],
+        "title": "PasskeyOptionsResponse"
+      },
+      "PasskeyPolicyResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "configuredEnabled": {
+            "type": "boolean",
+            "title": "Configuredenabled"
+          },
+          "globalEnabled": {
+            "type": "boolean",
+            "title": "Globalenabled"
+          },
+          "surfaceEnabled": {
+            "type": "boolean",
+            "title": "Surfaceenabled"
+          },
+          "surface": {
+            "type": "string",
+            "title": "Surface"
+          },
+          "realm_key": {
+            "type": "string",
+            "title": "Realm Key"
+          },
+          "rp_id": {
+            "type": "string",
+            "title": "Rp Id"
+          },
+          "rp_name": {
+            "type": "string",
+            "title": "Rp Name"
+          },
+          "allowedOrigins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowedorigins"
+          },
+          "userVerification": {
+            "type": "string",
+            "title": "Userverification",
+            "default": "required"
+          },
+          "conditionalUiEnabled": {
+            "type": "boolean",
+            "title": "Conditionaluienabled"
+          },
+          "registrationEnabled": {
+            "type": "boolean",
+            "title": "Registrationenabled"
+          },
+          "authenticationEnabled": {
+            "type": "boolean",
+            "title": "Authenticationenabled"
+          },
+          "reauthenticationEnabled": {
+            "type": "boolean",
+            "title": "Reauthenticationenabled"
+          },
+          "securityDashboardEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Securitydashboardenabled"
+          },
+          "workspacePolicyEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspacepolicyenabled"
+          },
+          "adminCountsAsMfa": {
+            "type": "boolean",
+            "title": "Admincountsasmfa"
+          },
+          "challengeTtlSeconds": {
+            "type": "integer",
+            "title": "Challengettlseconds"
+          },
+          "browserTimeoutMs": {
+            "type": "integer",
+            "title": "Browsertimeoutms"
+          },
+          "freshAuthTtlSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshauthttlseconds"
+          },
+          "policySource": {
+            "type": "string",
+            "title": "Policysource",
+            "default": "settings"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedby"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "configuredEnabled",
+          "globalEnabled",
+          "surfaceEnabled",
+          "surface",
+          "realm_key",
+          "rp_id",
+          "rp_name",
+          "allowedOrigins",
+          "conditionalUiEnabled",
+          "registrationEnabled",
+          "authenticationEnabled",
+          "reauthenticationEnabled",
+          "adminCountsAsMfa",
+          "challengeTtlSeconds",
+          "browserTimeoutMs"
+        ],
+        "title": "PasskeyPolicyResponse"
+      },
+      "PasskeyReauthenticationOptionsRequest": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "PasskeyReauthenticationOptionsRequest"
+      },
+      "PasskeyReauthenticationVerifyRequest": {
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Challengeid"
+          },
+          "credential": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Credential"
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "challengeId",
+          "credential",
+          "action"
+        ],
+        "title": "PasskeyReauthenticationVerifyRequest"
+      },
+      "PasskeyReauthenticationVerifyResponse": {
+        "properties": {
+          "freshAuthGrantId": {
+            "type": "string",
+            "title": "Freshauthgrantid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "freshAuthGrantId",
+          "expiresAt"
+        ],
+        "title": "PasskeyReauthenticationVerifyResponse"
+      },
+      "PasskeyRegistrationOptionsRequest": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "title": "PasskeyRegistrationOptionsRequest"
+      },
+      "PasskeyRegistrationVerifyRequest": {
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Challengeid"
+          },
+          "credential": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Credential"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "challengeId",
+          "credential"
+        ],
+        "title": "PasskeyRegistrationVerifyRequest"
+      },
+      "PasskeyRenameRequest": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "PasskeyRenameRequest"
+      },
       "PausePilotCohortRequest": {
         "properties": {
           "reason_code": {
@@ -65757,47 +68598,6 @@
         ],
         "title": "PaymentHistoryResponse",
         "description": "Response schema for payment history."
-      },
-      "PaymentMethodAvailabilityResponse": {
-        "properties": {
-          "availableMethods": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Availablemethods"
-          },
-          "webCheckout": {
-            "type": "boolean",
-            "title": "Webcheckout"
-          },
-          "cryptobot": {
-            "type": "boolean",
-            "title": "Cryptobot"
-          },
-          "telegramStars": {
-            "type": "boolean",
-            "title": "Telegramstars"
-          },
-          "manualInvoice": {
-            "type": "boolean",
-            "title": "Manualinvoice"
-          },
-          "autorenewal": {
-            "type": "boolean",
-            "title": "Autorenewal"
-          }
-        },
-        "type": "object",
-        "required": [
-          "availableMethods",
-          "webCheckout",
-          "cryptobot",
-          "telegramStars",
-          "manualInvoice",
-          "autorenewal"
-        ],
-        "title": "PaymentMethodAvailabilityResponse"
       },
       "PaymentProvider": {
         "type": "string",
@@ -68406,487 +71206,6 @@
         ],
         "title": "ProvisioningProfileStatus"
       },
-      "PublicCatalogAddonResponse": {
-        "properties": {
-          "addonId": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Addonid"
-          },
-          "code": {
-            "type": "string",
-            "title": "Code"
-          },
-          "displayName": {
-            "type": "string",
-            "title": "Displayname"
-          },
-          "durationMode": {
-            "type": "string",
-            "title": "Durationmode"
-          },
-          "isStackable": {
-            "type": "boolean",
-            "title": "Isstackable"
-          },
-          "quantityStep": {
-            "type": "integer",
-            "title": "Quantitystep"
-          },
-          "displayPrice": {
-            "$ref": "#/components/schemas/PublicCatalogMoneyResponse"
-          },
-          "maxQuantityByPlan": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Maxquantitybyplan"
-          },
-          "deltaEntitlements": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Deltaentitlements"
-          },
-          "requiresLocation": {
-            "type": "boolean",
-            "title": "Requireslocation"
-          },
-          "saleChannels": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Salechannels"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Metadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "addonId",
-          "code",
-          "displayName",
-          "durationMode",
-          "isStackable",
-          "quantityStep",
-          "displayPrice",
-          "maxQuantityByPlan",
-          "deltaEntitlements",
-          "requiresLocation",
-          "saleChannels"
-        ],
-        "title": "PublicCatalogAddonResponse"
-      },
-      "PublicCatalogBillingPeriodResponse": {
-        "properties": {
-          "planId": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Planid"
-          },
-          "catalogItemKey": {
-            "type": "string",
-            "title": "Catalogitemkey"
-          },
-          "durationDays": {
-            "type": "integer",
-            "title": "Durationdays"
-          },
-          "displayPrice": {
-            "$ref": "#/components/schemas/PublicCatalogMoneyResponse"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "quote": {
-            "$ref": "#/components/schemas/PublicCatalogQuoteHandoffResponse"
-          },
-          "includedAddonCodes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Includedaddoncodes"
-          },
-          "availability": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Availability"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Metadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "planId",
-          "catalogItemKey",
-          "durationDays",
-          "displayPrice",
-          "version",
-          "quote",
-          "includedAddonCodes",
-          "availability"
-        ],
-        "title": "PublicCatalogBillingPeriodResponse"
-      },
-      "PublicCatalogContextResponse": {
-        "properties": {
-          "uiLocale": {
-            "type": "string",
-            "title": "Uilocale"
-          },
-          "displayCountry": {
-            "type": "string",
-            "title": "Displaycountry"
-          },
-          "pricingCountry": {
-            "type": "string",
-            "title": "Pricingcountry"
-          },
-          "paymentCountry": {
-            "type": "string",
-            "title": "Paymentcountry"
-          },
-          "currency": {
-            "type": "string",
-            "title": "Currency"
-          },
-          "confidence": {
-            "type": "string",
-            "title": "Confidence"
-          },
-          "selectableCountries": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Selectablecountries"
-          },
-          "selectableCurrencies": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Selectablecurrencies"
-          },
-          "paymentMethods": {
-            "$ref": "#/components/schemas/PaymentMethodAvailabilityResponse"
-          },
-          "cacheKey": {
-            "type": "string",
-            "title": "Cachekey"
-          },
-          "resolutionTrace": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Resolutiontrace"
-          }
-        },
-        "type": "object",
-        "required": [
-          "uiLocale",
-          "displayCountry",
-          "pricingCountry",
-          "paymentCountry",
-          "currency",
-          "confidence",
-          "selectableCountries",
-          "selectableCurrencies",
-          "paymentMethods",
-          "cacheKey",
-          "resolutionTrace"
-        ],
-        "title": "PublicCatalogContextResponse"
-      },
-      "PublicCatalogMetadataResponse": {
-        "properties": {
-          "policyIds": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Policyids"
-          },
-          "source": {
-            "type": "string",
-            "title": "Source"
-          },
-          "channel": {
-            "type": "string",
-            "title": "Channel"
-          },
-          "storefrontKey": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Storefrontkey"
-          },
-          "addonsEnabled": {
-            "type": "boolean",
-            "title": "Addonsenabled"
-          },
-          "promoCodesEnabled": {
-            "type": "boolean",
-            "title": "Promocodesenabled"
-          },
-          "checkoutCodeDiscountsEnabled": {
-            "type": "boolean",
-            "title": "Checkoutcodediscountsenabled"
-          },
-          "invalidationEvents": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Invalidationevents"
-          }
-        },
-        "type": "object",
-        "required": [
-          "policyIds",
-          "source",
-          "channel",
-          "storefrontKey",
-          "addonsEnabled",
-          "promoCodesEnabled",
-          "checkoutCodeDiscountsEnabled",
-          "invalidationEvents"
-        ],
-        "title": "PublicCatalogMetadataResponse"
-      },
-      "PublicCatalogMoneyResponse": {
-        "properties": {
-          "amount": {
-            "type": "string",
-            "title": "Amount"
-          },
-          "currency": {
-            "type": "string",
-            "title": "Currency"
-          },
-          "minorUnits": {
-            "type": "integer",
-            "title": "Minorunits"
-          }
-        },
-        "type": "object",
-        "required": [
-          "amount",
-          "currency",
-          "minorUnits"
-        ],
-        "title": "PublicCatalogMoneyResponse"
-      },
-      "PublicCatalogPlanResponse": {
-        "properties": {
-          "planCode": {
-            "type": "string",
-            "title": "Plancode"
-          },
-          "displayName": {
-            "type": "string",
-            "title": "Displayname"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "billingPeriods": {
-            "items": {
-              "$ref": "#/components/schemas/PublicCatalogBillingPeriodResponse"
-            },
-            "type": "array",
-            "title": "Billingperiods"
-          },
-          "devicesIncluded": {
-            "type": "integer",
-            "title": "Devicesincluded"
-          },
-          "trafficLimitBytes": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trafficlimitbytes"
-          },
-          "trafficPolicy": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Trafficpolicy"
-          },
-          "connectionModes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Connectionmodes"
-          },
-          "serverPool": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Serverpool"
-          },
-          "supportSla": {
-            "type": "string",
-            "title": "Supportsla"
-          },
-          "dedicatedIp": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Dedicatedip"
-          },
-          "inviteBundle": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Invitebundle"
-          },
-          "trialEligible": {
-            "type": "boolean",
-            "title": "Trialeligible"
-          },
-          "promoEligible": {
-            "type": "boolean",
-            "title": "Promoeligible"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Metadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "planCode",
-          "displayName",
-          "version",
-          "billingPeriods",
-          "devicesIncluded",
-          "trafficLimitBytes",
-          "trafficPolicy",
-          "connectionModes",
-          "serverPool",
-          "supportSla",
-          "dedicatedIp",
-          "inviteBundle",
-          "trialEligible",
-          "promoEligible"
-        ],
-        "title": "PublicCatalogPlanResponse"
-      },
-      "PublicCatalogQuoteHandoffResponse": {
-        "properties": {
-          "planId": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Planid"
-          },
-          "planCode": {
-            "type": "string",
-            "title": "Plancode"
-          },
-          "billingPeriodDays": {
-            "type": "integer",
-            "title": "Billingperioddays"
-          },
-          "currency": {
-            "type": "string",
-            "title": "Currency"
-          },
-          "catalogItemKey": {
-            "type": "string",
-            "title": "Catalogitemkey"
-          },
-          "contextCacheKey": {
-            "type": "string",
-            "title": "Contextcachekey"
-          }
-        },
-        "type": "object",
-        "required": [
-          "planId",
-          "planCode",
-          "billingPeriodDays",
-          "currency",
-          "catalogItemKey",
-          "contextCacheKey"
-        ],
-        "title": "PublicCatalogQuoteHandoffResponse"
-      },
-      "PublicCommercialCatalogResponse": {
-        "properties": {
-          "catalogVersion": {
-            "type": "string",
-            "title": "Catalogversion"
-          },
-          "cacheKey": {
-            "type": "string",
-            "title": "Cachekey"
-          },
-          "context": {
-            "$ref": "#/components/schemas/PublicCatalogContextResponse"
-          },
-          "plans": {
-            "items": {
-              "$ref": "#/components/schemas/PublicCatalogPlanResponse"
-            },
-            "type": "array",
-            "title": "Plans"
-          },
-          "addons": {
-            "items": {
-              "$ref": "#/components/schemas/PublicCatalogAddonResponse"
-            },
-            "type": "array",
-            "title": "Addons"
-          },
-          "trialEligible": {
-            "type": "boolean",
-            "title": "Trialeligible"
-          },
-          "promoEligible": {
-            "type": "boolean",
-            "title": "Promoeligible"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/PublicCatalogMetadataResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "catalogVersion",
-          "cacheKey",
-          "context",
-          "plans",
-          "addons",
-          "trialEligible",
-          "promoEligible",
-          "metadata"
-        ],
-        "title": "PublicCommercialCatalogResponse"
-      },
       "PublicNetworkDpiCountryResponse": {
         "properties": {
           "countryCode": {
@@ -70251,36 +72570,6 @@
           "updated_at"
         ],
         "title": "PublicSupportTicketSummaryResponse"
-      },
-      "PublishAdminPricebookRequest": {
-        "properties": {
-          "effective_from": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective From"
-          },
-          "change_reason": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Change Reason"
-          }
-        },
-        "type": "object",
-        "title": "PublishAdminPricebookRequest"
       },
       "PurchaseSubscriptionAddonsRequest": {
         "properties": {
@@ -72854,196 +75143,6 @@
         "title": "ResetPasswordResponse",
         "description": "Response for successful password reset."
       },
-      "ResolveCatalogContextRequest": {
-        "properties": {
-          "urlLocale": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Urllocale"
-          },
-          "browserLanguage": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Browserlanguage"
-          },
-          "telegramLanguageCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Telegramlanguagecode"
-          },
-          "explicitUiLocale": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Explicituilocale"
-          },
-          "explicitCountryCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2,
-                "minLength": 2
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Explicitcountrycode"
-          },
-          "explicitDisplayCountryCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2,
-                "minLength": 2
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Explicitdisplaycountrycode"
-          },
-          "explicitPricingCountryCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2,
-                "minLength": 2
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Explicitpricingcountrycode"
-          },
-          "explicitCurrencyCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 3,
-                "minLength": 3
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Explicitcurrencycode"
-          },
-          "sessionCountryCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2,
-                "minLength": 2
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sessioncountrycode"
-          },
-          "sessionCurrencyCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 3,
-                "minLength": 3
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sessioncurrencycode"
-          },
-          "cookieCountryCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2,
-                "minLength": 2
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cookiecountrycode"
-          },
-          "cookieCurrencyCode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 3,
-                "minLength": 3
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cookiecurrencycode"
-          },
-          "channelKey": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 80,
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Channelkey"
-          },
-          "channelDefaultLocale": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Channeldefaultlocale"
-          },
-          "fallbackCountryCode": {
-            "type": "string",
-            "maxLength": 2,
-            "minLength": 2,
-            "title": "Fallbackcountrycode",
-            "default": "US"
-          }
-        },
-        "type": "object",
-        "title": "ResolveCatalogContextRequest"
-      },
       "ResolveCurrentAccessDeliveryChannelRequest": {
         "properties": {
           "provider_name": {
@@ -73919,36 +76018,6 @@
         ],
         "title": "RiskSubjectResponse"
       },
-      "RollbackAdminPricebookRequest": {
-        "properties": {
-          "target_pricebook_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Pricebook Id"
-          },
-          "change_reason": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Change Reason"
-          }
-        },
-        "type": "object",
-        "title": "RollbackAdminPricebookRequest"
-      },
       "RotatePartnerBotTokenRequest": {
         "properties": {
           "request_payload": {
@@ -74005,32 +76074,6 @@
           "issued_at"
         ],
         "title": "RotatePartnerWorkspaceIntegrationCredentialResponse"
-      },
-      "ScheduleAdminPricebookRequest": {
-        "properties": {
-          "scheduled_for": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Scheduled For"
-          },
-          "change_reason": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Change Reason"
-          }
-        },
-        "type": "object",
-        "required": [
-          "scheduled_for"
-        ],
-        "title": "ScheduleAdminPricebookRequest"
       },
       "SchedulePartnerWorkspaceReportExportRequest": {
         "properties": {
@@ -75131,6 +77174,282 @@
           "algorithm": "RS256",
           "payload": "data_to_sign"
         }
+      },
+      "SiteNotificationDeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "delivered",
+          "read",
+          "dismissed",
+          "failed",
+          "expired"
+        ],
+        "title": "SiteNotificationDeliveryStatus"
+      },
+      "SiteNotificationDismissRequest": {
+        "properties": {
+          "notification_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Notification Ids"
+          },
+          "read_all_before": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read All Before"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SiteNotificationDismissRequest"
+      },
+      "SiteNotificationDismissResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications"
+        ],
+        "title": "SiteNotificationDismissResponse"
+      },
+      "SiteNotificationListResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications"
+        ],
+        "title": "SiteNotificationListResponse"
+      },
+      "SiteNotificationReadRequest": {
+        "properties": {
+          "notification_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Notification Ids"
+          },
+          "read_all_before": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read All Before"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SiteNotificationReadRequest"
+      },
+      "SiteNotificationReadResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNotificationResponse"
+            },
+            "type": "array",
+            "title": "Notifications"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications"
+        ],
+        "title": "SiteNotificationReadResponse"
+      },
+      "SiteNotificationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "delivery_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Delivery Id"
+          },
+          "notification_type": {
+            "$ref": "#/components/schemas/SiteNotificationType"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/SiteNotificationSeverity"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "action_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Url"
+          },
+          "aggregate_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggregate Type"
+          },
+          "aggregate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aggregate Id"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SiteNotificationDeliveryStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "delivery_id",
+          "notification_type",
+          "severity",
+          "title",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SiteNotificationResponse"
+      },
+      "SiteNotificationSeverity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "success",
+          "warning",
+          "critical"
+        ],
+        "title": "SiteNotificationSeverity"
+      },
+      "SiteNotificationType": {
+        "type": "string",
+        "enum": [
+          "message",
+          "system",
+          "billing",
+          "subscription",
+          "security",
+          "broadcast"
+        ],
+        "title": "SiteNotificationType"
       },
       "Stage1PaymentState": {
         "type": "string",
@@ -79724,121 +82043,9 @@
         ],
         "title": "UpdateAdminMiniAppRuntimeConfigRequest"
       },
-      "UpdateAdminPricebookRequest": {
+      "UpdateAdminPasskeyPolicyRequest": {
         "properties": {
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 120,
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
-          },
-          "merchant_profile_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Merchant Profile Id"
-          },
-          "currency_code": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 3,
-                "minLength": 3
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Currency Code"
-          },
-          "region_code": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 16,
-                "minLength": 2
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Region Code"
-          },
-          "discount_rules": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Discount Rules"
-          },
-          "renewal_pricing_policy": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Renewal Pricing Policy"
-          },
-          "version_status": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 20,
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Version Status"
-          },
-          "effective_from": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective From"
-          },
-          "effective_to": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective To"
-          },
-          "is_active": {
+          "enabled": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -79847,133 +82054,114 @@
                 "type": "null"
               }
             ],
-            "title": "Is Active"
+            "title": "Enabled"
           },
-          "entries": {
+          "registrationEnabled": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/PricebookEntryRequest"
-                },
-                "type": "array",
-                "minItems": 1
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Entries"
+            "title": "Registrationenabled"
           },
-          "change_reason": {
+          "authenticationEnabled": {
             "anyOf": [
               {
-                "type": "string",
-                "maxLength": 500
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Change Reason"
-          }
-        },
-        "type": "object",
-        "title": "UpdateAdminPricebookRequest"
-      },
-      "UpdateCommercialContextCountryOptionRequest": {
-        "properties": {
-          "country_code": {
-            "type": "string",
-            "maxLength": 2,
-            "minLength": 2,
-            "title": "Country Code"
+            "title": "Authenticationenabled"
           },
-          "default_currency_code": {
-            "type": "string",
-            "maxLength": 3,
-            "minLength": 3,
-            "title": "Default Currency Code"
-          },
-          "supported_currency_codes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Supported Currency Codes"
-          },
-          "payment_country_code": {
+          "reauthenticationEnabled": {
             "anyOf": [
               {
-                "type": "string",
-                "maxLength": 2,
-                "minLength": 2
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Payment Country Code"
+            "title": "Reauthenticationenabled"
           },
-          "is_enabled": {
-            "type": "boolean",
-            "title": "Is Enabled",
-            "default": true
-          }
-        },
-        "type": "object",
-        "required": [
-          "country_code",
-          "default_currency_code",
-          "supported_currency_codes"
-        ],
-        "title": "UpdateCommercialContextCountryOptionRequest"
-      },
-      "UpdateCommercialContextCurrencyOptionRequest": {
-        "properties": {
-          "currency_code": {
-            "type": "string",
-            "maxLength": 3,
-            "minLength": 3,
-            "title": "Currency Code"
+          "conditionalUiEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditionaluienabled"
           },
-          "minor_units": {
-            "type": "integer",
-            "maximum": 4.0,
-            "minimum": 0.0,
-            "title": "Minor Units",
-            "default": 2
+          "securityDashboardEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Securitydashboardenabled"
           },
-          "is_enabled": {
-            "type": "boolean",
-            "title": "Is Enabled",
-            "default": true
-          }
-        },
-        "type": "object",
-        "required": [
-          "currency_code"
-        ],
-        "title": "UpdateCommercialContextCurrencyOptionRequest"
-      },
-      "UpdateCommercialContextOptionsRequest": {
-        "properties": {
-          "countries": {
-            "items": {
-              "$ref": "#/components/schemas/UpdateCommercialContextCountryOptionRequest"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Countries"
+          "adminCountsAsMfa": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admincountsasmfa"
           },
-          "currencies": {
-            "items": {
-              "$ref": "#/components/schemas/UpdateCommercialContextCurrencyOptionRequest"
-            },
-            "type": "array",
-            "title": "Currencies"
+          "challengeTtlSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 300.0,
+                "minimum": 30.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challengettlseconds"
           },
-          "change_reason": {
+          "browserTimeoutMs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120000.0,
+                "minimum": 15000.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browsertimeoutms"
+          },
+          "freshAuthTtlSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 900.0,
+                "minimum": 60.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshauthttlseconds"
+          },
+          "changeReason": {
             "anyOf": [
               {
                 "type": "string",
@@ -79983,14 +82171,11 @@
                 "type": "null"
               }
             ],
-            "title": "Change Reason"
+            "title": "Changereason"
           }
         },
         "type": "object",
-        "required": [
-          "countries"
-        ],
-        "title": "UpdateCommercialContextOptionsRequest"
+        "title": "UpdateAdminPasskeyPolicyRequest"
       },
       "UpdateHostRequest": {
         "properties": {
@@ -80365,6 +82550,46 @@
         },
         "type": "object",
         "title": "UpdatePartnerWorkspaceOrganizationProfileRequest"
+      },
+      "UpdatePartnerWorkspacePasskeyPolicyRequest": {
+        "properties": {
+          "preferPasskeys": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferpasskeys"
+          },
+          "requireMfaForWorkspace": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requiremfaforworkspace"
+          },
+          "changeReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changereason"
+          }
+        },
+        "type": "object",
+        "title": "UpdatePartnerWorkspacePasskeyPolicyRequest"
       },
       "UpdatePartnerWorkspaceSettingsRequest": {
         "properties": {

@@ -416,6 +416,14 @@
         "stateInvalid": "The sign-in session is invalid or expired. Please start again.",
         "upstreamUnavailable": "The sign-in provider is temporarily unavailable. Try again shortly."
       },
+      "passkeyButton": "Sign in with passkey",
+      "passkeyCancelled": "Operation cancelled. Try again or use another sign-in method.",
+      "passkeyChecking": "Checking passkey...",
+      "passkeyExpired": "Confirmation expired. Try again.",
+      "passkeyFallbackHint": "You can still use your password or another sign-in method.",
+      "passkeyGenericError": "Could not verify this passkey.",
+      "passkeyRequired": "A passkey is required for this access area.",
+      "passkeyUnsupported": "This browser or device does not support passkeys.",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Enter your password",
       "registeredNotice": "Account created. Verify your email to continue the partner application.",
@@ -4814,27 +4822,6 @@
         },
         "title": "Reseller capability posture"
       },
-      "commercialPreview": {
-        "boolean": {
-          "no": "No",
-          "yes": "Yes"
-        },
-        "contractTitle": "Storefront contract",
-        "description": "Resolve the selected storefront contract and effective catalog in read-only mode before partners route live traffic.",
-        "empty": "No storefront is assigned to this reseller workspace yet.",
-        "entryPath": "Entry path",
-        "error": "The reseller commercial preview could not be loaded.",
-        "metrics": {
-          "billingPeriods": "Billing periods",
-          "currency": "Currency",
-          "sideEffects": "Checkout side effects",
-          "status": "Status"
-        },
-        "partnerCode": "Partner code",
-        "routeHost": "Route host",
-        "selectLabel": "Preview storefront",
-        "title": "Commercial preview"
-      },
       "eyebrow": "PP6 RESELLER OPERATIONS CONSOLE",
       "links": {
         "conversions": "Open conversions / orders",
@@ -4878,18 +4865,14 @@
         "title": "Voucher batches"
       },
       "voucherRequest": {
-        "countLabel": "Voucher count",
         "countPlaceholder": "Voucher count",
         "description": "Issue a reseller-scoped voucher batch directly from the partner surface. The raw codes are shown once after issuance.",
         "error": "The reseller voucher batch could not be issued.",
         "issuedCodesTitle": "Issued codes",
-        "messageLabel": "Batch message",
         "messagePlaceholder": "Optional batch note or message for the voucher pack.",
-        "planLabel": "Subscription plan",
         "planPlaceholder": "Select subscription plan",
         "planRequired": "Select a subscription plan before requesting vouchers.",
         "readOnly": "This role can review voucher posture, but new reseller voucher requests are blocked.",
-        "recipientHintLabel": "Recipient or campaign",
         "recipientHintPlaceholder": "Recipient hint or campaign label",
         "submit": "Issue voucher batch",
         "submitting": "Issuing...",
@@ -4940,6 +4923,55 @@
           "sessions": "Live active-session inspection and revocation."
         },
         "title": "What comes later"
+      },
+      "passkeys": {
+        "addAction": "Add passkey",
+        "addingAction": "Adding passkey...",
+        "addLabel": "Passkey name",
+        "addPlaceholder": "Partner laptop passkey",
+        "complianceCaption": "Partner workspace passkey compliance credentials",
+        "complianceTitle": "Workspace compliance",
+        "credentialStatus": {
+          "active": "Active",
+          "pending": "Pending",
+          "revoked": "Revoked"
+        },
+        "defaultLabel": "Partner passkey",
+        "deleteAria": "Delete passkey {label}",
+        "deleteConfirm": "Delete passkey {label}?",
+        "description": "Manage this operator's passkeys and review workspace passkey coverage without exposing raw credential data.",
+        "emptyCompliance": "No workspace passkey compliance records returned yet.",
+        "emptyPersonal": "No operator passkeys enrolled yet.",
+        "feedback": {
+          "added": "Passkey {label} added.",
+          "addFailed": "Could not add passkey.",
+          "deleted": "Passkey deleted.",
+          "deleteFailed": "Could not delete passkey.",
+          "renamed": "Passkey renamed to {label}.",
+          "renameFailed": "Could not rename passkey."
+        },
+        "lastUsedAt": "Last used {value}",
+        "loading": "Loading passkeys",
+        "metrics": {
+          "missing": "Missing",
+          "personal": "Personal",
+          "policy": "Policy"
+        },
+        "neverUsed": "Never used",
+        "personalTitle": "Personal credentials",
+        "renameAction": "Rename",
+        "renameAria": "Rename passkey {label}",
+        "renameInputAria": "Rename passkey {label}",
+        "table": {
+          "lastUsed": "Last used",
+          "member": "Member",
+          "status": "Status"
+        },
+        "title": "Operator passkeys",
+        "values": {
+          "disabled": "Disabled",
+          "enabled": "Enabled"
+        }
       },
       "placeholders": {
         "preferredCurrency": "USD",

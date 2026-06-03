@@ -202,6 +202,14 @@
         "stateInvalid": "Сессия входа недействительна или истекла. Начните заново.",
         "upstreamUnavailable": "Провайдер входа временно недоступен. Попробуйте позже."
       },
+      "passkeyButton": "Войти с ключом доступа",
+      "passkeyCancelled": "Операция отменена. Попробуйте ещё раз или используйте другой способ входа.",
+      "passkeyChecking": "Проверяем ключ доступа...",
+      "passkeyExpired": "Время подтверждения истекло. Повторите попытку.",
+      "passkeyFallbackHint": "Можно войти по паролю или другим способом.",
+      "passkeyGenericError": "Не удалось проверить этот ключ доступа.",
+      "passkeyRequired": "Для этой области доступа требуется ключ доступа.",
+      "passkeyUnsupported": "Этот браузер или устройство не поддерживает ключ доступа.",
       "passwordLabel": "Пароль",
       "passwordPlaceholder": "Введите пароль",
       "rememberMe": "Запомнить меня",
@@ -3238,7 +3246,7 @@
         "copied": "Скопировано",
         "copyId": "Копировать ID",
         "manage": "Управлять",
-        "privacy": "Privacy flow",
+        "privacy": "Сценарий приватности",
         "refresh": "Обновить",
         "revoking": "Отзываю...",
         "saveProfile": "Сохранить профиль",
@@ -3248,7 +3256,7 @@
       "devices": {
         "activeCount": "Активно",
         "current": "Текущая",
-        "currentHint": "Эта сессия защищена от удалённого отзыва.",
+        "currentHint": "Эта сессия защищена от remote revoke controls.",
         "description": "Проверяйте сессии и отзывайте устаревшие устройства, не трогая текущую сессию.",
         "empty": "Активные устройства не найдены.",
         "eyebrow": "Периметр сессий",
@@ -3289,19 +3297,23 @@
         "deviceRevoked": "Устройство отозвано.",
         "devicesRevoked": "Устройств отозвано: {count}.",
         "notificationsFailed": "Не удалось обновить уведомления.",
+        "passkeyAdded": "Ключ доступа добавлен.",
+        "passkeyDeleted": "Ключ доступа удалён.",
+        "passkeyFailed": "Не удалось обновить ключ доступа. Попробуйте ещё раз или используйте другой способ входа.",
+        "passkeyRenamed": "Ключ доступа переименован.",
         "profileFailed": "Не удалось обновить профиль.",
         "profileSaved": "Профиль сохранён.",
         "securityUpdated": "Настройки безопасности обновлены.",
         "telegramLinkFailed": "Не удалось начать привязку Telegram. Попробуйте ещё раз из этой browser session."
       },
       "hero": {
-        "eyebrow": "Идентификация / безопасность / уведомления",
+        "eyebrow": "Личность / Безопасность / Уведомления",
         "securityPosture": "Уровень защиты",
         "securityScore": "{score}% уровень защиты аккаунта"
       },
       "identity": {
-        "description": "Telegram остаётся основной support и commerce identity там, где доступен.",
-        "eyebrow": "Связанная идентификация",
+        "description": "Telegram остаётся основным support и commerce identity там, где доступен.",
+        "eyebrow": "Связанная идентичность",
         "telegramLinked": "Telegram привязан: {id}",
         "telegramMissing": "Telegram не привязан к этому аккаунту.",
         "title": "Внешние аккаунты"
@@ -3318,50 +3330,50 @@
         "core": {
           "emailMarketing": {
             "description": "Опциональные продуктовые и промо сообщения.",
-            "title": "Email-маркетинг"
+            "title": "Маркетинговые email"
           },
           "emailSecurity": {
-            "description": "Алерты входа, пароля и риска аккаунта.",
+            "description": "Login, password и account risk alerts.",
             "title": "Email-алерты безопасности"
           },
           "pushConnection": {
-            "description": "Уведомления о подключении, отключении и состоянии сервиса.",
-            "title": "Push по VPN-подключению"
+            "description": "Connection, disconnect и service state notices.",
+            "title": "Push о VPN-подключении"
           },
           "pushPayment": {
-            "description": "Жизненный цикл оплаты и подтверждения invoice.",
-            "title": "Push по оплатам"
+            "description": "Payment lifecycle и подтверждения invoice.",
+            "title": "Push об оплате"
           },
           "pushSubscription": {
-            "description": "Напоминания о продлении, истечении и entitlement.",
-            "title": "Push по подписке"
+            "description": "Renewal, expiry и entitlement reminders.",
+            "title": "Push о подписке"
           },
           "title": "Основной аккаунт"
         },
-        "description": "Основные уведомления аккаунта и growth notifications разделены на разные серверные наборы предпочтений.",
-        "eyebrow": "Матрица маршрутизации",
+        "description": "Core account notifications и growth notifications разделены на разные backend preference sets.",
+        "eyebrow": "Матрица доставки",
         "growth": {
           "adminUpdates": {
             "description": "Операционные growth announcements в Telegram.",
-            "title": "Операционные обновления Telegram"
+            "title": "Админские обновления в Telegram"
           },
           "emailGifts": {
-            "description": "Активация подарка и статус доставки по email.",
-            "title": "Email по подарочным кодам"
+            "description": "Gift redemption и delivery status по email.",
+            "title": "Email о подарочном коде"
           },
           "emailRewards": {
-            "description": "Изменения жизненного цикла наград по email.",
-            "title": "Email о реферальных наградах"
+            "description": "Изменения lifecycle наград по email.",
+            "title": "Email о реферальной награде"
           },
           "inAppInvites": {
-            "description": "События инвайтов и кодов внутри кабинета.",
-            "title": "Инвайты в ленте кабинета"
+            "description": "Invite и code events внутри кабинета.",
+            "title": "Лента invite в приложении"
           },
           "telegramRewards": {
-            "description": "Изменения жизненного цикла наград в Telegram.",
-            "title": "Telegram о реферальных наградах"
+            "description": "Изменения lifecycle наград в Telegram.",
+            "title": "Telegram о реферальной награде"
           },
-          "title": "События роста"
+          "title": "Growth-события"
         },
         "title": "Настройки уведомлений"
       },
@@ -3371,22 +3383,22 @@
         "hardened": "Усилен"
       },
       "privacy": {
-        "eyebrow": "Privacy-правила",
+        "eyebrow": "Ограничения приватности",
         "items": {
           "accountDeletion": {
             "description": "Удаление аккаунта остаётся в отдельном privacy flow.",
-            "title": "Сценарий удаления"
+            "title": "Путь удаления"
           },
           "noSecretTelemetry": {
-            "description": "Метрики отмечают только действия, не пароли, TOTP-коды, IP или anti-phishing values.",
+            "description": "Метрики отмечают только действия, не пароли, TOTP codes, IP или anti-phishing values.",
             "title": "Без secret telemetry"
           },
           "serverTruth": {
             "description": "Страница отражает API state и не хранит чувствительные настройки локально.",
-            "title": "Сервер как source of truth"
+            "title": "Backend как source of truth"
           },
           "sessionRevocation": {
-            "description": "Удаление устройств вызывает authenticated server session revoke endpoints.",
+            "description": "Удаление устройств вызывает authenticated backend session revoke endpoints.",
             "title": "Отзыв сессий"
           }
         },
@@ -3394,11 +3406,11 @@
       },
       "profile": {
         "accountId": "ID аккаунта",
-        "description": "Редактируемые поля синхронизируются с серверной записью профиля. Email и ID аккаунта здесь неизменяемые.",
+        "description": "Редактируемые поля синхронизируются с backend profile record. Email и account ID здесь неизменяемые.",
         "displayName": "Отображаемое имя",
         "displayNamePlaceholder": "Имя оператора",
-        "email": "Email",
-        "eyebrow": "Профиль аккаунта",
+        "email": "Эл. почта",
+        "eyebrow": "Ядро профиля",
         "language": "Язык",
         "timezone": "Часовой пояс",
         "title": "Профиль аккаунта",
@@ -3410,15 +3422,46 @@
           "enabled": "Код подлинности email установлен: {code}",
           "title": "Антифишинговый код"
         },
-        "description": "Пароль, TOTP и anti-phishing flows остаются под управлением сервера и rate-limited.",
+        "description": "Password, TOTP и anti-phishing flows остаются backend-owned и rate-limited.",
         "eyebrow": "Чувствительные настройки",
+        "passkeys": {
+          "addAction": "Добавить ключ доступа",
+          "adding": "Добавляем...",
+          "cancelRename": "Отмена",
+          "deleteAction": "Удалить",
+          "deleting": "Удаляем...",
+          "description": "Используйте разблокировку устройства, биометрию или security key для входа без пароля.",
+          "disabled": "Ключи доступа пока не включены для пользовательского интерфейса. Существующие способы входа остаются доступны.",
+          "dismissUpgrade": "Скрыть предложение добавить ключ доступа",
+          "empty": "Ключи доступа ещё не зарегистрированы.",
+          "label": "Название нового ключа доступа",
+          "labelPlaceholder": "Ноутбук, телефон или security key",
+          "lastRecoveryWarning": "Добавьте другой способ входа или восстановления перед удалением последнего активного ключа доступа.",
+          "metadata": "Создан {created} / последний вход {lastUsed} / id {id}",
+          "neverUsed": "Ещё не использовался",
+          "privacyNote": "CyberVPN хранит публичный ключ, а не биометрию или данные разблокировки устройства.",
+          "renameAction": "Переименовать",
+          "renameLabel": "Название ключа доступа",
+          "renameRequired": "Введите название ключа доступа перед сохранением.",
+          "saveRename": "Сохранить",
+          "saving": "Сохраняем...",
+          "synced": "Синхронизирован",
+          "title": "Ключи доступа",
+          "upgradeAction": "Добавить ключ доступа",
+          "upgradeAdding": "Добавляем...",
+          "upgradeAriaLabel": "Предложение добавить ключ доступа",
+          "upgradeDescription": "Добавьте ключ доступа сейчас, чтобы следующие входы могли использовать разблокировку устройства вместо пароля.",
+          "upgradeError": "Настройка ключа доступа не завершена. Попробуйте ещё раз или продолжайте входить текущим способом.",
+          "upgradeSecondary": "Открыть настройки",
+          "upgradeTitle": "Защитите аккаунт с помощью ключа доступа"
+        },
         "password": {
           "description": "Смена пароля требует текущий пароль.",
           "title": "Пароль"
         },
         "recovery": {
           "cta": "Открыть поддержку",
-          "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Поддержка обязана проверить личность и оставить audit trail до любого сброса 2FA.",
+          "description": "Если приложение-аутентификатор потеряно, используйте восстановление через поддержку. Support обязан проверить личность и оставить audit trail до любого сброса 2FA.",
           "title": "Восстановление при потере 2FA"
         },
         "title": "Консоль безопасности",
@@ -3430,11 +3473,11 @@
       },
       "subtitle": "Профиль, безопасность, маршрутизация уведомлений, активные сессии и privacy controls на live account API.",
       "summary": {
-        "antiphishing": "Anti-phishing",
+        "antiphishing": "Антифишинг",
         "ariaLabel": "Сводные метрики настроек",
         "devices": "Сессии",
         "notifications": "Каналов включено",
-        "twoFactor": "2FA"
+        "twoFactor": "2FA-защита"
       },
       "title": "ЦЕНТР УПРАВЛЕНИЯ НАСТРОЙКАМИ"
     },

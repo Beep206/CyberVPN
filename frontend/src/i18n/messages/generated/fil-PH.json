@@ -102,6 +102,14 @@
       "forgotPassword": "Forgot password?",
       "magicLinkAlt": "Mag-sign in gamit ang magic link",
       "noAccount": "Don't have an account?",
+      "passkeyButton": "Sign in with passkey",
+      "passkeyCancelled": "Operation cancelled. Try again or use another sign-in method.",
+      "passkeyChecking": "Checking passkey...",
+      "passkeyExpired": "Confirmation expired. Try again.",
+      "passkeyFallbackHint": "You can still use your password or another sign-in method.",
+      "passkeyGenericError": "Could not verify this passkey.",
+      "passkeyRequired": "A passkey is required for this access area.",
+      "passkeyUnsupported": "This browser or device does not support passkeys.",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Enter your password",
       "rememberMe": "Remember me",
@@ -1691,7 +1699,49 @@
     },
     "title": "AKTIBONG IMPRASTRAKTURA"
   },
-  "Settings": {},
+  "Settings": {
+    "cabinet": {
+      "feedback": {
+        "passkeyAdded": "Passkey added.",
+        "passkeyDeleted": "Passkey deleted.",
+        "passkeyFailed": "Passkey update failed. Try again or use another sign-in method.",
+        "passkeyRenamed": "Passkey renamed."
+      },
+      "security": {
+        "passkeys": {
+          "addAction": "Add passkey",
+          "adding": "Adding...",
+          "cancelRename": "Cancel",
+          "deleteAction": "Delete",
+          "deleting": "Deleting...",
+          "description": "Use a device unlock, biometric check, or security key to sign in without a password.",
+          "disabled": "Passkeys are not enabled for this customer surface yet. Existing sign-in methods remain available.",
+          "dismissUpgrade": "Dismiss passkey upgrade prompt",
+          "empty": "No passkeys are registered yet.",
+          "label": "New passkey label",
+          "labelPlaceholder": "Laptop, phone, or security key",
+          "lastRecoveryWarning": "Add another sign-in or recovery method before deleting the last active passkey.",
+          "metadata": "Created {created} / last used {lastUsed} / id {id}",
+          "neverUsed": "Never used",
+          "privacyNote": "CyberVPN stores a public key, not your biometrics or device unlock data.",
+          "renameAction": "Rename",
+          "renameLabel": "Passkey label",
+          "renameRequired": "Enter a passkey label before saving.",
+          "saveRename": "Save",
+          "saving": "Saving...",
+          "synced": "Synced",
+          "title": "Passkeys",
+          "upgradeAction": "Add passkey",
+          "upgradeAdding": "Adding...",
+          "upgradeAriaLabel": "Passkey upgrade prompt",
+          "upgradeDescription": "Add a passkey now so future sign-ins can use your device unlock instead of a password.",
+          "upgradeError": "Passkey setup did not complete. Try again or continue with your current sign-in method.",
+          "upgradeSecondary": "Review settings",
+          "upgradeTitle": "Protect this account with a passkey"
+        }
+      }
+    }
+  },
   "Status": {
     "history": {
       "title": "Evidence Window",

@@ -38,6 +38,11 @@ class FakeRedis:
     async def get(self, key: str) -> object | None:
         return self._values.get(key)
 
+    async def getdel(self, key: str) -> object | None:
+        value = self._values.pop(key, None)
+        self._expiry.pop(key, None)
+        return value
+
     async def exists(self, key: str) -> int:
         return 1 if key in self._values or key in self._hashes else 0
 
@@ -538,6 +543,60 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_user_id ON refresh_tokens(user_id)")
         conn.exec_driver_sql("CREATE INDEX ix_refresh_tokens_token_hash ON refresh_tokens(token_hash)")
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE passkey_credentials (
+                id TEXT PRIMARY KEY,
+                credential_id TEXT NOT NULL,
+                credential_id_hash TEXT NOT NULL UNIQUE,
+                credential_public_key BLOB NOT NULL,
+                sign_count INTEGER NOT NULL DEFAULT 0,
+                auth_realm_id TEXT NOT NULL,
+                realm_key TEXT NOT NULL,
+                audience TEXT NOT NULL,
+                principal_class TEXT NOT NULL,
+                principal_subject TEXT NOT NULL,
+                user_handle TEXT NOT NULL,
+                label TEXT NOT NULL,
+                surface TEXT NOT NULL,
+                rp_id TEXT NOT NULL,
+                origin TEXT,
+                aaguid TEXT,
+                attestation_format TEXT,
+                credential_type TEXT NOT NULL DEFAULT 'public-key',
+                device_type TEXT,
+                transports TEXT NOT NULL DEFAULT '[]',
+                backed_up INTEGER NOT NULL DEFAULT 0,
+                user_verified INTEGER NOT NULL DEFAULT 0,
+                authenticator_attachment TEXT,
+                policy_snapshot TEXT NOT NULL DEFAULT '{}',
+                status TEXT NOT NULL DEFAULT 'active',
+                clone_suspected_at TEXT,
+                last_used_at TEXT,
+                revoked_at TEXT,
+                deleted_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (auth_realm_id) REFERENCES auth_realms(id)
+            )
+            """
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_passkey_credentials_auth_realm_id ON passkey_credentials(auth_realm_id)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_passkey_credentials_credential_id_hash "
+            "ON passkey_credentials(credential_id_hash)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_passkey_credentials_principal_class ON passkey_credentials(principal_class)"
+        )
+        conn.exec_driver_sql(
+            "CREATE INDEX ix_passkey_credentials_principal_subject ON passkey_credentials(principal_subject)"
+        )
+        conn.exec_driver_sql("CREATE INDEX ix_passkey_credentials_realm_key ON passkey_credentials(realm_key)")
+        conn.exec_driver_sql("CREATE INDEX ix_passkey_credentials_status ON passkey_credentials(status)")
+        conn.exec_driver_sql("CREATE INDEX ix_passkey_credentials_user_handle ON passkey_credentials(user_handle)")
         conn.exec_driver_sql(
             """
             CREATE TABLE system_config (

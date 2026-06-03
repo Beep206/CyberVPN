@@ -131,6 +131,7 @@ from src.infrastructure.database.models.partner_workspace_workflow_event_model i
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_dispute_model import PaymentDisputeModel
 from src.infrastructure.database.models.payment_model import PaymentModel
+from src.infrastructure.database.models.passkey_credential_model import PasskeyCredentialModel
 from src.infrastructure.database.models.payout_execution_model import PayoutExecutionModel
 from src.infrastructure.database.models.payout_instruction_model import PayoutInstructionModel
 from src.infrastructure.database.models.pilot_cohort_model import (
@@ -161,7 +162,6 @@ from src.infrastructure.database.models.risk_subject_model import RiskSubjectMod
 from src.infrastructure.database.models.server_geolocation_model import ServerGeolocation
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.models.settlement_period_model import SettlementPeriodModel
-from src.infrastructure.database.models.stage1_provisioning_retry_model import Stage1ProvisioningRetryJobModel
 from src.infrastructure.database.models.statement_adjustment_model import StatementAdjustmentModel
 from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
@@ -269,6 +269,7 @@ __all__ = [
     "PaymentAttemptModel",
     "PaymentDisputeModel",
     "PaymentModel",
+    "PasskeyCredentialModel",
     "PlanAddonModel",
     "PolicyVersionModel",
     "PricebookEntryModel",
@@ -297,7 +298,6 @@ __all__ = [
     "SiteNotificationDeliveryModel",
     "SiteNotificationModel",
     "StatementAdjustmentModel",
-    "Stage1ProvisioningRetryJobModel",
     "SubscriptionAddonModel",
     "SubscriptionPlanModel",
     "StorefrontModel",

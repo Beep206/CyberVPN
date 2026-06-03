@@ -155,6 +155,7 @@ export function SecurityOverview() {
               { href: '/security/review-queue', title: t('nav.reviewQueue'), description: t('overview.routes.reviewQueue') },
               { href: '/security/sessions', title: t('nav.sessions'), description: t('overview.routes.sessions') },
               { href: '/security/two-factor', title: t('nav.twoFactor'), description: t('overview.routes.twoFactor') },
+              { href: '/security/passkeys', title: t('nav.passkeys'), description: t('overview.routes.passkeys') },
               { href: '/security/anti-phishing', title: t('nav.antiPhishing'), description: t('overview.routes.antiPhishing') },
               { href: '/security/posture', title: t('nav.posture'), description: t('overview.routes.posture') },
             ].map((item) => (
