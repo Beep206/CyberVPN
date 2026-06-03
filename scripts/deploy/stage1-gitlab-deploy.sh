@@ -385,6 +385,11 @@ fi
 log "recreating compose services: ${compose_services[*]}"
 $REMOTE_SUDO docker compose up -d "${compose_services[@]}"
 
+if is_requested backend; then
+  log "running backend database migrations"
+  $REMOTE_SUDO docker compose exec -T cybervpn-backend alembic upgrade heads
+fi
+
 log "compose status"
 $REMOTE_SUDO docker compose ps "${compose_services[@]}"
 
