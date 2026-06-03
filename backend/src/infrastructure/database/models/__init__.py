@@ -128,10 +128,10 @@ from src.infrastructure.database.models.partner_workspace_profile_model import (
 from src.infrastructure.database.models.partner_workspace_workflow_event_model import (
     PartnerWorkspaceWorkflowEventModel,
 )
+from src.infrastructure.database.models.passkey_credential_model import PasskeyCredentialModel
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_dispute_model import PaymentDisputeModel
 from src.infrastructure.database.models.payment_model import PaymentModel
-from src.infrastructure.database.models.passkey_credential_model import PasskeyCredentialModel
 from src.infrastructure.database.models.payout_execution_model import PayoutExecutionModel
 from src.infrastructure.database.models.payout_instruction_model import PayoutInstructionModel
 from src.infrastructure.database.models.pilot_cohort_model import (
