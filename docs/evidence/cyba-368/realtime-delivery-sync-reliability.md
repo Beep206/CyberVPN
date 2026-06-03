@@ -27,7 +27,7 @@
 
 ## Verification plan
 
-- `REMNAWAVE_TOKEN=local-remnawave-token CRYPTOBOT_TOKEN=local-cryptobot-token JWT_SECRET=0123456789abcdef0123456789abcdef uv run --extra dev pytest --no-cov tests/unit/infrastructure/test_messaging_realtime_gateway.py tests/unit/infrastructure/test_nats_messaging_runtime.py tests/integration/test_messaging_api.py -q`
+- `REMNAWAVE_TOKEN=local-remnawave-token CRYPTOBOT_TOKEN=local-cryptobot-token JWT_SECRET=test-jwt-secret-for-local-ci-only uv run --extra dev pytest --no-cov tests/unit/infrastructure/test_messaging_realtime_gateway.py tests/unit/infrastructure/test_nats_messaging_runtime.py tests/integration/test_messaging_api.py -q`
   - Result: `20 passed in 25.15s`
 - `uv run --extra dev ruff check src/infrastructure/messaging/realtime_contract.py src/infrastructure/messaging/sse_manager.py src/presentation/api/v1/messaging/routes.py tests/unit/infrastructure/test_messaging_realtime_gateway.py`
   - Result: `All checks passed!`

@@ -22,7 +22,7 @@ dependencies = [
     "asyncpg>=0.29.0",
     "httpx>=0.25.0",
     "redis>=5.0.0",
-    "PyJWT[crypto]>=2.8.0",
+    "pyjwt[crypto]>=2.13.0",
     "argon2-cffi>=23.1.0",
     "pyotp>=2.9.0",
     "webauthn==2.7.1",

@@ -3,7 +3,7 @@ import os
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("REMNAWAVE_TOKEN", "local-remnawave-token")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "local-cryptobot-token")
-os.environ.setdefault("JWT_SECRET", "0123456789abcdef0123456789abcdef")
+os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-unit-tests-only")
 
 from src.infrastructure.database.models.messaging_broadcast_model import (  # noqa: E402
     BroadcastCampaignModel,

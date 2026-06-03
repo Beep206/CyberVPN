@@ -13,7 +13,7 @@ from redis.exceptions import RedisError
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("REMNAWAVE_TOKEN", "local-remnawave-token")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "local-cryptobot-token")
-os.environ.setdefault("JWT_SECRET", "0123456789abcdef0123456789abcdef")
+os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-unit-tests-only")
 
 from src.application.services.ws_ticket_service import MESSAGING_REALTIME_TICKET_SCOPE, TicketData
 from src.infrastructure.messaging import nats_messaging_runtime

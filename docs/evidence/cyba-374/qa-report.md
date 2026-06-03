@@ -20,7 +20,7 @@ Context7 docs checked: N/A — QA verification only; no code/config/library beha
 
 ## Выполненные команды
 
-- `REMNAWAVE_TOKEN=local-remnawave-token REMNAWAVE_API_TOKEN=local-remnawave-token CRYPTOBOT_TOKEN=local-cryptobot-token JWT_SECRET=0123456789abcdef0123456789abcdef .venv/bin/python -m pytest --no-cov tests/integration/test_messaging_api.py tests/security/test_stage1_rate_limit_policy.py tests/unit/infrastructure/test_messaging_realtime_gateway.py -q` in `backend` -> `52 passed in 30.34s`.
+- `REMNAWAVE_TOKEN=local-remnawave-token REMNAWAVE_API_TOKEN=local-remnawave-token CRYPTOBOT_TOKEN=local-cryptobot-token JWT_SECRET=test-jwt-secret-for-local-ci-only .venv/bin/python -m pytest --no-cov tests/integration/test_messaging_api.py tests/security/test_stage1_rate_limit_policy.py tests/unit/infrastructure/test_messaging_realtime_gateway.py -q` in `backend` -> `52 passed in 30.34s`.
 - `NODE_ENV=test ../node_modules/.bin/vitest run src/lib/api/__tests__/messaging.test.ts src/features/messaging/components/__tests__/CustomerMessagingClient.test.tsx` in `frontend` -> `2 files / 12 tests passed`.
 - `NODE_ENV=test ../node_modules/.bin/vitest run src/lib/api/__tests__/messaging-admin.test.ts src/shared/lib/__tests__/admin-rbac.test.ts src/features/messaging/components/__tests__/messaging-console.test.tsx` in `admin` -> failed because direct runner skipped jest-dom setup (`Invalid Chai property: toBeInTheDocument`); rerun with workspace script below passed.
 - `npm run test:run -w admin -- src/lib/api/__tests__/messaging-admin.test.ts src/shared/lib/__tests__/admin-rbac.test.ts src/features/messaging/components/__tests__/messaging-console.test.tsx` -> `3 files / 15 tests passed`.
