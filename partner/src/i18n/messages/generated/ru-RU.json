@@ -753,10 +753,10 @@
     "payments": {
       "allProviders": "Все провайдеры",
       "allStatuses": "Все статусы",
-      "description": "Просмотр платежей, фильтрация по UUID пользователя и сегментация списка по провайдеру или статусу.",
+      "description": "Просмотр платежей и сегментация списка по провайдеру, статусу или ID платежа.",
       "empty": "По текущим фильтрам платежи не найдены.",
       "eyebrow": "ИСТОРИЯ ПЛАТЕЖЕЙ",
-      "filtersDescription": "Серверная фильтрация доступна по UUID пользователя. Провайдер, статус и поиск по ID применяются в клиентской консоли.",
+      "filtersDescription": "Провайдер, статус и поиск по ID применяются в клиентской консоли после загрузки paginated истории платежей.",
       "filtersTitle": "Стек фильтров",
       "idSearchPlaceholder": "Поиск по ID платежа",
       "metaTitle": "Платежи - Ozoxy Admin",
@@ -770,9 +770,8 @@
         "volume": "Объём",
         "volumeHint": "сумма отфильтрованных платежей"
       },
-      "serverFilterHint": "Используйте lookup по UUID, когда нужна выборка по конкретному клиенту. Остальные фильтры остаются на клиенте для быстрых переключений оператора.",
-      "title": "Консоль платежей",
-      "userUuidPlaceholder": "550e8400-e29b-41d4-a716-446655440000"
+      "serverFilterHint": "История платежей по конкретному клиенту отключена, пока не появится partner-safe payment history surface.",
+      "title": "Консоль платежей"
     },
     "plans": {
       "createAction": "Создать тариф",
@@ -1056,7 +1055,7 @@
         "partner": "Заработано как партнёр",
         "partnerHint": "markup и commission как партнёра",
         "payments": "Платежи",
-        "paymentsHint": "записи, загруженные для карточки",
+        "paymentsHint": "история по клиенту отключена",
         "referral": "Заработано referral",
         "referralHint": "комиссия как referrer",
         "wallet": "Кошелёк",
@@ -1079,8 +1078,8 @@
       "passwordRequirements": "Пароль должен быть не короче 12 символов и содержать заглавные, строчные буквы, цифры и спецсимвол.",
       "passwordResetGeneratedSuccess": "Временный пароль выпущен. Очищено устройств: {count}.",
       "passwordResetSuccess": "Пароль клиента обновлён. Очищено устройств: {count}.",
-      "paymentsDescription": "Свежие записи платежей, привязанные к UUID этого клиента.",
-      "paymentsEmpty": "Для этого клиента платежи не найдены.",
+      "paymentsDescription": "История платежей по конкретному клиенту требует partner-safe payment history surface.",
+      "paymentsEmpty": "История платежей по конкретному клиенту недоступна в этой partner console.",
       "paymentsTitle": "Последние платежи",
       "playbooks": {
         "addFirstNoteAction": "Добавить заметку",

@@ -19,8 +19,10 @@ const apiMocks = vi.hoisted(() => ({
   listDevices: vi.fn(),
   listPasskeys: vi.fn(),
   logoutDevice: vi.fn(),
+  mapPasskeyErrorMessageKey: vi.fn(),
   markPerformance: vi.fn(),
   registerPasskey: vi.fn(),
+  requestPasskeyFreshAuthGrant: vi.fn(),
   renamePasskey: vi.fn(),
   deletePasskey: vi.fn(),
   updateGrowthPreferences: vi.fn(),
@@ -72,6 +74,11 @@ vi.mock('@/shared/lib/web-vitals', () => ({
 
 vi.mock('@/features/auth/lib/passkey-webauthn', () => ({
   completePasskeyRegistration: apiMocks.registerPasskey,
+  getPasskeyErrorMessageKey: apiMocks.mapPasskeyErrorMessageKey,
+}));
+
+vi.mock('@/features/auth/lib/passkey-fresh-auth', () => ({
+  requestPasskeyFreshAuthGrant: apiMocks.requestPasskeyFreshAuthGrant,
 }));
 
 vi.mock('@/app/[locale]/(dashboard)/settings/components/TwoFactorModal', () => ({
@@ -281,6 +288,8 @@ describe('SettingsCabinetDashboard', () => {
     apiMocks.getPasskeyPolicy.mockResolvedValue({ data: passkeyPolicy });
     apiMocks.listPasskeys.mockResolvedValue({ data: passkeys });
     apiMocks.registerPasskey.mockResolvedValue({ data: passkeys.credentials[0] });
+    apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValue('fresh-auth-grant');
+    apiMocks.mapPasskeyErrorMessageKey.mockReturnValue('passkeyGenericError');
     apiMocks.renamePasskey.mockResolvedValue({
       data: {
         ...passkeys.credentials[0],
@@ -752,5 +761,163 @@ describe('SettingsCabinetDashboard', () => {
     await user.click(screen.getByText('mock-password-modal'));
 
     expect(await screen.findByText('feedback.securityUpdated')).toBeInTheDocument();
+  });
+
+  it('reauthenticates before renaming a passkey and sends the fresh-auth grant', async () => {
+    const user = setupUser();
+    apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValueOnce('fresh-rename-grant');
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
+    const renameInput = screen.getByDisplayValue('Work laptop');
+    await user.clear(renameInput);
+    await user.type(renameInput, 'Phone');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.saveRename' }));
+
+    await waitFor(() => {
+      expect(apiMocks.requestPasskeyFreshAuthGrant).toHaveBeenCalledWith(
+        `passkey.credential.rename:${passkeys.credentials[0].id}`,
+      );
+      expect(apiMocks.renamePasskey).toHaveBeenCalledWith(passkeys.credentials[0].id, 'Phone', {
+        freshAuthGrantId: 'fresh-rename-grant',
+      });
+    });
+    expect(apiMocks.requestPasskeyFreshAuthGrant.mock.invocationCallOrder[0]).toBeLessThan(
+      apiMocks.renamePasskey.mock.invocationCallOrder[0],
+    );
+    expect(await screen.findByText('feedback.passkeyRenamed')).toBeInTheDocument();
+  });
+
+  it('does not rename a passkey when fresh-auth ceremony is cancelled', async () => {
+    const user = setupUser();
+    apiMocks.requestPasskeyFreshAuthGrant.mockRejectedValueOnce(
+      new DOMException('Cancelled', 'AbortError'),
+    );
+    apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyCancelled');
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
+    const renameInput = screen.getByDisplayValue('Work laptop');
+    await user.clear(renameInput);
+    await user.type(renameInput, 'Phone');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.saveRename' }));
+
+    expect(await screen.findByText('passkeyCancelled')).toBeInTheDocument();
+    expect(apiMocks.renamePasskey).not.toHaveBeenCalled();
+  });
+
+  it('does not send a rename PATCH when fresh-auth is unsupported by the browser', async () => {
+    const user = setupUser();
+    const unsupportedError = new DOMException('Unsupported', 'NotSupportedError');
+    apiMocks.requestPasskeyFreshAuthGrant.mockRejectedValueOnce(unsupportedError);
+    apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyUnsupported');
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
+    const renameInput = screen.getByDisplayValue('Work laptop');
+    await user.clear(renameInput);
+    await user.type(renameInput, 'Phone');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.saveRename' }));
+
+    expect(await screen.findByText('passkeyUnsupported')).toBeInTheDocument();
+    expect(apiMocks.mapPasskeyErrorMessageKey).toHaveBeenCalledWith(unsupportedError);
+    expect(apiMocks.renamePasskey).not.toHaveBeenCalled();
+    expect(apiMocks.deletePasskey).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Phone')).toBeInTheDocument();
+    expect(screen.queryByText('feedback.passkeyRenamed')).not.toBeInTheDocument();
+  });
+
+  it('does not mark rename as successful when the backend requires fresh-auth', async () => {
+    const user = setupUser();
+    apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValueOnce('fresh-rename-grant');
+    apiMocks.renamePasskey.mockRejectedValueOnce(
+      new Error('Fresh passkey reauthentication required'),
+    );
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.renameAction' }));
+    const renameInput = screen.getByDisplayValue('Work laptop');
+    await user.clear(renameInput);
+    await user.type(renameInput, 'Phone');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.saveRename' }));
+
+    expect(await screen.findByText('feedback.passkeyFailed')).toBeInTheDocument();
+    expect(screen.queryByText('feedback.passkeyRenamed')).not.toBeInTheDocument();
+  });
+
+  it('reauthenticates before deleting a passkey and sends the fresh-auth grant', async () => {
+    const user = setupUser();
+    apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValueOnce('fresh-delete-grant');
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
+
+    await waitFor(() => {
+      expect(apiMocks.requestPasskeyFreshAuthGrant).toHaveBeenCalledWith(
+        `passkey.credential.revoke:${passkeys.credentials[0].id}`,
+      );
+      expect(apiMocks.deletePasskey).toHaveBeenCalledWith(passkeys.credentials[0].id, {
+        freshAuthGrantId: 'fresh-delete-grant',
+      });
+    });
+    expect(apiMocks.requestPasskeyFreshAuthGrant.mock.invocationCallOrder[0]).toBeLessThan(
+      apiMocks.deletePasskey.mock.invocationCallOrder[0],
+    );
+    expect(await screen.findByText('feedback.passkeyDeleted')).toBeInTheDocument();
+  });
+
+  it('does not delete a passkey when fresh-auth ceremony is cancelled', async () => {
+    const user = setupUser();
+    apiMocks.requestPasskeyFreshAuthGrant.mockRejectedValueOnce(
+      new DOMException('Cancelled', 'AbortError'),
+    );
+    apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyCancelled');
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
+
+    expect(await screen.findByText('passkeyCancelled')).toBeInTheDocument();
+    expect(apiMocks.deletePasskey).not.toHaveBeenCalled();
+    expect(screen.getByText('Work laptop')).toBeInTheDocument();
+  });
+
+  it('does not send a delete request when fresh-auth is unsupported by the browser', async () => {
+    const user = setupUser();
+    const unsupportedError = new DOMException('Unsupported', 'NotSupportedError');
+    apiMocks.requestPasskeyFreshAuthGrant.mockRejectedValueOnce(unsupportedError);
+    apiMocks.mapPasskeyErrorMessageKey.mockReturnValueOnce('passkeyUnsupported');
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
+
+    expect(await screen.findByText('passkeyUnsupported')).toBeInTheDocument();
+    expect(apiMocks.mapPasskeyErrorMessageKey).toHaveBeenCalledWith(unsupportedError);
+    expect(apiMocks.renamePasskey).not.toHaveBeenCalled();
+    expect(apiMocks.deletePasskey).not.toHaveBeenCalled();
+    expect(screen.getByText('Work laptop')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'security.passkeys.deleteAction' })).toBeEnabled();
+    expect(screen.queryByText('feedback.passkeyDeleted')).not.toBeInTheDocument();
+  });
+
+  it('keeps the credential visible when delete is rejected for missing fresh-auth', async () => {
+    const user = setupUser();
+    apiMocks.requestPasskeyFreshAuthGrant.mockResolvedValueOnce('fresh-delete-grant');
+    apiMocks.deletePasskey.mockRejectedValueOnce(
+      new Error('Fresh passkey reauthentication required'),
+    );
+    renderDashboard();
+
+    await screen.findByText('Work laptop');
+    await user.click(screen.getByRole('button', { name: 'security.passkeys.deleteAction' }));
+
+    expect(await screen.findByText('feedback.passkeyFailed')).toBeInTheDocument();
+    expect(screen.getByText('Work laptop')).toBeInTheDocument();
   });
 });

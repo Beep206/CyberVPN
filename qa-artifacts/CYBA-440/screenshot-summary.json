@@ -1,0 +1,30 @@
+[
+  {
+    "name": "login-passkey-desktop-chromium.png",
+    "title": "Sign In - CyberVPN",
+    "autocomplete": "username webauthn",
+    "errors": [],
+    "note": "Conditional UI smoke screenshot; no secrets or credential payloads."
+  },
+  {
+    "name": "login-passkey-mobile-chromium.png",
+    "title": "Sign In - CyberVPN",
+    "autocomplete": "username webauthn",
+    "errors": [],
+    "note": "Conditional UI smoke screenshot; no secrets or credential payloads."
+  },
+  {
+    "name": "login-passkey-explicit-desktop-chromium.png",
+    "title": "Sign In - CyberVPN",
+    "buttonVisible": true,
+    "errors": [],
+    "note": "Clean explicit passkey CTA screenshot with conditional UI disabled for visual inspection."
+  },
+  {
+    "name": "login-passkey-explicit-mobile-chromium.png",
+    "title": "Sign In - CyberVPN",
+    "buttonVisible": true,
+    "errors": [],
+    "note": "Clean explicit passkey CTA screenshot with conditional UI disabled for visual inspection."
+  }
+]

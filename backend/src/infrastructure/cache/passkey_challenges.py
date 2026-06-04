@@ -9,9 +9,18 @@ from hashlib import sha256
 from uuid import uuid4
 
 import redis.asyncio as redis
+from redis.exceptions import ResponseError
 from webauthn.helpers import bytes_to_base64url
 
 from src.config.settings import settings
+
+_GETDEL_LUA = """
+local value = redis.call("GET", KEYS[1])
+if value then
+  redis.call("DEL", KEYS[1])
+end
+return value
+"""
 
 
 @dataclass(frozen=True)
@@ -96,14 +105,7 @@ class PasskeyChallengeStore:
 
     async def consume(self, challenge_id: str, *, expected_ceremony: str) -> PasskeyChallengeRecord:
         key = self._key(challenge_id)
-        getdel = getattr(self._redis, "getdel", None)
-        if getdel is not None:
-            raw = await getdel(key)
-        else:
-            raw = await self._redis.get(key)
-            if raw is not None:
-                await self._redis.delete(key)
-
+        raw = await self._consume_raw(key)
         if raw is None:
             raise PasskeyChallengeError("passkey_challenge_missing")
 
@@ -127,5 +129,32 @@ class PasskeyChallengeStore:
 
         return record
 
+    async def _consume_raw(self, key: str) -> object | None:
+        getdel = getattr(self._redis, "getdel", None)
+        if getdel is not None:
+            try:
+                return await getdel(key)
+            except ResponseError as exc:
+                if not self._is_unknown_command(exc):
+                    raise
+
+        execute_command = getattr(self._redis, "execute_command", None)
+        if execute_command is not None:
+            try:
+                return await execute_command("GETDEL", key)
+            except ResponseError as exc:
+                if not self._is_unknown_command(exc):
+                    raise
+
+        eval_command = getattr(self._redis, "eval", None)
+        if eval_command is not None:
+            return await eval_command(_GETDEL_LUA, 1, key)
+
+        raise PasskeyChallengeError("passkey_challenge_atomic_consume_unavailable")
+
     def _key(self, challenge_id: str) -> str:
         return f"{self.key_prefix}{challenge_id}"
+
+    @staticmethod
+    def _is_unknown_command(exc: ResponseError) -> bool:
+        return "unknown command" in str(exc).lower()

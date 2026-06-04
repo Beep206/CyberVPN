@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { partnerPortalApi } from '@/lib/api/partner-portal';
+import { passkeysApi } from '@/lib/api/passkeys';
 import { getPartnerRoleRouteAccess } from '@/features/partner-portal-state/lib/portal-access';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
 import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
@@ -16,7 +17,10 @@ import {
   type PartnerSettingsFoundationDraft,
 } from '@/features/partner-settings/lib/settings-foundation-storage';
 import {
+  buildWorkspacePasskeyPolicyPayload,
   buildWorkspaceSettingsPayload,
+  hasWorkspacePasskeyPolicyChanges,
+  hasWorkspaceSettingsPayloadChanges,
   mapWorkspaceSettingsToDraft,
 } from '@/features/partner-settings/lib/workspace-settings-contract';
 import { OperatorPasskeysPanel } from './operator-passkeys-panel';
@@ -25,6 +29,10 @@ const FIELD_CLASS_NAME = 'w-full rounded-xl border border-grid-line/25 bg-termin
 
 function getPartnerSettingsSecurityUpdateAction(workspaceId: string): string {
   return `partner.settings.security.update:${workspaceId}`;
+}
+
+function getPartnerPasskeyPolicyUpdateAction(workspaceId: string): string {
+  return `partner.passkeys.policy.update:${workspaceId}`;
 }
 
 function formatSavedAt(value: string | null, locale: string): string | null {
@@ -131,22 +139,46 @@ export function SettingsFoundationPage() {
       if (!activeWorkspace) {
         throw new Error('Partner workspace is not available.');
       }
-      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
-        getPartnerSettingsSecurityUpdateAction(activeWorkspace.id),
-      );
-      const response = await partnerPortalApi.updateWorkspaceSettings(
-        activeWorkspace.id,
-        buildWorkspaceSettingsPayload(draft),
-        { freshAuthGrantId },
-      );
-      return response.data;
+
+      let updatedSettingsData:
+        Awaited<ReturnType<typeof partnerPortalApi.updateWorkspaceSettings>>['data']
+        | null = null;
+
+      if (hasWorkspaceSettingsPayloadChanges(canonicalDraft, draft)) {
+        const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+          getPartnerSettingsSecurityUpdateAction(activeWorkspace.id),
+        );
+        const response = await partnerPortalApi.updateWorkspaceSettings(
+          activeWorkspace.id,
+          buildWorkspaceSettingsPayload(draft),
+          { freshAuthGrantId },
+        );
+        updatedSettingsData = response.data;
+      }
+
+      if (hasWorkspacePasskeyPolicyChanges(canonicalDraft, draft)) {
+        const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+          getPartnerPasskeyPolicyUpdateAction(activeWorkspace.id),
+        );
+        await passkeysApi.updateWorkspacePolicy(
+          activeWorkspace.id,
+          buildWorkspacePasskeyPolicyPayload(draft),
+          { freshAuthGrantId },
+        );
+      }
+
+      return updatedSettingsData;
     },
     onSuccess: async (data) => {
-      queryClient.setQueryData(
-        ['partner-portal', 'workspace-settings', activeWorkspace?.id ?? null],
-        data,
-      );
+      if (data) {
+        queryClient.setQueryData(
+          ['partner-portal', 'workspace-settings', activeWorkspace?.id ?? null],
+          data,
+        );
+      }
       await queryClient.invalidateQueries({ queryKey: ['partner-portal', 'workspace-settings', activeWorkspace?.id ?? null] });
+      await queryClient.invalidateQueries({ queryKey: ['partner', 'passkeys', 'workspace-policy', activeWorkspace?.id ?? null] });
+      await queryClient.invalidateQueries({ queryKey: ['partner', 'passkeys', 'workspace-compliance', activeWorkspace?.id ?? null] });
       setLocalDraft(null);
       setSaveState('saved');
     },

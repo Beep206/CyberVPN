@@ -5,6 +5,8 @@ Issue: [CYBA-392](/CYBA/issues/CYBA-392)
 Parent: [CYBA-386](/CYBA/issues/CYBA-386)
 Связанные handoff: [CYBA-388](/CYBA/issues/CYBA-388), [CYBA-389](/CYBA/issues/CYBA-389)
 Статус: platform/NodeOps handoff, safe artifact only
+Current release evidence: `docs/evidence/releases/passkey-webauthn-cyba-439-20260604.md`
+Current release issue: [CYBA-439](/CYBA/issues/CYBA-439)
 
 ## 1. Исполнительное резюме
 
@@ -614,6 +616,8 @@ non-production environment by the owner of that environment.
 
 Before any broader rollout, attach or link:
 
+- CYBA-439 release evidence pack:
+  `docs/evidence/releases/passkey-webauthn-cyba-439-20260604.md`
 - OpenAPI export containing passkey paths
 - targeted backend tests and contract tests
 - frontend/admin/partner UX screenshots for desktop and mobile where UI changed

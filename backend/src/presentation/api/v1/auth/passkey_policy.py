@@ -47,12 +47,13 @@ from src.presentation.api.v1.auth.passkey_schemas import (
     UpdatePartnerWorkspacePasskeyPolicyRequest,
 )
 from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm
-from src.presentation.dependencies.auth import get_current_active_user
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth import get_current_active_web_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm, get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.partner_workspace import (
     PartnerWorkspaceAccess,
-    require_partner_workspace_permission,
+    enforce_partner_workspace_permission,
+    resolve_partner_workspace_access,
 )
 from src.presentation.dependencies.passkey_fresh_auth import enforce_passkey_fresh_auth
 from src.presentation.dependencies.roles import require_role
@@ -349,6 +350,38 @@ async def _partner_workspace_passkey_context(
     return partner_realm, profile, memberships, credentials
 
 
+async def _require_partner_workspace_passkey_access(
+    *,
+    workspace_id: UUID,
+    current_user: AdminUserModel,
+    current_realm,
+    db: AsyncSession,
+    permission: PartnerPermission,
+) -> PartnerWorkspaceAccess:
+    if current_realm.realm_type != "partner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Partner passkey policy requires partner realm",
+        )
+    access = await resolve_partner_workspace_access(
+        workspace_id=workspace_id,
+        current_user=current_user,
+        db=db,
+    )
+    if access.is_internal_admin_override:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Partner passkey policy requires workspace membership",
+        )
+    await enforce_partner_workspace_permission(
+        access=access,
+        permission=permission,
+        current_user=current_user,
+        db=db,
+    )
+    return access
+
+
 def _partner_workspace_policy_response(
     *,
     access: PartnerWorkspaceAccess,
@@ -409,6 +442,11 @@ async def update_admin_passkey_policy(
         realm_key=current_realm.realm_key,
         action="admin.passkeys.policy.update",
     )
+    if payload.admin_counts_as_mfa is True:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="adminCountsAsMfa is not available until passkey-as-MFA enforcement is approved",
+        )
     _repo, service, config_model, previous_config = await _get_admin_policy_state(db)
     previous_payload = _admin_policy_payload(previous_config)
     updates = payload.model_dump(
@@ -484,9 +522,18 @@ async def get_admin_passkey_compliance(
     response_model=PartnerWorkspacePasskeyPolicyResponse,
 )
 async def get_partner_workspace_passkey_policy(
-    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
+    workspace_id: UUID,
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm=Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspacePasskeyPolicyResponse:
+    access = await _require_partner_workspace_passkey_access(
+        workspace_id=workspace_id,
+        current_user=current_user,
+        current_realm=current_realm,
+        db=db,
+        permission=PartnerPermission.WORKSPACE_READ,
+    )
     partner_realm, profile, memberships, credentials = await _partner_workspace_passkey_context(db=db, access=access)
     _track("partner_workspace_policy", "success")
     return _partner_workspace_policy_response(
@@ -503,16 +550,21 @@ async def get_partner_workspace_passkey_policy(
     response_model=PartnerWorkspacePasskeyPolicyResponse,
 )
 async def update_partner_workspace_passkey_policy(
+    workspace_id: UUID,
     payload: UpdatePartnerWorkspacePasskeyPolicyRequest,
     request: Request,
-    access: PartnerWorkspaceAccess = Depends(
-        require_partner_workspace_permission(PartnerPermission.OPERATIONS_WRITE)
-    ),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm=Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm=Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspacePasskeyPolicyResponse:
+    access = await _require_partner_workspace_passkey_access(
+        workspace_id=workspace_id,
+        current_user=current_user,
+        current_realm=current_realm,
+        db=db,
+        permission=PartnerPermission.OPERATIONS_WRITE,
+    )
     await enforce_passkey_fresh_auth(
         request=request,
         redis_client=redis_client,
@@ -570,9 +622,18 @@ async def update_partner_workspace_passkey_policy(
     response_model=PartnerWorkspacePasskeyComplianceResponse,
 )
 async def get_partner_workspace_passkey_compliance(
-    access: PartnerWorkspaceAccess = Depends(require_partner_workspace_permission(PartnerPermission.WORKSPACE_READ)),
+    workspace_id: UUID,
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm=Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PartnerWorkspacePasskeyComplianceResponse:
+    access = await _require_partner_workspace_passkey_access(
+        workspace_id=workspace_id,
+        current_user=current_user,
+        current_realm=current_realm,
+        db=db,
+        permission=PartnerPermission.WORKSPACE_READ,
+    )
     partner_realm, profile, memberships, credentials = await _partner_workspace_passkey_context(db=db, access=access)
     operator_compliance = _operator_compliance(
         workspace_id=access.workspace.id,

@@ -30,7 +30,6 @@ import {
   type AdminUpdateMobileUserRequest,
 } from '@/lib/api/customers';
 import { growthApi } from '@/lib/api/growth';
-import { adminPaymentsApi } from '@/lib/api/payments';
 import { CustomersPageShell } from '@/features/customers/components/customers-page-shell';
 import { CustomerStatusChip } from '@/features/customers/components/customer-status-chip';
 import {
@@ -199,24 +198,6 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         }
         throw error;
       }
-    },
-    staleTime: 15_000,
-  });
-
-  const paymentsQuery = useQuery({
-    queryKey: ['customers', 'detail', userId, 'payments'],
-    queryFn: async () => {
-      const response = await adminPaymentsApi.getCustomerPaymentAttempts(userId, { offset: 0, limit: 20 });
-      return {
-        payments: response.data.items.map((attempt) => ({
-          id: attempt.id,
-          amount: attempt.displayed_amount,
-          currency: attempt.currency_code,
-          provider: attempt.provider,
-          status: attempt.status,
-          created_at: attempt.created_at,
-        })),
-      };
     },
     staleTime: 15_000,
   });
@@ -682,7 +663,6 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
               void Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId] }),
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'wallet'] }),
-                queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'payments'] }),
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'notes'] }),
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'vpn'] }),
                 queryClient.invalidateQueries({ queryKey: ['customers', 'detail', userId, 'subscription'] }),
@@ -743,7 +723,7 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
         },
         {
           label: t('detail.metrics.payments'),
-          value: String(paymentsQuery.data?.payments.length ?? 0),
+          value: '--',
           hint: t('detail.metrics.paymentsHint'),
           tone: 'neutral',
         },
@@ -1770,31 +1750,9 @@ export function CustomerDetail({ userId }: CustomerDetailProps) {
             </p>
 
             <div className="mt-5 space-y-3">
-              {paymentsQuery.data?.payments.length ? paymentsQuery.data.payments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-display uppercase tracking-[0.16em] text-white">
-                        {formatCurrencyAmount(payment.amount, payment.currency, locale)}
-                      </p>
-                      <p className="mt-2 text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                        #{shortId(payment.id)} / {payment.provider}
-                      </p>
-                    </div>
-                    <CustomerStatusChip label={payment.status} tone="info" />
-                  </div>
-                  <p className="mt-3 text-sm font-mono text-muted-foreground">
-                    {formatDateTime(payment.created_at, locale)}
-                  </p>
-                </div>
-              )) : (
-                <div className="rounded-2xl border border-dashed border-grid-line/30 bg-terminal-bg/40 px-4 py-8 text-center text-sm font-mono text-muted-foreground">
-                  {t('detail.paymentsEmpty')}
-                </div>
-              )}
+              <div className="rounded-2xl border border-dashed border-grid-line/30 bg-terminal-bg/40 px-4 py-8 text-center text-sm font-mono text-muted-foreground">
+                {t('detail.paymentsEmpty')}
+              </div>
             </div>
           </section>
         </div>

@@ -40,7 +40,11 @@ import { markPerformance } from '@/shared/lib/web-vitals';
 import { AntiphishingModal } from '@/app/[locale]/(dashboard)/settings/components/AntiphishingModal';
 import { ChangePasswordModal } from '@/app/[locale]/(dashboard)/settings/components/ChangePasswordModal';
 import { TwoFactorModal } from '@/app/[locale]/(dashboard)/settings/components/TwoFactorModal';
-import { completePasskeyRegistration } from '@/features/auth/lib/passkey-webauthn';
+import { requestPasskeyFreshAuthGrant } from '@/features/auth/lib/passkey-fresh-auth';
+import {
+  completePasskeyRegistration,
+  getPasskeyErrorMessageKey,
+} from '@/features/auth/lib/passkey-webauthn';
 import {
   buildCoreNotificationPatch,
   buildGrowthNotificationPatch,
@@ -166,8 +170,17 @@ function getLimitHelpKey(state: DeviceLimitState) {
   return `devices.limitHelp.${state}` as const;
 }
 
+function getPasskeyRenameAction(credentialId: string): string {
+  return `passkey.credential.rename:${credentialId}`;
+}
+
+function getPasskeyRevokeAction(credentialId: string): string {
+  return `passkey.credential.revoke:${credentialId}`;
+}
+
 export function SettingsCabinetDashboard() {
   const t = useTranslations('Settings.cabinet');
+  const authT = useTranslations('Auth.login');
   const locale = useLocale();
   const queryClient = useQueryClient();
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
@@ -488,9 +501,25 @@ export function SettingsCabinetDashboard() {
     },
   });
 
+  const setPasskeyFailureBanner = (error: unknown) => {
+    const messageKey = getPasskeyErrorMessageKey(error);
+
+    if (messageKey === 'passkeyCancelled' || messageKey === 'passkeyUnsupported') {
+      setBanner({ tone: 'amber', text: authT(messageKey as never) });
+      return;
+    }
+
+    setBanner({ tone: 'pink', text: t('feedback.passkeyFailed') });
+  };
+
   const renamePasskeyMutation = useMutation({
     mutationFn: async ({ credentialId, label }: { credentialId: string; label: string }) => {
-      const response = await passkeysApi.rename(credentialId, label);
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getPasskeyRenameAction(credentialId),
+      );
+      const response = await passkeysApi.rename(credentialId, label, {
+        freshAuthGrantId,
+      });
       return response.data;
     },
     onSuccess: (credential) => {
@@ -505,14 +534,19 @@ export function SettingsCabinetDashboard() {
       });
       setBanner({ tone: 'green', text: t('feedback.passkeyRenamed') });
     },
-    onError: () => {
-      setBanner({ tone: 'pink', text: t('feedback.passkeyFailed') });
+    onError: (error) => {
+      setPasskeyFailureBanner(error);
     },
   });
 
   const deletePasskeyMutation = useMutation({
     mutationFn: async (credentialId: string) => {
-      const response = await passkeysApi.delete(credentialId);
+      const freshAuthGrantId = await requestPasskeyFreshAuthGrant(
+        getPasskeyRevokeAction(credentialId),
+      );
+      const response = await passkeysApi.delete(credentialId, {
+        freshAuthGrantId,
+      });
       return response.data;
     },
     onSuccess: (result) => {
@@ -524,8 +558,8 @@ export function SettingsCabinetDashboard() {
       });
       setBanner({ tone: 'green', text: t('feedback.passkeyDeleted') });
     },
-    onError: () => {
-      setBanner({ tone: 'pink', text: t('feedback.passkeyFailed') });
+    onError: (error) => {
+      setPasskeyFailureBanner(error);
     },
   });
 
