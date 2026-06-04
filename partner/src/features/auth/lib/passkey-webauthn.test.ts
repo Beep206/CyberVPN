@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   isConditionalMediationAvailable,
   PasskeyWebAuthnError,
-  startPasskeyRegistration,
   startPasskeyAuthentication,
+  startPasskeyRegistration,
 } from './passkey-webauthn';
 
 const originalPublicKeyCredential = window.PublicKeyCredential;
@@ -48,12 +48,12 @@ function buildAuthenticationCredential(): Credential {
   return {
     authenticatorAttachment: 'platform',
     getClientExtensionResults: () => ({}),
-    id: 'credential-id',
-    rawId: bufferFromAscii('raw-id'),
+    id: 'partner-credential-id',
+    rawId: bufferFromAscii('partner-raw-id'),
     response: {
-      authenticatorData: bufferFromAscii('auth-data'),
-      clientDataJSON: bufferFromAscii('client-data'),
-      signature: bufferFromAscii('signature'),
+      authenticatorData: bufferFromAscii('partner-auth-data'),
+      clientDataJSON: bufferFromAscii('partner-client-data'),
+      signature: bufferFromAscii('partner-signature'),
       userHandle: null,
     },
     type: 'public-key',
@@ -63,36 +63,36 @@ function buildAuthenticationCredential(): Credential {
 function buildRegistrationCredential(): Credential {
   return {
     authenticatorAttachment: 'platform',
-    getClientExtensionResults: () => ({ appid: false }),
-    id: 'registered-credential-id',
-    rawId: bufferFromAscii('registered-raw-id'),
+    getClientExtensionResults: () => ({}),
+    id: 'partner-registered-credential-id',
+    rawId: bufferFromAscii('partner-registered-raw-id'),
     response: {
-      attestationObject: bufferFromAscii('attestation-object'),
-      clientDataJSON: bufferFromAscii('registration-client-data'),
+      attestationObject: bufferFromAscii('partner-attestation-object'),
+      clientDataJSON: bufferFromAscii('partner-registration-client-data'),
       getTransports: () => ['internal'],
     },
     type: 'public-key',
   } as unknown as Credential;
 }
 
-describe('passkey WebAuthn helper', () => {
+describe('partner passkey WebAuthn helper', () => {
   afterEach(() => {
     restoreWebAuthnMocks();
   });
 
-  it('normalizes request options and serializes authentication credentials', async () => {
+  it('normalizes request options and serializes authentication credentials through SimpleWebAuthn', async () => {
     const getMock = vi.fn(async () => buildAuthenticationCredential());
     installWebAuthnMocks({ get: getMock });
 
     const payload = await startPasskeyAuthentication({
       allowCredentials: [
         {
-          id: 'Y3JlZGVudGlhbC1pZA',
+          id: 'cGFydG5lci1jcmVkZW50aWFs',
           type: 'public-key',
         },
       ],
-      challenge: 'Y2hhbGxlbmdl',
-      rpId: 'admin.cybervpn.example',
+      challenge: 'cGFydG5lci1jaGFsbGVuZ2U',
+      rpId: 'partner.cybervpn.example',
       userVerification: 'required',
     });
 
@@ -101,14 +101,14 @@ describe('passkey WebAuthn helper', () => {
     expect(requestOptions.publicKey?.allowCredentials?.[0].id).toBeInstanceOf(ArrayBuffer);
     expect(payload).toMatchObject({
       authenticatorAttachment: 'platform',
-      id: 'credential-id',
-      rawId: 'cmF3LWlk',
+      id: 'partner-credential-id',
+      rawId: 'cGFydG5lci1yYXctaWQ',
       type: 'public-key',
     });
     expect(payload.response).toMatchObject({
-      authenticatorData: 'YXV0aC1kYXRh',
-      clientDataJSON: 'Y2xpZW50LWRhdGE',
-      signature: 'c2lnbmF0dXJl',
+      authenticatorData: 'cGFydG5lci1hdXRoLWRhdGE',
+      clientDataJSON: 'cGFydG5lci1jbGllbnQtZGF0YQ',
+      signature: 'cGFydG5lci1zaWduYXR1cmU',
     });
     expect(payload.response).toHaveProperty('userHandle', undefined);
   });
@@ -118,19 +118,19 @@ describe('passkey WebAuthn helper', () => {
     installWebAuthnMocks({ create: createMock });
 
     const payload = await startPasskeyRegistration({
-      challenge: 'cmVnaXN0cmF0aW9uLWNoYWxsZW5nZQ',
+      challenge: 'cGFydG5lci1yZWdpc3RyYXRpb24tY2hhbGxlbmdl',
       excludeCredentials: [
         {
-          id: 'ZXhjbHVkZS1jcmVkZW50aWFs',
+          id: 'cGFydG5lci1leGNsdWRlLWNyZWRlbnRpYWw',
           type: 'public-key',
         },
       ],
       pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
-      rp: { id: 'admin.cybervpn.example', name: 'CyberVPN Admin' },
+      rp: { id: 'partner.cybervpn.example', name: 'CyberVPN Partner' },
       user: {
-        displayName: 'Admin Operator',
-        id: 'YWRtaW4tdXNlcg',
-        name: 'admin@cybervpn.example',
+        displayName: 'Partner Operator',
+        id: 'cGFydG5lci11c2Vy',
+        name: 'operator@partner.example',
       },
     });
 
@@ -140,14 +140,13 @@ describe('passkey WebAuthn helper', () => {
     expect(creationOptions.publicKey?.excludeCredentials?.[0].id).toBeInstanceOf(ArrayBuffer);
     expect(payload).toMatchObject({
       authenticatorAttachment: 'platform',
-      clientExtensionResults: { appid: false },
-      id: 'registered-credential-id',
-      rawId: 'cmVnaXN0ZXJlZC1yYXctaWQ',
+      id: 'partner-registered-credential-id',
+      rawId: 'cGFydG5lci1yZWdpc3RlcmVkLXJhdy1pZA',
       type: 'public-key',
     });
     expect(payload.response).toMatchObject({
-      attestationObject: 'YXR0ZXN0YXRpb24tb2JqZWN0',
-      clientDataJSON: 'cmVnaXN0cmF0aW9uLWNsaWVudC1kYXRh',
+      attestationObject: 'cGFydG5lci1hdHRlc3RhdGlvbi1vYmplY3Q',
+      clientDataJSON: 'cGFydG5lci1yZWdpc3RyYXRpb24tY2xpZW50LWRhdGE',
       transports: ['internal'],
     });
   });

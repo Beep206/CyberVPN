@@ -75,6 +75,36 @@ function encodeJsonBody(data) {
   return Buffer.from(JSON.stringify(data)).toString('base64');
 }
 
+function parseJsonRequestBody(body) {
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    throw new Error(`Expected JSON request body, got ${JSON.stringify(body)}: ${error.message}`);
+  }
+}
+
+async function readRequestPostData(client, sessionId, message) {
+  const { networkId, request } = message.params;
+
+  if (typeof request.postData === 'string') {
+    return request.postData;
+  }
+
+  if (!request.hasPostData || !networkId) {
+    return null;
+  }
+
+  const { base64Encoded, postData } = await client.send(
+    'Network.getRequestPostData',
+    { requestId: networkId },
+    sessionId,
+  );
+
+  return base64Encoded
+    ? Buffer.from(postData, 'base64').toString('utf8')
+    : postData;
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -256,6 +286,8 @@ async function main() {
     });
 
     const apiRequests = [];
+    const authenticationOptionsBodies = [];
+    const interceptionErrors = [];
     const consoleErrors = [];
     const pageErrors = [];
 
@@ -300,6 +332,13 @@ async function main() {
       }
 
       if (url.includes('/api/v1/auth/passkeys/authentication/options')) {
+        try {
+          const body = await readRequestPostData(client, sessionId, message);
+          authenticationOptionsBodies.push(body === null ? null : parseJsonRequestBody(body));
+        } catch (error) {
+          interceptionErrors.push(error instanceof Error ? error.message : String(error));
+        }
+
         await client.send('Fetch.fulfillRequest', {
           requestId,
           responseCode: 200,
@@ -412,8 +451,30 @@ async function main() {
 
     const policyRequested = apiRequests.some((request) => request.includes('/api/v1/auth/passkeys/policy'));
     const loginRequested = apiRequests.some((request) => request.includes('/api/v1/auth/login'));
+    const conditionalOptionsBody = authenticationOptionsBodies.find((body) => body?.conditional === true);
 
     assert(policyRequested, 'Passkey policy request was not observed.');
+    assert(interceptionErrors.length === 0, `Interception errors observed:\n${interceptionErrors.join('\n')}`);
+    assert(authenticationOptionsBodies.length > 0, 'Passkey authentication options request was not observed.');
+    assert(
+      conditionalOptionsBody,
+      `Conditional UI passkey authentication options request was not observed. Bodies:\n${JSON.stringify(authenticationOptionsBodies, null, 2)}`,
+    );
+    const conditionalOptionsBodyText = JSON.stringify(conditionalOptionsBody);
+    assert(
+      !Object.hasOwn(conditionalOptionsBody, 'identifier') || conditionalOptionsBody.identifier === null,
+      `Conditional UI passkey authentication options included an identifier: ${conditionalOptionsBodyText}`,
+    );
+    for (const field of ['email', 'login', 'username']) {
+      assert(
+        !Object.hasOwn(conditionalOptionsBody, field) || conditionalOptionsBody[field] === null,
+        `Conditional UI passkey authentication options included ${field}: ${conditionalOptionsBodyText}`,
+      );
+    }
+    assert(
+      !conditionalOptionsBodyText.includes('neo@example.com') && !conditionalOptionsBodyText.includes('"neo"'),
+      `Conditional UI passkey authentication options leaked the typed identifier: ${conditionalOptionsBodyText}`,
+    );
     assert(loginRequested, 'Normal login submit did not call /api/v1/auth/login.');
     assert(pageErrors.length === 0, `Page errors observed:\n${pageErrors.join('\n')}`);
     assert(consoleErrors.length === 0, `Console errors observed:\n${consoleErrors.join('\n')}`);
@@ -423,6 +484,7 @@ async function main() {
       url: SMOKE_URL,
       autocomplete,
       apiRequests,
+      authenticationOptionsBodies,
     }, null, 2)}\n`);
   } finally {
     if (socket && socket.readyState === WebSocket.OPEN) {

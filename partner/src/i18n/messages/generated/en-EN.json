@@ -753,10 +753,10 @@
     "payments": {
       "allProviders": "All providers",
       "allStatuses": "All statuses",
-      "description": "Inspect payment records, narrow by user UUID, and segment the list by provider or payment status.",
+      "description": "Inspect payment records and segment the list by provider, payment status, or payment ID.",
       "empty": "No payments matched the current filters.",
       "eyebrow": "PAYMENT HISTORY",
-      "filtersDescription": "Server-side filtering is available by user UUID. Provider, status, and ID search are applied in the client console.",
+      "filtersDescription": "Provider, status, and ID search are applied in the client console after the paginated payment history loads.",
       "filtersTitle": "Filter Stack",
       "idSearchPlaceholder": "Search payment ID",
       "metaTitle": "Payments - Ozoxy Admin",
@@ -770,9 +770,8 @@
         "volume": "Volume",
         "volumeHint": "sum of filtered payment amounts"
       },
-      "serverFilterHint": "Use UUID lookup when you need a payment slice for a specific customer. Secondary filters stay client-side for quick operator pivots.",
-      "title": "Payments Console",
-      "userUuidPlaceholder": "550e8400-e29b-41d4-a716-446655440000"
+      "serverFilterHint": "Customer-specific payment history is disabled until a partner-safe payment history surface is available.",
+      "title": "Payments Console"
     },
     "plans": {
       "createAction": "Create plan",
@@ -1056,7 +1055,7 @@
         "partner": "Partner earned",
         "partnerHint": "markup and commission earned as partner",
         "payments": "Payments",
-        "paymentsHint": "records returned for the card",
+        "paymentsHint": "customer-specific history disabled",
         "referral": "Referral earned",
         "referralHint": "commission earned as a referrer",
         "wallet": "Wallet",
@@ -1079,8 +1078,8 @@
       "passwordRequirements": "Password must be at least 12 characters and include uppercase, lowercase, digits, and a special character.",
       "passwordResetGeneratedSuccess": "Temporary password issued. Device sessions cleared: {count}.",
       "passwordResetSuccess": "Customer password rotated. Device sessions cleared: {count}.",
-      "paymentsDescription": "Latest payment records tied to this customer UUID.",
-      "paymentsEmpty": "No payments were returned for this customer.",
+      "paymentsDescription": "Customer-specific payment history requires a partner-safe payment history surface.",
+      "paymentsEmpty": "Customer-specific payment history is not available in this partner console.",
       "paymentsTitle": "Recent Payments",
       "playbooks": {
         "addFirstNoteAction": "Add note",

@@ -127,8 +127,12 @@ from src.presentation.api.v1.orders.explainability.routes import (
 from src.presentation.api.v1.orders.explainability.schemas import OrderExplainabilityResponse
 from src.presentation.api.v1.partner_statements.schemas import PartnerStatementResponse
 from src.presentation.api.v1.traffic_declarations.schemas import TrafficDeclarationResponse
-from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id
-from src.presentation.dependencies.auth_realms import get_request_admin_realm
+from src.presentation.dependencies.auth import (
+    get_current_active_user,
+    get_current_active_web_user,
+    get_current_mobile_user_id,
+)
+from src.presentation.dependencies.auth_realms import get_request_admin_realm, get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.partner_workspace import (
     PartnerWorkspaceAccess,
@@ -5228,8 +5232,8 @@ async def update_partner_workspace_member(
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)
     ),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspaceMemberResponse:
@@ -5459,8 +5463,6 @@ async def update_partner_workspace_settings(
 
     field_map = {
         "preferred_currency": "preferred_currency",
-        "require_mfa_for_workspace": "require_mfa_for_workspace",
-        "prefer_passkeys": "prefer_passkeys",
         "reviewed_active_sessions": "reviewed_active_sessions",
     }
     for request_field, model_field in field_map.items():
@@ -5697,8 +5699,8 @@ async def create_partner_workspace_payout_account(
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)
     ),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspacePayoutAccountResponse:
@@ -5769,8 +5771,8 @@ async def make_partner_workspace_payout_account_default(
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.PAYOUTS_WRITE)
     ),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspacePayoutAccountResponse:
@@ -6377,8 +6379,8 @@ async def add_partner_workspace_member(
     access: PartnerWorkspaceAccess = Depends(
         require_partner_workspace_permission(PartnerPermission.MEMBERSHIP_WRITE)
     ),
-    current_user: AdminUserModel = Depends(get_current_active_user),
-    current_realm: RealmResolution = Depends(get_request_admin_realm),
+    current_user: AdminUserModel = Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PartnerWorkspaceMemberResponse:

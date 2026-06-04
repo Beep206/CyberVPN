@@ -103,6 +103,19 @@ def credential_hash_from_browser_payload(payload: dict) -> str:
     return passkey_credential_hash(base64url_to_bytes(raw_id))
 
 
+def credential_user_handle_from_browser_payload(payload: dict) -> str | None:
+    response = payload.get("response")
+    if not isinstance(response, dict):
+        return None
+    user_handle = response.get("userHandle") or response.get("user_handle")
+    if user_handle is None:
+        return None
+    if not isinstance(user_handle, str):
+        raise PasskeyVerificationError("passkey_user_handle_invalid")
+    normalized = user_handle.strip()
+    return normalized or None
+
+
 def _transports_from_payload(payload: dict) -> list[str]:
     response = payload.get("response")
     if not isinstance(response, dict):

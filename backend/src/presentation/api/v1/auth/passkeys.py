@@ -19,6 +19,7 @@ from src.application.services.passkey_webauthn import (
     PasskeyVerificationError,
     PasskeyWebAuthnService,
     credential_hash_from_browser_payload,
+    credential_user_handle_from_browser_payload,
     passkey_identifier_hash,
     passkey_user_handle,
     passkey_user_handle_bytes,
@@ -229,6 +230,16 @@ def _default_label(label: str | None) -> str:
 
 def _generic_unauthorized() -> HTTPException:
     return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_GENERIC_AUTH_ERROR)
+
+
+def _enforce_credential_user_handle(payload: dict, credential: PasskeyCredentialModel) -> None:
+    try:
+        payload_user_handle = credential_user_handle_from_browser_payload(payload)
+    except PasskeyVerificationError as exc:
+        raise _generic_unauthorized() from exc
+    if payload_user_handle is not None and credential.user_handle and payload_user_handle != credential.user_handle:
+        _track("credential_user_handle", "mismatch")
+        raise _generic_unauthorized()
 
 
 def _client_ip(request: Request) -> str:
@@ -714,6 +725,7 @@ async def verify_passkey_authentication(
 
     if verified.credential_id_hash != credential.credential_id_hash:
         raise _generic_unauthorized()
+    _enforce_credential_user_handle(payload.credential, credential)
 
     if verified.new_sign_count == 0 and credential.sign_count == 0:
         logger.warning(
@@ -771,10 +783,13 @@ async def verify_passkey_authentication(
 
 @router.get("", response_model=PasskeyCredentialListResponse)
 async def list_passkeys(
+    request: Request,
     current_user: AdminUserModel = Depends(get_current_active_web_user),
     current_realm=Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
 ) -> PasskeyCredentialListResponse:
+    context = await _passkey_context(request, current_realm.realm_type, db)
+    _require_passkeys_enabled(context.enabled)
     credentials = await PasskeyCredentialRepository(db).list_active_for_principal(
         auth_realm_id=current_realm.auth_realm.id,
         principal_class=get_principal_type_for_realm(current_realm),
@@ -793,6 +808,8 @@ async def rename_passkey(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PasskeyCredentialResponse:
+    context = await _passkey_context(request, current_realm.realm_type, db)
+    _require_passkeys_enabled(context.enabled)
     principal_class = get_principal_type_for_realm(current_realm)
     await enforce_passkey_fresh_auth(
         request=request,
@@ -833,6 +850,8 @@ async def delete_passkey(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> PasskeyDeleteResponse:
+    context = await _passkey_context(request, current_realm.realm_type, db)
+    _require_passkeys_enabled(context.enabled)
     repo = PasskeyCredentialRepository(db)
     principal_class = get_principal_type_for_realm(current_realm)
     await enforce_passkey_fresh_auth(
@@ -981,6 +1000,7 @@ async def verify_passkey_reauthentication(
 
     if verified.credential_id_hash != credential.credential_id_hash:
         raise _generic_unauthorized()
+    _enforce_credential_user_handle(payload.credential, credential)
 
     if verified.new_sign_count == 0 and credential.sign_count == 0:
         logger.warning(

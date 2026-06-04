@@ -54,10 +54,42 @@ returned by compliance endpoints.
   registration/authentication/reauthentication option and verify gates,
   challenge TTL, browser timeout, fresh-auth TTL and credential policy snapshots.
 - Partner workspace policy uses the existing `partner_workspace_profiles`
-  fields `prefer_passkeys` and `require_mfa_for_workspace`, exposed through the
-  dedicated passkey policy endpoint and existing workspace settings endpoint.
+  fields `prefer_passkeys` and `require_mfa_for_workspace`. Writes are accepted
+  only through the dedicated passkey policy endpoint.
 - Admin and partner policy updates create `audit_logs` rows. No raw credential,
   challenge or public-key material is written to audit payloads.
+
+## Hardening delta 2026-06-04
+
+Issue: [CYBA-435](/CYBA/issues/CYBA-435)
+
+- WebAuthn challenge consume is one-time and atomic across supported Redis
+  clients: native `getdel`, `execute_command("GETDEL", key)`, then Lua fallback.
+  If no atomic consume path is available, verification fails closed.
+- `GET /auth/passkeys`, `PATCH /auth/passkeys/{credential_id}` and
+  `DELETE /auth/passkeys/{credential_id}` now honor the effective passkey
+  global/surface/admin policy before reading or mutating credentials. Grants
+  issued before a kill switch do not bypass disabled policy.
+- Authentication and reauthentication verify compare browser-supplied
+  `response.userHandle` to the stored credential `user_handle` when the browser
+  supplies a non-null handle. Missing handles remain accepted for browser and
+  authenticator compatibility.
+- Partner workspace passkey policy/compliance endpoints are partner web realm
+  endpoints. Internal admin override is not accepted on those endpoints; an
+  admin override requires a separate Board/CTO-approved route and action string.
+- `adminCountsAsMfa=true` is rejected by admin policy PATCH until passkey-as-MFA
+  enforcement is implemented and approved. The backend keeps fail-secure TOTP
+  behavior instead of exposing a misleading policy state.
+
+## Hardening delta 2026-06-04 CYBA-447
+
+- `PATCH /api/v1/partner-workspaces/{workspace_id}/settings` rejects
+  `prefer_passkeys`, `preferPasskeys`, `require_mfa_for_workspace` and
+  `requireMfaForWorkspace` with validation guidance to use
+  `/api/v1/partner-workspaces/{workspace_id}/security/passkeys/policy`.
+- The settings endpoint no longer mutates passkey policy fields under
+  `partner.settings.security.update:{workspaceId}`. Mixed payloads containing
+  normal settings plus passkey policy fields fail closed before profile writes.
 
 ## Generated contracts
 
@@ -79,6 +111,9 @@ the branch's combined backend OpenAPI export is accepted.
 
 ## Проверка
 
+- `REMNAWAVE_TOKEN=test-remnawave JWT_SECRET=<synthetic-jwt-secret> CRYPTOBOT_TOKEN=test-cryptobot uv run pytest tests/unit/test_passkey_challenges.py tests/unit/test_passkey_fresh_auth.py -q --no-cov`
+- `REMNAWAVE_TOKEN=test-remnawave JWT_SECRET=<synthetic-jwt-secret> CRYPTOBOT_TOKEN=test-cryptobot uv run pytest tests/integration/test_passkey_webauthn_api.py -q --no-cov`
+- `REMNAWAVE_TOKEN=test-remnawave JWT_SECRET=<synthetic-jwt-secret> CRYPTOBOT_TOKEN=test-cryptobot uv run pytest tests/contract/test_passkey_openapi_contract.py -q --no-cov`
 - `uv run pytest tests/integration/test_passkey_webauthn_api.py tests/contract/test_passkey_openapi_contract.py -q --no-cov`
 - `uv run ruff check <targeted passkey backend files>`
 - `uv run python -m compileall -q <targeted passkey backend files>`

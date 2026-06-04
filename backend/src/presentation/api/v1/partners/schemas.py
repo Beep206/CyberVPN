@@ -8,6 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.domain.enums import AdminRole, TrafficDeclarationKind
 
+_PASSKEY_POLICY_UPDATE_FIELDS = frozenset(
+    {
+        "preferPasskeys",
+        "prefer_passkeys",
+        "requireMfaForWorkspace",
+        "require_mfa_for_workspace",
+    }
+)
+
 
 class CreatePartnerCodeRequest(BaseModel):
     code: str = ""
@@ -187,9 +196,21 @@ class UpdatePartnerWorkspaceSettingsRequest(BaseModel):
     workspace_security_alerts: bool | None = None
     payout_status_emails: bool | None = None
     product_announcements: bool | None = None
-    require_mfa_for_workspace: bool | None = None
-    prefer_passkeys: bool | None = None
     reviewed_active_sessions: bool | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_passkey_policy_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        blocked_fields = sorted(str(field) for field in data if field in _PASSKEY_POLICY_UPDATE_FIELDS)
+        if blocked_fields:
+            raise ValueError(
+                "Passkey policy fields must be updated through "
+                "`/api/v1/partner-workspaces/{workspace_id}/security/passkeys/policy`: "
+                f"{', '.join(blocked_fields)}"
+            )
+        return data
 
 
 class PartnerWorkspaceLegalDocumentResponse(BaseModel):

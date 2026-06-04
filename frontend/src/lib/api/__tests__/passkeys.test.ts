@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { passkeysApi } from '../passkeys';
+import { FRESH_AUTH_GRANT_ID_HEADER } from '../fresh-auth';
 
 const API_BASE = '*/api/v1';
 
@@ -93,7 +94,9 @@ describe('passkeysApi', () => {
   });
 
   it('lists, renames, and deletes sanitized passkey metadata', async () => {
+    let deleteGrantHeader: string | null = null;
     let renameBody: Record<string, unknown> | null = null;
+    let renameGrantHeader: string | null = null;
 
     server.use(
       http.get(`${API_BASE}/auth/passkeys`, () =>
@@ -119,6 +122,7 @@ describe('passkeysApi', () => {
         `${API_BASE}/auth/passkeys/b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab`,
         async ({ request }) => {
           renameBody = (await request.json()) as Record<string, unknown>;
+          renameGrantHeader = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
           return HttpResponse.json({
             id: 'b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab',
             label: 'Work laptop',
@@ -134,11 +138,15 @@ describe('passkeysApi', () => {
           });
         },
       ),
-      http.delete(`${API_BASE}/auth/passkeys/b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab`, () =>
-        HttpResponse.json({
-          id: 'b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab',
-          status: 'revoked',
-        }),
+      http.delete(
+        `${API_BASE}/auth/passkeys/b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab`,
+        ({ request }) => {
+          deleteGrantHeader = request.headers.get(FRESH_AUTH_GRANT_ID_HEADER);
+          return HttpResponse.json({
+            id: 'b0f5fbd4-ec5b-46f3-b0cb-1354cfd2d5ab',
+            status: 'revoked',
+          });
+        },
       ),
     );
 
@@ -146,12 +154,17 @@ describe('passkeysApi', () => {
     const renameResponse = await passkeysApi.rename(
       listResponse.data.credentials[0].id,
       'Work laptop',
+      { freshAuthGrantId: 'fresh-rename-grant' },
     );
-    const deleteResponse = await passkeysApi.delete(listResponse.data.credentials[0].id);
+    const deleteResponse = await passkeysApi.delete(listResponse.data.credentials[0].id, {
+      freshAuthGrantId: 'fresh-delete-grant',
+    });
 
     expect(listResponse.data.credentials[0].label).toBe('Laptop');
     expect(renameBody).toEqual({ label: 'Work laptop' });
+    expect(renameGrantHeader).toBe('fresh-rename-grant');
     expect(renameResponse.data.label).toBe('Work laptop');
+    expect(deleteGrantHeader).toBe('fresh-delete-grant');
     expect(deleteResponse.data.status).toBe('revoked');
   });
 });

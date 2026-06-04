@@ -1,5 +1,9 @@
 import { apiClient } from './client';
 import type { LoginResponse } from './auth';
+import {
+  buildFreshAuthRequestConfig,
+  type FreshAuthRequestOptions,
+} from './fresh-auth';
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -119,14 +123,25 @@ export const passkeysApi = {
   /**
    * PATCH /api/v1/auth/passkeys/{credential_id}
    */
-  rename: (credentialId: string, label: string) =>
-    apiClient.patch<PasskeyCredential>(`/auth/passkeys/${credentialId}`, { label }),
+  rename: (
+    credentialId: string,
+    label: string,
+    options?: FreshAuthRequestOptions,
+  ) =>
+    apiClient.patch<PasskeyCredential>(
+      `/auth/passkeys/${credentialId}`,
+      { label },
+      buildFreshAuthRequestConfig(options),
+    ),
 
   /**
    * DELETE /api/v1/auth/passkeys/{credential_id}
    */
-  delete: (credentialId: string) =>
-    apiClient.delete<PasskeyDeleteResponse>(`/auth/passkeys/${credentialId}`),
+  delete: (credentialId: string, options?: FreshAuthRequestOptions) =>
+    apiClient.delete<PasskeyDeleteResponse>(
+      `/auth/passkeys/${credentialId}`,
+      buildFreshAuthRequestConfig(options),
+    ),
 
   /**
    * POST /api/v1/auth/passkeys/reauthentication/options

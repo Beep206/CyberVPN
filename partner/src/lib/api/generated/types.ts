@@ -29291,10 +29291,6 @@ export interface components {
             payout_status_emails?: boolean | null;
             /** Product Announcements */
             product_announcements?: boolean | null;
-            /** Require Mfa For Workspace */
-            require_mfa_for_workspace?: boolean | null;
-            /** Prefer Passkeys */
-            prefer_passkeys?: boolean | null;
             /** Reviewed Active Sessions */
             reviewed_active_sessions?: boolean | null;
         };

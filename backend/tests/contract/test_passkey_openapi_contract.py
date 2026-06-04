@@ -34,3 +34,11 @@ def test_passkey_openapi_components_are_exposed() -> None:
     assert "PartnerWorkspacePasskeyComplianceResponse" in components
     assert "UpdateAdminPasskeyPolicyRequest" in components
     assert "UpdatePartnerWorkspacePasskeyPolicyRequest" in components
+
+
+def test_partner_workspace_settings_update_contract_excludes_passkey_policy_fields() -> None:
+    schema = app.openapi()
+    properties = schema["components"]["schemas"]["UpdatePartnerWorkspaceSettingsRequest"]["properties"]
+
+    assert "prefer_passkeys" not in properties
+    assert "require_mfa_for_workspace" not in properties

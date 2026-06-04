@@ -82652,28 +82652,6 @@
             ],
             "title": "Product Announcements"
           },
-          "require_mfa_for_workspace": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Require Mfa For Workspace"
-          },
-          "prefer_passkeys": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Prefer Passkeys"
-          },
           "reviewed_active_sessions": {
             "anyOf": [
               {

@@ -171,7 +171,6 @@ export function PaymentsConsole() {
                   setStatusFilter('all');
                   setIdSearch('');
                 }}
-                aria-label={t('common.reset')}
               >
                 <X className="mr-2 h-4 w-4" />
                 {t('common.reset')}
