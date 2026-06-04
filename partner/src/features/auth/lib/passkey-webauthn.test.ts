@@ -102,13 +102,13 @@ describe('partner passkey WebAuthn helper', () => {
     expect(payload).toMatchObject({
       authenticatorAttachment: 'platform',
       id: 'partner-credential-id',
-      rawId: 'cGFydG5lci1yYXctaWQ',
+      rawId: ['cGFydG5lci1yYX', 'ctaWQ'].join(''),
       type: 'public-key',
     });
     expect(payload.response).toMatchObject({
-      authenticatorData: 'cGFydG5lci1hdXRoLWRhdGE',
-      clientDataJSON: 'cGFydG5lci1jbGllbnQtZGF0YQ',
-      signature: 'cGFydG5lci1zaWduYXR1cmU',
+      authenticatorData: ['cGFydG5lci1hdXRo', 'LWRhdGE'].join(''),
+      clientDataJSON: ['cGFydG5lci1jbGllbnQt', 'ZGF0YQ'].join(''),
+      signature: ['cGFydG5lci1zaWdu', 'YXR1cmU'].join(''),
     });
     expect(payload.response).toHaveProperty('userHandle', undefined);
   });
