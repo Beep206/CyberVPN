@@ -67,8 +67,8 @@ run_python_audit() {
     )
 
     rc=0
-    pip-audit --progress-spinner off --format json --output "${json}" --requirement "${req}" || rc=$?
-    pip-audit --progress-spinner off --requirement "${req}" > "${text}" 2>&1 || true
+    pip-audit --progress-spinner off --no-deps --disable-pip --format json --output "${json}" --requirement "${req}" || rc=$?
+    pip-audit --progress-spinner off --no-deps --disable-pip --requirement "${req}" > "${text}" 2>&1 || true
     printf 'exit_code=%s\n' "${rc}" >> "${text}"
     if [[ "${rc}" -ne 0 ]]; then
       failed=1
