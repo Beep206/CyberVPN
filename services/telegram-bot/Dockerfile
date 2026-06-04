@@ -7,12 +7,15 @@ WORKDIR /build
 RUN apk add --no-cache build-base
 
 # Copy dependency files
-COPY pyproject.toml README.md ./
+COPY pyproject.toml uv.lock README.md ./
 # Copy source code since hatchling requires it to build the package wheel during installation
 COPY src/ ./src/
 RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir .
+    pip install --no-cache-dir --upgrade "pip>=26.0" uv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade "pip>=26.0" && \
+    uv export --frozen --no-dev --no-emit-project --no-hashes --format requirements.txt --output-file /tmp/requirements.txt && \
+    /opt/venv/bin/pip install --no-cache-dir --no-deps --requirement /tmp/requirements.txt && \
+    /opt/venv/bin/pip install --no-cache-dir --no-deps .
 
 # ── Runtime stage ────────────────────────────────────────────────────────
 FROM python:3.13.13-alpine AS runtime
