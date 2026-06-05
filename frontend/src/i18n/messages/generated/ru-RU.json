@@ -394,7 +394,13 @@
       },
       "loginButton": "Открыть Telegram",
       "manualFallback": "Если Telegram открылся как обычный чат, отправьте эту команду вручную:",
+      "miniAppAuthFailedMessage": "Не удалось завершить вход через Telegram. Повторите попытку из Telegram или войдите в браузере.",
+      "miniAppAuthFailedTitle": "Не удалось войти через Telegram",
       "miniAppAutoAuth": "Вход через Telegram...",
+      "miniAppBrowserLogin": "Войти в браузере",
+      "miniAppRequiredMessage": "Для этого экрана нужен контекст Telegram Mini App. Откройте его из бота CyberVPN или повторите проверку, если Telegram ещё загружается.",
+      "miniAppRequiredTitle": "Откройте CyberVPN в Telegram",
+      "miniAppRetryTelegram": "Повторить проверку Telegram",
       "startingNewLink": "Запускаем Telegram..."
     }
   },
@@ -2266,6 +2272,15 @@
       "5": "Франкфурт, ЕС",
       "6": "Сан-Паулу, БР",
       "7": "Сидней, АВСТР"
+    },
+    "telemetry": {
+      "emptyRegionsDescription": "Region data временно недоступны для публичного показа.",
+      "emptyRegionsTitle": "Публичные регионы не опубликованы",
+      "overviewUnavailableDescription": "Live traffic, server и user metrics сейчас не обновились. Публичная карта работает в degraded mode.",
+      "overviewUnavailableTitle": "Телеметрия сети недоступна",
+      "regionsUnavailableDescription": "Текущие публичные регионы не загрузились. Повторите позже или проверьте статус-страницу.",
+      "regionsUnavailableTitle": "Телеметрия регионов недоступна",
+      "unavailableValue": "Нет данных"
     },
     "title": "Глобальная инфраструктура",
     "widget": {

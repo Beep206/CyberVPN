@@ -90,7 +90,10 @@ class PartnerDisabledBoundaryMiddleware(BaseHTTPMiddleware):
                     stage="S3-STAGE-06",
                 )
 
-        if _matches(path, PARTNER_CODE_PREFIXES) or _matches_partner_workspace_codes_path(path):
+        if _matches(path, PARTNER_CODE_PREFIXES) or _matches_partner_workspace_codes_path(
+            path,
+            method=request.method,
+        ):
             if not bool(settings.partner_portal_enabled):
                 return _disabled_response(
                     code="partner_portal_disabled",
@@ -167,8 +170,10 @@ def _matches(path: str, prefixes: Iterable[str]) -> bool:
     return any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in prefixes)
 
 
-def _matches_partner_workspace_codes_path(path: str) -> bool:
+def _matches_partner_workspace_codes_path(path: str, *, method: str = "GET") -> bool:
     if not path.startswith("/api/v1/partner-workspaces/"):
+        return False
+    if method.upper() == "GET" and path.endswith("/reseller-voucher-batches"):
         return False
     return (
         "/codes" in path

@@ -21,12 +21,29 @@ const PARTNER_LOCAL_ORIGINS = [
   "portal.localhost:3002",
   "storefront.localhost:3002",
 ];
+const DEFAULT_PARTNER_API_ORIGIN = "http://127.0.0.1:18080";
 
 type NextConfigWithCompiler = NextConfig & {
   cacheComponents?: boolean;
   reactCompiler?: boolean;
   allowedDevOrigins?: string[];
 };
+
+function normalizePartnerApiOrigin(rawOrigin: string | undefined): string {
+  const configuredOrigin = rawOrigin?.trim() || DEFAULT_PARTNER_API_ORIGIN;
+
+  return configuredOrigin
+    .replace(/\/+$/, "")
+    .replace(/\/api\/v1$/, "");
+}
+
+export function resolvePartnerApiRewriteDestination(pathPattern = ":path*"): string {
+  const origin = normalizePartnerApiOrigin(
+    process.env.PARTNER_API_URL || process.env.NEXT_PUBLIC_API_URL,
+  );
+
+  return `${origin}/api/v1/${pathPattern}`;
+}
 
 // SEC-03: Content-Security-Policy in Report-Only mode.
 // Allows: WebGL (Three.js), inline styles (Tailwind), Sentry, Google Fonts, Telegram.
@@ -77,7 +94,7 @@ const config: NextConfigWithCompiler = {
     return [
       {
         source: "/api/v1/:path*",
-        destination: "http://localhost:8000/api/v1/:path*",
+        destination: resolvePartnerApiRewriteDestination(),
       },
     ];
   },

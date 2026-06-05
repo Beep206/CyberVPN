@@ -29,6 +29,7 @@ export function NetworkDashboard() {
     refetchInterval: pollingInterval(30_000),
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 
   const regions = useMemo(() => regionsQuery.data?.regions ?? [], [regionsQuery.data?.regions]);
@@ -70,6 +71,8 @@ export function NetworkDashboard() {
           <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
             <ServerLocationsList
               activeNodeId={activeNodeId}
+              isError={regionsQuery.isError}
+              isLoading={regionsQuery.isPending}
               regions={regions}
               setActiveNodeId={setActiveNodeId}
             />

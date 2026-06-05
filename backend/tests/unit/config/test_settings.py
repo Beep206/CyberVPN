@@ -6,7 +6,7 @@ MED-005: Test weak secret pattern rejection.
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from src.config.settings import S1_PRODUCTION_CORS_ORIGINS, Settings
+from src.config.settings import S1_LOCAL_STAGE_BROWSER_ORIGINS, S1_PRODUCTION_CORS_ORIGINS, Settings
 
 
 class TestWeakSecretPatterns:
@@ -171,6 +171,92 @@ class TestS1CorsAndCookieSettings:
     def test_s1_production_rejects_cors_origin_with_path(self) -> None:
         with pytest.raises(ValidationError, match="path"):
             self._production_settings(cors_origins="https://cyber-vpn.net/app")
+
+    def test_s1_production_rejects_local_stage_http_origins(self) -> None:
+        with pytest.raises(ValidationError, match="https"):
+            self._production_settings(cors_origins=sorted(S1_LOCAL_STAGE_BROWSER_ORIGINS))
+
+    def test_s1_local_stage_accepts_approved_browser_origins(self) -> None:
+        settings = Settings(
+            environment="local-stage",
+            jwt_secret=SecretStr(self.STRONG_SECRET),
+            remnawave_token=SecretStr(self.VALID_TOKEN),
+            cryptobot_token=SecretStr(self.VALID_TOKEN),
+            cors_origins=(
+                "http://localhost:13000/,"
+                "http://localhost:13001/,"
+                "http://127.0.0.1:13000/,"
+                "http://127.0.0.1:13001/"
+            ),
+            cookie_secure=False,
+        )
+
+        assert settings.cors_origins == [
+            "http://localhost:13000",
+            "http://localhost:13001",
+            "http://127.0.0.1:13000",
+            "http://127.0.0.1:13001",
+        ]
+
+    def test_s1_local_stage_rejects_missing_approved_browser_origin(self) -> None:
+        with pytest.raises(ValidationError, match="127.0.0.1:13001"):
+            Settings(
+                environment="local-stage",
+                jwt_secret=SecretStr(self.STRONG_SECRET),
+                remnawave_token=SecretStr(self.VALID_TOKEN),
+                cryptobot_token=SecretStr(self.VALID_TOKEN),
+                cors_origins=(
+                    "http://localhost:13000,"
+                    "http://localhost:13001,"
+                    "http://127.0.0.1:13000"
+                ),
+                cookie_secure=False,
+            )
+
+    def test_s1_local_stage_rejects_unapproved_loopback_origin(self) -> None:
+        with pytest.raises(ValidationError, match="not approved"):
+            Settings(
+                environment="local-stage",
+                jwt_secret=SecretStr(self.STRONG_SECRET),
+                remnawave_token=SecretStr(self.VALID_TOKEN),
+                cryptobot_token=SecretStr(self.VALID_TOKEN),
+                cors_origins=(
+                    "http://localhost:13000,"
+                    "http://localhost:13001,"
+                    "http://127.0.0.1:13000,"
+                    "http://127.0.0.1:13001,"
+                    "http://127.0.0.1:13002"
+                ),
+                cookie_secure=False,
+            )
+
+    def test_s1_local_stage_rejects_unapproved_non_loopback_origin(self) -> None:
+        with pytest.raises(ValidationError, match="not approved"):
+            Settings(
+                environment="local-stage",
+                jwt_secret=SecretStr(self.STRONG_SECRET),
+                remnawave_token=SecretStr(self.VALID_TOKEN),
+                cryptobot_token=SecretStr(self.VALID_TOKEN),
+                cors_origins=(
+                    "http://localhost:13000,"
+                    "http://localhost:13001,"
+                    "http://127.0.0.1:13000,"
+                    "http://127.0.0.1:13001,"
+                    "https://evil.example"
+                ),
+                cookie_secure=False,
+            )
+
+    def test_s1_local_stage_rejects_wildcard_cors(self) -> None:
+        with pytest.raises(ValidationError, match="not allowed in local-stage"):
+            Settings(
+                environment="local-stage",
+                jwt_secret=SecretStr(self.STRONG_SECRET),
+                remnawave_token=SecretStr(self.VALID_TOKEN),
+                cryptobot_token=SecretStr(self.VALID_TOKEN),
+                cors_origins="*",
+                cookie_secure=False,
+            )
 
     def test_s1_production_accepts_host_only_cookie_domain(self) -> None:
         settings = self._production_settings(cookie_domain="")

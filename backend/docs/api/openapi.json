@@ -18,7 +18,7 @@
           "auth"
         ],
         "summary": "Login",
-        "description": "Authenticate user and return access and refresh tokens.\n\nSecurity:\n- Brute force protection with progressive lockout\n- Constant-time response to prevent user enumeration",
+        "description": "Authenticate a browser user and establish a cookie-backed session.\n\nSecurity:\n- Brute force protection with progressive lockout\n- Constant-time response to prevent user enumeration\n- Access/refresh tokens are delivered in httpOnly cookies, not JSON",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -36,7 +36,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/WebLoginResponse"
                 }
               }
             }
@@ -110,11 +110,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LogoutRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/src__presentation__api__v1__auth__schemas__LogoutRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Request"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "204": {
@@ -1188,7 +1195,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/PasskeyAuthenticationVerifyResponse"
                 }
               }
             }
@@ -26773,6 +26780,79 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreativeApprovalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "partners"
+        ],
+        "summary": "List Partner Workspace Creative Approvals",
+        "operationId": "list_partner_workspace_creative_approvals_api_v1_partner_workspaces__workspace_id__creative_approvals_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreativeApprovalResponse"
+                  },
+                  "title": "Response List Partner Workspace Creative Approvals Api V1 Partner Workspaces  Workspace Id  Creative Approvals Get"
                 }
               }
             }
@@ -58695,106 +58775,6 @@
         "title": "ListInvitesResponse",
         "description": "Response containing list of active invites."
       },
-      "LoginResponse": {
-        "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token"
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token"
-          },
-          "token_type": {
-            "type": "string",
-            "title": "Token Type",
-            "default": "bearer"
-          },
-          "expires_in": {
-            "type": "integer",
-            "title": "Expires In",
-            "default": 0
-          },
-          "auth_realm_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auth Realm Id"
-          },
-          "auth_realm_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Auth Realm Key"
-          },
-          "audience": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audience"
-          },
-          "principal_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Principal Type"
-          },
-          "scope_family": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scope Family"
-          },
-          "requires_2fa": {
-            "type": "boolean",
-            "title": "Requires 2Fa",
-            "default": false
-          },
-          "tfa_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tfa Token"
-          }
-        },
-        "type": "object",
-        "required": [
-          "access_token",
-          "refresh_token"
-        ],
-        "title": "LoginResponse"
-      },
       "LogoutAllResponse": {
         "properties": {
           "message": {
@@ -67584,6 +67564,28 @@
           "credential"
         ],
         "title": "PasskeyAuthenticationVerifyRequest"
+      },
+      "PasskeyAuthenticationVerifyResponse": {
+        "properties": {
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
+          }
+        },
+        "type": "object",
+        "title": "PasskeyAuthenticationVerifyResponse"
       },
       "PasskeyComplianceCredentialResponse": {
         "properties": {
@@ -84106,6 +84108,85 @@
           "created_at"
         ],
         "title": "WalletTransactionResponse"
+      },
+      "WebLoginResponse": {
+        "properties": {
+          "requires_2fa": {
+            "type": "boolean",
+            "title": "Requires 2Fa",
+            "default": false
+          },
+          "tfa_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tfa Token"
+          },
+          "auth_realm_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Realm Id"
+          },
+          "auth_realm_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Realm Key"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audience"
+          },
+          "principal_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Principal Type"
+          },
+          "scope_family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Family"
+          }
+        },
+        "type": "object",
+        "title": "WebLoginResponse",
+        "description": "Browser password login result.\n\nFull access/refresh token delivery for web login is cookie-only. Native token\npayload compatibility stays on token-bearing/mobile endpoints."
       },
       "WebhookLogResponse": {
         "properties": {

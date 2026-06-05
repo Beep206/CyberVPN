@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
-import { MOCK_USER, MOCK_TOKENS } from '@/test/mocks/handlers';
+import { MOCK_USER, MOCK_TOKENS, MOCK_WEB_LOGIN_RESPONSE } from '@/test/mocks/handlers';
 import { authApi } from '../auth';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
@@ -58,7 +58,7 @@ afterEach(() => {
 // ===========================================================================
 
 describe('authApi.login', () => {
-  it('test_login_success_returns_token_response', async () => {
+  it('test_login_success_returns_cookie_session_response', async () => {
     // Arrange
     const credentials = { email: 'testuser@cybervpn.io', password: 'correct_password' };
 
@@ -67,10 +67,10 @@ describe('authApi.login', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data.access_token).toBe(MOCK_TOKENS.access_token);
-    expect(response.data.refresh_token).toBe(MOCK_TOKENS.refresh_token);
-    expect(response.data.token_type).toBe('bearer');
-    expect(response.data.expires_in).toBe(3600);
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
+    expect(response.data.requires_2fa).toBe(false);
+    expect(response.data.tfa_token).toBeNull();
   });
 
   it('test_login_invalid_credentials_rejects_with_error', async () => {
@@ -144,7 +144,7 @@ describe('authApi.login', () => {
     server.use(
       http.post(`${API_BASE}/auth/login`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(MOCK_TOKENS);
+        return HttpResponse.json(MOCK_WEB_LOGIN_RESPONSE);
       }),
     );
 
@@ -166,7 +166,7 @@ describe('authApi.login', () => {
     server.use(
       http.post(`${API_BASE}/auth/login`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(MOCK_TOKENS);
+        return HttpResponse.json(MOCK_WEB_LOGIN_RESPONSE);
       }),
     );
 

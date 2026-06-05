@@ -222,10 +222,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   logout: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       await authApi.logout();
-    } finally {
       tokenStorage.clearTokens();
       set({
         user: null,
@@ -235,6 +234,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
         isNewTelegramUser: false,
       });
       authAnalytics.logout();
+    } catch (error: unknown) {
+      const message = readErrorMessage(error, 'Sign out failed. Please try again.');
+      set({ isLoading: false, error: message });
+      throw error;
     }
   },
 

@@ -43,11 +43,11 @@ def test_stage1_csrf_auth_cookie_detection() -> None:
     assert not request_has_auth_cookie({"analytics_id": "value"})
 
 
-def _build_test_app() -> FastAPI:
+def _build_test_app(allowed_origins: list[str] | None = None) -> FastAPI:
     app = FastAPI()
     app.add_middleware(
         CSRFMiddleware,
-        allowed_origins=["https://cyber-vpn.net", "https://admin.cyber-vpn.net"],
+        allowed_origins=allowed_origins or ["https://cyber-vpn.net", "https://admin.cyber-vpn.net"],
     )
 
     @app.post("/api/v1/profile")
@@ -102,6 +102,44 @@ async def test_stage1_csrf_blocks_cookie_auth_unsafe_request_from_redirect_only_
         response = await client.post(
             "/api/v1/profile",
             headers={"Origin": "https://cyber-vpn.org"},
+        )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_stage1_csrf_allows_cookie_auth_unsafe_request_from_approved_local_stage_origin() -> None:
+    allowed_origins = [
+        "http://127.0.0.1:13000",
+        "http://127.0.0.1:13001",
+    ]
+    async with AsyncClient(
+        transport=ASGITransport(app=_build_test_app(allowed_origins)),
+        base_url="http://127.0.0.1:18080",
+    ) as client:
+        client.cookies.set("access_token", "token")
+        response = await client.post(
+            "/api/v1/profile",
+            headers={"Origin": "http://127.0.0.1:13001"},
+        )
+
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_stage1_csrf_blocks_cookie_auth_unsafe_request_from_unapproved_local_origin() -> None:
+    allowed_origins = [
+        "http://127.0.0.1:13000",
+        "http://127.0.0.1:13001",
+    ]
+    async with AsyncClient(
+        transport=ASGITransport(app=_build_test_app(allowed_origins)),
+        base_url="http://127.0.0.1:18080",
+    ) as client:
+        client.cookies.set("access_token", "token")
+        response = await client.post(
+            "/api/v1/profile",
+            headers={"Origin": "http://127.0.0.1:13002"},
         )
 
     assert response.status_code == 403
@@ -202,4 +240,73 @@ def test_stage1_production_app_enforces_csrf_for_cookie_auth_unsafe_requests() -
         "bearer_status": 405,
         "csrf_middleware_installed": True,
         "missing_origin_status": 403,
+    }
+
+
+def test_stage1_local_stage_app_enforces_csrf_with_approved_loopback_origins() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    script = textwrap.dedent(
+        """
+        import asyncio
+        import json
+
+        from httpx import ASGITransport, AsyncClient
+
+        from src.main import app
+
+        async def main():
+            middleware_names = [item.cls.__name__ for item in app.user_middleware]
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1:18080") as client:
+                client.cookies.set("access_token", "token")
+                approved_origin = await client.post(
+                    "/api/v1/status",
+                    headers={"Origin": "http://127.0.0.1:13001"},
+                )
+                unapproved_origin = await client.post(
+                    "/api/v1/status",
+                    headers={"Origin": "http://127.0.0.1:13002"},
+                )
+            result = {
+                "csrf_middleware_installed": "CSRFMiddleware" in middleware_names,
+                "approved_origin_status": approved_origin.status_code,
+                "unapproved_origin_status": unapproved_origin.status_code,
+            }
+            print("S1_LOCAL_STAGE_CSRF_RESULT=" + json.dumps(result, sort_keys=True))
+
+        asyncio.run(main())
+        """
+    )
+    env = {
+        **os.environ,
+        "ENVIRONMENT": "local-stage",
+        "RATE_LIMIT_ENABLED": "false",
+        "CORS_ORIGINS": "http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000,http://127.0.0.1:13001",
+        "PASSKEY_ENABLED": "true",
+        "PASSKEY_RP_ID": "localhost",
+        "PASSKEY_ALLOWED_ORIGINS": "http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000,http://127.0.0.1:13001",
+        "COOKIE_DOMAIN": "",
+        "COOKIE_SECURE": "false",
+        "CSRF_PROTECTION_ENABLED": "true",
+        "REMNAWAVE_TOKEN": _non_secret_test_value("remnawave"),
+        "JWT_SECRET": _non_secret_test_value("jwt"),
+        "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
+        "OAUTH_ENABLED_LOGIN_PROVIDERS": "",
+        "PYTHONPATH": str(repo_root / "backend"),
+    }
+
+    completed = subprocess.run(  # noqa: S603 - static interpreter/script used for fresh import proof.
+        [sys.executable, "-c", script],
+        cwd=repo_root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    result_line = next(line for line in completed.stdout.splitlines() if line.startswith("S1_LOCAL_STAGE_CSRF_RESULT="))
+    result = json.loads(result_line.removeprefix("S1_LOCAL_STAGE_CSRF_RESULT="))
+
+    assert result == {
+        "approved_origin_status": 405,
+        "csrf_middleware_installed": True,
+        "unapproved_origin_status": 403,
     }

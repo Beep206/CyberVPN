@@ -26,6 +26,14 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3002
 NEXT_PUBLIC_SITE_URL=https://partner.cyber-vpn.net
 ```
 
+Browser API calls use same-origin `/api/v1` and the Next.js rewrite in
+`next.config.ts`. For local-stage QA the default backend origin is
+`http://127.0.0.1:18080`. Override it when running a different non-prod backend:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+```
+
 ## Product Intelligence Environment
 
 `P3.6` introduces the first governed PostHog server-side bridge and typed feature-flag wrapper path.

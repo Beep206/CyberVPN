@@ -64,6 +64,22 @@ class LoginResponse(TokenResponse):
     tfa_token: str | None = None
 
 
+class WebLoginResponse(BaseModel):
+    """Browser password login result.
+
+    Full access/refresh token delivery for web login is cookie-only. Native token
+    payload compatibility stays on token-bearing/mobile endpoints.
+    """
+
+    requires_2fa: bool = False
+    tfa_token: str | None = None
+    auth_realm_id: UUID | None = None
+    auth_realm_key: str | None = None
+    audience: str | None = None
+    principal_type: str | None = None
+    scope_family: str | None = None
+
+
 class AdminUserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

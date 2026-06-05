@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import type { AxiosResponse } from 'axios';
-import type { operations } from './generated/types';
+import type { components, operations } from './generated/types';
 
 export interface AuthRuntimeMetadata {
   auth_realm_id?: string | null;
@@ -18,14 +18,7 @@ export interface LoginRequest {
   remember_me?: boolean;
 }
 
-export interface LoginResponse extends AuthRuntimeMetadata {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  requires_2fa?: boolean;
-  tfa_token?: string | null;
-}
+export type LoginResponse = components['schemas']['WebLoginResponse'];
 
 export interface RegisterRequest {
   login: string;

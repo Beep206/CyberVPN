@@ -66,7 +66,7 @@ describe('MSW API Mocking', () => {
     expect(data.role).toBe('user');
   });
 
-  it('test_msw_login_success_returns_tokens', async () => {
+  it('test_msw_login_success_returns_tokenless_session_state', async () => {
     const response = await fetch('http://localhost:8000/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -78,9 +78,13 @@ describe('MSW API Mocking', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.access_token).toBeDefined();
-    expect(data.refresh_token).toBeDefined();
-    expect(data.token_type).toBe('bearer');
+    expect(data).not.toHaveProperty('access_token');
+    expect(data).not.toHaveProperty('refresh_token');
+    expect(data).not.toHaveProperty('token_type');
+    expect(data.requires_2fa).toBe(false);
+    expect(data.auth_realm_key).toBe('customer');
+    expect(data.principal_type).toBe('customer');
+    expect(data.scope_family).toBe('customer');
   });
 
   it('test_msw_login_invalid_password_returns_401', async () => {

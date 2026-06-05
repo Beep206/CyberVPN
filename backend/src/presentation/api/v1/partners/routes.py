@@ -3229,11 +3229,11 @@ def _workspace_has_reseller_voucher_capability(programs: PartnerWorkspaceProgram
     return lane.membership_status != "not_applied"
 
 
-async def _ensure_workspace_reseller_voucher_capability(
+async def _workspace_reseller_voucher_capability_enabled(
     *,
     access: PartnerWorkspaceAccess,
     db: AsyncSession,
-) -> None:
+) -> bool:
     programs = await BuildPartnerWorkspaceProgramsUseCase(db).execute(
         partner_account_id=access.workspace.id,
         workspace_status=access.workspace.status,
@@ -3246,7 +3246,15 @@ async def _ensure_workspace_reseller_voucher_capability(
         readiness_items=[_serialize_workspace_program_readiness_item(item) for item in programs.readiness_items],
         updated_at=_normalize_utc(programs.updated_at),
     )
-    if not _workspace_has_reseller_voucher_capability(programs_response):
+    return _workspace_has_reseller_voucher_capability(programs_response)
+
+
+async def _ensure_workspace_reseller_voucher_capability(
+    *,
+    access: PartnerWorkspaceAccess,
+    db: AsyncSession,
+) -> None:
+    if not await _workspace_reseller_voucher_capability_enabled(access=access, db=db):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reseller voucher batches are not enabled for this workspace",
@@ -5559,7 +5567,10 @@ async def list_partner_workspace_reseller_voucher_batches(
     ),
     db: AsyncSession = Depends(get_db),
 ) -> list[PartnerWorkspaceResellerVoucherBatchResponse]:
-    await _ensure_workspace_reseller_voucher_capability(access=access, db=db)
+    if not await _workspace_reseller_voucher_capability_enabled(access=access, db=db):
+        track_partner_operation(operation="list_workspace_reseller_voucher_batches")
+        return []
+
     repo = GrowthCodeRepository(db)
     codes = await repo.list_codes(
         code_type="gift",
@@ -6270,6 +6281,29 @@ async def submit_partner_workspace_creative_approval(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     track_partner_operation(operation="submit_workspace_creative_approval")
     return CreativeApprovalResponse.model_validate(created)
+
+
+@router.get(
+    "/partner-workspaces/{workspace_id}/creative-approvals",
+    response_model=list[CreativeApprovalResponse],
+)
+async def list_partner_workspace_creative_approvals(
+    workspace_id: UUID,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    access: PartnerWorkspaceAccess = Depends(
+        require_partner_workspace_permission(PartnerPermission.TRAFFIC_READ)
+    ),
+    db: AsyncSession = Depends(get_db),
+) -> list[CreativeApprovalResponse]:
+    items = await ListCreativeApprovalsUseCase(db).execute(
+        partner_account_id=access.workspace.id,
+        approval_kind=CreativeApprovalKind.CREATIVE_APPROVAL.value,
+        limit=limit,
+        offset=offset,
+    )
+    track_partner_operation(operation="list_workspace_creative_approvals")
+    return [CreativeApprovalResponse.model_validate(item) for item in items]
 
 
 @router.get(

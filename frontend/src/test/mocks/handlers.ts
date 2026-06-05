@@ -159,7 +159,7 @@ export const MOCK_MANAGED_USERS = [
 export const authHandlers = [
   /**
    * POST /auth/login
-   * Accepts email + password, returns token pair.
+   * Accepts email + password, establishes auth cookies, and returns login state.
    */
   http.post(`${API_BASE}/auth/login`, async ({ request }) => {
     const body = (await request.json()) as {
@@ -190,7 +190,13 @@ export const authHandlers = [
       );
     }
 
-    return HttpResponse.json(MOCK_TOKENS);
+    return HttpResponse.json({
+      requires_2fa: false,
+      tfa_token: null,
+      auth_realm_key: 'customer',
+      principal_type: 'customer',
+      scope_family: 'customer',
+    });
   }),
 
   /**

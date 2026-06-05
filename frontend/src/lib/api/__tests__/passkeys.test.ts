@@ -59,12 +59,7 @@ describe('passkeysApi', () => {
       http.post(`${API_BASE}/auth/passkeys/authentication/verify`, async ({ request }) => {
         verifyBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({
-          access_token: 'cookie-managed',
-          refresh_token: 'cookie-managed',
-          token_type: 'bearer',
-          expires_in: 3600,
           requires_2fa: false,
-          tfa_token: null,
         });
       }),
     );
@@ -91,6 +86,8 @@ describe('passkeysApi', () => {
     expect(optionsBody).toEqual({ conditional: true, identifier: 'neo@example.com' });
     expect(verifyBody).toMatchObject({ challengeId: 'challenge-1' });
     expect(verifyResponse.data.requires_2fa).toBe(false);
+    expect(verifyResponse.data).not.toHaveProperty('access_token');
+    expect(verifyResponse.data).not.toHaveProperty('refresh_token');
   });
 
   it('lists, renames, and deletes sanitized passkey metadata', async () => {

@@ -11,6 +11,8 @@ describe('partner passkeysApi', () => {
   it('preserves partner auth realm on passkey authentication requests', async () => {
     let capturedRealm: string | null = null;
     let capturedBody: Record<string, unknown> | null = null;
+    let capturedVerifyRealm: string | null = null;
+    let capturedVerifyBody: Record<string, unknown> | null = null;
 
     server.use(
       http.post(`${API_BASE}/auth/passkeys/authentication/options`, async ({ request }) => {
@@ -22,17 +24,36 @@ describe('partner passkeysApi', () => {
           publicKey: { challenge: 'cGFydG5lcg' },
         });
       }),
+      http.post(`${API_BASE}/auth/passkeys/authentication/verify`, async ({ request }) => {
+        capturedVerifyRealm = request.headers.get(CANONICAL_AUTH_REALM_HEADER);
+        capturedVerifyBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          requires_2fa: false,
+        });
+      }),
     );
 
     const response = await passkeysApi.createAuthenticationOptions({
       identifier: 'operator@partner.example',
     });
+    const verifyResponse = await passkeysApi.verifyAuthentication({
+      challengeId: response.data.challengeId,
+      credential: { id: 'partner-passkey-response' },
+    });
 
     expect(response.data.challengeId).toBe('challenge-partner-001');
+    expect(verifyResponse.data.requires_2fa).toBe(false);
+    expect(verifyResponse.data).not.toHaveProperty('access_token');
+    expect(verifyResponse.data).not.toHaveProperty('refresh_token');
     expect(capturedRealm).toBe('partner');
+    expect(capturedVerifyRealm).toBe('partner');
     expect(capturedBody).toMatchObject({
       conditional: false,
       identifier: 'operator@partner.example',
+    });
+    expect(capturedVerifyBody).toMatchObject({
+      challengeId: 'challenge-partner-001',
+      credential: { id: 'partner-passkey-response' },
     });
   });
 

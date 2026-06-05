@@ -13,7 +13,7 @@ interface CyberInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
-    ({ label, error, success, prefix = 'input', type = 'text', className, id: propId, ...props }, ref) => {
+    ({ label, error, success, prefix = 'input', type = 'text', className, id: propId, onFocus, onBlur, ...props }, ref) => {
         const generatedId = useId();
         const id = propId ?? generatedId;
         const errorId = `${id}-error`;
@@ -54,10 +54,11 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                     {/* Input wrapper */}
                     <div
                         className={cn(
-                            "relative flex items-center",
+                            "relative flex min-w-0 items-center overflow-hidden",
                             "bg-terminal-bg dark:bg-black/60",
                             "border rounded-lg",
                             "transition-colors duration-200",
+                            "has-[:focus-visible]:border-neon-cyan has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-neon-cyan/70 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-terminal-bg has-[:focus-visible]:shadow-[0_0_18px_rgba(0,255,255,0.26)]",
                             error
                                 ? "border-red-500"
                                 : success
@@ -68,7 +69,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                         )}
                     >
                         {/* Terminal prefix */}
-                        <span className="pl-4 pr-2 py-3 text-xs font-mono text-muted-foreground-low select-none whitespace-nowrap">
+                        <span className="shrink-0 pl-3 pr-1.5 py-3 text-[11px] font-mono text-muted-foreground-low select-none whitespace-nowrap sm:pl-4 sm:pr-2 sm:text-xs">
                             root@{prefix}:~$
                         </span>
 
@@ -80,15 +81,21 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                             aria-invalid={error ? 'true' : undefined}
                             aria-describedby={error ? errorId : undefined}
                             className={cn(
-                                "flex-1 bg-transparent py-3 pr-4",
+                                "min-w-0 flex-1 bg-transparent py-3 pr-2 sm:pr-4",
                                 "text-foreground font-mono text-sm",
                                 "placeholder:text-muted-foreground/30",
-                                "focus:outline-none",
+                                "focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neon-cyan/50",
                                 "autofill:bg-transparent",
                                 className
                             )}
-                            onFocus={() => setIsFocused(true)}
-                            onBlur={() => setIsFocused(false)}
+                            onFocus={(event) => {
+                                setIsFocused(true);
+                                onFocus?.(event);
+                            }}
+                            onBlur={(event) => {
+                                setIsFocused(false);
+                                onBlur?.(event);
+                            }}
                             {...props}
                         />
 
@@ -97,8 +104,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="px-3 text-muted-foreground hover:text-foreground transition-colors"
-                                tabIndex={-1}
+                                className="touch-target inline-flex w-11 shrink-0 items-center justify-center px-3 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neon-cyan/70"
                                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 aria-pressed={showPassword}
                             >
@@ -112,12 +118,12 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
 
                         {/* Status indicators */}
                         {error && (
-                            <div className="px-3 text-red-500" aria-hidden="true">
+                            <div className="shrink-0 px-3 text-red-500" aria-hidden="true">
                                 <AlertCircle className="h-4 w-4" />
                             </div>
                         )}
                         {success && !error && (
-                            <div className="px-3 text-matrix-green" aria-hidden="true">
+                            <div className="shrink-0 px-3 text-matrix-green" aria-hidden="true">
                                 <Check className="h-4 w-4" />
                             </div>
                         )}

@@ -8,15 +8,15 @@
  * MSW handlers are defined in src/test/mocks/handlers.ts and started/stopped
  * by the global test setup in src/test/setup.ts.
  *
- * NOTE: The apiClient response interceptor converts 401 responses (except on
- * /auth/me) into a cookie-based refresh flow. Failed refresh attempts bubble
- * up as the refresh endpoint's 401 response, and auth tokens are not stored in
- * localStorage anymore.
+ * NOTE: The apiClient response interceptor converts protected endpoint 401
+ * responses into a cookie-based refresh flow. Public credential/bootstrap auth
+ * 401s and refresh endpoint 401s pass through with their original safe error,
+ * and auth tokens are not stored in localStorage anymore.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
-import { MOCK_USER, MOCK_TOKENS } from '@/test/mocks/handlers';
+import { MOCK_USER, MOCK_TOKENS, MOCK_WEB_LOGIN_RESPONSE } from '@/test/mocks/handlers';
 import { authApi } from '../auth';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
@@ -58,7 +58,7 @@ afterEach(() => {
 // ===========================================================================
 
 describe('authApi.login', () => {
-  it('test_login_success_returns_token_response', async () => {
+  it('test_login_success_returns_cookie_session_response', async () => {
     // Arrange
     const credentials = { email: 'testuser@cybervpn.io', password: 'correct_password' };
 
@@ -67,10 +67,10 @@ describe('authApi.login', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data.access_token).toBe(MOCK_TOKENS.access_token);
-    expect(response.data.refresh_token).toBe(MOCK_TOKENS.refresh_token);
-    expect(response.data.token_type).toBe('bearer');
-    expect(response.data.expires_in).toBe(3600);
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
+    expect(response.data.requires_2fa).toBe(false);
+    expect(response.data.tfa_token).toBeNull();
   });
 
   it('test_login_invalid_credentials_rejects_with_error', async () => {
@@ -84,11 +84,9 @@ describe('authApi.login', () => {
     await expect(authApi.login(credentials)).rejects.toThrow('Request failed with status code 401');
   });
 
-  it('test_login_invalid_credentials_with_refresh_token_retries_and_gets_401', async () => {
-    // Arrange -- provide a refresh token so the interceptor tries to refresh.
-    // The refresh succeeds (MSW default), then it retries the login,
-    // but the login still returns 401 because the credentials are wrong.
-    // The _retry flag prevents infinite loops -- the retried 401 passes through.
+  it('test_login_invalid_credentials_with_legacy_refresh_token_still_returns_original_401', async () => {
+    // Arrange -- legacy tokenStorage is a no-op after SEC-01. Login 401s
+    // should still pass through as credential failures without refresh retry.
     tokenStorage.setTokens('old_access', 'some_refresh_token');
     const credentials = { email: 'testuser@cybervpn.io', password: 'wrong_password' };
 
@@ -103,6 +101,34 @@ describe('authApi.login', () => {
         expect(error.response?.data.detail).toBe('Invalid email or password');
       }
     }
+  });
+
+  it('test_login_invalid_credentials_does_not_attempt_refresh_or_expose_refresh_detail', async () => {
+    let refreshAttempts = 0;
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshAttempts += 1;
+        return HttpResponse.json(
+          { detail: 'Invalid or expired refresh token' },
+          { status: 401 },
+        );
+      }),
+    );
+
+    try {
+      await authApi.login({
+        email: 'testuser@cybervpn.io',
+        password: 'wrong_password',
+      });
+      expect.fail('Expected request to reject');
+    } catch (error: unknown) {
+      expect(isAxiosError(error)).toBe(true);
+      if (isAxiosError(error)) {
+        expect(error.response?.status).toBe(401);
+        expect(error.response?.data.detail).toBe('Invalid email or password');
+      }
+    }
+    expect(refreshAttempts).toBe(0);
   });
 
   it('test_login_banned_account_rejects_with_403', async () => {
@@ -144,7 +170,7 @@ describe('authApi.login', () => {
     server.use(
       http.post(`${API_BASE}/auth/login`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(MOCK_TOKENS);
+        return HttpResponse.json(MOCK_WEB_LOGIN_RESPONSE);
       }),
     );
 
@@ -166,7 +192,7 @@ describe('authApi.login', () => {
     server.use(
       http.post(`${API_BASE}/auth/login`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(MOCK_TOKENS);
+        return HttpResponse.json(MOCK_WEB_LOGIN_RESPONSE);
       }),
     );
 
@@ -813,10 +839,22 @@ describe('authApi.telegramWidget', () => {
     await expect(authApi.telegramWidget(data)).rejects.toThrow('Request failed with status code 401');
   });
 
-  it('test_telegram_widget_invalid_hash_with_refresh_token_gets_401', async () => {
-    // Arrange -- provide a refresh token so the interceptor retries.
-    // The retry still gets 401 because the hash is invalid.
+  it('test_telegram_widget_invalid_hash_does_not_attempt_refresh_or_expose_refresh_detail', async () => {
+    // Arrange -- legacy tokenStorage is a no-op, and Telegram widget login is a
+    // public credential/bootstrap flow. Its 401 must not call refresh or expose
+    // refresh endpoint details.
     tokenStorage.setTokens('old_access', 'some_refresh_token');
+    let refreshAttempts = 0;
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshAttempts += 1;
+        return HttpResponse.json(
+          { detail: 'Invalid or expired refresh token' },
+          { status: 401 },
+        );
+      }),
+    );
+
     const data = {
       id: 123456,
       first_name: 'Test',
@@ -835,6 +873,7 @@ describe('authApi.telegramWidget', () => {
         expect(error.response?.data.detail).toBe('Invalid Telegram auth data');
       }
     }
+    expect(refreshAttempts).toBe(0);
   });
 
   it('test_telegram_widget_sends_all_fields_in_request_body', async () => {
@@ -1382,6 +1421,48 @@ describe('authApi.telegramLinkAuthorize', () => {
     await expect(
       authApi.telegramLinkAuthorize('https://cybervpn.io/link'),
     ).rejects.toThrow('Request failed with status code 401');
+  });
+
+  it('test_telegram_link_authorize_401_retries_original_request_after_refresh', async () => {
+    let refreshAttempts = 0;
+    let authorizeAttempts = 0;
+
+    server.use(
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshAttempts += 1;
+        return HttpResponse.json({
+          access_token: 'mock_refreshed_access_token',
+          refresh_token: 'mock_refreshed_refresh_token',
+          token_type: 'bearer',
+          expires_in: 3600,
+        });
+      }),
+      http.get(`${API_BASE}/oauth/telegram/authorize`, ({ request }) => {
+        authorizeAttempts += 1;
+
+        if (authorizeAttempts === 1) {
+          return HttpResponse.json(
+            { detail: 'Token expired' },
+            { status: 401 },
+          );
+        }
+
+        const url = new URL(request.url);
+        const redirectUri = url.searchParams.get('redirect_uri');
+
+        return HttpResponse.json({
+          authorize_url: `https://telegram.example.com/oauth/authorize?redirect_uri=${redirectUri}`,
+          state: 'mock_link_state_token',
+        });
+      }),
+    );
+
+    const response = await authApi.telegramLinkAuthorize('https://cybervpn.io/link');
+
+    expect(refreshAttempts).toBe(1);
+    expect(authorizeAttempts).toBe(2);
+    expect(response.status).toBe(200);
+    expect(response.data.state).toBe('mock_link_state_token');
   });
 
   it('test_telegram_link_authorize_server_error_500_rejects', async () => {

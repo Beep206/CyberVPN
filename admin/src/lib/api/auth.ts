@@ -13,14 +13,7 @@ export interface LoginRequest {
   remember_me?: boolean;
 }
 
-export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  requires_2fa?: boolean;
-  tfa_token?: string | null;
-}
+export type LoginResponse = components['schemas']['WebLoginResponse'];
 
 export interface RegisterRequest {
   login: string;
@@ -250,6 +243,16 @@ export interface OAuthLinkResponse {
 }
 
 // Auth API functions
+//
+// 401 retry threat model:
+// - Credential/bootstrap methods on this surface are public entry points and
+//   must surface their original 401s without token refresh retry:
+//   login, register, verify/resend OTP, password reset, magic-link login,
+//   Telegram login widget/web/miniapp/bot-link, and OAuth login callbacks.
+// - Protected session operations should keep cookie refresh retry semantics:
+//   logout, current-session/device management, account deletion, Telegram
+//   account linking, provider unlinking, and other authenticated management
+//   endpoints.
 export const authApi = {
   /**
    * Login with email and password
