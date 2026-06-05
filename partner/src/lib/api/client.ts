@@ -84,6 +84,19 @@ export function resolveAuthRealmHeaderValue(): string {
   return process.env.NEXT_PUBLIC_PARTNER_API_AUTH_REALM?.trim() || 'partner';
 }
 
+export function isDevelopmentAuthBypassEnabled(): boolean {
+  if (
+    process.env.NODE_ENV === 'production'
+    || typeof document === 'undefined'
+  ) {
+    return false;
+  }
+
+  return document.cookie
+    .split(';')
+    .some((item) => item.trim() === 'DEV_BYPASS_AUTH=true');
+}
+
 // SEC-01: Token storage migrated to httpOnly cookies.
 // tokenStorage is kept as a no-op shim so existing callers don't break during
 // the transition.  The backend now sets/clears httpOnly cookies automatically.
@@ -282,6 +295,14 @@ apiClient.interceptors.response.use(
     }
 
     // 401 handling
+    if (error.response?.status === 401 && isDevelopmentAuthBypassEnabled()) {
+      reportApiResponseTelemetry(originalRequest, {
+        errorCode: 'dev_bypass_unauthorized',
+        result: 'failure',
+      });
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       const requestUrl = originalRequest.url || '';
 

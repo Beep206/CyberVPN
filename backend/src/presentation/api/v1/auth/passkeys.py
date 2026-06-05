@@ -36,10 +36,11 @@ from src.infrastructure.database.repositories.passkey_credential_repo import Pas
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.instrumentation.routes import sync_active_sessions
 from src.infrastructure.monitoring.metrics import route_operations_total
-from src.presentation.api.v1.auth.cookies import set_auth_cookies
+from src.presentation.api.v1.auth.cookies import set_auth_cookies, set_pending_2fa_cookie
 from src.presentation.api.v1.auth.passkey_schemas import (
     PasskeyAuthenticationOptionsRequest,
     PasskeyAuthenticationVerifyRequest,
+    PasskeyAuthenticationVerifyResponse,
     PasskeyCredentialListResponse,
     PasskeyCredentialResponse,
     PasskeyDeleteResponse,
@@ -53,7 +54,6 @@ from src.presentation.api.v1.auth.passkey_schemas import (
     PasskeyRenameRequest,
 )
 from src.presentation.api.v1.auth.realm_context import get_principal_type_for_realm
-from src.presentation.api.v1.auth.schemas import LoginResponse
 from src.presentation.api.v1.auth.session_tokens import store_refresh_token
 from src.presentation.dependencies.auth import get_current_active_web_user
 from src.presentation.dependencies.auth_realms import get_request_web_auth_realm
@@ -310,7 +310,7 @@ async def _issue_session_for_passkey(
     user: AdminUserModel,
     credential: PasskeyCredentialModel,
     cookie_namespace: str,
-) -> LoginResponse:
+) -> PasskeyAuthenticationVerifyResponse:
     if user.totp_enabled:
         tfa_token, _, _ = auth_service.create_access_token(
             subject=str(user.id),
@@ -322,18 +322,13 @@ async def _issue_session_for_passkey(
             realm_key=credential.realm_key,
             scope_family=get_scope_family_for_realm_key(credential.realm_key),
         )
-        return LoginResponse(
-            access_token="",
-            refresh_token="",
-            expires_in=0,
-            auth_realm_id=credential.auth_realm_id,
-            auth_realm_key=credential.realm_key,
-            audience=credential.audience,
-            principal_type=credential.principal_class,
-            scope_family=get_scope_family_for_realm_key(credential.realm_key),
-            requires_2fa=True,
-            tfa_token=tfa_token,
+        set_pending_2fa_cookie(
+            response,
+            tfa_token,
+            request=request,
+            cookie_namespace=cookie_namespace,
         )
+        return PasskeyAuthenticationVerifyResponse(requires_2fa=True, tfa_token=tfa_token)
 
     fingerprint = generate_client_fingerprint(request)
     scope_family = get_scope_family_for_realm_key(credential.realm_key)
@@ -371,20 +366,15 @@ async def _issue_session_for_passkey(
         scope_family=scope_family,
         access_token_jti=access_jti,
     )
-    set_auth_cookies(response, access_token, refresh_token, cookie_namespace=cookie_namespace)
-    await sync_active_sessions(db)
-    return LoginResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=settings.access_token_expire_minutes * 60,
-        auth_realm_id=credential.auth_realm_id,
-        auth_realm_key=credential.realm_key,
-        audience=credential.audience,
-        principal_type=credential.principal_class,
-        scope_family=scope_family,
-        requires_2fa=False,
-        tfa_token=None,
+    set_auth_cookies(
+        response,
+        access_token,
+        refresh_token,
+        request=request,
+        cookie_namespace=cookie_namespace,
     )
+    await sync_active_sessions(db)
+    return PasskeyAuthenticationVerifyResponse(requires_2fa=False)
 
 
 def get_scope_family_for_realm_key(realm_key: str) -> str:
@@ -661,7 +651,7 @@ async def create_passkey_authentication_options(
     )
 
 
-@router.post("/authentication/verify", response_model=LoginResponse)
+@router.post("/authentication/verify", response_model=PasskeyAuthenticationVerifyResponse)
 async def verify_passkey_authentication(
     payload: PasskeyAuthenticationVerifyRequest,
     request: Request,
@@ -670,7 +660,7 @@ async def verify_passkey_authentication(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
-) -> LoginResponse:
+) -> PasskeyAuthenticationVerifyResponse:
     context = await _passkey_context(request, current_realm.realm_type, db)
     _require_passkeys_enabled(context.authentication_enabled)
     try:

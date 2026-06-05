@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 import pytest
-from fastapi import Response
+from fastapi import Request, Response
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -115,6 +115,47 @@ class _RecordingEmailDispatcher:
             }
         )
         return f"otp-email-{len(self.otp_emails)}"
+
+
+def _build_cookie_request(
+    *,
+    host: str,
+    scheme: str = "http",
+    forwarded_host: str | None = None,
+    forwarded_proto: str | None = None,
+    origin: str | None = None,
+) -> Request:
+    headers = [(b"host", host.encode())]
+    if forwarded_host is not None:
+        headers.append((b"x-forwarded-host", forwarded_host.encode()))
+    if forwarded_proto is not None:
+        headers.append((b"x-forwarded-proto", forwarded_proto.encode()))
+    if origin is not None:
+        headers.append((b"origin", origin.encode()))
+
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/auth/login",
+            "scheme": scheme,
+            "server": ("127.0.0.1", 13000),
+            "headers": headers,
+            "client": ("127.0.0.1", 54321),
+        }
+    )
+
+
+def _cookie_headers(response: Response) -> list[str]:
+    return [value.decode() for key, value in response.raw_headers if key == b"set-cookie"]
+
+
+def _has_secure_cookie_attribute(header: str) -> bool:
+    return any(part.strip().lower() == "secure" for part in header.split(";")[1:])
+
+
+def _has_domain_cookie_attribute(header: str) -> bool:
+    return any(part.strip().lower().startswith("domain=") for part in header.split(";")[1:])
 
 
 async def _stage1_user(*, active: bool = True, verified: bool = True) -> AdminUserModel:
@@ -281,6 +322,222 @@ def test_stage1_auth_cookies_are_http_only_lax_secure_and_clearable(monkeypatch:
 
     assert any("access_token=" in header and "max-age=0" in header for header in clear_headers)
     assert any("refresh_token=" in header and "max-age=0" in header for header in clear_headers)
+
+
+def test_stage1_auth_cookies_allow_insecure_only_for_local_http_loopback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "development")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "")
+
+    response = Response()
+    request = _build_cookie_request(host="127.0.0.1:13000", scheme="http")
+
+    set_auth_cookies(response, "access-token-value", "refresh-token-value", request=request)
+
+    assert _cookie_headers(response)
+    assert not any(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+def test_stage1_auth_cookies_keep_secure_for_spoofed_forwarded_local_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "local-stage")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "")
+
+    response = Response()
+    request = _build_cookie_request(
+        host="stage.cyber-vpn.net",
+        scheme="http",
+        forwarded_host="127.0.0.1:13000",
+        forwarded_proto="http",
+    )
+
+    set_auth_cookies(response, "access-token-value", "refresh-token-value", request=request)
+
+    assert _cookie_headers(response)
+    assert all(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+def test_stage1_auth_cookies_force_secure_in_production_even_on_loopback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", False)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "")
+
+    response = Response()
+    request = _build_cookie_request(host="127.0.0.1:13000", scheme="http")
+
+    set_auth_cookies(response, "access-token-value", "refresh-token-value", request=request)
+
+    assert _cookie_headers(response)
+    assert all(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+def test_stage1_customer_cookies_allow_local_http_origin_in_production_without_domain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "cyber-vpn.net")
+
+    response = Response()
+    request = _build_cookie_request(
+        host="127.0.0.1:13000",
+        scheme="http",
+        origin="http://127.0.0.1:13000",
+    )
+
+    set_auth_cookies(
+        response,
+        "access-token-value",
+        "refresh-token-value",
+        request=request,
+        cookie_namespace="customer",
+    )
+
+    assert _cookie_headers(response)
+    assert not any(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+    assert not any(_has_domain_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+def test_stage1_customer_cookies_keep_secure_domain_for_spoofed_local_origin_on_public_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "cyber-vpn.net")
+
+    response = Response()
+    request = _build_cookie_request(
+        host="cyber-vpn.net",
+        scheme="https",
+        origin="http://127.0.0.1:13000",
+    )
+
+    set_auth_cookies(
+        response,
+        "access-token-value",
+        "refresh-token-value",
+        request=request,
+        cookie_namespace="customer",
+    )
+
+    assert _cookie_headers(response)
+    assert all(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+    assert all(_has_domain_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://127.0.0.1:not-a-port",
+        "http://[::1:13000",
+    ],
+)
+def test_stage1_customer_cookies_keep_secure_domain_for_malformed_local_origin(
+    monkeypatch: pytest.MonkeyPatch,
+    origin: str,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "cyber-vpn.net")
+
+    response = Response()
+    request = _build_cookie_request(
+        host="127.0.0.1:13000",
+        scheme="http",
+        origin=origin,
+    )
+
+    set_auth_cookies(
+        response,
+        "access-token-value",
+        "refresh-token-value",
+        request=request,
+        cookie_namespace="customer",
+    )
+
+    assert _cookie_headers(response)
+    assert all(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+    assert all(_has_domain_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://evil.example@127.0.0.1:13000",
+        "http://127.0.0.1:13000/path",
+        "http://127.0.0.1:13000?query=1",
+        "http://127.0.0.1:13000#fragment",
+    ],
+)
+def test_stage1_customer_cookies_keep_secure_domain_for_origin_with_extra_url_parts(
+    monkeypatch: pytest.MonkeyPatch,
+    origin: str,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "cyber-vpn.net")
+
+    response = Response()
+    request = _build_cookie_request(
+        host="127.0.0.1:13000",
+        scheme="http",
+        origin=origin,
+    )
+
+    set_auth_cookies(
+        response,
+        "access-token-value",
+        "refresh-token-value",
+        request=request,
+        cookie_namespace="customer",
+    )
+
+    assert _cookie_headers(response)
+    assert all(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+    assert all(_has_domain_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+def test_stage1_non_customer_cookies_keep_secure_domain_for_local_origin_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "production")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "cyber-vpn.net")
+
+    response = Response()
+    request = _build_cookie_request(
+        host="127.0.0.1:13000",
+        scheme="http",
+        origin="http://127.0.0.1:13000",
+    )
+
+    set_auth_cookies(response, "access-token-value", "refresh-token-value", request=request, cookie_namespace="admin")
+
+    assert _cookie_headers(response)
+    assert all(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
+    assert all(_has_domain_cookie_attribute(header) for header in _cookie_headers(response))
+
+
+def test_stage1_auth_cookies_allow_ipv6_loopback_local_http_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.environment", "development")
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_secure", True)
+    monkeypatch.setattr("src.presentation.api.v1.auth.cookies.settings.cookie_domain", "")
+
+    response = Response()
+    request = _build_cookie_request(host="[::1]:13000", scheme="http")
+
+    set_auth_cookies(response, "access-token-value", "refresh-token-value", request=request)
+
+    assert _cookie_headers(response)
+    assert not any(_has_secure_cookie_attribute(header) for header in _cookie_headers(response))
 
 
 @pytest.mark.integration

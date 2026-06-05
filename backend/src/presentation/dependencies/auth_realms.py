@@ -9,6 +9,7 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.presentation.dependencies.database import get_db
 
 PARTNER_AUTH_HOSTS = frozenset({"partner.cyber-vpn.net"})
+PARTNER_LOCAL_AUTH_HOSTS = frozenset({"portal.localhost", "storefront.localhost"})
 
 
 def _request_host(request: Request) -> str:
@@ -20,7 +21,7 @@ def _web_realm_hint_for_host(request: Request) -> str:
     host = _request_host(request)
     if host in S1_PRODUCTION_ADMIN_ALLOWED_HOSTS or host in S1_REDIRECT_ONLY_ADMIN_HOSTS:
         return "admin"
-    if host in PARTNER_AUTH_HOSTS:
+    if host in PARTNER_AUTH_HOSTS or host in PARTNER_LOCAL_AUTH_HOSTS:
         return "partner"
     return "customer"
 

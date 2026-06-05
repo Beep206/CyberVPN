@@ -57,14 +57,6 @@ async def _create_admin_user(
     return user
 
 
-def _host_for_realm(realm_key: str) -> str:
-    if realm_key == "admin":
-        return "admin.cyber-vpn.net"
-    if realm_key == "partner":
-        return "partner.cyber-vpn.net"
-    return "my.cyber-vpn.net"
-
-
 async def _login(
     async_client: AsyncClient,
     *,
@@ -74,7 +66,7 @@ async def _login(
 ) -> dict:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"Host": _host_for_realm(realm_key), "X-Auth-Realm": realm_key},
+        headers={"X-Auth-Realm": realm_key},
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
@@ -84,29 +76,8 @@ async def _login(
 def _auth_headers(*, token: str, realm_key: str) -> dict[str, str]:
     return {
         "Authorization": f"Bearer {token}",
-        "Host": _host_for_realm(realm_key),
         "X-Auth-Realm": realm_key,
     }
-
-
-async def _with_partner_fresh_auth(
-    headers: dict[str, str],
-    fake_redis: FakeRedis,
-    *,
-    principal_subject: str,
-    auth_realm_id: str,
-    realm_key: str,
-    action: str,
-) -> dict[str, str]:
-    grant = await PasskeyFreshAuthGrantStore(fake_redis).create(
-        principal_subject=principal_subject,
-        principal_class="partner_operator",
-        auth_realm_id=auth_realm_id,
-        realm_key=realm_key,
-        action=action,
-        ttl_seconds=300,
-    )
-    return {**headers, FRESH_AUTH_GRANT_ID_HEADER: grant.grant_id}
 
 
 def _application_payload() -> dict[str, object]:
@@ -613,57 +584,29 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
 
             add_manager_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers=await _with_partner_fresh_auth(
-                    owner_headers,
-                    fake_redis,
-                    principal_subject=str(owner_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.create:{workspace_id}",
-                ),
+                headers=owner_headers,
                 json={"admin_user_id": str(manager_user.id), "role_key": "manager"},
             )
-            assert add_manager_response.status_code == 201, add_manager_response.text
+            assert add_manager_response.status_code == 201
             manager_member_id = add_manager_response.json()["id"]
 
             manager_owner_role_attempt = await async_client.patch(
                 f"/api/v1/partner-workspaces/{workspace_id}/members/{owner_member_id}",
-                headers=await _with_partner_fresh_auth(
-                    manager_headers,
-                    fake_redis,
-                    principal_subject=str(manager_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.update:{workspace_id}:{owner_member_id}",
-                ),
+                headers=manager_headers,
                 json={"role_key": "analyst"},
             )
             assert manager_owner_role_attempt.status_code == 403
 
             owner_self_demote_attempt = await async_client.patch(
                 f"/api/v1/partner-workspaces/{workspace_id}/members/{owner_member_id}",
-                headers=await _with_partner_fresh_auth(
-                    owner_headers,
-                    fake_redis,
-                    principal_subject=str(owner_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.update:{workspace_id}:{owner_member_id}",
-                ),
+                headers=owner_headers,
                 json={"role_key": "analyst"},
             )
             assert owner_self_demote_attempt.status_code == 409
 
             add_finance_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers=await _with_partner_fresh_auth(
-                    owner_headers,
-                    fake_redis,
-                    principal_subject=str(owner_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.create:{workspace_id}",
-                ),
+                headers=owner_headers,
                 json={"admin_user_id": str(finance_user.id), "role_key": "finance"},
             )
             assert add_finance_response.status_code == 201
@@ -672,14 +615,7 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
 
             add_traffic_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/members",
-                headers=await _with_partner_fresh_auth(
-                    owner_headers,
-                    fake_redis,
-                    principal_subject=str(owner_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.create:{workspace_id}",
-                ),
+                headers=owner_headers,
                 json={"admin_user_id": str(traffic_user.id), "role_key": "traffic_manager"},
             )
             assert add_traffic_response.status_code == 201
@@ -707,14 +643,7 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
 
             create_payout_account_response = await async_client.post(
                 f"/api/v1/partner-workspaces/{workspace_id}/payout-accounts",
-                headers=await _with_partner_fresh_auth(
-                    finance_headers,
-                    fake_redis,
-                    principal_subject=str(finance_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.payout_account.create:{workspace_id}",
-                ),
+                headers=finance_headers,
                 json={
                     "payout_rail": "manual",
                     "display_label": "Primary finance route",
@@ -780,14 +709,7 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
 
             finance_to_analyst_response = await async_client.patch(
                 f"/api/v1/partner-workspaces/{workspace_id}/members/{finance_member_id}",
-                headers=await _with_partner_fresh_auth(
-                    owner_headers,
-                    fake_redis,
-                    principal_subject=str(owner_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.update:{workspace_id}:{finance_member_id}",
-                ),
+                headers=owner_headers,
                 json={"role_key": "analyst"},
             )
             assert finance_to_analyst_response.status_code == 200
@@ -815,16 +737,17 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
             )
             assert finance_payout_after_role_change.status_code == 403
 
+            fresh_auth_grant = await PasskeyFreshAuthGrantStore(fake_redis).create(
+                principal_subject=str(owner_user.id),
+                principal_class="partner_operator",
+                auth_realm_id=partner_realm_id,
+                realm_key=partner_realm_key,
+                action=f"partner.passkeys.policy.update:{workspace_id}",
+                ttl_seconds=300,
+            )
             enable_workspace_mfa_response = await async_client.patch(
                 f"/api/v1/partner-workspaces/{workspace_id}/security/passkeys/policy",
-                headers=await _with_partner_fresh_auth(
-                    owner_headers,
-                    fake_redis,
-                    principal_subject=str(owner_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.passkeys.policy.update:{workspace_id}",
-                ),
+                headers={**owner_headers, FRESH_AUTH_GRANT_ID_HEADER: fresh_auth_grant.grant_id},
                 json={"requireMfaForWorkspace": True},
             )
             assert enable_workspace_mfa_response.status_code == 200
@@ -897,14 +820,7 @@ async def test_e2e_perm_010_015_role_permissions_and_admin_partner_sync(
 
             manager_suspend_attempt = await async_client.patch(
                 f"/api/v1/partner-workspaces/{workspace_id}/members/{manager_member_id}",
-                headers=await _with_partner_fresh_auth(
-                    manager_headers,
-                    fake_redis,
-                    principal_subject=str(manager_user.id),
-                    auth_realm_id=partner_realm_id,
-                    realm_key=partner_realm_key,
-                    action=f"partner.member.update:{workspace_id}:{manager_member_id}",
-                ),
+                headers=manager_headers,
                 json={"membership_status": "limited"},
             )
             assert manager_suspend_attempt.status_code == 403

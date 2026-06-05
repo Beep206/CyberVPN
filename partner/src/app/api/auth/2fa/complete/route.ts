@@ -4,8 +4,9 @@ import {
   parsePendingTwoFactorCookieValue,
   PENDING_2FA_COOKIE,
 } from '@/features/auth/lib/pending-twofa';
-import { resolvePartnerAuthRealmKeyFromHost } from '@/features/auth/lib/partner-access';
+import { PARTNER_PORTAL_REALM_KEY } from '@/features/auth/lib/partner-access';
 import { getDefaultPostLoginPath } from '@/features/auth/lib/redirect-path';
+import { resolvePartnerSurfaceContext } from '@/features/storefront-shell/lib/runtime';
 
 function getBackendBaseUrl(): string {
   const baseUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -16,15 +17,54 @@ function getBackendBaseUrl(): string {
   return baseUrl.replace(/\/$/, '');
 }
 
+const PARTNER_PORTAL_BACKEND_HOST =
+  process.env.NEXT_PUBLIC_PARTNER_PORTAL_HOST?.trim() || 'partner.cyber-vpn.net';
+const PARTNER_CANONICAL_FORWARDED_PROTO = 'https';
+const APPROVED_LOCAL_STAGE_PARTNER_HOSTS = new Set([
+  'portal.localhost:3004',
+  'storefront.localhost:3004',
+  '127.0.0.1:3004',
+  'localhost:3004',
+  'portal.localhost:3002',
+  'storefront.localhost:3002',
+  '127.0.0.1:3002',
+  'localhost:3002',
+]);
+
+interface ForwardedAuthContext {
+  authRealmKey: string;
+  forwardedHost: string;
+}
+
+function getRequestHost(request: NextRequest): string {
+  return request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host;
+}
+
+function getForwardedAuthContext(request: NextRequest): ForwardedAuthContext {
+  const surfaceContext = resolvePartnerSurfaceContext(getRequestHost(request));
+
+  if (surfaceContext.family === 'portal') {
+    return {
+      authRealmKey: PARTNER_PORTAL_REALM_KEY,
+      forwardedHost: PARTNER_PORTAL_BACKEND_HOST,
+    };
+  }
+
+  return {
+    authRealmKey: surfaceContext.authRealmKey,
+    forwardedHost: surfaceContext.canonicalHost,
+  };
+}
+
 function buildForwardHeaders(request: NextRequest, token: string): Headers {
-  const authRealmKey = resolvePartnerAuthRealmKeyFromHost(
-    request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host,
-  );
+  const { authRealmKey, forwardedHost } = getForwardedAuthContext(request);
   const headers = new Headers({
     accept: 'application/json',
     authorization: `Bearer ${token}`,
     'content-type': 'application/json',
     'x-auth-realm': authRealmKey,
+    'x-forwarded-host': forwardedHost,
+    'x-forwarded-proto': PARTNER_CANONICAL_FORWARDED_PROTO,
   });
 
   const forwardedFor = request.headers.get('x-forwarded-for');
@@ -50,16 +90,115 @@ function getSetCookieHeaders(response: Response): string[] {
   };
 
   if (typeof headers.getSetCookie === 'function') {
-    return headers.getSetCookie();
+    const setCookieHeaders = headers.getSetCookie();
+    if (setCookieHeaders.length > 0) {
+      return setCookieHeaders.flatMap(splitCombinedSetCookieHeader);
+    }
   }
 
   const setCookie = response.headers.get('set-cookie');
-  return setCookie ? [setCookie] : [];
+  return setCookie ? splitCombinedSetCookieHeader(setCookie) : [];
 }
 
-function appendSetCookieHeaders(source: Response, target: NextResponse): void {
+function isCookieHeaderBoundary(headerValue: string, commaIndex: number): boolean {
+  const remainder = headerValue.slice(commaIndex + 1).trimStart();
+  const equalsIndex = remainder.indexOf('=');
+  const semicolonIndex = remainder.indexOf(';');
+
+  if (equalsIndex <= 0) {
+    return false;
+  }
+
+  if (semicolonIndex !== -1 && semicolonIndex < equalsIndex) {
+    return false;
+  }
+
+  const cookieName = remainder.slice(0, equalsIndex).trim();
+  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(cookieName);
+}
+
+function splitCombinedSetCookieHeader(headerValue: string): string[] {
+  const headers: string[] = [];
+  let start = 0;
+
+  for (let index = 0; index < headerValue.length; index += 1) {
+    if (headerValue[index] === ',' && isCookieHeaderBoundary(headerValue, index)) {
+      headers.push(headerValue.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+
+  headers.push(headerValue.slice(start).trim());
+  return headers.filter(Boolean);
+}
+
+function getResponseCookieHost(request: NextRequest): string {
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? request.nextUrl.host;
+  return host.split(':')[0]?.toLowerCase() ?? '';
+}
+
+function normalizeCookieDomain(domain: string): string {
+  return domain.trim().replace(/^\./, '').toLowerCase();
+}
+
+function getRequestUrl(request: NextRequest): URL {
+  try {
+    return new URL(request.url);
+  } catch {
+    return request.nextUrl;
+  }
+}
+
+function isApprovedLocalStagePartnerHttpRequest(request: NextRequest): boolean {
+  const url = getRequestUrl(request);
+  return (
+    process.env.NODE_ENV !== 'production'
+    && url.protocol === 'http:'
+    && APPROVED_LOCAL_STAGE_PARTNER_HOSTS.has(url.host.toLowerCase())
+  );
+}
+
+function isDomainCompatibleWithHost(domain: string, host: string): boolean {
+  const normalizedDomain = normalizeCookieDomain(domain);
+  const normalizedHost = host.toLowerCase();
+
+  return normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`);
+}
+
+function normalizeSetCookieForRequest(headerValue: string, request: NextRequest): string {
+  const host = getResponseCookieHost(request);
+  const shouldStripSecure = isApprovedLocalStagePartnerHttpRequest(request);
+
+  if (!host && !shouldStripSecure) {
+    return headerValue;
+  }
+
+  const parts = headerValue.split(';').map((part) => part.trim());
+  const domainAttribute = parts.find((part) => part.toLowerCase().startsWith('domain='));
+  const shouldStripDomain = Boolean(
+    host
+      && domainAttribute
+      && !isDomainCompatibleWithHost(domainAttribute.slice('domain='.length), host),
+  );
+
+  if (!shouldStripDomain && !shouldStripSecure) {
+    return headerValue;
+  }
+
+  return parts
+    .filter((part) => {
+      if (shouldStripDomain && part === domainAttribute) {
+        return false;
+      }
+
+      return !(shouldStripSecure && part.toLowerCase() === 'secure');
+    })
+    .join('; ');
+}
+
+function appendSetCookieHeaders(source: Response, target: NextResponse, request: NextRequest): void {
   for (const headerValue of getSetCookieHeaders(source)) {
-    target.headers.append('set-cookie', headerValue);
+    target.headers.append('set-cookie', normalizeSetCookieForRequest(headerValue, request));
   }
 }
 
@@ -130,6 +269,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const response = NextResponse.json({ redirect_to: redirectTo.pathname + redirectTo.search });
   response.cookies.delete(PENDING_2FA_COOKIE);
-  appendSetCookieHeaders(backendResponse, response);
+  appendSetCookieHeaders(backendResponse, response, request);
   return response;
 }

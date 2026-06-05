@@ -58,7 +58,7 @@ afterEach(() => {
 // ===========================================================================
 
 describe('authApi.login', () => {
-  it('test_login_success_returns_token_response', async () => {
+  it('test_login_success_returns_cookie_session_response', async () => {
     // Arrange
     const credentials = { email: 'testuser@cybervpn.io', password: 'correct_password' };
 
@@ -67,10 +67,10 @@ describe('authApi.login', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(response.data.access_token).toBe(MOCK_TOKENS.access_token);
-    expect(response.data.refresh_token).toBe(MOCK_TOKENS.refresh_token);
-    expect(response.data.token_type).toBe('bearer');
-    expect(response.data.expires_in).toBe(3600);
+    expect(response.data).not.toHaveProperty('access_token');
+    expect(response.data).not.toHaveProperty('refresh_token');
+    expect(response.data.requires_2fa).toBe(false);
+    expect(response.data.tfa_token).toBeNull();
   });
 
   it('test_login_invalid_credentials_rejects_with_error', async () => {
@@ -144,7 +144,7 @@ describe('authApi.login', () => {
     server.use(
       http.post(`${API_BASE}/auth/login`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(MOCK_TOKENS);
+        return HttpResponse.json({ requires_2fa: false, tfa_token: null });
       }),
     );
 
@@ -166,7 +166,7 @@ describe('authApi.login', () => {
     server.use(
       http.post(`${API_BASE}/auth/login`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(MOCK_TOKENS);
+        return HttpResponse.json({ requires_2fa: false, tfa_token: null });
       }),
     );
 
@@ -816,6 +816,29 @@ describe('apiClient 401 interceptor', () => {
     // SEC-01: tokens remain in httpOnly cookies, legacy storage stays empty
     expect(tokenStorage.getAccessToken()).toBeNull();
     expect(tokenStorage.getRefreshToken()).toBeNull();
+  });
+
+  it('test_401_user_not_found_resource_error_does_not_refresh_or_redirect', async () => {
+    window.location.href = 'http://localhost:3000/en-EN/dashboard';
+    let refreshCalls = 0;
+
+    server.use(
+      http.get(`${API_BASE}/wallet`, () => {
+        return HttpResponse.json({ detail: 'USER_NOT_FOUND' }, { status: 401 });
+      }),
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshCalls += 1;
+        return HttpResponse.json(
+          { detail: 'CSRF origin validation failed' },
+          { status: 403 },
+        );
+      }),
+    );
+
+    await expect(apiClient.get('/wallet')).rejects.toThrow('Request failed with status code 401');
+
+    expect(refreshCalls).toBe(0);
+    expect(window.location.href).toBe('http://localhost:3000/en-EN/dashboard');
   });
 
   it('test_401_on_miniapp_route_does_not_redirect_to_browser_login', async () => {

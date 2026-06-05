@@ -2,6 +2,7 @@
 Logout use case for refresh token revocation.
 """
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 from uuid import UUID
@@ -9,7 +10,20 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.infrastructure.database.models.principal_session_model import PrincipalSessionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
+
+
+@dataclass(frozen=True)
+class RevokedAccessToken:
+    jti: str
+    expires_at: datetime
+
+
+@dataclass(frozen=True)
+class LogoutResult:
+    refresh_token_revoked: bool
+    access_tokens: tuple[RevokedAccessToken, ...] = ()
 
 
 class LogoutUseCase:
@@ -22,7 +36,7 @@ class LogoutUseCase:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def execute(self, refresh_token: str) -> None:
+    async def execute(self, refresh_token: str) -> LogoutResult:
         """
         Revoke a specific refresh token.
 
@@ -45,9 +59,33 @@ class LogoutUseCase:
         )
         token_record = result.scalar_one_or_none()
 
-        if token_record:
-            token_record.revoked_at = datetime.now(UTC)
-            await self._session.flush()
+        if not token_record:
+            return LogoutResult(refresh_token_revoked=False)
+
+        revoked_at = datetime.now(UTC)
+        token_record.revoked_at = revoked_at
+        access_tokens: list[RevokedAccessToken] = []
+
+        principal_session_result = await self._session.execute(
+            select(PrincipalSessionModel).where(
+                PrincipalSessionModel.refresh_token_id == token_record.id,
+                PrincipalSessionModel.revoked_at.is_(None),
+            )
+        )
+        principal_session = principal_session_result.scalar_one_or_none()
+        if principal_session:
+            principal_session.revoked_at = revoked_at
+            principal_session.status = "revoked"
+            if principal_session.access_token_jti:
+                access_tokens.append(
+                    RevokedAccessToken(
+                        jti=principal_session.access_token_jti,
+                        expires_at=principal_session.expires_at,
+                    )
+                )
+
+        await self._session.flush()
+        return LogoutResult(refresh_token_revoked=True, access_tokens=tuple(access_tokens))
 
     async def execute_all(self, user_id: UUID) -> int:
         """

@@ -21,9 +21,25 @@ def _client() -> TestClient:
     async def partner_workspaces_me() -> dict[str, str]:
         return {"status": "open"}
 
+    @app.get("/api/v1/partner-session/bootstrap")
+    async def partner_session_bootstrap() -> dict[str, str]:
+        return {"status": "bootstrap-open"}
+
+    @app.get("/api/v1/partner-notifications/preferences")
+    async def partner_notification_preferences() -> dict[str, str]:
+        return {"status": "preferences-open"}
+
     @app.get("/api/v1/partner-workspaces/workspace-1/codes")
     async def partner_workspace_codes() -> dict[str, str]:
         return {"status": "workspace-codes-open"}
+
+    @app.get("/api/v1/partner-workspaces/workspace-1/reseller-voucher-batches")
+    async def partner_workspace_reseller_voucher_batches() -> dict[str, str]:
+        return {"status": "workspace-reseller-voucher-batches-open"}
+
+    @app.post("/api/v1/partner-workspaces/workspace-1/reseller-voucher-batches/request")
+    async def partner_workspace_reseller_voucher_batch_request() -> dict[str, str]:
+        return {"status": "workspace-reseller-voucher-batch-request-open"}
 
     @app.get("/api/v1/partner-workspaces/workspace-1/reporting-summary")
     async def partner_workspace_reporting_summary() -> dict[str, str]:
@@ -97,6 +113,22 @@ def test_partner_public_routes_pass_when_portal_enabled(monkeypatch) -> None:
     assert response.json() == {"status": "open"}
 
 
+def test_canonical_partner_workspace_bootstrap_routes_pass_when_portal_enabled(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
+
+    client = _client()
+
+    for path, payload in (
+        ("/api/v1/partner-workspaces/me", {"status": "open"}),
+        ("/api/v1/partner-session/bootstrap", {"status": "bootstrap-open"}),
+        ("/api/v1/partner-notifications/preferences", {"status": "preferences-open"}),
+    ):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert response.json() == payload
+
+
 def test_partner_application_routes_need_portal_and_applications_flags(monkeypatch) -> None:
     monkeypatch.setattr(settings, "partner_portal_enabled", True)
     monkeypatch.setattr(settings, "partner_applications_enabled", False)
@@ -162,6 +194,26 @@ def test_partner_workspace_code_routes_stay_hidden_until_codes_enabled(monkeypat
     monkeypatch.setattr(settings, "partner_codes_enabled", False)
 
     response = _client().get("/api/v1/partner-workspaces/workspace-1/codes")
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "partner_codes_disabled"
+
+
+def test_partner_workspace_reseller_voucher_list_passes_when_codes_disabled(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
+    monkeypatch.setattr(settings, "partner_codes_enabled", False)
+
+    response = _client().get("/api/v1/partner-workspaces/workspace-1/reseller-voucher-batches")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "workspace-reseller-voucher-batches-open"}
+
+
+def test_partner_workspace_reseller_voucher_request_stays_hidden_until_codes_enabled(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "partner_portal_enabled", True)
+    monkeypatch.setattr(settings, "partner_codes_enabled", False)
+
+    response = _client().post("/api/v1/partner-workspaces/workspace-1/reseller-voucher-batches/request")
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "partner_codes_disabled"

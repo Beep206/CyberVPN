@@ -1,8 +1,8 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { useLocale } from 'next-intl';
-import { Globe2, Server, Users } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { AlertTriangle, Globe2, Server, Users } from 'lucide-react';
 import type { PublicNetworkRegion } from '@/lib/api/public-network';
 import { cn } from '@/lib/utils';
 import {
@@ -13,16 +13,60 @@ import {
 
 interface ServerLocationsListProps {
   activeNodeId: string | null;
+  isError?: boolean;
+  isLoading?: boolean;
   regions: PublicNetworkRegion[];
   setActiveNodeId: (id: string | null) => void;
 }
 
 export function ServerLocationsList({
   activeNodeId,
+  isError = false,
+  isLoading = false,
   regions,
   setActiveNodeId,
 }: ServerLocationsListProps) {
   const locale = useLocale();
+  const t = useTranslations('Network');
+
+  if (isError) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-lg border border-warning/35 bg-warning/10 p-4 text-amber-100 shadow-[0_0_30px_rgba(255,184,0,0.08)] backdrop-blur-md"
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-warning">
+              {t('telemetry.regionsUnavailableTitle')}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-amber-100/80">
+              {t('telemetry.regionsUnavailableDescription')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!regions.length && !isLoading) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-lg border border-border/60 bg-card/80 p-4 text-muted-foreground backdrop-blur-md dark:border-grid-line/30 dark:bg-terminal-bg/80"
+      >
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-foreground dark:text-white">
+          {t('telemetry.emptyRegionsTitle')}
+        </p>
+        <p className="mt-2 text-sm leading-6">
+          {t('telemetry.emptyRegionsDescription')}
+        </p>
+      </div>
+    );
+  }
 
   if (!regions.length) {
     return (

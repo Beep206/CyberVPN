@@ -178,6 +178,68 @@ function reportApiResponseTelemetry(
   });
 }
 
+const PUBLIC_AUTH_CREDENTIAL_BOOTSTRAP_PATHS = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-otp',
+  '/auth/resend-otp',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/magic-link',
+  '/auth/magic-link/verify',
+  '/auth/magic-link/verify-otp',
+  '/auth/oauth2/telegram/callback',
+  '/auth/telegram/web',
+  '/auth/telegram/miniapp',
+  '/auth/telegram/bot-link',
+  '/auth/passkeys/authentication/options',
+  '/auth/passkeys/authentication/verify',
+  '/oauth/telegram/magic-link',
+  '/oauth/telegram/magic-link/complete',
+]);
+
+const PUBLIC_AUTH_CREDENTIAL_BOOTSTRAP_PATTERNS = [
+  /^\/oauth\/[^/]+\/login$/,
+  /^\/oauth\/[^/]+\/login\/callback$/,
+  /^\/oauth\/telegram\/magic-link\/[^/]+\/status$/,
+];
+
+const AUTH_SESSION_PROBE_PATHS = new Set(['/auth/me', '/auth/session']);
+
+function getApiRequestPathname(requestUrl: string): string {
+  if (!requestUrl) return requestUrl;
+
+  const parsed = new URL(requestUrl, 'http://localhost');
+  const pathname = parsed.pathname;
+
+  if (pathname === CANONICAL_API_BASE_PATH) {
+    return '/';
+  }
+
+  if (pathname.startsWith(`${CANONICAL_API_BASE_PATH}/`)) {
+    return pathname.slice(CANONICAL_API_BASE_PATH.length);
+  }
+
+  return pathname;
+}
+
+function isRefreshRequestUrl(requestUrl: string): boolean {
+  return getApiRequestPathname(requestUrl) === '/auth/refresh';
+}
+
+function isAuthSessionProbeRequestUrl(requestUrl: string): boolean {
+  return AUTH_SESSION_PROBE_PATHS.has(getApiRequestPathname(requestUrl));
+}
+
+function isPublicAuthCredentialOrBootstrapRequestUrl(requestUrl: string): boolean {
+  const pathname = getApiRequestPathname(requestUrl);
+
+  return (
+    PUBLIC_AUTH_CREDENTIAL_BOOTSTRAP_PATHS.has(pathname) ||
+    PUBLIC_AUTH_CREDENTIAL_BOOTSTRAP_PATTERNS.some((pattern) => pattern.test(pathname))
+  );
+}
+
 async function hasActiveCookieSession(): Promise<boolean> {
   if (typeof window === 'undefined') {
     return false;
@@ -212,9 +274,9 @@ apiClient.interceptors.request.use(
     // (except the refresh request itself and session-check requests)
     if (
       isRefreshing
-      && !config.url?.includes('/auth/refresh')
-      && !config.url?.includes('/auth/me')
-      && !config.url?.includes('/auth/session')
+      && !isRefreshRequestUrl(config.url ?? '')
+      && !isAuthSessionProbeRequestUrl(config.url ?? '')
+      && !isPublicAuthCredentialOrBootstrapRequestUrl(config.url ?? '')
     ) {
       await new Promise<void>((resolve, reject) => {
         failedQueue.push({ resolve: () => resolve(), reject: (err) => reject(err) });
@@ -307,10 +369,19 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       const requestUrl = originalRequest.url || '';
 
-      // Never retry refresh endpoint itself to avoid interceptor loops
-      if (requestUrl.includes('/auth/refresh')) {
+      const isRefreshRequest = isRefreshRequestUrl(requestUrl);
+      const isPublicAuthBootstrapRequest =
+        isPublicAuthCredentialOrBootstrapRequestUrl(requestUrl);
+
+      // Never retry refresh endpoint itself to avoid interceptor loops.
+      // Public credential/bootstrap auth 401s are flow errors, not stale-session
+      // errors; keep their original safe response instead of surfacing refresh
+      // internals or queuing them behind an active refresh.
+      if (isRefreshRequest || isPublicAuthBootstrapRequest) {
         reportApiResponseTelemetry(originalRequest, {
-          errorCode: 'refresh_unauthorized',
+          errorCode: isRefreshRequest
+            ? 'refresh_unauthorized'
+            : 'public_auth_unauthorized',
           result: 'failure',
         });
         return Promise.reject(error);

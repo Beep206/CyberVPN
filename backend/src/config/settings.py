@@ -33,6 +33,15 @@ S1_PRODUCTION_PASSKEY_ORIGINS = frozenset(
         "https://partner.cyber-vpn.net",
     }
 )
+S1_LOCAL_STAGE_BROWSER_ORIGINS = frozenset(
+    {
+        "http://localhost:13000",
+        "http://localhost:13001",
+        "http://127.0.0.1:13000",
+        "http://127.0.0.1:13001",
+    }
+)
+S1_LOCAL_STAGE_ENVIRONMENTS = frozenset({"local-stage"})
 
 
 class Settings(BaseSettings):
@@ -446,6 +455,22 @@ class Settings(BaseSettings):
                     raise ValueError("cyber-vpn.org origins are redirect-only in S1 and must not call the API.")
                 if origin not in S1_PRODUCTION_CORS_ORIGINS:
                     raise ValueError(f"Production CORS origin is not approved for S1: {origin}")
+
+        if environment in S1_LOCAL_STAGE_ENVIRONMENTS:
+            if "*" in normalized_origins:
+                raise ValueError("CORS_ORIGINS='*' is not allowed in local-stage.")
+            missing_origins = S1_LOCAL_STAGE_BROWSER_ORIGINS - set(normalized_origins)
+            if missing_origins:
+                raise ValueError(
+                    "Local-stage CORS_ORIGINS must include approved browser origins: "
+                    + ", ".join(sorted(missing_origins))
+                )
+            invalid_origins = set(normalized_origins) - S1_LOCAL_STAGE_BROWSER_ORIGINS
+            if invalid_origins:
+                raise ValueError(
+                    "Local-stage CORS origin is not approved for S1 synthetic QA: "
+                    + ", ".join(sorted(invalid_origins))
+                )
 
         return normalized_origins
 

@@ -8,8 +8,10 @@ import { AuthSessionBootstrap } from '@/app/providers/auth-provider';
 import { DevTools } from '@/app/providers/dev-tools';
 import { MotionProvider } from '@/app/providers/motion-provider';
 import { QueryProvider } from '@/app/providers/query-provider';
+import { ScopedIntlProvider } from '@/app/providers/scoped-intl-provider';
 import { ThemeProvider } from '@/app/providers/theme-provider';
 import { getPartnerSurfaceContext } from '@/features/storefront-shell/lib/server-surface-context';
+import { ROOT_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import { getStaticParamsLocales } from '@/i18n/config';
 import { getCachedTranslations, setRequestLocale } from '@/i18n/server';
 import { JsonLd } from '@/shared/lib/json-ld';
@@ -98,19 +100,21 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <MotionProvider>
-            <QueryProvider>
-              <Suspense fallback={null}>
-                <PortalAuthSessionBootstrap />
-                <SkipNavLink label={t('skipToMainContent')} />
-                <div className="relative z-10 min-h-full w-full">{children}</div>
-              </Suspense>
-              <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
+            <ScopedIntlProvider locale={locale} namespaces={ROOT_CLIENT_NAMESPACES}>
+              <QueryProvider>
+                <Suspense fallback={null}>
+                  <PortalAuthSessionBootstrap />
+                  <SkipNavLink label={t('skipToMainContent')} />
+                  <div className="relative z-10 min-h-full w-full">{children}</div>
+                </Suspense>
+                <div className="pointer-events-none fixed inset-0 z-50 scanline opacity-20" />
 
-              <Suspense fallback={null}>
-                <AnalyticsReporters />
-              </Suspense>
-              {isDevelopment ? <DevTools /> : null}
-            </QueryProvider>
+                <Suspense fallback={null}>
+                  <AnalyticsReporters />
+                </Suspense>
+                {isDevelopment ? <DevTools /> : null}
+              </QueryProvider>
+            </ScopedIntlProvider>
           </MotionProvider>
         </ThemeProvider>
 

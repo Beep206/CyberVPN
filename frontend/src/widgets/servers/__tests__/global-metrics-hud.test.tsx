@@ -14,6 +14,9 @@ vi.mock('next-intl', () => ({
       'labels.totalBandwidth': 'Monthly Traffic',
       'labels.activeNodes': 'Online Servers',
       'labels.threatsIntercepted': 'Live Users',
+      'telemetry.overviewUnavailableTitle': 'Network telemetry unavailable',
+      'telemetry.overviewUnavailableDescription': 'Live traffic, server, and user metrics could not be refreshed.',
+      'telemetry.unavailableValue': 'Unavailable',
     };
 
     return labels[key] ?? key;
@@ -76,5 +79,16 @@ describe('GlobalMetricsHud', () => {
     expect(screen.getByText('Monthly Traffic')).toBeInTheDocument();
     expect(screen.getByText('24')).toBeInTheDocument();
     expect(screen.getByText('278')).toBeInTheDocument();
+  });
+
+  it('surfaces a degraded telemetry state when the overview endpoint fails', async () => {
+    getOverviewMock.mockRejectedValue(new Error('public network overview unavailable'));
+
+    render(<GlobalMetricsHud />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText('Network telemetry unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Live traffic, server, and user metrics could not be refreshed.')).toBeInTheDocument();
+    expect(screen.getAllByText('Unavailable')).toHaveLength(3);
+    expect(screen.queryByText('—')).not.toBeInTheDocument();
   });
 });

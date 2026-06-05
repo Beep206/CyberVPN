@@ -67,9 +67,14 @@ export interface TokenResponse {
   expires_in: number;
 }
 
-export interface LoginResponse extends TokenResponse {
+export interface LoginResponse {
   requires_2fa: boolean;
   tfa_token: string | null;
+  auth_realm_id?: string | null;
+  auth_realm_key?: string | null;
+  audience?: string | null;
+  principal_type?: string | null;
+  scope_family?: string | null;
 }
 
 export interface VerifyOtpResponse extends TokenResponse {

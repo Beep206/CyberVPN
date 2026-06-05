@@ -15,6 +15,8 @@ def test_phase8_operational_overlay_paths_are_exposed() -> None:
     assert f"{API_V1_PREFIX}/creative-approvals/{{creative_approval_id}}" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/traffic-declarations" in paths
     assert f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/creative-approvals" in paths
+    assert "get" in paths[f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/creative-approvals"]
+    assert "post" in paths[f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/creative-approvals"]
     assert (
         f"{API_V1_PREFIX}/partner-workspaces/{{workspace_id}}/review-requests/{{review_request_id}}/responses"
         in paths

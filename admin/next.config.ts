@@ -8,10 +8,6 @@ const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = dirname(CONFIG_DIR);
 const ADMIN_PUBLIC_ORIGIN = "admin.cyber-vpn.net";
 const ADMIN_LOCAL_ORIGINS = ["localhost:3001", "127.0.0.1:3001"];
-const API_INTERNAL_ORIGIN =
-  process.env.API_INTERNAL_ORIGIN?.trim() ||
-  process.env.API_URL?.trim() ||
-  "http://localhost:8000";
 const publicSentryRelease =
   process.env.NEXT_PUBLIC_SENTRY_RELEASE?.trim() ||
   process.env.GITHUB_SHA?.trim() ||
@@ -69,14 +65,6 @@ const config: NextConfigWithCompiler = {
             value: cspDirectives,
           },
         ],
-      },
-    ];
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${API_INTERNAL_ORIGIN.replace(/\/$/, "")}/api/v1/:path*`,
       },
     ];
   },

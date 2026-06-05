@@ -36,7 +36,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                 {/* Input container */}
                 <div
                     className={cn(
-                        "relative group",
+                        "relative group min-w-0",
                         "rounded-lg overflow-hidden",
                         "transition-all duration-300",
                     )}
@@ -54,10 +54,11 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                     {/* Input wrapper */}
                     <div
                         className={cn(
-                            "relative flex items-center",
+                            "relative flex min-w-0 items-center",
                             "bg-terminal-bg dark:bg-black/60",
                             "border rounded-lg",
-                            "transition-colors duration-200",
+                            "transition-all duration-200",
+                            "focus-within:border-neon-cyan focus-within:ring-2 focus-within:ring-neon-cyan/60 focus-within:shadow-[0_0_16px_rgba(0,255,255,0.24)]",
                             error
                                 ? "border-red-500"
                                 : success
@@ -68,7 +69,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                         )}
                     >
                         {/* Terminal prefix */}
-                        <span className="pl-4 pr-2 py-3 text-xs font-mono text-muted-foreground-low select-none whitespace-nowrap">
+                        <span className="shrink-0 ps-4 pe-2 py-3 text-xs font-mono text-muted-foreground-low select-none whitespace-nowrap" dir="ltr">
                             root@{prefix}:~$
                         </span>
 
@@ -80,10 +81,10 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                             aria-invalid={error ? 'true' : undefined}
                             aria-describedby={error ? errorId : undefined}
                             className={cn(
-                                "flex-1 bg-transparent py-3 pr-4",
+                                "min-w-0 flex-1 bg-transparent py-3 pe-3",
                                 "text-foreground font-mono text-sm",
                                 "placeholder:text-muted-foreground/30",
-                                "focus:outline-none",
+                                "outline-hidden focus-visible:outline-hidden focus-visible:shadow-[inset_0_-2px_0_var(--color-neon-cyan)]",
                                 "autofill:bg-transparent",
                                 className
                             )}
@@ -103,8 +104,7 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="px-3 text-muted-foreground hover:text-foreground transition-colors"
-                                tabIndex={-1}
+                                className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neon-cyan"
                                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 aria-pressed={showPassword}
                             >
@@ -118,12 +118,12 @@ export const CyberInput = forwardRef<HTMLInputElement, CyberInputProps>(
 
                         {/* Status indicators */}
                         {error && (
-                            <div className="px-3 text-red-500" aria-hidden="true">
+                            <div className="flex h-11 w-10 shrink-0 items-center justify-center text-red-500" aria-hidden="true">
                                 <AlertCircle className="h-4 w-4" />
                             </div>
                         )}
                         {success && !error && (
-                            <div className="px-3 text-matrix-green" aria-hidden="true">
+                            <div className="flex h-11 w-10 shrink-0 items-center justify-center text-matrix-green" aria-hidden="true">
                                 <Check className="h-4 w-4" />
                             </div>
                         )}
