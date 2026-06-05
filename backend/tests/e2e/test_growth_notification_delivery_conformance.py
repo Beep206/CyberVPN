@@ -26,6 +26,8 @@ from tests.helpers.realm_auth import (
 
 pytestmark = [pytest.mark.e2e, pytest.mark.integration]
 
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
 
 @pytest.fixture(autouse=True)
 def _clear_mobile_override():
@@ -156,12 +158,15 @@ async def test_growth_notification_conformance_preferences_reenabled_and_support
             login_response = await async_client.post(
                 "/api/v1/auth/login",
                 json={"login_or_email": admin_user.login, "password": admin_password},
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             admin_headers = {
-                "Authorization": f"Bearer {login_response.json()['access_token']}",
+                "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             pause_response = await async_client.post(
@@ -169,7 +174,7 @@ async def test_growth_notification_conformance_preferences_reenabled_and_support
                 json={"reason_code": "ops_pause"},
                 headers=admin_headers,
             )
-            assert pause_response.status_code == 200
+            assert pause_response.status_code == 200, pause_response.text
             assert pause_response.json()["delivery_status"] == "paused"
 
             resolve_response = await async_client.post(
@@ -268,12 +273,15 @@ async def test_growth_notification_conformance_contact_data_corrected_and_telegr
             login_response = await async_client.post(
                 "/api/v1/auth/login",
                 json={"login_or_email": admin_user.login, "password": admin_password},
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             admin_headers = {
-                "Authorization": f"Bearer {login_response.json()['access_token']}",
+                "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             update_response = await async_client.patch(

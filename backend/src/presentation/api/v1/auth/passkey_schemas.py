@@ -235,6 +235,11 @@ class PasskeyAuthenticationVerifyRequest(BaseModel):
 
 
 class PasskeyAuthenticationVerifyResponse(BaseModel):
+    auth_realm_id: UUID | None = None
+    auth_realm_key: str | None = None
+    audience: str | None = None
+    principal_type: str | None = None
+    scope_family: str | None = None
     requires_2fa: bool = False
     tfa_token: str | None = None
 

@@ -54,7 +54,10 @@ def test_stage2_backup_restore_dr_preserves_domain_and_node_boundaries() -> None
     ).read_text(encoding="utf-8")
 
     assert "Node must remain node-only" in stage_doc
-    assert "No app, GitLab, Sentry, Grafana, Prometheus, Loki, backend, frontend or payment services were running on the VPN node." in evidence
+    assert (
+        "No app, GitLab, Sentry, Grafana, Prometheus, Loki, backend, frontend or payment services were "
+        "running on the VPN node."
+    ) in evidence
     assert "cybervpn-remnawave-node" in evidence
 
 

@@ -31,6 +31,7 @@ from src.infrastructure.database.models.payment_model import PaymentModel
 from src.main import app
 from src.presentation.dependencies.auth import get_current_mobile_user_id
 from src.presentation.dependencies.services import get_crypto_client
+from tests.integration.conftest import admin_auth_headers, get_default_test_realm, issue_realm_access_token
 
 
 async def _create_admin_user(db: AsyncSession) -> tuple[str, str, str]:
@@ -39,8 +40,10 @@ async def _create_admin_user(db: AsyncSession) -> tuple[str, str, str]:
     email = f"payadmin{secrets.token_hex(4)}@example.com"
     auth_service = AuthService()
     password_hash = await auth_service.hash_password(password)
+    admin_realm = await get_default_test_realm(db, "admin")
 
     user = AdminUserModel(
+        auth_realm_id=admin_realm.id,
         login=f"payadmin{secrets.token_hex(4)}",
         email=email,
         password_hash=password_hash,
@@ -54,14 +57,13 @@ async def _create_admin_user(db: AsyncSession) -> tuple[str, str, str]:
     return str(user.id), password, email
 
 
-async def _login(async_client: AsyncClient, email: str, password: str) -> str:
-    """Helper: login and return access token."""
-    response = await async_client.post(
-        "/api/v1/auth/login",
-        json={"login_or_email": email, "password": password},
+async def _issue_admin_payment_token(db: AsyncSession, user_id: str) -> str:
+    return await issue_realm_access_token(
+        db,
+        subject=user_id,
+        role="admin",
+        realm_type="admin",
     )
-    assert response.status_code == 200
-    return response.json()["access_token"]
 
 
 class TestCreateCryptoInvoice:
@@ -78,8 +80,8 @@ class TestCreateCryptoInvoice:
 
         Mocks the CryptoBot client and subscription plan lookup.
         """
-        user_id, password, email = await _create_admin_user(db)
-        access_token = await _login(async_client, email, password)
+        user_id, _password, _email = await _create_admin_user(db)
+        access_token = await _issue_admin_payment_token(db, user_id)
 
         mock_invoice = InvoiceResponseDTO(
             invoice_id="inv_12345",
@@ -108,7 +110,7 @@ class TestCreateCryptoInvoice:
                         "plan_id": "premium_monthly",
                         "currency": "USD",
                     },
-                    headers={"Authorization": f"Bearer {access_token}"},
+                    headers=admin_auth_headers(access_token),
                 )
             finally:
                 app.dependency_overrides.pop(get_crypto_client, None)
@@ -130,8 +132,8 @@ class TestCreateCryptoInvoice:
         """
         Test POST /api/v1/payments/crypto/invoice with non-existent plan_id -> 404.
         """
-        user_id, password, email = await _create_admin_user(db)
-        access_token = await _login(async_client, email, password)
+        user_id, _password, _email = await _create_admin_user(db)
+        access_token = await _issue_admin_payment_token(db, user_id)
 
         with patch(
             "src.presentation.api.v1.payments.routes.CreateCryptoInvoiceUseCase"
@@ -150,7 +152,7 @@ class TestCreateCryptoInvoice:
                         "plan_id": "nonexistent_plan",
                         "currency": "USD",
                     },
-                    headers={"Authorization": f"Bearer {access_token}"},
+                    headers=admin_auth_headers(access_token),
                 )
             finally:
                 app.dependency_overrides.pop(get_crypto_client, None)

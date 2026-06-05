@@ -9,6 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.totp.totp_service import TOTPService
+from tests.integration.conftest import (
+    ADMIN_HOST_HEADERS,
+    admin_auth_headers,
+    get_default_test_realm,
+    issue_admin_access_token,
+)
 
 
 async def _create_admin_user(
@@ -19,7 +25,9 @@ async def _create_admin_user(
 ) -> tuple[AdminUserModel, str]:
     auth_service = AuthService()
     password = "SecureP@ss123!"
+    admin_realm = await get_default_test_realm(db, "admin")
     user = AdminUserModel(
+        auth_realm_id=admin_realm.id,
         login=f"twofa{secrets.token_hex(4)}",
         email=f"twofa{secrets.token_hex(4)}@example.com",
         password_hash=await auth_service.hash_password(password),
@@ -37,18 +45,16 @@ async def _create_admin_user(
     return user, password
 
 
-def _access_headers(user: AdminUserModel) -> dict[str, str]:
-    token = AuthService().create_access_token_simple(
-        subject=str(user.id),
-        role=user.role,
-    )
-    return {"Authorization": f"Bearer {token}"}
+async def _access_headers(db: AsyncSession, user: AdminUserModel) -> dict[str, str]:
+    token = await issue_admin_access_token(db, user)
+    return admin_auth_headers(token)
 
 
 async def _login(async_client: AsyncClient, user: AdminUserModel, password: str):
     response = await async_client.post(
         "/api/v1/auth/login",
         json={"login_or_email": user.email, "password": password},
+        headers=ADMIN_HOST_HEADERS,
     )
     assert response.status_code == 200
     return response
@@ -88,8 +94,8 @@ class TestComplete2FACycle:
         user, password = await _create_admin_user(db)
 
         login_response = await _login(async_client, user, password)
-        initial_access_token = login_response.json()["access_token"]
-        headers = {"Authorization": f"Bearer {initial_access_token}"}
+        assert login_response.json()["requires_2fa"] is False
+        headers = await _access_headers(db, user)
 
         reauth_response = await _reauth(async_client, headers, password)
         assert reauth_response.json()["valid_for_minutes"] == 5
@@ -114,11 +120,11 @@ class TestComplete2FACycle:
         complete_response = await async_client.post(
             "/api/v1/2fa/complete",
             json={"code": totp_service.get_current_code(totp_secret)},
-            headers={"Authorization": f"Bearer {second_login_data['tfa_token']}"},
+            headers={"Authorization": f"Bearer {second_login_data['tfa_token']}", **ADMIN_HOST_HEADERS},
         )
         assert complete_response.status_code == 200
         completed_access_token = complete_response.json()["access_token"]
-        completed_headers = {"Authorization": f"Bearer {completed_access_token}"}
+        completed_headers = admin_auth_headers(completed_access_token)
 
         status_response = await async_client.get(
             "/api/v1/2fa/status",
@@ -153,7 +159,7 @@ class TestComplete2FACycle:
         db: AsyncSession,
     ):
         user, _password = await _create_admin_user(db)
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         setup_response = await async_client.post(
             "/api/v1/2fa/setup",
@@ -175,7 +181,7 @@ class TestComplete2FACycle:
             totp_enabled=True,
             totp_secret=totp_service.generate_secret(),
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         await _reauth(async_client, headers, password)
         setup_response = await async_client.post(
@@ -197,7 +203,7 @@ class Test2FARateLimiting:
         db: AsyncSession,
     ):
         user, password = await _create_admin_user(db)
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         await _reauth(async_client, headers, password)
         await _setup_2fa(async_client, headers)
@@ -230,7 +236,7 @@ class Test2FARateLimiting:
             totp_enabled=True,
             totp_secret=totp_service.generate_secret(),
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         for _ in range(5):
             await async_client.post(
@@ -264,7 +270,7 @@ class Test2FADisableRequirements:
             totp_enabled=True,
             totp_secret=totp_secret,
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         wrong_password_response = await async_client.request(
             "DELETE",
@@ -299,7 +305,7 @@ class Test2FADisableRequirements:
         db: AsyncSession,
     ):
         user, password = await _create_admin_user(db, totp_enabled=False)
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         disable_response = await async_client.request(
             "DELETE",
@@ -328,7 +334,7 @@ class Test2FAValidation:
             totp_enabled=True,
             totp_secret=totp_secret,
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         validate_response = await async_client.post(
             "/api/v1/2fa/validate",
@@ -351,7 +357,7 @@ class Test2FAValidation:
             totp_enabled=True,
             totp_secret=totp_service.generate_secret(),
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         validate_response = await async_client.post(
             "/api/v1/2fa/validate",
@@ -378,7 +384,7 @@ class Test2FAStatus:
             totp_enabled=True,
             totp_secret=totp_service.generate_secret(),
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         status_response = await async_client.get(
             "/api/v1/2fa/status",
@@ -395,7 +401,7 @@ class Test2FAStatus:
         db: AsyncSession,
     ):
         user, _password = await _create_admin_user(db, totp_enabled=False)
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         status_response = await async_client.get(
             "/api/v1/2fa/status",
@@ -422,7 +428,7 @@ class Test2FARecoveryCodes:
             totp_enabled=True,
             totp_secret=totp_secret,
         )
-        headers = _access_headers(user)
+        headers = await _access_headers(db, user)
 
         disable_response = await async_client.request(
             "DELETE",

@@ -243,7 +243,11 @@ def upgrade() -> None:
         op.create_table(
             table_name,
             sa.Column("id", sa.Uuid(), nullable=False),
-            sa.Column("growth_code_id", sa.Uuid(), nullable=True if table_name == "referral_program_policies" else False),
+            sa.Column(
+                "growth_code_id",
+                sa.Uuid(),
+                nullable=table_name == "referral_program_policies",
+            ),
             *extra_columns,
             sa.Column("policy_snapshot", sa.JSON(), nullable=False),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),

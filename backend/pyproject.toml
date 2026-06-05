@@ -111,6 +111,7 @@ ignore = [
 known-first-party = ["src"]
 
 [tool.coverage.run]
+core = "sysmon"
 source = ["src"]
 omit = ["src/infrastructure/database/migrations/*"]
 

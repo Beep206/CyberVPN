@@ -9,18 +9,28 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
+from asyncpg.exceptions import PostgresError
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from src.config.settings import settings
+TEST_ENV_DEFAULTS = {
+    "ENVIRONMENT": "test",
+    "REMNAWAVE_TOKEN": "pytest-remnawave-token",
+    "JWT_SECRET": "pytest-jwt-secret-with-minimum-32-character-length",
+    "CRYPTOBOT_TOKEN": "pytest-cryptobot-token",
+    "CORS_ORIGINS": "http://localhost:3000",
+    "ENABLE_METRICS": "true",
+}
 
-# Set ENABLE_METRICS before importing main.py to ensure metrics endpoint is registered
-os.environ["ENABLE_METRICS"] = "true"
+for env_key, env_value in TEST_ENV_DEFAULTS.items():
+    os.environ.setdefault(env_key, env_value)
 
-from src.main import app
+from src.config.settings import settings  # noqa: E402
+from src.main import app  # noqa: E402
 
 TEST_DB_AVAILABLE_ENV = "PYTEST_DOCKER_DB_AVAILABLE"
+GLOBAL_POOL_CLEANUP_TEST_DIRS = frozenset({"e2e", "integration", "load", "security"})
 
 
 def pytest_ignore_collect(collection_path, path=None, config=None) -> bool:  # noqa: ARG001
@@ -87,8 +97,9 @@ async def async_client(test_settings) -> AsyncGenerator[AsyncClient]:
     Yields:
         AsyncClient: HTTPX async client with ASGI transport
     """
+    client_host = f"pytest-client-{uuid.uuid4().hex[:31]}"
     async with AsyncClient(
-        transport=ASGITransport(app=app),
+        transport=ASGITransport(app=app, client=(client_host, 123)),
         base_url="http://test",
     ) as client:
         yield client
@@ -427,7 +438,7 @@ def ensure_repo_schema(test_settings) -> None:
 
     try:
         asyncio.run(_sync_schema())
-    except (OSError, SQLAlchemyError) as exc:
+    except (OSError, PostgresError, SQLAlchemyError) as exc:
         os.environ[TEST_DB_AVAILABLE_ENV] = "0"
         print(f"pytest test DB bootstrap skipped: {exc}")
         return
@@ -436,9 +447,18 @@ def ensure_repo_schema(test_settings) -> None:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def cleanup_global_async_pools() -> AsyncGenerator[None]:
-    """Dispose shared pools between tests to avoid cross-loop leftovers."""
+async def cleanup_global_async_pools(request) -> AsyncGenerator[None]:
+    """Dispose shared pools after tests that exercise app-level async resources."""
     yield
+
+    test_path = request.node.path
+    try:
+        relative_parts = test_path.relative_to(request.config.rootpath).parts
+    except ValueError:
+        relative_parts = test_path.parts
+    test_dir = relative_parts[1] if len(relative_parts) > 1 and relative_parts[0] == "tests" else None
+    if test_dir not in GLOBAL_POOL_CLEANUP_TEST_DIRS:
+        return
 
     from src.infrastructure.cache.redis_client import close_redis_pool
     from src.infrastructure.database.session import engine
@@ -497,6 +517,7 @@ async def auth_tokens() -> AsyncGenerator[dict[str, str]]:
 
     from src.application.services.auth_service import AuthService
     from src.infrastructure.database.models import AdminUserModel
+    from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
     from src.infrastructure.database.session import AsyncSessionLocal
 
     auth_service = AuthService()
@@ -505,8 +526,10 @@ async def auth_tokens() -> AsyncGenerator[dict[str, str]]:
     password_hash = await auth_service.hash_password("FixtureAdminPassword123!")
 
     async with AsyncSessionLocal() as session:
+        admin_realm = await AuthRealmRepository(session).get_or_create_default_realm("admin")
         user = AdminUserModel(
             id=user_id,
+            auth_realm_id=admin_realm.id,
             login=f"pytest-admin-{login_suffix}",
             email=f"pytest-admin-{login_suffix}@example.com",
             password_hash=password_hash,
@@ -519,9 +542,14 @@ async def auth_tokens() -> AsyncGenerator[dict[str, str]]:
         session.add(user)
         await session.commit()
 
-    access_token = auth_service.create_access_token_simple(
+    access_token, _jti, _access_exp = auth_service.create_access_token(
         subject=str(user_id),
         role="super_admin",
+        audience=admin_realm.audience,
+        principal_type="admin",
+        realm_id=str(admin_realm.id),
+        realm_key=admin_realm.realm_key,
+        scope_family=admin_realm.realm_type,
     )
 
     try:
@@ -536,4 +564,8 @@ async def auth_tokens() -> AsyncGenerator[dict[str, str]]:
 def auth_headers(auth_tokens: dict[str, str]) -> dict[str, str]:
     """Authorization headers for tests that need an authenticated admin request."""
 
-    return {"Authorization": f"Bearer {auth_tokens['access_token']}"}
+    return {
+        "Authorization": f"Bearer {auth_tokens['access_token']}",
+        "Host": "testserver",
+        "X-Forwarded-Host": "admin.cyber-vpn.net",
+    }

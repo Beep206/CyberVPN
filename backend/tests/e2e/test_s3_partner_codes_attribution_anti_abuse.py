@@ -18,6 +18,7 @@ from src.presentation.dependencies.services import get_crypto_client
 from tests.helpers.realm_auth import (
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -128,10 +129,14 @@ async def test_s3_partner_codes_attribution_and_abuse_controls(
                     "login_or_email": "s3_stage08_admin",
                     "password": admin_password,
                 },
-                headers={"X-Auth-Realm": "admin"},
+                headers={
+                    "Host": "testserver",
+                    "X-Forwarded-Host": "admin.cyber-vpn.net",
+                    "X-Auth-Realm": "admin",
+                },
             )
             assert admin_login_response.status_code == 200
-            admin_token = admin_login_response.json()["access_token"]
+            admin_token = access_token_from_client_cookies(async_client, response=admin_login_response)
 
             owner_token = _make_customer_access_token(
                 auth_service,

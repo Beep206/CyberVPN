@@ -25,12 +25,76 @@ from src.application.services.jwt_revocation_service import JWTRevocationService
 from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_client
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.system_config_model import SystemConfigModel
 from src.infrastructure.database.models.wallet_model import WalletModel
+from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
+from src.infrastructure.remnawave.client import get_remnawave_client as get_infrastructure_remnawave_client
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse, RemnawaveSubscriptionResponse
+from src.main import app
+from src.presentation.dependencies.remnawave import get_remnawave_client
 from tests.conftest import TEST_DB_AVAILABLE_ENV
 
 ADMIN_PASSWORD = "FixtureAdminPassword123!"
 MOBILE_PASSWORD = "MobileFixturePassword123!"
+ADMIN_HOST_HEADERS = {"Host": "testserver", "X-Forwarded-Host": "admin.cyber-vpn.net"}
+
+
+class _SmokeRemnawaveClient:
+    async def get_collection_validated(self, path, collection_key, item_schema, **kwargs):  # noqa: ANN001, ARG002
+        if path == "/subscription-templates" and item_schema is RemnawaveSubscriptionResponse:
+            return [
+                RemnawaveSubscriptionResponse(
+                    uuid="00000000-0000-4000-8000-000000000001",
+                    name="Synthetic E2E Template",
+                    templateType="xray",
+                    hostUuid=None,
+                    inboundTag="synthetic",
+                    flow=None,
+                    configData={"fixture": "test_all_endpoints"},
+                )
+            ]
+        msg = f"Unexpected Remnawave collection call in smoke test: {path}"
+        raise AssertionError(msg)
+
+    async def get_validated(self, path, schema, **kwargs):  # noqa: ANN001, ARG002
+        if path.startswith("/subscriptions/by-uuid/") and schema is RemnawaveSubscriptionDetailsResponse:
+            return RemnawaveSubscriptionDetailsResponse(
+                isFound=False,
+                user=None,
+                links=[],
+                subscriptionUrl=None,
+            )
+        msg = f"Unexpected Remnawave validated call in smoke test: {path}"
+        raise AssertionError(msg)
+
+
+@pytest.fixture(autouse=True)
+def fake_remnawave_client():
+    async def _override_remnawave():
+        return _SmokeRemnawaveClient()
+
+    app.dependency_overrides[get_remnawave_client] = _override_remnawave
+    app.dependency_overrides[get_infrastructure_remnawave_client] = _override_remnawave
+    yield
+    app.dependency_overrides.pop(get_remnawave_client, None)
+    app.dependency_overrides.pop(get_infrastructure_remnawave_client, None)
+
+
+@pytest.fixture(autouse=True)
+def enable_smoke_feature_flags():
+    original = {
+        "promo_codes_enabled": settings.promo_codes_enabled,
+        "referral_enabled": settings.referral_enabled,
+        "checkout_code_discounts_enabled": settings.checkout_code_discounts_enabled,
+    }
+    settings.promo_codes_enabled = True
+    settings.referral_enabled = True
+    settings.checkout_code_discounts_enabled = True
+    yield
+    for key, value in original.items():
+        setattr(settings, key, value)
 
 
 @pytest.fixture(autouse=True)
@@ -46,9 +110,29 @@ def _elapsed_ms(started_at: float) -> float:
     return (time.perf_counter() - started_at) * 1000
 
 
-async def _issue_access_token(subject: str, role: str) -> str:
+async def _get_default_realm(db: AsyncSession, realm_type: str) -> AuthRealmModel:
+    return await AuthRealmRepository(db).get_or_create_default_realm(realm_type)
+
+
+async def _issue_access_token(
+    db: AsyncSession,
+    subject: str,
+    role: str,
+    *,
+    realm_type: str,
+) -> str:
     auth_service = AuthService()
-    access_token, jti, expires_at = auth_service.create_access_token(subject=subject, role=role)
+    realm = await _get_default_realm(db, realm_type)
+    principal_type = "customer" if realm.realm_type == "customer" else "admin"
+    access_token, jti, expires_at = auth_service.create_access_token(
+        subject=subject,
+        role=role,
+        audience=realm.audience,
+        principal_type=principal_type,
+        realm_id=str(realm.id),
+        realm_key=realm.realm_key,
+        scope_family=realm.realm_type,
+    )
     redis_client = await get_redis_client()
     try:
         await JWTRevocationService(redis_client).register_token(
@@ -70,9 +154,11 @@ async def _create_admin_user(
     totp_secret: str | None = None,
 ) -> AdminUserModel:
     auth_service = AuthService()
+    admin_realm = await _get_default_realm(db, "admin")
     suffix = secrets.token_hex(4)
     user = AdminUserModel(
         id=uuid.uuid4(),
+        auth_realm_id=admin_realm.id,
         login=f"e2e-admin-{suffix}",
         email=f"e2e-admin-{suffix}@example.com",
         password_hash=await auth_service.hash_password(ADMIN_PASSWORD),
@@ -96,9 +182,11 @@ async def _create_mobile_user(
     balance: str = "100.00",
 ) -> tuple[MobileUserModel, WalletModel]:
     auth_service = AuthService()
+    customer_realm = await _get_default_realm(db, "customer")
     suffix = secrets.token_hex(4)
     user = MobileUserModel(
         id=uuid.uuid4(),
+        auth_realm_id=customer_realm.id,
         email=f"e2e-mobile-{suffix}@example.com",
         password_hash=await auth_service.hash_password(MOBILE_PASSWORD),
         username=f"e2e-mobile-{suffix}",
@@ -132,6 +220,7 @@ async def admin_api_session(
     response = await async_client.post(
         "/api/v1/auth/login",
         json={"login_or_email": user.email, "password": ADMIN_PASSWORD},
+        headers=ADMIN_HOST_HEADERS,
     )
 
     assert response.status_code == 200
@@ -141,8 +230,6 @@ async def admin_api_session(
     return {
         "user_id": str(user.id),
         "email": user.email or "",
-        "access_token": payload["access_token"],
-        "refresh_token": payload["refresh_token"],
     }
 
 
@@ -150,7 +237,7 @@ async def admin_api_session(
 async def admin_auth_context(db: AsyncSession) -> dict[str, str]:
     """Create an authenticated admin context without depending on login route state."""
     user = await _create_admin_user(db)
-    access_token = await _issue_access_token(str(user.id), "super_admin")
+    access_token = await _issue_access_token(db, str(user.id), "super_admin", realm_type="admin")
     return {
         "user_id": str(user.id),
         "email": user.email or "",
@@ -168,7 +255,7 @@ async def admin_2fa_context(db: AsyncSession) -> dict[str, str]:
         totp_enabled=True,
         totp_secret=totp_secret,
     )
-    access_token = await _issue_access_token(str(user.id), "super_admin")
+    access_token = await _issue_access_token(db, str(user.id), "super_admin", realm_type="admin")
     return {
         "user_id": str(user.id),
         "access_token": access_token,
@@ -188,7 +275,7 @@ async def unverified_admin_context(db: AsyncSession) -> dict[str, str]:
 async def mobile_auth_context(db: AsyncSession) -> dict[str, str]:
     """Create a mobile user with wallet balance and issue a mobile access token."""
     user, _wallet = await _create_mobile_user(db)
-    access_token = await _issue_access_token(str(user.id), "user")
+    access_token = await _issue_access_token(db, str(user.id), "customer", realm_type="customer")
     return {
         "user_id": str(user.id),
         "access_token": access_token,
@@ -197,12 +284,12 @@ async def mobile_auth_context(db: AsyncSession) -> dict[str, str]:
 
 @pytest.fixture
 def admin_headers(admin_auth_context: dict[str, str]) -> dict[str, str]:
-    return {"Authorization": f"Bearer {admin_auth_context['access_token']}"}
+    return {"Authorization": f"Bearer {admin_auth_context['access_token']}", **ADMIN_HOST_HEADERS}
 
 
 @pytest.fixture
 def admin_2fa_headers(admin_2fa_context: dict[str, str]) -> dict[str, str]:
-    return {"Authorization": f"Bearer {admin_2fa_context['access_token']}"}
+    return {"Authorization": f"Bearer {admin_2fa_context['access_token']}", **ADMIN_HOST_HEADERS}
 
 
 @pytest.fixture
@@ -238,12 +325,15 @@ class TestAuthEndpoints:
         response = await async_client.post(
             "/api/v1/auth/login",
             json={"login_or_email": admin_api_session["email"], "password": ADMIN_PASSWORD},
+            headers=ADMIN_HOST_HEADERS,
         )
         elapsed_ms = _elapsed_ms(started_at)
 
         assert response.status_code == 200, f"[{elapsed_ms:.0f}ms] Login failed"
-        assert "access_token" in response.json()
-        assert "refresh_token" in response.json()
+        payload = response.json()
+        assert payload["requires_2fa"] is False
+        assert "access_token" not in payload
+        assert "refresh_token" not in payload
 
     @pytest.mark.asyncio
     async def test_verify_email_invalid_code(
@@ -254,6 +344,7 @@ class TestAuthEndpoints:
         response = await async_client.post(
             "/api/v1/auth/verify-email",
             json={"email": unverified_admin_context["email"], "code": "123456"},
+            headers=ADMIN_HOST_HEADERS,
         )
         assert response.status_code == 400
 
@@ -266,6 +357,7 @@ class TestAuthEndpoints:
         response = await async_client.post(
             "/api/v1/auth/resend-otp",
             json={"email": unverified_admin_context["email"], "locale": "en-EN"},
+            headers=ADMIN_HOST_HEADERS,
         )
         assert response.status_code == 200
 
@@ -273,7 +365,8 @@ class TestAuthEndpoints:
     async def test_refresh_token(self, async_client: AsyncClient, admin_api_session: dict[str, str]):
         response = await async_client.post(
             "/api/v1/auth/refresh",
-            json={"refresh_token": admin_api_session["refresh_token"]},
+            json={},
+            headers=ADMIN_HOST_HEADERS,
         )
         assert response.status_code == 200
         assert "access_token" in response.json()
@@ -282,7 +375,8 @@ class TestAuthEndpoints:
     async def test_logout(self, async_client: AsyncClient, admin_api_session: dict[str, str]):
         response = await async_client.post(
             "/api/v1/auth/logout",
-            json={"refresh_token": admin_api_session["refresh_token"]},
+            json={},
+            headers=ADMIN_HOST_HEADERS,
         )
         assert response.status_code == 204
 
@@ -390,13 +484,32 @@ class TestWalletEndpoints:
         assert isinstance(response.json(), list)
 
     @pytest.mark.asyncio
-    async def test_wallet_withdraw(self, async_client: AsyncClient, mobile_headers: dict[str, str]):
+    async def test_wallet_withdraw(
+        self,
+        async_client: AsyncClient,
+        db: AsyncSession,
+        mobile_headers: dict[str, str],
+    ):
+        config = await db.get(SystemConfigModel, "wallet.withdrawal_enabled")
+        if config is None:
+            db.add(
+                SystemConfigModel(
+                    key="wallet.withdrawal_enabled",
+                    value={"enabled": False},
+                    description="Whether withdrawals are enabled",
+                )
+            )
+        else:
+            config.value = {"enabled": False}
+        await db.commit()
+
         response = await async_client.post(
             "/api/v1/wallet/withdraw",
             json={"amount": "50.00", "method": "cryptobot"},
             headers=mobile_headers,
         )
-        assert response.status_code == 201
+        assert response.status_code == 400
+        assert "disabled" in response.text.lower()
 
 
 class TestPaymentEndpoints:
@@ -419,8 +532,8 @@ class TestPaymentEndpoints:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_payment_history(self, async_client: AsyncClient, admin_headers: dict[str, str]):
-        response = await async_client.get("/api/v1/payments/history", headers=admin_headers)
+    async def test_payment_history(self, async_client: AsyncClient, mobile_headers: dict[str, str]):
+        response = await async_client.get("/api/v1/payments/history", headers=mobile_headers)
         assert response.status_code == 200
         assert "payments" in response.json()
 

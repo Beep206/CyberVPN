@@ -8,6 +8,7 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+from src.config.settings import settings
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -50,11 +51,13 @@ def _make_admin_token(auth_service: AuthService, *, user_id, realm) -> str:
 @pytest.mark.asyncio
 async def test_quote_rejects_promo_and_partner_code_stacking(
     async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
     await initialize_realm_test_database(engine)
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
 
     async def _override_redis():
         yield fake_redis

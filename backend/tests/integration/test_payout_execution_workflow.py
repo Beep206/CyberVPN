@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -8,6 +9,7 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -31,12 +33,24 @@ from tests.integration.test_order_commit import _make_customer_access_token, _se
 pytestmark = [pytest.mark.integration]
 
 
+def _settlement_window_payload() -> dict[str, str]:
+    now = datetime.now(UTC)
+    return {
+        "window_start": (now - timedelta(days=1)).isoformat().replace("+00:00", "Z"),
+        "window_end": (now + timedelta(days=1)).isoformat().replace("+00:00", "Z"),
+    }
+
+
 @pytest.mark.asyncio
-async def test_payout_instruction_maker_checker_and_execution_workflow(async_client: AsyncClient) -> None:
+async def test_payout_instruction_maker_checker_and_execution_workflow(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
     await initialize_realm_test_database(engine)
+    monkeypatch.setattr(settings, "partner_payouts_enabled", True)
 
     async def _override_redis():
         yield fake_redis
@@ -203,8 +217,7 @@ async def test_payout_instruction_maker_checker_and_execution_workflow(async_cli
                     "partner_account_id": str(partner_account.id),
                     "period_key": "2026-04-payout-workflow",
                     "currency_code": "usd",
-                    "window_start": "2026-04-01T00:00:00Z",
-                    "window_end": "2026-05-01T00:00:00Z",
+                    **_settlement_window_payload(),
                 },
             )
             assert period_response.status_code == 201
@@ -239,7 +252,7 @@ async def test_payout_instruction_maker_checker_and_execution_workflow(async_cli
                     "make_default": True,
                 },
             )
-            assert payout_account_response.status_code == 201
+            assert payout_account_response.status_code == 201, payout_account_response.text
             payout_account_id = payout_account_response.json()["id"]
 
             verify_payout_account_response = await async_client.post(

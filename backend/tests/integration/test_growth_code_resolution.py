@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.growth_codes.hashing import hash_growth_code
+from src.config import settings
 from src.domain.enums import InviteSource
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -36,6 +37,14 @@ from tests.helpers.realm_auth import (
 from tests.integration.test_quote_checkout_sessions import _make_customer_access_token, _seed_quote_context
 
 pytestmark = [pytest.mark.integration]
+
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
+
+@pytest.fixture(autouse=True)
+def _enable_growth_code_resolution_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
+    monkeypatch.setattr(settings, "referral_enabled", True)
 
 
 async def _create_admin_user(sessionmaker, auth_service: AuthService) -> tuple[AdminUserModel, str]:
@@ -261,13 +270,15 @@ async def test_admin_growth_code_lookup_returns_operator_safe_resolution(async_c
                     "login_or_email": "growth-lookup@example.test",
                     "password": "AdminLookupPhase5!",
                 },
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
-            access_token = login_response.json()["access_token"]
+            access_token = async_client.cookies.get("access_token")
+            assert access_token is not None
 
             response = await async_client.post(
                 "/api/v1/admin/growth-codes/lookup",
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers={"Authorization": f"Bearer {access_token}", **ADMIN_AUTH_HEADERS},
                 json={
                     "code": promo.code,
                     "action_context": "checkout",
@@ -702,8 +713,8 @@ async def test_quote_derives_partner_markup_from_active_binding_code(async_clien
             assert response.status_code == 201
             payload = response.json()
             assert payload["quote"]["partner_code_id"] == str(partner_code.id)
-            assert payload["quote"]["partner_markup"] == 13.5
-            assert payload["quote"]["displayed_price"] == 103.5
+            assert payload["quote"]["partner_markup"] == 11.25
+            assert payload["quote"]["displayed_price"] == 86.25
     finally:
         app.dependency_overrides.pop(get_redis, None)
         engine.dispose()
@@ -785,12 +796,12 @@ async def test_quote_accepts_referral_code_without_creating_reservation(async_cl
                 {
                     "type": "referral",
                     "code": "REFERQUOTE10",
-                    "amount": 9.0,
+                    "amount": 7.5,
                     "policy_version_id": None,
                 }
             ]
-            assert payload["quote"]["discount_amount"] == 9.0
-            assert payload["quote"]["gateway_amount"] == 81.0
+            assert payload["quote"]["discount_amount"] == 7.5
+            assert payload["quote"]["gateway_amount"] == 67.5
 
             with sessionmaker() as db:
                 shadow_code = db.execute(

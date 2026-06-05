@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
-import { walletApi } from '../wallet';
+import { adminWalletApi, walletApi } from '../wallet';
 import { tokenStorage } from '../client';
 import { AxiosError } from 'axios';
 
@@ -65,6 +65,21 @@ const MOCK_WITHDRAWAL = {
   method: 'cryptobot',
   status: 'pending',
   created_at: '2025-01-20T09:00:00Z',
+};
+
+const SAFE_ADMIN_WITHDRAWAL_IDS = {
+  approved: '10000000-0000-4000-8000-000000000703',
+  pending: '10000000-0000-4000-8000-000000000701',
+  rejected: '10000000-0000-4000-8000-000000000702',
+} as const;
+
+const SAFE_ADMIN_PENDING_WITHDRAWAL = {
+  id: SAFE_ADMIN_WITHDRAWAL_IDS.pending,
+  amount: 75.0,
+  currency: 'USD',
+  method: 'cryptobot',
+  status: 'pending',
+  created_at: '2026-04-20T10:00:00Z',
 };
 
 // ---------------------------------------------------------------------------
@@ -510,5 +525,83 @@ describe('walletApi.getWithdrawals', () => {
         expect(error.response?.status).toBe(500);
       }
     }
+  });
+});
+
+// ===========================================================================
+// adminWalletApi withdrawal moderation
+// ===========================================================================
+
+describe('adminWalletApi withdrawal moderation', () => {
+  it('test_admin_get_pending_withdrawals_returns_safe_pending_fixture_pack', async () => {
+    server.use(
+      http.get(`${API_BASE}/admin/withdrawals`, () => {
+        return HttpResponse.json([
+          SAFE_ADMIN_PENDING_WITHDRAWAL,
+          {
+            ...SAFE_ADMIN_PENDING_WITHDRAWAL,
+            amount: 25.0,
+            id: '10000000-0000-4000-8000-000000000704',
+          },
+        ]);
+      }),
+    );
+
+    const response = await adminWalletApi.getPendingWithdrawals();
+
+    expect(response.status).toBe(200);
+    expect(response.data).toHaveLength(2);
+    expect(response.data.every((item) => item.status === 'pending')).toBe(true);
+    expect(response.data[0]).toEqual(expect.objectContaining({
+      amount: 75.0,
+      currency: 'USD',
+      method: 'cryptobot',
+    }));
+  });
+
+  it('test_admin_approve_and_reject_withdrawals_send_moderation_notes', async () => {
+    let approveBody: Record<string, unknown> | null = null;
+    let rejectBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.put(
+        `${API_BASE}/admin/withdrawals/${SAFE_ADMIN_WITHDRAWAL_IDS.pending}/approve`,
+        async ({ request }) => {
+          approveBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({
+            ...SAFE_ADMIN_PENDING_WITHDRAWAL,
+            id: SAFE_ADMIN_WITHDRAWAL_IDS.approved,
+            status: 'approved',
+          });
+        },
+      ),
+      http.put(
+        `${API_BASE}/admin/withdrawals/${SAFE_ADMIN_WITHDRAWAL_IDS.pending}/reject`,
+        async ({ request }) => {
+          rejectBody = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({
+            ...SAFE_ADMIN_PENDING_WITHDRAWAL,
+            id: SAFE_ADMIN_WITHDRAWAL_IDS.rejected,
+            status: 'rejected',
+          });
+        },
+      ),
+    );
+
+    const approveResponse = await adminWalletApi.approveWithdrawal(
+      SAFE_ADMIN_WITHDRAWAL_IDS.pending,
+      { admin_note: 'Safe fixture approval path only' },
+    );
+    const rejectResponse = await adminWalletApi.rejectWithdrawal(
+      SAFE_ADMIN_WITHDRAWAL_IDS.pending,
+      { admin_note: 'Safe fixture rejection path only' },
+    );
+
+    expect(approveBody).toEqual({ admin_note: 'Safe fixture approval path only' });
+    expect(rejectBody).toEqual({ admin_note: 'Safe fixture rejection path only' });
+    expect(approveResponse.status).toBe(200);
+    expect(approveResponse.data.status).toBe('approved');
+    expect(rejectResponse.status).toBe(200);
+    expect(rejectResponse.data.status).toBe('rejected');
   });
 });

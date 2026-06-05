@@ -11,6 +11,7 @@ from src.application.services.auth_service import AuthService
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
 from src.application.use_cases.invites.generate_invites import GenerateInvitesForPaymentUseCase
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
+from src.config import settings
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -46,6 +47,14 @@ from tests.integration.test_order_commit import _make_customer_access_token
 from tests.integration.test_quote_checkout_sessions import _seed_quote_context
 
 pytestmark = [pytest.mark.e2e, pytest.mark.integration]
+
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
+
+@pytest.fixture(autouse=True)
+def _enable_growth_code_conformance_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "checkout_code_discounts_enabled", True)
+    monkeypatch.setattr(settings, "gift_codes_enabled", True)
 
 
 class FakeCryptoBotClient:
@@ -217,6 +226,7 @@ async def test_growth_codes_invite_conformance_bundle_redeem_and_lookup(
             admin_headers = {
                 "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             self_redeem_response = await async_client.post(

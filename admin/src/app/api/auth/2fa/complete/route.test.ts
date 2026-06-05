@@ -144,7 +144,17 @@ describe("POST /api/auth/2fa/complete", () => {
     expect(setCookieHeaders).toContain(
       "refresh_token=json_refresh_token_value",
     );
-    expect(setCookieHeaders).toContain("Path=/");
+    const authCookieHeaders = readSetCookieHeaders(response).filter(
+      (header) =>
+        header.startsWith("access_token=") ||
+        header.startsWith("refresh_token="),
+    );
+    expect(authCookieHeaders).toHaveLength(2);
+    expect(authCookieHeaders).toEqual([
+      expect.stringContaining("Path=/api"),
+      expect.stringContaining("Path=/api"),
+    ]);
+    expect(authCookieHeaders.join("\n")).not.toContain("Path=/;");
   });
 
   it("strips Secure from backend auth cookies for approved local-stage admin origin", async () => {

@@ -33,6 +33,8 @@ from tests.integration.test_quote_checkout_sessions import _seed_quote_context
 
 pytestmark = [pytest.mark.integration]
 
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
 
 async def _create_admin_user(sessionmaker, auth_service: AuthService) -> tuple[AdminUserModel, str]:
     password = "GrowthSignalsAdmin123!"
@@ -136,17 +138,18 @@ async def test_admin_growth_signals_overview_returns_live_growth_metrics(async_c
                     "login_or_email": admin_user.login,
                     "password": admin_password,
                 },
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
-            admin_token = login_response.json()["access_token"]
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
 
             response = await async_client.get(
                 "/api/v1/admin/growth-signals/overview",
                 headers={
                     "Authorization": f"Bearer {admin_token}",
                     "X-Auth-Realm": "admin",
-                    "Host": "testserver",
+                    **ADMIN_AUTH_HEADERS,
                 },
             )
 
@@ -224,17 +227,18 @@ async def test_admin_growth_abuse_queue_returns_resolution_clusters_and_blocked_
                     "login_or_email": admin_user.login,
                     "password": admin_password,
                 },
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
-            admin_token = login_response.json()["access_token"]
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
 
             response = await async_client.get(
                 "/api/v1/admin/growth-signals/abuse-queue?limit=10",
                 headers={
                     "Authorization": f"Bearer {admin_token}",
                     "X-Auth-Realm": "admin",
-                    "Host": "testserver",
+                    **ADMIN_AUTH_HEADERS,
                 },
             )
 
@@ -316,14 +320,15 @@ async def test_admin_referral_endpoints_return_canonical_reward_timeline(
                     "login_or_email": admin_user.login,
                     "password": admin_password,
                 },
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
-            admin_token = login_response.json()["access_token"]
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             headers = {
                 "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
-                "Host": "testserver",
+                **ADMIN_AUTH_HEADERS,
             }
 
             overview_response = await async_client.get(

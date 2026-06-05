@@ -48,7 +48,9 @@ def _disable_mobile_login_rate_limit():
 
 
 @pytest.mark.integration
-async def test_route_creates_new_user_and_persists_subject(async_client, db):
+async def test_route_creates_new_user_and_persists_subject(async_client, db, monkeypatch):
+    monkeypatch.setattr("src.presentation.api.v1.mobile_auth.routes.settings.registration_enabled", True)
+    monkeypatch.setattr("src.presentation.api.v1.mobile_auth.routes.settings.registration_invite_required", False)
     subject = f"telegram-subject-{uuid4()}"
     telegram_id = (uuid4().int % 9_000_000_000) + 100_000_000
     telegram_user = TelegramOIDCUserInfo(

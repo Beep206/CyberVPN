@@ -311,6 +311,15 @@ async def _issue_session_for_passkey(
     credential: PasskeyCredentialModel,
     cookie_namespace: str,
 ) -> PasskeyAuthenticationVerifyResponse:
+    scope_family = get_scope_family_for_realm_key(credential.realm_key)
+    response_metadata = {
+        "auth_realm_id": credential.auth_realm_id,
+        "auth_realm_key": credential.realm_key,
+        "audience": credential.audience,
+        "principal_type": credential.principal_class,
+        "scope_family": scope_family,
+    }
+
     if user.totp_enabled:
         tfa_token, _, _ = auth_service.create_access_token(
             subject=str(user.id),
@@ -320,7 +329,7 @@ async def _issue_session_for_passkey(
             principal_type=credential.principal_class,
             realm_id=str(credential.auth_realm_id),
             realm_key=credential.realm_key,
-            scope_family=get_scope_family_for_realm_key(credential.realm_key),
+            scope_family=scope_family,
         )
         set_pending_2fa_cookie(
             response,
@@ -328,10 +337,13 @@ async def _issue_session_for_passkey(
             request=request,
             cookie_namespace=cookie_namespace,
         )
-        return PasskeyAuthenticationVerifyResponse(requires_2fa=True, tfa_token=tfa_token)
+        return PasskeyAuthenticationVerifyResponse(
+            **response_metadata,
+            requires_2fa=True,
+            tfa_token=tfa_token,
+        )
 
     fingerprint = generate_client_fingerprint(request)
-    scope_family = get_scope_family_for_realm_key(credential.realm_key)
     access_token, access_jti, _access_expire = auth_service.create_access_token(
         subject=str(user.id),
         role=user.role,
@@ -374,7 +386,7 @@ async def _issue_session_for_passkey(
         cookie_namespace=cookie_namespace,
     )
     await sync_active_sessions(db)
-    return PasskeyAuthenticationVerifyResponse(requires_2fa=False)
+    return PasskeyAuthenticationVerifyResponse(**response_metadata, requires_2fa=False)
 
 
 def get_scope_family_for_realm_key(realm_key: str) -> str:

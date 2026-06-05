@@ -89,12 +89,22 @@ def upgrade() -> None:
         if "subject_line" not in column_names:
             op.add_column(
                 "growth_reporting_deliveries",
-                sa.Column("subject_line", sa.String(length=255), nullable=False, server_default="Growth reporting digest"),
+                sa.Column(
+                    "subject_line",
+                    sa.String(length=255),
+                    nullable=False,
+                    server_default="Growth reporting digest",
+                ),
             )
         if "title_line" not in column_names:
             op.add_column(
                 "growth_reporting_deliveries",
-                sa.Column("title_line", sa.String(length=255), nullable=False, server_default="Growth reporting digest"),
+                sa.Column(
+                    "title_line",
+                    sa.String(length=255),
+                    nullable=False,
+                    server_default="Growth reporting digest",
+                ),
             )
         if "recipient_domain_policy" not in column_names:
             op.add_column(

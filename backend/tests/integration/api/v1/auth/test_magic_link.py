@@ -12,6 +12,7 @@ import secrets
 import pytest
 
 from src.application.services.magic_link_service import MagicLinkService
+from src.config.settings import settings
 from src.infrastructure.cache.redis_client import get_redis_client
 
 
@@ -63,7 +64,7 @@ class TestMagicLinkRoutes:
             await redis_client.aclose()
 
     @pytest.mark.integration
-    async def test_verify_valid_token_returns_jwt(self, async_client):
+    async def test_verify_valid_token_returns_jwt(self, async_client, monkeypatch):
         """POST /api/v1/auth/magic-link/verify with valid token returns JWT tokens."""
         import secrets
 
@@ -74,6 +75,8 @@ class TestMagicLinkRoutes:
             await redis_client.setex(f"{MagicLinkService.PREFIX}{token}", 900, email)
         finally:
             await redis_client.aclose()
+
+        monkeypatch.setattr(settings, "registration_enabled", True)
 
         response = await async_client.post(
             "/api/v1/auth/magic-link/verify",
@@ -103,7 +106,7 @@ class TestMagicLinkRoutes:
         assert response.status_code == 400
 
     @pytest.mark.integration
-    async def test_token_is_single_use(self, async_client):
+    async def test_token_is_single_use(self, async_client, monkeypatch):
         """Magic link token supports one replay, then expires."""
         import secrets
 
@@ -114,6 +117,8 @@ class TestMagicLinkRoutes:
             await redis_client.setex(f"{MagicLinkService.PREFIX}{token}", 900, email)
         finally:
             await redis_client.aclose()
+
+        monkeypatch.setattr(settings, "registration_enabled", True)
 
         response1 = await async_client.post(
             "/api/v1/auth/magic-link/verify",

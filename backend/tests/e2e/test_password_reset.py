@@ -16,6 +16,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.otp_code_model import OtpCodeModel
 from src.infrastructure.tasks.email_task_dispatcher import get_email_dispatcher
 from src.main import app
+from tests.integration.conftest import get_default_test_realm
 
 pytestmark = [pytest.mark.e2e]
 
@@ -46,11 +47,13 @@ async def _create_user(
     password: str = "OldP@ssw0rd123!",
 ) -> tuple[AdminUserModel, str]:
     auth_service = AuthService()
+    customer_realm = await get_default_test_realm(db, "customer")
     password_hash = await auth_service.hash_password(password)
     suffix = secrets.token_hex(4)
     user = AdminUserModel(
         login=f"resetuser-{suffix}",
         email=email or f"reset-{suffix}@example.com",
+        auth_realm_id=customer_realm.id,
         password_hash=password_hash,
         role="viewer",
         is_active=True,
@@ -316,8 +319,7 @@ class TestResetPasswordSuccess:
             json={"login_or_email": user.email, "password": STRONG_PASSWORD},
         )
         assert new_login_response.status_code == 200
-        assert "access_token" in new_login_response.json()
-        assert "refresh_token" in new_login_response.json()
+        assert new_login_response.json()["auth_realm_key"] == "customer"
 
     async def test_reset_password_invalidates_otp_after_use(
         self,

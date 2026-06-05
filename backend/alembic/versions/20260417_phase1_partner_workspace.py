@@ -7,9 +7,9 @@ Create Date: 2026-04-17 23:55:00.000000
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
-import uuid
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql

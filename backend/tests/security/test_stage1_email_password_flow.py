@@ -614,23 +614,23 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
     assert username_login.status_code == 200
     assert "httponly" in "\n".join(email_login.headers.get_list("set-cookie")).lower()
 
-    refresh_response = await async_client.post(
-        "/api/v1/auth/refresh",
-        json={"refresh_token": email_login.json()["refresh_token"]},
-    )
+    async_client.cookies.update(email_login.cookies)
+    refresh_response = await async_client.post("/api/v1/auth/refresh", json={})
     assert refresh_response.status_code == 200
-    assert refresh_response.json()["refresh_token"] != email_login.json()["refresh_token"]
+    refreshed_token = refresh_response.json()["refresh_token"]
+    assert refreshed_token
+    assert refreshed_token != email_login.cookies["customer_refresh_token"]
 
     logout_response = await async_client.post(
         "/api/v1/auth/logout",
-        json={"refresh_token": refresh_response.json()["refresh_token"]},
+        json={"refresh_token": refreshed_token},
     )
     assert logout_response.status_code == 204
     assert "max-age=0" in "\n".join(logout_response.headers.get_list("set-cookie")).lower()
 
     replay_response = await async_client.post(
         "/api/v1/auth/refresh",
-        json={"refresh_token": refresh_response.json()["refresh_token"]},
+        json={"refresh_token": refreshed_token},
     )
     assert replay_response.status_code == 401
 

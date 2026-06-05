@@ -9,12 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from tests.integration.conftest import admin_auth_headers, get_default_test_realm, issue_admin_access_token
 
 
 async def _create_admin_user(db: AsyncSession) -> tuple[AdminUserModel, str]:
     password = "TestP@ssw0rd123!"
     auth_service = AuthService()
+    admin_realm = await get_default_test_realm(db, "admin")
     user = AdminUserModel(
+        auth_realm_id=admin_realm.id,
         login=f"subuser{secrets.token_hex(4)}",
         email=f"subscription{secrets.token_hex(4)}@example.com",
         password_hash=await auth_service.hash_password(password),
@@ -28,15 +31,6 @@ async def _create_admin_user(db: AsyncSession) -> tuple[AdminUserModel, str]:
     await db.commit()
     await db.refresh(user)
     return user, password
-
-
-async def _login(async_client: AsyncClient, user: AdminUserModel, password: str) -> str:
-    response = await async_client.post(
-        "/api/v1/auth/login",
-        json={"login_or_email": user.email, "password": password},
-    )
-    assert response.status_code == 200
-    return response.json()["access_token"]
 
 
 def _remnawave_user_payload(
@@ -69,15 +63,15 @@ class TestActiveSubscriptionFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, password = await _create_admin_user(db)
-        access_token = await _login(async_client, user, password)
+        user, _password = await _create_admin_user(db)
+        access_token = await issue_admin_access_token(db, user)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
             mock_get.return_value = _remnawave_user_payload(user)
 
             sub_response = await async_client.get(
                 "/api/v1/subscriptions/active",
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers=admin_auth_headers(access_token),
             )
 
         assert sub_response.status_code == 200
@@ -106,8 +100,8 @@ class TestCancelSubscriptionFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, password = await _create_admin_user(db)
-        access_token = await _login(async_client, user, password)
+        user, _password = await _create_admin_user(db)
+        access_token = await issue_admin_access_token(db, user)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
             with patch("src.infrastructure.remnawave.client.RemnawaveClient.patch") as mock_patch:
@@ -120,7 +114,7 @@ class TestCancelSubscriptionFlow:
 
                 cancel_response = await async_client.post(
                     "/api/v1/subscriptions/cancel",
-                    headers={"Authorization": f"Bearer {access_token}"},
+                    headers=admin_auth_headers(access_token),
                 )
 
         assert cancel_response.status_code == 200
@@ -133,15 +127,15 @@ class TestCancelSubscriptionFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, password = await _create_admin_user(db)
-        access_token = await _login(async_client, user, password)
+        user, _password = await _create_admin_user(db)
+        access_token = await issue_admin_access_token(db, user)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
             mock_get.return_value = None
 
             cancel_response = await async_client.post(
                 "/api/v1/subscriptions/cancel",
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers=admin_auth_headers(access_token),
             )
 
         assert cancel_response.status_code == 404
@@ -164,8 +158,8 @@ class TestCancelSubscriptionRateLimiting:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, password = await _create_admin_user(db)
-        access_token = await _login(async_client, user, password)
+        user, _password = await _create_admin_user(db)
+        access_token = await issue_admin_access_token(db, user)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
             with patch("src.infrastructure.remnawave.client.RemnawaveClient.patch") as mock_patch:
@@ -179,13 +173,13 @@ class TestCancelSubscriptionRateLimiting:
                 for _ in range(3):
                     response = await async_client.post(
                         "/api/v1/subscriptions/cancel",
-                        headers={"Authorization": f"Bearer {access_token}"},
+                        headers=admin_auth_headers(access_token),
                     )
                     assert response.status_code == 200
 
                 rate_limited_response = await async_client.post(
                     "/api/v1/subscriptions/cancel",
-                    headers={"Authorization": f"Bearer {access_token}"},
+                    headers=admin_auth_headers(access_token),
                 )
 
         assert rate_limited_response.status_code == 429

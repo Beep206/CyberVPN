@@ -47,8 +47,10 @@ from src.infrastructure.database.models.storefront_model import StorefrontModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -89,11 +91,11 @@ async def _create_admin_user(
 async def _login(async_client: AsyncClient, login_or_email: str, password: str) -> str:
     response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "admin"},
+        headers=ADMIN_AUTH_REALM_HEADERS,
         json={"login_or_email": login_or_email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["access_token"]
+    return access_token_from_client_cookies(async_client, response=response)
 
 
 async def _create_workspace(
@@ -603,21 +605,18 @@ async def test_partner_workspace_reporting_and_cases_are_visible_to_workspace_me
 
             admin_headers = {
                 "Authorization": f"Bearer {admin_token}",
-                "X-Auth-Realm": "admin",
-                "Host": "admin.cyber-vpn.net",
+                **ADMIN_AUTH_REALM_HEADERS,
             }
             support_headers = {
                 "Authorization": f"Bearer {support_token}",
-                "X-Auth-Realm": "admin",
-                "Host": "admin.cyber-vpn.net",
+                **ADMIN_AUTH_REALM_HEADERS,
             }
             finance_headers = {
                 "Authorization": f"Bearer {finance_token}",
-                "X-Auth-Realm": "admin",
-                "Host": "admin.cyber-vpn.net",
+                **ADMIN_AUTH_REALM_HEADERS,
             }
-            owner_headers = {"Authorization": f"Bearer {owner_token}", "X-Auth-Realm": "admin"}
-            outsider_headers = {"Authorization": f"Bearer {outsider_token}", "X-Auth-Realm": "admin"}
+            owner_headers = {"Authorization": f"Bearer {owner_token}", **ADMIN_AUTH_REALM_HEADERS}
+            outsider_headers = {"Authorization": f"Bearer {outsider_token}", **ADMIN_AUTH_REALM_HEADERS}
 
             workspace_id = await _create_workspace(
                 async_client,

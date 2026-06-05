@@ -17,6 +17,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
 )
 from src.config.settings import settings
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from tests.integration.conftest import customer_auth_headers, get_default_test_realm, issue_customer_access_token
 
 
 async def _create_mobile_user(
@@ -28,7 +29,9 @@ async def _create_mobile_user(
     """Create an active mobile user and return ``(user_id, access_token)``."""
     auth_service = AuthService()
     suffix = secrets.token_hex(4)
+    customer_realm = await get_default_test_realm(db, "customer")
     user = MobileUserModel(
+        auth_realm_id=customer_realm.id,
         email=f"trial-{suffix}@example.com",
         password_hash=await auth_service.hash_password("MobileTrialPassword123!"),
         username=f"trial-{suffix}",
@@ -40,7 +43,7 @@ async def _create_mobile_user(
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return str(user.id), auth_service.create_access_token_simple(str(user.id), "user")
+    return str(user.id), await issue_customer_access_token(db, user)
 
 
 class TestTrialActivation:
@@ -57,7 +60,7 @@ class TestTrialActivation:
 
         response = await async_client.post(
             "/api/v1/trial/activate",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=customer_auth_headers(access_token),
         )
 
         assert response.status_code == 200
@@ -86,7 +89,7 @@ class TestTrialActivation:
 
         response = await async_client.post(
             "/api/v1/trial/activate",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=customer_auth_headers(access_token),
         )
 
         assert response.status_code == 400
@@ -109,7 +112,7 @@ class TestTrialActivation:
         try:
             response = await async_client.post(
                 "/api/v1/trial/activate",
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers=customer_auth_headers(access_token),
             )
 
             assert response.status_code == 429
@@ -133,7 +136,7 @@ class TestTrialStatus:
 
         response = await async_client.get(
             "/api/v1/trial/status",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=customer_auth_headers(access_token),
         )
 
         assert response.status_code == 200

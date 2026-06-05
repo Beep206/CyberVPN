@@ -7,6 +7,9 @@ These scenarios exercise the current mobile-user wallet and payments contract:
 - payment history and admin wallet views
 """
 
+import hashlib
+import hmac
+import json
 import secrets
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -18,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
+from src.config.settings import settings
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.payment_model import PaymentModel
@@ -28,6 +32,7 @@ from src.infrastructure.database.models.withdrawal_request_model import Withdraw
 from src.main import app
 from src.presentation.dependencies.auth import get_current_active_user, get_current_mobile_user_id
 from src.presentation.dependencies.services import get_crypto_client
+from tests.integration.conftest import ADMIN_HOST_HEADERS, get_default_test_realm
 
 
 @pytest.fixture(autouse=True)
@@ -63,7 +68,9 @@ async def _set_wallet_withdrawals_enabled(db: AsyncSession, *, enabled: bool) ->
 
 async def _create_admin_user(db: AsyncSession, *, role: str = "admin") -> AdminUserModel:
     auth_service = AuthService()
+    admin_realm = await get_default_test_realm(db, "admin")
     user = AdminUserModel(
+        auth_realm_id=admin_realm.id,
         login=f"admin{secrets.token_hex(4)}",
         email=f"admin{secrets.token_hex(4)}@example.com",
         password_hash=await auth_service.hash_password("AdminP@ss123!"),
@@ -85,7 +92,9 @@ async def _create_mobile_user(
     balance: str = "0.00",
 ) -> tuple[MobileUserModel, WalletModel]:
     auth_service = AuthService()
+    customer_realm = await get_default_test_realm(db, "customer")
     user = MobileUserModel(
+        auth_realm_id=customer_realm.id,
         email=f"mobile{secrets.token_hex(4)}@example.com",
         password_hash=await auth_service.hash_password("MobileP@ss123!"),
         username=f"mobile{secrets.token_hex(4)}",
@@ -118,11 +127,18 @@ async def _create_plan(
     plan = SubscriptionPlanModel(
         name=f"{name}-{secrets.token_hex(4)}",
         tier="pro",
+        plan_code="pro",
+        display_name=name,
+        catalog_visibility="public",
         duration_days=duration_days,
         traffic_limit_bytes=None,
         device_limit=3,
         price_usd=Decimal(price_usd),
         price_rub=None,
+        sale_channels=["web"],
+        traffic_policy={"policy": "standard"},
+        connection_modes=["shared"],
+        server_pool=["default"],
         features={},
         is_active=True,
         sort_order=0,
@@ -150,6 +166,7 @@ class TestWalletFlow:
         topup_response = await async_client.post(
             f"/api/v1/admin/wallets/{mobile_user.id}/topup",
             json={"amount": "100.00", "description": "Test topup"},
+            headers=ADMIN_HOST_HEADERS,
         )
 
         assert topup_response.status_code == 200
@@ -175,6 +192,7 @@ class TestWalletFlow:
         approve_response = await async_client.put(
             f"/api/v1/admin/withdrawals/{withdrawal_id}/approve",
             json={"admin_note": "Approved"},
+            headers=ADMIN_HOST_HEADERS,
         )
 
         assert approve_response.status_code == 200
@@ -265,6 +283,7 @@ class TestWalletFlow:
         reject_response = await async_client.put(
             f"/api/v1/admin/withdrawals/{withdrawal_id}/reject",
             json={"admin_note": "Invalid bank details"},
+            headers=ADMIN_HOST_HEADERS,
         )
 
         assert reject_response.status_code == 200
@@ -290,6 +309,7 @@ class TestWalletFlow:
             response = await async_client.post(
                 f"/api/v1/admin/wallets/{mobile_user.id}/topup",
                 json={"amount": f"{(idx + 1) * 10}.00", "description": f"Topup {idx + 1}"},
+                headers=ADMIN_HOST_HEADERS,
             )
             assert response.status_code == 200
 
@@ -317,7 +337,7 @@ class TestPaymentCheckoutFlow:
 
         _override_mobile_user(mobile_user.id)
         checkout_response = await async_client.post(
-            "/api/v1/payments/checkout",
+            "/api/v1/payments/checkout/quote",
             json={"plan_id": str(plan.id), "currency": "USD", "use_wallet": 5.00},
         )
 
@@ -339,15 +359,15 @@ class TestPaymentCheckoutFlow:
 
         _override_mobile_user(mobile_user.id)
         checkout_response = await async_client.post(
-            "/api/v1/payments/checkout",
+            "/api/v1/payments/checkout/quote",
             json={"plan_id": str(plan.id), "currency": "USD", "use_wallet": 10.00},
         )
 
         assert checkout_response.status_code == 200
         checkout_data = checkout_response.json()
         assert checkout_data["is_zero_gateway"] is True
-        assert checkout_data["status"] == "completed"
-        assert checkout_data["payment_id"] is not None
+        assert Decimal(str(checkout_data["wallet_amount"])) == Decimal("10.00")
+        assert Decimal(str(checkout_data["gateway_amount"])) == Decimal("0.00")
 
     @pytest.mark.integration
     async def test_create_crypto_invoice(
@@ -391,30 +411,28 @@ class TestPaymentWebhookFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        with patch("src.infrastructure.payments.cryptobot.webhook_handler.CryptoBotWebhookHandler") as mock_handler:
+        body = {
+            "update_id": 123,
+            "update_type": "invoice_paid",
+            "request_date": "2024-01-01T00:00:00Z",
+            "payload": {"invoice_id": "test_invoice_123", "status": "paid"},
+        }
+        body_bytes = json.dumps(body).encode()
+        hmac_secret = hashlib.sha256(settings.cryptobot_token.get_secret_value().encode()).digest()
+        valid_signature = hmac.new(hmac_secret, body_bytes, hashlib.sha256).hexdigest()
+
+        with patch("src.presentation.api.v1.webhooks.routes.CryptoBotWebhookHandler") as mock_handler:
             mock_handler_instance = MagicMock()
-            mock_handler_instance.verify_signature = MagicMock(return_value=True)
-            mock_handler_instance.parse_webhook = MagicMock(
-                return_value={
-                    "invoice_id": "test_invoice_123",
-                    "status": "paid",
-                    "amount": "20.00",
-                    "currency": "USD",
-                    "user_id": str(secrets.token_hex(16)),
-                    "plan_id": str(secrets.token_hex(16)),
-                }
-            )
+            mock_handler_instance.validate_signature = MagicMock(return_value=True)
+            mock_handler_instance.parse_payload = MagicMock(return_value=body)
+            mock_handler_instance.validate_payment = AsyncMock(return_value=(True, None))
+            mock_handler_instance.mark_invoice_processed = AsyncMock()
             mock_handler.return_value = mock_handler_instance
 
             webhook_response = await async_client.post(
                 "/api/v1/webhooks/cryptobot",
-                json={
-                    "update_id": 123,
-                    "update_type": "invoice_paid",
-                    "request_date": "2024-01-01T00:00:00Z",
-                    "payload": {"invoice_id": "test_invoice_123", "status": "paid"},
-                },
-                headers={"crypto-pay-api-signature": "test_signature"},
+                content=body_bytes,
+                headers={"Content-Type": "application/json", "crypto-pay-api-signature": valid_signature},
             )
 
         assert webhook_response.status_code == 200
@@ -426,9 +444,9 @@ class TestPaymentWebhookFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        with patch("src.infrastructure.payments.cryptobot.webhook_handler.CryptoBotWebhookHandler") as mock_handler:
+        with patch("src.presentation.api.v1.webhooks.routes.CryptoBotWebhookHandler") as mock_handler:
             mock_handler_instance = MagicMock()
-            mock_handler_instance.verify_signature = MagicMock(return_value=False)
+            mock_handler_instance.validate_signature = MagicMock(return_value=False)
             mock_handler.return_value = mock_handler_instance
 
             webhook_response = await async_client.post(
@@ -503,7 +521,10 @@ class TestAdminWalletOperations:
         mobile_user, _wallet = await _create_mobile_user(db, balance="123.45")
 
         _override_admin_user(admin)
-        wallet_response = await async_client.get(f"/api/v1/admin/wallets/{mobile_user.id}")
+        wallet_response = await async_client.get(
+            f"/api/v1/admin/wallets/{mobile_user.id}",
+            headers=ADMIN_HOST_HEADERS,
+        )
 
         assert wallet_response.status_code == 200
         assert Decimal(str(wallet_response.json()["balance"])) == Decimal("123.45")
@@ -531,7 +552,7 @@ class TestAdminWalletOperations:
         await db.commit()
 
         _override_admin_user(admin)
-        withdrawals_response = await async_client.get("/api/v1/admin/withdrawals")
+        withdrawals_response = await async_client.get("/api/v1/admin/withdrawals", headers=ADMIN_HOST_HEADERS)
 
         assert withdrawals_response.status_code == 200
         withdrawals = withdrawals_response.json()

@@ -37,23 +37,19 @@ def test_passkey_openapi_components_are_exposed() -> None:
     assert "UpdatePartnerWorkspacePasskeyPolicyRequest" in components
 
     auth_verify_response = components["PasskeyAuthenticationVerifyResponse"]
-    assert "access_token" not in auth_verify_response["properties"]
-    assert "refresh_token" not in auth_verify_response["properties"]
-    assert "auth_realm_key" not in auth_verify_response["properties"]
-    assert "expires_in" not in auth_verify_response["properties"]
-    assert "principal_type" not in auth_verify_response["properties"]
-    assert "scope_family" not in auth_verify_response["properties"]
-    assert "token_type" not in auth_verify_response["properties"]
-    assert auth_verify_response["properties"] == {
-        "requires_2fa": {
-            "default": False,
-            "title": "Requires 2Fa",
-            "type": "boolean",
-        },
-        "tfa_token": {
-            "anyOf": [{"type": "string"}, {"type": "null"}],
-            "title": "Tfa Token",
-        },
+    properties = auth_verify_response["properties"]
+    assert "access_token" not in properties
+    assert "refresh_token" not in properties
+    assert "expires_in" not in properties
+    assert "token_type" not in properties
+    assert set(properties) == {
+        "auth_realm_id",
+        "auth_realm_key",
+        "audience",
+        "principal_type",
+        "scope_family",
+        "requires_2fa",
+        "tfa_token",
     }
 
 

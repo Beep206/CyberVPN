@@ -1,23 +1,23 @@
 {
-  "title": "SERVICE STATUS",
-  "subtitle": "Public release monitoring surface",
+  "title": "СТАТУС СЕРВИСА",
+  "subtitle": "Поверхность мониторинга публичного релиза",
   "metrics": {
-    "uptime": "AVAILABILITY WINDOW",
-    "status_nominal": "READY SIGNALS NOMINAL",
-    "status_warning": "DEGRADED SIGNALS",
-    "status_outage": "INCIDENT REVIEW REQUIRED",
-    "active_nodes": "ENABLED REGIONS",
-    "bandwidth": "OBSERVED TRAFFIC",
-    "latency": "AVG LATENCY"
+    "uptime": "ОКНО ДОСТУПНОСТИ",
+    "status_nominal": "СИГНАЛЫ ГОТОВНОСТИ В НОРМЕ",
+    "status_warning": "СИГНАЛЫ УХУДШЕНЫ",
+    "status_outage": "ТРЕБУЕТСЯ РАЗБОР ИНЦИДЕНТА",
+    "active_nodes": "ВКЛЮЧЁННЫЕ РЕГИОНЫ",
+    "bandwidth": "НАБЛЮДАЕМЫЙ ТРАФИК",
+    "latency": "СРЕДНЯЯ ЗАДЕРЖКА"
   },
   "history": {
-    "title": "Evidence Window",
-    "tooltip_date": "Date",
-    "tooltip_status": "Status"
+    "title": "Окно доказательств",
+    "tooltip_date": "Дата",
+    "tooltip_status": "Статус"
   },
   "incidents": {
-    "title": "INCIDENT LOG",
-    "empty": "No active incidents recorded in this local status snapshot.",
-    "view_all": "VIEW ARCHIVE"
+    "title": "ЖУРНАЛ ИНЦИДЕНТОВ",
+    "empty": "В этом локальном снимке статуса нет активных инцидентов.",
+    "view_all": "ПОСМОТРЕТЬ АРХИВ"
   }
 }

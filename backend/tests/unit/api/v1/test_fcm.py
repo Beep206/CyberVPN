@@ -13,8 +13,11 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from src.application.use_cases.auth_realms import RealmResolution
+from src.domain.entities.auth_realm import stable_auth_realm_id
 from src.main import app
 from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.dependencies.auth_realms import get_request_admin_realm, get_request_web_auth_realm
 from src.presentation.dependencies.database import get_db
 
 BASE_URL = "/api/v1/users/me/fcm-token"
@@ -43,6 +46,19 @@ def _mock_current_active_user() -> _MockUser:
 
 async def _mock_db():
     yield object()
+
+
+async def _mock_web_auth_realm() -> RealmResolution:
+    return RealmResolution(
+        auth_realm=SimpleNamespace(
+            id=stable_auth_realm_id("customer"),
+            realm_key="customer",
+            realm_type="customer",
+            audience="cybervpn:customer",
+            cookie_namespace="customer",
+        ),
+        source="test",
+    )
 
 
 class _MockFCMTokenRepository:
@@ -81,6 +97,8 @@ def _clean_overrides():
     """Ensure dependency overrides are removed after every test."""
     _MockFCMTokenRepository._tokens.clear()
     app.dependency_overrides[get_db] = _mock_db
+    app.dependency_overrides[get_request_admin_realm] = _mock_web_auth_realm
+    app.dependency_overrides[get_request_web_auth_realm] = _mock_web_auth_realm
     with patch("src.presentation.api.v1.fcm.routes.FCMTokenRepositoryImpl", _MockFCMTokenRepository):
         yield
     app.dependency_overrides.clear()

@@ -2,7 +2,6 @@ import json
 import re
 from pathlib import Path
 
-
 REQUIRED_DASHBOARDS = {
     "stage2-payment-reconciliation-dashboard.json": "stage2-payment-reconciliation",
     "stage2-refund-renewal-dashboard.json": "stage2-refund-renewal",

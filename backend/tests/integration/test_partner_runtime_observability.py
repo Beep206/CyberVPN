@@ -17,8 +17,12 @@ from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRe
 from src.infrastructure.monitoring.instrumentation.partner_runtime import bind_partner_runtime_context
 from src.main import app
 from tests.helpers.realm_auth import (
+    ADMIN_AUTH_REALM_HEADERS,
+    PARTNER_ACCESS_COOKIE_NAME,
+    PARTNER_AUTH_REALM_HEADERS,
     FakeRedis,
     SyncSessionAdapter,
+    access_token_from_client_cookies,
     cleanup_sqlite_file,
     create_realm_test_sessionmaker,
     initialize_realm_test_database,
@@ -81,17 +85,21 @@ async def _login_partner_and_submit_application(
 
     login_response = await async_client.post(
         "/api/v1/auth/login",
-        headers={"X-Auth-Realm": "partner"},
+        headers=PARTNER_AUTH_REALM_HEADERS,
         json={
             "login_or_email": email,
             "password": password,
         },
     )
     assert login_response.status_code == 200
-    access_token = login_response.json()["access_token"]
+    access_token = access_token_from_client_cookies(
+        async_client,
+        cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+        response=login_response,
+    )
     auth_headers = {
         "Authorization": f"Bearer {access_token}",
-        "X-Auth-Realm": "partner",
+        **PARTNER_AUTH_REALM_HEADERS,
     }
 
     create_response = await async_client.post(
@@ -184,17 +192,21 @@ async def test_partner_runtime_metrics_increment_for_login_draft_submit_and_boot
 
             login_response = await async_client.post(
                 "/api/v1/auth/login",
-                headers={"X-Auth-Realm": "partner"},
+                headers=PARTNER_AUTH_REALM_HEADERS,
                 json={
                     "login_or_email": "partner-observability@example.com",
                     "password": "PartnerObservability123!",
                 },
             )
             assert login_response.status_code == 200
-            access_token = login_response.json()["access_token"]
+            access_token = access_token_from_client_cookies(
+                async_client,
+                cookie_name=PARTNER_ACCESS_COOKIE_NAME,
+                response=login_response,
+            )
             auth_headers = {
                 "Authorization": f"Bearer {access_token}",
-                "X-Auth-Realm": "partner",
+                **PARTNER_AUTH_REALM_HEADERS,
             }
 
             create_response = await async_client.post(
@@ -283,20 +295,20 @@ async def test_partner_cross_realm_denial_metrics_increment_for_admin_token_on_p
 
             login_response = await async_client.post(
                 "/api/v1/auth/login",
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_REALM_HEADERS,
                 json={
                     "login_or_email": "partner-metric-admin@example.com",
                     "password": "AdminObservability123!",
                 },
             )
             assert login_response.status_code == 200
-            admin_access_token = login_response.json()["access_token"]
+            admin_access_token = access_token_from_client_cookies(async_client, response=login_response)
 
             partner_session_response = await async_client.get(
                 "/api/v1/auth/session",
                 headers={
                     "Authorization": f"Bearer {admin_access_token}",
-                    "X-Auth-Realm": "partner",
+                    **PARTNER_AUTH_REALM_HEADERS,
                 },
             )
             assert partner_session_response.status_code == 401

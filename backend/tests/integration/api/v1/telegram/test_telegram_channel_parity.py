@@ -88,9 +88,28 @@ def _fake_order():
     )
 
 
+def _fake_subscription_list():
+    return SimpleNamespace(
+        items=[
+            SimpleNamespace(
+                subscription_key="entitlement:plan-pro-001",
+                kind="entitlement_grant",
+                status="active",
+                display_name="Pro Plan",
+                plan_code="pro",
+                expires_at="2026-05-01T12:00:00Z",
+                effective_entitlements={
+                    "device_limit": 5,
+                },
+                can_deliver_config=False,
+            )
+        ]
+    )
+
+
 class TestTelegramChannelParity:
     @pytest.mark.integration
-    async def test_bot_subscription_summary_uses_canonical_entitlements(
+    async def test_bot_subscription_summary_uses_selected_subscription_read_model(
         self,
         async_client: AsyncClient,
         monkeypatch,
@@ -102,8 +121,11 @@ class TestTelegramChannelParity:
             "src.presentation.api.v1.telegram.routes._get_mobile_user_or_404",
             AsyncMock(return_value=mobile_user),
         ), patch(
-            "src.presentation.api.v1.telegram.routes.GetCurrentEntitlementsUseCase.execute",
-            AsyncMock(return_value=_entitlement_snapshot()),
+            "src.presentation.api.v1.telegram.routes._resolve_bot_customer_realm",
+            AsyncMock(return_value=SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))),
+        ), patch(
+            "src.presentation.api.v1.telegram.routes.ListCustomerSubscriptionsUseCase.execute",
+            AsyncMock(return_value=_fake_subscription_list()),
         ):
             response = await async_client.get(
                 "/api/v1/telegram/bot/user/123456/subscriptions",
@@ -113,11 +135,15 @@ class TestTelegramChannelParity:
         assert response.status_code == 200
         assert response.json() == [
             {
+                "subscription_key": "entitlement:plan-pro-001",
+                "kind": "entitlement_grant",
                 "status": "active",
+                "display_name": "Pro Plan",
                 "plan_name": "Pro Plan",
                 "expires_at": "2026-05-01T12:00:00Z",
                 "traffic_limit_bytes": None,
                 "used_traffic_bytes": None,
+                "can_deliver_config": False,
                 "auto_renew": False,
             }
         ]

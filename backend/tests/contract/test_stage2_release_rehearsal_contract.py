@@ -66,7 +66,10 @@ def test_stage2_release_rehearsal_preserves_domain_and_node_boundaries() -> None
 
     assert ".org` is not a customer mirror" in stage_doc
     assert "No application, database, observability, GitLab or payment containers" in runbook
-    assert "No app, GitLab, Sentry, Grafana, Prometheus, backend, frontend, admin, database or payment services were observed on the node." in evidence
+    assert (
+        "No app, GitLab, Sentry, Grafana, Prometheus, backend, frontend, admin, database or payment services "
+        "were observed on the node."
+    ) in evidence
 
 
 def test_stage2_release_rehearsal_preserves_quic_and_secret_boundaries() -> None:

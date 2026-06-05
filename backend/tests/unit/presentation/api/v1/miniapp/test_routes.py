@@ -30,6 +30,10 @@ async def _default_rollout_config(_db=None) -> MiniAppRuntimeConfig:
     return MiniAppRuntimeConfig()
 
 
+def _customer_realm() -> SimpleNamespace:
+    return SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))
+
+
 def test_build_primary_cta_prefers_trial_for_new_users() -> None:
     cta = _build_primary_cta(subscription_status="none", trial_eligible=True, has_config=False)
 
@@ -140,7 +144,7 @@ def test_build_usage_snapshot_marks_missing_remnawave_user_unavailable() -> None
 
 def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) -> None:
     user_id = uuid4()
-    realm = SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))
+    realm = _customer_realm()
 
     plan = SimpleNamespace(
         id=uuid4(),
@@ -253,6 +257,7 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
 
     response = asyncio.run(
         get_miniapp_offers(
+            selected_subscription_key=None,
             db=object(),
             user_id=user_id,
             current_realm=realm,
@@ -270,6 +275,7 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
 def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> None:
     user_id = uuid4()
     remnawave_user_id = uuid4()
+    realm = _customer_realm()
 
     class FakeMobileUserRepo:
         def __init__(self, _db) -> None:
@@ -310,8 +316,10 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
 
     response = asyncio.run(
         get_miniapp_config(
+            selected_subscription_key=None,
             db=object(),
             user_id=user_id,
+            current_realm=realm,
             remnawave_client=object(),
         )
     )
@@ -325,6 +333,7 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
 
 def test_get_miniapp_config_falls_back_to_legacy_subscription_url(monkeypatch) -> None:
     user_id = uuid4()
+    realm = _customer_realm()
 
     class FakeMobileUserRepo:
         def __init__(self, _db) -> None:
@@ -348,8 +357,10 @@ def test_get_miniapp_config_falls_back_to_legacy_subscription_url(monkeypatch) -
 
     response = asyncio.run(
         get_miniapp_config(
+            selected_subscription_key=None,
             db=object(),
             user_id=user_id,
+            current_realm=realm,
             remnawave_client=object(),
         )
     )
@@ -393,6 +404,7 @@ def test_get_remnawave_user_for_mobile_user_prefers_local_remnawave_uuid(monkeyp
 
 def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
     user_id = uuid4()
+    realm = _customer_realm()
     request = miniapp_routes.MiniAppCheckoutRequest(
         flow="checkout",
         plan_id=uuid4(),
@@ -421,6 +433,7 @@ def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:
             body=request,
             db=object(),
             user_id=user_id,
+            current_realm=realm,
         )
     )
 

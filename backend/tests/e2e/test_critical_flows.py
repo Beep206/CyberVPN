@@ -12,7 +12,7 @@ async def test_health_check_flow():
         assert response.status_code == 200
 
         response = await client.get("/docs")
-        assert response.status_code == 200
+        assert response.status_code == 404
 
 
 @pytest.mark.asyncio

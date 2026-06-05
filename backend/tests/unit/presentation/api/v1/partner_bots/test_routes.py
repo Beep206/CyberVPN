@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 from src.presentation.api.v1.partner_bots import routes as partner_bot_routes
 from src.presentation.api.v1.partner_bots.routes import (
@@ -86,6 +87,32 @@ def _build_bundle(*, status: str = "draft", latest_job_status: str | None = None
 
 async def _allow_workspace_permission(**_kwargs) -> None:
     return None
+
+
+async def _allow_passkey_fresh_auth(**_kwargs) -> None:
+    return None
+
+
+def _request() -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/partner-bots/test/rotate-token",
+            "scheme": "http",
+            "server": ("testserver", 80),
+            "client": ("127.0.0.1", 51234),
+            "headers": [],
+        }
+    )
+
+
+def _admin_realm() -> SimpleNamespace:
+    return SimpleNamespace(
+        auth_realm=SimpleNamespace(id=uuid4()),
+        realm_key="admin",
+        realm_type="admin",
+    )
 
 
 def test_list_partner_bots_serializes_latest_jobs(monkeypatch) -> None:
@@ -367,6 +394,7 @@ def test_rotate_partner_bot_token_returns_queued_job(monkeypatch) -> None:
             return queued_bundle
 
     monkeypatch.setattr(partner_bot_routes, "_require_workspace_permission", _allow_workspace_permission)
+    monkeypatch.setattr(partner_bot_routes, "_enforce_partner_bot_passkey_fresh_auth", _allow_passkey_fresh_auth)
     monkeypatch.setattr(partner_bot_routes, "GetPartnerBotUseCase", FakeGetPartnerBotUseCase)
     monkeypatch.setattr(
         partner_bot_routes,
@@ -378,8 +406,11 @@ def test_rotate_partner_bot_token_returns_queued_job(monkeypatch) -> None:
         rotate_partner_bot_token(
             partner_bot_id=existing_bundle.bot.id,
             payload=RotatePartnerBotTokenRequest(request_payload={"handoff_reference": "bf-001"}),
+            request=_request(),
             current_user=SimpleNamespace(id=uuid4()),
+            current_realm=_admin_realm(),
             db=object(),
+            redis_client=object(),
         )
     )
 

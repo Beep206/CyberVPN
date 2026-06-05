@@ -41,6 +41,8 @@ from tests.integration.test_quote_checkout_sessions import _seed_quote_context
 
 pytestmark = [pytest.mark.integration]
 
+ADMIN_AUTH_HEADERS = {"Host": "admin.cyber-vpn.net"}
+
 
 async def _create_admin_user(sessionmaker, auth_service: AuthService) -> tuple[AdminUserModel, str]:
     password = "GrowthReportsAdmin123!"
@@ -274,13 +276,15 @@ async def test_admin_growth_reporting_endpoints_refresh_overview_and_export(
                     "login_or_email": admin_user.login,
                     "password": admin_password,
                 },
-                headers={"X-Auth-Realm": "admin"},
+                headers=ADMIN_AUTH_HEADERS,
             )
             assert login_response.status_code == 200
-            admin_token = login_response.json()["access_token"]
+            admin_token = async_client.cookies.get("access_token")
+            assert admin_token is not None
             headers = {
                 "Authorization": f"Bearer {admin_token}",
                 "X-Auth-Realm": "admin",
+                **ADMIN_AUTH_HEADERS,
             }
 
             refresh_response = await async_client.post(

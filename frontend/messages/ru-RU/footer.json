@@ -1,5 +1,5 @@
 {
-  "brandDescription": "Публичный B2C VPN-доступ с evidence-gated регионами, ограниченными privacy-claims и наблюдаемыми support recovery paths.",
+  "brandDescription": "Публичный B2C VPN-доступ с регионами, включаемыми только после проверки, ограниченными privacy-обещаниями и наблюдаемыми сценариями восстановления через поддержку.",
   "sections": {
     "product": "Продукт",
     "support": "Поддержка",
@@ -8,31 +8,31 @@
     "stayConnected": "Оставайтесь на связи"
   },
   "knowledgeLinks": {
-    "guides": "Guides",
-    "compare": "Compare",
-    "devices": "Devices",
-    "trust": "Trust center",
-    "audits": "Audits"
+    "guides": "Руководства",
+    "compare": "Сравнение",
+    "devices": "Устройства",
+    "trust": "Центр доверия",
+    "audits": "Аудиты"
   },
   "newsletter": {
-    "description": "Получайте обновления по включённым регионам, support notices и release changes.",
+    "description": "Получайте обновления по включённым регионам, уведомлениям поддержки и изменениям релиза.",
     "prompt": "root@user:~$",
     "placeholder": "enter_email.exe",
     "cta": "INIT"
   },
-  "operationalStatus": "Public release monitoring active; availability remains evidence-bound.",
+  "operationalStatus": "Мониторинг публичного релиза активен; доступность остаётся привязанной к доказательствам.",
   "links": {
-    "features": "Features",
-    "pricing": "Pricing",
+    "features": "Возможности",
+    "pricing": "Цены",
     "servers": "Servers",
-    "download": "Download",
+    "download": "Скачать",
     "api": "API",
     "helpCenter": "Центр помощи",
     "status": "Статус системы",
     "contact": "Контакты",
-    "documentation": "Docs",
+    "documentation": "Документация",
     "privacy": "Политика конфиденциальности",
-    "terms": "Terms of Service",
+    "terms": "Условия использования",
     "acceptableUse": "Правила использования",
     "refundPolicy": "Политика возвратов",
     "cookiePolicy": "Политика cookies",

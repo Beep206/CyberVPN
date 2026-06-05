@@ -2,23 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
-import os
-import subprocess
-import sys
-import textwrap
-from pathlib import Path
-
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from src.presentation.middleware.csrf import CSRFMiddleware, normalize_origin, request_has_auth_cookie
-
-
-def _non_secret_test_value(label: str, length: int = 64) -> str:
-    return hashlib.sha512(f"s1-be-006-{label}".encode()).hexdigest()[:length]
 
 
 @pytest.mark.parametrize(
@@ -169,73 +157,10 @@ async def test_stage1_csrf_allows_safe_methods_without_origin() -> None:
     assert response.status_code == 200
 
 
-def test_stage1_production_app_enforces_csrf_for_cookie_auth_unsafe_requests() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
-    script = textwrap.dedent(
-        """
-        import asyncio
-        import json
-
-        from httpx import ASGITransport, AsyncClient
-
-        from src.main import app
-        from src.presentation.middleware.csrf import CSRFMiddleware
-
-        async def main():
-            middleware_names = [item.cls.__name__ for item in app.user_middleware]
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="https://backend") as client:
-                client.cookies.set("access_token", "token")
-                missing_origin = await client.post("/api/v1/status")
-                approved_origin = await client.post(
-                    "/api/v1/status",
-                    headers={"Origin": "https://cyber-vpn.net"},
-                )
-                bearer = await client.post(
-                    "/api/v1/status",
-                    headers={"Authorization": "Bearer local-token"},
-                )
-            result = {
-                "csrf_middleware_installed": "CSRFMiddleware" in middleware_names,
-                "missing_origin_status": missing_origin.status_code,
-                "approved_origin_status": approved_origin.status_code,
-                "bearer_status": bearer.status_code,
-            }
-            print("S1_BE_006_RESULT=" + json.dumps(result, sort_keys=True))
-
-        assert CSRFMiddleware.__name__ == "CSRFMiddleware"
-        asyncio.run(main())
-        """
-    )
-    env = {
-        **os.environ,
-        "ENVIRONMENT": "production",
-        "RATE_LIMIT_ENABLED": "false",
-        "CORS_ORIGINS": "https://cyber-vpn.net,https://admin.cyber-vpn.net",
-        "COOKIE_DOMAIN": "",
-        "COOKIE_SECURE": "true",
-        "CSRF_PROTECTION_ENABLED": "true",
-        "ADMIN_2FA_REQUIRED": "true",
-        "REMNAWAVE_TOKEN": _non_secret_test_value("remnawave"),
-        "JWT_SECRET": _non_secret_test_value("jwt"),
-        "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
-        "TOTP_ENCRYPTION_KEY": _non_secret_test_value("totp"),
-        "OAUTH_TOKEN_ENCRYPTION_KEY": _non_secret_test_value("oauth"),
-        "OAUTH_ENABLED_LOGIN_PROVIDERS": "",
-        "PYTHONPATH": str(repo_root / "backend"),
-    }
-
-    completed = subprocess.run(  # noqa: S603 - static interpreter/script used for fresh import proof.
-        [sys.executable, "-c", script],
-        cwd=repo_root,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    result_line = next(line for line in completed.stdout.splitlines() if line.startswith("S1_BE_006_RESULT="))
-    result = json.loads(result_line.removeprefix("S1_BE_006_RESULT="))
-
-    assert result == {
+def test_stage1_production_app_enforces_csrf_for_cookie_auth_unsafe_requests(
+    production_app_security_snapshot: dict,
+) -> None:
+    assert production_app_security_snapshot["csrf"] == {
         "approved_origin_status": 405,
         "bearer_status": 405,
         "csrf_middleware_installed": True,
@@ -243,69 +168,10 @@ def test_stage1_production_app_enforces_csrf_for_cookie_auth_unsafe_requests() -
     }
 
 
-def test_stage1_local_stage_app_enforces_csrf_with_approved_loopback_origins() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
-    script = textwrap.dedent(
-        """
-        import asyncio
-        import json
-
-        from httpx import ASGITransport, AsyncClient
-
-        from src.main import app
-
-        async def main():
-            middleware_names = [item.cls.__name__ for item in app.user_middleware]
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://127.0.0.1:18080") as client:
-                client.cookies.set("access_token", "token")
-                approved_origin = await client.post(
-                    "/api/v1/status",
-                    headers={"Origin": "http://127.0.0.1:13001"},
-                )
-                unapproved_origin = await client.post(
-                    "/api/v1/status",
-                    headers={"Origin": "http://127.0.0.1:13002"},
-                )
-            result = {
-                "csrf_middleware_installed": "CSRFMiddleware" in middleware_names,
-                "approved_origin_status": approved_origin.status_code,
-                "unapproved_origin_status": unapproved_origin.status_code,
-            }
-            print("S1_LOCAL_STAGE_CSRF_RESULT=" + json.dumps(result, sort_keys=True))
-
-        asyncio.run(main())
-        """
-    )
-    env = {
-        **os.environ,
-        "ENVIRONMENT": "local-stage",
-        "RATE_LIMIT_ENABLED": "false",
-        "CORS_ORIGINS": "http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000,http://127.0.0.1:13001",
-        "PASSKEY_ENABLED": "true",
-        "PASSKEY_RP_ID": "localhost",
-        "PASSKEY_ALLOWED_ORIGINS": "http://localhost:13000,http://localhost:13001,http://127.0.0.1:13000,http://127.0.0.1:13001",
-        "COOKIE_DOMAIN": "",
-        "COOKIE_SECURE": "false",
-        "CSRF_PROTECTION_ENABLED": "true",
-        "REMNAWAVE_TOKEN": _non_secret_test_value("remnawave"),
-        "JWT_SECRET": _non_secret_test_value("jwt"),
-        "CRYPTOBOT_TOKEN": _non_secret_test_value("cryptobot"),
-        "OAUTH_ENABLED_LOGIN_PROVIDERS": "",
-        "PYTHONPATH": str(repo_root / "backend"),
-    }
-
-    completed = subprocess.run(  # noqa: S603 - static interpreter/script used for fresh import proof.
-        [sys.executable, "-c", script],
-        cwd=repo_root,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    result_line = next(line for line in completed.stdout.splitlines() if line.startswith("S1_LOCAL_STAGE_CSRF_RESULT="))
-    result = json.loads(result_line.removeprefix("S1_LOCAL_STAGE_CSRF_RESULT="))
-
-    assert result == {
+def test_stage1_local_stage_app_enforces_csrf_with_approved_loopback_origins(
+    local_stage_app_security_snapshot: dict,
+) -> None:
+    assert local_stage_app_security_snapshot == {
         "approved_origin_status": 405,
         "csrf_middleware_installed": True,
         "unapproved_origin_status": 403,
